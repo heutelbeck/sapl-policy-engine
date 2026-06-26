@@ -17,25 +17,24 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.BooleanExpression.And;
+import io.sapl.api.model.BooleanExpression.Atom;
+import io.sapl.api.model.BooleanExpression.Or;
+import io.sapl.api.model.*;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.document.Voter;
-import io.sapl.compiler.document.VoteWithCoverage;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.IndexPredicate;
 import io.sapl.compiler.index.dnf.Literal;
+import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.CoverageVoter;
 import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
+import lombok.val;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
 
@@ -68,15 +67,67 @@ public class IndexTestFixtures {
     }
 
     public static CompiledDocument stubDocument(String name) {
-        return new StubDocument(name, Value.TRUE, Vote.abstain(stubMetadata(name)));
+        return stubCompiledPolicy(name, Value.TRUE);
     }
 
     public static CompiledDocument stubDocumentWithApplicability(String name, PureOperator isApplicable) {
-        return new StubDocument(name, isApplicable, Vote.abstain(stubMetadata(name)));
+        return stubCompiledPolicy(name, isApplicable);
     }
 
     public static CompiledDocument stubDocumentWithConstantApplicability(String name, Value isApplicable) {
-        return new StubDocument(name, isApplicable, Vote.abstain(stubMetadata(name)));
+        return stubCompiledPolicy(name, isApplicable);
+    }
+
+    /**
+     * Builds {@code (a OR b) AND (c OR d) AND ...} over {@code conjunctions}
+     * disjunctions of fresh atoms, whose DNF expands to 2^conjunctions clauses.
+     */
+    public static BooleanExpression andOfOrs(int conjunctions) {
+        val groups = new ArrayList<BooleanExpression>(conjunctions);
+        for (int i = 0; i < conjunctions; i++) {
+            groups.add(new Or(atom(2L * i + 1), atom(2L * i + 2)));
+        }
+        return new And(groups);
+    }
+
+    public static CompiledDocument documentWithApplicability(String name, BooleanExpression expression) {
+        return stubDocumentWithApplicability(name, operatorReturning(expression));
+    }
+
+    private static PureOperator operatorReturning(BooleanExpression expression) {
+        return new PureOperator() {
+            @Override
+            public Value evaluate(EvaluationContext ctx) {
+                return Value.TRUE;
+            }
+
+            @Override
+            public SourceLocation location() {
+                return TEST_LOCATION;
+            }
+
+            @Override
+            public boolean isDependingOnSubscription() {
+                return true;
+            }
+
+            @Override
+            public long semanticHash() {
+                return expression.hashCode();
+            }
+
+            @Override
+            public BooleanExpression booleanExpression() {
+                return expression;
+            }
+        };
+    }
+
+    private static CompiledPolicy stubCompiledPolicy(String name, CompiledExpression isApplicable) {
+        val metadata      = stubMetadata(name);
+        val voter         = Vote.abstain(metadata);
+        val coverageVoter = new CoverageVoter.Lazy(List.of(), voter, metadata);
+        return new CompiledPolicy(isApplicable, voter, voter, coverageVoter, metadata);
     }
 
     static VoterMetadata stubMetadata(String name) {
@@ -154,23 +205,6 @@ public class IndexTestFixtures {
                 return hash;
             }
         };
-    }
-
-    private record StubDocument(String name, CompiledExpression isApplicable, Voter voter) implements CompiledDocument {
-        @Override
-        public VoterMetadata metadata() {
-            return stubMetadata(name);
-        }
-
-        @Override
-        public Voter applicabilityAndVote() {
-            return voter;
-        }
-
-        @Override
-        public Flux<VoteWithCoverage> coverage() {
-            return Flux.empty();
-        }
     }
 
 }

@@ -29,6 +29,7 @@ import org.mockito.Mockito;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
@@ -45,11 +46,8 @@ class TemporalFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new TemporalFunctionLibrary())).doesNotThrowAnyException();
     }
-
-    /* ######## INSTANT MANIPULATION TESTS ######## */
 
     @Test
     void whenPlusNanosMillisSecondsThenAddsCorrectTime() {
@@ -72,8 +70,6 @@ class TemporalFunctionLibraryTests {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.minusSeconds(time, Value.of(10L)))
                 .isEqualTo(Value.of("2021-11-08T12:59:50Z"));
     }
-
-    /* ######## DATE ARITHMETIC TESTS ######## */
 
     @Test
     void whenPlusDaysMonthsYearsThenAddsCorrectDate() {
@@ -113,14 +109,35 @@ class TemporalFunctionLibraryTests {
                 Value.of(10))).isEqualTo(Value.of("2020-12-26T13:00:00Z"));
     }
 
-    /* ######## CALENDAR TESTS ######## */
-
     @Test
     void whenCalendarFunctionsThenReturnsCorrectValues() {
         final var time = timeValOf("2021-11-08T13:00:00Z");
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.dayOfWeek(time)).isEqualTo(Value.of("MONDAY"));
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.dayOfYear(time)).isEqualTo(Value.of(312));
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.weekOfYear(time)).isEqualTo(Value.of(45));
+    }
+
+    @Test
+    void whenWeekOfYearAtYearBoundaryThenReturnsIsoWeek() {
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.weekOfYear(timeValOf("2021-01-01T00:00:00Z")))
+                .isEqualTo(Value.of(53));
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.weekOfYear(timeValOf("2020-12-31T00:00:00Z")))
+                .isEqualTo(Value.of(53));
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.weekOfYear(timeValOf("2026-01-01T00:00:00Z")))
+                .isEqualTo(Value.of(1));
+    }
+
+    @Test
+    void whenDurationOfOverflowsThenReturnsError() {
+        final var huge = Value.of(Long.MAX_VALUE);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfDays(huge))
+                .isInstanceOf(ErrorValue.class);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfHours(huge))
+                .isInstanceOf(ErrorValue.class);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfMinutes(huge))
+                .isInstanceOf(ErrorValue.class);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfSeconds(huge))
+                .isInstanceOf(ErrorValue.class);
     }
 
     @Test
@@ -172,8 +189,6 @@ class TemporalFunctionLibraryTests {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.after(later, earlier)).isEqualTo(Value.TRUE);
     }
 
-    /* ######## EXTRACT PARTS TESTS ######## */
-
     @Test
     void whenExtractPartsThenReturnsCorrectComponents() {
         final var time = timeValOf("2021-11-08T13:17:23Z");
@@ -193,8 +208,6 @@ class TemporalFunctionLibraryTests {
                 .isEqualTo(Value.of("13:00:00"));
     }
 
-    /* ######## EPOCH TESTS ######## */
-
     @Test
     void whenEpochConversionThenConvertsCorrectly() {
         final var time = timeValOf("2021-11-08T13:00:00Z");
@@ -208,8 +221,6 @@ class TemporalFunctionLibraryTests {
                 .isEqualTo(Value.of("2021-11-08T13:00:00Z"));
     }
 
-    /* ######## DURATION TESTS ######## */
-
     @Test
     void whenDurationConversionThenConvertsToMillis() {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfSeconds(Value.of(60)))
@@ -221,8 +232,6 @@ class TemporalFunctionLibraryTests {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfDays(Value.of(1)))
                 .isEqualTo(Value.of(86_400_000L));
     }
-
-    /* ######## VALIDATION TESTS ######## */
 
     @Test
     void whenValidUtcThenValidatesCorrectly() {
@@ -251,8 +260,6 @@ class TemporalFunctionLibraryTests {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.validRFC3339(Value.of("")))
                 .isEqualTo(Value.FALSE);
     }
-
-    /* ######## TEMPORAL BOUNDS TESTS ######## */
 
     @Test
     void whenStartEndOfDayThenReturnsBoundaries() {
@@ -291,8 +298,6 @@ class TemporalFunctionLibraryTests {
                 .isEqualTo(Value.of("2021-12-31T23:59:59.999999999Z"));
     }
 
-    /* ######## TEMPORAL ROUNDING TESTS ######## */
-
     @Test
     void whenTruncateThenRoundsToSpecifiedUnit() {
         final var time = timeValOf("2021-11-08T13:45:30.123Z");
@@ -308,8 +313,6 @@ class TemporalFunctionLibraryTests {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.truncateToYear(time))
                 .isEqualTo(Value.of("2021-01-01T00:00:00Z"));
     }
-
-    /* ######## ISO DURATION TESTS ######## */
 
     @Test
     void whenDurationFromIsoThenParsesCorrectly() {
@@ -356,8 +359,6 @@ class TemporalFunctionLibraryTests {
                 .isEqualTo(Value.of("PT0S"));
     }
 
-    /* ######## TIMEZONE CONVERSION TESTS ######## */
-
     @Test
     void whenToZoneThenConvertsTimezone() {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.toZone(timeValOf("2021-11-08T13:00:00Z"),
@@ -373,8 +374,6 @@ class TemporalFunctionLibraryTests {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.toOffset(timeValOf("2021-11-08T13:00:00Z"),
                 Value.of("+00:00"))).isEqualTo(Value.of("2021-11-08T13:00:00Z"));
     }
-
-    /* ######## AGE CALCULATION TESTS ######## */
 
     @Test
     void whenAgeInYearsThenCalculatesCorrectly() {
@@ -396,11 +395,9 @@ class TemporalFunctionLibraryTests {
                 Value.of("2021-02-01"))).isEqualTo(Value.of(13L));
     }
 
-    /* ######## DATE/TIME CONVERSION TESTS ######## */
-
     @Test
     void whenLocalConversionThenConvertsToUtc() {
-        final var ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
+        final var ldt = LocalDateTime.of(2021, Month.NOVEMBER, 8, 13, 0, 0);
         final var zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.localIso(Value.of("2021-11-08T13:00:00")))
                 .isEqualTo(Value.of(zdt.toInstant().toString()));
@@ -442,8 +439,6 @@ class TemporalFunctionLibraryTests {
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.dateTimeAtZone(Value.of("2021-11-08T13:12:35"),
                 Value.of("EST"))).isEqualTo(Value.of("2021-11-08T18:12:35Z"));
     }
-
-    /* ######## ERROR HANDLING TESTS ######## */
 
     @Test
     void whenInvalidInputProvidedThenReturnsError() {

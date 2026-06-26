@@ -20,7 +20,6 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
@@ -28,11 +27,8 @@ import lombok.val;
 
 import java.util.List;
 
-import static io.sapl.compiler.combining.CombiningUtils.appendToList;
-import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
-import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
-import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
-import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
+import static io.sapl.ast.Outcome.combine;
+import static io.sapl.compiler.combining.CombiningUtils.*;
 
 /**
  * Combines multiple policy votes using unanimous semantics.
@@ -41,21 +37,22 @@ import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
  * <ul>
  * <li><b>Zero applicable:</b> Returns NOT_APPLICABLE</li>
  * <li><b>All agree:</b> Returns merged decision with combined constraints</li>
- * <li><b>Disagreement:</b> Returns INDETERMINATE(PERMIT_OR_DENY)</li>
+ * <li><b>Disagreement:</b> Returns INDETERMINATE</li>
  * </ul>
  * <p>
  * Supports two modes:
  * <ul>
- * <li><b>Normal mode:</b> Agreement on entitlement (PERMIT/DENY), constraints
- * merged</li>
- * <li><b>Strict mode:</b> Exact equality required (decision + all
- * constraints)</li>
+ * <li><b>Normal mode:</b> Agreement on effect (PERMIT/DENY). Constraints are
+ * merged, but two agreeing votes that define different resource transformations
+ * yield INDETERMINATE (transformation uncertainty)</li>
+ * <li><b>Strict mode:</b> Exact equality required (decision, obligations,
+ * advice, and resource). Any difference yields INDETERMINATE</li>
  * </ul>
  */
 @UtilityClass
 public class UnanimousVoteCombiner {
 
-    private static final String ERROR_ENTITLEMENT_DISAGREEMENT   = "Policies disagree on entitlement during unanimous combining.";
+    private static final String ERROR_EFFECT_DISAGREEMENT        = "Policies disagree on effect during unanimous combining.";
     private static final String ERROR_NOT_IDENTICAL              = "Policies are not identical during strict unanimous combining.";
     private static final String ERROR_TRANSFORMATION_UNCERTAINTY = "Transformation uncertainty: multiple policies define different resource transformations.";
 
@@ -66,8 +63,8 @@ public class UnanimousVoteCombiner {
      *
      * @param votes the votes to combine (may be empty)
      * @param voterMetadata metadata for the combined vote
-     * @param strictMode if true, requires exact equality; if false, only
-     * entitlement agreement
+     * @param strictMode if true, requires exact equality. If false, only
+     * effect agreement
      * @return combined vote, or abstain if input is empty
      */
     public static Vote combineMultipleVotes(List<Vote> votes, VoterMetadata voterMetadata, boolean strictMode) {
@@ -95,8 +92,8 @@ public class UnanimousVoteCombiner {
      * @param accumulator the existing accumulator to fold into
      * @param votes the votes to combine into the accumulator
      * @param voterMetadata metadata for the combined vote
-     * @param strictMode if true, requires exact equality; if false, only
-     * entitlement agreement
+     * @param strictMode if true, requires exact equality. If false, only
+     * effect agreement
      * @return combined vote
      */
     public static Vote combineMultipleVotes(Vote accumulator, List<Vote> votes, VoterMetadata voterMetadata,
@@ -119,8 +116,7 @@ public class UnanimousVoteCombiner {
      * @return accumulator vote containing the original as a contributing vote
      */
     public static Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
-                voterMetadata, vote.outcome());
+        return new Vote(vote.authorizationDecision(), vote.errors(), List.of(vote), voterMetadata, vote.outcome());
     }
 
     /**
@@ -140,6 +136,11 @@ public class UnanimousVoteCombiner {
      * INDETERMINATE    | any             | INDETERMINATE
      * any              | INDETERMINATE   | INDETERMINATE
      * </pre>
+     * <p>
+     * In normal mode, two votes with the same effect but conflicting resource
+     * transformations also yield INDETERMINATE (transformation uncertainty). In
+     * strict mode the merge requires exact equality of decision, obligations,
+     * advice, and resource. Any difference yields INDETERMINATE.
      *
      * @param accumulatorVote the accumulated result
      * @param newVote the new vote to incorporate
@@ -157,8 +158,13 @@ public class UnanimousVoteCombiner {
         // INDETERMINATE propagates
         if (accDec == Decision.INDETERMINATE || newDec == Decision.INDETERMINATE) {
             val source = accDec == Decision.INDETERMINATE ? accumulatorVote : newVote;
-            return indeterminateResult(combineOutcomes(accumulatorVote.outcome(), newVote.outcome()), source.errors(),
-                    contributingVotes, voterMetadata);
+            // A NOT_APPLICABLE side carries its voter's potential effect, which is
+            // not a could-have-been of this INDETERMINATE result. Folding it in
+            // would inflate the outcome and spuriously raise criticality upstream,
+            // so take only the INDETERMINATE source's outcome (as UniqueVoteCombiner does).
+            val outcome = (accDec == Decision.NOT_APPLICABLE || newDec == Decision.NOT_APPLICABLE) ? source.outcome()
+                    : combineOutcomes(accumulatorVote.outcome(), newVote.outcome());
+            return indeterminateResult(outcome, source.errors(), contributingVotes, voterMetadata);
         }
 
         // Both NOT_APPLICABLE
@@ -190,13 +196,17 @@ public class UnanimousVoteCombiner {
         val accDec   = accAuthz.decision();
         val newDec   = newAuthz.decision();
 
-        // Disagreement on entitlement
+        // Disagreement on effect produces an INDETERMINATE result. The
+        // multi-bit outcome captures both effects as the would-have-been set.
         if (accDec != newDec) {
-            val error = Value.error(ERROR_ENTITLEMENT_DISAGREEMENT);
-            return indeterminateResult(Outcome.PERMIT_OR_DENY, List.of(error), contributingVotes, voterMetadata);
+            val error   = Value.error(ERROR_EFFECT_DISAGREEMENT);
+            val outcome = combine(decisionToOutcome(accDec), decisionToOutcome(newDec));
+            return indeterminateResult(outcome, List.of(error), contributingVotes, voterMetadata);
         }
 
-        // Same entitlement - check transformation uncertainty
+        // Same effect - check transformation uncertainty. Single-bit outcome
+        // (the agreed decision) for both the concrete merge result and the
+        // transformation-uncertainty INDETERMINATE result.
         val resourceA = accAuthz.resource();
         val resourceB = newAuthz.resource();
         val outcome   = decisionToOutcome(accDec);
@@ -220,10 +230,11 @@ public class UnanimousVoteCombiner {
                     decisionToOutcome(accAuthz.decision()));
         }
 
-        // Not identical
+        // Not identical produces an INDETERMINATE. The outcome captures the
+        // union of both effects (single-bit when decisions match, multi-bit
+        // when they differ).
         val error   = Value.error(ERROR_NOT_IDENTICAL);
-        val outcome = accAuthz.decision() == newAuthz.decision() ? decisionToOutcome(accAuthz.decision())
-                : Outcome.PERMIT_OR_DENY;
+        val outcome = combine(decisionToOutcome(accAuthz.decision()), decisionToOutcome(newAuthz.decision()));
         return indeterminateResult(outcome, List.of(error), contributingVotes, voterMetadata);
     }
 
@@ -240,8 +251,9 @@ public class UnanimousVoteCombiner {
         if (strictMode) {
             return true;
         }
-        // In normal mode, only PERMIT_OR_DENY outcome is terminal (disagreement)
-        return vote.outcome() == Outcome.PERMIT_OR_DENY;
+        // In normal mode, terminal once the outcome carries multi-effect disagreement
+        // that no further single-effect contribution can collapse.
+        return vote.outcome().isAmbiguous();
     }
 
 }

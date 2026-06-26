@@ -2,7 +2,7 @@
 # SAPL Node Configuration
 #
 # This file configures the SAPL Node with safe, functional defaults.
-# The node starts on localhost:8443 without TLS and without authentication,
+# The node starts on localhost:8080 without TLS and without authentication,
 # serving deny-by-default decisions. Drop .sapl files in the current
 # directory to start making authorization decisions.
 #
@@ -15,12 +15,22 @@
 
 spring:
   application.name: sapl
+  # Per-request HTTP observation adds ~6% CPU on the bypass servlet path.
+  # Remove this exclude to enable HTTP request metrics for ops dashboards.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.webmvc.autoconfigure.WebMvcObservationAutoConfiguration
+  threads:
+    virtual:
+      enabled: true
   config:
     import: optional:classpath:git.properties
   cache:
     type: caffeine
     caffeine:
-      spec: maximumSize=1000,expireAfterWrite=1h,recordStats
+      # expireAfterWrite is the auth revocation SLA: a revoked API key keeps working until its
+      # cache entry expires. 5m matches io.sapl.node.http.auth-cache.positive-ttl so both stacks agree.
+      spec: maximumSize=1000,expireAfterWrite=5m,recordStats
     cache-names:
       - ApiKeyCache
       - buckets
@@ -33,9 +43,11 @@ spring:
 
 server:
   address: 127.0.0.1
-  port: 8443
-  http2:
-    enabled: true
+  port: 8080
+  jetty:
+    threads:
+      # Default 200 queues under high-RPS load on multi-core hosts.
+      max: 512
   ssl:
     enabled: false
     # Uncomment and configure to enable TLS:
@@ -44,6 +56,13 @@ server:
     # key-store-password: changeme
     # key-password: changeme
     # key-alias: sapl-node
+    #
+    # The cipher list and protocol settings below are inactive while
+    # ssl.enabled is false. They are kept here so that flipping
+    # ssl.enabled to true yields a known-good baseline.
+    # The cipher set originates from a Qualys SSL Labs audit of a
+    # running SAPL Node and is more than two years old at the time of
+    # writing. Re-audit before relying on it in a fresh deployment.
     ciphers:
       - TLS_AES_128_GCM_SHA256
       - TLS_AES_256_GCM_SHA384
@@ -71,14 +90,17 @@ server:
 # --- Client Authentication ---
 #
 # The node supports four authentication modes. Multiple can be enabled
-# simultaneously. With no authentication required (allow-no-auth: true),
-# the node is functional out of the box on localhost.
+# simultaneously. By default the node ships with all four modes disabled
+# (fail-closed) and refuses to start until at least one is configured.
 #
-# WARNING: Enable authentication before exposing the node to a network.
+# For local exploration, set `allow-no-auth: true` to accept unauthenticated
+# requests against the default PDP. Production deployments configure one or
+# more of `allow-basic-auth`, `allow-api-key-auth`, `allow-oauth2-auth` and
+# the corresponding credentials.
 
 io.sapl:
   node:
-    allow-no-auth: true
+    allow-no-auth: false
     allow-basic-auth: false
     allow-api-key-auth: false
     allow-oauth2-auth: false
@@ -90,6 +112,13 @@ io.sapl:
     # OAuth2 settings (only relevant if allow-oauth2-auth is true)
     # oauth:
     #   pdp-id-claim: "sapl_pdp_id"
+
+    # Scalar OAuth2 client id (optional). When set, the Scalar Authorize
+    # dialog presents this id as the suggested OIDC client. Independent
+    # of whether OAuth2 is enabled server-side; effective only when
+    # allow-oauth2-auth is true.
+    # scalar:
+    #   oauth-client-id: "sapl-node-scalar"
 
     # User entries for Basic Auth and API Key authentication.
     # Each user is associated with a pdp-id for multi-tenant routing.
@@ -107,7 +136,16 @@ io.sapl:
     #
     #   - id: "my-apikey-client"
     #     pdp-id: "default"
+    #     api-key-id: "<10-char-id-from-generator>"
     #     api-key: "$argon2id$..."
+
+    # --- Keep-Alive ---
+    #
+    # Interval in seconds between keep-alive comment frames on idle SSE
+    # streams. Prevents proxies and firewalls from dropping inactive
+    # connections and lets the server detect clients that drop without
+    # closing. Always on; default 15 seconds (values below 1 are raised).
+    keep-alive: 15
 
   # --- PDP Policy Source ---
   #
@@ -171,6 +209,27 @@ io.sapl:
     #   # auth-header-value: "Bearer <token>"
     #   # follow-redirects: true
 
+# --- API Documentation (Scalar UI on top of springdoc-generated OpenAPI) ---
+
+springdoc:
+  show-actuator: true
+  paths-to-exclude:
+    - /
+    - /scalar
+    - /scalar/**
+
+scalar:
+  url: /v3/api-docs
+  page-title: SAPL Node API
+  favicon: /favicon.png
+  show-developer-tools: never
+  # SAPL theme is loaded from classpath:static/css/sapl-scalar-theme.css
+  # and applied per request via ScalarConfiguration#scalarWebMvcController.
+  with-default-fonts: false
+  # disable Ask AI in scalar
+  agent:
+    disabled: true
+
 # --- OAuth2 Resource Server ---
 #
 # Required when allow-oauth2-auth is true.
@@ -190,21 +249,21 @@ io.sapl:
 # --- RSocket (Protobuf) ---
 #
 # High-performance binary transport using RSocket with protobuf serialization.
-# Disabled by default. Enable for applications that need lower latency than
-# HTTP/JSON. Clients connect via RemotePolicyDecisionPoint.builder().rsocket().
+# Enabled by default, listening on 127.0.0.1:7000. Clients connect via
+# RemotePolicyDecisionPoint.builder().rsocket(). Disable explicitly when the
+# endpoint is unused, for example in container layouts that publish only the
+# HTTP/JSON port.
+#
+# Like server.address, the RSocket transport binds to 127.0.0.1 by default so
+# the cleartext protobuf endpoint is not reachable from other hosts out of the
+# box. To accept remote connections, set sapl.pdp.rsocket.address to 0.0.0.0 (or
+# a specific interface) and enable TLS via sapl.pdp.rsocket.ssl.bundle. The
+# docker profile sets the address to 0.0.0.0 so the container is reachable.
 #
 # sapl.pdp.rsocket:
-#   enabled: true
+#   enabled: false
+#   address: 127.0.0.1
 #   port: 7000
-#   max-connection-lifetime: 24h  # optional hard cap for non-JWT connections
-
-# --- Keep-Alive ---
-#
-# Interval in seconds between keep-alive frames on idle connections.
-# Prevents firewalls from dropping inactive TCP connections.
-# Default 0 disables keep-alive.
-#
-# io.sapl.node.keep-alive: 15
 
 # --- Rate Limiting ---
 
@@ -213,7 +272,7 @@ bucket4j:
   filters:
     - id: filter1
       cache-name: buckets
-      filter-method: webflux
+      filter-method: servlet
       url: .*
       http-content-type: application/json;charset=UTF-8
       filter-order: 1
@@ -247,5 +306,11 @@ management:
 logging.level:
   "[io.sapl]": INFO
   "[org.springframework]": INFO
-  # Suppress unavoidable warning in GraalVM native images (no-op on HotSpot)
+  # GraalVM native image emits a one-shot WARN from this binder about
+  # unavailable GC notification listeners. Set to ERROR here so the
+  # native build is quiet. Verified no-op on HotSpot (this binder does
+  # not log at INFO/WARN there today). If a future micrometer version
+  # starts logging meaningful WARN/INFO from this binder on JVM, lift
+  # this filter or move it under a native-only profile.
   "[io.micrometer.core.instrument.binder.jvm.JvmGcMetrics]": ERROR
+  "[org.springdoc.api.AbstractOpenApiResource]": WARN

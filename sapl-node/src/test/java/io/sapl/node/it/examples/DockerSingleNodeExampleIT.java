@@ -73,7 +73,7 @@ class DockerSingleNodeExampleIT extends BaseIntegrationTest {
             container.start();
 
             val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                    .basicAuth(EXAMPLE_BASIC_USERNAME, EXAMPLE_BASIC_SECRET).build();
+                    .basicAuth(EXAMPLE_BASIC_USERNAME, EXAMPLE_BASIC_SECRET).allowInsecureTransport().build();
             val subscription = AuthorizationSubscription.of("user", "read", "document");
 
             StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
@@ -88,7 +88,7 @@ class DockerSingleNodeExampleIT extends BaseIntegrationTest {
             container.start();
 
             val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                    .basicAuth(EXAMPLE_BASIC_USERNAME, EXAMPLE_BASIC_SECRET).build();
+                    .basicAuth(EXAMPLE_BASIC_USERNAME, EXAMPLE_BASIC_SECRET).allowInsecureTransport().build();
             val subscription = AuthorizationSubscription.of("user", "delete", "secret");
 
             StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()

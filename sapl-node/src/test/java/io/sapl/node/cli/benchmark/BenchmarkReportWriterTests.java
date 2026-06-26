@@ -39,7 +39,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("computes mean, median, stddev, min, max from iteration data")
-        void whenFromIterations_thenStatisticsCorrect() {
+        void whenFromIterationsThenStatisticsCorrect() {
             val result = BenchmarkResult.fromIterations("decideOnceBlocking", 4, SAMPLE_DATA);
             assertThat(result).satisfies(r -> {
                 assertThat(r.method()).isEqualTo("decideOnceBlocking");
@@ -56,7 +56,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("handles single iteration")
-        void whenSingleIteration_thenAllFieldsEqual() {
+        void whenSingleIterationThenAllFieldsEqual() {
             val result = BenchmarkResult.fromIterations("test", 1, List.of(5000.0));
             assertThat(result).satisfies(r -> {
                 assertThat(r.mean()).isEqualTo(5000.0);
@@ -70,7 +70,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("handles empty iteration list")
-        void whenEmpty_thenAllZeros() {
+        void whenEmptyThenAllZeros() {
             val result = BenchmarkResult.fromIterations("test", 1, List.of());
             assertThat(result).satisfies(r -> {
                 assertThat(r.mean()).isZero();
@@ -86,7 +86,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("contains methodology section with policy source")
-        void whenEmbedded_thenMethodologyContainsPolicySource() {
+        void whenEmbeddedThenMethodologyContainsPolicySource() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA));
             val ctx     = new BenchmarkContext("{}", null, "/tmp/policies", "DIRECTORY");
             val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1), null, true, false, null, null,
@@ -98,7 +98,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("contains results table with statistics")
-        void whenResults_thenTableContainsAllColumns() {
+        void whenResultsThenTableContainsAllColumns() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA));
             val ctx     = new BenchmarkContext("{}", null, "/tmp", "DIRECTORY");
             val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1), null, true, false, null, null,
@@ -110,7 +110,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("contains latency section derived from throughput")
-        void whenResults_thenLatencyTablePresent() {
+        void whenResultsThenLatencyTablePresent() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA));
             val ctx     = new BenchmarkContext("{}", null, "/tmp", "DIRECTORY");
             val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(1), null, true, false, null, null,
@@ -121,7 +121,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("contains scaling table when multiple thread counts present")
-        void whenMultipleThreads_thenScalingTablePresent() {
+        void whenMultipleThreadsThenScalingTablePresent() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, List.of(10000.0)),
                     BenchmarkResult.fromIterations("decideOnceBlocking", 4, List.of(35000.0)));
             val ctx     = new BenchmarkContext("{}", null, "/tmp", "DIRECTORY");
@@ -139,7 +139,7 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("contains header row and data rows")
-        void whenResults_thenCsvHasHeaderAndData() {
+        void whenResultsThenCsvHasHeaderAndData() {
             val results = List.of(BenchmarkResult.fromIterations("decideOnceBlocking", 1, SAMPLE_DATA),
                     BenchmarkResult.fromIterations("decideOnceReactive", 1, SAMPLE_DATA));
             val csv     = BenchmarkReportWriter.buildCsv(results);
@@ -152,10 +152,42 @@ class BenchmarkReportWriterTests {
 
         @Test
         @DisplayName("includes derived latency column")
-        void whenCsv_thenContainsNsPerOp() {
+        void whenCsvThenContainsNsPerOp() {
             val results = List.of(BenchmarkResult.fromIterations("test", 1, List.of(1000000.0)));
             val csv     = BenchmarkReportWriter.buildCsv(results);
             assertThat(csv).contains("mean_ns_op").contains("1000.00");
+        }
+
+        @Test
+        @DisplayName("derives per-request latency using thread count (Little's Law)")
+        void whenMultiThreadedThenCsvMeanNsPerOpIncludesThreadFactor() {
+            val results = List.of(BenchmarkResult.fromIterations("test", 4, List.of(1000000.0)));
+            val csv     = BenchmarkReportWriter.buildCsv(results);
+            // Little's Law: latency = threads / throughput = 4 / 1e6 ops/s = 4000 ns.
+            // Without the thread factor this would render the wrong 1000.00 ns.
+            assertThat(csv).contains(",4000.00,").doesNotContain(",1000.00,");
+        }
+
+        @Test
+        @DisplayName("CSV mean_ns_op agrees with Markdown Little's Law derived latency")
+        void whenMultiThreadedThenCsvAndMarkdownDerivedLatencyAgree() {
+            val results = List.of(BenchmarkResult.fromIterations("test", 4, List.of(1000000.0)));
+            val ctx     = new BenchmarkContext("{}", null, "/tmp", "DIRECTORY");
+            val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(4), null, true, false, null, null,
+                    "20260323-120000");
+            val csv     = BenchmarkReportWriter.buildCsv(results);
+            val md      = BenchmarkReportWriter.buildMarkdown(results, ctx, cfg, "timing loop");
+            assertThat(csv).contains(",4000.00,");
+            assertThat(md).contains("4000");
+        }
+
+        @Test
+        @DisplayName("load test CSV derives per-request latency using thread count")
+        void whenMultiThreadedThenLoadtestCsvMeanNsPerOpIncludesThreadFactor() {
+            val results = List.of(BenchmarkResult.fromIterations("test", 4, List.of(1000000.0)));
+            val ctx     = LoadtestContext.http("http://localhost", 4, 1, 5, "20260323-120000", null);
+            val csv     = BenchmarkReportWriter.buildLoadtestCsv(results, ctx);
+            assertThat(csv).contains(",4000.00,").doesNotContain(",1000.00,");
         }
 
     }

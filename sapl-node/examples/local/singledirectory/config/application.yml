@@ -30,8 +30,9 @@ io.sapl:
     allow-api-key-auth: true
     allow-oauth2-auth: false
     reject-on-missing-pdp-id: false
-    # Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
-    # is dropped by a firewall or other network components. The default value 0 disables keep-alive messages.
+    # Interval in seconds between keep-alive frames on idle SSE streaming connections. Prevents proxies and firewalls
+    # from dropping inactive connections and lets the server detect clients that drop without closing. Always on;
+    # default 15 seconds. Keep it below the smallest proxy idle timeout on the path.
     # keep-alive: 15
     default-pdp-id: "default"
     oauth:
@@ -48,11 +49,13 @@ io.sapl:
       - id: "demo-apikey-client-1"
         pdp-id: "default"
         # API key plaintext: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
+        api-key-id: "7A7ByyQd6U"
         api-key: "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM"
 
       - id: "demo-apikey-client-2"
         pdp-id: "default"
         # API key plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+        api-key-id: "oCR3QQ8fhD"
         api-key: "$argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k"
 
 spring.security.oauth2:

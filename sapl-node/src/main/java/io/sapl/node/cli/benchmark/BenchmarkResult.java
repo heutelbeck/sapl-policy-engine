@@ -129,7 +129,9 @@ public record BenchmarkResult(
 
     private static double tCritical95(int degreesOfFreedom) {
         if (degreesOfFreedom <= 0) {
-            return 0.0;
+            // NaN propagates through downstream arithmetic so a zero-data CI is visible
+            // rather than being silently rendered as +/-0.
+            return Double.NaN;
         }
         if (degreesOfFreedom <= T_CRITICAL_95.length) {
             return T_CRITICAL_95[degreesOfFreedom - 1];

@@ -89,8 +89,10 @@ class BundlesExampleIT extends BaseIntegrationTest {
                 .withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true").withEnv("IO_SAPL_NODE_REJECTONMISSINGPDPID", "false")
                 .withEnv("IO_SAPL_NODE_DEFAULTPDPID", "default").withEnv("IO_SAPL_NODE_USERS_0_ID", "production-client")
                 .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "production")
+                .withEnv("IO_SAPL_NODE_USERS_0_APIKEYID", "7A7ByyQd6U")
                 .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", PRODUCTION_API_KEY_ENCODED)
                 .withEnv("IO_SAPL_NODE_USERS_1_ID", "staging-client").withEnv("IO_SAPL_NODE_USERS_1_PDPID", "staging")
+                .withEnv("IO_SAPL_NODE_USERS_1_APIKEYID", "oCR3QQ8fhD")
                 .withEnv("IO_SAPL_NODE_USERS_1_APIKEY", STAGING_API_KEY_ENCODED).withEnv("SERVER_SSL_ENABLED", "false");
     }
 
@@ -120,7 +122,7 @@ class BundlesExampleIT extends BaseIntegrationTest {
                 container.start();
 
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .apiKey(PRODUCTION_API_KEY).build();
+                        .apiKey(PRODUCTION_API_KEY).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("admin", "read", "data");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
@@ -135,7 +137,7 @@ class BundlesExampleIT extends BaseIntegrationTest {
                 container.start();
 
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .apiKey(PRODUCTION_API_KEY).build();
+                        .apiKey(PRODUCTION_API_KEY).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("admin", "delete", "database");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
@@ -150,7 +152,7 @@ class BundlesExampleIT extends BaseIntegrationTest {
                 container.start();
 
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .apiKey(STAGING_API_KEY).build();
+                        .apiKey(STAGING_API_KEY).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("alice", "read", "document");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
@@ -178,7 +180,7 @@ class BundlesExampleIT extends BaseIntegrationTest {
                 container.start();
 
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .apiKey(PRODUCTION_API_KEY).build();
+                        .apiKey(PRODUCTION_API_KEY).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("admin", "read", "data");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.INDETERMINATE)
@@ -200,7 +202,7 @@ class BundlesExampleIT extends BaseIntegrationTest {
                 container.start();
 
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .apiKey(STAGING_API_KEY).build();
+                        .apiKey(STAGING_API_KEY).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("alice", "read", "document");
 
                 StepVerifier.create(pdp.decide(subscription))

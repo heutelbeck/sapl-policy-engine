@@ -32,7 +32,7 @@ const readOnlyCompartment = new Compartment();
 const bracketMatchingCompartment = new Compartment();
 const closeBracketsCompartment = new Compartment();
 
-// SAPL light theme — WCAG AA compliant, brand-aligned colors
+// SAPL light theme. WCAG AA compliant, brand-aligned colors
 const saplLightHighlightStyle = HighlightStyle.define([
     { tag: tags.keyword, color: '#027080' },
     { tag: tags.variableName, color: '#0070c1' },
@@ -108,7 +108,7 @@ const lspFoldService = foldService.of((state, lineStart, lineEnd) => {
 });
 
 // Simple SAPL syntax highlighting (fallback when LSP not ready)
-// SAPL syntax highlighting — aligned with SAPLLexer.g4
+// SAPL syntax highlighting aligned with SAPLLexer.g4
 const saplLanguage = StreamLanguage.define({
     token(stream) {
         if (stream.match(/\/\/.*/)) return 'comment';
@@ -127,7 +127,7 @@ const saplLanguage = StreamLanguage.define({
     }
 });
 
-// SAPLTest syntax highlighting — aligned with SAPLTestLexer.g4
+// SAPLTest syntax highlighting aligned with SAPLTestLexer.g4
 const saplTestLanguage = StreamLanguage.define({
     token(stream) {
         if (stream.match(/\/\/.*/)) return 'comment';

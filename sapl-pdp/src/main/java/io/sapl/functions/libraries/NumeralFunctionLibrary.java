@@ -23,7 +23,6 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -31,7 +30,6 @@ import java.math.BigDecimal;
 /**
  * Numeric base conversion for authorization policies.
  */
-@UtilityClass
 @FunctionLibrary(name = NumeralFunctionLibrary.NAME, description = NumeralFunctionLibrary.DESCRIPTION, libraryDocumentation = NumeralFunctionLibrary.DOCUMENTATION)
 public class NumeralFunctionLibrary {
 
@@ -127,12 +125,23 @@ public class NumeralFunctionLibrary {
                 var permissions = numeral.fromOctal(permString);
                 bitwise.bitwiseAnd(permissions, 4) == 4;
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `toHexPadded`, `toBinaryPadded`, and `toOctalPadded` reject a width above 256 characters, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String ERROR_CANNOT_PARSE_EMPTY_STRING = "Cannot parse empty %s string.";
     private static final String ERROR_INVALID_STRING            = "Invalid %s string: %s";
     private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE = "NumberValue out of range.";
+    private static final String ERROR_WIDTH_EXCEEDS_MAXIMUM     = "Width must not exceed %d.";
     private static final String ERROR_WIDTH_MUST_BE_POSITIVE    = "Width must be positive.";
+
+    private static final int MAX_PAD_WIDTH_CHARS = 256;
 
     private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
     private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
@@ -708,6 +717,9 @@ public class NumeralFunctionLibrary {
         val w = width.value();
         if (w.compareTo(BigDecimal.valueOf(1)) < 0) {
             return Value.error(ERROR_WIDTH_MUST_BE_POSITIVE);
+        }
+        if (w.compareTo(BigDecimal.valueOf(MAX_PAD_WIDTH_CHARS)) > 0) {
+            return Value.error(ERROR_WIDTH_EXCEEDS_MAXIMUM, MAX_PAD_WIDTH_CHARS);
         }
         return null;
     }

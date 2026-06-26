@@ -17,11 +17,6 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.List;
-
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -31,6 +26,9 @@ import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Creates a {@link PolicyIndex} based on the indexing strategy name
@@ -61,19 +59,14 @@ public class IndexFactory {
      * @param ctx the compilation context containing the indexing strategy
      * @return a policy index
      */
-    private static final int    DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
-    private static final int    DEFAULT_MAX_INDEX_NODES           = 500_000;
-    private static final String PARAM_MIN_POLICIES_FOR_INDEXING   = "minPoliciesForIndexing";
-    private static final String PARAM_MAX_INDEX_NODES             = "maxIndexNodes";
-
     public static PolicyIndex createIndex(List<CompiledDocument> documents, CompilationContext ctx) {
-        val options  = ctx.getCompilerOptions();
-        val strategy = parseStrategy(getStringParam(options, "indexing", "AUTO"));
-        val maxNodes = getIntParam(options, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
+        val strategy = parseStrategy(ctx.indexing());
         return switch (strategy) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
-        case CANONICAL -> CanonicalPolicyIndex.create(documents);
-        case SMTDD     -> SmtddPolicyIndex.create(documents, maxNodes);
+        case CANONICAL -> explicitWithNaiveFallback(() -> CanonicalPolicyIndex.create(documents, ctx.maxDnfClauses()),
+                "canonical", documents);
+        case SMTDD     -> explicitWithNaiveFallback(() -> SmtddPolicyIndex.create(documents, ctx.maxIndexNodes()),
+                "SMTDD", documents);
         case AUTO      -> autoSelect(documents, ctx);
         };
     }
@@ -86,36 +79,40 @@ public class IndexFactory {
         }
     }
 
-    private static PolicyIndex autoSelect(List<CompiledDocument> documents, CompilationContext ctx) {
-        val options     = ctx.getCompilerOptions();
-        val minPolicies = getIntParam(options, PARAM_MIN_POLICIES_FOR_INDEXING, DEFAULT_MIN_POLICIES_FOR_INDEXING);
-        val maxNodes    = getIntParam(options, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
+    /**
+     * Builds an explicitly-selected index, degrading to the naive index if it
+     * exceeds its configured size limit. The degrade is logged at WARN because the
+     * operator asked for this strategy specifically. The naive index always
+     * produces correct (if unindexed) matches, so the PDP stays available.
+     */
+    private static PolicyIndex explicitWithNaiveFallback(Supplier<PolicyIndex> build, String name,
+            List<CompiledDocument> documents) {
+        try {
+            return build.get();
+        } catch (IndexSizeLimitExceededException e) {
+            log.warn(
+                    "The {} index exceeded its size limit ({}); falling back to the naive index. "
+                            + "Simplify the policy applicability, raise the limit, or use AUTO indexing.",
+                    name, e.getMessage());
+            return NaivePolicyIndex.create(documents);
+        }
+    }
 
-        if (documents.size() < minPolicies) {
+    private static PolicyIndex autoSelect(List<CompiledDocument> documents, CompilationContext ctx) {
+        if (documents.size() < ctx.minPoliciesForIndexing()) {
             return NaivePolicyIndex.create(documents);
         }
         try {
-            return SmtddPolicyIndex.create(documents, maxNodes);
+            return SmtddPolicyIndex.create(documents, ctx.maxIndexNodes());
         } catch (IndexSizeLimitExceededException e) {
-            log.warn("SMTDD index exceeded node limit ({}), falling back to canonical index", e.getMessage());
+            log.info("SMTDD index exceeded its node limit ({}); falling back to the canonical index", e.getMessage());
         }
-        return CanonicalPolicyIndex.create(documents);
-    }
-
-    private static int getIntParam(ObjectValue options, String key, int defaultValue) {
-        val value = options.get(key);
-        if (value instanceof NumberValue(var number)) {
-            return number.intValue();
+        try {
+            return CanonicalPolicyIndex.create(documents, ctx.maxDnfClauses());
+        } catch (IndexSizeLimitExceededException e) {
+            log.info("Canonical index exceeded its clause limit ({}); falling back to the naive index", e.getMessage());
         }
-        return defaultValue;
-    }
-
-    private static String getStringParam(ObjectValue options, String key, String defaultValue) {
-        val value = options.get(key);
-        if (value instanceof TextValue(var text)) {
-            return text;
-        }
-        return defaultValue;
+        return NaivePolicyIndex.create(documents);
     }
 
 }

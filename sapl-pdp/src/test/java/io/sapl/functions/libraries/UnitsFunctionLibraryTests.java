@@ -33,9 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.within;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("UnitsFunctionLibrary")
@@ -44,8 +42,7 @@ class UnitsFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(UnitsFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new UnitsFunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static final TextValue VERY_LONG_NUMBER = Value.of("1".repeat(10000) + "X");
@@ -282,6 +279,36 @@ class UnitsFunctionLibraryTests {
     private static Stream<Arguments> extremeValueCases() {
         return Stream.of(arguments("999TiB", 1e14, "very large tebibyte value"),
                 arguments("0.001KB", 0.9, "very small kilobyte value"));
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("exactLargeByteCases")
+    void parseBytesWhenLargeValueThenPreservesExactByteCount(String input, String expectedExact, String description) {
+        val result = UnitsFunctionLibrary.parseBytes(Value.of(input));
+
+        assertThat(result).isInstanceOfSatisfying(NumberValue.class,
+                number -> assertThat(number.value()).isEqualByComparingTo(expectedExact));
+    }
+
+    private static Stream<Arguments> exactLargeByteCases() {
+        return Stream.of(arguments("2e6GiB", "2147483648000000", "documented two million GiB stays exact"),
+                arguments("9007199254740993", "9007199254740993", "byte count just above 2^53 is not rounded"),
+                arguments("8388608TiB", "9223372036854775808", "binary tera product beyond long range stays exact"));
+    }
+
+    @ParameterizedTest(name = "{2}")
+    @MethodSource("exactLargeUnitCases")
+    void parseWhenLargeValueThenPreservesExactMagnitude(String input, String expectedExact, String description) {
+        val result = UnitsFunctionLibrary.parse(Value.of(input));
+
+        assertThat(result).isInstanceOfSatisfying(NumberValue.class,
+                number -> assertThat(number.value()).isEqualByComparingTo(expectedExact));
+    }
+
+    private static Stream<Arguments> exactLargeUnitCases() {
+        return Stream.of(arguments("9007199254740993", "9007199254740993", "plain value above 2^53 is not rounded"),
+                arguments("1Ei", "1152921504606846976", "exbi multiplier stays exact"),
+                arguments("9E", "9000000000000000000", "exa product beyond 2^53 stays exact"));
     }
 
     @Test

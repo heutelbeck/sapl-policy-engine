@@ -85,27 +85,27 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("produces no errors on stderr")
-        void whenValidInput_thenNoErrors() {
+        void whenValidInputThenNoErrors() {
             assertThat(err.toString()).as("stderr should be empty but was: %s", err).isEmpty();
         }
 
         @Test
         @DisplayName("output contains benchmark header and iteration results")
-        void whenBenchmarkRuns_thenOutputContainsHeaders() {
+        void whenBenchmarkRunsThenOutputContainsHeaders() {
             assertThat(out.toString()).contains("SAPL Embedded Benchmark").contains("Warmup 1:")
                     .contains("Iteration 1:").contains("ops/s");
         }
 
         @Test
         @DisplayName("output contains summary table with benchmark name")
-        void whenBenchmarkCompletes_thenSummaryTablePresent() {
+        void whenBenchmarkCompletesThenSummaryTablePresent() {
             assertThat(out.toString()).contains("Benchmark").contains("Threads").contains("Throughput")
                     .contains("decideOnceBlocking");
         }
 
         @Test
         @DisplayName("does not contain machine-readable markers")
-        void whenInteractive_thenNoMachineReadableOutput() {
+        void whenInteractiveThenNoMachineReadableOutput() {
             assertThat(out.toString()).doesNotContain("THROUGHPUT:").doesNotContain("LATENCY:");
         }
 
@@ -117,28 +117,28 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("outputs THROUGHPUT line with numeric value")
-        void whenMachineReadable_thenThroughputLinePresent() {
+        void whenMachineReadableThenThroughputLinePresent() {
             val output = runBenchmark(createContext(), machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.stdout()).containsPattern("THROUGHPUT:\\d+\\.\\d+");
         }
 
         @Test
         @DisplayName("outputs LATENCY line when latency enabled")
-        void whenLatencyEnabled_thenLatencyLinePresent() {
+        void whenLatencyEnabledThenLatencyLinePresent() {
             val output = runBenchmark(createContext(), machineReadableConfig(List.of("decideOnceBlocking"), true));
             assertThat(output.stdout()).containsPattern("LATENCY:\\d+:\\d+:\\d+:\\d+:\\d+");
         }
 
         @Test
         @DisplayName("omits LATENCY line when latency disabled")
-        void whenLatencyDisabled_thenNoLatencyLine() {
+        void whenLatencyDisabledThenNoLatencyLine() {
             val output = runBenchmark(createContext(), machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.stdout()).doesNotContain("LATENCY:");
         }
 
         @Test
         @DisplayName("does not contain interactive headers or summaries")
-        void whenMachineReadable_thenNoInteractiveOutput() {
+        void whenMachineReadableThenNoInteractiveOutput() {
             val output = runBenchmark(createContext(), machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.stdout()).doesNotContain("SAPL Embedded Benchmark").doesNotContain("Warmup 1:")
                     .doesNotContain("Iteration 1:").doesNotContain("Benchmark");
@@ -146,7 +146,7 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("returns non-empty result list")
-        void whenMachineReadable_thenResultsReturned() {
+        void whenMachineReadableThenResultsReturned() {
             val output = runBenchmark(createContext(), machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).hasSize(1);
             assertThat(output.results().getFirst().mean()).isPositive();
@@ -154,7 +154,7 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("produces no errors on stderr")
-        void whenValidInput_thenNoErrors() {
+        void whenValidInputThenNoErrors() {
             val output = runBenchmark(createContext(), machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.stderr()).isEmpty();
         }
@@ -167,14 +167,14 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("runs all methods when no filter specified in interactive mode")
-        void whenNoFilter_thenAllMethodsRun() {
+        void whenNoFilterThenAllMethodsRun() {
             val output = runBenchmark(createContext(), interactiveConfig(null, false));
             assertThat(output.stdout()).contains("--- decideOnceBlocking ---").contains("--- decideStreamFirst ---");
         }
 
         @Test
         @DisplayName("runs only filtered methods when filter specified")
-        void whenFilterSpecified_thenOnlyMatchingMethodsRun() {
+        void whenFilterSpecifiedThenOnlyMatchingMethodsRun() {
             val output = runBenchmark(createContext(), interactiveConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.stdout()).contains("--- decideOnceBlocking ---")
                     .doesNotContain("--- decideStreamFirst ---");
@@ -182,7 +182,7 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("machine-readable mode outputs one THROUGHPUT line per method")
-        void whenMachineReadableMultipleMethods_thenMultipleThroughputLines() {
+        void whenMachineReadableMultipleMethodsThenMultipleThroughputLines() {
             val output = runBenchmark(createContext(), machineReadableConfig(null, false));
             val lines  = output.stdout().lines().filter(l -> l.startsWith("THROUGHPUT:")).count();
             assertThat(lines).isEqualTo(2);
@@ -196,7 +196,7 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("non-existent policy directory returns empty results in interactive mode")
-        void whenInvalidPolicyDir_thenEmptyResults() {
+        void whenInvalidPolicyDirThenEmptyResults() {
             val output = runBenchmark(new BenchmarkContext("{}", null, "/nonexistent/path", "DIRECTORY"),
                     interactiveConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).isNotNull().isEmpty();
@@ -204,7 +204,7 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("malformed subscription returns empty results in interactive mode")
-        void whenMalformedSubscription_thenFailsGracefully() {
+        void whenMalformedSubscriptionThenFailsGracefully() {
             val output = runBenchmark(new BenchmarkContext("not json", null, TEST_POLICIES_DIR, "DIRECTORY"),
                     interactiveConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).satisfiesAnyOf(r -> assertThat(r).isNull(), r -> assertThat(r).isEmpty());
@@ -212,7 +212,7 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("non-existent policy directory returns empty results in machine-readable mode")
-        void whenInvalidPolicyDirMachineReadable_thenEmptyResults() {
+        void whenInvalidPolicyDirMachineReadableThenEmptyResults() {
             val output = runBenchmark(new BenchmarkContext("{}", null, "/nonexistent/path", "DIRECTORY"),
                     machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).isNotNull().isEmpty();
@@ -220,7 +220,7 @@ class EmbeddedBenchmarkRunnerTests {
 
         @Test
         @DisplayName("malformed subscription returns empty results in machine-readable mode")
-        void whenMalformedSubscriptionMachineReadable_thenFailsGracefully() {
+        void whenMalformedSubscriptionMachineReadableThenFailsGracefully() {
             val output = runBenchmark(new BenchmarkContext("not json", null, TEST_POLICIES_DIR, "DIRECTORY"),
                     machineReadableConfig(List.of("decideOnceBlocking"), false));
             assertThat(output.results()).satisfiesAnyOf(r -> assertThat(r).isNull(), r -> assertThat(r).isEmpty());

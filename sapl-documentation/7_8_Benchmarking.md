@@ -50,7 +50,7 @@ The `loadtest` command measures throughput and per-request latency of a running 
 #### HTTP
 
 ```bash
-sapl loadtest --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"doc"'
+sapl loadtest --url http://localhost:8080 -s '"alice"' -a '"read"' -r '"doc"'
 ```
 
 #### RSocket
@@ -63,7 +63,7 @@ sapl loadtest --rsocket --host localhost --port 7000 -s '"alice"' -a '"read"' -r
 
 | Option                  | Default                 | Description                                        |
 |-------------------------|-------------------------|----------------------------------------------------|
-| `--url`                 | `http://localhost:8443` | HTTP server URL                                    |
+| `--url`                 | `http://localhost:8080` | HTTP server URL                                    |
 | `--rsocket`             |                         | Use RSocket/protobuf transport instead of HTTP     |
 | `--host`                | `localhost`             | RSocket server host                                |
 | `--port`                | `7000`                  | RSocket server port                                |

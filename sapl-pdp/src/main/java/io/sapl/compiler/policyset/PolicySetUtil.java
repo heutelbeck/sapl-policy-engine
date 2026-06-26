@@ -23,25 +23,21 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.VoteResult;
 import io.sapl.compiler.document.Voter;
-import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CompiledPolicy;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
 
 /**
  * Shared utilities for policy set compilation.
@@ -50,10 +46,9 @@ import java.util.function.Function;
  * <ul>
  * <li><b>Applicability chaining:</b> Wraps vote makers with target
  * expression evaluation.</li>
- * <li><b>Coverage stream building:</b> Chains target evaluation with body
- * coverage for testing.</li>
- * <li><b>Decision maker lifting:</b> Converts any vote maker type to
- * streams or evaluates in pure context.</li>
+ * <li><b>Vote maker lifting:</b> Evaluates vote makers in pure context.</li>
+ * <li><b>Fallback construction:</b> Builds fallback votes from the
+ * default-decision setting when no policies were applicable.</li>
  * </ul>
  */
 @UtilityClass
@@ -84,87 +79,6 @@ public class PolicySetUtil {
             new ApplicabilityCheckingPurePolicySet(po, voter, voterMetadata);
         default                                                    ->
             Vote.error(new ErrorValue(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), voterMetadata);
-        };
-    }
-
-    /**
-     * Compiles a coverage stream by chaining target evaluation with body coverage.
-     * <p>
-     * Handles target expression types analogously to
-     * {@link #compileApplicabilityAndVoter}: static values short-circuit,
-     * pure operators defer evaluation, and stream operators in targets are errors.
-     * <p>
-     * This method is agnostic to the caller context (PDP or PolicySet level).
-     * For PDP-level usage, pass {@code Value.TRUE} as isApplicable and null for
-     * targetLocation.
-     *
-     * @param voterMetadata metadata for creating votes and coverage
-     * @param targetLocation source location of the target expression, or null if no
-     * target
-     * @param isApplicable the compiled target expression
-     * @param bodyFactory factory producing coverage stream when target matches
-     * @return flux emitting decisions with coverage information
-     */
-    public static Flux<VoteWithCoverage> compileCoverageStream(VoterMetadata voterMetadata,
-            SourceLocation targetLocation, CompiledExpression isApplicable,
-            Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory) {
-        if (targetLocation == null) {
-            return bodyFactory.apply(Coverage.BLANK_TARGET_HIT);
-        }
-        switch (isApplicable) {
-        case Value match             -> {
-            return coverageStreamFromMatch(voterMetadata, bodyFactory, match, targetLocation);
-        }
-        case StreamOperator ignored  -> {
-            var coverage = new Coverage.PolicySetCoverage(voterMetadata, Coverage.NO_TARGET_HIT, List.of());
-            var decision = Vote.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), voterMetadata);
-            return Flux.just(new VoteWithCoverage(decision, coverage));
-        }
-        case PureOperator pureTarget -> {
-            return Flux.deferContextual(ctxView -> coverageStreamFromMatch(voterMetadata, bodyFactory,
-                    pureTarget.evaluate(ctxView.get(EvaluationContext.class)), targetLocation));
-        }
-        }
-    }
-
-    /**
-     * Produces coverage stream from a resolved target match value.
-     * <p>
-     * TRUE continues to body evaluation, FALSE yields NOT_APPLICABLE,
-     * errors yield INDETERMINATE. All cases record the target hit for coverage.
-     */
-    private static Flux<VoteWithCoverage> coverageStreamFromMatch(VoterMetadata voterMetadata,
-            Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory, Value match,
-            SourceLocation targetLocation) {
-        var targetHit = new Coverage.TargetResult(match, targetLocation);
-        if (Value.TRUE.equals(match)) {
-            return bodyFactory.apply(targetHit);
-        } else {
-            var  coverage = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
-            Vote vote;
-            if (Value.FALSE.equals(match)) {
-                vote = Vote.abstain(voterMetadata);
-            } else {
-                vote = Vote.error((ErrorValue) match, voterMetadata);
-            }
-            return Flux.just(new VoteWithCoverage(vote, coverage));
-        }
-    }
-
-    /**
-     * Lifts any vote maker type to a flux for uniform stream handling.
-     *
-     * @param voter the vote maker to lift
-     * @return flux emitting policy decisions
-     */
-    public static Flux<Vote> toStream(Voter voter) {
-        return switch (voter) {
-        case Vote d        -> Flux.just(d);
-        case PureVoter p   -> Flux.deferContextual(ctxView -> {
-                           val ctx = ctxView.get(EvaluationContext.class);
-                           return Flux.just(p.vote(ctx));
-                       });
-        case StreamVoter s -> s.vote();
         };
     }
 
@@ -202,6 +116,8 @@ public class PolicySetUtil {
         case DENY    -> Vote.combinedVote(AuthorizationDecision.DENY, voterMetadata, contributingVotes, Outcome.DENY);
         case PERMIT  ->
             Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingVotes, Outcome.PERMIT);
+        case SUSPEND ->
+            Vote.combinedVote(AuthorizationDecision.SUSPEND, voterMetadata, contributingVotes, Outcome.SUSPEND);
         };
     }
 
@@ -245,18 +161,15 @@ public class PolicySetUtil {
             VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote() {
-            return Flux.deferContextual(ctxView -> {
-                val ctx                 = ctxView.get(EvaluationContext.class);
-                val applicabilityResult = isApplicable.evaluate(ctx);
-                if (applicabilityResult instanceof ErrorValue error) {
-                    return Flux.just(Vote.error(error, voterMetadata));
-                }
-                if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamVoter.vote();
-                }
-                return Flux.just(Vote.abstain(voterMetadata));
-            });
+        public VoteResult evaluate(EvaluationContext ctx) {
+            val applicabilityResult = isApplicable.evaluate(ctx);
+            if (applicabilityResult instanceof ErrorValue error) {
+                return new VoteResult(Vote.error(error, voterMetadata), Map.of());
+            }
+            if (applicabilityResult instanceof BooleanValue(var b) && b) {
+                return streamVoter.evaluate(ctx);
+            }
+            return new VoteResult(Vote.abstain(voterMetadata), Map.of());
         }
     }
 }

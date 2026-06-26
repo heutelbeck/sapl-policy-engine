@@ -17,22 +17,13 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.IndexPredicate;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
-import io.sapl.compiler.policy.policybody.BooleanGuardCompiler.PureBooleanTypeCheck;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * Analyzes predicates for semantic grouping opportunities.
@@ -80,36 +71,50 @@ public class SemanticVariableOrder {
             report.append("Remaining binary predicates: ").append(remainingPredicates.size()).append('\n');
             for (val pred : remainingPredicates) {
                 val count     = formulasPerRemainingPredicate.get(pred).size();
-                val innerType = unwrapInnerType(pred.operator());
+                val innerType = pred.operator().getClass().getSimpleName();
                 report.append("  predicate hash=").append(pred.semanticHash()).append(" -> ").append(count)
                         .append(" formulas (").append(innerType).append(")\n");
             }
             return report.toString();
         }
-
-        private static String unwrapInnerType(PureOperator operator) {
-            if (operator instanceof PureBooleanTypeCheck typeCheck) {
-                return typeCheck.operator().getClass().getSimpleName();
-            }
-            return operator.getClass().getSimpleName();
-        }
     }
 
     /**
      * Analyzes the predicates from all formulas and groups equality predicates
-     * by shared operand.
+     * by shared operand. No predicate is treated as grouping-blocked.
      *
      * @param formulaPredicates for each formula index, the predicates it references
      * @return the analysis result with equality groups and remaining predicates
      */
     public static AnalysisResult analyze(List<List<IndexPredicate>> formulaPredicates) {
+        return analyze(formulaPredicates, Set.of());
+    }
+
+    /**
+     * Analyzes the predicates from all formulas and groups equality predicates
+     * by shared operand.
+     * <p>
+     * Equality grouping treats a predicate as a conjunctive constraint of its
+     * formula: a formula appears only in the branches whose value satisfies the
+     * predicate. That is sound only when the predicate sits in a pure conjunctive
+     * position. A predicate listed in {@code nonGroupablePredicates} also occurs
+     * under a disjunction or negation somewhere and is therefore kept as a binary
+     * predicate, where the boolean structure is represented faithfully.
+     *
+     * @param formulaPredicates for each formula index, the predicates it references
+     * @param nonGroupablePredicates predicates that must not be grouped
+     * @return the analysis result with equality groups and remaining predicates
+     */
+    public static AnalysisResult analyze(List<List<IndexPredicate>> formulaPredicates,
+            Set<IndexPredicate> nonGroupablePredicates) {
         val groupsByOperandHash          = new HashMap<Long, EqualityGroup>();
         val ungroupablePredicateFormulas = new HashMap<IndexPredicate, List<Integer>>();
 
         // Phase 1: classify each predicate into its equality group or ungroupable
         for (var formulaIndex = 0; formulaIndex < formulaPredicates.size(); formulaIndex++) {
             for (val predicate : formulaPredicates.get(formulaIndex)) {
-                if (!classifyIntoGroup(predicate, formulaIndex, groupsByOperandHash)) {
+                if (nonGroupablePredicates.contains(predicate)
+                        || !classifyIntoGroup(predicate, formulaIndex, groupsByOperandHash)) {
                     ungroupablePredicateFormulas.computeIfAbsent(predicate, k -> new ArrayList<>()).add(formulaIndex);
                 }
             }
@@ -154,7 +159,7 @@ public class SemanticVariableOrder {
      */
     private static boolean classifyIntoGroup(IndexPredicate predicate, int formulaIndex,
             Map<Long, EqualityGroup> groupsByOperandHash) {
-        val operator = unwrapTypeCheck(predicate.operator());
+        val operator = predicate.operator();
         if (operator instanceof BinaryPureValue pv) {
             return classifyBinaryPureValue(pv, pv.lp(), pv.rv(), predicate, formulaIndex, groupsByOperandHash);
         }
@@ -193,6 +198,9 @@ public class SemanticVariableOrder {
             IndexPredicate predicate, int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
         val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                 k -> new EqualityGroup(pureOperand));
+        if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+            return false;
+        }
         if (negated) {
             group.addExclude(constant, formulaIndex, predicate);
         } else {
@@ -203,13 +211,16 @@ public class SemanticVariableOrder {
 
     private static boolean addHasConstants(PureOperator pureOperand, Value container, IndexPredicate predicate,
             int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
-        if (!(container instanceof ObjectValue object)) {
+        if (!(container instanceof ObjectValue object) || object.keySet().isEmpty()) {
             return false;
         }
         // CONST has PureOp: the operator evaluates to a key, check against constant's
         // keys
         val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                 k -> new EqualityGroup(pureOperand));
+        if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+            return false;
+        }
         for (val key : object.keySet()) {
             group.addEquals(Value.of(key), formulaIndex, predicate);
         }
@@ -219,29 +230,34 @@ public class SemanticVariableOrder {
     private static boolean addInConstants(PureOperator pureOperand, Value collection, IndexPredicate predicate,
             int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
         if (collection instanceof ArrayValue array) {
+            if (array.isEmpty()) {
+                return false;
+            }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
+            if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+                return false;
+            }
             for (var i = 0; i < array.size(); i++) {
                 group.addEquals(array.get(i), formulaIndex, predicate);
             }
             return true;
         }
         if (collection instanceof ObjectValue object) {
+            if (object.values().isEmpty()) {
+                return false;
+            }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
+            if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+                return false;
+            }
             for (val value : object.values()) {
                 group.addEquals(value, formulaIndex, predicate);
             }
             return true;
         }
         return false;
-    }
-
-    private static PureOperator unwrapTypeCheck(PureOperator operator) {
-        if (operator instanceof PureBooleanTypeCheck typeCheck) {
-            return typeCheck.operator();
-        }
-        return operator;
     }
 
 }

@@ -44,7 +44,7 @@ class DecideIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("permit-all policy outputs PERMIT NDJSON line")
-        void whenPermitPolicy_thenPermitNdjsonOutput() throws Exception {
+        void whenPermitPolicyThenPermitNdjsonOutput() throws Exception {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
 
             val future = CompletableFuture.supplyAsync(() -> SaplNodeApplication.run(new String[] { "decide", "--dir",

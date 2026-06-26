@@ -54,7 +54,7 @@ OPA_LUA="$SCRIPT_DIR/lib/opa-wrk.lua"
 OPA_URL="http://127.0.0.1:8181/v1/data/rbac/allow"
 
 SAPL_LUA="$SCRIPT_DIR/lib/sapl-wrk.lua"
-SAPL_URL="http://127.0.0.1:8443/api/pdp/decide-once"
+SAPL_URL="http://127.0.0.1:8080/api/pdp/decide-once"
 SCENARIO_DIR="/tmp/sapl-benchmark-scenarios"
 
 trap_cleanup
@@ -297,6 +297,7 @@ for runtime in "${SAPL_RUNTIMES[@]}"; do
         if [ "$runtime" = "jvm" ]; then
             taskset -c "$cpu_range" java -XX:ActiveProcessorCount=$((pcores * 2)) -jar "$SAPL_NODE_JAR" server \
                 --io.sapl.node.allow-no-auth=true \
+                --io.sapl.pdp.embedded.metrics-enabled=false \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/rbac-opa" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/rbac-opa" \
                 --logging.level.root=WARN \
@@ -304,6 +305,7 @@ for runtime in "${SAPL_RUNTIMES[@]}"; do
         else
             taskset -c "$cpu_range" "$SAPL_NATIVE" server \
                 --io.sapl.node.allow-no-auth=true \
+                --io.sapl.pdp.embedded.metrics-enabled=false \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/rbac-opa" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/rbac-opa" \
                 --logging.level.root=WARN \
@@ -313,7 +315,7 @@ for runtime in "${SAPL_RUNTIMES[@]}"; do
 
         started=false
         for i in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
+            if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; then
                 echo "  SAPL $runtime started (PID $SERVER_PID)"
                 started=true
                 break

@@ -59,13 +59,14 @@ public record AuthorizationSubscription(
         @NonNull ObjectValue secrets) {
 
     private static final ObjectMapper DEFAULT_MAPPER = JsonMapper.builder().build();
+    private static final String ERROR_SECRETS_NOT_OBJECT = "secrets must be a JSON object, but marshalled to %s.";
     private static final String SECRETS_KEY = "secrets";
     private static final Value SECRETS_REDACTED = Value.of("SECRETS REDACTED");
 
     /**
      * Creates an AuthorizationSubscription with the given subject, action, and
      * resource. Environment defaults to UNDEFINED. Objects are marshaled using a
-     * default ObjectMapper with Jdk8Module registered.
+     * bare default JsonMapper.
      *
      * @param subject an object describing the subject
      * @param action an object describing the action
@@ -93,7 +94,7 @@ public record AuthorizationSubscription(
 
     /**
      * Creates an AuthorizationSubscription with all four attributes. Objects are
-     * marshaled using a default ObjectMapper with Jdk8Module registered.
+     * marshaled using a bare default JsonMapper.
      *
      * @param subject an object describing the subject
      * @param action an object describing the action
@@ -129,9 +130,10 @@ public record AuthorizationSubscription(
         val value = toValue(secrets, mapper);
         if (value instanceof ObjectValue ov) {
             return ov;
-        } else {
-            return Value.EMPTY_OBJECT;
         }
+        // Fail-fast: a malformed (non-object) secrets config is rejected, not silently
+        // emptied. secrets must be a JSON object.
+        throw new IllegalArgumentException(ERROR_SECRETS_NOT_OBJECT.formatted(value.getClass().getSimpleName()));
     }
 
     private static Value toValue(Object object, ObjectMapper mapper) {

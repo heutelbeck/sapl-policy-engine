@@ -1,0 +1,107 @@
+#
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# End-to-end demonstration: Spring Boot consumer reaches the SAPL Node over
+# RSocket+TLS using an OAuth2 client_credentials-managed JWT minted at Keycloak.
+# Run ./generate-keystore.sh first to create the development keystore.
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: sapl-rsocket-tls-keycloak
+    command: start-dev --import-realm
+    ports:
+      - "8080:8080"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HOSTNAME=http://keycloak:8080
+      - KC_HOSTNAME_STRICT_BACKCHANNEL=false
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  sapl-node:
+    image: ghcr.io/heutelbeck/sapl-node:4.1.0
+    container_name: sapl-rsocket-tls-node
+    ports:
+      - "8443:8443"
+      - "7000:7000"
+    volumes:
+      - ./policies:/pdp/data:ro
+      - ./tls:/pdp/tls:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      # Auth: OAuth2 only (JWTs minted by Keycloak)
+      - IO_SAPL_NODE_ALLOWNOAUTH=false
+      - IO_SAPL_NODE_ALLOWBASICAUTH=false
+      - IO_SAPL_NODE_ALLOWAPIKEYAUTH=false
+      - IO_SAPL_NODE_ALLOWOAUTH2AUTH=true
+      - IO_SAPL_NODE_REJECTONMISSINGPDPID=false
+      - IO_SAPL_NODE_DEFAULTPDPID=default
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://keycloak:8080/realms/sapl-demo
+      # Policies
+      - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY
+      - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
+      # SSL bundle shared by HTTPS server (8443) and RSocket TLS server (7000)
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_ALIAS=sapl-node
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_PASSWORD=changeit
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_LOCATION=file:/pdp/tls/keystore.p12
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_PASSWORD=changeit
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_TYPE=PKCS12
+      - SERVER_PORT=8443
+      - SERVER_SSL_ENABLED=true
+      - SERVER_SSL_BUNDLE=sapl-bundle
+      - SAPL_PDP_RSOCKET_ENABLED=true
+      - SAPL_PDP_RSOCKET_PORT=7000
+      - SAPL_PDP_RSOCKET_SSL_BUNDLE=sapl-bundle
+      - SERVER_ADDRESS=0.0.0.0
+      - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
+      - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
+
+  consumer:
+    build:
+      context: ./consumer
+    container_name: sapl-rsocket-tls-consumer
+    ports:
+      - "8090:8090"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      sapl-node:
+        condition: service_started
+    restart: unless-stopped

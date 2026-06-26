@@ -37,7 +37,11 @@ public record ConjunctiveClause(List<Literal> literals) {
      * @param literals the literals forming this conjunction
      */
     public ConjunctiveClause(List<Literal> literals) {
-        this.literals = List.copyOf(literals);
+        // Idempotent: a literal repeated in a conjunction adds nothing (p AND p = p).
+        // Collapsing duplicates keeps the literal count consistent with the set
+        // semantics used by equals, so the count-and-eliminate threshold matches the
+        // number of distinct predicates actually evaluated.
+        this.literals = literals.stream().distinct().toList();
     }
 
     /**

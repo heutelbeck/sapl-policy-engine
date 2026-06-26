@@ -19,14 +19,14 @@ package io.sapl.playground.domain;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.PdpCompiler;
@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class PlaygroundConfigurationSource {
 
-    private static final String PDP_ID = MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID;
+    private static final String PDP_ID = StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
 
     @Getter
     private final PdpVoterSource pdpVoterSource;
@@ -127,7 +127,7 @@ public class PlaygroundConfigurationSource {
      */
     public Optional<SaplCompilerException> tryCompile(String source) {
         val compilationContext = new CompilationContext(PDP_ID, "validation", buildPdpData(),
-                pdpVoterSource.getFunctionBroker(), pdpVoterSource.getAttributeBroker());
+                pdpVoterSource.getPlugins().functionBroker());
         val configuration      = new PDPConfiguration(PDP_ID, "validation", currentAlgorithm.get(), List.of(source),
                 buildPdpData());
         try {

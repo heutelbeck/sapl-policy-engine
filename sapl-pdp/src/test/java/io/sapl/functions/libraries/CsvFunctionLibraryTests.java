@@ -17,11 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
@@ -42,8 +39,7 @@ class CsvFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(CsvFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new CsvFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test
@@ -354,5 +350,51 @@ class CsvFunctionLibraryTests {
         assertThat(array).hasSize(2);
         assertThat((ObjectValue) array.get(0)).containsEntry("ritual", Value.of(""));
         assertThat((ObjectValue) array.get(1)).containsEntry("entity", Value.of(""));
+    }
+
+    @ParameterizedTest(name = "escapes a cell starting with {0}")
+    @ValueSource(strings = { "=", "+", "-", "@" })
+    @DisplayName("valToCsv neutralizes formula-injection cells")
+    void valToCsvWhenCellStartsWithFormulaCharacterThenEscaped(String prefix) {
+        val payload = prefix + "cmd|0";
+        val array   = ArrayValue.builder().add(ObjectValue.builder().put("note", Value.of(payload)).build()).build();
+
+        val result = CsvFunctionLibrary.valToCsv(array);
+
+        val csvText = ((TextValue) result).value();
+        assertThat(csvText).contains("'" + payload);
+    }
+
+    @ParameterizedTest(name = "escapes a header starting with {0}")
+    @ValueSource(strings = { "=", "+", "-", "@" })
+    @DisplayName("valToCsv neutralizes formula-injection column headers")
+    void valToCsvWhenHeaderStartsWithFormulaCharacterThenEscaped(String prefix) {
+        val maliciousKey = prefix + "cmd|0";
+        val array        = ArrayValue.builder()
+                .add(ObjectValue.builder().put(maliciousKey, Value.of("Cthulhu")).build()).build();
+
+        val result = CsvFunctionLibrary.valToCsv(array);
+
+        val csvText = ((TextValue) result).value();
+        assertThat(csvText).contains("'" + maliciousKey);
+    }
+
+    @Test
+    @DisplayName("valToCsv leaves ordinary cell values untouched")
+    void valToCsvWhenCellHasNoFormulaCharacterThenNotEscaped() {
+        val array = ArrayValue.builder().add(ObjectValue.builder().put("note", Value.of("Cthulhu")).build()).build();
+
+        val result = CsvFunctionLibrary.valToCsv(array);
+
+        val csvText = ((TextValue) result).value();
+        assertThat(csvText).contains("Cthulhu").doesNotContain("'Cthulhu");
+    }
+
+    @Test
+    void whenCsvExceedsMaxInputThenError() {
+        val result = CsvFunctionLibrary.csvToVal(Value.of("a".repeat(1024 * 1024 + 1)));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds");
     }
 }

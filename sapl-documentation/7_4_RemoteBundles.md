@@ -202,8 +202,7 @@ var config = new RemoteBundleSourceConfig(
     true, securityPolicy,
     Map.of(),
     Duration.ofMillis(500),
-    Duration.ofSeconds(5),
-    WebClient.builder());
+    Duration.ofSeconds(5));
 
 var pdp = PolicyDecisionPointBuilder.withDefaults(mapper, clock)
     .withRemoteBundleSource(config)

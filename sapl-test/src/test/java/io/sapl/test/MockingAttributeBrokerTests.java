@@ -18,38 +18,40 @@
 package io.sapl.test;
 
 import io.sapl.api.attributes.AttributeAccessContext;
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.AttributeSnapshot;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
+import lombok.val;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static io.sapl.test.Matchers.*;
-import static io.sapl.test.verification.Times.once;
-import static io.sapl.test.verification.Times.times;
+import static io.sapl.test.Matchers.any;
+import static io.sapl.test.Matchers.args;
+import static io.sapl.test.Matchers.eq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.when;
 
-@DisplayName("MockingAttributeBroker tests")
-@ExtendWith(MockitoExtension.class)
+@DisplayName("MockingAttributeBroker")
 class MockingAttributeBrokerTests {
 
-    private static final String                 TEST_CONFIG_ID  = "test-security";
+    private static final Instant                REFERENCE       = Instant.parse("2025-01-01T00:00:00Z");
+    private static final String                 CONFIG_ID       = "test-config";
     private static final Duration               DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration               DEFAULT_POLL    = Duration.ofSeconds(1);
     private static final Duration               DEFAULT_BACKOFF = Duration.ofMillis(100);
@@ -58,871 +60,628 @@ class MockingAttributeBrokerTests {
     private static final AttributeAccessContext EMPTY_CTX       = new AttributeAccessContext(Value.EMPTY_OBJECT,
             Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
-    @Mock
-    private AttributeBroker        delegate;
     private MockingAttributeBroker broker;
 
     @BeforeEach
     void setUp() {
-        broker = new MockingAttributeBroker(delegate);
+        broker = new MockingAttributeBroker();
+    }
+
+    @AfterEach
+    void tearDown() {
+        broker.close();
+    }
+
+    private static SubscriptionKey envKey(String name, Value... arguments) {
+        return new SubscriptionKey(new AttributeFinderInvocation("test-pdp", CONFIG_ID, name, List.of(arguments),
+                DEFAULT_TIMEOUT, DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX), false);
+    }
+
+    private static SubscriptionKey entityKey(String name, Value entity, Value... arguments) {
+        return new SubscriptionKey(
+                new AttributeFinderInvocation("test-pdp", CONFIG_ID, name, entity, List.of(arguments), DEFAULT_TIMEOUT,
+                        DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX),
+                false);
+    }
+
+    /**
+     * Records callback invocations and the snapshots passed. Returns the same
+     * dependency set across all calls so the gate stays open for subsequent
+     * publishes.
+     */
+    private static final class RecordingCallback {
+        final AtomicInteger                                            count = new AtomicInteger(0);
+        final AtomicReference<Map<SubscriptionKey, AttributeSnapshot>> last  = new AtomicReference<>();
+        final Set<SubscriptionKey>                                     deps;
+
+        RecordingCallback(Set<SubscriptionKey> deps) {
+            this.deps = deps;
+        }
+
+        Set<SubscriptionKey> apply(Map<SubscriptionKey, AttributeSnapshot> snapshot) {
+            count.incrementAndGet();
+            last.set(snapshot);
+            return deps;
+        }
+    }
+
+    @Nested
+    @DisplayName("Mock registration validation")
+    class MockRegistrationValidation {
+
+        @Test
+        @DisplayName("blank mockId is rejected")
+        void blankMockIdRejected() {
+            val params = args();
+
+            assertThatThrownBy(() -> broker.mockEnvironmentAttribute("", "time.now", params))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("blank");
+        }
+
+        @Test
+        @DisplayName("duplicate mockId is rejected")
+        void duplicateMockIdRejected() {
+            broker.mockEnvironmentAttribute("mock1", "time.now", args());
+            val params = args();
+
+            assertThatThrownBy(() -> broker.mockEnvironmentAttribute("mock1", "other.attr", params))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already registered");
+        }
+
+        @Test
+        @DisplayName("non-args() arguments rejected")
+        void nonArgsArgumentsRejected() {
+            val badParams = (SaplTestFixture.Parameters) new SaplTestFixture.Parameters() {};
+            assertThatThrownBy(() -> broker.mockEnvironmentAttribute("mock1", "time.now", badParams))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
+        }
+
+        @Test
+        @DisplayName("hasMock returns true after registration; false otherwise")
+        void hasMockReflectsRegistration() {
+            assertThat(broker.hasMock("mock1")).isFalse();
+            broker.mockEnvironmentAttribute("mock1", "time.now", args());
+            assertThat(broker.hasMock("mock1")).isTrue();
+            assertThat(broker.hasMock("other")).isFalse();
+        }
+
+        @Test
+        @DisplayName("hasMockForAttribute returns true when any mock for that name exists")
+        void hasMockForAttributeReflectsRegistration() {
+            assertThat(broker.hasMockForAttribute("time.now")).isFalse();
+            broker.mockEnvironmentAttribute("mock1", "time.now", args());
+            assertThat(broker.hasMockForAttribute("time.now")).isTrue();
+            assertThat(broker.hasMockForAttribute("other")).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("Subscribe validation")
+    class SubscribeValidation {
+
+        @Test
+        @DisplayName("blank subscriptionId rejected")
+        void blankSubscriptionIdRejected() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("x"));
+            val deps = Set.of(envKey("time.now"));
+            val cb   = new RecordingCallback(deps);
+            assertThatThrownBy(() -> broker.open("", deps, cb::apply)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("subscriptionId");
+        }
+
+        @Test
+        @DisplayName("duplicate subscriptionId rejected")
+        void duplicateSubscriptionIdRejected() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("x"));
+            val deps = Set.of(envKey("time.now"));
+            broker.open("sub-1", deps, snap -> deps);
+            val cb = new RecordingCallback(deps);
+            assertThatThrownBy(() -> broker.open("sub-1", deps, cb::apply)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("already open");
+        }
+
+        @Test
+        @DisplayName("empty initialDependencies rejected")
+        void emptyInitialDepsRejected() {
+            val empty = Set.<SubscriptionKey>of();
+            val cb    = new RecordingCallback(empty);
+            assertThatThrownBy(() -> broker.open("sub-1", empty, cb::apply))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("initialDependencies");
+        }
+    }
+
+    @Nested
+    @DisplayName("Dispatch and gate")
+    class DispatchAndGate {
+
+        @Test
+        @DisplayName("matched mock with initial value fires callback synchronously on subscribe")
+        void initialValueFiresImmediately() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("initial"));
+            val deps = Set.of(envKey("time.now"));
+            val cb   = new RecordingCallback(deps);
+            broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.count).hasValue(1);
+            assertThat(cb.last.get()).hasSize(1)
+                    .allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("initial")));
+        }
+
+        @Test
+        @DisplayName("matched mock without initial value waits for emit")
+        void noInitialValueWaitsForEmit() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args());
+            val deps = Set.of(envKey("time.now"));
+            val cb   = new RecordingCallback(deps);
+            broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.count).hasValue(0);
+
+            broker.emit("m1", Value.of("emitted"));
+            assertThat(cb.count).hasValue(1);
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("emitted")));
+        }
+
+        @Test
+        @DisplayName("unregistered key materialises UNDEFINED and fires callback immediately")
+        void unmatchedKeyAutoUndefined() {
+            val deps = Set.of(envKey("never.mocked"));
+            val cb   = new RecordingCallback(deps);
+            broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.count).hasValue(1);
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.UNDEFINED));
+        }
+
+        @Test
+        @DisplayName("mixed deps: matched + unmatched both populate snapshot, gate opens immediately")
+        void mixedMatchedAndUnmatched() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v1"));
+            val deps = Set.of(envKey("time.now"), envKey("never.mocked"));
+            val cb   = new RecordingCallback(deps);
+            broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.count).hasValue(1);
+            assertThat(cb.last.get()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("emit before subscribe caches latest value (subscribe sees it)")
+        void emitBeforeSubscribeCaches() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args());
+            broker.emit("m1", Value.of("pre1"));
+            broker.emit("m1", Value.of("pre2"));
+
+            val deps = Set.of(envKey("time.now"));
+            val cb   = new RecordingCallback(deps);
+            broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.count).hasValue(1);
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("pre2")));
+        }
+    }
+
+    @Nested
+    @DisplayName("emit propagation")
+    class EmitPropagation {
+
+        @Test
+        @DisplayName("emit unknown mockId throws")
+        void emitUnknownThrows() {
+            val payload = Value.of("x");
+
+            assertThatThrownBy(() -> broker.emit("nope", payload)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("nope");
+        }
+
+        @Test
+        @DisplayName("emit fires callback for all subscribed keys bound to mockId")
+        void emitFiresForAllBound() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("init"));
+            val deps1 = Set.of(envKey("time.now"));
+            val deps2 = Set.of(envKey("time.now"));
+            val cb1   = new RecordingCallback(deps1);
+            val cb2   = new RecordingCallback(deps2);
+            broker.open("sub-1", deps1, cb1::apply);
+            broker.open("sub-2", deps2, cb2::apply);
+            assertThat(cb1.count).hasValue(1);
+            assertThat(cb2.count).hasValue(1);
+
+            broker.emit("m1", Value.of("update"));
+            assertThat(cb1.count).hasValue(2);
+            assertThat(cb2.count).hasValue(2);
+            assertThat(cb1.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("update")));
+            assertThat(cb2.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("update")));
+        }
+
+        @Test
+        @DisplayName("multiple emits coalesce: pre-subscribe emits leave only the last value visible")
+        void multipleEmitsCoalesceBeforeSubscribe() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args());
+            broker.emit("m1", Value.of("v1"));
+            broker.emit("m1", Value.of("v2"));
+            broker.emit("m1", Value.of("v3"));
+            val deps = Set.of(envKey("time.now"));
+            val cb   = new RecordingCallback(deps);
+            broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("v3")));
+        }
+    }
+
+    @Nested
+    @DisplayName("Most-specific-first dispatch")
+    class MostSpecificDispatch {
+
+        @Test
+        @DisplayName("Exact matcher wins over Any matcher")
+        void exactBeatsAny() {
+            broker.mockEnvironmentAttribute("anyMock", "time.day", args(any()), Value.of("any-result"));
+            broker.mockEnvironmentAttribute("exactMock", "time.day", args(eq(Value.of("monday"))),
+                    Value.of("exact-result"));
+            val deps = Set.of(envKey("time.day", Value.of("monday")));
+            val cb   = new RecordingCallback(deps);
+            broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("exact-result")));
+        }
+
+        @Test
+        @DisplayName("environment vs entity dispatch keyed by null-entity")
+        void environmentVsEntityDispatch() {
+            broker.mockEnvironmentAttribute("envMock", "shared.attr", args(), Value.of("env"));
+            broker.mockAttribute("entMock", "shared.attr", any(), args(), Value.of("ent"));
+            val envDeps = Set.of(envKey("shared.attr"));
+            val cbEnv   = new RecordingCallback(envDeps);
+            broker.open("env-sub", envDeps, cbEnv::apply);
+            assertThat(cbEnv.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("env")));
+
+            val entDeps = Set.of(entityKey("shared.attr", Value.of("alice")));
+            val cbEnt   = new RecordingCallback(entDeps);
+            broker.open("ent-sub", entDeps, cbEnt::apply);
+            assertThat(cbEnt.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("ent")));
+        }
+    }
+
+    @Nested
+    @DisplayName("Invocation recording")
+    class InvocationRecording {
+
+        @Test
+        @DisplayName("subscribe records one invocation per key")
+        void subscribeRecordsInvocations() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            val deps = Set.of(envKey("time.now"));
+            broker.open("sub-1", deps, snap -> deps);
+            assertThat(broker.getInvocations()).hasSize(1);
+            assertThat(broker.getInvocations("time.now")).hasSize(1);
+            assertThat(broker.getInvocations("other")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("sequence numbers are strictly increasing across recordings")
+        void sequenceNumbersIncreasing() {
+            broker.mockEnvironmentAttribute("m1", "a.attr", args(), Value.of("x"));
+            broker.mockEnvironmentAttribute("m2", "b.attr", args(), Value.of("y"));
+            broker.open("sub-1", Set.of(envKey("a.attr")), snap -> Set.of(envKey("a.attr")));
+            broker.open("sub-2", Set.of(envKey("b.attr")), snap -> Set.of(envKey("b.attr")));
+            val seqs = broker.getInvocations().stream().mapToLong(r -> r.sequenceNumber()).toArray();
+            assertThat(seqs[1]).isGreaterThan(seqs[0]);
+        }
+
+        @Test
+        @DisplayName("clearInvocations resets records but keeps mocks")
+        void clearInvocationsKeepsMocks() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            assertThat(broker.getInvocations()).hasSize(1);
+
+            broker.clearInvocations();
+            assertThat(broker.getInvocations()).isEmpty();
+            assertThat(broker.hasMock("m1")).isTrue();
+        }
+
+        @Test
+        @DisplayName("clearAllMocks resets mocks and invocations")
+        void clearAllMocksResetsBoth() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            broker.clearAllMocks();
+            assertThat(broker.hasMock("m1")).isFalse();
+            assertThat(broker.getInvocations()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Verification")
+    class Verification {
+
+        @Test
+        @DisplayName("verifyEnvironmentAttributeCalled passes when invoked")
+        void verifyCalledPasses() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            broker.verifyEnvironmentAttributeCalled("time.now", args());
+        }
+
+        @Test
+        @DisplayName("verifyEnvironmentAttribute Times.never passes when not invoked")
+        void verifyNeverPassesWhenNotInvoked() {
+            broker.verifyEnvironmentAttribute("time.now", args(), Times.never());
+        }
+
+        @Test
+        @DisplayName("verifyEnvironmentAttribute Times.never fails when invoked, with message")
+        void verifyNeverFailsWhenInvoked() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            val params = args();
+            val never  = Times.never();
+
+            assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("time.now", params, never))
+                    .isInstanceOf(MockVerificationError.class).hasMessageContaining("time.now");
+        }
+
+        @Test
+        @DisplayName("verifyAttribute matches entity matcher")
+        void verifyAttributeWithEntityMatcher() {
+            broker.mockAttribute("m1", "user.role", any(), args(), Value.of("admin"));
+            broker.open("sub-1", Set.of(entityKey("user.role", Value.of("alice"))),
+                    snap -> Set.of(entityKey("user.role", Value.of("alice"))));
+            broker.verifyAttribute("user.role", eq(Value.of("alice")), args(), Times.once());
+        }
+
+        @Test
+        @DisplayName("verification error message includes recorded invocations")
+        void verificationErrorIncludesRecorded() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            val params = args();
+            val twice  = Times.times(2);
+
+            assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("time.now", params, twice))
+                    .isInstanceOf(MockVerificationError.class).hasMessageContaining("Recorded invocations");
+        }
+    }
+
+    @Nested
+    @DisplayName("Subscription contract")
+    class SubscriptionContract {
+
+        @Test
+        @DisplayName("callback returning empty set throws IllegalStateException")
+        void emptyReturnedDepsThrows() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            val initialDeps = Set.of(envKey("time.now"));
+            assertThatThrownBy(() -> broker.open("sub-1", initialDeps, snap -> Set.<SubscriptionKey>of()))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("sub-1");
+        }
+
+        @Test
+        @DisplayName("callback returning null throws IllegalStateException")
+        void nullReturnedDepsThrows() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            val initialDeps = Set.of(envKey("time.now"));
+            assertThatThrownBy(() -> broker.open("sub-1", initialDeps, snap -> null))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("callback returning new key (mocked) re-evaluates and includes it on next emit")
+        void newKeyAddedViaCallback() {
+            broker.mockEnvironmentAttribute("m1", "first.attr", args(), Value.of("v1"));
+            broker.mockEnvironmentAttribute("m2", "second.attr", args(), Value.of("v2"));
+            val initialDeps   = Set.of(envKey("first.attr"));
+            val expandedDeps  = Set.of(envKey("first.attr"), envKey("second.attr"));
+            val firstCallSeen = new AtomicReference<Set<SubscriptionKey>>();
+            broker.open("sub-1", initialDeps, snap -> {
+                if (firstCallSeen.compareAndSet(null, snap.keySet())) {
+                    return expandedDeps;
+                }
+                return expandedDeps;
+            });
+            assertThat(firstCallSeen.get()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("Lifecycle")
+    class Lifecycle {
+
+        @Test
+        @DisplayName("Subscription.close stops further callbacks for that subscription")
+        void subscriptionCloseStopsCallbacks() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            val deps = Set.of(envKey("time.now"));
+            val cb   = new RecordingCallback(deps);
+            val sub  = broker.open("sub-1", deps, cb::apply);
+            assertThat(cb.count).hasValue(1);
+
+            sub.close();
+            broker.emit("m1", Value.of("after-close"));
+            assertThat(cb.count).hasValue(1);
+        }
+
+        @Test
+        @DisplayName("Broker.close drops all subscriptions and prevents callbacks")
+        void storeCloseDropsAllSubs() {
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            val cb1 = new RecordingCallback(Set.of(envKey("time.now")));
+            val cb2 = new RecordingCallback(Set.of(envKey("time.now")));
+            broker.open("sub-1", Set.of(envKey("time.now")), cb1::apply);
+            broker.open("sub-2", Set.of(envKey("time.now")), cb2::apply);
+
+            broker.close();
+            broker = new MockingAttributeBroker();
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            val initial1 = cb1.count.get();
+            val initial2 = cb2.count.get();
+            broker.emit("m1", Value.of("post-close-emit"));
+            assertThat(cb1.count.get()).isEqualTo(initial1);
+            assertThat(cb2.count.get()).isEqualTo(initial2);
+        }
+    }
+
+    /**
+     * Minimal in-memory {@link AttributeBroker} test fake for delegate
+     * forwarding tests. Tracks subscriptions, exposes a publish hook,
+     * fires the appropriate callback when the published key is in the
+     * subscription's deps.
+     */
+    private static final class FakeDelegateBroker implements AttributeBroker {
+
+        private final Map<SubscriptionKey, AttributeSnapshot> mailbox    = new java.util.HashMap<>();
+        private final Map<String, FakeSubscription>           subs       = new java.util.HashMap<>();
+        final AtomicInteger                                   openCount  = new AtomicInteger(0);
+        final AtomicInteger                                   closeCount = new AtomicInteger(0);
+
+        @Override
+        public synchronized Subscription open(String subscriptionId, Set<SubscriptionKey> initialDependencies,
+                java.util.function.Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
+            openCount.incrementAndGet();
+            val sub = new FakeSubscription(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
+            subs.put(subscriptionId, sub);
+            if (initialDependencies.stream().allMatch(mailbox::containsKey)) {
+                fireSync(sub);
+            }
+            return sub;
+        }
+
+        @Override
+        public synchronized void close() {
+            subs.clear();
+            mailbox.clear();
+        }
+
+        synchronized void publish(SubscriptionKey key, Value value) {
+            mailbox.put(key, new AttributeSnapshot(value, REFERENCE));
+            for (val sub : subs.values()) {
+                if (sub.deps.contains(key) && sub.deps.stream().allMatch(mailbox::containsKey)) {
+                    fireSync(sub);
+                }
+            }
+        }
+
+        private void fireSync(FakeSubscription sub) {
+            val snap = new java.util.HashMap<SubscriptionKey, AttributeSnapshot>();
+            for (val k : sub.deps) {
+                val v = mailbox.get(k);
+                if (v != null) {
+                    snap.put(k, v);
+                }
+            }
+            sub.onUpdate.apply(Map.copyOf(snap));
+        }
+
+        private final class FakeSubscription implements Subscription {
+            final String                                                                                     id;
+            final Set<SubscriptionKey>                                                                       deps;
+            final java.util.function.Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
+
+            FakeSubscription(String id,
+                    Set<SubscriptionKey> deps,
+                    java.util.function.Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
+                this.id       = id;
+                this.deps     = deps;
+                this.onUpdate = onUpdate;
+            }
+
+            @Override
+            public void close() {
+                synchronized (FakeDelegateBroker.this) {
+                    closeCount.incrementAndGet();
+                    subs.remove(id);
+                }
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Delegate forwarding")
+    class DelegateForwarding {
+
+        @Test
+        @DisplayName("with delegate set, unmatched key opens a forwarding subscription against delegate")
+        void unmatchedRoutesToDelegate() {
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
+            val key = envKey("other.attr");
+            delegate.publish(key, Value.of("from-delegate"));
+
+            val cb = new RecordingCallback(Set.of(key));
+            broker.open("sub-1", Set.of(key), cb::apply);
+            assertThat(delegate.openCount).hasValue(1);
+            assertThat(cb.count).hasValue(1);
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("from-delegate")));
+        }
+
+        @Test
+        @DisplayName("delegate publish after subscribe propagates to consumer callback")
+        void delegatePublishPropagatesAsync() {
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
+            val key = envKey("other.attr");
+            // Pre-publish so the gate opens immediately on subscribe
+            delegate.publish(key, Value.of("first"));
+
+            val cb = new RecordingCallback(Set.of(key));
+            broker.open("sub-1", Set.of(key), cb::apply);
+            assertThat(cb.count).hasValue(1);
+
+            delegate.publish(key, Value.of("second"));
+            assertThat(cb.count).hasValue(2);
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("second")));
+        }
+
+        @Test
+        @DisplayName("multiple consumers sharing a delegated key share one delegate subscription")
+        void sharedDelegateSubscription() {
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
+            val key = envKey("other.attr");
+            delegate.publish(key, Value.of("v"));
+
+            broker.open("sub-1", Set.of(key), snap -> Set.of(key));
+            broker.open("sub-2", Set.of(key), snap -> Set.of(key));
+            assertThat(delegate.openCount).hasValue(1);
+        }
+
+        @Test
+        @DisplayName("closing one consumer keeps the delegate sub open while others still need it")
+        void delegateSubKeptAliveByRefcount() {
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
+            val key = envKey("other.attr");
+            delegate.publish(key, Value.of("v"));
+
+            val sub1 = broker.open("sub-1", Set.of(key), snap -> Set.of(key));
+            broker.open("sub-2", Set.of(key), snap -> Set.of(key));
+            sub1.close();
+            assertThat(delegate.closeCount).hasValue(0);
+        }
+
+        @Test
+        @DisplayName("closing all consumers releases the delegate sub")
+        void delegateSubReleasedWhenLastConsumerCloses() {
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
+            val key = envKey("other.attr");
+            delegate.publish(key, Value.of("v"));
+
+            val sub1 = broker.open("sub-1", Set.of(key), snap -> Set.of(key));
+            val sub2 = broker.open("sub-2", Set.of(key), snap -> Set.of(key));
+            sub1.close();
+            sub2.close();
+            assertThat(delegate.closeCount).hasValue(1);
+        }
+
+        @Test
+        @DisplayName("broker close cascades closure to delegate forwards")
+        void storeCloseCascadesToDelegate() {
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
+            val key = envKey("other.attr");
+            delegate.publish(key, Value.of("v"));
+            broker.open("sub-1", Set.of(key), snap -> Set.of(key));
+
+            broker.close();
+            assertThat(delegate.closeCount).hasValue(1);
+
+            // Recreate broker for @AfterEach safety.
+            broker = new MockingAttributeBroker();
+        }
     }
-
-    private static AttributeFinderInvocation envInvocation(String name, List<Value> arguments) {
-        return new AttributeFinderInvocation(TEST_CONFIG_ID, name, arguments, DEFAULT_TIMEOUT, DEFAULT_POLL,
-                DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX);
-    }
-
-    private static AttributeFinderInvocation entityInvocation(String name, Value entity, List<Value> arguments) {
-        return new AttributeFinderInvocation(TEST_CONFIG_ID, name, entity, arguments, DEFAULT_TIMEOUT, DEFAULT_POLL,
-                DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX);
-    }
-
-    @Test
-    void whenEnvironmentAttributeWithInitialValue_thenEmitsOnSubscription() {
-        var initialValue = Value.of("2025-01-06T10:00:00Z");
-        broker.mockEnvironmentAttribute("timeNow", "time.now", args(), initialValue);
-
-        var invocation = envInvocation("time.now", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNext(initialValue).verifyComplete();
-    }
-
-    @Test
-    void whenEnvironmentAttributeWithInitialValueAndArgs_thenMatchesArity() {
-        var initialValue = Value.of("MONDAY");
-        broker.mockEnvironmentAttribute("dayOfWeek", "time.dayOfWeek", args(any()), initialValue);
-
-        var invocation = envInvocation("time.dayOfWeek", List.of(Value.of("2025-01-06")));
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNext(initialValue).verifyComplete();
-    }
-
-    @Test
-    void whenEnvironmentAttributeWithInitialValue_thenContinuesAfterInitial() {
-        var initialValue = Value.of("first");
-        broker.mockEnvironmentAttribute("streamTest", "stream.test", args(), initialValue);
-
-        var invocation = envInvocation("stream.test", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(3)).expectNext(initialValue)
-                .then(() -> broker.emit("streamTest", Value.of("second"))).expectNext(Value.of("second"))
-                .then(() -> broker.emit("streamTest", Value.of("third"))).expectNext(Value.of("third"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenEnvironmentAttributeStreamingOnly_thenWaitsForEmit() {
-        broker.mockEnvironmentAttribute("streamValues", "stream.values", args());
-
-        var invocation = envInvocation("stream.values", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(2)).then(() -> broker.emit("streamValues", Value.of("emitted1")))
-                .expectNext(Value.of("emitted1")).then(() -> broker.emit("streamValues", Value.of("emitted2")))
-                .expectNext(Value.of("emitted2")).verifyComplete();
-    }
-
-    @Test
-    void whenEnvironmentAttributeEmitBeforeSubscription_thenCachesLastValue() {
-        broker.mockEnvironmentAttribute("bufferedStream", "buffered.stream", args());
-
-        broker.emit("bufferedStream", Value.of("pre-emit-1"));
-        broker.emit("bufferedStream", Value.of("pre-emit-2"));
-
-        var invocation = envInvocation("buffered.stream", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        // With replay(1), only the last emitted value is cached for late subscribers
-        StepVerifier.create(stream.take(1)).expectNext(Value.of("pre-emit-2")).verifyComplete();
-    }
-
-    @Test
-    void whenEnvironmentAttributeWithInitialThenEmit_thenCachesLatestValue() {
-        var initialValue = Value.of("initial");
-        broker.mockEnvironmentAttribute("combinedStream", "combined.stream", args(), initialValue);
-
-        // This emit replaces the initial value in the cache (replay limit = 1)
-        broker.emit("combinedStream", Value.of("emitted-after"));
-
-        var invocation = envInvocation("combined.stream", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        // Late subscriber gets only the last cached value
-        StepVerifier.create(stream.take(1)).expectNext(Value.of("emitted-after")).verifyComplete();
-    }
-
-    @Test
-    void whenEnvironmentAttributeDifferentArities_thenMatchesCorrectMock() {
-        broker.mockEnvironmentAttribute("multiArity0", "multi.arity", args(), Value.of("zero-args"));
-        broker.mockEnvironmentAttribute("multiArity1", "multi.arity", args(any()), Value.of("one-arg"));
-        broker.mockEnvironmentAttribute("multiArity2", "multi.arity", args(any(), any()), Value.of("two-args"));
-
-        var invocation0 = envInvocation("multi.arity", List.of());
-        var invocation1 = envInvocation("multi.arity", List.of(Value.of("a")));
-        var invocation2 = envInvocation("multi.arity", List.of(Value.of("a"), Value.of("b")));
-
-        StepVerifier.create(broker.attributeStream(invocation0).take(1)).expectNext(Value.of("zero-args"))
-                .verifyComplete();
-
-        StepVerifier.create(broker.attributeStream(invocation1).take(1)).expectNext(Value.of("one-arg"))
-                .verifyComplete();
-
-        StepVerifier.create(broker.attributeStream(invocation2).take(1)).expectNext(Value.of("two-args"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenRegularAttributeWithEntityMatch_thenEmitsOnSubscription() {
-        var entityMatcher = eq(Value.of("adminUser"));
-        broker.mockAttribute("adminRoles", "user.roles", entityMatcher, args(), Value.of("[\"ADMIN\"]"));
-
-        var invocation = entityInvocation("user.roles", Value.of("adminUser"), List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNext(Value.of("[\"ADMIN\"]")).verifyComplete();
-    }
-
-    @Test
-    void whenRegularAttributeDifferentEntities_thenMatchesCorrectMock() {
-        var adminMatcher = eq(Value.of("admin"));
-        var guestMatcher = eq(Value.of("guest"));
-
-        broker.mockAttribute("adminRolesMock", "user.roles", adminMatcher, args(), Value.of("[\"ADMIN\",\"USER\"]"));
-        broker.mockAttribute("guestRolesMock", "user.roles", guestMatcher, args(), Value.of("[\"GUEST\"]"));
-
-        var adminInvocation = entityInvocation("user.roles", Value.of("admin"), List.of());
-        var guestInvocation = entityInvocation("user.roles", Value.of("guest"), List.of());
-
-        StepVerifier.create(broker.attributeStream(adminInvocation).take(1))
-                .expectNext(Value.of("[\"ADMIN\",\"USER\"]")).verifyComplete();
-
-        StepVerifier.create(broker.attributeStream(guestInvocation).take(1)).expectNext(Value.of("[\"GUEST\"]"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenRegularAttributeWithAnyEntityMatcher_thenMatchesAllEntities() {
-        broker.mockAttribute("genericAttr", "generic.attr", any(), args(), Value.of("matched-any"));
-
-        var invocation1 = entityInvocation("generic.attr", Value.of("entity1"), List.of());
-        var invocation2 = entityInvocation("generic.attr", Value.of("entity2"), List.of());
-
-        StepVerifier.create(broker.attributeStream(invocation1).take(1)).expectNext(Value.of("matched-any"))
-                .verifyComplete();
-
-        StepVerifier.create(broker.attributeStream(invocation2).take(1)).expectNext(Value.of("matched-any"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenRegularAttributeEmitToSpecificEntity_thenEmitsCorrectly() {
-        var adminMatcher = eq(Value.of("admin"));
-        broker.mockAttribute("userStatus", "user.status", adminMatcher, args());
-
-        var invocation = entityInvocation("user.status", Value.of("admin"), List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).then(() -> broker.emit("userStatus", Value.of("ACTIVE")))
-                .expectNext(Value.of("ACTIVE")).verifyComplete();
-    }
-
-    @Test
-    void whenMultipleMocksMatch_thenMostSpecificWins() {
-        broker.mockAttribute("anyAny", "specific.test", any(), args(any()), Value.of("any-any"));
-        broker.mockAttribute("exactAny", "specific.test", eq(Value.of("special")), args(any()), Value.of("exact-any"));
-
-        var invocation = entityInvocation("specific.test", Value.of("special"), List.of(Value.of("arg")));
-
-        StepVerifier.create(broker.attributeStream(invocation).take(1)).expectNext(Value.of("exact-any"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenMultipleMocksMatchByArgs_thenMostSpecificArgWins() {
-        broker.mockEnvironmentAttribute("argsAny", "args.test", args(any()), Value.of("any-matcher"));
-        broker.mockEnvironmentAttribute("argsExact", "args.test", args(eq(Value.of("exact"))),
-                Value.of("exact-matcher"));
-
-        var exactInvocation = envInvocation("args.test", List.of(Value.of("exact")));
-        var otherInvocation = envInvocation("args.test", List.of(Value.of("other")));
-
-        StepVerifier.create(broker.attributeStream(exactInvocation).take(1)).expectNext(Value.of("exact-matcher"))
-                .verifyComplete();
-
-        StepVerifier.create(broker.attributeStream(otherInvocation).take(1)).expectNext(Value.of("any-matcher"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenCombinedEntityAndArgSpecificity_thenSumDeterminesWinner() {
-        broker.mockAttribute("anyExact", "combo.test", any(), args(eq(Value.of("exactArg"))), Value.of("any-exact"));
-        broker.mockAttribute("exactAny", "combo.test", eq(Value.of("exactEntity")), args(any()), Value.of("exact-any"));
-        broker.mockAttribute("exactExact", "combo.test", eq(Value.of("exactEntity")), args(eq(Value.of("exactArg"))),
-                Value.of("exact-exact"));
-
-        var fullMatchInvocation = entityInvocation("combo.test", Value.of("exactEntity"),
-                List.of(Value.of("exactArg")));
-
-        StepVerifier.create(broker.attributeStream(fullMatchInvocation).take(1)).expectNext(Value.of("exact-exact"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenNoMockRegistered_thenDelegatesToUnderlying() {
-        var delegateResponse = Value.of("from-delegate");
-        when(delegate.attributeStream(argThat(inv -> "delegate.attr".equals(inv.attributeName()))))
-                .thenReturn(Flux.just(delegateResponse));
-
-        var invocation = envInvocation("delegate.attr", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNext(delegateResponse).verifyComplete();
-    }
-
-    @Test
-    void whenMockArityDoesNotMatch_thenDelegatesToUnderlying() {
-        broker.mockEnvironmentAttribute("partialMock", "partial.mock", args(any()), Value.of("mocked"));
-
-        var delegateResponse = Value.of("from-delegate");
-        when(delegate.attributeStream(
-                argThat(inv -> "partial.mock".equals(inv.attributeName()) && inv.arguments().isEmpty())))
-                .thenReturn(Flux.just(delegateResponse));
-
-        var invocation = envInvocation("partial.mock", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNext(delegateResponse).verifyComplete();
-    }
-
-    @Test
-    void whenGetRegisteredLibraries_thenDelegatesToUnderlying() {
-        var expectedLibraries = List.<Class<?>>of(String.class);
-        when(delegate.getRegisteredLibraries()).thenReturn(expectedLibraries);
-
-        assertThat(broker.getRegisteredLibraries()).isSameAs(expectedLibraries);
-    }
-
-    @Test
-    void whenEmitToNonExistentMockId_thenThrows() {
-        var value = Value.of("value");
-        assertThatThrownBy(() -> broker.emit("nonexistent", value)).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("No mock registered with ID 'nonexistent'");
-    }
-
-    @Test
-    void whenMockIdIsNull_thenThrows() {
-        var argsParam = args();
-        assertThatThrownBy(() -> broker.mockEnvironmentAttribute(null, "test.attr", argsParam))
-                .isInstanceOf(NullPointerException.class).hasMessageContaining("mockId");
-    }
-
-    @Test
-    void whenMockIdIsBlank_thenThrows() {
-        var argsParam = args();
-        assertThatThrownBy(() -> broker.mockEnvironmentAttribute("  ", "test.attr", argsParam))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Mock ID must not be blank");
-    }
-
-    @Test
-    void whenDuplicateMockId_thenThrows() {
-        broker.mockEnvironmentAttribute("duplicateId", "first.attr", args());
-        var argsParam = args();
-
-        assertThatThrownBy(() -> broker.mockEnvironmentAttribute("duplicateId", "second.attr", argsParam))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("'duplicateId' is already registered");
-    }
-
-    @Test
-    void whenEnvironmentAttributeWithInvalidArguments_thenThrows() {
-        var invalidParams = new SaplTestFixture.Parameters() {};
-
-        assertThatThrownBy(() -> broker.mockEnvironmentAttribute("test", "test.attr", invalidParams))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
-    }
-
-    @Test
-    void whenRegularAttributeWithInvalidArguments_thenThrows() {
-        var invalidParams = new SaplTestFixture.Parameters() {};
-        var anyMatcher    = any();
-
-        assertThatThrownBy(() -> broker.mockAttribute("test", "test.attr", anyMatcher, invalidParams))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
-    }
-
-    @Test
-    void whenHasMockForRegisteredId_thenReturnsTrue() {
-        broker.mockEnvironmentAttribute("registeredMock", "registered.attr", args(), Value.of("value"));
-
-        assertThat(broker.hasMock("registeredMock")).isTrue();
-    }
-
-    @Test
-    void whenHasMockForUnregisteredId_thenReturnsFalse() {
-        assertThat(broker.hasMock("unregistered")).isFalse();
-    }
-
-    @Test
-    void whenHasMockForAttributeRegistered_thenReturnsTrue() {
-        broker.mockEnvironmentAttribute("someMock", "registered.attr", args(), Value.of("value"));
-
-        assertThat(broker.hasMockForAttribute("registered.attr")).isTrue();
-    }
-
-    @Test
-    void whenHasMockForAttributeUnregistered_thenReturnsFalse() {
-        assertThat(broker.hasMockForAttribute("unregistered.attr")).isFalse();
-    }
-
-    @Test
-    void whenClearAllMocks_thenNoMocksRemain() {
-        broker.mockEnvironmentAttribute("mock1", "attr1", args(), Value.of("v1"));
-        broker.mockEnvironmentAttribute("mock2", "attr2", args(), Value.of("v2"));
-
-        broker.clearAllMocks();
-
-        assertThat(broker.hasMock("mock1")).isFalse();
-        assertThat(broker.hasMock("mock2")).isFalse();
-        assertThat(broker.hasMockForAttribute("attr1")).isFalse();
-        assertThat(broker.hasMockForAttribute("attr2")).isFalse();
-    }
-
-    @Test
-    void whenMultipleSubscribers_thenAllReceiveEmissions() {
-        var initialValue = Value.of("initial");
-        broker.mockEnvironmentAttribute("multiSub", "multi.sub", args(), initialValue);
-
-        var invocation = envInvocation("multi.sub", List.of());
-        var stream1    = broker.attributeStream(invocation);
-        var stream2    = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream1.take(1)).expectNext(initialValue).verifyComplete();
-
-        StepVerifier.create(stream2.take(1)).expectNext(initialValue).verifyComplete();
-    }
-
-    @Test
-    void whenEmitAfterMultipleSubscriptions_thenAllReceive() {
-        broker.mockEnvironmentAttribute("broadcast", "test.broadcast", args(), Value.of("initial"));
-
-        var invocation = envInvocation("test.broadcast", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(2)).expectNext(Value.of("initial"))
-                .then(() -> broker.emit("broadcast", Value.of("emitted"))).expectNext(Value.of("emitted"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenSequentialSubscriptionsAndEmissions_thenLateSubscriberGetsCachedValue() {
-        var x = Value.of("x");
-        var y = Value.of("y");
-        var z = Value.of("z");
-
-        broker.mockEnvironmentAttribute("sequential", "test.sequential", args(), x);
-
-        var invocation = envInvocation("test.sequential", List.of());
-
-        // First subscriber: collects values
-        var subscriber1Values = Collections.synchronizedList(new ArrayList<Value>());
-        var stream1           = broker.attributeStream(invocation);
-        var disposable1       = stream1.subscribe(subscriber1Values::add);
-
-        // First subscriber gets cached initial value x
-        assertThat(subscriber1Values).containsExactly(x);
-
-        // Emit y - first subscriber gets it, cache now contains y
-        broker.emit("sequential", y);
-        assertThat(subscriber1Values).containsExactly(x, y);
-
-        // Second subscriber joins - gets cached y (NOT initial x)
-        var subscriber2Values = Collections.synchronizedList(new ArrayList<Value>());
-        var stream2           = broker.attributeStream(invocation);
-        var disposable2       = stream2.subscribe(subscriber2Values::add);
-
-        // With replay(1), late subscriber gets the last cached value (y)
-        assertThat(subscriber2Values).containsExactly(y);
-
-        // Emit z - BOTH subscribers get it
-        broker.emit("sequential", z);
-
-        assertThat(subscriber1Values).containsExactly(x, y, z);
-        assertThat(subscriber2Values).containsExactly(y, z);
-
-        // Cleanup
-        disposable1.dispose();
-        disposable2.dispose();
-    }
-
-    @Test
-    void whenSameAttributeDifferentMockIds_thenBothEmitIndependently() {
-        broker.mockEnvironmentAttribute("mondayMock", "time.dayOfWeek", args(eq(Value.of("2025-01-06"))),
-                Value.of("MONDAY"));
-        broker.mockEnvironmentAttribute("tuesdayMock", "time.dayOfWeek", args(eq(Value.of("2025-01-07"))),
-                Value.of("TUESDAY"));
-
-        var mondayInvocation  = envInvocation("time.dayOfWeek", List.of(Value.of("2025-01-06")));
-        var tuesdayInvocation = envInvocation("time.dayOfWeek", List.of(Value.of("2025-01-07")));
-
-        // Subscribe to both
-        var mondayValues  = Collections.synchronizedList(new ArrayList<Value>());
-        var tuesdayValues = Collections.synchronizedList(new ArrayList<Value>());
-
-        var mondayDisposable  = broker.attributeStream(mondayInvocation).subscribe(mondayValues::add);
-        var tuesdayDisposable = broker.attributeStream(tuesdayInvocation).subscribe(tuesdayValues::add);
-
-        assertThat(mondayValues).containsExactly(Value.of("MONDAY"));
-        assertThat(tuesdayValues).containsExactly(Value.of("TUESDAY"));
-
-        // Emit to monday mock specifically
-        broker.emit("mondayMock", Value.of("HOLIDAY"));
-        assertThat(mondayValues).containsExactly(Value.of("MONDAY"), Value.of("HOLIDAY"));
-        assertThat(tuesdayValues).containsExactly(Value.of("TUESDAY")); // Unchanged
-
-        // Emit to tuesday mock specifically
-        broker.emit("tuesdayMock", Value.of("WORKDAY"));
-        assertThat(mondayValues).containsExactly(Value.of("MONDAY"), Value.of("HOLIDAY")); // Unchanged
-        assertThat(tuesdayValues).containsExactly(Value.of("TUESDAY"), Value.of("WORKDAY"));
-
-        mondayDisposable.dispose();
-        tuesdayDisposable.dispose();
-    }
-
-    @Test
-    void whenMixedEnvironmentAndRegularAttributes_thenBothWork() {
-        broker.mockEnvironmentAttribute("timeNow", "time.now", args(), Value.of("2025-01-06T10:00:00Z"));
-        broker.mockAttribute("aliceDept", "user.department", eq(Value.of("alice")), args(), Value.of("Engineering"));
-
-        var timeInvocation = envInvocation("time.now", List.of());
-        var userInvocation = entityInvocation("user.department", Value.of("alice"), List.of());
-
-        StepVerifier.create(broker.attributeStream(timeInvocation).take(1)).expectNext(Value.of("2025-01-06T10:00:00Z"))
-                .verifyComplete();
-
-        StepVerifier.create(broker.attributeStream(userInvocation).take(1)).expectNext(Value.of("Engineering"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenStreamingScenarioWithMultipleEmissions_thenAllEmissionsReceived() {
-        broker.mockEnvironmentAttribute("counter", "test.counter", args());
-
-        var invocation = envInvocation("test.counter", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(5)).then(() -> broker.emit("counter", Value.of(1))).expectNext(Value.of(1))
-                .then(() -> broker.emit("counter", Value.of(2))).expectNext(Value.of(2))
-                .then(() -> broker.emit("counter", Value.of(3))).expectNext(Value.of(3))
-                .then(() -> broker.emit("counter", Value.of(4))).expectNext(Value.of(4))
-                .then(() -> broker.emit("counter", Value.of(5))).expectNext(Value.of(5)).verifyComplete();
-    }
-
-    @Test
-    void whenPredicateMatcherOnEntity_thenMatchesBasedOnPredicate() {
-        broker.mockAttribute("textLength", "text.length", anyText(), args(), Value.of("text-entity"));
-
-        var textInvocation   = entityInvocation("text.length", Value.of("hello"), List.of());
-        var numberInvocation = entityInvocation("text.length", Value.of(42), List.of());
-
-        StepVerifier.create(broker.attributeStream(textInvocation).take(1)).expectNext(Value.of("text-entity"))
-                .verifyComplete();
-
-        when(delegate.attributeStream(argThat(inv -> "text.length".equals(inv.attributeName()))))
-                .thenReturn(Flux.just(Value.of("delegated")));
-
-        StepVerifier.create(broker.attributeStream(numberInvocation).take(1)).expectNext(Value.of("delegated"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenStreamStaysOpenAfterInitialEmission_thenCanReceiveMore() {
-        broker.mockEnvironmentAttribute("longRunning", "long.running", args(), Value.of("start"));
-
-        var invocation = envInvocation("long.running", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(Duration.ofMillis(500))).expectNext(Value.of("start"))
-                .then(() -> broker.emit("longRunning", Value.of("update1"))).expectNext(Value.of("update1"))
-                .then(() -> broker.emit("longRunning", Value.of("update2"))).expectNext(Value.of("update2"))
-                .thenCancel().verify();
-    }
-
-    @Test
-    void whenAttributeInvoked_thenRecordsInvocation() {
-        broker.mockEnvironmentAttribute("recordTest", "record.test", args(), Value.of("value"));
-
-        var invocation = envInvocation("record.test", List.of());
-        broker.attributeStream(invocation).blockFirst();
-
-        assertThat(broker.getInvocations()).hasSize(1);
-        assertThat(broker.getInvocations().getFirst().attributeName()).isEqualTo("record.test");
-    }
-
-    @Test
-    void whenMultipleAttributeInvocations_thenRecordsAll() {
-        broker.mockEnvironmentAttribute("multi1", "multi.test", args(), Value.of("v1"));
-
-        var invocation = envInvocation("multi.test", List.of());
-        broker.attributeStream(invocation).blockFirst();
-        broker.attributeStream(invocation).blockFirst();
-        broker.attributeStream(invocation).blockFirst();
-
-        assertThat(broker.getInvocations()).hasSize(3);
-    }
-
-    @Test
-    void whenAttributeInvocationRecorded_thenContainsArguments() {
-        broker.mockEnvironmentAttribute("argsRecord", "args.record", args(any(), any()), Value.of("result"));
-
-        var invocation = envInvocation("args.record", List.of(Value.of("arg1"), Value.of("arg2")));
-        broker.attributeStream(invocation).blockFirst();
-
-        var recorded = broker.getInvocations().getFirst();
-        assertThat(recorded.arguments()).containsExactly(Value.of("arg1"), Value.of("arg2"));
-    }
-
-    @Test
-    void whenEntityAttributeInvocationRecorded_thenContainsEntity() {
-        var entity = Value.of("testEntity");
-        broker.mockAttribute("entityRecord", "entity.record", eq(entity), args(), Value.of("result"));
-
-        var invocation = entityInvocation("entity.record", entity, List.of());
-        broker.attributeStream(invocation).blockFirst();
-
-        var recorded = broker.getInvocations().getFirst();
-        assertThat(recorded).satisfies(r -> {
-            assertThat(r.entity()).isEqualTo(entity);
-            assertThat(r.isEnvironmentAttribute()).isFalse();
-        });
-    }
-
-    @Test
-    void whenEnvironmentAttributeInvocationRecorded_thenEntityIsNull() {
-        broker.mockEnvironmentAttribute("envRecord", "env.record", args(), Value.of("result"));
-
-        var invocation = envInvocation("env.record", List.of());
-        broker.attributeStream(invocation).blockFirst();
-
-        var recorded = broker.getInvocations().getFirst();
-        assertThat(recorded).satisfies(r -> {
-            assertThat(r.entity()).isNull();
-            assertThat(r.isEnvironmentAttribute()).isTrue();
-        });
-    }
-
-    @Test
-    void whenInvocationRecorded_thenHasSequenceNumber() {
-        broker.mockEnvironmentAttribute("seq1", "seq.test1", args(), Value.of("v1"));
-        broker.mockEnvironmentAttribute("seq2", "seq.test2", args(), Value.of("v2"));
-
-        broker.attributeStream(envInvocation("seq.test1", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("seq.test2", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("seq.test1", List.of())).blockFirst();
-
-        var invocations = broker.getInvocations();
-        assertThat(invocations.get(0).sequenceNumber()).isZero();
-        assertThat(invocations.get(1).sequenceNumber()).isEqualTo(1);
-        assertThat(invocations.get(2).sequenceNumber()).isEqualTo(2);
-    }
-
-    @Test
-    void whenGetInvocationsForAttribute_thenFiltersCorrectly() {
-        broker.mockEnvironmentAttribute("filter1", "filter.attr1", args(), Value.of("v1"));
-        broker.mockEnvironmentAttribute("filter2", "filter.attr2", args(), Value.of("v2"));
-
-        broker.attributeStream(envInvocation("filter.attr1", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("filter.attr2", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("filter.attr1", List.of())).blockFirst();
-
-        assertThat(broker.getInvocations("filter.attr1")).hasSize(2);
-        assertThat(broker.getInvocations("filter.attr2")).hasSize(1);
-    }
-
-    @Test
-    void whenClearInvocations_thenKeepsMocksButClearsRecords() {
-        broker.mockEnvironmentAttribute("clearInv", "clear.inv", args(), Value.of("result"));
-
-        broker.attributeStream(envInvocation("clear.inv", List.of())).blockFirst();
-        assertThat(broker.getInvocations()).hasSize(1);
-
-        broker.clearInvocations();
-
-        assertThat(broker.getInvocations()).isEmpty();
-        assertThat(broker.hasMock("clearInv")).isTrue();
-    }
-
-    @Test
-    void whenClearAllMocks_thenClearsInvocationsToo() {
-        broker.mockEnvironmentAttribute("clearAll", "clear.all", args(), Value.of("result"));
-
-        broker.attributeStream(envInvocation("clear.all", List.of())).blockFirst();
-
-        broker.clearAllMocks();
-
-        assertThat(broker.getInvocations()).isEmpty();
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeOnce_thenPassesIfCalledOnce() {
-        broker.mockEnvironmentAttribute("verifyOnce", "verify.once", args(), Value.of("result"));
-
-        broker.attributeStream(envInvocation("verify.once", List.of())).blockFirst();
-
-        broker.verifyEnvironmentAttribute("verify.once", args(), once());
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeOnce_thenFailsIfNeverCalled() {
-        broker.mockEnvironmentAttribute("verifyFail", "verify.fail", args(), Value.of("result"));
-        var argsParam  = args();
-        var onceVerify = once();
-
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.fail", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationError.class).hasMessageContaining("exactly once")
-                .hasMessageContaining("invoked 0 time(s)");
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeOnce_thenFailsIfCalledMultipleTimes() {
-        broker.mockEnvironmentAttribute("verifyMulti", "verify.multi", args(), Value.of("result"));
-
-        broker.attributeStream(envInvocation("verify.multi", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("verify.multi", List.of())).blockFirst();
-        var argsParam  = args();
-        var onceVerify = once();
-
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.multi", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationError.class).hasMessageContaining("exactly once")
-                .hasMessageContaining("invoked 2 time(s)");
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeNever_thenPassesIfNeverCalled() {
-        broker.mockEnvironmentAttribute("verifyNever", "verify.never", args(), Value.of("result"));
-
-        broker.verifyEnvironmentAttribute("verify.never", args(), Times.never());
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeNever_thenFailsIfCalled() {
-        broker.mockEnvironmentAttribute("verifyNeverFail", "verify.neverfail", args(), Value.of("result"));
-
-        broker.attributeStream(envInvocation("verify.neverfail", List.of())).blockFirst();
-        var argsParam   = args();
-        var neverVerify = Times.never();
-
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("verify.neverfail", argsParam, neverVerify))
-                .isInstanceOf(MockVerificationError.class).hasMessageContaining("never")
-                .hasMessageContaining("invoked 1 time(s)");
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeTimes_thenPassesIfCountMatches() {
-        broker.mockEnvironmentAttribute("verifyTimes", "verify.times", args(), Value.of("result"));
-
-        broker.attributeStream(envInvocation("verify.times", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("verify.times", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("verify.times", List.of())).blockFirst();
-
-        broker.verifyEnvironmentAttribute("verify.times", args(), times(3));
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeWithArgs_thenMatchesCorrectly() {
-        broker.mockEnvironmentAttribute("verifyArgs", "verify.args", args(any()), Value.of("result"));
-
-        broker.attributeStream(envInvocation("verify.args", List.of(Value.of("a")))).blockFirst();
-        broker.attributeStream(envInvocation("verify.args", List.of(Value.of("b")))).blockFirst();
-        broker.attributeStream(envInvocation("verify.args", List.of(Value.of("a")))).blockFirst();
-
-        broker.verifyEnvironmentAttribute("verify.args", args(eq(Value.of("a"))), times(2));
-        broker.verifyEnvironmentAttribute("verify.args", args(eq(Value.of("b"))), once());
-        broker.verifyEnvironmentAttribute("verify.args", args(any()), times(3));
-    }
-
-    @Test
-    void whenVerifyRegularAttribute_thenMatchesEntityAndArgs() {
-        var entity = Value.of("user1");
-        broker.mockAttribute("verifyEntity", "verify.entity", eq(entity), args(), Value.of("result"));
-
-        broker.attributeStream(entityInvocation("verify.entity", entity, List.of())).blockFirst();
-        broker.attributeStream(entityInvocation("verify.entity", entity, List.of())).blockFirst();
-
-        broker.verifyAttribute("verify.entity", eq(entity), args(), times(2));
-    }
-
-    @Test
-    void whenVerifyRegularAttributeWithAny_thenMatchesAllEntities() {
-        broker.mockAttribute("verifyAnyEntity", "verify.anyentity", any(), args(), Value.of("result"));
-
-        broker.attributeStream(entityInvocation("verify.anyentity", Value.of("user1"), List.of())).blockFirst();
-        broker.attributeStream(entityInvocation("verify.anyentity", Value.of("user2"), List.of())).blockFirst();
-
-        broker.verifyAttribute("verify.anyentity", any(), args(), times(2));
-        broker.verifyAttribute("verify.anyentity", eq(Value.of("user1")), args(), once());
-    }
-
-    @Test
-    void whenVerifyEnvironmentAttributeCalled_thenIsConvenienceForAtLeastOnce() {
-        broker.mockEnvironmentAttribute("verifyCalled", "verify.called", args(), Value.of("result"));
-
-        broker.attributeStream(envInvocation("verify.called", List.of())).blockFirst();
-        broker.attributeStream(envInvocation("verify.called", List.of())).blockFirst();
-
-        broker.verifyEnvironmentAttributeCalled("verify.called", args());
-    }
-
-    @Test
-    void whenVerifyAttributeCalled_thenIsConvenienceForAtLeastOnce() {
-        var entity = Value.of("testUser");
-        broker.mockAttribute("verifyAttrCalled", "verify.attrcalled", eq(entity), args(), Value.of("result"));
-
-        broker.attributeStream(entityInvocation("verify.attrcalled", entity, List.of())).blockFirst();
-
-        broker.verifyAttributeCalled("verify.attrcalled", eq(entity), args());
-    }
-
-    @Test
-    void whenVerificationFails_thenMessageShowsRecordedInvocations() {
-        broker.mockEnvironmentAttribute("failMsg", "fail.msg", args(any()), Value.of("result"));
-
-        broker.attributeStream(envInvocation("fail.msg", List.of(Value.of("arg1")))).blockFirst();
-        broker.attributeStream(envInvocation("fail.msg", List.of(Value.of("arg2")))).blockFirst();
-        var otherValue = Value.of("other");
-        var argsParam  = args(eq(otherValue));
-        var onceVerify = once();
-
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("fail.msg", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationError.class).hasMessageContaining("Recorded invocations")
-                .hasMessageContaining("fail.msg");
-    }
-
-    @Test
-    void whenVerificationFailsForUnknownAttribute_thenMessageIndicatesNoInvocations() {
-        var argsParam  = args();
-        var onceVerify = once();
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("unknown.attr", argsParam, onceVerify))
-                .isInstanceOf(MockVerificationError.class)
-                .hasMessageContaining("No invocations of 'unknown.attr' were recorded");
-    }
-
-    @Test
-    void whenVerifyWithInvalidParameters_thenThrows() {
-        var invalidParams = new SaplTestFixture.Parameters() {};
-        var onceVerify    = once();
-
-        assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("test.attr", invalidParams, onceVerify))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
-    }
-
-    @Test
-    void whenVerifyAttributeWithInvalidParameters_thenThrows() {
-        var invalidParams = new SaplTestFixture.Parameters() {};
-        var anyMatcher    = any();
-        var onceVerify    = once();
-
-        assertThatThrownBy(() -> broker.verifyAttribute("test.attr", anyMatcher, invalidParams, onceVerify))
-                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
-    }
-
-    @Test
-    void whenEnvironmentAttributeWithErrorInitialValue_thenEmitsError() {
-        var errorValue = Value.error("PIP unavailable");
-        broker.mockEnvironmentAttribute("errorMock", "error.pip", args(), errorValue);
-
-        var invocation = envInvocation("error.pip", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue)
-                .verifyComplete();
-    }
-
-    @Test
-    void whenRegularAttributeWithErrorInitialValue_thenEmitsError() {
-        var errorValue = Value.error("User service down");
-        broker.mockAttribute("errorAttr", "user.status", any(), args(), errorValue);
-
-        var invocation = entityInvocation("user.status", Value.of("testUser"), List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue)
-                .verifyComplete();
-    }
-
-    @Test
-    void whenEmitErrorValue_thenStreamReceivesError() {
-        broker.mockEnvironmentAttribute("streamError", "stream.error", args(), Value.of("initial"));
-
-        var invocation = envInvocation("stream.error", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(2)).expectNext(Value.of("initial"))
-                .then(() -> broker.emit("streamError", Value.error("Connection lost")))
-                .expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue).verifyComplete();
-    }
-
-    @Test
-    void whenErrorThenRecovery_thenStreamReceivesBoth() {
-        broker.mockEnvironmentAttribute("recovery", "test.recovery", args());
-
-        var invocation = envInvocation("test.recovery", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(3)).then(() -> broker.emit("recovery", Value.of("ok")))
-                .expectNext(Value.of("ok")).then(() -> broker.emit("recovery", Value.error("failed")))
-                .expectNextMatches(v -> v instanceof io.sapl.api.model.ErrorValue)
-                .then(() -> broker.emit("recovery", Value.of("recovered"))).expectNext(Value.of("recovered"))
-                .verifyComplete();
-    }
-
-    @Test
-    void whenEnvironmentAttributeWithUndefinedInitialValue_thenEmitsUndefined() {
-        broker.mockEnvironmentAttribute("undefinedMock", "test.undefined", args(), Value.UNDEFINED);
-
-        var invocation = envInvocation("test.undefined", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue)
-                .verifyComplete();
-    }
-
-    @Test
-    void whenRegularAttributeWithUndefinedInitialValue_thenEmitsUndefined() {
-        broker.mockAttribute("undefinedAttr", "user.missing", any(), args(), Value.UNDEFINED);
-
-        var invocation = entityInvocation("user.missing", Value.of("testUser"), List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(1)).expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue)
-                .verifyComplete();
-    }
-
-    @Test
-    void whenEmitUndefinedValue_thenStreamReceivesUndefined() {
-        broker.mockEnvironmentAttribute("streamUndef", "stream.undefined", args(), Value.of("initial"));
-
-        var invocation = envInvocation("stream.undefined", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(2)).expectNext(Value.of("initial"))
-                .then(() -> broker.emit("streamUndef", Value.UNDEFINED))
-                .expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue).verifyComplete();
-    }
-
-    @Test
-    void whenUndefinedThenDefined_thenStreamReceivesBoth() {
-        broker.mockEnvironmentAttribute("undef2def", "test.transition", args());
-
-        var invocation = envInvocation("test.transition", List.of());
-        var stream     = broker.attributeStream(invocation);
-
-        StepVerifier.create(stream.take(2)).then(() -> broker.emit("undef2def", Value.UNDEFINED))
-                .expectNextMatches(v -> v instanceof io.sapl.api.model.UndefinedValue)
-                .then(() -> broker.emit("undef2def", Value.of("now defined"))).expectNext(Value.of("now defined"))
-                .verifyComplete();
-    }
-
 }

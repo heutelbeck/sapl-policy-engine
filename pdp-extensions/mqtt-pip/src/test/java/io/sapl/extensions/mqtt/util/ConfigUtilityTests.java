@@ -17,208 +17,196 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.extensions.mqtt.SaplMqttClient;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
+import java.math.BigDecimal;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
-import static io.sapl.extensions.mqtt.SaplMqttClient.*;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.*;
-import static io.sapl.extensions.mqtt.util.ErrorUtility.ENVIRONMENT_ERROR_RETRY_ATTEMPTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("ConfigUtility")
 class ConfigUtilityTests {
 
-    private static final String ENVIRONMENT_DEFAULT_MESSAGE = "defaultMessage";
+    private static final String          ENVIRONMENT_DEFAULT_MESSAGE = "defaultMessage";
+    private static final JsonNodeFactory JSON                        = JsonNodeFactory.instance;
 
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-
-    @Test
-    void when_jsonValueIsSpecifiedInMqttClientConfig_then_returnJsonValue() {
-        // GIVEN
-        val defaultConfig = JSON.nullNode();
-        val mqttPipConfig = JSON.objectNode().set(ENVIRONMENT_DEFAULT_MESSAGE, JSON.objectNode().put("key", "value"));
-
-        // WHEN
-        val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
-
-        // THEN
-        assertThat(config.get("key").asString()).isEqualTo("value");
+    private static ObjectNode brokerEntry(String name, String address, int port, String clientId) {
+        return JSON.objectNode().put(ConfigUtility.ENVIRONMENT_BROKER_CONFIG_NAME, name)
+                .put(SaplMqttClient.ENVIRONMENT_BROKER_ADDRESS, address)
+                .put(SaplMqttClient.ENVIRONMENT_BROKER_PORT, port).put(SaplMqttClient.ENVIRONMENT_CLIENT_ID, clientId);
     }
 
-    @Test
-    void when_jsonValueIsNotSpecifiedInMqttClientConfig_then_returnDefaultJsonValue() {
-        // GIVEN
-        val defaultConfig = JSON.objectNode().put("key", "value");
-        val mqttPipConfig = JSON.objectNode();
+    @Nested
+    @DisplayName("getConfigValueOrDefault")
+    class ConfigValueLookup {
 
-        // WHEN
-        val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
+        @Test
+        @DisplayName("when key present in config then existing JSON value returned")
+        void whenJsonKeyPresentThenReturnsExistingValue() {
+            val defaultConfig = JSON.nullNode();
+            val mqttPipConfig = JSON.objectNode().set(ENVIRONMENT_DEFAULT_MESSAGE,
+                    JSON.objectNode().put("key", "value"));
 
-        // THEN
-        assertThat(config.get("key").asString()).isEqualTo("value");
+            val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE,
+                    defaultConfig);
+
+            assertThat(config.get("key").asString()).isEqualTo("value");
+        }
+
+        @Test
+        @DisplayName("when key absent from config then default JSON value returned")
+        void whenJsonKeyAbsentThenReturnsDefault() {
+            val defaultConfig = JSON.objectNode().put("key", "value");
+            val mqttPipConfig = JSON.objectNode();
+
+            val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE,
+                    defaultConfig);
+
+            assertThat(config.get("key").asString()).isEqualTo("value");
+        }
+
+        @Test
+        @DisplayName("when long key present in config then existing long value returned")
+        void whenLongKeyPresentThenReturnsExistingValue() {
+            val mqttPipConfig = JSON.objectNode().put("someLongKey", 6L);
+
+            val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, "someLongKey", 5L);
+
+            assertThat(config).isEqualTo(6L);
+        }
     }
 
-    @Test
-    void when_longValueIsSpecifiedInMqttClientConfig_then_returnLongValue() {
-        // GIVEN
-        val defaultConfig = 5;
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_ERROR_RETRY_ATTEMPTS, 6)
-                .put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(ENVIRONMENT_BROKER_CONFIG,
-                        JSON.arrayNode()
-                                .add(JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-                                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
-                                        .put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault")));
+    @Nested
+    @DisplayName("getMqttBrokerConfig - invalid inputs")
+    class InvalidBrokerConfig {
 
-        // WHEN
-        val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_ERROR_RETRY_ATTEMPTS,
-                defaultConfig);
+        static Stream<Arguments> invalidBrokerConfigCases() {
+            val nullBrokerConfig             = JSON.objectNode()
+                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
+            val arrayWithoutMatchingName     = JSON.objectNode()
+                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
+                            JSON.arrayNode()
+                                    .add(JSON.objectNode().put(SaplMqttClient.ENVIRONMENT_BROKER_ADDRESS, "localhost")
+                                            .put(SaplMqttClient.ENVIRONMENT_BROKER_PORT, 1883)
+                                            .put(SaplMqttClient.ENVIRONMENT_CLIENT_ID, "mqttPipDefault")));
+            val objectWithMismatchedName     = JSON.objectNode()
+                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
+                            brokerEntry("production", "localhost", 1883, "mqttPipDefault"));
+            val objectWithoutNameButPropsSet = JSON.objectNode()
+                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
+                            JSON.objectNode().put(SaplMqttClient.ENVIRONMENT_BROKER_ADDRESS, "localhost")
+                                    .put(SaplMqttClient.ENVIRONMENT_BROKER_PORT, 1883)
+                                    .put(SaplMqttClient.ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
 
-        // THEN
-        assertThat(config).isEqualTo(6);
+            return Stream.of(arguments("null pdp-config and undefined param", null, Value.UNDEFINED),
+                    arguments("null brokerConfig with undefined param", nullBrokerConfig, Value.UNDEFINED),
+                    arguments("null brokerConfig with non-text param", nullBrokerConfig, Value.FALSE),
+                    arguments("null brokerConfig with text reference", nullBrokerConfig, Value.of("reference")),
+                    arguments("array brokerConfig with no matching name", arrayWithoutMatchingName, Value.UNDEFINED),
+                    arguments("object brokerConfig with mismatched name", objectWithMismatchedName,
+                            Value.of("reference")),
+                    arguments("object brokerConfig without name field referenced by text", objectWithoutNameButPropsSet,
+                            Value.of("reference")));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidBrokerConfigCases")
+        @DisplayName("throws NoSuchElementException")
+        void whenBrokerConfigInvalidThenThrowsNoSuchElement(String description, ObjectNode pdpConfig,
+                Value attributeFinderParam) {
+            assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(pdpConfig, attributeFinderParam))
+                    .isExactlyInstanceOf(NoSuchElementException.class);
+        }
     }
 
-    @Test
-    void when_getMqttBrokerConfigIsCalledWithEmptyMqttClientConfig_then_throwNoSuchElementException() {
-        // GIVEN
-        val undefined = Value.UNDEFINED;
+    @Nested
+    @DisplayName("getMqttBrokerConfig - resolution paths")
+    class BrokerConfigResolution {
 
-        // THEN
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(null, undefined))
-                .isExactlyInstanceOf(NoSuchElementException.class);
+        @Test
+        @DisplayName("when array config is referenced by name in attribute finder then matching entry returned")
+        void whenArrayConfigReferencedByNameThenReturnsMatchingEntry() {
+            val mqttPipConfig = JSON.objectNode()
+                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
+                            JSON.arrayNode().add(brokerEntry("production", "localhost", 1883, "mqttPipDefault"))
+                                    .add(brokerEntry("broker2", "localhost", 1883, "broker2")));
+
+            val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.of("broker2"));
+
+            assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
+        }
+
+        @Test
+        @DisplayName("when object config name matches the attribute finder reference then config returned")
+        void whenObjectConfigNameMatchesReferenceThenReturnsConfig() {
+            val mqttPipConfig = JSON.objectNode()
+                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG, brokerEntry("broker2", "localhost", 1883, "broker2"));
+
+            val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.of("broker2"));
+
+            assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
+        }
+
+        @Test
+        @DisplayName("when object config present and no attribute finder param then pdp object returned")
+        void whenObjectConfigAndNoAttributeFinderParamThenReturnsPdpConfig() {
+            val mqttPipConfig = JSON.objectNode()
+                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
+                            brokerEntry("production", "localhost", 1883, "production"));
+
+            val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.UNDEFINED);
+
+            assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("production");
+        }
     }
 
-    @Test
-    void when_gettingMqttBrokerConfigAndNoConfigParamsAndEmptyConfigInPdpConfig_then_throwException() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-                .set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
+    @Nested
+    @DisplayName("getQos")
+    class GetQos {
 
-        // THEN
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.UNDEFINED))
-                .isExactlyInstanceOf(NoSuchElementException.class);
+        @Test
+        @DisplayName("a non-number qos is rejected with a domain error, not a class cast")
+        void whenQosIsNotANumberThenThrows() {
+            val notANumber = Value.of("two");
+
+            assertThatThrownBy(() -> ConfigUtility.getQos(notANumber)).isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("a fractional qos is rejected instead of being truncated to a valid level")
+        void whenQosIsFractionalThenThrows() {
+            val fractionalQos = Value.of(BigDecimal.valueOf(1.5));
+
+            assertThatThrownBy(() -> ConfigUtility.getQos(fractionalQos)).isInstanceOf(ArithmeticException.class);
+        }
+
+        @Test
+        @DisplayName("a qos beyond the int range is rejected instead of overflowing into a valid level")
+        void whenQosExceedsIntRangeThenThrows() {
+            val outOfRangeQos = Value.of(BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE));
+
+            assertThatThrownBy(() -> ConfigUtility.getQos(outOfRangeQos)).isInstanceOf(ArithmeticException.class);
+        }
     }
-
-    @Test
-    void when_gettingMqttBrokerConfigAndNoReferenceInConfigParamsAndEmptyConfigInPdpConfig_then_throwException() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-                .set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
-
-        // THEN
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.FALSE))
-                .isExactlyInstanceOf(NoSuchElementException.class);
-    }
-
-    @Test
-    void when_gettingMqttBrokerConfigAndReferencingEmptyPdpConfig_then_throwException() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-                .set(ENVIRONMENT_BROKER_CONFIG, JSON.nullNode());
-
-        // THEN
-        val reference = Value.of("reference");
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, reference))
-                .isExactlyInstanceOf(NoSuchElementException.class);
-    }
-
-    @Test
-    void when_gettingMqttBrokerConfigAndBrokerConfigNameDoesNotEqualTheReferencedConfiguration_then_throwException() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
-                ENVIRONMENT_BROKER_CONFIG,
-                JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
-                        .put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
-
-        // THEN
-        val reference = Value.of("reference");
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, reference))
-                .isExactlyInstanceOf(NoSuchElementException.class);
-    }
-
-    @Test
-    void when_gettingMqttBrokerConfigAndReferenceViaParamsButNoReferenceSpecifiedInPdpConfigArray_then_throwException() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
-                .set(ENVIRONMENT_BROKER_CONFIG, JSON.objectNode().put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-                        .put(ENVIRONMENT_BROKER_PORT, 1883).put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"));
-
-        // THEN
-        val reference = Value.of("reference");
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, reference))
-                .isExactlyInstanceOf(NoSuchElementException.class);
-    }
-
-    @Test
-    void when_gettingMqttBrokerConfigAndReferenceIsSpecifiedInParamsButNoReferenceSpecifiedInPdpConfigObject_then_throwException() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
-                ENVIRONMENT_BROKER_CONFIG,
-                JSON.arrayNode().add(JSON.objectNode().put(ENVIRONMENT_BROKER_ADDRESS, "localhost")
-                        .put(ENVIRONMENT_BROKER_PORT, 1883).put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault")));
-
-        // THEN
-        assertThatThrownBy(() -> ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.UNDEFINED))
-                .isExactlyInstanceOf(NoSuchElementException.class);
-    }
-
-    @Test
-    void when_configAsArrayInPdpJsonIsReferencedViaAttributeFinder_then_getReferencedConfig() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
-                ENVIRONMENT_BROKER_CONFIG,
-                JSON.arrayNode()
-                        .add(JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-                                .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
-                                .put(ENVIRONMENT_CLIENT_ID, "mqttPipDefault"))
-                        .add(JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "broker2")
-                                .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
-                                .put(ENVIRONMENT_CLIENT_ID, "broker2")));
-        val brokerConfig  = Value.of("broker2");
-
-        // WHEN
-        val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
-
-        // THEN
-        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
-    }
-
-    @Test
-    void when_configAsObjectInPdpJsonIsReferencedViaAttributeFinder_then_getReferencedConfig() {
-        // GIVEN
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
-                ENVIRONMENT_BROKER_CONFIG,
-                JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "broker2")
-                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
-                        .put(ENVIRONMENT_CLIENT_ID, "broker2"));
-        val brokerConfig  = Value.of("broker2");
-
-        // WHEN
-        val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, brokerConfig);
-
-        // THEN
-        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
-    }
-
-    @Test
-    void when_configAsObjectInPdpJsonAndNoAttributeFinderParam_then_getConfigFromPdpJson() {
-        // GIVEN
-        val undefined     = Value.UNDEFINED;
-        val mqttPipConfig = JSON.objectNode().put(ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production").set(
-                ENVIRONMENT_BROKER_CONFIG,
-                JSON.objectNode().put(ENVIRONMENT_BROKER_CONFIG_NAME, "production")
-                        .put(ENVIRONMENT_BROKER_ADDRESS, "localhost").put(ENVIRONMENT_BROKER_PORT, 1883)
-                        .put(ENVIRONMENT_CLIENT_ID, "production"));
-
-        // WHEN
-        val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, undefined);
-
-        // THEN
-        assertThat(config.get(ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("production");
-    }
-
 }

@@ -17,29 +17,20 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
-import io.sapl.ast.ExclusiveDisjunction;
-import io.sapl.ast.Expression;
-import io.sapl.ast.Product;
-import io.sapl.ast.Sum;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles N-ary operators: ExclusiveDisjunction (XOR), Sum, Product.
@@ -48,8 +39,8 @@ import java.util.List;
  * but we still apply cost-stratified optimization:
  * <ul>
  * <li>Fold all Value operands at compile time</li>
- * <li>Evaluate Pure operands before subscribing to Streams</li>
- * <li>Return error early without unnecessary evaluation/subscription</li>
+ * <li>Evaluate Pure operands before walking Streams</li>
+ * <li>Return error early without walking the stream stratum</li>
  * </ul>
  * <p>
  * Cost strata (cheapest first): Value, Pure, Stream
@@ -162,32 +153,6 @@ public class NaryOperatorCompiler {
     }
 
     /**
-     * Folds stream values with an initial value, collecting attributes along the
-     * way.
-     *
-     * @return TracedValue with folded result and accumulated attributes
-     */
-    private static TracedValue foldStreamValues(Value initial, Object[] emittedValues, BinaryOperation op,
-            SourceLocation location) {
-        val   attributes = new ArrayList<AttributeRecord>();
-        Value result     = initial;
-
-        for (val obj : emittedValues) {
-            val tv = (TracedValue) obj;
-            attributes.addAll(tv.contributingAttributes());
-            val v = tv.value();
-            if (v instanceof ErrorValue) {
-                return new TracedValue(v, attributes);
-            }
-            result = result == null ? v : op.apply(result, v, location);
-            if (result instanceof ErrorValue) {
-                return new TracedValue(result, attributes);
-            }
-        }
-        return new TracedValue(result, attributes);
-    }
-
-    /**
      * N-ary operation with only Value and Pure operands (no streams).
      * <p>
      * At runtime: evaluates all pures, folding with the pre-computed valueResult.
@@ -215,7 +180,7 @@ public class NaryOperatorCompiler {
                 return SemanticHashing.commutative(kind, childHashes);
             }
             val allHashes = new long[childHashes.length + 1];
-            allHashes[0] = valueResult.hashCode();
+            allHashes[0] = SemanticHashing.valueHash(valueResult);
             System.arraycopy(childHashes, 0, allHashes, 1, childHashes.length);
             return SemanticHashing.commutative(kind, allHashes);
         }
@@ -225,9 +190,10 @@ public class NaryOperatorCompiler {
      * N-ary operation with at least one Stream operand.
      * <p>
      * At runtime:
-     * 1. Evaluates all pures first (before subscribing to any streams)
-     * 2. If pure evaluation fails, returns error without stream subscription
-     * 3. Subscribes to all streams with combineLatest
+     * 1. Evaluates all pures first (before walking any streams)
+     * 2. If pure evaluation fails, returns error without walking streams
+     * 3. Walks every stream operand against the snapshot, accumulating
+     * dependencies even past an error
      * 4. Folds stream values with the pre-combined result from values+pures
      */
     record NaryStream(
@@ -238,23 +204,51 @@ public class NaryOperatorCompiler {
             SourceLocation location) implements StreamOperator {
 
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val evalCtx = ctx.get(EvaluationContext.class);
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(streams.size());
 
-                // Evaluate pures first (before subscribing to streams)
-                var preCombined = evaluateAndFoldPures(valueResult, pures, op, location, evalCtx);
-                if (preCombined instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(preCombined, List.of()));
-                }
+            val preCombined = evaluateAndFoldPures(valueResult, pures, op, location, ctx);
+            if (preCombined instanceof ErrorValue) {
+                return new ExpressionResult(preCombined, deps);
+            }
 
-                // Subscribe to all streams with combineLatest
-                val streamFluxes     = streams.stream().map(StreamOperator::stream).toList();
-                val finalPreCombined = preCombined;
+            val state = foldStreams(ctx, preCombined, deps);
 
-                return Flux.combineLatest(streamFluxes,
-                        emittedValues -> foldStreamValues(finalPreCombined, emittedValues, op, location));
-            });
+            if (state.firstError != null) {
+                return new ExpressionResult(state.firstError, deps);
+            }
+            if (state.seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            if (state.result == null) {
+                return new ExpressionResult(Value.error(ERROR_EMPTY_NARY_EXPRESSION), deps);
+            }
+            return new ExpressionResult(state.result, deps);
         }
+
+        private FoldState foldStreams(EvaluationContext ctx, Value preCombined,
+                Map<SubscriptionKey, List<Occurrence>> deps) {
+            Value   result     = preCombined;
+            boolean seenNull   = false;
+            Value   firstError = null;
+            for (val s : streams) {
+                val sv = evalChild(s, ctx, deps);
+                if (sv == null) {
+                    seenNull = true;
+                } else if (sv instanceof ErrorValue err) {
+                    if (firstError == null) {
+                        firstError = err;
+                    }
+                } else if (firstError == null && !seenNull) {
+                    result = result == null ? sv : op.apply(result, sv, location);
+                    if (result instanceof ErrorValue) {
+                        firstError = result;
+                    }
+                }
+            }
+            return new FoldState(result, firstError, seenNull);
+        }
+
+        private record FoldState(Value result, Value firstError, boolean seenNull) {}
     }
 }

@@ -17,15 +17,10 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.List;
-
 import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanExpression.And;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.BooleanExpression.Constant;
-import io.sapl.api.model.BooleanExpression.Not;
-import io.sapl.api.model.BooleanExpression.Or;
+import io.sapl.api.model.BooleanExpression.*;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.index.IndexSizeLimitExceededException;
 import io.sapl.compiler.index.smtdd.SmtddNode.BinaryDecision;
 import io.sapl.compiler.index.smtdd.SmtddNode.EqualityBranch;
 import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
@@ -34,13 +29,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.compiler.index.IndexSizeLimitExceededException;
+import java.util.List;
 
 import static io.sapl.compiler.index.IndexTestFixtures.configurablePredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.eqPredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.extractPredicates;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.nePredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;
+import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

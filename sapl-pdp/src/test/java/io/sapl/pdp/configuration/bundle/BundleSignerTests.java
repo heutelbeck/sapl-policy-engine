@@ -25,11 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.time.Instant;
 import java.util.Map;
 import java.util.TreeMap;
@@ -41,6 +37,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("BundleSigner")
 class BundleSignerTests {
+
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
 
     private static PrivateKey cultPrivate;
     private static PublicKey  cultPublic;
@@ -201,7 +199,7 @@ class BundleSignerTests {
     void whenVerifyingWithEmptyFileListThenThrowsException() {
         val signedManifest = BundleSigner.sign(createTestFiles(), cultPrivate, "test-key");
         val emptyManifest  = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
-                Instant.now(), Map.of(), signedManifest.signature());
+                REFERENCE, Map.of(), signedManifest.signature());
         val variables      = Map.<String, String>of();
         assertThatThrownBy(() -> BundleSigner.verify(emptyManifest, variables, cultPublic))
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("no file entries");
@@ -210,8 +208,8 @@ class BundleSignerTests {
     @Test
     void whenVerifyingWithInvalidBase64SignatureThenThrowsException() {
         val invalidSig  = new BundleManifest.Signature("Ed25519", "bad-key", "not-valid-base64!!!");
-        val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
-                Instant.now(), Map.of("test.sapl", BundleManifest.computeHash("test")), invalidSig);
+        val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM, REFERENCE,
+                Map.of("test.sapl", BundleManifest.computeHash("test")), invalidSig);
         val variables   = Map.of("test.sapl", "test");
         assertThatThrownBy(() -> BundleSigner.verify(badManifest, variables, cultPublic))
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("Invalid signature encoding");
@@ -220,8 +218,8 @@ class BundleSignerTests {
     @Test
     void whenVerifyingWithWrongAlgorithmThenThrowsException() {
         val wrongAlgSig = new BundleManifest.Signature("RSA", "wrong-alg-key", "abc123");
-        val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
-                Instant.now(), Map.of("test.sapl", BundleManifest.computeHash("test")), wrongAlgSig);
+        val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM, REFERENCE,
+                Map.of("test.sapl", BundleManifest.computeHash("test")), wrongAlgSig);
         val variables   = Map.of("test.sapl", "test");
         assertThatThrownBy(() -> BundleSigner.verify(badManifest, variables, cultPublic))
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("Unsupported signature algorithm");
@@ -231,8 +229,8 @@ class BundleSignerTests {
     @MethodSource("emptySignatureValueCases")
     void whenVerifyingWithEmptySignatureValueThenThrowsException(String signatureValue) {
         val emptySig    = new BundleManifest.Signature("Ed25519", "empty-sig-key", signatureValue);
-        val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM,
-                Instant.now(), Map.of("test.sapl", BundleManifest.computeHash("test")), emptySig);
+        val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, BundleManifest.HASH_ALGORITHM, REFERENCE,
+                Map.of("test.sapl", BundleManifest.computeHash("test")), emptySig);
         val variables   = Map.of("test.sapl", "test");
         assertThatThrownBy(() -> BundleSigner.verify(badManifest, variables, cultPublic))
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("signature value is empty");

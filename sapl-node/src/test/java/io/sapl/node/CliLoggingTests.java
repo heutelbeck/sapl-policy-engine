@@ -40,7 +40,7 @@ class CliLoggingTests {
 
     @Test
     @DisplayName("configureCliLogging routes all log output to stderr at ERROR level")
-    void configureCliLoggingRoutesAllLogOutputToStderrAtErrorLevel() {
+    void whenConfigureCliLoggingThenAllLogOutputGoesToStderrAtErrorLevel() {
         SaplNodeApplication.configureCliLogging();
 
         val context = (LoggerContext) LoggerFactory.getILoggerFactory();

@@ -163,7 +163,7 @@ class ImportCompletionIntegrationTests {
 
         var bundle  = new DocumentationBundle(List.of(timeLib, clockLib, authPip));
         var minimal = LSPConfiguration.minimal();
-        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker());
     }
 
 }

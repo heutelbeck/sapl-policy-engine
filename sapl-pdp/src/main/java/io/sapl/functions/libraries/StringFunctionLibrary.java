@@ -19,15 +19,11 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
+import io.sapl.api.model.*;
 import lombok.val;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -39,7 +35,6 @@ import java.util.regex.Pattern;
  * alternatives for cases where pattern matching
  * is unnecessary.
  */
-@UtilityClass
 @FunctionLibrary(name = StringFunctionLibrary.NAME, description = StringFunctionLibrary.DESCRIPTION, libraryDocumentation = StringFunctionLibrary.DOCUMENTATION)
 public class StringFunctionLibrary {
 
@@ -100,6 +95,15 @@ public class StringFunctionLibrary {
                 var resourceKey = string.join([subject.tenant, resource.type, resource.id], ":");
                 resourceKey in subject.accessibleResources;
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `repeat` rejects a count above 10,000, returning an error.
+            - `leftPad` and `rightPad` reject a target length above 10,000, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final int MAX_REPEAT_COUNT = 10_000;
@@ -123,7 +127,7 @@ public class StringFunctionLibrary {
             """;
 
     @Function(docs = """
-            ```toLowerCase(TEXT str)```: Converts all characters to lowercase using the default locale.
+            ```toLowerCase(TEXT str)```: Converts all characters to lowercase using locale-independent case folding.
 
             Useful for normalizing identifiers, roles, or resource names to enable case-insensitive
             comparisons in authorization policies.
@@ -143,11 +147,11 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_STRING)
     public static Value toLowerCase(TextValue str) {
-        return Value.of(str.value().toLowerCase());
+        return Value.of(str.value().toLowerCase(Locale.ROOT));
     }
 
     @Function(docs = """
-            ```toUpperCase(TEXT str)```: Converts all characters to uppercase using the default locale.
+            ```toUpperCase(TEXT str)```: Converts all characters to uppercase using locale-independent case folding.
 
             Useful for normalizing identifiers or ensuring consistent comparison format in
             authorization policies.
@@ -167,7 +171,7 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_STRING)
     public static Value toUpperCase(TextValue str) {
-        return Value.of(str.value().toUpperCase());
+        return Value.of(str.value().toUpperCase(Locale.ROOT));
     }
 
     @Function(docs = """
@@ -813,6 +817,10 @@ public class StringFunctionLibrary {
 
         if (text.length() >= targetLength) {
             return Value.of(text);
+        }
+
+        if (targetLength > MAX_REPEAT_COUNT) {
+            return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
         }
 
         val padChar       = padString.charAt(0);

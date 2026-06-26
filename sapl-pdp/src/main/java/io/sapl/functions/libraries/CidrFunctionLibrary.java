@@ -22,14 +22,10 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
+import io.sapl.api.model.*;
 import lombok.val;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -47,7 +43,6 @@ import java.util.function.UnaryOperator;
  * (compressed, lowercase). Address family mixing returns false rather than
  * errors for cleaner policy logic.
  */
-@UtilityClass
 @FunctionLibrary(name = CidrFunctionLibrary.NAME, description = CidrFunctionLibrary.DESCRIPTION, libraryDocumentation = CidrFunctionLibrary.DOCUMENTATION)
 public class CidrFunctionLibrary {
 
@@ -101,9 +96,17 @@ public class CidrFunctionLibrary {
             permit action == "create_subnet";
                 !cidr.intersects(resource.cidr, "203.0.113.0/24");
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `expand` rejects a CIDR range that contains more than 65535 addresses, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
-    private static final int MAX_EXPANSION = 65535;
+    private static final int MAX_EXPANSION_COUNT = 65535;
 
     private static final String ADDRESS_FAMILY_IPV4 = "IPv4";
     private static final String ADDRESS_FAMILY_IPV6 = "IPv6";
@@ -121,6 +124,7 @@ public class CidrFunctionLibrary {
     private static final String ERROR_INVALID_SECOND_CIDR            = "Invalid second CIDR: %s.";
     private static final String ERROR_INVALID_SECOND_IP              = "Invalid second IP: %s.";
     private static final String ERROR_PREFIX                         = "Prefix ";
+    private static final String ERROR_PREFIX_NOT_INTEGRAL            = "Prefix length must be an integer: %s.";
     private static final String ERROR_PREFIX_OUT_OF_RANGE            = " out of range for ";
 
     private static final String RANGE_IPV4 = " (0-32).";
@@ -140,7 +144,7 @@ public class CidrFunctionLibrary {
     private static final List<String> IPV6_LOOPBACK_RANGES      = List.of("::1/128");
     private static final List<String> IPV6_MULTICAST_RANGES     = List.of("ff00::/8");
     private static final List<String> IPV6_RESERVED_RANGES      = List.of("::/128", "::ffff:0:0/96", "100::/64",
-            "2001::/23");
+            "2001::/23", "fc00::/7");
     private static final List<String> RFC1918_PRIVATE_RANGES    = List.of("10.0.0.0/8", "172.16.0.0/12",
             "192.168.0.0/16");
 
@@ -276,8 +280,8 @@ public class CidrFunctionLibrary {
         val prefixBlock = address.toPrefixBlock();
         val count       = prefixBlock.getCount();
 
-        if (count.compareTo(BigInteger.valueOf(MAX_EXPANSION)) > 0) {
-            return Value.error(ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM.formatted(count, MAX_EXPANSION));
+        if (count.compareTo(BigInteger.valueOf(MAX_EXPANSION_COUNT)) > 0) {
+            return Value.error(ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM.formatted(count, MAX_EXPANSION_COUNT));
         }
 
         val resultBuilder = ArrayValue.builder();
@@ -579,7 +583,7 @@ public class CidrFunctionLibrary {
 
             Tests if an address is in ranges reserved for future use or special purposes.
             IPv4: 240.0.0.0/4
-            IPv6: ::/128, ::ffff:0:0/96, 100::/64, 2001::/23, 2001:db8::/32
+            IPv6: ::/128, ::ffff:0:0/96, 100::/64, 2001::/23, 2001:db8::/32, fc00::/7
 
             Parameters:
             - ipAddress: IP address to test
@@ -696,12 +700,12 @@ public class CidrFunctionLibrary {
             return Value.error(ERROR_INVALID_IP_ADDRESS, ipAddress.value());
         }
 
-        val prefix    = prefixLength.value().intValue();
-        val maxPrefix = address.getBitCount();
-
-        if (prefix < 0 || prefix > maxPrefix) {
-            return Value.error(buildPrefixRangeError(prefix, address.isIPv4()));
+        val maxPrefix  = address.getBitCount();
+        val rangeError = validatePrefixLength(prefixLength.value(), maxPrefix, address.isIPv4());
+        if (rangeError != null) {
+            return rangeError;
         }
+        val prefix = prefixLength.value().intValue();
 
         val masked = address.toZeroHost(prefix);
         return Value.of(masked.withoutPrefixLength().toCanonicalString());
@@ -988,12 +992,12 @@ public class CidrFunctionLibrary {
             return Value.of(false);
         }
 
-        val prefix    = prefixLength.value().intValue();
-        val maxPrefix = address1.getBitCount();
-
-        if (prefix < 0 || prefix > maxPrefix) {
-            return Value.error(buildPrefixRangeError(prefix, address1.isIPv4()));
+        val maxPrefix  = address1.getBitCount();
+        val rangeError = validatePrefixLength(prefixLength.value(), maxPrefix, address1.isIPv4());
+        if (rangeError != null) {
+            return rangeError;
         }
+        val prefix = prefixLength.value().intValue();
 
         val network1 = address1.toZeroHost(prefix);
         val network2 = address2.toZeroHost(prefix);
@@ -1100,12 +1104,12 @@ public class CidrFunctionLibrary {
             return Value.error(ERROR_CIDR_MISSING_PREFIX, cidr.value());
         }
 
-        val targetPrefix = targetPrefixLength.value().intValue();
-        val maxPrefix    = address.getBitCount();
-
-        if (targetPrefix < 0 || targetPrefix > maxPrefix) {
-            return Value.error(buildPrefixRangeError(targetPrefix, address.isIPv4()));
+        val maxPrefix  = address.getBitCount();
+        val rangeError = validatePrefixLength(targetPrefixLength.value(), maxPrefix, address.isIPv4());
+        if (rangeError != null) {
+            return rangeError;
         }
+        val targetPrefix = targetPrefixLength.value().intValue();
 
         if (targetPrefix <= currentPrefix) {
             return Value.of(false);
@@ -1344,6 +1348,34 @@ public class CidrFunctionLibrary {
     }
 
     /**
+     * Validates that a prefix length is an integer within the address range.
+     * <p>
+     * The raw value is checked before narrowing to {@code int} so that fractional
+     * values and values outside the
+     * addressable range are rejected rather than silently truncated or wrapped by
+     * {@link BigDecimal#intValue()}, which
+     * would produce a wrong anonymization granularity.
+     *
+     * @param value
+     * the requested prefix length
+     * @param maxPrefix
+     * the address bit count (32 for IPv4, 128 for IPv6)
+     * @param isIpv4
+     * true if IPv4, false if IPv6
+     *
+     * @return an ErrorValue if the value is invalid, otherwise null
+     */
+    private static Value validatePrefixLength(BigDecimal value, int maxPrefix, boolean isIpv4) {
+        if (value.stripTrailingZeros().scale() > 0) {
+            return Value.error(ERROR_PREFIX_NOT_INTEGRAL.formatted(value.toPlainString()));
+        }
+        if (value.signum() < 0 || value.compareTo(BigDecimal.valueOf(maxPrefix)) > 0) {
+            return Value.error(buildPrefixRangeError(value.toBigInteger().toString(), isIpv4));
+        }
+        return null;
+    }
+
+    /**
      * Builds an error message for prefix out of range.
      *
      * @param prefix
@@ -1353,7 +1385,7 @@ public class CidrFunctionLibrary {
      *
      * @return error message string
      */
-    private static String buildPrefixRangeError(int prefix, boolean isIpv4) {
+    private static String buildPrefixRangeError(String prefix, boolean isIpv4) {
         return ERROR_PREFIX + prefix + ERROR_PREFIX_OUT_OF_RANGE + (isIpv4 ? ADDRESS_FAMILY_IPV4 : ADDRESS_FAMILY_IPV6)
                 + (isIpv4 ? RANGE_IPV4 : RANGE_IPV6);
     }

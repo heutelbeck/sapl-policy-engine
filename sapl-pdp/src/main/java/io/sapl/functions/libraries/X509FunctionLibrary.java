@@ -17,8 +17,6 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.databind.node.JsonNodeFactory;
-import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
@@ -28,9 +26,14 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.SubjectAlternativeName;
-import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
+import javax.naming.NamingException;
+import javax.naming.ldap.LdapName;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
@@ -39,9 +42,9 @@ import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.Date;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Functions for making access control decisions based on X.509 certificate
@@ -64,7 +67,6 @@ import java.util.List;
  *   x509.hasDnsName(request.clientCertificate, resource.serviceName);
  * }</pre>
  */
-@UtilityClass
 @FunctionLibrary(name = X509FunctionLibrary.NAME, description = X509FunctionLibrary.DESCRIPTION, libraryDocumentation = X509FunctionLibrary.DOCUMENTATION)
 public class X509FunctionLibrary {
 
@@ -129,6 +131,13 @@ public class X509FunctionLibrary {
             `matchesFingerprint` computes SHA-256 of the cert and compares to the
             expected hex fingerprint. Returns true only for exact match.
 
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The certificate input is limited to 256 KB (262144 characters), whether PEM-encoded or Base64 DER.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_TEXT = """
@@ -163,6 +172,10 @@ public class X509FunctionLibrary {
     private static final String ERROR_INVALID_ISO8601_FORMAT     = "Invalid ISO 8601 timestamp format: %s";
     private static final String ERROR_INVALID_TIMESTAMP          = "Invalid timestamp: %s.";
     private static final String ERROR_NO_COMMON_NAME             = "Certificate subject does not contain a Common Name.";
+
+    private static final String  IPV4_OCTET   = "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+    private static final Pattern IPV4_LITERAL = Pattern
+            .compile(IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET);
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -414,8 +427,9 @@ public class X509FunctionLibrary {
     @Function(docs = """
             ```hasDnsName(TEXT certPem, TEXT dnsName)```: Checks if certificate contains a specific DNS name.
 
-            Checks both the subject CN and all Subject Alternative Names for the specified DNS
-            name. This is simpler than extracting SANs and checking manually, and handles
+            Checks the dNSName Subject Alternative Names for the specified DNS name. The subject
+            Common Name is deliberately not consulted, since RFC 9525 deprecates CN-based hostname
+            matching. This is simpler than extracting SANs and checking manually, and handles
             wildcard certificates correctly.
 
             Example - Verify certificate is valid for accessed domain:
@@ -428,11 +442,6 @@ public class X509FunctionLibrary {
     public static Value hasDnsName(TextValue certificatePem, TextValue dnsName) {
         return withCertificate(certificatePem.value(), certificate -> {
             val targetDnsName = dnsName.value().toLowerCase();
-
-            val commonName = extractCnFromDn(certificate.getSubjectX500Principal().getName());
-            if (commonName != null && matchesDnsName(commonName, targetDnsName)) {
-                return Value.of(true);
-            }
 
             try {
                 val subjectAltNames = CertificateUtils.extractSubjectAlternativeNames(certificate);
@@ -486,12 +495,57 @@ public class X509FunctionLibrary {
      * @return true if the IP address is found in the SANs
      */
     private static boolean containsIpAddress(List<SubjectAlternativeName> subjectAltNames, String targetIp) {
+        val targetAddress = parseInetAddress(targetIp);
+        if (targetAddress == null) {
+            return false;
+        }
         for (var san : subjectAltNames) {
-            if (san.type() == SAN_TYPE_IP_ADDRESS && targetIp.equals(san.value())) {
+            if (san.type() != SAN_TYPE_IP_ADDRESS) {
+                continue;
+            }
+            if (targetAddress.equals(parseInetAddress(san.value()))) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Parses a textual IP literal into an InetAddress for normalized comparison.
+     * Equivalent textual forms of the same address (for example compressed and
+     * expanded IPv6, or differing hex case) yield equal InetAddress instances.
+     * Only numeric IP literals are parsed. Hostnames are rejected without any DNS
+     * lookup so that attacker-supplied input cannot trigger name resolution.
+     *
+     * @param ip
+     * the textual IP address
+     *
+     * @return the parsed InetAddress, or null if the text is not a valid IP literal
+     */
+    private static InetAddress parseInetAddress(String ip) {
+        if (!isIpLiteral(ip)) {
+            return null;
+        }
+        try {
+            return InetAddress.getByName(ip);
+        } catch (UnknownHostException exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Determines whether the text is an IP literal rather than a hostname, so that
+     * {@link InetAddress#getByName(String)} never performs a DNS lookup. An IPv6
+     * literal always contains a colon, which no hostname contains. An IPv4 literal
+     * is a dotted decimal quad.
+     *
+     * @param ip
+     * the candidate IP text
+     *
+     * @return true if the text is an IPv4 or IPv6 literal
+     */
+    private static boolean isIpLiteral(String ip) {
+        return ip.indexOf(':') >= 0 || IPV4_LITERAL.matcher(ip).matches();
     }
 
     @Function(docs = """
@@ -513,8 +567,8 @@ public class X509FunctionLibrary {
         return withCertificate(certificatePem.value(), certificate -> {
             try {
                 val timestamp = parseTimestamp(isoTimestamp.value());
-                val isValid   = !timestamp.before(certificate.getNotBefore())
-                        && !timestamp.after(certificate.getNotAfter());
+                val isValid   = !timestamp.isBefore(certificate.getNotBefore().toInstant())
+                        && !timestamp.isAfter(certificate.getNotAfter().toInstant());
                 return Value.of(isValid);
             } catch (CryptoException exception) {
                 return Value.error(ERROR_INVALID_TIMESTAMP.formatted(exception.getMessage()));
@@ -542,7 +596,7 @@ public class X509FunctionLibrary {
         try {
             val certificate = CertificateUtils.parseCertificate(certificateString);
             return operation.apply(certificate);
-        } catch (CertificateException | CryptoException exception) {
+        } catch (CertificateException | RuntimeException exception) {
             val message      = exception.getMessage();
             val errorMessage = message != null && message.endsWith(".") ? errorPrefix + ": " + message
                     : errorPrefix + ": " + message + ".";
@@ -575,19 +629,19 @@ public class X509FunctionLibrary {
     }
 
     /**
-     * Parses an ISO 8601 timestamp string to a Date object.
+     * Parses an ISO 8601 timestamp string to an Instant.
      *
      * @param isoTimestamp
      * the ISO 8601 timestamp string
      *
-     * @return the parsed Date
+     * @return the parsed Instant
      *
      * @throws CryptoException
      * if the timestamp format is invalid
      */
-    private static Date parseTimestamp(String isoTimestamp) {
+    private static Instant parseTimestamp(String isoTimestamp) {
         try {
-            return Date.from(Instant.parse(isoTimestamp));
+            return Instant.parse(isoTimestamp);
         } catch (DateTimeParseException exception) {
             throw new CryptoException(ERROR_INVALID_ISO8601_FORMAT.formatted(isoTimestamp), exception);
         }
@@ -630,14 +684,18 @@ public class X509FunctionLibrary {
      * @return the Common Name or null if not present
      */
     private static String extractCnFromDn(String dn) {
-        val parts = dn.split(",");
-        for (String part : parts) {
-            val trimmed = part.trim();
-            if (trimmed.startsWith("CN=")) {
-                return trimmed.substring(3);
+        try {
+            val ldapName = new LdapName(dn);
+            for (var rdn : ldapName.getRdns()) {
+                val commonName = rdn.toAttributes().get("CN");
+                if (commonName != null) {
+                    return commonName.get().toString();
+                }
             }
+            return null;
+        } catch (NamingException exception) {
+            return null;
         }
-        return null;
     }
 
     /**
@@ -662,7 +720,20 @@ public class X509FunctionLibrary {
 
         if (certName.startsWith("*.")) {
             val certBaseDomain = certName.substring(2);
-            val targetParts    = target.split("\\.", 2);
+            // RFC 9525: the wildcard occupies only the leftmost label and may not
+            // contain an embedded or partial wildcard.
+            if (certBaseDomain.contains("*")) {
+                return false;
+            }
+            // RFC 9525: reject wildcards spanning a public suffix or TLD. A safe
+            // wildcard base has at least two labels (e.g. *.example.com), never one
+            // (e.g. *.com).
+            if (certBaseDomain.split("\\.").length < 2) {
+                return false;
+            }
+            // RFC 9525: the wildcard substitutes exactly one leftmost label, so the
+            // target must have exactly one more label than the wildcard base.
+            val targetParts = target.split("\\.", 2);
             return targetParts.length == 2 && targetParts[1].equals(certBaseDomain);
         }
 

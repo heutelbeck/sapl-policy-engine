@@ -23,7 +23,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.pip.geo.traccar.TraccarSchemata;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
@@ -34,7 +33,6 @@ import org.locationtech.jts.io.geojson.GeoJsonWriter;
  * Utility function library for extracting geometries from Traccar positions and
  * geofences.
  */
-@UtilityClass
 @FunctionLibrary(name = "traccar", description = TraccarFunctionLibrary.DESCRIPTION)
 public class TraccarFunctionLibrary {
 
@@ -104,11 +102,11 @@ public class TraccarFunctionLibrary {
         if (latitudeNode == null || !latitudeNode.isNumber()) {
             return Value.error(NO_VALID_LATITUDE_FIELD_ERROR);
         }
-        val      latitude = latitudeNode.asDouble();
+        val      latitude     = latitudeNode.asDouble();
         Geometry geometry;
-        if (positionJson.has(TraccarSchemata.ALTITUDE)) {
-            val altitude = positionJson.get(TraccarSchemata.ALTITUDE).asDouble();
-            geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude, altitude));
+        val      altitudeNode = positionJson.get(TraccarSchemata.ALTITUDE);
+        if (altitudeNode != null && altitudeNode.isNumber()) {
+            geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude, altitudeNode.asDouble()));
         } else {
             geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude));
         }
@@ -168,7 +166,7 @@ public class TraccarFunctionLibrary {
     public static Value traccarGeofenceToGeoJson(ObjectValue geofence) {
         val geofenceJson = ValueJsonMarshaller.toJsonNode(geofence);
         val area         = geofenceJson.get(TraccarSchemata.AREA);
-        if (area == null) {
+        if (area == null || !area.isString()) {
             return Value.error(GEOFENCE_MISSING_AREA_ERROR);
         }
         try {
@@ -178,7 +176,7 @@ public class TraccarFunctionLibrary {
             // the other way around.
             geometry.apply(new CoordinateFlippingFilter());
             return ValueJsonMarshaller.json(GEOJSON_WRITER.write(geometry));
-        } catch (ParseException e) {
+        } catch (ParseException | IllegalArgumentException e) {
             return Value.error(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted(e.getMessage()));
         }
     }

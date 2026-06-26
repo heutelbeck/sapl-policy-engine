@@ -17,42 +17,52 @@
  */
 package io.sapl.attributes.libraries;
 
-import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.SubscriptionKey;
+import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.attributes.http.BlockingWebClient;
+import io.sapl.api.stream.LatestSlotStream;
+import io.sapl.api.test.stream.StreamAssertions;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import reactor.core.publisher.Flux;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.time.Clock;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
+import static io.sapl.util.SaplTesting.evaluate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@DisplayName("HttpPolicyInformationPoint")
+@ExtendWith(MockitoExtension.class)
+@DisplayName("HttpPolicyInformationPoint (vnext)")
 class HttpPolicyInformationPointTests {
 
     private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
@@ -60,41 +70,41 @@ class HttpPolicyInformationPointTests {
 
     private static final TextValue URL = (TextValue) Value.of("https://localhost:1234");
 
+    @Mock
+    private BlockingWebClient mockClient;
+
     @Nested
     @DisplayName("Environment attributes")
     class EnvironmentAttributes {
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource
+        @ParameterizedTest(name = "{0}")
         @DisplayName("delegates to client with correct HTTP method")
-        void whenEnvironmentAttributeCalledThenDelegatesToClient(String name, HttpMethod expectedMethod,
+        void whenEnvironmentAttributeCalledThenDelegatesToClient(String name, String expectedMethod,
                 EnvironmentAttributeInvoker invoker) {
-            val mockClient = mockHttpClient();
-            val request    = baseRequest("https://localhost:8008");
-            val pip        = new HttpPolicyInformationPoint(mockClient);
+            stubHttpRequest(mockClient);
+            val request = baseRequest("https://localhost:8008");
+            val pip     = new HttpPolicyInformationPoint(mockClient);
 
             assertThatCode(() -> invoker.invoke(pip, EMPTY_CTX, request)).doesNotThrowAnyException();
             verify(mockClient, times(1)).httpRequest(expectedMethod, request);
         }
 
-        static Stream<Arguments> whenEnvironmentAttributeCalledThenDelegatesToClient() {
-            return Stream.of(
-                    Arguments.of("GET", HttpMethod.GET, (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::get),
-                    Arguments.of("POST", HttpMethod.POST,
-                            (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::post),
-                    Arguments.of("PUT", HttpMethod.PUT, (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::put),
-                    Arguments.of("PATCH", HttpMethod.PATCH,
-                            (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::patch),
-                    Arguments.of("DELETE", HttpMethod.DELETE,
-                            (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::delete));
+        static java.util.stream.Stream<Arguments> whenEnvironmentAttributeCalledThenDelegatesToClient() {
+            return java.util.stream.Stream.of(
+                    arguments("GET", "GET", (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::get),
+                    arguments("POST", "POST", (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::post),
+                    arguments("PUT", "PUT", (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::put),
+                    arguments("PATCH", "PATCH", (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::patch),
+                    arguments("DELETE", "DELETE", (EnvironmentAttributeInvoker) HttpPolicyInformationPoint::delete));
         }
 
         @Test
         @DisplayName("websocket delegates to consumeWebSocket")
         void whenEnvironmentWebSocketCalledThenConsumesWebSocket() {
-            val mockClient = mockWebSocketClient();
-            val request    = baseRequest("https://localhost:8008");
-            val pip        = new HttpPolicyInformationPoint(mockClient);
+            stubWebSocket(mockClient);
+            val request = baseRequest("https://localhost:8008");
+            val pip     = new HttpPolicyInformationPoint(mockClient);
 
             assertThatCode(() -> pip.websocket(EMPTY_CTX, request)).doesNotThrowAnyException();
             verify(mockClient, times(1)).consumeWebSocket(request);
@@ -105,12 +115,12 @@ class HttpPolicyInformationPointTests {
     @DisplayName("Entity attributes with request settings")
     class EntityAttributesWithSettings {
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource
+        @ParameterizedTest(name = "{0}")
         @DisplayName("delegates to client with merged URL")
-        void whenEntityAttributeCalledThenDelegatesToClientWithMergedUrl(String name, HttpMethod expectedMethod,
+        void whenEntityAttributeCalledThenDelegatesToClientWithMergedUrl(String name, String expectedMethod,
                 EntityAttributeInvoker invoker) {
-            val mockClient      = mockHttpClient();
+            stubHttpRequest(mockClient);
             val request         = baseRequest("https://localhost:8008");
             val expectedRequest = baseRequest("https://localhost:1234");
             val pip             = new HttpPolicyInformationPoint(mockClient);
@@ -119,20 +129,19 @@ class HttpPolicyInformationPointTests {
             verify(mockClient, times(1)).httpRequest(expectedMethod, expectedRequest);
         }
 
-        static Stream<Arguments> whenEntityAttributeCalledThenDelegatesToClientWithMergedUrl() {
-            return Stream.of(
-                    Arguments.of("GET", HttpMethod.GET, (EntityAttributeInvoker) HttpPolicyInformationPoint::get),
-                    Arguments.of("POST", HttpMethod.POST, (EntityAttributeInvoker) HttpPolicyInformationPoint::post),
-                    Arguments.of("PUT", HttpMethod.PUT, (EntityAttributeInvoker) HttpPolicyInformationPoint::put),
-                    Arguments.of("PATCH", HttpMethod.PATCH, (EntityAttributeInvoker) HttpPolicyInformationPoint::patch),
-                    Arguments.of("DELETE", HttpMethod.DELETE,
-                            (EntityAttributeInvoker) HttpPolicyInformationPoint::delete));
+        static java.util.stream.Stream<Arguments> whenEntityAttributeCalledThenDelegatesToClientWithMergedUrl() {
+            return java.util.stream.Stream.of(
+                    arguments("GET", "GET", (EntityAttributeInvoker) HttpPolicyInformationPoint::get),
+                    arguments("POST", "POST", (EntityAttributeInvoker) HttpPolicyInformationPoint::post),
+                    arguments("PUT", "PUT", (EntityAttributeInvoker) HttpPolicyInformationPoint::put),
+                    arguments("PATCH", "PATCH", (EntityAttributeInvoker) HttpPolicyInformationPoint::patch),
+                    arguments("DELETE", "DELETE", (EntityAttributeInvoker) HttpPolicyInformationPoint::delete));
         }
 
         @Test
         @DisplayName("websocket delegates to consumeWebSocket with merged URL")
         void whenWebSocketCalledWithUrlThenConsumesWebSocketWithMergedUrl() {
-            val mockClient      = mockWebSocketClient();
+            stubWebSocket(mockClient);
             val request         = baseRequest("https://localhost:8008");
             val expectedRequest = baseRequest("https://localhost:1234");
             val pip             = new HttpPolicyInformationPoint(mockClient);
@@ -146,12 +155,12 @@ class HttpPolicyInformationPointTests {
     @DisplayName("Entity attributes without request settings")
     class EntityAttributesNoArgs {
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource
+        @ParameterizedTest(name = "{0}")
         @DisplayName("no-args overload delegates with empty settings")
-        void whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject(String name,
-                HttpMethod expectedMethod, NoArgsEntityAttributeInvoker invoker) {
-            val mockClient      = mockHttpClient();
+        void whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject(String name, String expectedMethod,
+                NoArgsEntityAttributeInvoker invoker) {
+            stubHttpRequest(mockClient);
             val expectedRequest = baseRequest("https://localhost:1234");
             val pip             = new HttpPolicyInformationPoint(mockClient);
 
@@ -159,22 +168,19 @@ class HttpPolicyInformationPointTests {
             verify(mockClient, times(1)).httpRequest(expectedMethod, expectedRequest);
         }
 
-        static Stream<Arguments> whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject() {
-            return Stream.of(
-                    Arguments.of("GET", HttpMethod.GET, (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::get),
-                    Arguments.of("POST", HttpMethod.POST,
-                            (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::post),
-                    Arguments.of("PUT", HttpMethod.PUT, (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::put),
-                    Arguments.of("PATCH", HttpMethod.PATCH,
-                            (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::patch),
-                    Arguments.of("DELETE", HttpMethod.DELETE,
-                            (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::delete));
+        static java.util.stream.Stream<Arguments> whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject() {
+            return java.util.stream.Stream.of(
+                    arguments("GET", "GET", (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::get),
+                    arguments("POST", "POST", (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::post),
+                    arguments("PUT", "PUT", (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::put),
+                    arguments("PATCH", "PATCH", (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::patch),
+                    arguments("DELETE", "DELETE", (NoArgsEntityAttributeInvoker) HttpPolicyInformationPoint::delete));
         }
 
         @Test
         @DisplayName("websocket no-args overload delegates with empty settings")
         void whenWebSocketCalledWithUrlAndNoSettingsThenConsumesWithEmptyObject() {
-            val mockClient      = mockWebSocketClient();
+            stubWebSocket(mockClient);
             val expectedRequest = baseRequest("https://localhost:1234");
             val pip             = new HttpPolicyInformationPoint(mockClient);
 
@@ -293,6 +299,36 @@ class HttpPolicyInformationPointTests {
             val headers = (ObjectValue) merged.get("headers");
             assertThat(((TextValue) headers.get("X-Custom")).value()).isEqualTo("value");
         }
+
+        @Test
+        @DisplayName("operator pdp secret overrides a case-varied policy header so only one credential survives")
+        void whenPolicyVariesHeaderCaseThenPdpSecretStillOverridesAndOnlyOneSurvives() {
+            val pdpSecrets = httpSecrets("Authorization", "Bearer operator-token");
+            val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
+            val request    = requestWithHeaders("https://example.com", "authorization", "Bearer attacker-token");
+
+            val merged = HttpPolicyInformationPoint.mergeHeaders(ctx, request);
+
+            val headers = (ObjectValue) merged.get("headers");
+            assertThat(headers.entrySet()).singleElement()
+                    .satisfies(e -> assertThat(e.getKey()).isEqualToIgnoringCase("authorization"))
+                    .satisfies(e -> assertThat(((TextValue) e.getValue()).value()).isEqualTo("Bearer operator-token"));
+        }
+
+        @Test
+        @DisplayName("policy header overrides a case-varied subscription secret so only one credential survives")
+        void whenSubscriptionVariesHeaderCaseThenPolicyStillOverridesAndOnlyOneSurvives() {
+            val subSecrets = httpSecrets("authorization", "Bearer sub-token");
+            val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, subSecrets);
+            val request    = requestWithHeaders("https://example.com", "Authorization", "Bearer policy-token");
+
+            val merged = HttpPolicyInformationPoint.mergeHeaders(ctx, request);
+
+            val headers = (ObjectValue) merged.get("headers");
+            assertThat(headers.entrySet()).singleElement()
+                    .satisfies(e -> assertThat(e.getKey()).isEqualToIgnoringCase("authorization"))
+                    .satisfies(e -> assertThat(((TextValue) e.getValue()).value()).isEqualTo("Bearer policy-token"));
+        }
     }
 
     @Nested
@@ -365,6 +401,19 @@ class HttpPolicyInformationPointTests {
         }
 
         @Test
+        @DisplayName("present but non-text secretsKey fails closed instead of using flat default headers")
+        void whenSecretsKeyPresentButNotTextThenNoHeadersFromThatSource() {
+            val pdpSecrets = httpSecrets("Authorization", "Bearer default-fallback");
+            val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
+            val request    = ObjectValue.builder().put("baseUrl", Value.of("https://example.com"))
+                    .put("secretsKey", Value.of(123)).build();
+
+            val merged = HttpPolicyInformationPoint.mergeHeaders(ctx, request);
+
+            assertThat(merged.containsKey("headers")).isFalse();
+        }
+
+        @Test
         @DisplayName("correct named service selected when multiple configured")
         void whenMultipleServicesConfiguredThenCorrectOneSelected() {
             val weatherHeaders  = ObjectValue.builder()
@@ -389,54 +438,6 @@ class HttpPolicyInformationPointTests {
     }
 
     @Nested
-    @DisplayName("Broker integration")
-    class BrokerIntegration {
-
-        @Test
-        @DisplayName("broker loads http PIP library")
-        void whenBrokerLoadsHttpPipThenLibraryIsAvailable() {
-            val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-            val broker     = new CachingAttributeBroker(repository);
-            val pip        = new HttpPolicyInformationPoint(mockHttpClient());
-
-            broker.loadPolicyInformationPointLibrary(pip);
-
-            assertThat(broker.getLoadedLibraryNames()).contains("http");
-        }
-
-        @Test
-        @DisplayName("loading unannotated class throws exception")
-        void whenLoadLibraryWithoutAnnotationThenThrowsException() {
-            val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-            val broker     = new CachingAttributeBroker(repository);
-
-            class NotAnnotated {
-                @SuppressWarnings("unused")
-                public Value someAttribute() {
-                    return Value.of("test");
-                }
-            }
-
-            assertThatThrownBy(() -> broker.loadPolicyInformationPointLibrary(new NotAnnotated()))
-                    .hasMessageContaining("must be annotated with @PolicyInformationPoint");
-        }
-
-        @Test
-        @DisplayName("loading duplicate library throws exception")
-        void whenLoadDuplicateLibraryThenThrowsException() {
-            val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-            val broker     = new CachingAttributeBroker(repository);
-            val pip        = new HttpPolicyInformationPoint(mockHttpClient());
-
-            broker.loadPolicyInformationPointLibrary(pip);
-
-            assertThatThrownBy(
-                    () -> broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(mockHttpClient())))
-                    .hasMessageContaining("Library already loaded: http");
-        }
-    }
-
-    @Nested
     @DisplayName("End-to-end secrets header injection")
     class EndToEndSecretsHeaderInjection {
 
@@ -447,20 +448,21 @@ class HttpPolicyInformationPointTests {
             mockBackEnd.start();
             try {
                 val mockResponse = new MockResponse().setBody("{\"status\":\"ok\"}").addHeader("Content-Type",
-                        MediaType.APPLICATION_JSON_VALUE);
+                        "application/json");
                 mockBackEnd.enqueue(mockResponse);
 
                 val baseUrl    = "http://localhost:" + mockBackEnd.getPort();
                 val pdpSecrets = namedHttpSecrets("weather-api", "X-API-Key", "abc123");
                 val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
                 val request    = ObjectValue.builder().put("baseUrl", Value.of(baseUrl))
-                        .put("accept", Value.of(MediaType.APPLICATION_JSON_VALUE))
-                        .put("secretsKey", Value.of("weather-api")).put("pollingIntervalMs", Value.of(1000))
-                        .put("repetitions", Value.of(1)).build();
-                val realClient = new ReactiveWebClient(JsonMapper.builder().build());
+                        .put("accept", Value.of("application/json")).put("secretsKey", Value.of("weather-api")).build();
+                val realClient = newRealClient();
                 val pip        = new HttpPolicyInformationPoint(realClient);
 
-                pip.get(ctx, request).blockFirst();
+                try (val stream = pip.get(ctx, request)) {
+                    StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                            .awaitsNext(v -> assertThat(v).isNotNull());
+                }
 
                 val recorded = mockBackEnd.takeRequest(5, TimeUnit.SECONDS);
                 assertThat(recorded).isNotNull();
@@ -478,7 +480,7 @@ class HttpPolicyInformationPointTests {
             mockBackEnd.start();
             try {
                 val mockResponse = new MockResponse().setBody("{\"status\":\"ok\"}").addHeader("Content-Type",
-                        MediaType.APPLICATION_JSON_VALUE);
+                        "application/json");
                 mockBackEnd.enqueue(mockResponse);
 
                 val baseUrl       = "http://localhost:" + mockBackEnd.getPort();
@@ -487,12 +489,14 @@ class HttpPolicyInformationPointTests {
                 val policyHeaders = ObjectValue.builder().put("Accept-Language", Value.of("de"))
                         .put("Authorization", Value.of("Bearer policy-token")).build();
                 val request       = ObjectValue.builder().put("baseUrl", Value.of(baseUrl))
-                        .put("accept", Value.of(MediaType.APPLICATION_JSON_VALUE)).put("headers", policyHeaders)
-                        .put("pollingIntervalMs", Value.of(1000)).put("repetitions", Value.of(1)).build();
-                val realClient    = new ReactiveWebClient(JsonMapper.builder().build());
+                        .put("accept", Value.of("application/json")).put("headers", policyHeaders).build();
+                val realClient    = newRealClient();
                 val pip           = new HttpPolicyInformationPoint(realClient);
 
-                pip.get(ctx, request).blockFirst();
+                try (val stream = pip.get(ctx, request)) {
+                    StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                            .awaitsNext(v -> assertThat(v).isNotNull());
+                }
 
                 val recorded = mockBackEnd.takeRequest(5, TimeUnit.SECONDS);
                 assertThat(recorded).isNotNull();
@@ -504,18 +508,86 @@ class HttpPolicyInformationPointTests {
         }
     }
 
-    private static ReactiveWebClient mockHttpClient() {
-        val defaultResponse = Flux.<Value>just(Value.of(1), Value.of(2), Value.of(3));
-        val mockClient      = mock(ReactiveWebClient.class);
-        when(mockClient.httpRequest(any(), any())).thenReturn(defaultResponse);
-        return mockClient;
+    @Nested
+    @DisplayName("broker registration")
+    class StoreRegistration {
+
+        @Test
+        @DisplayName("loads under the http namespace without errors")
+        void whenLoadedIntoStoreThenRegistersUnderHttpNamespace() {
+            try (val broker = new PolicyInformationPointAttributeBroker()) {
+                val mapper    = JsonMapper.builder().build();
+                val webClient = new BlockingWebClient(mapper, HttpClient.newHttpClient());
+                val handle    = broker.load(new HttpPolicyInformationPoint(webClient));
+
+                assertThat(handle.pipName()).isEqualTo("http");
+                assertThat(handle.isLoaded()).isTrue();
+                assertThat(broker.catalog()).containsExactly(handle);
+            }
+        }
     }
 
-    private static ReactiveWebClient mockWebSocketClient() {
-        val defaultResponse = Flux.<Value>just(Value.of(1), Value.of(2), Value.of(3));
-        val mockClient      = mock(ReactiveWebClient.class);
-        when(mockClient.consumeWebSocket(any())).thenReturn(defaultResponse);
-        return mockClient;
+    @Test
+    @DisplayName("the pollIntervalMs attribute option drives the http.get invocation poll interval end to end")
+    void whenPollIntervalOptionOnHttpAttributeThenInvocationCarriesIt() {
+        val invocation = evaluate("<http.get({\"baseUrl\": \"https://example.com\"})[{pollIntervalMs: 250}]>")
+                .with("http.get", Value.of("ok")).onlyInvocation();
+
+        assertThat(invocation.attributeName()).isEqualTo("http.get");
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(250));
+    }
+
+    @Test
+    @DisplayName("the broker re-invokes the http attribute at the configured poll interval (repetition end to end)")
+    void whenSubscribedWithShortPollIntervalThenBrokerReIssuesRequests() throws IOException {
+        val server = new MockWebServer();
+        server.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest recordedRequest) {
+                return new MockResponse().setBody("{\"v\":1}").addHeader("Content-Type", "application/json");
+            }
+        });
+        server.start();
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
+            broker.load(new HttpPolicyInformationPoint(
+                    new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient())));
+            val request    = ObjectValue.builder().put("baseUrl", Value.of("http://localhost:" + server.getPort()))
+                    .build();
+            val invocation = new AttributeFinderInvocation("test-pdp", "default", "http.get", List.of(request),
+                    Duration.ofSeconds(1), Duration.ofMillis(50), Duration.ofMillis(50), 0L, false, EMPTY_CTX);
+            val key        = new SubscriptionKey(invocation, false);
+
+            val subscription = broker.open("poll-e2e", Set.of(key), snapshot -> Set.of(key));
+            try {
+                // A single-shot HTTP attribute re-issued by the broker poll interval must
+                // produce multiple requests, no in-PIP looping.
+                Awaitility.await().atMost(Duration.ofSeconds(5))
+                        .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2));
+            } finally {
+                subscription.close();
+            }
+        } finally {
+            server.shutdown();
+        }
+    }
+
+    private static void stubHttpRequest(BlockingWebClient client) {
+        when(client.httpRequest(any(), any())).thenAnswer(invocation -> emittingStream());
+    }
+
+    private static void stubWebSocket(BlockingWebClient client) {
+        when(client.consumeWebSocket(any())).thenAnswer(invocation -> emittingStream());
+    }
+
+    private static Stream<Value> emittingStream() {
+        val s = new LatestSlotStream<Value>();
+        s.put(Value.of(1));
+        s.complete();
+        return s;
+    }
+
+    private static BlockingWebClient newRealClient() {
+        return new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient());
     }
 
     private static ObjectValue baseRequest(String url) {
@@ -546,18 +618,18 @@ class HttpPolicyInformationPointTests {
 
     @FunctionalInterface
     interface EnvironmentAttributeInvoker {
-        Flux<Value> invoke(HttpPolicyInformationPoint pip, AttributeAccessContext ctx, ObjectValue requestSettings);
+        Stream<Value> invoke(HttpPolicyInformationPoint pip, AttributeAccessContext ctx, ObjectValue requestSettings);
     }
 
     @FunctionalInterface
     interface EntityAttributeInvoker {
-        Flux<Value> invoke(HttpPolicyInformationPoint pip, TextValue url, AttributeAccessContext ctx,
+        Stream<Value> invoke(HttpPolicyInformationPoint pip, TextValue url, AttributeAccessContext ctx,
                 ObjectValue requestSettings);
     }
 
     @FunctionalInterface
     interface NoArgsEntityAttributeInvoker {
-        Flux<Value> invoke(HttpPolicyInformationPoint pip, TextValue url, AttributeAccessContext ctx);
+        Stream<Value> invoke(HttpPolicyInformationPoint pip, TextValue url, AttributeAccessContext ctx);
     }
 
 }

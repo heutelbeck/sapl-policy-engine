@@ -18,6 +18,7 @@
 package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.DisplayName;
@@ -130,6 +131,103 @@ class SAPLRenameProviderTests {
             assertThat(workspaceEdit).isNotNull();
             var edits = workspaceEdit.getChanges().get("test.sapl");
             assertThat(edits).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("renaming set-level variable does not rewrite a shadowing policy-level variable")
+        void whenRenamingSetVarShadowedByPolicyVar_thenLeavesPolicyVarUntouched() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    set "test"
+                    first or abstain
+                    var config = "default";
+
+                    policy "p1"
+                    permit
+                        config == "default";
+
+                    policy "p2"
+                    permit
+                        var config = "local";
+                        config == "local";
+                    """);
+
+            var workspaceEdit = provider.provideRename(document, new Position(2, 4), "settings");
+
+            assertThat(workspaceEdit).isNotNull();
+            var edits = workspaceEdit.getChanges().get("test.sapl");
+            assertThat(edits).hasSize(2).noneMatch(edit -> edit.getRange().getStart().getLine() >= 10);
+        }
+
+        @Test
+        @DisplayName("renaming set-level variable rewrites references preceding a shadowing redefinition")
+        void whenRenamingSetVarReferencedBeforeShadowing_thenRenamesPrecedingReference() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    set "test"
+                    first or abstain
+                    var config = "default";
+
+                    policy "p2"
+                    permit
+                        config == "default";
+                        var config = "local";
+                        config == "local";
+                    """);
+
+            var workspaceEdit = provider.provideRename(document, new Position(2, 4), "settings");
+
+            assertThat(workspaceEdit).isNotNull();
+            var edits = workspaceEdit.getChanges().get("test.sapl");
+            // definition (line 2) plus the reference on line 6 that precedes the shadowing
+            // redefinition
+            assertThat(edits).hasSize(2).anyMatch(edit -> edit.getRange().getStart().getLine() == 6)
+                    .noneMatch(edit -> edit.getRange().getStart().getLine() >= 7);
+        }
+
+        @Test
+        @DisplayName("renaming a shadowing policy-level variable does not rewrite the set-level variable")
+        void whenRenamingPolicyVarShadowingSetVar_thenLeavesSetVarUntouched() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    set "test"
+                    first or abstain
+                    var config = "default";
+
+                    policy "p1"
+                    permit
+                        config == "default";
+
+                    policy "p2"
+                    permit
+                        var config = "local";
+                        config == "local";
+                    """);
+
+            var workspaceEdit = provider.provideRename(document, new Position(10, 8), "renamed");
+
+            assertThat(workspaceEdit).isNotNull();
+            var edits = workspaceEdit.getChanges().get("test.sapl");
+            assertThat(edits).hasSize(2).allMatch(edit -> edit.getRange().getStart().getLine() >= 10);
+        }
+
+    }
+
+    @Nested
+    @DisplayName("partial trees (error recovery while editing)")
+    class PartialTrees {
+
+        @Test
+        @DisplayName("prepareRename on a half-typed document does not crash")
+        void whenPrepareRenameOnPartialDocumentThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "policy ");
+
+            assertThatCode(() -> provider.prepareRename(document, new Position(0, 7))).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("provideRename on a half-typed document does not crash")
+        void whenProvideRenameOnPartialDocumentThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "set ");
+
+            assertThatCode(() -> provider.provideRename(document, new Position(0, 4), "x")).doesNotThrowAnyException();
         }
 
     }

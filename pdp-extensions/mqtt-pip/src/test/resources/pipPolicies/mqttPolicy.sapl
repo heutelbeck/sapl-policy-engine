@@ -17,6 +17,5 @@ policy "mqttPolicyWithQosAndConfig"
 permit
   action == "actionNameWithQosAndConfig";
   subject == "subjectName";
-  var config = {"brokerAddress": "localhost", "brokerPort": 1883, "clientId": mqtt_pip, "defaultResponse": "undefined"};
-  resource.topic.<mqtt.messages(0, config)> == "message";
+  resource.topic.<mqtt.messages(0, "broker1")> == "message";
 

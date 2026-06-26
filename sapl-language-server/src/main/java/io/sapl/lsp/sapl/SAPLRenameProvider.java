@@ -44,11 +44,13 @@ import lombok.val;
 
 /**
  * Provides rename functionality for SAPL variable definitions.
- * Scoping: set-level variables are visible to all policies;
- * policy-level variables are visible to statements following their
+ * Scoping: set-level variables are visible to all policies.
+ * Policy-level variables are visible to statements following their
  * definition within the same policy.
  */
 class SAPLRenameProvider {
+
+    private static final Range ZERO_RANGE = new Range(new Position(0, 0), new Position(0, 0));
 
     PrepareRenameResult prepareRename(ParsedDocument document, Position position) {
         if (!(document instanceof SAPLParsedDocument saplDocument)) {
@@ -94,11 +96,23 @@ class SAPLRenameProvider {
 
     private void collectRenameEditsInPolicySet(PolicySetContext policySet, String targetName, String newName,
             Position position, List<TextEdit> edits) {
+        if (policySet == null) {
+            return;
+        }
+        // A policy that re-declares the same name shadows the set-level variable.
+        // If the cursor is inside such a policy, the rename targets the policy-level
+        // var.
+        for (val policy : policySet.policy()) {
+            if (containsPosition(policy, position) && policyRedeclares(policy, targetName)) {
+                collectRenameEditsInPolicy(policy, targetName, newName, edits);
+                return;
+            }
+        }
         // Check if it's a set-level var
         for (val varDef : policySet.valueDefinition()) {
-            if (varDef.name.getText().equals(targetName)) {
+            if (varDef.name != null && varDef.name.getText().equals(targetName)) {
                 edits.add(new TextEdit(rangeOf(varDef.name), newName));
-                collectReferencesInTree(policySet, targetName, edits, newName);
+                collectSetLevelReferences(policySet, targetName, newName, edits);
                 return;
             }
         }
@@ -111,9 +125,56 @@ class SAPLRenameProvider {
         }
     }
 
+    private void collectSetLevelReferences(PolicySetContext policySet, String targetName, String newName,
+            List<TextEdit> edits) {
+        for (val varDef : policySet.valueDefinition()) {
+            if (varDef.eval != null) {
+                collectReferencesInTree(varDef.eval, targetName, edits, newName);
+            }
+        }
+        // A policy that re-declares the same name shadows the set-level variable only
+        // from its redefinition onward. References preceding it still bind to the set
+        // var.
+        for (val policy : policySet.policy()) {
+            if (policyRedeclares(policy, targetName)) {
+                collectSetLevelReferencesBeforeShadowing(policy, targetName, newName, edits);
+            } else {
+                collectReferencesInTree(policy, targetName, edits, newName);
+            }
+        }
+    }
+
+    private void collectSetLevelReferencesBeforeShadowing(PolicyContext policy, String targetName, String newName,
+            List<TextEdit> edits) {
+        for (val statement : policy.policyBody().statements) {
+            if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
+                val varDef = varDefStmt.valueDefinition();
+                if (varDef.name != null && varDef.name.getText().equals(targetName)) {
+                    return;
+                }
+            }
+            collectReferencesInTree(statement, targetName, edits, newName);
+        }
+    }
+
+    private boolean policyRedeclares(PolicyContext policy, String targetName) {
+        if (policy == null || policy.policyBody() == null) {
+            return false;
+        }
+        for (val statement : policy.policyBody().statements) {
+            if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
+                val varDef = varDefStmt.valueDefinition();
+                if (varDef.name != null && varDef.name.getText().equals(targetName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private void collectRenameEditsInPolicy(PolicyContext policy, String targetName, String newName,
             List<TextEdit> edits) {
-        if (policy.policyBody() == null) {
+        if (policy == null || policy.policyBody() == null) {
             return;
         }
         val body  = policy.policyBody();
@@ -121,7 +182,7 @@ class SAPLRenameProvider {
         for (val statement : body.statements) {
             if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
                 val varDef = varDefStmt.valueDefinition();
-                if (varDef.name.getText().equals(targetName)) {
+                if (varDef.name != null && varDef.name.getText().equals(targetName)) {
                     edits.add(new TextEdit(rangeOf(varDef.name), newName));
                     found = true;
                     continue;
@@ -150,7 +211,8 @@ class SAPLRenameProvider {
     }
 
     private void collectReferencesInTree(ParseTree tree, String targetName, List<TextEdit> edits, String newName) {
-        if (tree instanceof BasicIdentifierContext basicId && basicId.saplId().getText().equals(targetName)) {
+        if (tree instanceof BasicIdentifierContext basicId && basicId.saplId() != null
+                && basicId.saplId().getText().equals(targetName)) {
             edits.add(new TextEdit(rangeOf(basicId.saplId()), newName));
         }
         if (tree instanceof ParserRuleContext ctx) {
@@ -176,7 +238,7 @@ class SAPLRenameProvider {
         collectNodesOfType(tree, BasicIdentifierContext.class, identifiers);
         for (val ident : identifiers) {
             val saplId = ident.saplId();
-            if (containsPosition(saplId, position)) {
+            if (saplId != null && containsPosition(saplId, position)) {
                 return saplId;
             }
         }
@@ -226,6 +288,9 @@ class SAPLRenameProvider {
     }
 
     private Range rangeOf(ParserRuleContext ctx) {
+        if (ctx == null || ctx.getStart() == null || ctx.getStop() == null) {
+            return ZERO_RANGE;
+        }
         val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
         val stop  = ctx.getStop();
         val end   = new Position(stop.getLine() - 1, stop.getCharPositionInLine() + stop.getText().length());

@@ -23,9 +23,9 @@ import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.deser.std.StdDeserializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,8 +51,8 @@ import lombok.val;
  * </ul>
  * Optional fields:
  * <ul>
- * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.);
- * defaults to an empty ObjectValue</li>
+ * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.).
+ * Defaults to an empty ObjectValue</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {
@@ -69,6 +69,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_EXPECTED_START_ARRAY         = "Expected START_ARRAY for saplDocuments.";
     private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
+    private static final String ERROR_EXPECTED_STRING_ELEMENT      = "Expected VALUE_STRING element in saplDocuments.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
@@ -126,6 +127,9 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
 
         val strings = new ArrayList<String>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
+            if (parser.currentToken() != JsonToken.VALUE_STRING) {
+                return context.reportInputMismatch(List.class, ERROR_EXPECTED_STRING_ELEMENT);
+            }
             strings.add(parser.getString());
         }
         return strings;

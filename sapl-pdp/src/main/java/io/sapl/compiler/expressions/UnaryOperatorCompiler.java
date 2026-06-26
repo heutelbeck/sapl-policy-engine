@@ -17,15 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
 import io.sapl.compiler.index.SemanticHashing;
@@ -33,13 +25,10 @@ import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.Map;
 
-import static io.sapl.ast.UnaryOperatorType.NEGATE;
-import static io.sapl.ast.UnaryOperatorType.NOT;
-import static io.sapl.ast.UnaryOperatorType.PLUS;
+import static io.sapl.ast.UnaryOperatorType.*;
 
 @UtilityClass
 public class UnaryOperatorCompiler {
@@ -101,14 +90,13 @@ public class UnaryOperatorCompiler {
     public record UnaryStream(UnaryOperation op, StreamOperator operand, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return operand.stream().map(tv -> {
-                val v = tv.value();
-                if (v instanceof ErrorValue) {
-                    return tv;
-                }
-                return new TracedValue(op.apply(v, location), tv.contributingAttributes());
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val r = operand.evaluate(ctx);
+            val v = r.result();
+            if (v == null || v instanceof ErrorValue) {
+                return r;
+            }
+            return new ExpressionResult(op.apply(v, location), r.dependencies());
         }
     }
 

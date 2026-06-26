@@ -17,26 +17,22 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("PermissionsFunctionLibrary")
 class PermissionsFunctionLibraryTests {
@@ -44,11 +40,8 @@ class PermissionsFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(PermissionsFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new PermissionsFunctionLibrary())).doesNotThrowAnyException();
     }
-
-    /* Core Permission Semantics Tests */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasAllTestCases")
@@ -180,6 +173,29 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
+    @ParameterizedTest(name = "{0} element = {1}")
+    @MethodSource("provideArrayElementOutOfLongRangeCases")
+    void whenArrayMaskElementIsOutOfLongRangeThenReturnsError(String functionName, String element) {
+        val         outOfRange = Value.of(new BigDecimal(element));
+        val         masks      = ArrayValue.builder().add(Value.of(1L)).add(outOfRange).build();
+        final Value actual     = switch (functionName) {
+                               case "combine"    -> PermissionsFunctionLibrary.combine(masks);
+                               case "combineAll" -> PermissionsFunctionLibrary.combineAll(masks);
+                               default           ->
+                                   throw new IllegalArgumentException("Unknown function: " + functionName);
+                               };
+
+        assertThat(actual).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) actual).message()).contains("64-bit range");
+    }
+
+    private static Stream<Arguments> provideArrayElementOutOfLongRangeCases() {
+        val aboveLongMax = "9223372036854775808";  // Long.MAX_VALUE + 1
+        val belowLongMin = "-9223372036854775809"; // Long.MIN_VALUE - 1
+        return Stream.of(arguments("combine", aboveLongMax), arguments("combine", belowLongMin),
+                arguments("combineAll", aboveLongMax), arguments("combineAll", belowLongMin));
+    }
+
     @Test
     void whenCombineAllWithEmptyArrayThenReturnsError() {
         val emptyArray = ArrayValue.builder().build();
@@ -242,8 +258,6 @@ class PermissionsFunctionLibraryTests {
                 arguments(5L, 3L, false) // Not disjoint
         );
     }
-
-    /* Unix/POSIX Permission Tests */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideUnixExtractTestCases")
@@ -321,8 +335,6 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    /* POSIX Constants Tests */
-
     @Test
     void whenPosixConstantsThenReturnCorrectValues() {
         assertThat(PermissionsFunctionLibrary.posixRead()).isEqualTo(Value.of(4L));
@@ -343,8 +355,6 @@ class PermissionsFunctionLibraryTests {
         assertThat(PermissionsFunctionLibrary.posixMode600()).isEqualTo(Value.of(384L));
         assertThat(PermissionsFunctionLibrary.posixMode666()).isEqualTo(Value.of(438L));
     }
-
-    /* Manipulation Tests */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideGrantTestCases")
@@ -400,8 +410,6 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    /* Universal Constants Tests */
-
     @Test
     void whenNoneThenReturnsZero() {
         val actual = PermissionsFunctionLibrary.none();
@@ -429,15 +437,27 @@ class PermissionsFunctionLibraryTests {
         assertThat(((ErrorValue) actual).message()).contains("Bit position must be between 0 and 63");
     }
 
-    /* Error Handling Tests */
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "5.5", "0.1", "63.9" })
+    void whenBitWithFractionalPositionThenReturnsError(String fractionalPosition) {
+        val actual = PermissionsFunctionLibrary.bit((NumberValue) Value.of(new BigDecimal(fractionalPosition)));
+        assertThat(actual).isInstanceOf(ErrorValue.class).extracting(error -> ((ErrorValue) error).message()).asString()
+                .contains("Bit position must be between 0 and 63");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "18446744073709551621", "9223372036854775808", "-9223372036854775809" })
+    void whenBitWithPositionOutsideLongRangeThenReturnsError(String hugePosition) {
+        val actual = PermissionsFunctionLibrary.bit((NumberValue) Value.of(new BigDecimal(hugePosition)));
+        assertThat(actual).isInstanceOf(ErrorValue.class).extracting(error -> ((ErrorValue) error).message()).asString()
+                .contains("Bit position must be between 0 and 63");
+    }
 
     @Test
-    void whenHasAllWithNonArrayMaskThenReturnsError() {
-        // This test verifies error handling for incorrect parameter type
-        // We need to pass something that's not an ArrayValue to test the error case
-        val singleValue = ArrayValue.builder().build(); // Pass empty array to trigger different error
-        val actual      = PermissionsFunctionLibrary.hasAll((NumberValue) Value.of(42L), singleValue);
-        // Empty array should return true (vacuous truth: has all of zero elements)
+    void whenHasAllWithEmptyMaskThenReturnsTrue() {
+        val emptyMask = ArrayValue.builder().build();
+        val actual    = PermissionsFunctionLibrary.hasAll((NumberValue) Value.of(42L), emptyMask);
+        // Vacuous truth: a permission has all of zero required bits.
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 
@@ -463,8 +483,6 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.combine(array);
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
     }
-
-    /* Integration Tests */
 
     @Test
     void whenUnixPermissionWorkflowThenWorksCorrectly() {
@@ -517,7 +535,68 @@ class PermissionsFunctionLibraryTests {
         assertThat(combined).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
     }
 
-    /* Helper Methods */
+    @ParameterizedTest(name = "{0} arg = {1}")
+    @MethodSource("provideScalarArgumentValidationCases")
+    void whenScalarArgumentIsFractionalOrOutOfLongRangeThenReturnsError(String functionName, String argument) {
+        val         number = (NumberValue) Value.of(new BigDecimal(argument));
+        val         masks  = createLongArray(new long[] { 1L });
+        final Value actual = switch (functionName) {
+                           case "hasAll"         -> PermissionsFunctionLibrary.hasAll(number, masks);
+                           case "hasAny"         -> PermissionsFunctionLibrary.hasAny(number, masks);
+                           case "hasNone"        -> PermissionsFunctionLibrary.hasNone(number, masks);
+                           case "hasOnly"        -> PermissionsFunctionLibrary.hasOnly(number, masks);
+                           case "hasExact"       ->
+                               PermissionsFunctionLibrary.hasExact(number, (NumberValue) Value.of(1L));
+                           case "isSubsetOf"     ->
+                               PermissionsFunctionLibrary.isSubsetOf(number, (NumberValue) Value.of(1L));
+                           case "overlaps"       ->
+                               PermissionsFunctionLibrary.overlaps(number, (NumberValue) Value.of(1L));
+                           case "areDisjoint"    ->
+                               PermissionsFunctionLibrary.areDisjoint(number, (NumberValue) Value.of(1L));
+                           case "unixOwner"      -> PermissionsFunctionLibrary.unixOwner(number);
+                           case "unixGroup"      -> PermissionsFunctionLibrary.unixGroup(number);
+                           case "unixOther"      -> PermissionsFunctionLibrary.unixOther(number);
+                           case "unixCanRead"    -> PermissionsFunctionLibrary.unixCanRead(number);
+                           case "unixCanWrite"   -> PermissionsFunctionLibrary.unixCanWrite(number);
+                           case "unixCanExecute" -> PermissionsFunctionLibrary.unixCanExecute(number);
+                           case "grant"          -> PermissionsFunctionLibrary.grant(number, masks);
+                           case "revoke"         -> PermissionsFunctionLibrary.revoke(number, masks);
+                           case "toggle"         -> PermissionsFunctionLibrary.toggle(number, masks);
+                           default               ->
+                               throw new IllegalArgumentException("Unknown function: " + functionName);
+                           };
+        assertThat(actual).isInstanceOf(ErrorValue.class);
+    }
+
+    private static Stream<Arguments> provideScalarArgumentValidationCases() {
+        val twoToTheSixtyFourPlusSeven = "18446744073709551623";
+        val fractional                 = "6.9";
+        val scalarFunctions            = Stream.of("hasAll", "hasAny", "hasNone", "hasOnly", "hasExact", "isSubsetOf",
+                "overlaps", "areDisjoint", "unixOwner", "unixGroup", "unixOther", "unixCanRead", "unixCanWrite",
+                "unixCanExecute", "grant", "revoke", "toggle");
+        return scalarFunctions.flatMap(functionName -> Stream.of(arguments(functionName, twoToTheSixtyFourPlusSeven),
+                arguments(functionName, fractional)));
+    }
+
+    @ParameterizedTest(name = "unixMode arg index {0} = {1}")
+    @MethodSource("provideUnixModeArgumentValidationCases")
+    void whenUnixModeArgumentIsFractionalOrOutOfLongRangeThenReturnsError(int argumentIndex, String argument) {
+        val         invalid = (NumberValue) Value.of(new BigDecimal(argument));
+        val         valid   = (NumberValue) Value.of(7L);
+        final Value actual  = switch (argumentIndex) {
+                            case 0  -> PermissionsFunctionLibrary.unixMode(invalid, valid, valid);
+                            case 1  -> PermissionsFunctionLibrary.unixMode(valid, invalid, valid);
+                            case 2  -> PermissionsFunctionLibrary.unixMode(valid, valid, invalid);
+                            default -> throw new IllegalArgumentException("Unknown argument index: " + argumentIndex);
+                            };
+        assertThat(actual).isInstanceOf(ErrorValue.class);
+    }
+
+    private static Stream<Arguments> provideUnixModeArgumentValidationCases() {
+        return Stream.of(arguments(0, "18446744073709551623"), arguments(0, "6.9"),
+                arguments(1, "18446744073709551623"), arguments(1, "6.9"), arguments(2, "18446744073709551623"),
+                arguments(2, "6.9"));
+    }
 
     private static ArrayValue createLongArray(long[] values) {
         val builder = ArrayValue.builder();

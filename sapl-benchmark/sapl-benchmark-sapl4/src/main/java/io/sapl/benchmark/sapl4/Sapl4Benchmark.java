@@ -66,11 +66,13 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     private static final String ERROR_CONVERGENCE_FAILED = "FAILED: did not converge after %d forks (CoV %.2f%%, threshold %.1f%%).";
     private static final String ERROR_SANITY_CHECK       = "Sanity check failed: scenario '%s' produced %s but expected %s.";
-    private static final String PROPERTY_UNKNOWN         = "unknown";
+    private static final String ERROR_UNKNOWN_INDEXING   = "Unknown indexing strategy: %s. Valid strategies: %s.";
     private static final String ERROR_UNKNOWN_METHOD     = "Unknown method: %s. Valid methods: %s.";
+    private static final String PROPERTY_UNKNOWN         = "unknown";
     private static final String WARN_WRITE_FAILED        = "Warning: failed to write results: %s.";
 
     private static final String      FLAG_UNROLL_IN_OPERATOR = "unrollInOperator";
+    private static final Set<String> VALID_INDEXING          = Set.of("AUTO", "NAIVE", "CANONICAL", "SMTDD");
     private static final Set<String> VALID_METHODS           = Set.of("decideOnceBlocking", "decideStreamFirst",
             "noOp");
 
@@ -89,7 +91,7 @@ class Sapl4Benchmark implements Callable<Integer> {
     @Option(names = "--seed", defaultValue = "42", description = "RNG seed for OOPSLA entity graph generation. Ignored for non-OOPSLA scenarios.")
     private long seed;
 
-    @Option(names = "--indexing", defaultValue = "AUTO", description = "Indexing strategy: AUTO, NAIVE, CANONICAL.")
+    @Option(names = "--indexing", defaultValue = "AUTO", description = "Indexing strategy: AUTO, NAIVE, CANONICAL, SMTDD.")
     private String indexing;
 
     @Option(names = "--unroll", defaultValue = "false", description = "Enable IN-operator unrolling for index matching.")
@@ -185,11 +187,14 @@ class Sapl4Benchmark implements Callable<Integer> {
 
         List<Double>  forkResults   = List.of();
         LatencyResult latencyResult = null;
+        var           converged     = true;
 
         if (latencyOnly) {
             latencyResult = runLatencyPass(out);
         } else {
-            forkResults = runConvergenceForks(out, err);
+            var convergence = runConvergenceForks(out, err);
+            forkResults = convergence.throughputs();
+            converged   = convergence.converged();
             if (forkResults.isEmpty()) {
                 return 1;
             }
@@ -204,14 +209,20 @@ class Sapl4Benchmark implements Callable<Integer> {
             writeResults(forkResults, latencyResult, out);
         }
 
-        return 0;
+        return converged ? 0 : 1;
     }
 
     record LatencyResult(double p50, double p90, double p99, double p999, double max) {}
 
+    record ConvergenceResult(List<Double> throughputs, boolean converged) {}
+
     private boolean validate(PrintWriter err) {
         if (!VALID_METHODS.contains(method)) {
             err.println(ERROR_UNKNOWN_METHOD.formatted(method, VALID_METHODS));
+            return false;
+        }
+        if (!VALID_INDEXING.contains(indexing.toUpperCase())) {
+            err.println(ERROR_UNKNOWN_INDEXING.formatted(indexing, VALID_INDEXING));
             return false;
         }
         try {
@@ -220,8 +231,8 @@ class Sapl4Benchmark implements Callable<Integer> {
                     .put(FLAG_UNROLL_IN_OPERATOR, Value.of(unroll)).build();
             var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
-            var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
-            components.dispose();
+            var decision         = pdp.decideOnce(resolvedScenario.subscription());
+            components.close();
             if (resolvedScenario.expectedDecision() != null
                     && decision.decision() != resolvedScenario.expectedDecision().decision()) {
                 err.println(ERROR_SANITY_CHECK.formatted(scenario, decision, resolvedScenario.expectedDecision()));
@@ -263,7 +274,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         out.flush();
     }
 
-    private List<Double> runConvergenceForks(PrintWriter out, PrintWriter err) throws RunnerException {
+    private ConvergenceResult runConvergenceForks(PrintWriter out, PrintWriter err) throws RunnerException {
         var forkThroughputs = new ArrayList<Double>();
         var includePattern  = EmbeddedPdpBenchmark.class.getName() + "\\." + method;
 
@@ -281,13 +292,13 @@ class Sapl4Benchmark implements Callable<Integer> {
                         String.format(Locale.US, "Converged after %d forks (CoV %.2f%% < %.1f%% over last %d forks)",
                                 forkIndex, currentCoV, convergenceThresholdPercent, convergenceWindow));
                 out.flush();
-                return forkThroughputs;
+                return new ConvergenceResult(forkThroughputs, true);
             }
         }
 
         err.println(String.format(Locale.US, ERROR_CONVERGENCE_FAILED, maxForks, computeCoV(forkThroughputs),
                 convergenceThresholdPercent));
-        return forkThroughputs;
+        return new ConvergenceResult(forkThroughputs, false);
     }
 
     private double runSingleFork(String includePattern, int forkIndex) throws RunnerException {
@@ -312,10 +323,18 @@ class Sapl4Benchmark implements Callable<Integer> {
         return throughputs.size() >= convergenceWindow && computeCoV(throughputs) <= convergenceThresholdPercent;
     }
 
-    private double computeCoV(List<Double> throughputs) {
+    // The trailing convergence-window forks. Statistics and the convergence check
+    // both use
+    // this window, so reported CoV/CI match the criterion and exclude
+    // pre-convergence warmup.
+    private List<Double> trailingWindow(List<Double> throughputs) {
         var windowStart = Math.max(0, throughputs.size() - convergenceWindow);
-        var recent      = throughputs.subList(windowStart, throughputs.size());
-        var mean        = recent.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        return throughputs.subList(windowStart, throughputs.size());
+    }
+
+    private double computeCoV(List<Double> throughputs) {
+        var recent = trailingWindow(throughputs);
+        var mean   = recent.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         if (mean <= 0 || recent.size() < 2) {
             return Double.MAX_VALUE;
         }
@@ -328,11 +347,12 @@ class Sapl4Benchmark implements Callable<Integer> {
         out.println();
         out.println("Result:");
         if (!forkThroughputs.isEmpty()) {
-            var mean                   = forkThroughputs.stream().mapToDouble(Double::doubleValue).average()
-                    .orElse(0.0);
-            var count                  = forkThroughputs.size();
-            var sumSquaredDeviation    = forkThroughputs.stream().mapToDouble(value -> (value - mean) * (value - mean))
-                    .sum();
+            // Statistics are over the trailing convergence window, matching the convergence
+            // criterion. Pre-convergence warmup forks are excluded.
+            var window                 = trailingWindow(forkThroughputs);
+            var mean                   = window.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+            var count                  = window.size();
+            var sumSquaredDeviation    = window.stream().mapToDouble(value -> (value - mean) * (value - mean)).sum();
             var standardDeviation      = count > 1 ? Math.sqrt(sumSquaredDeviation / (count - 1)) : 0.0;
             var coefficientOfVariation = mean > 0 ? (standardDeviation / mean) * 100.0 : 0.0;
             var confidenceInterval95   = count > 1 ? tCritical95(count - 1) * standardDeviation / Math.sqrt(count)
@@ -342,8 +362,9 @@ class Sapl4Benchmark implements Callable<Integer> {
             out.println(String.format(Locale.US, "  CoV:     %.2f%%", coefficientOfVariation));
             out.println(String.format(Locale.US, "  95%% CI:  +/- %,.0f ops/s (t-distribution, df=%d)",
                     confidenceInterval95, count - 1));
-            out.println(String.format(Locale.US, "  Forks:   %d", count));
-            out.println(String.format(Locale.US, "  Per fork: %s", forkThroughputs.stream()
+            out.println(String.format(Locale.US, "  Forks:   %d of %d run (trailing window used for statistics)", count,
+                    forkThroughputs.size()));
+            out.println(String.format(Locale.US, "  Per fork: %s", window.stream()
                     .map(value -> String.format(Locale.US, "%,.0f", value)).collect(Collectors.joining(", "))));
         }
         if (latencyResult != null) {
@@ -494,10 +515,10 @@ class Sapl4Benchmark implements Callable<Integer> {
             counts.put(d, 0);
         }
         for (var sub : resolvedScenario.subscriptions()) {
-            var decision = pdp.decideOnceBlocking(sub).decision();
+            var decision = pdp.decideOnce(sub).decision();
             counts.merge(decision, 1, Integer::sum);
         }
-        components.dispose();
+        components.close();
         return counts;
     }
 

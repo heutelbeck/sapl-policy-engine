@@ -32,6 +32,7 @@ import picocli.CommandLine.Spec;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -112,13 +113,18 @@ public class TestCommand implements Callable<Integer> {
 
     static final String WARN_COVERAGE_WRITE_FAILED = "Warning: Failed to write coverage data: %s.";
 
-    private static final String ANSI_BOLD       = "\u001B[1m";
-    private static final String ANSI_BOLD_GREEN = "\u001B[1;32m";
-    private static final String ANSI_BOLD_RED   = "\u001B[1;31m";
-    private static final String ANSI_FAINT      = "\u001B[2m";
-    private static final String ANSI_GREEN      = "\u001B[32m";
-    private static final String ANSI_RED        = "\u001B[31m";
-    private static final String ANSI_RESET      = "\u001B[0m";
+    // Auto-disable colour codes when stdout is not a TTY (e.g. piped to a file or
+    // CI logs).
+    // System.console() returns null in those cases, so the codes collapse to empty
+    // strings.
+    private static final boolean ANSI_ON         = System.console() != null;
+    private static final String  ANSI_BOLD       = ANSI_ON ? "\u001B[1m" : "";
+    private static final String  ANSI_BOLD_GREEN = ANSI_ON ? "\u001B[1;32m" : "";
+    private static final String  ANSI_BOLD_RED   = ANSI_ON ? "\u001B[1;31m" : "";
+    private static final String  ANSI_FAINT      = ANSI_ON ? "\u001B[2m" : "";
+    private static final String  ANSI_GREEN      = ANSI_ON ? "\u001B[32m" : "";
+    private static final String  ANSI_RED        = ANSI_ON ? "\u001B[31m" : "";
+    private static final String  ANSI_RESET      = ANSI_ON ? "\u001B[0m" : "";
 
     @Spec
     CommandSpec spec;
@@ -167,7 +173,7 @@ public class TestCommand implements Callable<Integer> {
             policies = discoverFiles(dir, SAPL_EXTENSION).stream().map(p -> toSaplDocument(p, dir)).toList();
             tests    = discoverFiles(effectiveTestdir, SAPLTEST_EXTENSION).stream().map(TestCommand::toSaplTestDocument)
                     .toList();
-        } catch (IOException e) {
+        } catch (IOException | UncheckedIOException e) {
             err.println(ERROR_READING_FILES.formatted(dir, e.getMessage()));
             return 1;
         }
@@ -200,10 +206,7 @@ public class TestCommand implements Callable<Integer> {
         val coverage = aggregateCoverage(results);
         generateReports(coverage, err);
 
-        if (results.errors() > 0) {
-            return 2;
-        }
-        if (!results.allPassed()) {
+        if (results.errors() > 0 || !results.allPassed()) {
             return 2;
         }
 
@@ -242,7 +245,7 @@ public class TestCommand implements Callable<Integer> {
             val name         = extractDocumentName(stripped);
             return SaplDocument.of(name, source, path.toString());
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read: " + path + ".", e);
+            throw new UncheckedIOException("Failed to read: " + path + ".", e);
         }
     }
 
@@ -273,7 +276,7 @@ public class TestCommand implements Callable<Integer> {
             val name   = path.getFileName().toString();
             return SaplTestDocument.of(name, source);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read: " + path + ".", e);
+            throw new UncheckedIOException("Failed to read: " + path + ".", e);
         }
     }
 
@@ -287,7 +290,7 @@ public class TestCommand implements Callable<Integer> {
 
     private void writeCoverage(PlainTestResults results, PrintWriter err) {
         val writer = new CoverageWriter(output);
-        for (val entry : results.coverageByDocumentId().entrySet()) {
+        for (val entry : results.coverageByScenarioName().entrySet()) {
             try {
                 writer.write(entry.getValue());
             } catch (IOException e) {
@@ -379,7 +382,7 @@ public class TestCommand implements Callable<Integer> {
 
     private AggregatedCoverageData aggregateCoverage(PlainTestResults results) {
         val aggregated = new AggregatedCoverageData();
-        for (val coverageRecord : results.coverageByDocumentId().values()) {
+        for (val coverageRecord : results.coverageByScenarioName().values()) {
             aggregated.merge(coverageRecord);
         }
         return aggregated;

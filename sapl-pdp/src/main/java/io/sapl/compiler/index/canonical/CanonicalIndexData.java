@@ -17,14 +17,14 @@
  */
 package io.sapl.compiler.index.canonical;
 
+import io.sapl.api.model.IndexPredicate;
+import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.index.dnf.DisjunctiveFormula;
+
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
-
-import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.index.dnf.DisjunctiveFormula;
-import io.sapl.api.model.IndexPredicate;
 
 /**
  * Precomputed data structures for the canonical policy index, built at compile

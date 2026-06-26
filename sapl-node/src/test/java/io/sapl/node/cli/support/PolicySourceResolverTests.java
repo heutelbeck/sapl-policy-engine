@@ -17,8 +17,9 @@
  */
 package io.sapl.node.cli.support;
 
-import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.BUNDLES;
-import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.DIRECTORY;
+import static io.sapl.node.cli.support.PolicySourceResolver.SourceKind.BUNDLE_DIRECTORY;
+import static io.sapl.node.cli.support.PolicySourceResolver.SourceKind.DIRECTORY;
+import static io.sapl.node.cli.support.PolicySourceResolver.SourceKind.SINGLE_BUNDLE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -26,10 +27,17 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.security.KeyPairGenerator;
+import java.util.Base64;
+import java.util.Set;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.node.cli.options.BundleVerificationOptions;
@@ -44,20 +52,20 @@ class PolicySourceResolverTests {
     class DirectorySourceTests {
 
         @Test
-        @DisplayName("existing directory resolves to DIRECTORY type with absolute path")
-        void whenExistingDirectory_thenResolvesToDirectory(@TempDir Path tempDir) {
+        @DisplayName("existing directory resolves to DIRECTORY kind with absolute path")
+        void whenExistingDirectoryThenResolvesToDirectory(@TempDir Path tempDir) {
             val result = PolicySourceResolver.resolve(policySourceWithDir(tempDir), null, null, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(DIRECTORY);
-                assertThat(r.path()).isEqualTo(tempDir.toAbsolutePath().toString());
-                assertThat(r.publicKeyPath()).isNull();
+                assertThat(r.kind()).isEqualTo(DIRECTORY);
+                assertThat(r.path()).isEqualTo(tempDir.toAbsolutePath());
+                assertThat(r.publicKey()).isNull();
                 assertThat(r.allowUnsigned()).isFalse();
             });
         }
 
         @Test
         @DisplayName("non-existent directory returns null with error message")
-        void whenNonExistentDirectory_thenReturnsNullWithError() {
+        void whenNonExistentDirectoryThenReturnsNullWithError() {
             val err    = new StringWriter();
             val result = PolicySourceResolver.resolve(policySourceWithDir(Path.of("nonexistent", "path")), null, null,
                     new PrintWriter(err));
@@ -73,7 +81,7 @@ class PolicySourceResolverTests {
 
         @Test
         @DisplayName("non-existent bundle file returns null with error message")
-        void whenNonExistentBundle_thenReturnsNullWithError() {
+        void whenNonExistentBundleThenReturnsNullWithError() {
             val err    = new StringWriter();
             val result = PolicySourceResolver.resolve(policySourceWithBundle(Path.of("nonexistent", "file.saplbundle")),
                     null, null, new PrintWriter(err));
@@ -82,36 +90,49 @@ class PolicySourceResolverTests {
         }
 
         @Test
-        @DisplayName("bundle with --no-verify resolves to BUNDLES type unsigned")
-        void whenBundleWithNoVerify_thenResolvesUnsigned(@TempDir Path tempDir) throws IOException {
+        @DisplayName("single bundle with --no-verify resolves to SINGLE_BUNDLE kind unsigned, keyed on the file itself")
+        void whenBundleWithNoVerifyThenResolvesUnsigned(@TempDir Path tempDir) throws IOException {
             val bundle = createFile(tempDir, "test.saplbundle");
             val result = PolicySourceResolver.resolve(policySourceWithBundle(bundle), bundleVerificationNoVerify(),
                     null, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(BUNDLES);
-                assertThat(r.path()).isEqualTo(tempDir.toAbsolutePath().toString());
-                assertThat(r.publicKeyPath()).isNull();
+                assertThat(r.kind()).isEqualTo(SINGLE_BUNDLE);
+                assertThat(r.path()).isEqualTo(bundle.toAbsolutePath());
+                assertThat(r.publicKey()).isNull();
                 assertThat(r.allowUnsigned()).isTrue();
             });
         }
 
         @Test
-        @DisplayName("bundle with existing public key resolves with key path")
-        void whenBundleWithPublicKey_thenResolvesWithKeyPath(@TempDir Path tempDir) throws IOException {
+        @DisplayName("single bundle with a valid public key resolves with the loaded key")
+        void whenBundleWithPublicKeyThenResolvesWithKey(@TempDir Path tempDir) throws Exception {
             val bundle = createFile(tempDir, "test.saplbundle");
-            val key    = createFile(tempDir, "key.pem");
+            val key    = createPublicKey(tempDir, "key.pem");
             val result = PolicySourceResolver.resolve(policySourceWithBundle(bundle), bundleVerificationWithKey(key),
                     null, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(BUNDLES);
-                assertThat(r.publicKeyPath()).isEqualTo(key.toAbsolutePath().toString());
+                assertThat(r.kind()).isEqualTo(SINGLE_BUNDLE);
+                assertThat(r.path()).isEqualTo(bundle.toAbsolutePath());
+                assertThat(r.publicKey()).isNotNull();
                 assertThat(r.allowUnsigned()).isFalse();
             });
         }
 
         @Test
-        @DisplayName("bundle with non-existent public key returns null with error")
-        void whenBundleWithMissingPublicKey_thenReturnsNullWithError(@TempDir Path tempDir) throws IOException {
+        @DisplayName("single bundle with a malformed public key returns null with error")
+        void whenBundleWithInvalidPublicKeyThenReturnsNullWithError(@TempDir Path tempDir) throws IOException {
+            val err    = new StringWriter();
+            val bundle = createFile(tempDir, "test.saplbundle");
+            val key    = createFile(tempDir, "key.pem");
+            val result = PolicySourceResolver.resolve(policySourceWithBundle(bundle), bundleVerificationWithKey(key),
+                    null, new PrintWriter(err));
+            assertThat(result).isNull();
+            assertThat(err.toString()).contains("not a valid Ed25519 key");
+        }
+
+        @Test
+        @DisplayName("single bundle with non-existent public key returns null with error")
+        void whenBundleWithMissingPublicKeyThenReturnsNullWithError(@TempDir Path tempDir) throws IOException {
             val err    = new StringWriter();
             val bundle = createFile(tempDir, "test.saplbundle");
             val result = PolicySourceResolver.resolve(policySourceWithBundle(bundle),
@@ -121,21 +142,21 @@ class PolicySourceResolverTests {
         }
 
         @Test
-        @DisplayName("bundle with default key in sapl home resolves with default key")
-        void whenBundleWithDefaultKey_thenResolvesWithDefaultKey(@TempDir Path tempDir) throws IOException {
-            val bundle     = createFile(tempDir, "test.saplbundle");
-            val defaultKey = createFile(tempDir, "public-key.pem");
-            val result     = PolicySourceResolver.resolve(policySourceWithBundle(bundle), null, tempDir, discardErr());
+        @DisplayName("single bundle with default key in sapl home resolves with the default key")
+        void whenBundleWithDefaultKeyThenResolvesWithDefaultKey(@TempDir Path tempDir) throws Exception {
+            val bundle = createFile(tempDir, "test.saplbundle");
+            createPublicKey(tempDir, "public-key.pem");
+            val result = PolicySourceResolver.resolve(policySourceWithBundle(bundle), null, tempDir, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(BUNDLES);
-                assertThat(r.publicKeyPath()).isEqualTo(defaultKey.toAbsolutePath().toString());
+                assertThat(r.kind()).isEqualTo(SINGLE_BUNDLE);
+                assertThat(r.publicKey()).isNotNull();
                 assertThat(r.allowUnsigned()).isFalse();
             });
         }
 
         @Test
-        @DisplayName("bundle without verification and no default key returns null with error")
-        void whenBundleWithoutVerification_thenReturnsNullWithError(@TempDir Path tempDir) throws IOException {
+        @DisplayName("single bundle without verification and no default key returns null with error")
+        void whenBundleWithoutVerificationThenReturnsNullWithError(@TempDir Path tempDir) throws IOException {
             val err    = new StringWriter();
             val bundle = createFile(tempDir, "test.saplbundle");
             val result = PolicySourceResolver.resolve(policySourceWithBundle(bundle), null, tempDir,
@@ -145,8 +166,8 @@ class PolicySourceResolverTests {
         }
 
         @Test
-        @DisplayName("bundle with empty verification options and non-existent sapl home returns null with error")
-        void whenBundleWithEmptyVerificationAndNoSaplHome_thenReturnsNullWithError(@TempDir Path tempDir)
+        @DisplayName("single bundle with empty verification options and non-existent sapl home returns null with error")
+        void whenBundleWithEmptyVerificationAndNoSaplHomeThenReturnsNullWithError(@TempDir Path tempDir)
                 throws IOException {
             val err          = new StringWriter();
             val bundle       = createFile(tempDir, "test.saplbundle");
@@ -163,9 +184,18 @@ class PolicySourceResolverTests {
     @DisplayName("auto-detection")
     class AutoDetectionTests {
 
+        private Path unreadableSaplHome;
+
+        @AfterEach
+        void restorePermissions() throws IOException {
+            if (unreadableSaplHome != null && Files.isDirectory(unreadableSaplHome)) {
+                Files.setPosixFilePermissions(unreadableSaplHome, PosixFilePermissions.fromString("rwx------"));
+            }
+        }
+
         @Test
         @DisplayName("non-existent sapl home returns null with error")
-        void whenSaplHomeNotFound_thenReturnsNullWithError() {
+        void whenSaplHomeNotFoundThenReturnsNullWithError() {
             val err    = new StringWriter();
             val result = PolicySourceResolver.resolve(null, null, Path.of("nonexistent", "sapl-home"),
                     new PrintWriter(err));
@@ -174,42 +204,43 @@ class PolicySourceResolverTests {
         }
 
         @Test
-        @DisplayName("sapl home with .sapl files resolves to DIRECTORY type")
-        void whenSaplHomeWithSaplFiles_thenResolvesToDirectory(@TempDir Path saplHome) throws IOException {
+        @DisplayName("sapl home with .sapl files resolves to DIRECTORY kind")
+        void whenSaplHomeWithSaplFilesThenResolvesToDirectory(@TempDir Path saplHome) throws IOException {
             createFile(saplHome, "policy.sapl");
             val result = PolicySourceResolver.resolve(null, null, saplHome, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(DIRECTORY);
-                assertThat(r.path()).isEqualTo(saplHome.toAbsolutePath().toString());
+                assertThat(r.kind()).isEqualTo(DIRECTORY);
+                assertThat(r.path()).isEqualTo(saplHome.toAbsolutePath());
             });
         }
 
         @Test
-        @DisplayName("sapl home with .saplbundle and --no-verify resolves to BUNDLES type")
-        void whenSaplHomeWithBundleAndNoVerify_thenResolvesToBundles(@TempDir Path saplHome) throws IOException {
+        @DisplayName("sapl home with .saplbundle and --no-verify resolves to BUNDLE_DIRECTORY kind")
+        void whenSaplHomeWithBundleAndNoVerifyThenResolvesToBundleDirectory(@TempDir Path saplHome) throws IOException {
             createFile(saplHome, "policies.saplbundle");
             val result = PolicySourceResolver.resolve(null, bundleVerificationNoVerify(), saplHome, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(BUNDLES);
+                assertThat(r.kind()).isEqualTo(BUNDLE_DIRECTORY);
+                assertThat(r.path()).isEqualTo(saplHome.toAbsolutePath());
                 assertThat(r.allowUnsigned()).isTrue();
             });
         }
 
         @Test
-        @DisplayName("sapl home with .saplbundle and default key resolves with key")
-        void whenSaplHomeWithBundleAndDefaultKey_thenResolvesWithKey(@TempDir Path saplHome) throws IOException {
+        @DisplayName("sapl home with .saplbundle and default key resolves to BUNDLE_DIRECTORY with the key")
+        void whenSaplHomeWithBundleAndDefaultKeyThenResolvesWithKey(@TempDir Path saplHome) throws Exception {
             createFile(saplHome, "policies.saplbundle");
-            val defaultKey = createFile(saplHome, "public-key.pem");
-            val result     = PolicySourceResolver.resolve(null, null, saplHome, discardErr());
+            createPublicKey(saplHome, "public-key.pem");
+            val result = PolicySourceResolver.resolve(null, null, saplHome, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(BUNDLES);
-                assertThat(r.publicKeyPath()).isEqualTo(defaultKey.toAbsolutePath().toString());
+                assertThat(r.kind()).isEqualTo(BUNDLE_DIRECTORY);
+                assertThat(r.publicKey()).isNotNull();
             });
         }
 
         @Test
         @DisplayName("sapl home with both .sapl and .saplbundle files returns null with error")
-        void whenSaplHomeWithBothTypes_thenReturnsNullWithError(@TempDir Path saplHome) throws IOException {
+        void whenSaplHomeWithBothTypesThenReturnsNullWithError(@TempDir Path saplHome) throws IOException {
             createFile(saplHome, "policy.sapl");
             createFile(saplHome, "policies.saplbundle");
             val err    = new StringWriter();
@@ -220,7 +251,7 @@ class PolicySourceResolverTests {
 
         @Test
         @DisplayName("empty sapl home returns null with error")
-        void whenSaplHomeEmpty_thenReturnsNullWithError(@TempDir Path saplHome) {
+        void whenSaplHomeEmptyThenReturnsNullWithError(@TempDir Path saplHome) {
             val err    = new StringWriter();
             val result = PolicySourceResolver.resolve(null, null, saplHome, new PrintWriter(err));
             assertThat(result).isNull();
@@ -228,13 +259,26 @@ class PolicySourceResolverTests {
         }
 
         @Test
+        @EnabledOnOs(OS.LINUX)
+        @DisplayName("existing sapl home whose contents cannot be listed reports a listing failure with cause, not a missing-directory error")
+        void whenSaplHomeListingFailsThenReportsListingFailureWithCause(@TempDir Path tempParent) throws IOException {
+            unreadableSaplHome = Files.createDirectory(tempParent.resolve("locked-sapl"),
+                    PosixFilePermissions.asFileAttribute(Set.of()));
+            val err    = new StringWriter();
+            val result = PolicySourceResolver.resolve(null, null, unreadableSaplHome, new PrintWriter(err));
+            assertThat(result).isNull();
+            assertThat(err.toString()).contains("Failed to list ~/.sapl/ directory contents")
+                    .doesNotContain("directory not found");
+        }
+
+        @Test
         @DisplayName("policy source with neither dir nor bundle falls through to auto-detection")
-        void whenPolicySourceWithoutDirOrBundle_thenAutoDetects(@TempDir Path saplHome) throws IOException {
+        void whenPolicySourceWithoutDirOrBundleThenAutoDetects(@TempDir Path saplHome) throws IOException {
             createFile(saplHome, "policy.sapl");
             val result = PolicySourceResolver.resolve(new PolicySourceOptions(), null, saplHome, discardErr());
             assertThat(result).satisfies(r -> {
-                assertThat(r.configType()).isEqualTo(DIRECTORY);
-                assertThat(r.path()).isEqualTo(saplHome.toAbsolutePath().toString());
+                assertThat(r.kind()).isEqualTo(DIRECTORY);
+                assertThat(r.path()).isEqualTo(saplHome.toAbsolutePath());
             });
         }
 
@@ -267,6 +311,15 @@ class PolicySourceResolverTests {
     private static Path createFile(Path dir, String name) throws IOException {
         val file = dir.resolve(name);
         Files.writeString(file, "dummy");
+        return file;
+    }
+
+    private static Path createPublicKey(Path dir, String name) throws Exception {
+        val keyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        val encoded = Base64.getMimeEncoder(64, new byte[] { '\n' }).encodeToString(keyPair.getPublic().getEncoded());
+        val pem     = "-----BEGIN PUBLIC KEY-----\n" + encoded + "\n-----END PUBLIC KEY-----\n";
+        val file    = dir.resolve(name);
+        Files.writeString(file, pem);
         return file;
     }
 

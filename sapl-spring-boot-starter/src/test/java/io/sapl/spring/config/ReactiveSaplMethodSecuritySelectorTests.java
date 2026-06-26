@@ -17,8 +17,10 @@
  */
 package io.sapl.spring.config;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AdviceMode;
+import org.springframework.context.annotation.AutoProxyRegistrar;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,7 +38,15 @@ class ReactiveSaplMethodSecuritySelectorTests {
         final var sut    = new ReactiveSaplMethodSecuritySelector();
         final var actual = sut.selectImports(AdviceMode.PROXY);
         assertThat(actual).containsExactlyInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName(),
-                SaplTransactionManagementConfiguration.class.getName());
+                SaplTransactionManagementConfiguration.class.getName(), AutoProxyRegistrar.class.getName());
+    }
+
+    @Test
+    @DisplayName("AutoProxyRegistrar imported so reactive enforcement advisors proxy beans even without Spring Boot AOP auto-config")
+    void when_AdviceModeProxy_thenAutoProxyRegistrarImported() {
+        final var sut    = new ReactiveSaplMethodSecuritySelector();
+        final var actual = sut.selectImports(AdviceMode.PROXY);
+        assertThat(actual).contains(AutoProxyRegistrar.class.getName());
     }
 
 }

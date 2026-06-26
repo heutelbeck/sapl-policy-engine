@@ -30,12 +30,9 @@ import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.grammar.antlr.validation.ValidationError;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,11 +40,18 @@ import static io.sapl.compiler.util.TrojanSourceUtil.assertNoTrojanSourceCharact
 
 @UtilityClass
 public class DocumentCompiler {
-    private static final String ERROR_PARSING_AST_NULL = "Parsing of SAPL document failed: AST was null.";
-    private static final String ERROR_PARSING_FAILED   = "Parsing of SAPL document failed: %s.";
+    private static final String ERROR_DOCUMENT_TOO_LARGE = "Parsing of SAPL document failed: document exceeds the maximum size of %d bytes.";
+    private static final String ERROR_NESTING_TOO_DEEP   = "Parsing of SAPL document failed: document nesting is too deep.";
+    private static final String ERROR_PARSING_AST_NULL   = "Parsing of SAPL document failed: AST was null.";
+    private static final String ERROR_PARSING_FAILED     = "Parsing of SAPL document failed: %s.";
 
-    private final SAPLValidator  validator      = new SAPLValidator();
-    private final AstTransformer astTransformer = new AstTransformer();
+    /**
+     * Maximum size of a SAPL document the engine will compile. Shared with the
+     * language server so the editor enforces the same bound as the compile path.
+     */
+    public static final int MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
+
+    private final SAPLValidator validator = new SAPLValidator();
 
     public static CompiledDocument compileDocument(String saplDocument, CompilationContext ctx) {
         val parsedDocument = parseDocument(saplDocument);
@@ -61,6 +65,9 @@ public class DocumentCompiler {
     }
 
     public Document parseDocument(String saplDefinition) {
+        if (saplDefinition.getBytes(StandardCharsets.UTF_8).length > MAX_DOCUMENT_SIZE_BYTES) {
+            return rejectedDocument(saplDefinition, ERROR_DOCUMENT_TOO_LARGE.formatted(MAX_DOCUMENT_SIZE_BYTES));
+        }
         assertNoTrojanSourceCharacters(saplDefinition);
         val result           = parseWithErrors(saplDefinition);
         val validationErrors = result.syntaxErrors().isEmpty() ? validator.validate(result.parseTree())
@@ -70,7 +77,11 @@ public class DocumentCompiler {
         Exception    astException = null;
         if (result.syntaxErrors().isEmpty() && validationErrors.isEmpty()) {
             try {
-                ast = astTransformer.visitSapl(result.parseTree());
+                // A fresh transformer per call. The transformer carries per-document
+                // mutable state (import map, schemas), so sharing one instance would
+                // let concurrent compilations of different documents race and resolve
+                // names against another document's imports.
+                ast = new AstTransformer().visitSapl(result.parseTree());
             } catch (SaplCompilerException e) {
                 val location = e.getLocation();
                 if (location != null) {
@@ -84,6 +95,10 @@ public class DocumentCompiler {
         val errorMessage = buildErrorMessage(result.syntaxErrors(), validationErrors, astException);
         return new Document(result.parseTree(), ast, saplDefinition, result.syntaxErrors(), validationErrors,
                 errorMessage);
+    }
+
+    private Document rejectedDocument(String source, String message) {
+        return new Document(null, null, source, List.of(message), List.of(), message);
     }
 
     private String buildErrorMessage(List<String> syntaxErrors, List<ValidationError> validationErrors,
@@ -123,7 +138,14 @@ public class DocumentCompiler {
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
 
-        val tree = parser.sapl();
+        SAPLParser.SaplContext tree = null;
+        try {
+            tree = parser.sapl();
+        } catch (StackOverflowError e) {
+            // Deeply nested input overflows the recursive-descent parser. Report it as a
+            // syntax error.
+            syntaxErrors.add(ERROR_NESTING_TOO_DEEP);
+        }
         return new ParseResult(tree, syntaxErrors);
     }
 

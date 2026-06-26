@@ -19,22 +19,26 @@ package io.sapl.test;
 
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.Value;
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.function.Consumer;
@@ -58,6 +62,12 @@ class SaplTestFixtureTests {
 
     private static final String PERMIT_ALL_POLICY = "policy \"permit-all\" permit";
     private static final String DENY_ALL_POLICY   = "policy \"deny-all\" deny";
+
+    private static final String POLICY_REQUIRING_PENDING_ATTRIBUTE = """
+            policy "requires-pending"
+            permit
+                <test.pending> == "ready";
+            """;
 
     @Test
     void whenCreateSingleTest_thenFixtureIsNotNull() {
@@ -263,15 +273,7 @@ class SaplTestFixtureTests {
 
     @Test
     void whenAddingFunctionLibrary_thenReturnsFixtureForChaining() {
-        var fixture = SaplTestFixture.createSingleTest().withFunctionLibrary(Object.class)
-                .withPolicy(PERMIT_ALL_POLICY);
-
-        assertThat(fixture).isNotNull();
-    }
-
-    @Test
-    void whenAddingFunctionLibraryInstance_thenReturnsFixtureForChaining() {
-        var fixture = SaplTestFixture.createSingleTest().withFunctionLibraryInstance(new Object())
+        var fixture = SaplTestFixture.createSingleTest().withFunctionLibrary(new Object())
                 .withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
@@ -291,8 +293,8 @@ class SaplTestFixtureTests {
         var fixedClock = Clock.fixed(Instant.parse("2025-01-06T10:00:00Z"), ZoneOffset.UTC);
 
         var fixture = SaplTestFixture.createSingleTest().withJsonMapper(jsonMapper).withClock(fixedClock)
-                .withFunctionLibrary(Object.class).withFunctionLibraryInstance(new Object())
-                .withPolicyInformationPoint(new Object()).withPolicy(PERMIT_ALL_POLICY);
+                .withFunctionLibrary(new Object()).withPolicyInformationPoint(new Object())
+                .withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }
@@ -331,5 +333,84 @@ class SaplTestFixtureTests {
                 .withAttributeBroker(new MockingAttributeBroker()).withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    @DisplayName("verify() throws when the expected decision never arrives within the timeout")
+    void whenExpectedDecisionNeverArrivesWithinTimeout_thenVerifyThrows() {
+        var decisionResult = SaplTestFixture.createSingleTest().withPolicy(POLICY_REQUIRING_PENDING_ATTRIBUTE)
+                .givenEnvironmentAttribute("pending", "test.pending", args())
+                .whenDecide(AuthorizationSubscription.of("willi", "read", "something")).expectPermit();
+
+        var timeout = Duration.ofMillis(200);
+        assertThatThrownBy(() -> decisionResult.verify(timeout)).isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    @DisplayName("emit on an unknown mockId fails the test loudly so discarded-result callers do not stay green")
+    void whenEmittingToUnknownMockId_thenVerifyThrowsAssertionError() {
+        var decisionResult = SaplTestFixture.createSingleTest().withPolicy(PERMIT_ALL_POLICY)
+                .givenEnvironmentAttribute("known", "test.pending", args())
+                .whenDecide(AuthorizationSubscription.of("willi", "read", "something"))
+                .thenEmit("typo-not-a-real-mock", Value.of("ready"));
+
+        var timeout = Duration.ofMillis(200);
+        assertThatThrownBy(() -> decisionResult.verify(timeout)).isInstanceOf(AssertionError.class);
+    }
+
+    @Nested
+    @DisplayName("policy name recovery for coverage reporting")
+    class PolicyNameRecovery {
+
+        private String extractPolicyName(String policySource) throws Exception {
+            var    fixture = SaplTestFixture.createSingleTest();
+            Method method  = SaplTestFixture.class.getDeclaredMethod("extractPolicyName", String.class);
+            method.setAccessible(true);
+            return (String) method.invoke(fixture, policySource);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("documentShapes")
+        @DisplayName("documents that begin with imports or schemas still expose their name")
+        void whenDocumentBeginsWithLeadingStatements_thenPolicyNameIsRecovered(String shape, String document,
+                String expectedName) throws Exception {
+            assertThat(extractPolicyName(document)).isEqualTo(expectedName);
+        }
+
+        static Stream<Arguments> documentShapes() {
+            var policyAfterImport          = """
+                    import filter.blacken
+                    policy "show account"
+                    permit
+                    transform resource |- { @.cardNumber : blacken(4) }
+                    """;
+            var policyAfterSchema          = """
+                    subject enforced schema { "type": "object" }
+                    policy "schema-guarded"
+                    permit
+                    """;
+            var policyAfterImportAndSchema = """
+                    import time.now as currentTime
+                    subject enforced schema { "type": "object" }
+                    policy "imports-and-schemas"
+                    permit
+                    """;
+            var setAfterImport             = """
+                    import filter.blacken
+                    set "account policies"
+                    deny-overrides
+                    policy "first"
+                    permit
+                    """;
+            var plainPolicy                = """
+                    policy "plain"
+                    permit
+                    """;
+            return Stream.of(arguments("policy after import", policyAfterImport, "show account"),
+                    arguments("policy after schema", policyAfterSchema, "schema-guarded"),
+                    arguments("policy after import and schema", policyAfterImportAndSchema, "imports-and-schemas"),
+                    arguments("set after import", setAfterImport, "account policies"),
+                    arguments("plain policy without leading statements", plainPolicy, "plain"));
+        }
     }
 }

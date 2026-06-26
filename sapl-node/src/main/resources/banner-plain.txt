@@ -1,0 +1,5 @@
+
+ █▀ ▄▀█ █▀█ █   █▄ █ █▀█ █▀▄ █▀▀
+ ▄█ █▀█ █▀▀ █▄▄ █ ▀█ █▄█ █▄▀ ██▄
+ Version: ${application.version} (${git.commit.id.abbrev})
+ OS:      ${os.name} ${os.version} ${os.arch}

@@ -25,12 +25,7 @@ import io.sapl.api.documentation.EntryType;
 import io.sapl.api.documentation.LibraryType;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.core.publisher.Flux;
 
 import java.util.stream.Stream;
 
@@ -301,23 +295,24 @@ class LibraryDocumentationExtractorTests {
     static class TestPip {
 
         @EnvironmentAttribute(docs = "Current phase of the moon")
-        public Flux<TextValue> moonPhase(AttributeAccessContext ctx) {
-            return Flux.empty();
+        public io.sapl.api.stream.Stream<TextValue> moonPhase(AttributeAccessContext ctx) {
+            throw new UnsupportedOperationException();
         }
 
         @EnvironmentAttribute(docs = "Eldritch hour in given timezone")
-        public Flux<NumberValue> eldritchHour(AttributeAccessContext ctx, NumberValue timezone) {
-            return Flux.empty();
+        public io.sapl.api.stream.Stream<NumberValue> eldritchHour(AttributeAccessContext ctx, NumberValue timezone) {
+            throw new UnsupportedOperationException();
         }
 
         @Attribute(docs = "Retrieves the madness level of an entity")
-        public Flux<NumberValue> madnessLevel(Value entity, AttributeAccessContext ctx) {
-            return Flux.empty();
+        public io.sapl.api.stream.Stream<NumberValue> madnessLevel(Value entity, AttributeAccessContext ctx) {
+            throw new UnsupportedOperationException();
         }
 
         @Attribute(docs = "Gets the entity's forbidden name in a realm")
-        public Flux<TextValue> forbiddenName(Value entity, AttributeAccessContext ctx, TextValue realm) {
-            return Flux.empty();
+        public io.sapl.api.stream.Stream<TextValue> forbiddenName(Value entity, AttributeAccessContext ctx,
+                TextValue realm) {
+            throw new UnsupportedOperationException();
         }
     }
 

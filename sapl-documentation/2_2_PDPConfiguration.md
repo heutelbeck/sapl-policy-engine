@@ -75,7 +75,11 @@ The `compilerFlags` object is optional. All fields within it are optional and de
 - `unrollInOperator` - when `true`, transforms `EXPR in [a, b, c]` into equality chains for improved index matching. Default: `false`.
 - `minPoliciesForIndexing` - minimum policy count before `AUTO` mode considers advanced indexing. Below this threshold, NAIVE is used. Default: `10`.
 - `maxIndexNodes` - maximum number of diagram nodes for SMTDD index construction. If exceeded, AUTO falls back to CANONICAL. Default: `500000`.
+- `lowLatencyMode` - when `true`, the compiler emits eager operator variants that subscribe all children in parallel for the lowest end-to-end decision latency, at the cost of subscribing to children whose values may turn out to be unneeded. When `false`, operators emit lazy variants that short-circuit on the first incomplete or error child, minimizing the per-pass subscription set. The observable decision is identical in both modes. Default: `true`.
+- `maxPolicyDocuments` - maximum number of `*.sapl` documents loaded from a directory source. Loading stops once this cap is reached. Default: `10000`.
+
+The key `compilerOptions` is accepted as a synonym for `compilerFlags`; both name the same options object.
 
 The `configurationId` is a version identifier for the configuration. It appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact policy set that produced them. For bundles, this field is **required**. For directory and resource sources, it is optional and auto-generated from the source path and content hash when absent.
 
-For deployment details, see [SAPL Node](../7_0_Deployment/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../7_5_BundleWireProtocol/).
+For deployment details, see [SAPL Node](../7_0_SaplNode/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../7_5_BundleWireProtocol/).

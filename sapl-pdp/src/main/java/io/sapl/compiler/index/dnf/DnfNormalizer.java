@@ -17,17 +17,14 @@
  */
 package io.sapl.compiler.index.dnf;
 
+import io.sapl.api.model.BooleanExpression;
+import io.sapl.api.model.BooleanExpression.*;
+import io.sapl.api.model.IndexPredicate;
+import io.sapl.compiler.index.IndexSizeLimitExceededException;
+import lombok.experimental.UtilityClass;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanExpression.And;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.BooleanExpression.Constant;
-import io.sapl.api.model.BooleanExpression.Not;
-import io.sapl.api.model.BooleanExpression.Or;
-import io.sapl.api.model.IndexPredicate;
-import lombok.experimental.UtilityClass;
 
 /**
  * Converts a {@link BooleanExpression} tree into Disjunctive Normal Form
@@ -54,16 +51,32 @@ public class DnfNormalizer {
      * @return the equivalent formula in disjunctive normal form, reduced
      */
     public static DisjunctiveFormula normalize(BooleanExpression expression) {
-        return toDnf(expression).reduce();
+        return normalize(expression, Integer.MAX_VALUE);
     }
 
-    private static DisjunctiveFormula toDnf(BooleanExpression expression) {
+    /**
+     * Normalizes a boolean expression to DNF, bounding the intermediate clause
+     * count so a pathological AND-of-ORs cannot explode the heap at compile time.
+     *
+     * @param expression the boolean expression tree
+     * @param maxClauses the maximum number of conjunctive clauses permitted in any
+     * intermediate formula
+     * @return the equivalent formula in disjunctive normal form, reduced
+     * @throws IndexSizeLimitExceededException if a distribution would exceed
+     * {@code maxClauses}; the check runs before the product is materialized, so the
+     * exponential intermediate is never allocated
+     */
+    public static DisjunctiveFormula normalize(BooleanExpression expression, int maxClauses) {
+        return toDnf(expression, maxClauses).reduce();
+    }
+
+    private static DisjunctiveFormula toDnf(BooleanExpression expression, int maxClauses) {
         return switch (expression) {
         case Constant(var value) -> value ? DisjunctiveFormula.TRUE : DisjunctiveFormula.FALSE;
         case Atom(var predicate) -> atomToDnf(predicate, false);
-        case Not(var operand)    -> negateToDnf(operand);
-        case Or(var operands)    -> disjoinToDnf(operands);
-        case And(var operands)   -> conjoinToDnf(operands);
+        case Not(var operand)    -> negateToDnf(operand, maxClauses);
+        case Or(var operands)    -> disjoinToDnf(operands, maxClauses);
+        case And(var operands)   -> conjoinToDnf(operands, maxClauses);
         };
     }
 
@@ -71,36 +84,40 @@ public class DnfNormalizer {
         return new DisjunctiveFormula(new ConjunctiveClause(new Literal(predicate, negated)));
     }
 
-    private static DisjunctiveFormula negateToDnf(BooleanExpression operand) {
+    private static DisjunctiveFormula negateToDnf(BooleanExpression operand, int maxClauses) {
         return switch (operand) {
         case Constant(var value) -> value ? DisjunctiveFormula.FALSE : DisjunctiveFormula.TRUE;
         case Atom(var predicate) -> atomToDnf(predicate, true);
-        case Not(var inner)      -> toDnf(inner);
-        case Or(var operands)    -> conjoinToDnf(operands.stream().map(Not::new).toList());
-        case And(var operands)   -> disjoinToDnf(operands.stream().map(Not::new).toList());
+        case Not(var inner)      -> toDnf(inner, maxClauses);
+        case Or(var operands)    -> conjoinToDnf(operands.stream().map(Not::new).toList(), maxClauses);
+        case And(var operands)   -> disjoinToDnf(operands.stream().map(Not::new).toList(), maxClauses);
         };
     }
 
-    private static DisjunctiveFormula disjoinToDnf(List<? extends BooleanExpression> operands) {
+    private static DisjunctiveFormula disjoinToDnf(List<? extends BooleanExpression> operands, int maxClauses) {
         var result = DisjunctiveFormula.FALSE;
         for (var operand : operands) {
-            var dnf = toDnf(operand);
-            result = disjoin(result, dnf);
+            var dnf = toDnf(operand, maxClauses);
+            result = disjoin(result, dnf, maxClauses);
         }
         return result;
     }
 
-    private static DisjunctiveFormula conjoinToDnf(List<? extends BooleanExpression> operands) {
+    private static DisjunctiveFormula conjoinToDnf(List<? extends BooleanExpression> operands, int maxClauses) {
         var result = DisjunctiveFormula.TRUE;
         for (var operand : operands) {
-            var dnf = toDnf(operand);
-            result = distribute(result, dnf);
+            var dnf = toDnf(operand, maxClauses);
+            result = distribute(result, dnf, maxClauses);
         }
         return result;
     }
 
-    private static DisjunctiveFormula disjoin(DisjunctiveFormula left, DisjunctiveFormula right) {
-        var clauses = new ArrayList<ConjunctiveClause>(left.clauses().size() + right.clauses().size());
+    private static DisjunctiveFormula disjoin(DisjunctiveFormula left, DisjunctiveFormula right, int maxClauses) {
+        var total = left.clauses().size() + right.clauses().size();
+        if (total > maxClauses) {
+            throw new IndexSizeLimitExceededException(total, maxClauses);
+        }
+        var clauses = new ArrayList<ConjunctiveClause>(total);
         clauses.addAll(left.clauses());
         clauses.addAll(right.clauses());
         return new DisjunctiveFormula(clauses);
@@ -108,10 +125,16 @@ public class DnfNormalizer {
 
     /**
      * Distributes AND over OR: (a OR b) AND (c OR d) = (a AND c) OR (a AND d) OR
-     * (b AND c) OR (b AND d).
+     * (b AND c) OR (b AND d). The clause count of the result is the product of the
+     * operand clause counts, which is exponential across a chain of conjunctions,
+     * so the product is bounded before it is built.
      */
-    private static DisjunctiveFormula distribute(DisjunctiveFormula left, DisjunctiveFormula right) {
-        var clauses = new ArrayList<ConjunctiveClause>(left.clauses().size() * right.clauses().size());
+    private static DisjunctiveFormula distribute(DisjunctiveFormula left, DisjunctiveFormula right, int maxClauses) {
+        var product = (long) left.clauses().size() * right.clauses().size();
+        if (product > maxClauses) {
+            throw new IndexSizeLimitExceededException((int) Math.min(product, Integer.MAX_VALUE), maxClauses);
+        }
+        var clauses = new ArrayList<ConjunctiveClause>((int) product);
         for (var leftClause : left.clauses()) {
             for (var rightClause : right.clauses()) {
                 clauses.add(mergeClause(leftClause, rightClause));

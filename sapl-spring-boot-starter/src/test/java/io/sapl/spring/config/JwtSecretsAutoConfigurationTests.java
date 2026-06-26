@@ -42,8 +42,10 @@ class JwtSecretsAutoConfigurationTests {
     private static final AutoConfigurations AUTO_CONFIGURATIONS = AutoConfigurations
             .of(JwtSecretsAutoConfiguration.class);
 
-    private static final Jwt TEST_JWT = new Jwt("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.signature", Instant.now(),
-            Instant.now().plusSeconds(3600), Map.of("alg", "RS256"), Map.of("sub", "user"));
+    private static final Instant ISSUED_AT  = Instant.parse("2026-01-01T00:00:00Z");
+    private static final Instant EXPIRES_AT = ISSUED_AT.plusSeconds(3600);
+    private static final Jwt     TEST_JWT   = new Jwt("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.signature", ISSUED_AT,
+            EXPIRES_AT, Map.of("alg", "RS256"), Map.of("sub", "user"));
 
     @Nested
     @DisplayName("when disabled")

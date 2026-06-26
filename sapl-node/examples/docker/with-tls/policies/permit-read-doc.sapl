@@ -1,0 +1,4 @@
+policy "permit read on doc"
+permit
+    action == "read";
+    resource == "doc";

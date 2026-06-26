@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.List;
-
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanExpression.And;
@@ -30,13 +28,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static io.sapl.compiler.index.IndexTestFixtures.configurablePredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.eqPredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.extractPredicates;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.hasPredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.inPredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.nePredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;
+import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SemanticVariableOrder")
@@ -83,6 +78,29 @@ class SemanticVariableOrderTests {
             val result = SemanticVariableOrder.analyze(extractPredicates(expressions));
             assertThat(result.equalityGroups()).isEmpty();
             assertThat(result.remainingPredicates()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("hash-colliding operands that are not semanticEquals are not merged into one group")
+        void whenOperandsCollideOnHashButNotSemanticEqualsThenNotMerged() {
+            // Both operands share the same 64-bit semanticHash key but are
+            // structurally different (only semanticEquals to themselves).
+            val operandA = collidingOperand(100L);
+            val operandB = collidingOperand(100L);
+            // operandA carries two distinct constants so its group survives pruning.
+            // operandB's predicate must not be folded into operandA's group: routing
+            // operandB's formula by operandA's runtime value would be a wrong-branch
+            // merge.
+            val collidingPredicate = eqPredicate(operandB, Value.of("b"));
+            val expressions        = List.<BooleanExpression>of(new Atom(eqPredicate(operandA, Value.of("a1"))),
+                    new Atom(eqPredicate(operandA, Value.of("a2"))), new Atom(collidingPredicate));
+
+            val result = SemanticVariableOrder.analyze(extractPredicates(expressions));
+
+            assertThat(result.equalityGroups())
+                    .allSatisfy(group -> assertThat(group.getSharedOperand().semanticEquals(operandB)).isFalse())
+                    .noneMatch(group -> group.getTentativePredicates().contains(collidingPredicate));
+            assertThat(result.remainingPredicates()).contains(collidingPredicate);
         }
 
         @Test
@@ -162,6 +180,22 @@ class SemanticVariableOrderTests {
         }
 
         @Test
+        @DisplayName("IN with empty array is not grouped (never-applicable stays a binary predicate)")
+        void whenInEmptyArrayThenRemaining() {
+            val operand        = stubOperand(100L);
+            val emptyArray     = new ArrayValue(List.of());
+            val emptyPredicate = inPredicate(operand, emptyArray);
+            val expressions    = List.<BooleanExpression>of(
+                    new Atom(inPredicate(operand, new ArrayValue(List.of(Value.of("a"), Value.of("b"))))),
+                    new Atom(emptyPredicate));
+
+            val result = SemanticVariableOrder.analyze(extractPredicates(expressions));
+            assertThat(result.remainingPredicates()).contains(emptyPredicate);
+            assertThat(result.equalityGroups())
+                    .noneMatch(group -> group.getTentativePredicates().contains(emptyPredicate));
+        }
+
+        @Test
         @DisplayName("IN with non-collection value is not groupable")
         void whenInNonCollectionThenRemaining() {
             val operand     = stubOperand(100L);
@@ -191,6 +225,23 @@ class SemanticVariableOrderTests {
             assertThat(result.equalityGroups()).hasSize(1);
             // 2 object keys + 1 EQ constant = 3 distinct constants
             assertThat(result.equalityGroups().getFirst().getEqualsFormulas()).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("HAS with empty object is not grouped (never-applicable stays a binary predicate)")
+        void whenHasEmptyObjectThenRemaining() {
+            val operand        = stubOperand(100L);
+            val populated      = new ObjectValue(
+                    new Value[] { Value.of("role"), Value.of("x"), Value.of("dept"), Value.of("y") });
+            val emptyObject    = new ObjectValue(new Value[] {});
+            val emptyPredicate = hasPredicate(operand, emptyObject);
+            val expressions    = List.<BooleanExpression>of(new Atom(hasPredicate(operand, populated)),
+                    new Atom(emptyPredicate));
+
+            val result = SemanticVariableOrder.analyze(extractPredicates(expressions));
+            assertThat(result.remainingPredicates()).contains(emptyPredicate);
+            assertThat(result.equalityGroups())
+                    .noneMatch(group -> group.getTentativePredicates().contains(emptyPredicate));
         }
 
         @Test

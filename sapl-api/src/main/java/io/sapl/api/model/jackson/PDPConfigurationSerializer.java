@@ -21,8 +21,8 @@ import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 
 import java.util.List;
 
@@ -42,7 +42,7 @@ import lombok.val;
  *     "defaultDecision": "ABSTAIN",
  *     "errorHandling": "PROPAGATE"
  *   },
- *   "compilerFlags": {
+ *   "compilerOptions": {
  *     "indexing": "AUTO",
  *     "unrollInOperator": false,
  *     "minPoliciesForIndexing": 10,

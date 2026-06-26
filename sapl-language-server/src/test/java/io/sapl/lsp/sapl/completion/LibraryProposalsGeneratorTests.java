@@ -153,13 +153,21 @@ class LibraryProposalsGeneratorTests {
         assertThat(aliases).containsExactly("time.now");
     }
 
+    @Test
+    void whenSingleFunctionImported_thenOtherFunctionInSameLibraryNotAliased() {
+        var sapl    = parse("import time.now policy \"test\" permit");
+        var aliases = LibraryProposalsGenerator.aliasNamesForFunction("time.plusSeconds", sapl);
+
+        assertThat(aliases).containsExactly("time.plusSeconds");
+    }
+
     private static LSPConfiguration configWithFunction(String library, String name, String schema) {
         var entry   = new EntryDocumentation(EntryType.FUNCTION, name, "Documentation", schema, List.of());
         var lib     = new LibraryDocumentation(LibraryType.FUNCTION_LIBRARY, library, "Library", "Docs",
                 List.of(entry));
         var bundle  = new DocumentationBundle(List.of(lib));
         var minimal = LSPConfiguration.minimal();
-        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker());
     }
 
     private static LSPConfiguration configWithAttribute(String pip, String name, String schema) {
@@ -168,7 +176,7 @@ class LibraryProposalsGeneratorTests {
                 List.of(entry));
         var bundle  = new DocumentationBundle(List.of(lib));
         var minimal = LSPConfiguration.minimal();
-        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker());
     }
 
     private static LSPConfiguration configWithEnvAttribute(String pip, String name, String schema) {
@@ -177,7 +185,7 @@ class LibraryProposalsGeneratorTests {
                 List.of(entry));
         var bundle  = new DocumentationBundle(List.of(lib));
         var minimal = LSPConfiguration.minimal();
-        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker());
     }
 
     private static SaplContext parse(String content) {

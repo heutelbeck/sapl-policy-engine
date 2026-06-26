@@ -34,6 +34,7 @@ import static io.sapl.test.Matchers.isDeny;
 import static io.sapl.test.Matchers.isIndeterminate;
 import static io.sapl.test.Matchers.isNotApplicable;
 import static io.sapl.test.Matchers.isPermit;
+import static io.sapl.test.Matchers.isSuspend;
 import static io.sapl.test.Matchers.isDecision;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -256,6 +257,22 @@ class DecisionMatcherTests {
         assertThat(isPermit()
                 .containsAdviceMatching(v -> v instanceof TextValue tv && tv.value().contains("cosmic_horror"))
                 .test(authzDecision)).isFalse();
+    }
+
+    @Test
+    void whenIsSuspendMatchesSuspendDecision_thenReturnsTrue() {
+        var authzDecision = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
+
+        assertThat(isSuspend().test(authzDecision)).isTrue();
+    }
+
+    @Test
+    void whenIsSuspendVsNonSuspendDecision_thenReturnsFalse() {
+        var authzDecision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
+
+        assertThat(isSuspend().test(authzDecision)).isFalse();
     }
 
     private static ArrayValue array(Value... values) {

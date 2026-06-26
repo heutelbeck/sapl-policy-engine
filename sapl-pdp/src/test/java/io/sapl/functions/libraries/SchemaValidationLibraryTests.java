@@ -17,22 +17,16 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
-import static io.sapl.functions.libraries.SchemaValidationLibrary.isCompliant;
-import static io.sapl.functions.libraries.SchemaValidationLibrary.isCompliantWithExternalSchemas;
-import static io.sapl.functions.libraries.SchemaValidationLibrary.validate;
+import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
@@ -40,8 +34,43 @@ class SchemaValidationLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SchemaValidationLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new SchemaValidationLibrary())).doesNotThrowAnyException();
+    }
+
+    @Test
+    @Timeout(15)
+    @DisplayName("a catastrophically backtracking schema pattern aborts under the match budget instead of hanging the evaluation thread")
+    void whenSchemaPatternIsCatastrophicallyBacktrackingThenBoundedAbort() {
+        val schema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
+                .build();
+        val hostile = Value.of("a".repeat(50));
+
+        val result = isCompliant(hostile, schema);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
+    }
+
+    @Test
+    @DisplayName("a validator failure outside the expected exception types yields an ErrorValue, not an escape")
+    void whenValidatorThrowsUnexpectedlyThenErrorValue() {
+        // A self-referential $ref drives networknt into a StackOverflowError, which is
+        // neither SchemaException nor IllegalArgumentException.
+        val selfReferential = ObjectValue.builder().put("$ref", Value.of("#")).build();
+
+        val result = validateWithExternalSchemas(Value.of("x"), selfReferential, Value.EMPTY_ARRAY);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    @DisplayName("an unresolvable $ref makes the schema un-compilable and yields an ErrorValue, not a false validation result")
+    void whenSchemaHasUnresolvableRefThenErrorValue() {
+        val brokenSchema = ObjectValue.builder().put("$ref", Value.of("#/$defs/missing")).build();
+
+        val result = validateWithExternalSchemas(Value.of("x"), brokenSchema, Value.EMPTY_ARRAY);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test
@@ -168,6 +197,33 @@ class SchemaValidationLibraryTests {
         val result = isCompliantWithExternalSchemas(validTriangle, triangleSchema, externals);
 
         assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    @Timeout(30)
+    @DisplayName("when many array elements each match a backtracking pattern then the aggregate validation is bounded and aborts")
+    void whenManyElementsMatchBacktrackingPatternThenAggregateIsBounded() {
+        // A schema "pattern" keyword is matched once per array element. Each individual
+        // element match stays under the single-match budget, while the aggregate of all
+        // element matches would run far past it. The bound must be per validate() call
+        // so
+        // the whole validation aborts once the shared budget is exhausted, rather than
+        // letting eval-thread CPU scale linearly with the element count.
+        val itemSchema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
+                .build();
+        val arraySchema = ObjectValue.builder().put("type", Value.of("array")).put("items", itemSchema).build();
+
+        val hostileElement = Value.of("a".repeat(24));
+        val arrayBuilder   = ArrayValue.builder();
+        for (int i = 0; i < 9; i++) {
+            arrayBuilder.add(hostileElement);
+        }
+        val hostileArray = arrayBuilder.build();
+
+        val result = isCompliant(hostileArray, arraySchema);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
     }
 
     @Test

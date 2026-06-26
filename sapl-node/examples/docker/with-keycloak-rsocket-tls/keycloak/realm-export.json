@@ -1,0 +1,28 @@
+{
+  "realm": "sapl-demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "sapl-pdp-client",
+      "name": "SAPL PDP Service Client (client_credentials)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "sapl-pdp-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "60"
+      }
+    }
+  ]
+}

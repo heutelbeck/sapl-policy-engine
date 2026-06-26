@@ -37,6 +37,7 @@ ON          : 'on';
 // Decision keywords
 PERMIT        : 'permit';
 DENY          : 'deny';
+SUSPEND       : 'suspend';
 INDETERMINATE : 'indeterminate';
 NOT_APPLICABLE : 'not-applicable';
 DECISION      : 'decision';
@@ -64,6 +65,7 @@ VARIABLES         : 'variables';
 SECRETS           : 'secrets';
 CONFIGURATION     : 'configuration';
 PDP_CONFIGURATION : 'pdp-configuration';
+LOW_LATENCY_MODE  : 'low-latency-mode';
 
 // Combining algorithm components (same as sapl-parser)
 KW_OR     : 'or';
@@ -114,6 +116,7 @@ ORDER               : 'order';
 NEXT  : 'next';
 ONCE  : 'once';
 TIMES : 'times';
+NEVER : 'never';
 
 // Boolean literals
 TRUE  : 'true';
@@ -140,6 +143,13 @@ AND      : 'and';
 IN       : 'in';
 
 // Literals
+// Unsigned integer for count and length positions. Declared before NUMBER so a
+// bare integer lexes as INT, keeping signs, decimals, and exponents out of those
+// positions structurally. General numeric literals accept INT or NUMBER.
+INT
+    : '0' | [1-9] DIGIT*
+    ;
+
 NUMBER
     : [+\-]? ('0' | [1-9] DIGIT*) ('.' DIGIT+)? ([eE] [+\-]? DIGIT+)?
     ;

@@ -17,27 +17,21 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NullValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("PatternsFunctionLibrary")
 class PatternsFunctionLibraryTests {
@@ -45,8 +39,20 @@ class PatternsFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(PatternsFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new PatternsFunctionLibrary())).doesNotThrowAnyException();
+    }
+
+    @Test
+    @Timeout(15)
+    @DisplayName("a backtracking regex that slips the static blacklist still aborts as an error")
+    void whenBacktrackingPatternSlipsBlacklistThenFindMatchesReturnsError() {
+        // A pattern that slips the static blacklist yet backtracks catastrophically
+        // must become an ErrorValue via the bounded matcher.
+        val pattern = (TextValue) Value.of("(.*,){30}P");
+        val value   = (TextValue) Value.of("1,".repeat(30));
+        val result  = PatternsFunctionLibrary.findMatches(pattern, value);
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
     }
 
     private static ArrayValue createDelimitersArray(String... delimiters) {
@@ -422,17 +428,6 @@ class PatternsFunctionLibraryTests {
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
-    void whenCatastrophicBacktrackingPatternThenDetectedOrCompletes() {
-        val catastrophicPattern = "a.*a.*a.*a.*x";
-        val input               = "a".repeat(30) + "X";
-        val result              = PatternsFunctionLibrary.findMatches(Value.of(catastrophicPattern), Value.of(input));
-
-        assertThat(result instanceof ErrorValue || result instanceof ArrayValue)
-                .withFailMessage("Pattern should either be rejected as dangerous or complete within timeout").isTrue();
-    }
-
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.SECONDS)
     void whenComplexGlobPatternsThenCompletesQuickly() {
         val complexPattern = "{a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p}*{1,2,3,4,5}";
         val result         = PatternsFunctionLibrary.matchGlob((TextValue) Value.of(complexPattern),
@@ -468,6 +463,26 @@ class PatternsFunctionLibraryTests {
                 (TextValue) Value.of("123"), (NumberValue) Value.of(limit));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("negative");
+    }
+
+    @Test
+    @DisplayName("a limit larger than 2^32 is clamped to the 10,000 cap, not wrapped to zero")
+    void whenLimitExceedsIntRangeThenClampedToMaxMatchesNotWrapped() {
+        val manyMatches = "a ".repeat(20);
+        val hugeLimit   = Value.of(BigDecimal.valueOf(1L << 32));
+        val result      = PatternsFunctionLibrary.findMatchesLimited((TextValue) Value.of("a"),
+                (TextValue) Value.of(manyMatches), (NumberValue) hugeLimit);
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, array -> assertThat(array).hasSize(20));
+    }
+
+    @Test
+    @DisplayName("a submatch limit larger than 2^32 is clamped to the cap, not wrapped to zero")
+    void whenSubmatchLimitExceedsIntRangeThenClampedToMaxMatchesNotWrapped() {
+        val manyMatches = "a ".repeat(20);
+        val hugeLimit   = Value.of(BigDecimal.valueOf(1L << 32));
+        val result      = PatternsFunctionLibrary.findAllSubmatchLimited((TextValue) Value.of("(a)"),
+                (TextValue) Value.of(manyMatches), (NumberValue) hugeLimit);
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, array -> assertThat(array).hasSize(20));
     }
 
     @Test
@@ -514,5 +529,15 @@ class PatternsFunctionLibraryTests {
         val redacted = PatternsFunctionLibrary.replaceAll(Value.of("SSN: 123-45-6789"),
                 Value.of("\\d{3}-\\d{2}-\\d{4}"), Value.of("[REDACTED]"));
         assertThat(redacted).isInstanceOf(TextValue.class).isEqualTo(Value.of("SSN: [REDACTED]"));
+    }
+
+    @Test
+    void whenReplaceAllOutputExceedsMaximumThenError() {
+        val value       = Value.of("a".repeat(100_000));
+        val replacement = Value.of("X".repeat(200));
+        val result      = PatternsFunctionLibrary.replaceAll(value, Value.of("a"), replacement);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("too long");
     }
 }

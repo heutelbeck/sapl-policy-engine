@@ -260,7 +260,8 @@ public final class ObjectValue implements Value, Map<String, Value> {
         }
         val valueForKey = value.get(key);
         if (valueForKey == null) {
-            return defaultValue;
+            // coalesce a null default so the @NotNull return contract holds
+            return defaultValue == null ? Value.UNDEFINED : defaultValue;
         }
         return valueForKey;
     }

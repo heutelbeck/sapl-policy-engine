@@ -73,7 +73,7 @@ class KeycloakOAuth2ExampleIT extends BaseIntegrationTest {
 
                 val token        = acquireToken(keycloak, "default-user", "default123");
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(saplNode))
-                        .apiKey(token).build();
+                        .apiKey(token).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("user", "read", "document");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
@@ -93,7 +93,7 @@ class KeycloakOAuth2ExampleIT extends BaseIntegrationTest {
 
                 val token        = acquireToken(keycloak, "default-user", "default123");
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(saplNode))
-                        .apiKey(token).build();
+                        .apiKey(token).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("user", "delete", "secret");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()

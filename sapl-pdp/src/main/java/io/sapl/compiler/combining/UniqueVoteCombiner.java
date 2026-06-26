@@ -19,7 +19,6 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
@@ -27,9 +26,8 @@ import lombok.val;
 
 import java.util.List;
 
-import static io.sapl.compiler.combining.CombiningUtils.appendToList;
-import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
-import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
+import static io.sapl.ast.Outcome.combine;
+import static io.sapl.compiler.combining.CombiningUtils.*;
 
 /**
  * Combines multiple policy votes using unique (only-one-applicable) semantics.
@@ -112,8 +110,7 @@ public class UniqueVoteCombiner {
      * @return accumulator vote containing the original as a contributing vote
      */
     public static Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
-                voterMetadata, vote.outcome());
+        return new Vote(vote.authorizationDecision(), vote.errors(), List.of(vote), voterMetadata, vote.outcome());
     }
 
     /**
@@ -141,7 +138,10 @@ public class UniqueVoteCombiner {
 
         val contributingVotes = appendToList(accumulatorVote.contributingVotes(), newVote);
 
-        // INDETERMINATE propagates (first one wins)
+        // INDETERMINATE propagates (first one wins). The unique algorithm
+        // short-circuits on INDETERMINATE accumulator (combineMultipleVotes),
+        // so the source's would-have-been outcome is preserved as-is rather
+        // than combined - no further folds will read it for criticality.
         if (accDec == Decision.INDETERMINATE || newDec == Decision.INDETERMINATE) {
             val source = accDec == Decision.INDETERMINATE ? accumulatorVote : newVote;
             return indeterminateResult(source.outcome(), source.errors(), contributingVotes, voterMetadata);
@@ -162,9 +162,10 @@ public class UniqueVoteCombiner {
                     accumulatorVote.outcome());
         }
 
-        // Both applicable - collision!
+        // Both applicable - collision. INDETERMINATE result. The multi-bit
+        // outcome captures both effects as the would-have-been set.
         val collisionError = Value.error(ERROR_MULTIPLE_APPLICABLE);
-        val outcome        = (accDec == newDec) ? decisionToOutcome(accDec) : Outcome.PERMIT_OR_DENY;
+        val outcome        = combine(decisionToOutcome(accDec), decisionToOutcome(newDec));
         return indeterminateResult(outcome, List.of(collisionError), contributingVotes, voterMetadata);
     }
 

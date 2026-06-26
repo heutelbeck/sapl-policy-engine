@@ -28,7 +28,7 @@ public class RemoteConnectionOptions {
     @Option(names = "--rsocket", description = "Use RSocket/protobuf transport instead of HTTP/JSON")
     public boolean rsocket;
 
-    @Option(names = "--url", description = "Remote PDP URL for HTTP (default: ${DEFAULT-VALUE}, env: SAPL_URL)", defaultValue = "http://localhost:8443")
+    @Option(names = "--url", description = "Remote PDP URL for HTTP (default: http://localhost:8080, env: SAPL_URL)")
     public String url;
 
     @Option(names = "--host", description = "RSocket host (default: ${DEFAULT-VALUE})", defaultValue = "localhost")
@@ -37,10 +37,13 @@ public class RemoteConnectionOptions {
     @Option(names = "--port", description = "RSocket port (default: ${DEFAULT-VALUE})", defaultValue = "7000")
     public int rsocketPort;
 
+    @Option(names = "--rsocket-tls", description = "Enable TLS for the RSocket transport (use with --rsocket)")
+    public boolean rsocketTls;
+
     @ArgGroup(exclusive = true)
     public AuthOptions auth;
 
-    @Option(names = "--insecure", description = "Skip TLS certificate verification (development only)")
+    @Option(names = "--insecure", description = "Accept insecure transport (skip TLS certificate verification and allow credentials over plaintext). Development only")
     public boolean insecure;
 
     public static class AuthOptions {

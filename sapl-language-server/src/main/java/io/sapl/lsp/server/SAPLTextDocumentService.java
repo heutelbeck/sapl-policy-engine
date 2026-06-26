@@ -59,6 +59,19 @@ import lombok.extern.slf4j.Slf4j;
  * Handles text document operations for the Language Server.
  * Provides validation, semantic tokens, and completion support.
  * Supports multiple grammars (SAPL, SAPLTest) through DocumentManager routing.
+ * <p>
+ * Provider NPE containment is a deliberate design decision. Providers run on
+ * the
+ * raw, error-recovered parse tree of an in-progress document, where children
+ * can
+ * be null while the author is still typing. Rather than null-guard every
+ * provider
+ * exhaustively (notably the large formatting visitor), faults are contained
+ * centrally: notification handlers via {@link #safely}, request handlers via
+ * their
+ * {@link java.util.concurrent.CompletableFuture} (a fault becomes a failed
+ * response, the server stays up). The small providers still guard their common
+ * name-token sites locally for graceful partial results.
  */
 @Slf4j
 public class SAPLTextDocumentService implements TextDocumentService {
@@ -86,44 +99,64 @@ public class SAPLTextDocumentService implements TextDocumentService {
     public void didOpen(DidOpenTextDocumentParams params) {
         var uri     = params.getTextDocument().getUri();
         var content = params.getTextDocument().getText();
-
-        log.debug("Document opened: {}", uri);
-        documentManager.openDocument(uri, content);
-        validateAndPublishDiagnostics(uri);
+        safely("didOpen", uri, () -> {
+            log.debug("Document opened: {}", uri);
+            documentManager.openDocument(uri, content);
+            validateAndPublishDiagnostics(uri);
+        });
     }
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
         var uri = params.getTextDocument().getUri();
-
         // We use full sync, so take the full content from the first change
-        if (!params.getContentChanges().isEmpty()) {
-            var content = params.getContentChanges().getFirst().getText();
+        if (params.getContentChanges().isEmpty()) {
+            return;
+        }
+        var content = params.getContentChanges().getFirst().getText();
+        safely("didChange", uri, () -> {
             log.debug("Document changed: {}", uri);
             documentManager.updateDocument(uri, content);
             validateAndPublishDiagnostics(uri);
-        }
+        });
     }
 
     @Override
     public void didClose(DidCloseTextDocumentParams params) {
         var uri = params.getTextDocument().getUri();
-        log.debug("Document closed: {}", uri);
-        documentManager.closeDocument(uri);
+        safely("didClose", uri, () -> {
+            log.debug("Document closed: {}", uri);
+            documentManager.closeDocument(uri);
 
-        // Clear diagnostics for closed document
-        var client = server.getClient();
-        if (client != null) {
-            client.publishDiagnostics(new PublishDiagnosticsParams(uri, List.of()));
-        }
+            // Clear diagnostics for closed document
+            var client = server.getClient();
+            if (client != null) {
+                client.publishDiagnostics(new PublishDiagnosticsParams(uri, List.of()));
+            }
+        });
     }
 
     @Override
     public void didSave(DidSaveTextDocumentParams params) {
         var uri = params.getTextDocument().getUri();
-        log.debug("Document saved: {}", uri);
-        // Re-validate on save
-        validateAndPublishDiagnostics(uri);
+        safely("didSave", uri, () -> {
+            log.debug("Document saved: {}", uri);
+            // Re-validate on save
+            validateAndPublishDiagnostics(uri);
+        });
+    }
+
+    /**
+     * Exception barrier for the document notification handlers (see the class-level
+     * note on provider NPE containment). A fault while handling one document is
+     * logged and contained so the server keeps serving others.
+     */
+    private static void safely(String operation, String uri, Runnable action) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            log.error("Unhandled error during {} for {}", operation, uri, e);
+        }
     }
 
     @Override

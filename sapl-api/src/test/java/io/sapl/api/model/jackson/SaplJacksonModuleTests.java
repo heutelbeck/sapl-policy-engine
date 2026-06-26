@@ -17,15 +17,19 @@
  */
 package io.sapl.api.model.jackson;
 
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -36,6 +40,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -85,6 +90,19 @@ class SaplJacksonModuleTests {
                 arguments("{}", Value.EMPTY_OBJECT),
                 arguments("[1,2,3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
                 arguments("{\"tome\":\"forbidden\"}", Value.ofObject(Map.of("tome", Value.of("forbidden")))));
+    }
+
+    @Test
+    void when_deserializingExtremeScaleNumber_then_producesError() throws JacksonException {
+        val value = mapper.readValue("1E1000000000", Value.class);
+        assertThat(value).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void when_deserializingNumberWithExponentOverflowingInt_then_producesErrorNotRawException()
+            throws JacksonException {
+        val value = mapper.readValue("1E9999999999", Value.class);
+        assertThat(value).isInstanceOf(ErrorValue.class);
     }
 
     @ParameterizedTest
@@ -206,6 +224,20 @@ class SaplJacksonModuleTests {
         assertThat(restored.resource()).isEqualTo(original.resource());
     }
 
+    @ParameterizedTest
+    @MethodSource("invalidDecisionValueCases")
+    void when_deserializingDecisionWithInvalidValue_then_reportsInputMismatch(String json) {
+        assertThatThrownBy(() -> mapper.readValue(json, AuthorizationDecision.class))
+                .isInstanceOf(JacksonException.class);
+    }
+
+    static Stream<Arguments> invalidDecisionValueCases() {
+        return Stream.of(arguments("""
+                {"decision":"BOGUS"}"""), arguments("""
+                {"decision":"permit"}"""), arguments("""
+                {"decision":null}"""));
+    }
+
     @Test
     void when_roundTrippingAuthorizationDecision_then_decisionPreserved() throws JacksonException {
         val obligation = Value.ofObject(Map.of("type", Value.of("notify"), "target", Value.of("security")));
@@ -244,6 +276,15 @@ class SaplJacksonModuleTests {
         assertThat(restored.subscription().subject()).isEqualTo(original.subscription().subject());
         assertThat(restored.subscription().action()).isEqualTo(original.subscription().action());
         assertThat(restored.subscription().resource()).isEqualTo(original.subscription().resource());
+    }
+
+    @Test
+    void when_subscriptionIdIsExplicitNull_then_rejectedNotCoercedToNullString() {
+        val json = """
+                {"subscriptionId": null, "subscription": {"subject": "s", "action": "a", "resource": "r"}}""";
+
+        assertThatThrownBy(() -> mapper.readValue(json, IdentifiableAuthorizationSubscription.class))
+                .isInstanceOf(JacksonException.class);
     }
 
     @Test
@@ -402,6 +443,34 @@ class SaplJacksonModuleTests {
     }
 
     @Test
+    void when_deserializingCombiningAlgorithmWithUnknownNestedObjectField_then_validConfigurationIsAccepted()
+            throws JacksonException {
+        val json      = """
+                {"comment":{"author":"Wilbur","note":"keep"},"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"ABSTAIN"}""";
+        val algorithm = mapper.readValue(json, CombiningAlgorithm.class);
+        assertThat(algorithm).isEqualTo(
+                new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.ABSTAIN));
+    }
+
+    @Test
+    void when_deserializingCombiningAlgorithmWithUnknownNestedArrayField_then_validConfigurationIsAccepted()
+            throws JacksonException {
+        val json      = """
+                {"tags":["legacy","ignored"],"votingMode":"UNIQUE","defaultDecision":"ABSTAIN","errorHandling":"PROPAGATE"}""";
+        val algorithm = mapper.readValue(json, CombiningAlgorithm.class);
+        assertThat(algorithm)
+                .isEqualTo(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE));
+    }
+
+    @Test
+    void when_deserializingCombiningAlgorithmWithUnknownFieldBeforeRequiredFields_then_noNullPointerExceptionLeaks() {
+        val json = """
+                {"extra":["a","b"],"votingMode":"PRIORITY_DENY"}""";
+        assertThatThrownBy(() -> mapper.readValue(json, CombiningAlgorithm.class)).isInstanceOf(JacksonException.class)
+                .hasMessageContaining("defaultDecision");
+    }
+
+    @Test
     void when_serializingPDPConfiguration_then_allFieldsSerialized() throws JacksonException {
         val algorithm     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
                 ErrorHandling.ABSTAIN);
@@ -549,6 +618,27 @@ class SaplJacksonModuleTests {
         assertThat(configuration.data().variables()).isEmpty();
     }
 
+    @ParameterizedTest(name = "saplDocuments element {0}")
+    @MethodSource("nonStringSaplDocumentElementCases")
+    void when_deserializingPDPConfigurationWithNonStringSaplDocument_then_throwsException(String element) {
+        val json = """
+                {
+                    "pdpId": "test-pdp",
+                    "configurationId": "test-security",
+                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
+                    "saplDocuments": ["policy valid permit", %s],
+                    "variables": {}
+                }"""
+                .formatted(element);
+        assertThatThrownBy(() -> mapper.readValue(json, PDPConfiguration.class)).isInstanceOf(JacksonException.class)
+                .hasMessageContaining("saplDocuments");
+    }
+
+    static Stream<Arguments> nonStringSaplDocumentElementCases() {
+        return Stream.of(arguments("42"), arguments("true"), arguments("null"), arguments("{\"policy\":\"bad\"}"),
+                arguments("[\"nested\"]"));
+    }
+
     @Test
     void when_roundTrippingPDPConfigurationWithMultilineDocuments_then_newlinesPreserved() throws JacksonException {
         val multilinePolicy = """
@@ -598,14 +688,14 @@ class SaplJacksonModuleTests {
 
         @Test
         void when_serializingLocalDateTime_then_producesIso8601String() throws JacksonException {
-            val dateTime = LocalDateTime.of(2025, 1, 6, 10, 30, 0);
+            val dateTime = LocalDateTime.of(2025, Month.JANUARY, 6, 10, 30, 0);
             val json     = mapper.writeValueAsString(dateTime);
             assertThat(json).isEqualTo("\"2025-01-06T10:30:00\"");
         }
 
         @Test
         void when_roundTrippingLocalDateTime_then_valuePreserved() throws JacksonException {
-            val original = LocalDateTime.of(2025, 1, 6, 10, 30, 45, 123456789);
+            val original = LocalDateTime.of(2025, Month.JANUARY, 6, 10, 30, 45, 123456789);
             val json     = mapper.writeValueAsString(original);
             val restored = mapper.readValue(json, LocalDateTime.class);
             assertThat(restored).isEqualTo(original);

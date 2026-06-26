@@ -23,10 +23,12 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -65,7 +67,6 @@ import java.util.regex.PatternSyntaxException;
  * alternations are rejected before evaluation.
  */
 @Slf4j
-@UtilityClass
 @FunctionLibrary(name = PatternsFunctionLibrary.NAME, description = PatternsFunctionLibrary.DESCRIPTION, libraryDocumentation = PatternsFunctionLibrary.DOCUMENTATION)
 public class PatternsFunctionLibrary {
 
@@ -113,14 +114,36 @@ public class PatternsFunctionLibrary {
             All regex functions include protection against Regular Expression Denial of Service attacks.
             Patterns containing dangerous constructs like nested quantifiers `(a+)+`, excessive alternations,
             or nested wildcards are rejected before evaluation.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The pattern or template argument may be at most 1000 characters. This applies to glob patterns,
+              regular expressions, and templates.
+            - The input value being matched, searched, replaced, or split may be at most 100000 characters.
+            - Match-returning functions return at most 10000 matches. This caps `findMatches`, `findMatchesLimited`,
+              `findAllSubmatch`, and `findAllSubmatchLimited`, and it caps the number of segments produced by `split`.
+              A larger explicit limit is reduced to 10000.
+            - Glob patterns may nest alternative groups at most 50 levels deep, and a single glob pattern may contain
+              at most 30 alternative groups.
+            - Regular expressions may contain at most 100 top-level alternations. Patterns above this are rejected
+              as part of the denial-of-service protection.
+            - The output of `replaceAll` may be at most 10000000 characters. Replacement stops with an error once the
+              accumulated result exceeds this length.
+
+            These limits apply because this input may originate from the authorization subscription or from policy
+            information points, which are not vetted to the same degree as the policies and variables shipped with the
+            PDP configuration.
             """;
 
     private static final int    MAX_PATTERN_LENGTH        = 1_000;
     private static final int    MAX_INPUT_LENGTH          = 100_000;
     private static final int    MAX_MATCHES               = 10_000;
-    private static final int    MAX_GLOB_RECURSION        = 50;
+    private static final int    MAX_GLOB_RECURSION_DEPTH  = 50;
     private static final int    MAX_ALTERNATIONS          = 100;
     private static final int    MAX_ALTERNATIVE_GROUPS    = 30;
+    private static final int    MAX_OUTPUT_LENGTH         = 10_000_000;
     private static final String REGEX_METACHARACTERS      = ".^$*+?()[]{}\\|";
     private static final String CHAR_CLASS_METACHARACTERS = "\\]^[";
     private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[";
@@ -136,6 +159,7 @@ public class PatternsFunctionLibrary {
     private static final String ERROR_INVALID_TEMPLATE    = "Invalid regex in template: %s";
     private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative.";
     private static final String ERROR_MATCHING_FAILED     = "Pattern matching failed: %s";
+    private static final String ERROR_OUTPUT_TOO_LONG     = "Replacement result too long (max %d characters).";
     private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters).";
     private static final String ERROR_REPLACEMENT_FAILED  = "Replacement failed: %s";
     private static final String ERROR_SPLIT_FAILED        = "Split failed: %s";
@@ -159,8 +183,8 @@ public class PatternsFunctionLibrary {
      * ensure safe detection.
      */
     private static final Pattern NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
-    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*\\|[^)]*\\)[*+]");
-    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)]*\\*[^)]*\\)[^)]*\\*");
+    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)|]*\\|[^)]*\\)[*+]");
+    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)*]*\\*[^)]*\\)[^)*]*\\*");
     private static final Pattern NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
 
     @Function(docs = """
@@ -374,7 +398,7 @@ public class PatternsFunctionLibrary {
         if (limitError != null)
             return limitError;
 
-        val cappedLimit = Math.min(limit.value().intValue(), MAX_MATCHES);
+        val cappedLimit = limit.value().min(BigDecimal.valueOf(MAX_MATCHES)).intValueExact();
         return findMatchesWithLimit(pattern, value, cappedLimit);
     }
 
@@ -423,7 +447,7 @@ public class PatternsFunctionLibrary {
         if (limitError != null)
             return limitError;
 
-        val cappedLimit = Math.min(limit.value().intValue(), MAX_MATCHES);
+        val cappedLimit = limit.value().min(BigDecimal.valueOf(MAX_MATCHES)).intValueExact();
         return findAllSubmatchWithLimit(pattern, value, cappedLimit);
     }
 
@@ -466,8 +490,16 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val result = compiledPattern.matcher(value.value()).replaceAll(replacement.value());
-            return Value.of(result);
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
+            val result  = new StringBuilder();
+            while (matcher.find()) {
+                matcher.appendReplacement(result, replacement.value());
+                if (result.length() > MAX_OUTPUT_LENGTH) {
+                    return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
+                }
+            }
+            matcher.appendTail(result);
+            return Value.of(result.toString());
         } catch (Exception e) {
             return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));
         }
@@ -510,7 +542,7 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val parts  = compiledPattern.split(value.value(), MAX_MATCHES);
+            val parts  = compiledPattern.split(BoundedRegex.guarded(value.value()), MAX_MATCHES);
             val result = ArrayValue.builder();
             for (val part : parts) {
                 result.add(Value.of(part));
@@ -591,7 +623,9 @@ public class PatternsFunctionLibrary {
 
         try {
             val pattern = Pattern.compile(regexPattern);
-            return Value.of(pattern.matcher(valueText).matches());
+            return Value.of(BoundedRegex.matches(pattern, valueText));
+        } catch (RegexBudgetExceededException e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         } catch (PatternSyntaxException e) {
             return Value.error(ERROR_INVALID_TEMPLATE.formatted(e.getMessage()));
         }
@@ -664,7 +698,7 @@ public class PatternsFunctionLibrary {
      * Validates limit parameter is a non-negative number.
      */
     private static Value validateLimit(NumberValue limit) {
-        if (limit.value().intValue() < 0) {
+        if (limit.value().signum() < 0) {
             return Value.error(ERROR_LIMIT_NEGATIVE);
         }
 
@@ -713,7 +747,9 @@ public class PatternsFunctionLibrary {
         try {
             val regex           = convertGlobToRegex(pattern, delimiters, 0);
             val compiledPattern = Pattern.compile(regex);
-            return Value.of(compiledPattern.matcher(value).matches());
+            return Value.of(BoundedRegex.matches(compiledPattern, value));
+        } catch (RegexBudgetExceededException e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         } catch (IllegalStateException e) {
             return Value.error(e.getMessage());
         } catch (PatternSyntaxException e) {
@@ -725,8 +761,8 @@ public class PatternsFunctionLibrary {
      * Converts a glob pattern to equivalent regex pattern.
      */
     private static String convertGlobToRegex(String glob, List<String> delimiters, int recursionDepth) {
-        if (recursionDepth > MAX_GLOB_RECURSION) {
-            throw new IllegalStateException(ERROR_GLOB_TOO_NESTED.formatted(MAX_GLOB_RECURSION));
+        if (recursionDepth > MAX_GLOB_RECURSION_DEPTH) {
+            throw new IllegalStateException(ERROR_GLOB_TOO_NESTED.formatted(MAX_GLOB_RECURSION_DEPTH));
         }
 
         val alternativeGroupCount = countAlternativeGroups(glob);
@@ -1072,7 +1108,7 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val matcher = compiledPattern.matcher(value.value());
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
             val matches = ArrayValue.builder();
 
             var count = 0;
@@ -1100,7 +1136,7 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val matcher = compiledPattern.matcher(value.value());
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
             val results = ArrayValue.builder();
 
             var count = 0;

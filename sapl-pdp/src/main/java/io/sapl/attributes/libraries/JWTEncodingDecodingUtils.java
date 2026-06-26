@@ -17,9 +17,9 @@
  */
 package io.sapl.attributes.libraries;
 
-import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.databind.JsonNode;
 
 import java.security.Key;
 import java.security.KeyFactory;
@@ -29,8 +29,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Optional;
-
-import javax.crypto.spec.SecretKeySpec;
 
 @UtilityClass
 public class JWTEncodingDecodingUtils {
@@ -49,34 +47,21 @@ public class JWTEncodingDecodingUtils {
     }
 
     /**
-     * Decodes a Base64-encoded string into bytes and wraps them as an HMAC secret
-     * key.
-     *
-     * @param encodedKey the Base64-encoded symmetric key
-     * @return the secret key, or empty if decoding fails
-     */
-    static Optional<Key> encodedToSecretKey(String encodedKey) {
-        return decode(encodedKey).map(bytes -> new SecretKeySpec(bytes, "HMAC"));
-    }
-
-    /**
-     * Extracts a key from a JSON text node. Tries asymmetric (X509) first,
-     * then falls back to symmetric (HMAC). This order is safe because X509
-     * has well-defined ASN.1 structure that raw bytes never accidentally
-     * match.
+     * Extracts a trust-anchor key from a JSON text node. Only asymmetric (X509)
+     * public keys are accepted. A trust anchor whose bytes fail X509 parsing is
+     * rejected and never reinterpreted as a symmetric secret. Building an HMAC
+     * key from a failed asymmetric anchor would let an attacker forge an HS256
+     * token signed with the same (often public) bytes, so the conversion fails
+     * closed instead.
      *
      * @param jsonNode the JSON node containing the key
-     * @return the key, or empty if extraction fails
+     * @return the public key, or empty if it cannot be parsed as X509
      */
     public static Optional<Key> jsonNodeToKey(JsonNode jsonNode) {
-        if (!jsonNode.isString())
+        if (!jsonNode.isString()) {
             return Optional.empty();
-
-        val encoded    = jsonNode.asString();
-        val asymmetric = encodedX509ToPublicKey(encoded);
-        if (asymmetric.isPresent())
-            return asymmetric;
-        return encodedToSecretKey(encoded);
+        }
+        return encodedX509ToPublicKey(jsonNode.asString());
     }
 
     /**
@@ -86,8 +71,7 @@ public class JWTEncodingDecodingUtils {
      * @return bytes
      */
     private static Optional<byte[]> decode(String base64) {
-        val pattern = "\\+";
-        base64 = base64.replace(pattern, "-").replace('/', '_').replace(',', '_');
+        base64 = base64.replace('+', '-').replace('/', '_').replace(',', '_');
 
         try {
             val bytes = Base64.getUrlDecoder().decode(base64);

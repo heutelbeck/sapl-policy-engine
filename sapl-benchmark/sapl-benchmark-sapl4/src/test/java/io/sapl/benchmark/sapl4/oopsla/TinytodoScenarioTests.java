@@ -71,7 +71,7 @@ class TinytodoScenarioTests {
         for (var policy : TinytodoScenarioGenerator.POLICIES) {
             fixture.withPolicy(policy);
         }
-        return fixture.withFunctionLibrary(GraphFunctionLibrary.class).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
+        return fixture.withFunctionLibrary(new GraphFunctionLibrary()).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
                 .givenVariable("entityGraph", ENTITY_GRAPH).givenVariable("lists", LISTS);
     }
 
@@ -197,6 +197,30 @@ class TinytodoScenarioTests {
         void whenNoTeamUserModifies_thenDeny() {
             fixture().whenDecide(AuthorizationSubscription.of("User::eve", "UpdateList", "List::todo1")).expectDeny()
                     .verify();
+        }
+    }
+
+    @Nested
+    @DisplayName("Generated sanity-check subscription")
+    class SanityCheckSubscriptionTests {
+
+        @Test
+        @DisplayName("first generated subscription is DENY even when user_0 owns list_0")
+        void whenFirstSubscriptionIsTheSanityCheckThenDeny() {
+            // n=2, seed=0: user_0 owns list_0, so a sanity check hitting that pair would
+            // wrongly PERMIT.
+            var scenario    = TinytodoScenarioGenerator.generate(2, 0);
+            var sanityCheck = scenario.subscriptions().getFirst();
+            var entityGraph = scenario.variables().get("entityGraph");
+            var listsVar    = scenario.variables().get("lists");
+
+            var fixture = SaplTestFixture.createIntegrationTest();
+            for (var policy : TinytodoScenarioGenerator.POLICIES) {
+                fixture.withPolicy(policy);
+            }
+            fixture.withFunctionLibrary(new GraphFunctionLibrary()).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
+                    .givenVariable("entityGraph", entityGraph).givenVariable("lists", listsVar).whenDecide(sanityCheck)
+                    .expectDeny().verify();
         }
     }
 

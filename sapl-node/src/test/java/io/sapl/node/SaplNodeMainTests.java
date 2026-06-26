@@ -18,6 +18,7 @@
 package io.sapl.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.parallel.Resources.SYSTEM_OUT;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -25,7 +26,10 @@ import java.io.PrintStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ResourceLock(value = SYSTEM_OUT, mode = ResourceAccessMode.READ_WRITE)
 class SaplNodeMainTests {
 
     private PrintStream originalOut;
@@ -42,15 +46,33 @@ class SaplNodeMainTests {
     }
 
     @Test
-    void whenExecutingRun_withGenerateApiKeyCommand_thenReturnsZero() {
+    void whenExecutingRunWithGenerateApiKeyCommandThenReturnsZero() {
         int exitCode = SaplNodeApplication.run(new String[] { "generate", "apikey" });
         assertThat(exitCode).isZero();
     }
 
     @Test
-    void whenExecutingRun_withGenerateBasicCommand_thenReturnsZero() {
+    void whenExecutingRunWithGenerateBasicCommandThenReturnsZero() {
         int exitCode = SaplNodeApplication.run(new String[] { "generate", "basic" });
         assertThat(exitCode).isZero();
+    }
+
+    @Test
+    void whenMistypedSubcommandThenNotServerMode() {
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "bundel", "create" })).isFalse();
+    }
+
+    @Test
+    void whenEmptyOrServerOrPropertyOverrideThenServerMode() {
+        assertThat(SaplNodeApplication.isServerMode(new String[] {})).isTrue();
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "server" })).isTrue();
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "--server.port=9000" })).isTrue();
+    }
+
+    @Test
+    void whenSubcommandOrHelpFlagThenNotServerMode() {
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "generate" })).isFalse();
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "--help" })).isFalse();
     }
 
 }

@@ -17,17 +17,16 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -38,8 +37,7 @@ class JsonFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(JsonFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new JsonFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test
@@ -217,5 +215,65 @@ class JsonFunctionLibraryTests {
         val investigator = (ObjectValue) ((ObjectValue) reparsed).get("investigator");
         assertThat(investigator).containsEntry("name", Value.of("Carter")).containsEntry("sanity", Value.of(77));
         assertThat((ArrayValue) investigator.get("artifacts")).hasSize(2);
+    }
+
+    @Test
+    void whenHighPrecisionDecimalThenPreservesAllDigits() {
+        val literal = "0.1234567890123456789012345678";
+        val result  = JsonFunctionLibrary.jsonToVal(Value.of("{\"x\": " + literal + "}"));
+
+        assertThat(result).isInstanceOfSatisfying(ObjectValue.class,
+                obj -> assertThat(obj.get("x")).isInstanceOfSatisfying(NumberValue.class,
+                        number -> assertThat(number.value()).isEqualByComparingTo(new BigDecimal(literal))));
+    }
+
+    @Test
+    void whenMagnitudeExceedsDoubleRangeThenParsesAsNumberNotError() {
+        val literal = "1e309";
+        val result  = JsonFunctionLibrary.jsonToVal(Value.of("{\"x\": " + literal + "}"));
+
+        assertThat(result).isInstanceOfSatisfying(ObjectValue.class,
+                obj -> assertThat(obj.get("x")).isInstanceOfSatisfying(NumberValue.class,
+                        number -> assertThat(number.value()).isEqualByComparingTo(new BigDecimal(literal))));
+    }
+
+    @Test
+    void whenJsonExceedsMaxInputThenError() {
+        val result = JsonFunctionLibrary.jsonToVal(Value.of("a".repeat(1024 * 1024 + 1)));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
+
+    @Nested
+    @DisplayName("valToJson serialization failures fail closed")
+    class ValToJsonFailures {
+
+        @Test
+        void whenUndefinedValueThenReturnsSerializeErrorAndDoesNotThrow() {
+            val result = JsonFunctionLibrary.valToJson(Value.UNDEFINED);
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).startsWith("Failed to serialize to JSON:"));
+        }
+
+        @Test
+        void whenErrorValueThenReturnsSerializeErrorAndDoesNotThrow() {
+            val result = JsonFunctionLibrary.valToJson(Value.error("ritual already underway"));
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).startsWith("Failed to serialize to JSON:"));
+        }
+
+        @Test
+        void whenObjectContainsUndefinedThenReturnsSerializeErrorAndDoesNotThrow() {
+            val object = ObjectValue.builder().put("artifact", Value.of("Necronomicon"))
+                    .put("custodian", Value.UNDEFINED).build();
+
+            val result = JsonFunctionLibrary.valToJson(object);
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).startsWith("Failed to serialize to JSON:"));
+        }
     }
 }

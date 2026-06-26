@@ -312,7 +312,8 @@ public class Matchers {
      * @param expected the expected number
      */
     public static ArgumentMatcher numberEqualTo(long expected) {
-        return matching(v -> v instanceof NumberValue(BigDecimal value) && value.longValue() == expected);
+        return matching(
+                v -> v instanceof NumberValue(BigDecimal value) && value.compareTo(BigDecimal.valueOf(expected)) == 0);
     }
 
     /**
@@ -340,7 +341,8 @@ public class Matchers {
      * @param threshold the threshold value
      */
     public static ArgumentMatcher greaterThan(long threshold) {
-        return matching(v -> v instanceof NumberValue(BigDecimal value) && value.longValue() > threshold);
+        return matching(
+                v -> v instanceof NumberValue(BigDecimal value) && value.compareTo(BigDecimal.valueOf(threshold)) > 0);
     }
 
     /**
@@ -358,7 +360,7 @@ public class Matchers {
      * @param threshold the threshold value
      */
     public static ArgumentMatcher greaterThanOrEqualTo(long threshold) {
-        return matching(v -> v instanceof NumberValue n && n.value().longValue() >= threshold);
+        return matching(v -> v instanceof NumberValue n && n.value().compareTo(BigDecimal.valueOf(threshold)) >= 0);
     }
 
     /**
@@ -376,7 +378,7 @@ public class Matchers {
      * @param threshold the threshold value
      */
     public static ArgumentMatcher lessThan(long threshold) {
-        return matching(v -> v instanceof NumberValue n && n.value().longValue() < threshold);
+        return matching(v -> v instanceof NumberValue n && n.value().compareTo(BigDecimal.valueOf(threshold)) < 0);
     }
 
     /**
@@ -394,7 +396,7 @@ public class Matchers {
      * @param threshold the threshold value
      */
     public static ArgumentMatcher lessThanOrEqualTo(long threshold) {
-        return matching(v -> v instanceof NumberValue n && n.value().longValue() <= threshold);
+        return matching(v -> v instanceof NumberValue n && n.value().compareTo(BigDecimal.valueOf(threshold)) <= 0);
     }
 
     /**
@@ -417,8 +419,8 @@ public class Matchers {
             if (!(v instanceof NumberValue n)) {
                 return false;
             }
-            long val = n.value().longValue();
-            return val >= min && val <= max;
+            var val = n.value();
+            return val.compareTo(BigDecimal.valueOf(min)) >= 0 && val.compareTo(BigDecimal.valueOf(max)) <= 0;
         });
     }
 
@@ -688,6 +690,15 @@ public class Matchers {
      */
     public static DecisionMatcher isNotApplicable() {
         return new DecisionMatcher(Decision.NOT_APPLICABLE);
+    }
+
+    /**
+     * Creates a matcher for SUSPEND decisions.
+     *
+     * @return a matcher expecting Decision.SUSPEND
+     */
+    public static DecisionMatcher isSuspend() {
+        return new DecisionMatcher(Decision.SUSPEND);
     }
 
     /**

@@ -24,12 +24,13 @@ import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 import javax.net.ssl.SSLException;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 
+import static io.sapl.node.cli.support.PdpSetup.ERROR_EVALUATION_FAILED;
 import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 
 /**
@@ -46,7 +47,8 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
         Subscribes to the policy decision point and prints each decision as
         a JSON line to stdout (Newline Delimited JSON). When policies change,
         attributes update, or the subscription context evolves, a new
-        decision line is emitted automatically.
+        decision line is emitted automatically. Each decision is one compact
+        line; --pretty indents them for reading but breaks the NDJSON format.
 
         Runs until interrupted (Ctrl+C) or the decision stream completes.
 
@@ -76,13 +78,14 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 // @formatter:on
 public class DecideCommand implements Callable<Integer> {
 
-    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
-
     @Spec
     CommandSpec spec;
 
     @Mixin
     PdpOptions pdpOptions;
+
+    @Option(names = "--pretty", description = "Indent each decision for readability. This breaks the NDJSON one-decision-per-line format.")
+    boolean pretty;
 
     @Override
     public Integer call() {
@@ -93,22 +96,21 @@ public class DecideCommand implements Callable<Integer> {
             setup = PdpSetup.open(pdpOptions, err);
             if (setup == null)
                 return 1;
-            Runtime.getRuntime().addShutdownHook(new Thread(setup::shutdown));
-            val pdp    = setup.pdp();
+            val pdp    = setup.blocking();
             val mapper = setup.mapper();
             val sub    = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, mapper);
-            val latch  = new CountDownLatch(1);
 
-            pdp.decide(sub).doOnNext(decision -> {
-                out.println(mapper.writeValueAsString(decision));
-                out.flush();
-            }).doOnError(e -> {
-                err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
-                latch.countDown();
-            }).doOnComplete(latch::countDown).subscribe();
-
-            latch.await();
-            return 0;
+            try (val stream = pdp.decide(sub)) {
+                while (true) {
+                    val decision = stream.awaitNext();
+                    if (decision == null) {
+                        return 0;
+                    }
+                    out.println(pretty ? mapper.writerWithDefaultPrettyPrinter().writeValueAsString(decision)
+                            : mapper.writeValueAsString(decision));
+                    out.flush();
+                }
+            }
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
             return 1;

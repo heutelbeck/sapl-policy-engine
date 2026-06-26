@@ -113,6 +113,57 @@ class SAPLTestDocumentSymbolProviderTests {
             });
         }
 
+        @Test
+        @DisplayName("a name spanning multiple lines yields a range that ends on the later line, not an over-wide single-line range")
+        void whenNameSpansMultipleLinesThenRangeEndsOnLaterLine() {
+            var document = new SAPLTestParsedDocument("test.sapltest", """
+                    requirement "first
+                    second" {
+                        scenario "s1"
+                            when "u" attempts "a" on "r"
+                            expect permit;
+                    }
+                    """);
+
+            var symbols = provider.provideDocumentSymbols(document);
+
+            assertThat(symbols).hasSize(1).first().satisfies(symbol -> {
+                var selectionRange = symbol.getSelectionRange();
+                assertThat(selectionRange.getStart().getLine()).isZero();
+                assertThat(selectionRange.getStart().getCharacter()).isEqualTo(12);
+                assertThat(selectionRange.getEnd().getLine()).isEqualTo(1);
+                assertThat(selectionRange.getEnd().getCharacter()).isEqualTo(7);
+                assertThat(selectionRange.getEnd().getCharacter()).isLessThanOrEqualTo("second\"".length());
+            });
+        }
+
+    }
+
+    @Nested
+    @DisplayName("partial documents (live editing)")
+    class PartialDocuments {
+
+        @Test
+        @DisplayName("an unnamed requirement still builds the model and the outline keeps the well-formed requirements")
+        void whenRequirementHasNoNameThenModelBuildsAndOutlineKeepsNamedRequirements() {
+            var document = new SAPLTestParsedDocument("test.sapltest", """
+                    requirement {
+                        scenario "s1"
+                            when "u" attempts "a" on "r"
+                            expect permit;
+                    }
+                    requirement "Valid" {
+                        scenario "s2"
+                            when "u" attempts "a" on "r"
+                            expect permit;
+                    }
+                    """);
+
+            var symbols = provider.provideDocumentSymbols(document);
+
+            assertThat(symbols).isNotEmpty().anySatisfy(req -> assertThat(req.getName()).isEqualTo("Valid"));
+        }
+
     }
 
 }

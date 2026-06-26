@@ -17,37 +17,37 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler;
+import io.sapl.compiler.expressions.NaryBooleanCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policy.policybody.BooleanGuardCompiler;
+import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.List;
+
 @UtilityClass
 public class TargetExpressionCompiler {
-    private static final String ERROR_TARGET_NOT_BOOLEAN       = "Target expressions must evaluate to Boolean, but got %s.";
     private static final String ERROR_TARGET_RELATIVE_ACCESSOR = "The target expression contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.";
     private static final String ERROR_TARGET_STATIC_ERROR      = "The target expression statically evaluates to an error: %s.";
     private static final String ERROR_TARGET_STREAM_OPERATOR   = "Target expression must not contain attributes operators <>!.";
 
     public CompiledExpression compileTargetExpression(Expression targetExpression, CompiledExpression schemaValidator,
             CompilationContext ctx) {
+        // A target is a single boolean condition. Wrapping it in a one-operand n-ary
+        // AND coerces a non-boolean result to a type error (identical to a body
+        // condition) while leaving the boolean structure transparent to the index.
         val compiledTarget = targetExpression == null ? Value.TRUE
-                : BooleanGuardCompiler.applyBooleanGuard(ExpressionCompiler.compile(targetExpression, ctx),
-                        targetExpression.location(), ERROR_TARGET_NOT_BOOLEAN);
+                : NaryBooleanCompiler.compile(List.of(ExpressionCompiler.compile(targetExpression, ctx)),
+                        targetExpression.location(), Value.FALSE, Value.TRUE);
         if (compiledTarget instanceof ErrorValue error) {
             throw new SaplCompilerException(ERROR_TARGET_STATIC_ERROR.formatted(error), targetExpression.location());
         }
-        if (compiledTarget instanceof PureOperator po && !po.isDependingOnSubscription()) {
+        if (compiledTarget instanceof PureOperator po && po.isRelativeExpression()) {
             throw new SaplCompilerException(ERROR_TARGET_RELATIVE_ACCESSOR, targetExpression.location());
         }
         if (compiledTarget instanceof StreamOperator) {

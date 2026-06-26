@@ -30,7 +30,6 @@ public class DummyEvaluationContextFactory {
 
     public EvaluationContext dummyContext(CompilationContext ctx) {
         return new EvaluationContext(ctx.getPdpId(), ctx.getConfigurationId(), "compile-time-evaluation",
-                DUMMY_SUBSCRIPTION, ctx.getFunctionBroker(), ctx.getAttributeBroker(), Value.UNDEFINED,
-                Value.UNDEFINED);
+                DUMMY_SUBSCRIPTION, ctx.getFunctionBroker(), Value.UNDEFINED, Value.UNDEFINED);
     }
 }

@@ -82,7 +82,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("creates bundle from directory with policies")
-        void whenDirectoryWithPolicies_thenCreatesBundleSuccessfully() throws Exception {
+        void whenDirectoryWithPoliciesThenCreatesBundleSuccessfully() throws Exception {
             val inputDir   = createPolicyInputDir();
             val outputFile = tempDir.resolve("test.saplbundle");
 
@@ -96,7 +96,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("creates bundle with multiple policies")
-        void whenMultiplePolicies_thenCountsAllPolicies() throws Exception {
+        void whenMultiplePoliciesThenCountsAllPolicies() throws Exception {
             val inputDir   = tempDir.resolve("policies");
             val outputFile = tempDir.resolve("test.saplbundle");
 
@@ -114,7 +114,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails when input directory does not exist")
-        void whenInputNotExists_thenFails() {
+        void whenInputNotExistsThenFails() {
             val inputDir   = tempDir.resolve("nonexistent");
             val outputFile = tempDir.resolve("test.saplbundle");
 
@@ -126,7 +126,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails when no policies found")
-        void whenNoPolicies_thenFails() throws Exception {
+        void whenNoPoliciesThenFails() throws Exception {
             val inputDir   = tempDir.resolve("empty");
             val outputFile = tempDir.resolve("test.saplbundle");
 
@@ -141,7 +141,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("creates signed bundle when key provided")
-        void whenKeyProvided_thenCreatesSignedBundle() throws Exception {
+        void whenKeyProvidedThenCreatesSignedBundle() throws Exception {
             val inputDir    = createPolicyInputDir();
             val outputFile  = tempDir.resolve("signed.saplbundle");
             val keyPair     = generateEd25519KeyPair();
@@ -159,7 +159,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("signed bundle created with key passes verification")
-        void whenCreatedWithKey_thenPassesVerification() throws Exception {
+        void whenCreatedWithKeyThenPassesVerification() throws Exception {
             val inputDir    = createPolicyInputDir();
             val outputFile  = tempDir.resolve("verified.saplbundle");
             val keyPair     = generateEd25519KeyPair();
@@ -181,7 +181,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails when key file not found")
-        void whenKeyFileNotFound_thenFails() throws Exception {
+        void whenKeyFileNotFoundThenFails() throws Exception {
             val inputDir   = createPolicyInputDir();
             val outputFile = tempDir.resolve("test.saplbundle");
             val keyFile    = tempDir.resolve("nonexistent.pem");
@@ -201,7 +201,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("shows unsigned bundle contents")
-        void whenUnsignedBundle_thenShowsContentsAndUnsignedStatus() throws Exception {
+        void whenUnsignedBundleThenShowsContentsAndUnsignedStatus() throws Exception {
             val bundleFile = createTestBundle();
 
             val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
@@ -218,7 +218,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("shows signed bundle metadata")
-        void whenSignedBundle_thenShowsSignatureMetadata() throws Exception {
+        void whenSignedBundleThenShowsSignatureMetadata() throws Exception {
             val bundleFile = createSignedTestBundle();
 
             val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
@@ -234,13 +234,25 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails when bundle file not found")
-        void whenBundleNotFound_thenFails() {
+        void whenBundleNotFoundThenFails() {
             val bundleFile = tempDir.resolve("nonexistent.saplbundle");
 
             val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
 
             assertThat(exitCode).isEqualTo(1);
             assertThat(err.toString()).contains("Bundle file not found");
+        }
+
+        @Test
+        @DisplayName("fails when the file exists but is not a valid bundle")
+        void whenFileIsNotABundleThenFails() throws Exception {
+            val notABundle = tempDir.resolve("notabundle.json");
+            Files.writeString(notABundle, "{\"not\":\"a bundle\"}");
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", notABundle.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("Not a valid SAPL bundle");
         }
 
     }
@@ -251,7 +263,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("signs unsigned bundle")
-        void whenUnsignedBundle_thenSignsSuccessfully() throws Exception {
+        void whenUnsignedBundleThenSignsSuccessfully() throws Exception {
             val bundleFile = createTestBundle();
             val keyPair    = generateEd25519KeyPair();
             val privateKey = tempDir.resolve("private.pem");
@@ -269,7 +281,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails when key file not found")
-        void whenKeyNotFound_thenFails() throws Exception {
+        void whenKeyNotFoundThenFails() throws Exception {
             val bundleFile = createTestBundle();
             val keyFile    = tempDir.resolve("nonexistent.pem");
 
@@ -287,7 +299,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("generates Ed25519 keypair")
-        void whenValidOutput_thenGeneratesKeypair() {
+        void whenValidOutputThenGeneratesKeypair() {
             val outputPrefix = tempDir.resolve("test-key");
 
             val exitCode = cmd.execute("bundle", "keygen", "-o", outputPrefix.toString());
@@ -304,7 +316,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("generated keys have valid PEM format")
-        void whenGenerated_thenKeysHaveValidPemFormat() throws Exception {
+        void whenGeneratedThenKeysHaveValidPemFormat() throws Exception {
             val outputPrefix = tempDir.resolve("format-test");
 
             cmd.execute("bundle", "keygen", "-o", outputPrefix.toString());
@@ -320,7 +332,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("generated keys work with sign and verify")
-        void whenGeneratedKeys_thenSignAndVerifyWorks() throws Exception {
+        void whenGeneratedKeysThenSignAndVerifyWorks() throws Exception {
             val keyPrefix  = tempDir.resolve("e2e-key");
             val bundleFile = createTestBundle();
 
@@ -339,7 +351,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails when file already exists")
-        void whenFileExists_thenFailsWithoutForce() throws Exception {
+        void whenFileExistsThenFailsWithoutForce() throws Exception {
             val outputPrefix = tempDir.resolve("existing");
             Files.writeString(tempDir.resolve("existing.pem"), "existing content");
 
@@ -351,7 +363,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("overwrites existing files with --force")
-        void whenForceFlag_thenOverwritesExistingFiles() throws Exception {
+        void whenForceFlagThenOverwritesExistingFiles() throws Exception {
             val outputPrefix = tempDir.resolve("overwrite");
             Files.writeString(tempDir.resolve("overwrite.pem"), "old content");
             Files.writeString(tempDir.resolve("overwrite.pub"), "old content");
@@ -371,7 +383,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("verifies valid signed bundle")
-        void whenValidSignature_thenVerifiesSuccessfully() throws Exception {
+        void whenValidSignatureThenVerifiesSuccessfully() throws Exception {
             val keyPair      = generateEd25519KeyPair();
             val bundleFile   = createSignedTestBundle(keyPair.privateKey());
             val publicKeyPem = tempDir.resolve("public.pem");
@@ -385,7 +397,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails with wrong public key")
-        void whenWrongKey_thenVerificationFails() throws Exception {
+        void whenWrongKeyThenVerificationFails() throws Exception {
             val signingKeyPair = generateEd25519KeyPair();
             val wrongKeyPair   = generateEd25519KeyPair();
             val bundleFile     = createSignedTestBundle(signingKeyPair.privateKey());
@@ -401,7 +413,7 @@ class BundleCommandTests {
 
         @Test
         @DisplayName("fails when bundle is not signed")
-        void whenUnsignedBundle_thenFails() throws Exception {
+        void whenUnsignedBundleThenFails() throws Exception {
             val bundleFile   = createTestBundle();
             val keyPair      = generateEd25519KeyPair();
             val publicKeyPem = tempDir.resolve("public.pem");

@@ -67,15 +67,15 @@ import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.document.Document;
 import io.sapl.compiler.document.DocumentCompiler;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
-import io.sapl.pdp.configuration.PdpState;
+import io.sapl.pdp.SaplBuildInfo;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
@@ -223,6 +223,21 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 delete window.playgroundHashListener;
             }
             """;
+    private static final String JS_DETECT_COLOR_SCHEME   = """
+            var el = $0;
+            function isDark() {
+                var t = document.documentElement.getAttribute('data-theme');
+                if (t) return t === 'dark';
+                return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+            function notify() {
+                el.dispatchEvent(new CustomEvent('host-theme', {detail: {dark: isDark()}}));
+            }
+            notify();
+            new MutationObserver(notify)
+                .observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', notify);
+            """;
 
     private static final String LABEL_AUTO_CLEAR                 = "Auto Clear";
     private static final String LABEL_AUTHORIZATION_SUBSCRIPTION = "Authorization Subscription";
@@ -309,7 +324,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private final transient PermalinkService              permalinkService;
     private final transient PermalinkConfiguration        permalinkConfiguration;
 
-    private final transient ArrayList<TimestampedVote> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
+    private final transient ArrayList<TracedVote> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
 
     private TabSheet                leftTabSheet;
     private Tab                     variablesTab;
@@ -320,13 +335,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private ValidationStatusDisplay subscriptionValidationDisplay;
     private ValidationStatusDisplay pdpStatusDisplay;
 
-    private Button                            playStopButton;
-    private Button                            scrollLockButton;
-    private IntegerField                      bufferSizeField;
-    private DecisionsGrid                     decisionsGrid;
-    private GridListDataView<TimestampedVote> decisionsGridView;
-    private Checkbox                          clearOnNewSubscriptionCheckBox;
-    private Checkbox                          followLatestDecisionCheckbox;
+    private Button                       playStopButton;
+    private Button                       scrollLockButton;
+    private IntegerField                 bufferSizeField;
+    private DecisionsGrid                decisionsGrid;
+    private GridListDataView<TracedVote> decisionsGridView;
+    private Checkbox                     clearOnNewSubscriptionCheckBox;
+    private Checkbox                     followLatestDecisionCheckbox;
 
     private JsonEditor             decisionJsonEditor;
     private JsonEditor             decisionJsonReportEditor;
@@ -339,6 +354,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private ComboBox<DefaultDecision> defaultDecisionComboBox;
     private ComboBox<ErrorHandling>   errorHandlingComboBox;
 
+    private ThemeToggleButton    themeToggle;
     private boolean              isDarkMode           = false;
     private boolean              isScrollLockActive;
     private boolean              isFollowLatestDecisionActive;
@@ -403,6 +419,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         super.onAttach(attachEvent);
         checkInitialFragment();
         setupHashChangeListener();
+        detectHostColorScheme(attachEvent);
     }
 
     /*
@@ -465,7 +482,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Handles new authorization decisions from the PDP. Ensures UI updates occur on
      * the UI thread.
      */
-    private void handleNewDecisionOnUiThread(final TimestampedVote timestampedVote) {
+    private void handleNewDecisionOnUiThread(final TracedVote timestampedVote) {
         getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(timestampedVote)));
     }
 
@@ -957,7 +974,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void handleSubscriptionComplete() {
         log.debug("PDP subscription completed");
-        activeSubscription = null;
+        getUI().ifPresent(userInterface -> userInterface.access(() -> activeSubscription = null));
     }
 
     /*
@@ -1033,20 +1050,20 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Handles selection of decision in the grid.
      */
-    private void handleDecisionSelected(SelectionEvent<Grid<TimestampedVote>, TimestampedVote> selection) {
+    private void handleDecisionSelected(SelectionEvent<Grid<TracedVote>, TracedVote> selection) {
         updateDecisionDetailsView(selection.getFirstSelectedItem());
     }
 
     /*
      * Updates the decision details view with selected decision.
      */
-    private void updateDecisionDetailsView(Optional<TimestampedVote> maybeTimestampedVote) {
-        if (maybeTimestampedVote.isEmpty()) {
+    private void updateDecisionDetailsView(Optional<TracedVote> maybeTracedVote) {
+        if (maybeTracedVote.isEmpty()) {
             clearDecisionDetailsView();
             return;
         }
 
-        val timestampedVote = maybeTimestampedVote.get();
+        val timestampedVote = maybeTracedVote.get();
         displayDecisionJson(timestampedVote);
         displayDecisionTrace(timestampedVote);
         displayDecisionReport(timestampedVote);
@@ -1056,7 +1073,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays decision JSON in the editor.
      */
-    private void displayDecisionJson(TimestampedVote timestampedVote) {
+    private void displayDecisionJson(TracedVote timestampedVote) {
         try {
             val json       = mapper.valueToTree(timestampedVote.vote().authorizationDecision());
             val prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
@@ -1069,7 +1086,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays decision trace information.
      */
-    private void displayDecisionTrace(TimestampedVote timestampedVote) {
+    private void displayDecisionTrace(TracedVote timestampedVote) {
         val trace = timestampedVote.vote().toTrace();
         decisionJsonTraceEditor.setDocument(ValueJsonMarshaller.toPrettyString(trace));
         traceGraphVisualization.setValueData(trace);
@@ -1078,13 +1095,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays decision report information.
      */
-    private void displayDecisionReport(TimestampedVote timestampedVote) {
+    private void displayDecisionReport(TracedVote timestampedVote) {
         val subscription = parseAuthorizationSubscriptionFromEditor();
-        val timestamp    = timestampedVote.timestamp();
-        val report       = ReportBuilderUtil.extractReport(timestampedVote.vote(), timestamp, "",
-                subscription != null ? subscription : AuthorizationSubscription.of("", "", ""));
-        val reportValue  = ReportBuilderUtil.extractReportAsValue(timestampedVote.vote(), timestamp, "",
-                subscription != null ? subscription : AuthorizationSubscription.of("", "", ""));
+        val effectiveSub = subscription != null ? subscription : AuthorizationSubscription.of("", "", "");
+        val report       = ReportBuilderUtil.extractReport(timestampedVote, "", effectiveSub);
+        val reportValue  = ReportBuilderUtil.extractReportAsValue(timestampedVote, "", effectiveSub);
 
         decisionJsonReportEditor.setDocument(ValueJsonMarshaller.toPrettyString(reportValue));
         reportTextArea.setValue(ReportTextRenderUtil.textReport(report));
@@ -1093,7 +1108,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays errors from the decision.
      */
-    private void displayDecisionErrors(TimestampedVote timestampedVote) {
+    private void displayDecisionErrors(TracedVote timestampedVote) {
         val errors          = extractErrorsFromVote(timestampedVote.vote());
         val plainTextReport = buildAggregatedErrorReport(errors);
 
@@ -1162,7 +1177,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * latest decision is active, automatically
      * selects the new decision.
      */
-    private void handleNewDecision(TimestampedVote timestampedVote) {
+    private void handleNewDecision(TracedVote timestampedVote) {
         decisionBuffer.add(timestampedVote);
 
         val bufferSize = getBufferSize();
@@ -1555,6 +1570,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Button createTabCloseButton() {
         val button = new Button(VaadinIcon.CLOSE_SMALL.create());
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+        button.addClassName("tab-close");
         button.getStyle().set(CSS_MARGIN_LEFT, CSS_VALUE_SIZE_0_25EM);
         return button;
     }
@@ -1630,12 +1646,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void updatePdpStatusDisplay() {
         val status = policyDecisionPoint.getPdpStatus();
         switch (status.state()) {
-        case LOADED -> pdpStatusDisplay.setIssues(List.of());
-        case STALE  -> pdpStatusDisplay
+        case LOADED           -> pdpStatusDisplay.setIssues(List.of());
+        case STALE            -> pdpStatusDisplay
                 .setIssues(List.of(new Issue("PDP STALE - Using last valid configuration. " + status.lastError(),
                         IssueSeverity.WARNING, null, null, null, null)));
-        case ERROR  -> pdpStatusDisplay.setIssues(
+        case ERROR            -> pdpStatusDisplay.setIssues(
                 List.of(new Issue("PDP ERROR - " + status.lastError(), IssueSeverity.ERROR, null, null, null, null)));
+        case AWAITING_PLUGINS -> pdpStatusDisplay
+                .setIssues(List.of(new Issue("PDP AWAITING_PLUGINS - Configuration retained until plugins arrive.",
+                        IssueSeverity.WARNING, null, null, null, null)));
         }
     }
 
@@ -1780,10 +1799,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         logoTitle.getStyle().set(CSS_FONT_SIZE, "1.1rem").set(CSS_FONT_WEIGHT, "800").set("letter-spacing", "-0.03em")
                 .set("line-height", "1");
 
-        val logoSubtitle = new Span("Playground");
+        val logoSubtitle = new Span("Playground " + SaplBuildInfo.version().replace("-SNAPSHOT", ""));
         logoSubtitle.getStyle().set(CSS_FONT_SIZE, "0.55rem").set(CSS_FONT_WEIGHT, "500")
                 .set(CSS_COLOR, "var(--vaadin-text-color-secondary)").set("letter-spacing", "0.04em")
-                .set(CSS_MARGIN_TOP, "-2px");
+                .set(CSS_MARGIN_TOP, "-2px").set("white-space", "nowrap");
 
         val logoText = new Div(logoTitle, logoSubtitle);
         logoText.getStyle().set("display", "flex").set("flex-direction", "column").set(CSS_GAP, "0");
@@ -1805,8 +1824,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val spacer = new Span();
         spacer.getStyle().set(CSS_FLEX_GROW, CSS_VALUE_ONE);
 
-        val themeToggle = new ThemeToggleButton();
-        themeToggle.addThemeToggleListener(event -> toggleColorScheme(event.isDarkMode()));
+        themeToggle = new ThemeToggleButton();
+        themeToggle.addThemeToggleListener(event -> applyColorScheme(event.isDarkMode()));
 
         val rightSection = new HorizontalLayout(homepageLink, shareButton, themeToggle);
         rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -1838,10 +1857,28 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
-    private void toggleColorScheme(boolean darkMode) {
+    /*
+     * Detects the host page color scheme on attach and keeps the editors in sync
+     * with it. The application shell follows prefers-color-scheme automatically via
+     * the LIGHT_DARK color scheme, but the CodeMirror editors are separate web
+     * components whose theme is only driven from the server, so they must be
+     * aligned explicitly on the initial load and whenever the preference changes.
+     */
+    private void detectHostColorScheme(AttachEvent attachEvent) {
+        attachEvent.getUI().getPage().executeJs(JS_DETECT_COLOR_SCHEME, getElement());
+        getElement()
+                .addEventListener("host-theme",
+                        event -> applyColorScheme(event.getEventData().get("event.detail.dark").booleanValue()))
+                .addEventData("event.detail.dark");
+    }
+
+    private void applyColorScheme(boolean darkMode) {
         isDarkMode = darkMode;
+        if (themeToggle != null)
+            themeToggle.setDarkMode(isDarkMode);
+
         val scheme = isDarkMode ? ColorScheme.Value.DARK : ColorScheme.Value.LIGHT;
-        UI.getCurrent().getPage().setColorScheme(scheme);
+        getUI().ifPresent(ui -> ui.getPage().setColorScheme(scheme));
 
         policyTabContexts.values().forEach(ctx -> ctx.editor.setDarkTheme(isDarkMode));
         if (subscriptionEditor != null)

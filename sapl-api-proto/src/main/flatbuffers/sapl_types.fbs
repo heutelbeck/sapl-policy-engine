@@ -1,3 +1,4 @@
+//
 // Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -13,6 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 // FlatBuffers schema definitions for SAPL API types.
 // These mirror the Java types in io.sapl.api.pdp and io.sapl.api.model.
@@ -20,7 +22,7 @@
 namespace io.sapl.api.flatbuffers;
 
 // Decision enum - INDETERMINATE=0 is default for safe failure
-enum Decision : byte { INDETERMINATE = 0, PERMIT = 1, DENY = 2, NOT_APPLICABLE = 3 }
+enum Decision : byte { INDETERMINATE = 0, PERMIT = 1, DENY = 2, NOT_APPLICABLE = 3, SUSPEND = 4 }
 
 // Value kind discriminator for the Value union
 enum ValueKind : byte {

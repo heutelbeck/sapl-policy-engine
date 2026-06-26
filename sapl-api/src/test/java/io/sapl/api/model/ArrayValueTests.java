@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -201,6 +202,21 @@ class ArrayValueTests {
             var newValue = Value.of(99);
 
             assertThatThrownBy(() -> iter.add(newValue)).isInstanceOf(UnsupportedOperationException.class);
+        }
+
+        @Test
+        @DisplayName("Mutating the caller's source list after construction does not change the ArrayValue")
+        void when_callerMutatesSourceListAfterConstruction_then_arrayValueIsUnaffected() {
+            var source = new ArrayList<Value>();
+            source.add(Value.of(1));
+            source.add(Value.of(2));
+            var array = new ArrayValue(source);
+
+            source.add(Value.of(3));
+            source.set(0, Value.of(99));
+            source.clear();
+
+            assertThat(array).hasSize(2).containsExactly(Value.of(1), Value.of(2));
         }
     }
 

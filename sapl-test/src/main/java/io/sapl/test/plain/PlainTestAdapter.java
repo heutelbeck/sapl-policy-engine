@@ -20,7 +20,6 @@ package io.sapl.test.plain;
 import io.sapl.test.coverage.TestCoverageRecord;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
-import io.sapl.test.lang.SaplTestException;
 import io.sapl.test.lang.SaplTestParser;
 import io.sapl.test.plain.TestEvent.ExecutionCompleted;
 import io.sapl.test.plain.TestEvent.ScenarioCompleted;
@@ -130,8 +129,9 @@ public class PlainTestAdapter {
         try {
             var parseTree = SaplTestParser.parse(testDoc.sourceCode());
             results.addAll(executeParseTree(testDoc, parseTree, config));
-        } catch (SaplTestException e) {
-            // Parse error - create error result for the whole document
+        } catch (RuntimeException e) {
+            // Parse error - create error result for the whole document so that a
+            // single malformed document cannot abort the aggregated execution.
             results.add(ScenarioResult.error(testDoc.id(), testDoc.name(), "Parse Error", Duration.ZERO, e, null));
         }
 

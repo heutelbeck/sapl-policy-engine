@@ -22,11 +22,14 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -34,8 +37,6 @@ import java.util.stream.Stream;
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("ArithmeticOperators")
 class ArithmeticOperatorsTests {
@@ -148,10 +149,74 @@ class ArithmeticOperatorsTests {
     }
     // @formatter:on
 
+    // BigDecimals whose combined scale overflows int must never throw out of the
+    // evaluation path.
+    private static final Value HUGE_NEGATIVE_SCALE = Value.of(new BigDecimal(BigInteger.ONE, Integer.MAX_VALUE));
+    private static final Value HUGE_POSITIVE_SCALE = Value.of(new BigDecimal(BigInteger.ONE, Integer.MIN_VALUE));
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenExtremeScaleOperandsThenReturnsErrorNotThrow(String description, BiFunction<Value, Value, Value> op,
+            Value a, Value b) {
+        assertThat(op.apply(a, b)).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("range"));
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> whenExtremeScaleOperandsThenReturnsErrorNotThrow() {
+        return Stream.of(
+            arguments("add overflowing scales", ADD, HUGE_NEGATIVE_SCALE, HUGE_POSITIVE_SCALE),
+            arguments("subtract overflowing scales", SUB, HUGE_NEGATIVE_SCALE, HUGE_POSITIVE_SCALE),
+            arguments("multiply overflowing scales", MUL, HUGE_NEGATIVE_SCALE, HUGE_NEGATIVE_SCALE),
+            arguments("divide overflowing scales", DIV, HUGE_NEGATIVE_SCALE, HUGE_POSITIVE_SCALE),
+            arguments("modulo overflowing scales", MOD, HUGE_POSITIVE_SCALE, HUGE_NEGATIVE_SCALE));
+    }
+    // @formatter:on
+
     @Test
     void whenDivideNonTerminatingThenUsesDecimal128Precision() {
         val result = DIV.apply(Value.of(1), Value.of(3));
         assertThat(result).isInstanceOfSatisfying(NumberValue.class,
                 n -> assertThat(n.value().precision()).isEqualTo(34));
     }
+
+    // Operand with thousands of significant digits.
+    private static final Value EXCESSIVE_PRECISION = Value.of(new BigDecimal(new BigInteger("9".repeat(5000))));
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenExcessivePrecisionOperandThenReturnsErrorNotResult(String description,
+            BiFunction<Value, Value, Value> op) {
+        assertThat(op.apply(EXCESSIVE_PRECISION, Value.of(2))).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("range"));
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> whenExcessivePrecisionOperandThenReturnsErrorNotResult() {
+        return Stream.of(
+            arguments("add rejects excessive precision", ADD),
+            arguments("subtract rejects excessive precision", SUB),
+            arguments("multiply rejects excessive precision", MUL),
+            arguments("divide rejects excessive precision", DIV),
+            arguments("modulo rejects excessive precision", MOD));
+    }
+    // @formatter:on
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenBoundedArithmeticThenResultPrecisionIsBounded(String description, BiFunction<Value, Value, Value> op,
+            Value a, Value b) {
+        assertThat(op.apply(a, b)).isInstanceOfSatisfying(NumberValue.class,
+                n -> assertThat(n.value().precision()).isLessThanOrEqualTo(34));
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> whenBoundedArithmeticThenResultPrecisionIsBounded() {
+        val wide = Value.of(new BigDecimal(new BigInteger("9".repeat(40))));
+        return Stream.of(
+            arguments("add bounds result precision", ADD, wide, wide),
+            arguments("subtract bounds result precision", SUB, wide, Value.of(1)),
+            arguments("multiply bounds result precision", MUL, wide, wide));
+    }
+    // @formatter:on
 }

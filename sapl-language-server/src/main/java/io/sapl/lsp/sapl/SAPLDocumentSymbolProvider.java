@@ -43,6 +43,8 @@ import lombok.val;
  */
 class SAPLDocumentSymbolProvider {
 
+    private static final Range ZERO_RANGE = new Range(new Position(0, 0), new Position(0, 0));
+
     List<DocumentSymbol> provideDocumentSymbols(ParsedDocument document) {
         if (!(document instanceof SAPLParsedDocument saplDocument)) {
             return List.of();
@@ -54,35 +56,41 @@ class SAPLDocumentSymbolProvider {
         }
         val symbols = new ArrayList<DocumentSymbol>();
         if (policyElement instanceof PolicySetElementContext policySetElement) {
-            symbols.add(buildPolicySetSymbol(policySetElement.policySet()));
+            addIfNotNull(symbols, buildPolicySetSymbol(policySetElement.policySet()));
         } else if (policyElement instanceof PolicyOnlyElementContext policyOnlyElement) {
-            symbols.add(buildPolicySymbol(policyOnlyElement.policy()));
+            addIfNotNull(symbols, buildPolicySymbol(policyOnlyElement.policy()));
         }
         return symbols;
     }
 
     private DocumentSymbol buildPolicySetSymbol(PolicySetContext ctx) {
+        if (ctx == null || ctx.saplName == null) {
+            return null;
+        }
         val name     = stripQuotes(ctx.saplName.getText());
         val symbol   = new DocumentSymbol(name, SymbolKind.Module, rangeOf(ctx), rangeOfToken(ctx.saplName));
         val children = new ArrayList<DocumentSymbol>();
         for (val varDef : ctx.valueDefinition()) {
-            children.add(buildVariableSymbol(varDef));
+            addIfNotNull(children, buildVariableSymbol(varDef));
         }
         for (val policy : ctx.policy()) {
-            children.add(buildPolicySymbol(policy));
+            addIfNotNull(children, buildPolicySymbol(policy));
         }
         symbol.setChildren(children);
         return symbol;
     }
 
     private DocumentSymbol buildPolicySymbol(PolicyContext ctx) {
+        if (ctx == null || ctx.saplName == null) {
+            return null;
+        }
         val name     = stripQuotes(ctx.saplName.getText());
         val symbol   = new DocumentSymbol(name, SymbolKind.Function, rangeOf(ctx), rangeOfToken(ctx.saplName));
         val children = new ArrayList<DocumentSymbol>();
         if (ctx.policyBody() != null) {
             for (val statement : ctx.policyBody().statements) {
                 if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
-                    children.add(buildVariableSymbol(varDefStmt.valueDefinition()));
+                    addIfNotNull(children, buildVariableSymbol(varDefStmt.valueDefinition()));
                 }
             }
         }
@@ -93,15 +101,39 @@ class SAPLDocumentSymbolProvider {
     }
 
     private DocumentSymbol buildVariableSymbol(ValueDefinitionContext ctx) {
+        if (ctx == null || ctx.name == null) {
+            return null;
+        }
         val name = ctx.name.getText();
         return new DocumentSymbol(name, SymbolKind.Variable, rangeOf(ctx), rangeOf(ctx.name));
     }
 
+    private static <T> void addIfNotNull(List<T> list, T element) {
+        if (element != null) {
+            list.add(element);
+        }
+    }
+
     private static Range rangeOf(ParserRuleContext ctx) {
+        if (ctx == null || ctx.getStart() == null || ctx.getStop() == null) {
+            return ZERO_RANGE;
+        }
         val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
         val stop  = ctx.getStop();
-        val end   = new Position(stop.getLine() - 1, stop.getCharPositionInLine() + stop.getText().length());
-        return new Range(start, end);
+        return new Range(start, endPositionOf(stop));
+    }
+
+    private static Position endPositionOf(Token token) {
+        val text        = token.getText();
+        val startLine   = token.getLine() - 1;
+        val startColumn = token.getCharPositionInLine();
+        val lastNewline = text.lastIndexOf('\n');
+        if (lastNewline < 0) {
+            return new Position(startLine, startColumn + text.length());
+        }
+        val newlineCount  = (int) text.chars().filter(c -> c == '\n').count();
+        val trailingChars = text.length() - lastNewline - 1;
+        return new Position(startLine + newlineCount, trailingChars);
     }
 
     private static Range rangeOfToken(Token token) {

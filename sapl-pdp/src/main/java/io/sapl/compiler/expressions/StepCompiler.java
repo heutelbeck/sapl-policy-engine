@@ -17,44 +17,19 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.ast.AttributeStep;
-import io.sapl.ast.AttributeUnionStep;
-import io.sapl.ast.ConditionStep;
-import io.sapl.ast.ExpressionStep;
-import io.sapl.ast.IndexStep;
-import io.sapl.ast.IndexUnionStep;
-import io.sapl.ast.KeyStep;
-import io.sapl.ast.RecursiveIndexStep;
-import io.sapl.ast.RecursiveKeyStep;
-import io.sapl.ast.RecursiveWildcardStep;
-import io.sapl.ast.SliceStep;
-import io.sapl.ast.Step;
-import io.sapl.ast.WildcardStep;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.IntFunction;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles navigation steps using cost-stratified evaluation.
@@ -80,6 +55,7 @@ public class StepCompiler {
     private static final String ERROR_EXPR_STEP_INVALID_TYPE          = "Expression step requires number or string, got %s.";
     private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Expression step with streaming expression not yet supported";
     private static final String ERROR_HANDLED_ABOVE                   = "Handled above";
+    private static final String ERROR_INDEX_NOT_REPRESENTABLE         = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INDEX_ON_NON_ARRAY              = "Cannot apply index step to %s.";
     private static final String ERROR_INDEX_OUT_OF_BOUNDS             = "Array index out of bounds: %d (size: %d).";
     private static final String ERROR_INDEX_UNION_ON_INVALID          = "Cannot apply index union to %s.";
@@ -166,14 +142,19 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
+            return SemanticHashing.ordered(KIND, base.semanticHash(), SemanticHashing.textHash(key));
         }
     }
 
     record KeyStepStream(StreamOperator base, String key, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applyKeyStep(tv.value(), key), tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyKeyStep(v, key), deps);
         }
     }
 
@@ -231,9 +212,13 @@ public class StepCompiler {
 
     record IndexStepStream(StreamOperator base, int index, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(
-                    tv -> new TracedValue(applyIndexStep(tv.value(), index, location), tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyIndexStep(v, index, location), deps);
         }
     }
 
@@ -285,9 +270,13 @@ public class StepCompiler {
 
     record WildcardStepStream(StreamOperator base, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream()
-                    .map(tv -> new TracedValue(applyWildcardStep(tv.value(), location), tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyWildcardStep(v, location), deps);
         }
     }
 
@@ -363,9 +352,13 @@ public class StepCompiler {
     record IndexUnionStepStream(StreamOperator base, List<Integer> indices, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applyIndexUnionStep(tv.value(), indices, location),
-                    tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyIndexUnionStep(v, indices, location), deps);
         }
     }
 
@@ -428,9 +421,13 @@ public class StepCompiler {
     record AttributeUnionStepStream(StreamOperator base, List<String> attributes, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applyAttributeUnionStep(tv.value(), attributes, location),
-                    tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyAttributeUnionStep(v, attributes, location), deps);
         }
     }
 
@@ -524,9 +521,13 @@ public class StepCompiler {
     record SliceStepStream(StreamOperator base, Integer from, Integer to, Integer step, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applySliceStep(tv.value(), from, to, step, location),
-                    tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applySliceStep(v, from, to, step, location), deps);
         }
     }
 
@@ -579,7 +580,12 @@ public class StepCompiler {
 
         return switch (expr) {
         case NumberValue(BigDecimal num) -> {
-            int index = num.intValue();
+            final int index;
+            try {
+                index = num.intValueExact();
+            } catch (ArithmeticException ignored) {
+                yield Value.errorAt(loc, ERROR_INDEX_NOT_REPRESENTABLE, num);
+            }
             yield applyIndexStep(base, index, loc);
         }
         case TextValue(String text)      -> applyKeyStep(base, text);
@@ -616,7 +622,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            long baseHash = baseValue != null ? baseValue.hashCode() : baseOp.semanticHash();
+            long baseHash = baseValue != null ? SemanticHashing.valueHash(baseValue) : baseOp.semanticHash();
             long exprHash = expr instanceof PureOperator po ? po.semanticHash() : expr.hashCode();
             return SemanticHashing.ordered(KIND, baseHash, exprHash);
         }
@@ -650,22 +656,27 @@ public class StepCompiler {
 
     record ExpressionStepStream(StreamOperator base, Value expr, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applyExpressionStep(tv.value(), expr, location),
-                    tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyExpressionStep(v, expr, location), deps);
         }
     }
 
     record ExpressionStepStreamPure(StreamOperator base, PureOperator expr, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(reactorCtx -> {
-                val ctx     = reactorCtx.get(EvaluationContext.class);
-                val exprVal = expr.evaluate(ctx);
-                return base.stream().map(tv -> new TracedValue(applyExpressionStep(tv.value(), exprVal, location),
-                        tv.contributingAttributes()));
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            val exprVal = expr.evaluate(ctx);
+            return new ExpressionResult(applyExpressionStep(v, exprVal, location), deps);
         }
     }
 
@@ -741,21 +752,25 @@ public class StepCompiler {
 
     private static Value filterElements(int size, IntFunction<Value> elementAt, IntFunction<Value> keyAt,
             Value constantCond, PureOperator condOp, EvaluationContext ctx, SourceLocation loc) {
-        val builder = ArrayValue.builder();
-        for (int i = 0; i < size; i++) {
-            val element = elementAt.apply(i);
-            val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
-            val result  = evaluateCondition(constantCond, condOp, elemCtx);
-            if (result instanceof BooleanValue(boolean val)) {
-                if (val)
-                    builder.add(element);
-            } else if (result instanceof ErrorValue) {
-                return result;
-            } else {
-                return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+        // Shared regex budget across all elements so a per-element =~ cannot amplify
+        // cost with array size.
+        return BoundedRegex.runWithSharedMatchBudget(() -> {
+            val builder = ArrayValue.builder();
+            for (int i = 0; i < size; i++) {
+                val element = elementAt.apply(i);
+                val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
+                val result  = evaluateCondition(constantCond, condOp, elemCtx);
+                if (result instanceof BooleanValue(boolean val)) {
+                    if (val)
+                        builder.add(element);
+                } else if (result instanceof ErrorValue) {
+                    return result;
+                } else {
+                    return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+                }
             }
-        }
-        return builder.build();
+            return builder.build();
+        });
     }
 
     private static Value evaluateCondition(Value constantCond, PureOperator condOp, EvaluationContext elemCtx) {
@@ -790,7 +805,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.hashCode(), condition.semanticHash());
+            return SemanticHashing.ordered(KIND, SemanticHashing.valueHash(base), condition.semanticHash());
         }
     }
 
@@ -816,7 +831,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.semanticHash(), condition.hashCode());
+            return SemanticHashing.ordered(KIND, base.semanticHash(), SemanticHashing.valueHash(condition));
         }
     }
 
@@ -849,26 +864,26 @@ public class StepCompiler {
     record ConditionStepStreamConstCond(StreamOperator base, Value condition, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(reactorCtx -> {
-                val ctx = reactorCtx.get(EvaluationContext.class);
-                return base.stream()
-                        .map(tv -> new TracedValue(applyConditionStep(tv.value(), condition, null, ctx, location),
-                                tv.contributingAttributes()));
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyConditionStep(v, condition, null, ctx, location), deps);
         }
     }
 
     record ConditionStepStreamPure(StreamOperator base, PureOperator condition, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(reactorCtx -> {
-                val ctx = reactorCtx.get(EvaluationContext.class);
-                return base.stream()
-                        .map(tv -> new TracedValue(applyConditionStep(tv.value(), null, condition, ctx, location),
-                                tv.contributingAttributes()));
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyConditionStep(v, null, condition, ctx, location), deps);
         }
     }
 
@@ -944,15 +959,19 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
+            return SemanticHashing.ordered(KIND, base.semanticHash(), SemanticHashing.textHash(key));
         }
     }
 
     record RecursiveKeyStepStream(StreamOperator base, String key, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applyRecursiveKeyStep(tv.value(), key, location),
-                    tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyRecursiveKeyStep(v, key, location), deps);
         }
     }
 
@@ -1035,9 +1054,13 @@ public class StepCompiler {
 
     record RecursiveIndexStepStream(StreamOperator base, int index, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applyRecursiveIndexStep(tv.value(), index, location),
-                    tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyRecursiveIndexStep(v, index, location), deps);
         }
     }
 
@@ -1117,9 +1140,13 @@ public class StepCompiler {
 
     record RecursiveWildcardStepStream(StreamOperator base, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return base.stream().map(tv -> new TracedValue(applyRecursiveWildcardStep(tv.value(), location),
-                    tv.contributingAttributes()));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyRecursiveWildcardStep(v, location), deps);
         }
     }
 

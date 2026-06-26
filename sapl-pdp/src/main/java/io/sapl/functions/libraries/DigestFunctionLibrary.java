@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.nio.charset.StandardCharsets;
@@ -42,7 +41,6 @@ import java.util.HexFormat;
  * legacy algorithms (MD5, SHA-1) that should
  * only be used for compatibility with existing systems.
  */
-@UtilityClass
 @FunctionLibrary(name = DigestFunctionLibrary.NAME, description = DigestFunctionLibrary.DESCRIPTION, libraryDocumentation = DigestFunctionLibrary.DOCUMENTATION)
 public class DigestFunctionLibrary {
 
@@ -91,6 +89,14 @@ public class DigestFunctionLibrary {
                     "anonymizedUser": digest.sha256(subject.id + environment.salt)
                 }
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - Input length is capped at 10000000 characters (10 MB). This applies to every hash function, sha256, sha384, sha512, sha3_256, sha3_384, sha3_512, md5, and sha1. A function returns an error when its input exceeds this length.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_TEXT = """
@@ -100,6 +106,9 @@ public class DigestFunctionLibrary {
             """;
 
     private static final String ERROR_ALGORITHM_NOT_AVAILABLE = "Digest algorithm not available: %s.";
+    private static final String ERROR_INPUT_TOO_LARGE         = "Input exceeds the maximum length of %d characters.";
+
+    private static final int MAX_INPUT_LENGTH = 10_000_000;
 
     @Function(docs = """
             ```sha256(TEXT data)```: Computes the SHA-256 hash of the input data.
@@ -266,6 +275,9 @@ public class DigestFunctionLibrary {
      * @return a Value containing the hexadecimal hash or an error
      */
     private static Value computeDigest(String data, String algorithm) {
+        if (data.length() > MAX_INPUT_LENGTH) {
+            return new ErrorValue(ERROR_INPUT_TOO_LARGE.formatted(MAX_INPUT_LENGTH));
+        }
         try {
             val messageDigest = MessageDigest.getInstance(algorithm);
             val hash          = messageDigest.digest(data.getBytes(StandardCharsets.UTF_8));

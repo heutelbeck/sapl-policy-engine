@@ -21,7 +21,6 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -34,7 +33,6 @@ import java.math.BigDecimal;
  * error-as-value pattern. Overflow checking is
  * performed when converting BigDecimal to long primitives.
  */
-@UtilityClass
 @FunctionLibrary(name = BitwiseFunctionLibrary.NAME, description = BitwiseFunctionLibrary.DESCRIPTION, libraryDocumentation = BitwiseFunctionLibrary.DOCUMENTATION)
 public class BitwiseFunctionLibrary {
 

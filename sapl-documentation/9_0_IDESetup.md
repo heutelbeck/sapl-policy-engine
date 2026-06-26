@@ -18,13 +18,13 @@ The language server is available as a native binary (no Java required), as Linux
 On Debian/Ubuntu:
 
 ```shell
-sudo dpkg -i sapl-language-server_4.0.0_amd64.deb
+sudo dpkg -i sapl-language-server_4.1.0_amd64.deb
 ```
 
 On RPM-based distributions:
 
 ```shell
-sudo rpm -i sapl-language-server-4.0.0.x86_64.rpm
+sudo rpm -i sapl-language-server-4.1.0.x86_64.rpm
 ```
 
 The package installs the binary to `/usr/bin/sapl-language-server` and a man page to `/usr/share/man/man1/`. No configuration files, services, or system users are needed.
@@ -210,7 +210,7 @@ The language server provides semantic token highlighting for both file types.
 | Token Type  | Highlighted Elements                                                                  |
 |-------------|---------------------------------------------------------------------------------------|
 | `keyword`   | SAPL keywords (`import`, `policy`, `var`, etc.)                                       |
-| `macro`     | Entitlements and combining algorithms (`permit`, `deny`, `first`, `priority`, etc.)   |
+| `macro`     | Effects and combining algorithms (`permit`, `deny`, `suspend`, `first`, `priority`, etc.) |
 | `operator`  | Operators (`\|\|`, `&&`, `==`, etc.)                                                  |
 | `string`    | String literals                                                                       |
 | `number`    | Numeric literals                                                                      |
@@ -225,7 +225,7 @@ The language server provides semantic token highlighting for both file types.
 | Token Type  | Highlighted Elements                                                                    |
 |-------------|-----------------------------------------------------------------------------------------|
 | `keyword`   | Test structure keywords (`requirement`, `scenario`, `given`, `when`, `then`, `expect`)  |
-| `macro`     | Decision types (`permit`, `deny`, `indeterminate`, `not-applicable`)                    |
+| `macro`     | Decision types (`permit`, `deny`, `suspend`, `indeterminate`, `not-applicable`)         |
 | `operator`  | Test operators and matchers                                                             |
 | `string`    | String literals and identifiers                                                         |
 | `number`    | Numeric literals                                                                        |

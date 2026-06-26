@@ -216,7 +216,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * UNDEFINED)
      * @param secrets an object describing secrets needed for policy evaluation
      * (null
-     * becomes empty; never logged)
+     * becomes empty. Never logged)
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
      * exists
@@ -241,7 +241,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * UNDEFINED)
      * @param secrets an object describing secrets needed for policy evaluation
      * (null
-     * becomes empty; never logged)
+     * becomes empty. Never logged)
      * @param mapper the ObjectMapper to be used for marshaling
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already

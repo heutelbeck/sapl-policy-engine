@@ -51,6 +51,7 @@ public class ValueJsonMarshaller {
     private static final String ERROR_CANNOT_MARSHALL_UNDEFINED_VALUE = "Cannot marshall UndefinedValue to JSON.";
     private static final String ERROR_FAILED_TO_PARSE_JSON            = "Failed to parse JSON: %s";
     private static final String ERROR_MAXIMUM_NESTING_DEPTH_EXCEEDED  = "Maximum nesting depth exceeded.";
+    private static final String ERROR_NON_FINITE_NUMBER               = "Number is not finite (NaN or Infinity).";
     private static final String ERROR_UNKNOWN_JSON_NODE_TYPE          = "Unknown JsonNode type: %s.";
 
     private static final String TYPE_FIELD     = "_type";
@@ -191,7 +192,7 @@ public class ValueJsonMarshaller {
 
     private static String formatError(ErrorValue error) {
         val result = new StringBuilder("ERROR[");
-        result.append("message=").append(quoteString(error.message()));
+        result.append("message=").append(error.message() == null ? "null" : quoteString(error.message()));
         if (error.location() != null) {
             result.append(", at=").append(error.location());
         }
@@ -355,7 +356,9 @@ public class ValueJsonMarshaller {
         }
         return switch (node.getNodeType()) {
         case BOOLEAN -> Value.of(node.asBoolean());
-        case NUMBER  -> Value.of(node.decimalValue());
+        case NUMBER  -> (node.isDouble() || node.isFloat()) && !Double.isFinite(node.doubleValue())
+                ? Value.error(ERROR_NON_FINITE_NUMBER)
+                : NumberValueLimits.boundedNumber(node.decimalValue());
         case STRING  -> Value.of(node.asString());
         case ARRAY   -> fromJsonArray(node, depth + 1);
         case OBJECT  -> fromJsonObject(node, depth + 1);

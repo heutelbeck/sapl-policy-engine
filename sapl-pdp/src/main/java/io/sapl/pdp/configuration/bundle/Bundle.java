@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.val;
 
@@ -50,6 +50,11 @@ record Bundle(String pdpJson, Map<String, String> saplDocuments, BundleManifest 
 
         if (!isSigned) {
             securityPolicy.checkUnsignedBundleAllowed(pdpId);
+            return;
+        }
+
+        if (!securityPolicy.signatureRequired()) {
+            // Verification disabled, so accept the signed bundle without demanding a key.
             return;
         }
 

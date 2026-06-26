@@ -31,6 +31,7 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NullValue;
 import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
@@ -76,8 +77,15 @@ public class SaplProtobufCodec {
     private static final int MAP_ENTRY_VALUE = 2;
 
     // ErrorValue field numbers
-    private static final int ERROR_MESSAGE   = 1;
-    private static final int ERROR_ARGUMENTS = 2;
+    private static final int ERROR_MESSAGE = 1;
+
+    // Bounds decode nesting so a deep payload fails closed instead of overflowing
+    // the stack. Matches the JSON parser's limit.
+    private static final int    MAX_VALUE_DEPTH          = 1000;
+    private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
+
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id in multi-subscription payload.";
+    private static final String ERROR_INVALID_NUMBER            = "Malformed or out-of-bounds number value in protobuf payload.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -97,6 +105,7 @@ public class SaplProtobufCodec {
     private static final int DECISION_ENUM_PERMIT         = 1;
     private static final int DECISION_ENUM_DENY           = 2;
     private static final int DECISION_ENUM_NOT_APPLICABLE = 3;
+    private static final int DECISION_ENUM_SUSPEND        = 4;
 
     // IdentifiableAuthorizationSubscription field numbers
     private static final int ID_SUB_ID           = 1;
@@ -136,17 +145,20 @@ public class SaplProtobufCodec {
      * @throws IOException if deserialization fails
      */
     public static Value readValue(byte[] bytes) throws IOException {
-        return readValueFields(CodedInputStream.newInstance(bytes));
+        return readValueFields(CodedInputStream.newInstance(bytes), 0);
     }
 
-    private static Value readEmbeddedValue(CodedInputStream input) throws IOException {
+    private static Value readEmbeddedValue(CodedInputStream input, int depth) throws IOException {
+        if (depth >= MAX_VALUE_DEPTH) {
+            throw new IOException(ERROR_MAX_DEPTH_EXCEEDED.formatted(MAX_VALUE_DEPTH));
+        }
         val limit = input.pushLimit(input.readRawVarint32());
-        val value = readValueFields(input);
+        val value = readValueFields(input, depth + 1);
         input.popLimit(limit);
         return value;
     }
 
-    private static Value readValueFields(CodedInputStream input) throws IOException {
+    private static Value readValueFields(CodedInputStream input, int depth) throws IOException {
         Value result = Value.UNDEFINED;
         while (!input.isAtEnd()) {
             val tag         = input.readTag();
@@ -157,10 +169,10 @@ public class SaplProtobufCodec {
                 yield Value.NULL;
             }
             case VALUE_BOOL      -> Value.of(input.readBool());
-            case VALUE_NUMBER    -> new NumberValue(new BigDecimal(input.readString()));
+            case VALUE_NUMBER    -> readNumberValue(input.readString());
             case VALUE_TEXT      -> Value.of(input.readString());
-            case VALUE_ARRAY     -> readArrayValue(input);
-            case VALUE_OBJECT    -> readObjectValue(input);
+            case VALUE_ARRAY     -> readArrayValue(input, depth);
+            case VALUE_OBJECT    -> readObjectValue(input, depth);
             case VALUE_UNDEFINED -> {
                 input.readBool();
                 yield Value.UNDEFINED;
@@ -175,13 +187,21 @@ public class SaplProtobufCodec {
         return result;
     }
 
-    private static ArrayValue readArrayValue(CodedInputStream input) throws IOException {
+    private static NumberValue readNumberValue(String literal) throws IOException {
+        // Bounds length and scale before the BigDecimal is constructed.
+        if (NumberValueLimits.parseBoundedNumber(literal) instanceof NumberValue numberValue) {
+            return numberValue;
+        }
+        throw new IOException(ERROR_INVALID_NUMBER);
+    }
+
+    private static ArrayValue readArrayValue(CodedInputStream input, int depth) throws IOException {
         val limit   = input.pushLimit(input.readRawVarint32());
         val builder = ArrayValue.builder();
         while (!input.isAtEnd()) {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == ARRAY_ELEMENTS) {
-                builder.add(readEmbeddedValue(input));
+                builder.add(readEmbeddedValue(input, depth));
             } else {
                 input.skipField(tag);
             }
@@ -190,13 +210,13 @@ public class SaplProtobufCodec {
         return builder.build();
     }
 
-    private static ObjectValue readObjectValue(CodedInputStream input) throws IOException {
+    private static ObjectValue readObjectValue(CodedInputStream input, int depth) throws IOException {
         val limit   = input.pushLimit(input.readRawVarint32());
         val builder = ObjectValue.builder();
         while (!input.isAtEnd()) {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == OBJECT_FIELDS) {
-                readMapEntry(input, builder);
+                readMapEntry(input, builder, depth);
             } else {
                 input.skipField(tag);
             }
@@ -205,7 +225,8 @@ public class SaplProtobufCodec {
         return builder.build();
     }
 
-    private static void readMapEntry(CodedInputStream input, ObjectValue.Builder builder) throws IOException {
+    private static void readMapEntry(CodedInputStream input, ObjectValue.Builder builder, int depth)
+            throws IOException {
         val    limit = input.pushLimit(input.readRawVarint32());
         String key   = "";
         Value  value = Value.UNDEFINED;
@@ -214,7 +235,7 @@ public class SaplProtobufCodec {
             val fieldNumber = getTagFieldNumber(tag);
             switch (fieldNumber) {
             case MAP_ENTRY_KEY   -> key = input.readString();
-            case MAP_ENTRY_VALUE -> value = readEmbeddedValue(input);
+            case MAP_ENTRY_VALUE -> value = readEmbeddedValue(input, depth);
             default              -> input.skipField(tag);
             }
         }
@@ -228,10 +249,10 @@ public class SaplProtobufCodec {
         while (!input.isAtEnd()) {
             val tag         = input.readTag();
             val fieldNumber = getTagFieldNumber(tag);
-            switch (fieldNumber) {
-            case ERROR_MESSAGE   -> message = input.readString();
-            case ERROR_ARGUMENTS -> input.readString(); // ErrorValue only uses message
-            default              -> input.skipField(tag);
+            if (fieldNumber == ERROR_MESSAGE) {
+                message = input.readString();
+            } else {
+                input.skipField(tag);
             }
         }
         input.popLimit(limit);
@@ -291,12 +312,16 @@ public class SaplProtobufCodec {
         case BooleanValue ignored      -> 1 + 1; // tag + bool
         case NumberValue(BigDecimal n) -> CodedOutputStream.computeStringSize(VALUE_NUMBER, n.toPlainString());
         case TextValue(String s)       -> CodedOutputStream.computeStringSize(VALUE_TEXT, s);
-        case ArrayValue arr            ->
-            1 + CodedOutputStream.computeUInt32SizeNoTag(computeArrayValueContentSize(arr))
-                    + computeArrayValueContentSize(arr);
-        case ObjectValue obj           ->
-            1 + CodedOutputStream.computeUInt32SizeNoTag(computeObjectValueContentSize(obj))
-                    + computeObjectValueContentSize(obj);
+        case ArrayValue arr            -> {
+            // Compute the content size once. Sizing twice per level is exponential in the
+            // value's depth.
+            val content = computeArrayValueContentSize(arr);
+            yield 1 + CodedOutputStream.computeUInt32SizeNoTag(content) + content;
+        }
+        case ObjectValue obj           -> {
+            val content = computeObjectValueContentSize(obj);
+            yield 1 + CodedOutputStream.computeUInt32SizeNoTag(content) + content;
+        }
         case UndefinedValue ignored    -> 1 + 1; // tag + bool
         case ErrorValue err            -> 1
                 + CodedOutputStream
@@ -363,11 +388,11 @@ public class SaplProtobufCodec {
             val tag         = input.readTag();
             val fieldNumber = getTagFieldNumber(tag);
             switch (fieldNumber) {
-            case SUBSCRIPTION_SUBJECT     -> subject = readEmbeddedValue(input);
-            case SUBSCRIPTION_ACTION      -> action = readEmbeddedValue(input);
-            case SUBSCRIPTION_RESOURCE    -> resource = readEmbeddedValue(input);
-            case SUBSCRIPTION_ENVIRONMENT -> environment = readEmbeddedValue(input);
-            case SUBSCRIPTION_SECRETS     -> secrets = toObjectValue(readEmbeddedValue(input));
+            case SUBSCRIPTION_SUBJECT     -> subject = readEmbeddedValue(input, 0);
+            case SUBSCRIPTION_ACTION      -> action = readEmbeddedValue(input, 0);
+            case SUBSCRIPTION_RESOURCE    -> resource = readEmbeddedValue(input, 0);
+            case SUBSCRIPTION_ENVIRONMENT -> environment = readEmbeddedValue(input, 0);
+            case SUBSCRIPTION_SECRETS     -> secrets = toObjectValue(readEmbeddedValue(input, 0));
             default                       -> input.skipField(tag);
             }
         }
@@ -448,9 +473,9 @@ public class SaplProtobufCodec {
             val fieldNumber = getTagFieldNumber(tag);
             switch (fieldNumber) {
             case DECISION_DECISION    -> decision = readDecision(input);
-            case DECISION_OBLIGATIONS -> obligations = readArrayValue(input);
-            case DECISION_ADVICE      -> advice = readArrayValue(input);
-            case DECISION_RESOURCE    -> resource = readEmbeddedValue(input);
+            case DECISION_OBLIGATIONS -> obligations = readArrayValue(input, 0);
+            case DECISION_ADVICE      -> advice = readArrayValue(input, 0);
+            case DECISION_RESOURCE    -> resource = readEmbeddedValue(input, 0);
             default                   -> input.skipField(tag);
             }
         }
@@ -462,6 +487,7 @@ public class SaplProtobufCodec {
         case DECISION_ENUM_PERMIT         -> Decision.PERMIT;
         case DECISION_ENUM_DENY           -> Decision.DENY;
         case DECISION_ENUM_NOT_APPLICABLE -> Decision.NOT_APPLICABLE;
+        case DECISION_ENUM_SUSPEND        -> Decision.SUSPEND;
         default                           -> Decision.INDETERMINATE;
         };
     }
@@ -491,6 +517,7 @@ public class SaplProtobufCodec {
         case DENY           -> DECISION_ENUM_DENY;
         case NOT_APPLICABLE -> DECISION_ENUM_NOT_APPLICABLE;
         case INDETERMINATE  -> DECISION_ENUM_INDETERMINATE;
+        case SUSPEND        -> DECISION_ENUM_SUSPEND;
         };
     }
 
@@ -539,7 +566,13 @@ public class SaplProtobufCodec {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == MULTI_SUB_SUBSCRIPTIONS) {
                 val idSub = readIdentifiableSubscription(input);
-                result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                try {
+                    result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                } catch (IllegalArgumentException e) {
+                    // Duplicate id on the wire. Surface as IOException so the
+                    // transport's fail-closed decode handler applies.
+                    throw new IOException(ERROR_DUPLICATE_SUBSCRIPTION_ID, e);
+                }
             } else {
                 input.skipField(tag);
             }

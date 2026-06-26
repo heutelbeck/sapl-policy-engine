@@ -45,6 +45,11 @@ class ScenarioCompilationAndCorrectnessTests {
 
     private static final long[] SEEDS = { 0, 42, 123 };
 
+    // Smoke runs keep only static + small scaled scenarios (scale <= this). The
+    // full
+    // scaled range runs under the it profile (-Dsapl.fullTests=true).
+    private static final int SMOKE_MAX_SCALE = 10;
+
     @Nested
     @DisplayName("all scenarios compile and evaluate without errors")
     class CompilationAndEvaluation {
@@ -65,11 +70,11 @@ class ScenarioCompilationAndCorrectnessTests {
             }
 
             for (val sub : scenario.subscriptions()) {
-                val decision = pdp.decideOnceBlocking(sub).decision();
+                val decision = pdp.decideOnce(sub).decision();
                 counts.merge(decision, 1, Integer::sum);
             }
 
-            components.dispose();
+            components.close();
 
             assertThat(counts.get(Decision.INDETERMINATE))
                     .as("INDETERMINATE for %s seed=%d (PERMIT=%d DENY=%d NOT_APPLICABLE=%d)", scenarioName, seed,
@@ -101,25 +106,34 @@ class ScenarioCompilationAndCorrectnessTests {
             val subs = scenario.subscriptions();
             for (int i = 0; i < subs.size(); i++) {
                 val sub           = subs.get(i);
-                val naiveDecision = naivePdp.decideOnceBlocking(sub).decision();
-                val canonDecision = canonPdp.decideOnceBlocking(sub).decision();
-                val smtddDecision = smtddPdp.decideOnceBlocking(sub).decision();
+                val naiveDecision = naivePdp.decideOnce(sub).decision();
+                val canonDecision = canonPdp.decideOnce(sub).decision();
+                val smtddDecision = smtddPdp.decideOnce(sub).decision();
                 assertThat(canonDecision).as("CANONICAL vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
                 assertThat(smtddDecision).as("SMTDD vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
             }
 
-            naiveComponents.dispose();
-            canonComponents.dispose();
-            smtddComponents.dispose();
+            naiveComponents.close();
+            canonComponents.close();
+            smtddComponents.close();
         }
     }
 
     static Stream<Arguments> scenarioArguments() {
+        // Smoke by default: one seed per seeded scenario. Full seed fan-out under the
+        // it profile (-Dsapl.fullTests=true).
+        val full = Boolean.getBoolean("sapl.fullTests");
         val args = new ArrayList<Arguments>();
         for (val name : ScenarioFactory.ALL_SCENARIO_NAMES) {
+            if (!full && scaleOf(name) > SMOKE_MAX_SCALE) {
+                continue;
+            }
             if (isSeeded(name)) {
                 for (val seed : SEEDS) {
                     args.add(arguments(name, seed));
+                    if (!full) {
+                        break;
+                    }
                 }
             } else {
                 args.add(arguments(name, 42L));
@@ -130,6 +144,15 @@ class ScenarioCompilationAndCorrectnessTests {
 
     private static boolean isSeeded(String name) {
         return name.contains("-") && name.matches(".*-\\d+$");
+    }
+
+    private static int scaleOf(String name) {
+        val dash = name.lastIndexOf('-');
+        if (dash < 0 || dash == name.length() - 1) {
+            return 0;
+        }
+        val tail = name.substring(dash + 1);
+        return tail.chars().allMatch(Character::isDigit) ? Integer.parseInt(tail) : 0;
     }
 
 }

@@ -99,15 +99,15 @@ public class ConfigurationManager {
 
         try {
             var uri   = URI.create(documentUri);
-            var query = uri.getQuery();
+            var query = uri.getRawQuery();
             if (query == null || query.isEmpty()) {
                 return DEFAULT_CONFIG_ID;
             }
 
             for (var param : query.split("&")) {
                 var keyValue = param.split("=", 2);
-                if (keyValue.length == 2 && "configurationId".equals(keyValue[0])) {
-                    return URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
+                if (keyValue.length == 2 && "configurationId".equals(decodeQueryToken(keyValue[0]))) {
+                    return decodeQueryToken(keyValue[1]);
                 }
             }
         } catch (Exception e) {
@@ -115,6 +115,19 @@ public class ConfigurationManager {
         }
 
         return DEFAULT_CONFIG_ID;
+    }
+
+    /**
+     * Decodes a single raw URI query token with RFC 3986 semantics. A literal
+     * plus is preserved rather than being mapped to a space, which is the
+     * form-encoding rule that {@link URLDecoder} applies by default.
+     *
+     * @param rawToken the raw, percent-encoded query token
+     * @return the decoded token
+     */
+    private static String decodeQueryToken(String rawToken) {
+        var plusProtected = rawToken.replace("+", "%2B");
+        return URLDecoder.decode(plusProtected, StandardCharsets.UTF_8);
     }
 
 }

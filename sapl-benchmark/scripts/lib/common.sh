@@ -65,7 +65,24 @@ load_experiment() {
         exit 1
     fi
     source "$file"
+    [ "${MINIMAL:-false}" = true ] && minimize_sweeps
     echo "Experiment: $experiment"
+}
+
+# Truncate every parameter sweep to its first value so an experiment runs a
+# single combination. The test quality profile sets MINIMAL for CI validation.
+minimize_sweeps() {
+    local name
+    for name in SCENARIOS METHODS THREAD_SWEEP INDEXING_SWEEP SCALING_FACTORS \
+        APPS GC_SWEEP UNROLL_SWEEP CORE_SWEEP CONN_SWEEP TRANSPORT_SWEEP \
+        SERVER_PCORES_SWEEP SCENARIOS_QUICK SCENARIOS_FULL LOAD_PCTS_QUICK LOAD_PCTS_FULL; do
+        if declare -p "$name" &>/dev/null; then
+            local -n ref="$name"
+            [ "${#ref[@]}" -gt 1 ] && ref=("${ref[0]}")
+            unset -n ref
+        fi
+    done
+    SEEDS=1
 }
 
 # ---------------------------------------------------------------------------
@@ -199,6 +216,7 @@ start_sapl_server() {
 
     $cmd server \
         --io.sapl.node.allow-no-auth=true \
+        --io.sapl.pdp.embedded.metrics-enabled=false \
         --io.sapl.pdp.embedded.policies-path="$policy_dir" \
         --io.sapl.pdp.embedded.config-path="$policy_dir" \
         --logging.level.root=WARN \
@@ -208,7 +226,7 @@ start_sapl_server() {
 
     local max_wait=30
     for i in $(seq 1 $max_wait); do
-        if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
+        if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; then
             if [ "$enable_rsocket" = true ]; then
                 if ss -tln | grep -q ":7000 " 2>/dev/null; then
                     echo "  Server started (PID $SERVER_PID, HTTP + RSocket)"
@@ -251,7 +269,7 @@ stop_server() {
     pkill -f "opa run" 2>/dev/null || true
     # Wait until server ports are released before starting a new server
     for _i in $(seq 1 15); do
-        ss -tln | grep -qE ":8443 |:7000 " || break
+        ss -tln | grep -qE ":8080 |:7000 " || break
         sleep 1
     done
 }

@@ -21,7 +21,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.SneakyThrows;
-import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.geotools.api.feature.Feature;
 import org.geotools.api.feature.Property;
 import org.geotools.feature.FeatureCollection;
@@ -29,7 +29,11 @@ import org.geotools.geometry.jts.JTS;
 import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
+import org.geotools.xsd.Configuration;
 import org.geotools.xsd.Parser;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.ext.EntityResolver2;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
@@ -39,14 +43,16 @@ import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.io.StringReader;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 
-@UtilityClass
 @FunctionLibrary(name = "geo", description = GeographicFunctionLibrary.DESCRIPTION, libraryDocumentation = GeographicFunctionLibrary.DOCUMENTATION)
 public class GeographicFunctionLibrary {
 
@@ -89,11 +95,32 @@ public class GeographicFunctionLibrary {
             - The library assumes all geometries are in GeoJSON format.
             - Methods operate seamlessly with input data using JSON processing.
 
+            ## Resource Limits
+            Geographic inputs may come from untrusted sources such as attribute finders or the
+            authorization subscription, so every parse boundary (GeoJSON, WKT, GML, KML) is bounded
+            and fails closed to an error value when a limit is exceeded:
+            - Input size is capped at 4 MB.
+            - A single geometry may contain at most 100,000 vertices.
+            - A geometry collection may contain at most 50,000 members.
+            - The collection comparisons `subset` and `atLeastOneMemberOf` are quadratic, so they are
+              additionally capped at 1,000,000 pairwise checks.
+
+            These limits comfortably accommodate detailed real-world boundaries. They apply because
+            this input may originate from the authorization subscription or from policy information
+            points, which are not vetted to the same degree as the policies and variables shipped
+            with the PDP configuration.
+
+            KML and GML inputs are parsed with external entity and remote schema resolution disabled,
+            so a document cannot make the PDP fetch an external entity or schema (no server-side
+            request forgery); only the schemas bundled locally with the engine are used.
+
             For more details, refer to individual function documentation.
             """;
 
     static final String FAILED_TO_PARSE_GML_ERROR            = "Failed to parse GML.";
     static final String FAILED_TO_PARSE_KML_ERROR            = "Failed to parse KML.";
+    static final String GEOMETRY_INPUT_TOO_LARGE_ERROR       = "Geographic input exceeds the maximum size of %d bytes.";
+    static final String GEOMETRY_TOO_COMPLEX_ERROR           = "Geometry exceeds the maximum of %d vertices or %d members.";
     static final String GEOMETRY_TO_GEO_JSON_ERROR_S         = "Error converting Geometry to GeoJSON: %s";
     static final String INCORRECT_NUMER_OF_GEOEMTRIES_ERROR  = "Input must be a GeometryCollection containing only one Geometry.";
     static final String INVALID_WKT_ERROR                    = "Invalid WKT.";
@@ -102,17 +129,114 @@ public class GeographicFunctionLibrary {
     static final String IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR = "Operation isClosed is not applicable for the type %s.";
     static final String NOT_A_GEOMETRY_COLLECTION_ERROR      = "The second parameter of the geometryIsIn was not a geometry collection.";
     static final String INVALID_GEOJSON_ERROR                = "Invalid GeoJSON geometry.";
+    static final String TOO_MANY_COMPARISONS_ERROR           = "Geometry collection comparison exceeds the maximum of %d pairwise checks.";
 
     private static final String WGS84 = "EPSG:4326";
 
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    private static final Parser          GML2_READER      = new Parser(new org.geotools.gml2.GMLConfiguration());
-    private static final Parser          GML3_READER      = new Parser(new org.geotools.gml3.GMLConfiguration());
-    private static final Parser          KML_READER       = new Parser(new KMLConfiguration());
-    private static final GeometryFactory WGS84_FACTORY    = new GeometryFactory(new PrecisionModel(), 4326);
-    private static final WKTReader       WKT_READER       = new WKTReader();
+    // GeoTools Parser is stateful and not thread-safe. A fresh one is built per
+    // call
+    // (see hardenedParser). gml2/gml3 GMLConfiguration share a class name, hence
+    // the FQNs.
+    private static final Configuration   GML2_CONFIG   = new org.geotools.gml2.GMLConfiguration();
+    private static final Configuration   GML3_CONFIG   = new org.geotools.gml3.GMLConfiguration();
+    private static final Configuration   KML_CONFIG    = new KMLConfiguration();
+    private static final GeometryFactory WGS84_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final WKTReader       WKT_READER    = new WKTReader();
+
+    // Inputs may come from attribute finders or the subscription, not only trusted
+    // policy literals, so every parse boundary caps input size and geometry
+    // complexity.
+    static final int  MAX_GEO_INPUT_BYTES      = 4 * 1024 * 1024;
+    static final int  MAX_GEOMETRY_VERTICES    = 100_000;
+    static final int  MAX_GEOMETRY_COUNT       = 50_000;
+    static final long MAX_PAIRWISE_COMPARISONS = 1_000_000L;
+
+    /**
+     * Resolves external entities and schema references against a fixed allowlist
+     * of the XML Schema documents geotools bundles on the classpath for KML/GML
+     * parsing, and resolves nothing else. This closes the XXE and external-entity
+     * SSRF vector on caller-supplied documents: any entity or schema the document
+     * declares is mapped to a bundled local resource if and only if it matches the
+     * allowlist, otherwise resolution is rejected by throwing so nothing is ever
+     * fetched. The resolver never returns
+     * {@code null} for a non-null system identifier, because per the SAX
+     * EntityResolver contract {@code null} tells the parser to fetch the URI
+     * itself. An attacker-controlled URI such as
+     * {@code http://169.254.169.254/x.xsd} or {@code file:///etc/passwd} is never
+     * fetched regardless of its suffix, and resolution fails closed.
+     * <p>
+     * Geotools loads its own bundled schemas through its internal schema index
+     * rather than through this resolver, so in normal operation the allowlist
+     * branch is not exercised by legitimate documents. It exists to keep local
+     * schema resolution available without ever permitting a remote or arbitrary
+     * local fetch.
+     * <p>
+     * Implements {@link EntityResolver2} because geotools' parser consults the
+     * four-argument resolution path; a plain {@code EntityResolver} is bypassed
+     * for general external entities.
+     */
+    private static final class SchemaOnlyEntityResolver implements EntityResolver2 {
+
+        private static final SchemaOnlyEntityResolver INSTANCE = new SchemaOnlyEntityResolver();
+
+        private static final InputSource EMPTY_SOURCE = new InputSource(new StringReader(""));
+
+        private static final String EXTERNAL_REFERENCE_BLOCKED_ERROR = "External XML reference blocked (geo functions perform no I/O): ";
+
+        // Bundled, classpath-local schema resources geotools ships for KML/GML.
+        // Resolution is restricted to exactly these. Nothing else is fetched.
+        private static final List<String> ALLOWED_LOCAL_SCHEMA_RESOURCES = List.of("org/geotools/kml/v22/ogckml22.xsd",
+                "org/geotools/kml/kml21.xsd", "org/geotools/gml3/gml.xsd", "org/geotools/gml2/feature.xsd");
+
+        @Override
+        public InputSource getExternalSubset(String name, String baseUri) {
+            return EMPTY_SOURCE;
+        }
+
+        @Override
+        public InputSource resolveEntity(String publicId, String systemId) throws SAXException {
+            return resolveEntity(null, publicId, null, systemId);
+        }
+
+        @Override
+        public InputSource resolveEntity(String name, String publicId, String baseUri, String systemId)
+                throws SAXException {
+            if (systemId == null) {
+                return EMPTY_SOURCE;
+            }
+            val resolved = resolveSystemId(baseUri, systemId);
+            // Fail closed: a non-bundled reference is rejected (throws), so geotools never
+            // fetches it.
+            return bundledLocalSchema(resolved)
+                    .orElseThrow(() -> new SAXException(EXTERNAL_REFERENCE_BLOCKED_ERROR + systemId));
+        }
+
+        private static Optional<InputSource> bundledLocalSchema(String resolved) {
+            val path = resolved.split("[?#]", 2)[0];
+            return ALLOWED_LOCAL_SCHEMA_RESOURCES.stream().filter(path::endsWith)
+                    .map(resource -> GeographicFunctionLibrary.class.getClassLoader().getResource(resource))
+                    .filter(url -> url != null && path.equals(url.toString())).findFirst()
+                    .map(url -> new InputSource(url.toString()));
+        }
+
+        private static String resolveSystemId(String baseUri, String systemId) {
+            try {
+                return baseUri == null ? URI.create(systemId).toString()
+                        : URI.create(baseUri).resolve(systemId).toString();
+            } catch (RuntimeException e) {
+                return systemId;
+            }
+        }
+    }
+
+    private static Parser hardenedParser(Configuration configuration) {
+        val parser = new Parser(configuration);
+        parser.setEntityResolver(SchemaOnlyEntityResolver.INSTANCE);
+        return parser;
+    }
 
     /*
      * Geometry Comparisons
@@ -1095,10 +1219,14 @@ public class GeographicFunctionLibrary {
                 GeographicFunctionLibrary::subset);
     }
 
-    private static Boolean subset(Geometry geometryCollectionThis, Geometry geometryCollectionThat) {
-        if (geometryCollectionThis.getNumGeometries() > geometryCollectionThat.getNumGeometries()) {
-            return false;
+    private static void enforcePairwiseBound(Geometry first, Geometry second) {
+        if ((long) first.getNumGeometries() * second.getNumGeometries() > MAX_PAIRWISE_COMPARISONS) {
+            throw new IllegalArgumentException(TOO_MANY_COMPARISONS_ERROR.formatted(MAX_PAIRWISE_COMPARISONS));
         }
+    }
+
+    private static Boolean subset(Geometry geometryCollectionThis, Geometry geometryCollectionThat) {
+        enforcePairwiseBound(geometryCollectionThis, geometryCollectionThat);
         var resultSet = new BitSet(geometryCollectionThis.getNumGeometries());
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
             for (int j = 0; j < geometryCollectionThat.getNumGeometries(); j++) {
@@ -1148,6 +1276,7 @@ public class GeographicFunctionLibrary {
     }
 
     private static Boolean atLeastOneMemberOf(Geometry geometryCollectionThis, Geometry geometryCollectionThat) {
+        enforcePairwiseBound(geometryCollectionThis, geometryCollectionThat);
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
             for (int j = 0; j < geometryCollectionThat.getNumGeometries(); j++) {
                 if (geometryCollectionThis.getGeometryN(i).equals(geometryCollectionThat.getGeometryN(j))) {
@@ -1351,15 +1480,14 @@ public class GeographicFunctionLibrary {
             - Useful for combining geometries from arrays into collections.
             """)
     public static Value flattenGeometryBag(ArrayValue arrayOfGeometries) {
-        try {
-            var objectValues = new ObjectValue[arrayOfGeometries.size()];
-            for (int i = 0; i < arrayOfGeometries.size(); i++) {
-                objectValues[i] = (ObjectValue) arrayOfGeometries.get(i);
+        var objectValues = new ObjectValue[arrayOfGeometries.size()];
+        for (int i = 0; i < arrayOfGeometries.size(); i++) {
+            if (!(arrayOfGeometries.get(i) instanceof ObjectValue geometry)) {
+                return Value.error(INVALID_GEOJSON_ERROR);
             }
-            return geometryBag(objectValues);
-        } catch (Exception e) {
-            return Value.error(INVALID_GEOJSON_ERROR);
+            objectValues[i] = geometry;
         }
+        return geometryBag(objectValues);
     }
 
     /*
@@ -1488,9 +1616,12 @@ public class GeographicFunctionLibrary {
     }
 
     private static Value parseKmlToGeoJSON(TextValue kml) {
+        if (exceedsInputBound(kml.value())) {
+            return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
         Object parsed;
         try {
-            parsed = KML_READER.parse(new StringReader(kml.value()));
+            parsed = hardenedParser(KML_CONFIG).parse(new StringReader(kml.value()));
         } catch (Exception e) {
             return Value.error(FAILED_TO_PARSE_KML_ERROR);
         }
@@ -1498,10 +1629,10 @@ public class GeographicFunctionLibrary {
         if (geometries.isEmpty()) {
             return Value.error(NO_GEOMETRIES_IN_KML_ERROR);
         } else if (geometries.size() == 1) {
-            return geometryToGeoJSON(geometries.getFirst());
+            return boundedGeometryToGeoJSON(geometries.getFirst());
         }
         var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
-        return geometryToGeoJSON(geometryCollection);
+        return boundedGeometryToGeoJSON(geometryCollection);
     }
 
     @SneakyThrows
@@ -1570,8 +1701,11 @@ public class GeographicFunctionLibrary {
             - Useful for converting WKT geometries into GeoJSON for processing.
             """)
     public static Value wktToGeoJSON(TextValue wkt) {
+        if (exceedsInputBound(wkt.value())) {
+            return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
         try {
-            return geometryToGeoJSON(WKT_READER.read(wkt.value()));
+            return boundedGeometryToGeoJSON(WKT_READER.read(wkt.value()));
         } catch (ParseException e) {
             return Value.error(INVALID_WKT_ERROR);
         }
@@ -1600,7 +1734,7 @@ public class GeographicFunctionLibrary {
             - Designed for compatibility with GML 3 formatted data.
             """)
     public static Value gml3ToGeoJSON(TextValue gml) {
-        return gmlToGeoJSON(gml, GML3_READER);
+        return gmlToGeoJSON(gml, GML3_CONFIG);
     }
 
     @Function(docs = """
@@ -1628,13 +1762,16 @@ public class GeographicFunctionLibrary {
             - Designed for compatibility with GML 2 formatted data.
             """)
     public static Value gml2ToGeoJSON(TextValue gml) {
-        return gmlToGeoJSON(gml, GML2_READER);
+        return gmlToGeoJSON(gml, GML2_CONFIG);
     }
 
-    private static Value gmlToGeoJSON(TextValue gml, Parser parser) {
+    private static Value gmlToGeoJSON(TextValue gml, Configuration configuration) {
+        if (exceedsInputBound(gml.value())) {
+            return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
         Object parsed;
         try {
-            parsed = parser.parse(new StringReader(gml.value()));
+            parsed = hardenedParser(configuration).parse(new StringReader(gml.value()));
         } catch (Exception e) {
             return Value.error(FAILED_TO_PARSE_GML_ERROR);
         }
@@ -1642,10 +1779,10 @@ public class GeographicFunctionLibrary {
         if (geometries.isEmpty()) {
             return Value.error(NO_GEOMETRIES_IN_GML_ERROR);
         } else if (geometries.size() == 1) {
-            return geometryToGeoJSON(geometries.getFirst());
+            return boundedGeometryToGeoJSON(geometries.getFirst());
         }
         var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
-        return geometryToGeoJSON(geometryCollection);
+        return boundedGeometryToGeoJSON(geometryCollection);
     }
 
     /*
@@ -1654,7 +1791,31 @@ public class GeographicFunctionLibrary {
 
     @SneakyThrows
     static Geometry geoJsonToGeometry(ObjectValue geoJson) {
-        return GEOJSON_READER.read(ValueJsonMarshaller.toJsonString(geoJson));
+        val json = ValueJsonMarshaller.toJsonString(geoJson);
+        if (exceedsInputBound(json)) {
+            throw new IllegalArgumentException(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
+        val geometry = GEOJSON_READER.read(json);
+        if (exceedsComplexityBound(geometry)) {
+            throw new IllegalArgumentException(
+                    GEOMETRY_TOO_COMPLEX_ERROR.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
+        }
+        return geometry;
+    }
+
+    private static boolean exceedsInputBound(String input) {
+        return input.getBytes(StandardCharsets.UTF_8).length > MAX_GEO_INPUT_BYTES;
+    }
+
+    private static boolean exceedsComplexityBound(Geometry geometry) {
+        return geometry.getNumPoints() > MAX_GEOMETRY_VERTICES || geometry.getNumGeometries() > MAX_GEOMETRY_COUNT;
+    }
+
+    private static Value boundedGeometryToGeoJSON(Geometry geometry) {
+        if (exceedsComplexityBound(geometry)) {
+            return Value.error(GEOMETRY_TOO_COMPLEX_ERROR.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
+        }
+        return geometryToGeoJSON(geometry);
     }
 
     static Value geometryToGeoJSON(Geometry geo) {

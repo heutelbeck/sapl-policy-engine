@@ -17,11 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -38,8 +34,7 @@ class TomlFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(TomlFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new TomlFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test
@@ -220,5 +215,31 @@ class TomlFunctionLibraryTests {
         val investigator = (ObjectValue) ((ObjectValue) reparsed).get("investigator");
         assertThat(investigator).containsEntry("name", Value.of("Carter")).containsEntry("sanity", Value.of(77));
         assertThat((ArrayValue) investigator.get("artifacts")).hasSize(2);
+    }
+
+    @Test
+    void whenErrorValueToTomlThenReturnsErrorInsteadOfThrowing() {
+        val errorInput = Value.error("upstream computation failed");
+
+        val result = TomlFunctionLibrary.valToToml(errorInput);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).startsWith("Failed to convert value to TOML:");
+    }
+
+    @Test
+    void whenUndefinedValueToTomlThenReturnsErrorInsteadOfThrowing() {
+        val result = TomlFunctionLibrary.valToToml(Value.UNDEFINED);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).startsWith("Failed to convert value to TOML:");
+    }
+
+    @Test
+    void whenTomlExceedsMaxInputThenError() {
+        val result = TomlFunctionLibrary.tomlToVal(Value.of("a".repeat(1024 * 1024 + 1)));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds");
     }
 }

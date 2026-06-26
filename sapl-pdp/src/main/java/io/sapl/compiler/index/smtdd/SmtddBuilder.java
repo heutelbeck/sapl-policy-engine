@@ -17,32 +17,20 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import static io.sapl.compiler.index.smtdd.SmtddNode.ERROR_CHILD;
-import static io.sapl.compiler.index.smtdd.SmtddNode.FALSE_CHILD;
-import static io.sapl.compiler.index.smtdd.SmtddNode.TRUE_CHILD;
-
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanExpression.And;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.BooleanExpression.Constant;
-import io.sapl.api.model.BooleanExpression.Not;
-import io.sapl.api.model.BooleanExpression.Or;
+import io.sapl.api.model.BooleanExpression.*;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.IndexSizeLimitExceededException;
 import io.sapl.compiler.index.smtdd.SemanticVariableOrder.AnalysisResult;
-import io.sapl.compiler.index.smtdd.SmtddNode.BinaryDecision;
-import io.sapl.compiler.index.smtdd.SmtddNode.EqualityBranch;
-import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
+import io.sapl.compiler.index.smtdd.SmtddNode.*;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.*;
+
+import static io.sapl.compiler.index.smtdd.SmtddNode.*;
 
 /**
  * Builds an SMTDD from the semantic analysis result.

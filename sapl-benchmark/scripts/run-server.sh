@@ -71,7 +71,7 @@ rm -rf "$SCENARIO_DIR"
 mkdir -p "$SCENARIO_DIR"
 
 LUA_SCRIPT="$SCRIPT_DIR/lib/sapl-wrk.lua"
-HTTP_URL="http://127.0.0.1:8443/api/pdp/decide-once"
+HTTP_URL="http://127.0.0.1:8080/api/pdp/decide-once"
 UDS_SOCKET="/tmp/sapl-bench.sock"
 
 trap_cleanup
@@ -242,6 +242,7 @@ for runtime in "${RUNTIMES[@]}"; do
 
                 taskset -c "$cpu_range" $server_cmd server \
                     --io.sapl.node.allow-no-auth=true \
+                    --io.sapl.pdp.embedded.metrics-enabled=false \
                     --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
                     --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
                     --logging.level.root=WARN \
@@ -253,7 +254,7 @@ for runtime in "${RUNTIMES[@]}"; do
                 max_wait=30
                 started=false
                 for i in $(seq 1 $max_wait); do
-                    if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1 \
+                    if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1 \
                        && ss -tln | grep -q ":7000 " 2>/dev/null; then
                         started=true
                         break
