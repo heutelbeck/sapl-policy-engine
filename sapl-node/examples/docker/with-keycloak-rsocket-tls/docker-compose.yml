@@ -46,7 +46,7 @@ services:
       start_period: 30s
 
   sapl-node:
-    image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
+    image: ghcr.io/heutelbeck/sapl-node:4.1.0
     container_name: sapl-rsocket-tls-node
     ports:
       - "8443:8443"

@@ -13,7 +13,7 @@ The core SAPL decision types are defined in the `sapl-api` module:
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-api</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>4.1.0</version>
 </dependency>
 ```
 
@@ -84,7 +84,7 @@ Add the embedded PDP dependency:
 <dependency>
   <groupId>io.sapl</groupId>
   <artifactId>sapl-pdp</artifactId>
-  <version>4.1.0-SNAPSHOT</version>
+  <version>4.1.0</version>
 </dependency>
 ```
 
@@ -114,7 +114,7 @@ For projects using multiple SAPL dependencies, import the bill of materials:
     <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-bom</artifactId>
-      <version>4.1.0-SNAPSHOT</version>
+      <version>4.1.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -200,7 +200,7 @@ For a non-Spring application that connects to a SAPL Node or other remote PDP se
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-pdp-remote</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>4.1.0</version>
 </dependency>
 ```
 
@@ -252,7 +252,7 @@ For Spring Boot applications, use the unified starter. It includes the embedded 
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>4.1.0</version>
 </dependency>
 ```
 
@@ -306,7 +306,7 @@ When using only a remote PDP, exclude the embedded PDP dependency to reduce the 
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>4.1.0</version>
     <exclusions>
         <exclusion>
             <groupId>io.sapl</groupId>

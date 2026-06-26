@@ -38,7 +38,7 @@ Add the dependency via the SAPL BOM:
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.1.0-SNAPSHOT</version>
+            <version>4.1.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

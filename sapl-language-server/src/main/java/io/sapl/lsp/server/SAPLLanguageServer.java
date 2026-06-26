@@ -38,6 +38,7 @@ import io.sapl.lsp.core.GrammarRegistry;
 import io.sapl.lsp.core.document.DocumentManager;
 import io.sapl.lsp.sapl.SAPLGrammarSupport;
 import io.sapl.lsp.sapltest.SAPLTestGrammarSupport;
+import io.sapl.pdp.SaplBuildInfo;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,8 +49,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
 
-    private static final String SERVER_NAME    = "SAPL Language Server (ANTLR)";
-    private static final String SERVER_VERSION = "4.1.0-SNAPSHOT";
+    private static final String SERVER_NAME    = "SAPL Language Server";
+    private static final String SERVER_VERSION = SaplBuildInfo.version();
 
     @Getter
     private LanguageClient client;
