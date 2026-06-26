@@ -87,6 +87,11 @@ public class RemotePDPAutoConfiguration {
         applyHttpAuthentication(builder);
         enforceCredentialTransportSecurity(isHttpsHost());
         applyHttpTls(builder);
+        // Transport decision already vetted above, so the builder's own guard needs the
+        // opt-in.
+        if (hasCredentials() && !isHttpsHost()) {
+            builder.allowInsecureTransport();
+        }
         return builder.build();
     }
 

@@ -21,8 +21,6 @@ import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -42,20 +40,16 @@ class RemotePdpRetry {
 
     static final int RETRY_ESCALATION_THRESHOLD = 5;
 
-    // consecutiveFailures counts failures since the last genuine decision.
-    // The caller resets it on each genuine emission, so an occasionally
-    // reconnecting healthy stream never escalates or exhausts. Permanent
-    // client errors propagate without retry.
+    // Every error retries so the stream stays alive emitting INDETERMINATE and
+    // recovers when the
+    // dependency returns. A "permanent" auth error may just be an IdP lagging a
+    // rotated credential.
     static Retry createRetrySpec(AtomicLong consecutiveFailures, long maxRetries, int firstBackoffMillis,
             int maxBackOffMillis) {
         return Retry.from(retrySignals -> retrySignals.concatMap(retrySignal -> {
-            val failure = retrySignal.failure();
-            if (!isRetryable(failure)) {
-                return Mono.error(failure);
-            }
             val attempt = consecutiveFailures.incrementAndGet();
             if (attempt > maxRetries) {
-                return Mono.error(failure);
+                return Mono.error(retrySignal.failure());
             }
             if (attempt >= RETRY_ESCALATION_THRESHOLD) {
                 log.error(ERROR_STREAM_RECONNECT, attempt);
@@ -73,18 +67,6 @@ class RemotePdpRetry {
         val capped      = (long) Math.min(exponential, maxBackOffMillis);
         val jittered    = capped / 2L + ThreadLocalRandom.current().nextLong(capped / 2L + 1L);
         return Duration.ofMillis(Math.max(1L, jittered));
-    }
-
-    // A permanent client error (auth failure, malformed subscription) must not be
-    // retried. Only
-    // 408 (request timeout) and 429 (too many requests) among 4xx are transient.
-    // Non-HTTP errors retry.
-    private static boolean isRetryable(Throwable error) {
-        if (error instanceof WebClientResponseException wcre) {
-            val status = wcre.getStatusCode();
-            return !status.is4xxClientError() || status.value() == 408 || status.value() == 429;
-        }
-        return true;
     }
 
     static void logInsecureSslWarning() {

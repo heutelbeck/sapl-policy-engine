@@ -39,6 +39,9 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.proto.SaplProtobufCodec;
 import lombok.val;
+import org.springframework.security.oauth2.client.ClientAuthorizationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -109,6 +112,31 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
             // re-subscribes and the second subscription yields a real decision.
             if (attempt.getAndIncrement() == 0) {
                 return Flux.error(new IllegalStateException("simulated transport failure"));
+            }
+            return Flux.just(decisionPayload(AuthorizationDecision.PERMIT));
+        }));
+
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.just(rSocket), 1, 2);
+
+        StepVerifier.create(pdp.decide(SUBSCRIPTION).take(2))
+                .expectNext(AuthorizationDecision.INDETERMINATE, AuthorizationDecision.PERMIT).thenCancel().verify();
+
+        assertThat(attempt.get()).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("A permanent-looking auth error keeps the stream alive and recovers when the credential becomes valid")
+    void whenPermanentAuthErrorThenClientStaysAliveAndRecovers() throws IOException {
+        val attempt = new AtomicInteger();
+        when(rSocket.requestStream(any(Payload.class))).thenAnswer(invocation -> Flux.defer(() -> {
+            ((Payload) invocation.getArgument(0)).release();
+            // A permanent-looking auth failure (the IdP may not have accepted a rotated
+            // credential yet) must not close the stream. The reconnect path re-subscribes
+            // and the now-valid credential yields a real decision.
+            if (attempt.getAndIncrement() == 0) {
+                return Flux.error(
+                        new ClientAuthorizationException(new OAuth2Error(OAuth2ErrorCodes.INVALID_CLIENT), "saplPdp"));
             }
             return Flux.just(decisionPayload(AuthorizationDecision.PERMIT));
         }));

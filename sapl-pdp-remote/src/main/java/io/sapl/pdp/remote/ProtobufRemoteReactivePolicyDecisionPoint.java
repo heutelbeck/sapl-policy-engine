@@ -604,7 +604,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 connector.setupPayload(setupPayloadMono);
             }
             val rSocketMono = connector.connect(TcpClientTransport.create(tcpClient));
-            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 5000);
+            // Sustained failure backs off to a 60s heartbeat, not a tight reconnect storm.
+            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 60000);
         }
     }
 }

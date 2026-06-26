@@ -96,10 +96,12 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
     private static final String MULTI_DECIDE_ALL      = "/api/pdp/multi-decide-all";
     private static final String MULTI_DECIDE_ALL_ONCE = "/api/pdp/multi-decide-all-once";
 
-    private static final String ERROR_AUTH_FAILED          = "PDP authentication failed (HTTP {}). Check credentials configuration.";
-    private static final String ERROR_HTTP_STATUS          = "PDP returned HTTP {} ({})";
-    private static final String ERROR_STREAM_FAILED        = "PDP streaming communication error: {}";
-    static final int            RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
+    private static final String ERROR_AUTH_FAILED                   = "PDP authentication failed (HTTP {}). Check credentials configuration.";
+    private static final String ERROR_HTTP_STATUS                   = "PDP returned HTTP {} ({})";
+    private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Refusing to send remote PDP credentials over a plaintext http connection. Use an https baseUrl, or explicitly accept the risk with allowInsecureTransport().";
+    private static final String ERROR_STREAM_FAILED                 = "PDP streaming communication error: {}";
+    private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT  = "Sending remote PDP credentials over a plaintext http connection because allowInsecureTransport() is set. A network attacker can capture the credential. Do not use in production.";
+    static final int            RETRY_ESCALATION_THRESHOLD          = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
     private final WebClient client;
 
@@ -107,9 +109,10 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
     @Getter
     private volatile int firstBackoffMillis = 1000;
 
+    // Sustained failure backs off to a 60s heartbeat, not a tight reconnect storm.
     @Setter
     @Getter
-    private volatile int maxBackOffMillis = 30000;
+    private volatile int maxBackOffMillis = 60000;
 
     @Setter
     @Getter
@@ -287,6 +290,18 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         private HttpClient                                     httpClient = HttpClient
                 .create(DEFAULT_CONNECTION_PROVIDER).protocol(HttpProtocol.HTTP11, HttpProtocol.H2);
         private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
+        private boolean                                        allowInsecureTransport;
+
+        /**
+         * Accept sending credentials over a plaintext (non-https) connection.
+         * Insecure, opt-in only.
+         *
+         * @return this builder
+         */
+        public RemoteHttpPolicyDecisionPointBuilder allowInsecureTransport() {
+            this.allowInsecureTransport = true;
+            return this;
+        }
 
         public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
             RemotePdpRetry.logInsecureSslWarning();
@@ -374,6 +389,7 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         }
 
         public RemoteHttpReactivePolicyDecisionPoint build() {
+            enforceCredentialTransportSecurity();
             var builder = WebClient.builder().exchangeStrategies(saplExchangeStrategies())
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
@@ -381,6 +397,20 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
                 builder = authenticationCustomizer.apply(builder);
             }
             return new RemoteHttpReactivePolicyDecisionPoint(builder.build());
+        }
+
+        private void enforceCredentialTransportSecurity() {
+            if (authenticationCustomizer == null || isEncryptedBaseUrl()) {
+                return;
+            }
+            if (!allowInsecureTransport) {
+                throw new IllegalStateException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+            }
+            log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
+        }
+
+        private boolean isEncryptedBaseUrl() {
+            return baseUrl.regionMatches(true, 0, "https://", 0, "https://".length());
         }
     }
 

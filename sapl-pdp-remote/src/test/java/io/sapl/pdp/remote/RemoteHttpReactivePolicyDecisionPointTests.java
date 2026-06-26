@@ -86,7 +86,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
         server = new MockWebServer();
         server.start();
         pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
-                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").build();
+                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").allowInsecureTransport().build();
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
         pdp.setTimeoutMillis(30000);
@@ -211,7 +211,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     @Test
     void construct() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").build();
+                .basicAuth("secret", "key").allowInsecureTransport().build();
         assertThat(pdpUnderTest).isNotNull();
     }
 
@@ -219,7 +219,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     void constructWithSslContext() throws SSLException {
         val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").secure(sslContext).build();
+                .basicAuth("secret", "key").secure(sslContext).allowInsecureTransport().build();
         assertThat(pdpUnderTest).isNotNull();
     }
 
@@ -264,7 +264,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     @Test
     void settersAndGetters() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").build();
+                .basicAuth("secret", "key").allowInsecureTransport().build();
         pdpUnderTest.setFirstBackoffMillis(998);
         pdpUnderTest.setMaxBackOffMillis(1001);
         pdpUnderTest.setTimeoutMillis(997);
