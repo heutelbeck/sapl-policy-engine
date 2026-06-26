@@ -406,12 +406,11 @@ jobs:
       - name: Check out
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@54b4f5a65c1a84b2fdfdc2078fe43df32819e4b1 # v1.4.5
+      - name: Set up JDK
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
         with:
+          distribution: 'temurin'
           java-version: '25'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Maven packages
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -441,10 +440,13 @@ jobs:
           name: sapl-linux-amd64
           path: artifacts/linux-amd64
 
-      - name: Build benchmark jars and run the script regression test
+      - name: Build benchmark JVM jars and run the script regression test
         shell: bash
         run: |
           mkdir -p sapl-benchmark/bin
+          # Reuse the native binary from build-native-node. This job uses temurin,
+          # so build.sh finds no native-image and builds only the JVM jars, leaving
+          # this binary untouched. The native image is never rebuilt here.
           cp artifacts/linux-amd64/sapl sapl-benchmark/bin/sapl
           chmod +x sapl-benchmark/bin/sapl
           ./sapl-benchmark/scripts/build.sh
