@@ -309,11 +309,6 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
             return this.secure(sslContext);
         }
 
-        public RemoteHttpPolicyDecisionPointBuilder secure() {
-            this.httpClient = httpClient.secure();
-            return this;
-        }
-
         public RemoteHttpPolicyDecisionPointBuilder secure(SslContext sslContext) {
             this.httpClient = httpClient.secure(spec -> spec.sslContext(sslContext));
             return this;
