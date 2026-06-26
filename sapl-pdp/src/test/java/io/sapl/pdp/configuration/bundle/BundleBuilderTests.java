@@ -322,8 +322,21 @@ class BundleBuilderTests {
         }
 
         @Test
-        void whenWritingToInvalidPathThenThrowsException() {
-            val invalidPath = tempDir.resolve("non-existent-dir/bundle.saplbundle");
+        void whenWritingToPathWithMissingParentThenCreatesParentDirectory() throws IOException {
+            val bundlePath = tempDir.resolve("new-dir/nested/bundle.saplbundle");
+
+            BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicy("test.sapl", """
+                    policy "test" permit true;
+                    """).writeTo(bundlePath);
+
+            assertThat(bundlePath).exists();
+            assertThat(bundlePath.getParent()).isDirectory();
+        }
+
+        @Test
+        void whenWritingToPathWhoseParentIsAFileThenThrowsException() throws IOException {
+            val blockingFile = Files.createFile(tempDir.resolve("blocker"));
+            val invalidPath  = blockingFile.resolve("bundle.saplbundle");
 
             val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicy("test.sapl", """
                     policy "test" permit true;
