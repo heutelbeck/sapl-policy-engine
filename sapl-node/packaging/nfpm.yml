@@ -54,6 +54,11 @@ contents:
     file_info:
       mode: 0644
 
+  - src: sapl-node/packaging/sapl.zsh
+    dst: /usr/share/zsh/site-functions/_sapl
+    file_info:
+      mode: 0644
+
   - src: sapl-node/packaging/sapl.service
     dst: /usr/lib/systemd/system/sapl.service
     type: config|noreplace

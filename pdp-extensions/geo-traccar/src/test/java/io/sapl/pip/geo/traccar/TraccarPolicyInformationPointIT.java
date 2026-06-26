@@ -124,7 +124,7 @@ class TraccarPolicyInformationPointIT {
         geofenceId2 = Value.of(traccarClient.createGeofence(geofence2));
         traccarClient.addTraccarPosition(uniqueDeviceId, 51.4642414, 7.5789155, 198.8);
         config    = config(host, port);
-        badConfig = config("some-bad-server.local", 8082);
+        badConfig = config("some-bad-server.invalid", 8082);
         secrets   = secrets(email, password);
     }
 
