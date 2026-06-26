@@ -17,6 +17,8 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.api.stream.QueueStream;
+import io.sapl.api.stream.Stream;
 import io.sapl.test.coverage.TestCoverageRecord;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
@@ -24,13 +26,13 @@ import io.sapl.test.lang.SaplTestParser;
 import io.sapl.test.plain.TestEvent.ExecutionCompleted;
 import io.sapl.test.plain.TestEvent.ScenarioCompleted;
 import lombok.NonNull;
-import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Test adapter for programmatic execution of SAPL tests.
@@ -51,12 +53,15 @@ import java.util.Map;
  * var results = adapter.execute(security);
  * System.out.println("All passed: " + results.allPassed());
  *
- * // Reactive execution with progress events
- * adapter.executeReactive(security).subscribe(event -> {
- *     if (event instanceof ScenarioCompleted sc) {
- *         System.out.println("Completed: " + sc.result().fullName());
+ * // Streaming execution with progress events
+ * try (var events = adapter.executeStreaming(security)) {
+ *     TestEvent event;
+ *     while ((event = events.awaitNext()) != null) {
+ *         if (event instanceof ScenarioCompleted sc) {
+ *             System.out.println("Completed: " + sc.result().fullName());
+ *         }
  *     }
- * });
+ * }
  * }</pre>
  */
 public class PlainTestAdapter {
@@ -68,15 +73,14 @@ public class PlainTestAdapter {
      * @return the aggregated test results
      */
     public PlainTestResults execute(@NonNull TestConfiguration config) {
-        var lastEvent = executeReactive(config).blockLast();
-        return switch (lastEvent) {
-        case ExecutionCompleted(var results) -> results;
-        case null, default                   -> PlainTestResults.from(List.of(), Map.of());
-        };
+        return runScenarios(config, event -> {});
     }
 
     /**
-     * Executes tests reactively, emitting events as tests progress.
+     * Executes tests and streams events as they progress, for interactive
+     * progress reporting. The run executes on a virtual thread so the caller
+     * pulls events live via {@link Stream#awaitNext()}; close the stream to
+     * stop consuming early.
      * <p>
      * Events emitted:
      * <ul>
@@ -85,38 +89,48 @@ public class PlainTestAdapter {
      * </ul>
      *
      * @param config the test configuration
-     * @return a flux of test events
+     * @return a closeable stream of test events
      */
-    public Flux<TestEvent> executeReactive(@NonNull TestConfiguration config) {
-        return Flux.create(sink -> {
-            var results  = new ArrayList<ScenarioResult>();
-            var coverage = new HashMap<String, TestCoverageRecord>();
-
-            for (var testDoc : config.saplTestDocuments()) {
-                var docResults = executeTestDocument(testDoc, config);
-                results.addAll(docResults);
-                emitResults(sink, docResults);
-
-                if (shouldStopOnFailure(config, docResults)) {
-                    break;
-                }
-            }
-
-            for (var result : results) {
-                if (result.coverage() != null) {
-                    coverage.put(result.fullName(), result.coverage());
-                }
-            }
-
-            sink.next(new ExecutionCompleted(PlainTestResults.from(results, coverage)));
-            sink.complete();
-        });
+    public Stream<TestEvent> executeStreaming(@NonNull TestConfiguration config) {
+        var stream   = new QueueStream<TestEvent>();
+        var producer = Thread.ofVirtual().name("sapl-test-run").start(() -> {
+                         try {
+                             runScenarios(config, stream::put);
+                         } finally {
+                             stream.complete();
+                         }
+                     });
+        stream.onClose(producer::interrupt);
+        return stream;
     }
 
-    private void emitResults(reactor.core.publisher.FluxSink<TestEvent> sink, List<ScenarioResult> results) {
-        for (var result : results) {
-            sink.next(new ScenarioCompleted(result));
+    private PlainTestResults runScenarios(@NonNull TestConfiguration config, Consumer<TestEvent> onEvent) {
+        var results  = new ArrayList<ScenarioResult>();
+        var coverage = new HashMap<String, TestCoverageRecord>();
+
+        for (var testDoc : config.saplTestDocuments()) {
+            if (Thread.currentThread().isInterrupted()) {
+                break;
+            }
+            var docResults = executeTestDocument(testDoc, config);
+            results.addAll(docResults);
+            for (var result : docResults) {
+                onEvent.accept(new ScenarioCompleted(result));
+            }
+            if (shouldStopOnFailure(config, docResults)) {
+                break;
+            }
         }
+
+        for (var result : results) {
+            if (result.coverage() != null) {
+                coverage.put(result.fullName(), result.coverage());
+            }
+        }
+
+        var finalResults = PlainTestResults.from(results, coverage);
+        onEvent.accept(new ExecutionCompleted(finalResults));
+        return finalResults;
     }
 
     private boolean shouldStopOnFailure(TestConfiguration config, List<ScenarioResult> results) {

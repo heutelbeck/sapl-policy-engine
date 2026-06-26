@@ -18,6 +18,8 @@
 package io.sapl.test.plain;
 
 import io.sapl.api.model.Value;
+import io.sapl.test.plain.TestEvent.ExecutionCompleted;
+import io.sapl.test.plain.TestEvent.ScenarioCompleted;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -214,6 +217,34 @@ class PlainTestAdapterTests {
         val results = ADAPTER.execute(config);
 
         assertSinglePassedTest(results);
+    }
+
+    @Test
+    @DisplayName("executeStreaming streams per-scenario events then a final ExecutionCompleted")
+    void whenExecuteStreaming_thenStreamsProgressAndFinalResults() throws InterruptedException {
+        val testCode = """
+                requirement "test" {
+                    scenario "simple permit test"
+                        when "alice" attempts "read" on "data"
+                        expect decision is permit;
+                }
+                """;
+        val testDoc  = new SaplTestDocument("test", "test", testCode);
+        val config   = TestConfiguration.builder().withSaplDocument(PERMIT_ALL_POLICY).withSaplTestDocument(testDoc)
+                .build();
+
+        val events = new ArrayList<TestEvent>();
+        try (val stream = ADAPTER.executeStreaming(config)) {
+            TestEvent event;
+            while ((event = stream.awaitNext()) != null) {
+                events.add(event);
+            }
+        }
+
+        assertThat(events).hasAtLeastOneElementOfType(ScenarioCompleted.class).last()
+                .isInstanceOf(ExecutionCompleted.class);
+        assertThat(((ExecutionCompleted) events.getLast()).results()).satisfies(r -> assertThat(r.total()).isOne(),
+                r -> assertThat(r.passed()).isOne());
     }
 
     private static PlainTestResults executeWithPermitAllPolicy(String testCode) {
