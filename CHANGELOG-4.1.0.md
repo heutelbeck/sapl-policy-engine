@@ -1,6 +1,6 @@
 # SAPL 4.1.0
 
-4.1.0 has three big changes. `SUSPEND` is a new decision effect that pauses access instead of terminating the subscription. The PDP core no longer uses Reactor internally; it runs on a small `Stream` type instead, though the reactive Spring PEP still uses Reactor at its boundary. And the PEP was rebuilt around a plan-and-signal constraint model. The attribute layer also moved to a new broker contract. Policy syntax for `permit` and `deny` is unchanged; everything else below is new.
+4.1.0 has several big changes. `SUSPEND` is a new decision effect that pauses access instead of terminating the subscription. Boolean evaluation moved to Kleene three-valued logic, which changes how errors and `undefined` propagate. The PDP core no longer uses Reactor internally; it runs on a small `Stream` type instead, though the reactive Spring PEP still uses Reactor at its boundary. And the PEP was rebuilt around a plan-and-signal constraint model. The attribute layer also moved to a new broker contract. Policy syntax for `permit` and `deny` is unchanged; everything else below is new.
 
 The full architecture and worked examples are in [`sapl-documentation/6_3_Spring.md`](sapl-documentation/6_3_Spring.md).
 
@@ -38,6 +38,14 @@ Each `INDETERMINATE` vote now carries an `Outcome` field recording which decisio
 The internal vocabulary "entitlement" (the result a policy casts) is renamed to "effect" everywhere it surfaced: documentation, AST node names, LSP completions, error messages. Policy syntax was never affected.
 
 See [Authorization Decisions](sapl-documentation/2_3_AuthorizationDecisions.md), [Policy Structure](sapl-documentation/2_4_PolicyStructure.md), and [Combining Algorithms](sapl-documentation/2_5_CombiningAlgorithms.md) for full semantics.
+
+## Kleene logic for errors and undefined
+
+Boolean operators (`&`, `&&`, `|`, `||`) and policy body conditions now follow Kleene strong three-valued logic. A value that is not `true` or `false`, an error, `undefined`, or any other non-boolean, acts as a third value, unknown. Errors and `undefined` are treated alike.
+
+AND is `false` if any operand is `false`, otherwise unknown if any operand is unknown, otherwise `true`. OR is `true` if any operand is `true`, otherwise unknown if any operand is unknown, otherwise `false`. An error or `undefined` operand no longer short-circuits the expression. A dominating value (`false` for AND, `true` for OR) wins regardless of operand position or cost stratum, so the result no longer depends on evaluation order, and a reachable dominating operand rescues an error. The error becomes the result only when no operand carries the dominating value, in which case the operator yields the original error (or a type-mismatch error for `undefined` or another non-boolean).
+
+See [Evaluation Semantics](sapl-documentation/2_11_EvaluationSemantics.md) and [Expressions](sapl-documentation/2_7_Expressions.md).
 
 ## Streaming PEP
 
@@ -178,6 +186,10 @@ The 4.0 Reactor-based attribute layer is replaced with a callback-driven broker.
 - A `RuntimeException` thrown by a PIP method during invocation recovers under backoff-bounded retries (jittered exponential), not pollInterval-bounded. Transient connect-time and send-time failures heal on the same schedule as mid-stream failures.
 - Hot-swap of a PIP no longer surfaces transient `UNDEFINED` to consumers during the rebind window if a real prior value was observed; the prior value persists until the replacement emits.
 
+## Clock and timestamp sources
+
+The single PDP clock splits into a temporal-reasoning `Clock` for accurate readings, used by the time attribute finder, JWT validation, and the scheduler, and an observability `InstantSource` that stamps the decision trace and attribute arrival times and may be coarse. The builder exposes `withClock(...)`, `withTimestampSource(...)`, and `withCoarseTimestamps(...)`.
+
 ## Plugins source
 
 The PDP runtime is driven by an observable `PluginsSource` that emits immutable `PluginsBundle` snapshots. Each bundle carries the function broker, decision interceptors, and subscription lifecycle listeners as one atomic unit. New snapshots drive recompilation of every retained PDP configuration against the new bundle. The compiled artefact carries the bundle it was compiled against, so folded constants and live function calls go to the same broker for any given evaluation.
@@ -198,6 +210,12 @@ Changes to the runnable PDP distribution (sapl-node).
 - **Scalar OpenAPI UI** at `/scalar`, generated from the OpenAPI definition.
 - **Status page** at `/` reports version, build metadata, and health.
 - **Startup failures.** Configuration errors are reported as messages with remediation advice instead of Spring stack traces.
+- **Startup security warnings.** The node warns loudly at startup on insecure configuration, such as running with authentication disabled or an HTTP transport that exposes it without protection.
 - **`--no-auth` CLI shortcut** sets `io.sapl.node.allow-no-auth=true` for first-run development.
 - **Boot logging.** Framework log noise is suppressed; the ready banner reports endpoints, ports, and active authentication methods.
+- **SSE client liveness.** Keepalive on the streaming endpoints detects clients that vanish without closing the connection and releases their subscriptions, closing a subscription leak path.
 - **Active SSE drain on shutdown.** Open streaming subscriptions receive `event: shutdown` and complete cleanly before the HTTP listener disposes.
+
+## Function libraries
+
+The bundled function libraries gained stricter input validation, including explicit size and complexity limits, and fail closed on invalid input. No function library performs network or filesystem I/O, which keeps policy evaluation deterministic and free of side effects.
