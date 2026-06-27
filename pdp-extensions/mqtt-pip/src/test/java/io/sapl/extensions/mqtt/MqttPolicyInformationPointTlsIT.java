@@ -101,7 +101,7 @@ class MqttPolicyInformationPointTlsIT {
                 }
                 """.formatted(brokerHost, tlsPort, "sapl-tls-" + CLIENT_SEQ.incrementAndGet(), TRUST_STORE,
                 TRUST_STORE_PW));
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 

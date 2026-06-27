@@ -108,8 +108,13 @@ class SaplMqttClientTests {
                   ]
                 }
                 """);
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+    }
+
+    private static AttributeAccessContext ctxWithMqttConfig(String config) {
+        return new AttributeAccessContext(ObjectValue.builder().put("mqtt", json(config)).build(), Value.EMPTY_OBJECT,
+                Value.EMPTY_OBJECT);
     }
 
     @Test
@@ -148,6 +153,45 @@ class SaplMqttClientTests {
         val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
 
         try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.EMPTY_ARRAY, ctx(), Value.of(0))) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                    .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+        }
+
+        assertThat(saplMqttClient.cache()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("too many topic filters yield an error value and never open a client")
+    void whenTopicFilterCountExceedsLimitThenErrorValueAndNoClientOpened() {
+        val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        val ctx            = ctxWithMqttConfig("""
+                {
+                  "maxTopicFilters": 1,
+                  "brokerConfig": { "brokerAddress": "localhost" }
+                }
+                """);
+        val topics         = Value.ofArray(Value.of("test/one"), Value.of("test/two"));
+
+        try (val stream = saplMqttClient.buildSaplMqttMessageStream(topics, ctx, Value.of(0))) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                    .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+        }
+
+        assertThat(saplMqttClient.cache()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("topic filters exceeding the byte limit yield an error value and never open a client")
+    void whenTopicFilterBytesExceedLimitThenErrorValueAndNoClientOpened() {
+        val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        val ctx            = ctxWithMqttConfig("""
+                {
+                  "maxTopicFilterBytes": 4,
+                  "brokerConfig": { "brokerAddress": "localhost" }
+                }
+                """);
+
+        try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.of("tests/too-large"), ctx, Value.of(0))) {
             StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
                     .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
         }

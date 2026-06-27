@@ -47,7 +47,7 @@ A configuration can look like the following example:
         "errorHandling": "PROPAGATE"
     },
     "variables": {
-        "mqttPipConfig": {
+        "mqtt": {
             "defaultResponse" : "undefined",
             "defaultBrokerConfig": "production",
             "brokerConfig": [
@@ -73,7 +73,7 @@ A configuration can look like the following example:
 }
 ```
     
-In the 'mqttPipConfig' object you can optionally set different values for environment attributes specified in the mqtt pip. The following attribute are possible:
+In the 'mqtt' object you can optionally set different values for environment attributes specified in the mqtt pip. The following attribute are possible:
 
 
 
@@ -83,6 +83,8 @@ In the 'mqttPipConfig' object you can optionally set different values for enviro
 - ```timeoutDuration```: When the timeout duration specified in milliseconds is reached the default response will be sent. If nothing is stated the default timeout duration will be 2000 milliseconds.
 - ```defaultResponse```: The default response can be specified with "undefined" or "error" so that the default response will be an error value or an undefined value. If nothing is specified it will be undefined.
 - ```emitAtRetry```: Specifies a boolean value of whether an undefined value is returned from the attribute finder if the pip loses the connection to the mqtt broker or not. Per default, it is set to true.
+- ```maxTopicFilters```: Maximum number of topic filters accepted per subscription. If nothing is specified the value will be set to 32.
+- ```maxTopicFilterBytes```: Maximum total UTF-8 bytes across all topic filters accepted per subscription. If nothing is specified the value will be set to 8192.
 - ```errorRetryAttempts```: Specifies the maximum number of retry attempts on connection loss of the sapl mqtt pip to the mqtt broker. If nothing is specified the value will be set to 10000000.
 - ```minErrorRetryDelay```: When the sapl mqtt pip loses connection to the mqtt broker it will automatically try to reestablish the connection. With each retry attempt the duration between the retries gets exponentially prolonged. This parameter specifies the minimal interval in milliseconds and is set to 5000 milliseconds per default.
 - ```maxErrorRetryDelay```: When the sapl mqtt pip loses connection to the mqtt broker it will automatically try to reestablish the connection. With each retry attempt the duration between the retries gets exponentially prolonged. This parameter specifies the maximal interval in milliseconds and is set to 10000 milliseconds per default.

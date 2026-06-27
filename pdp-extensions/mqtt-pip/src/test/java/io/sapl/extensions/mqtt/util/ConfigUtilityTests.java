@@ -58,11 +58,10 @@ class ConfigUtilityTests {
         @DisplayName("when key present in config then existing JSON value returned")
         void whenJsonKeyPresentThenReturnsExistingValue() {
             val defaultConfig = JSON.nullNode();
-            val mqttPipConfig = JSON.objectNode().set(ENVIRONMENT_DEFAULT_MESSAGE,
+            val mqttConfig    = JSON.objectNode().set(ENVIRONMENT_DEFAULT_MESSAGE,
                     JSON.objectNode().put("key", "value"));
 
-            val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE,
-                    defaultConfig);
+            val config = ConfigUtility.getConfigValueOrDefault(mqttConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
 
             assertThat(config.get("key").asString()).isEqualTo("value");
         }
@@ -71,10 +70,9 @@ class ConfigUtilityTests {
         @DisplayName("when key absent from config then default JSON value returned")
         void whenJsonKeyAbsentThenReturnsDefault() {
             val defaultConfig = JSON.objectNode().put("key", "value");
-            val mqttPipConfig = JSON.objectNode();
+            val mqttConfig    = JSON.objectNode();
 
-            val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, ENVIRONMENT_DEFAULT_MESSAGE,
-                    defaultConfig);
+            val config = ConfigUtility.getConfigValueOrDefault(mqttConfig, ENVIRONMENT_DEFAULT_MESSAGE, defaultConfig);
 
             assertThat(config.get("key").asString()).isEqualTo("value");
         }
@@ -82,9 +80,9 @@ class ConfigUtilityTests {
         @Test
         @DisplayName("when long key present in config then existing long value returned")
         void whenLongKeyPresentThenReturnsExistingValue() {
-            val mqttPipConfig = JSON.objectNode().put("someLongKey", 6L);
+            val mqttConfig = JSON.objectNode().put("someLongKey", 6L);
 
-            val config = ConfigUtility.getConfigValueOrDefault(mqttPipConfig, "someLongKey", 5L);
+            val config = ConfigUtility.getConfigValueOrDefault(mqttConfig, "someLongKey", 5L);
 
             assertThat(config).isEqualTo(6L);
         }
@@ -144,13 +142,12 @@ class ConfigUtilityTests {
         @Test
         @DisplayName("when array config is referenced by name in attribute finder then matching entry returned")
         void whenArrayConfigReferencedByNameThenReturnsMatchingEntry() {
-            val mqttPipConfig = JSON.objectNode()
-                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+            val mqttConfig = JSON.objectNode().put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
                     .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
                             JSON.arrayNode().add(brokerEntry("production", "localhost", 1883, "mqttPipDefault"))
                                     .add(brokerEntry("broker2", "localhost", 1883, "broker2")));
 
-            val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.of("broker2"));
+            val config = ConfigUtility.getMqttBrokerConfig(mqttConfig, Value.of("broker2"));
 
             assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
         }
@@ -158,11 +155,10 @@ class ConfigUtilityTests {
         @Test
         @DisplayName("when object config name matches the attribute finder reference then config returned")
         void whenObjectConfigNameMatchesReferenceThenReturnsConfig() {
-            val mqttPipConfig = JSON.objectNode()
-                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+            val mqttConfig = JSON.objectNode().put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
                     .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG, brokerEntry("broker2", "localhost", 1883, "broker2"));
 
-            val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.of("broker2"));
+            val config = ConfigUtility.getMqttBrokerConfig(mqttConfig, Value.of("broker2"));
 
             assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
         }
@@ -170,12 +166,11 @@ class ConfigUtilityTests {
         @Test
         @DisplayName("when object config present and no attribute finder param then pdp object returned")
         void whenObjectConfigAndNoAttributeFinderParamThenReturnsPdpConfig() {
-            val mqttPipConfig = JSON.objectNode()
-                    .put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+            val mqttConfig = JSON.objectNode().put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
                     .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
                             brokerEntry("production", "localhost", 1883, "production"));
 
-            val config = ConfigUtility.getMqttBrokerConfig(mqttPipConfig, Value.UNDEFINED);
+            val config = ConfigUtility.getMqttBrokerConfig(mqttConfig, Value.UNDEFINED);
 
             assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("production");
         }

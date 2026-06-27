@@ -99,35 +99,38 @@ import static io.sapl.extensions.mqtt.util.SubscriptionUtility.topicFilters;
 public class SaplMqttClient implements Closeable {
 
     /** Configuration key for the MQTT client identifier. */
-    public static final String   ENVIRONMENT_CLIENT_ID          = "clientId";
+    public static final String   ENVIRONMENT_CLIENT_ID              = "clientId";
     /** Configuration key for the MQTT broker host. */
-    public static final String   ENVIRONMENT_BROKER_ADDRESS     = "brokerAddress";
+    public static final String   ENVIRONMENT_BROKER_ADDRESS         = "brokerAddress";
     /** Configuration key for the MQTT broker port. */
-    public static final String   ENVIRONMENT_BROKER_PORT        = "brokerPort";
+    public static final String   ENVIRONMENT_BROKER_PORT            = "brokerPort";
     /** Configuration key controlling sentinel emission on reconnect. */
-    public static final String   ENVIRONMENT_EMIT_AT_RETRY      = "emitAtRetry";
+    public static final String   ENVIRONMENT_EMIT_AT_RETRY          = "emitAtRetry";
     /** Configuration key enabling TLS for the broker connection. */
-    public static final String   ENVIRONMENT_TLS                = "tls";
+    public static final String   ENVIRONMENT_TLS                    = "tls";
     /** Configuration key for a PKCS12/JKS trust store used to verify the broker. */
-    public static final String   ENVIRONMENT_TLS_TRUST_STORE    = "tlsTrustStore";
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE        = "tlsTrustStore";
     /** Configuration key for the trust store password. */
-    public static final String   ENVIRONMENT_TLS_TRUST_STORE_PW = "tlsTrustStorePassword";
-    private static final String  ENVIRONMENT_MQTT_PIP_CONFIG    = "mqttPipConfig";
-    private static final String  ENVIRONMENT_USERNAME           = "username";
-    private static final String  ENVIRONMENT_BROKER_CONFIG_NAME = "name";
-    private static final String  ENVIRONMENT_QOS                = "defaultQos";
-    private static final String  ENVIRONMENT_MAX_PAYLOAD_SIZE   = "maxPayloadSize";
-    private static final String  DEFAULT_CLIENT_ID              = "mqtt_pip";
-    private static final String  DEFAULT_USERNAME               = "";
-    private static final String  DEFAULT_BROKER_ADDRESS         = "localhost";
-    private static final int     DEFAULT_BROKER_PORT            = 1883;
-    private static final int     DEFAULT_QOS                    = 0;
-    private static final int     DEFAULT_MAX_PAYLOAD_SIZE       = 1_048_576;
-    private static final String  SECRETS_MQTT                   = "mqtt";
-    private static final String  SECRETS_PASSWORD               = "password";
-    static final boolean         DEFAULT_EMIT_AT_RETRY          = false;
-    private static final boolean DEFAULT_TLS                    = false;
-    private static final String  DEFAULT_TLS_TRUST_STORE        = "";
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE_PW     = "tlsTrustStorePassword";
+    private static final String  ENVIRONMENT_MAX_PAYLOAD_SIZE       = "maxPayloadSize";
+    private static final String  ENVIRONMENT_MAX_TOPIC_FILTERS      = "maxTopicFilters";
+    private static final String  ENVIRONMENT_MAX_TOPIC_FILTER_BYTES = "maxTopicFilterBytes";
+    private static final String  ENVIRONMENT_USERNAME               = "username";
+    private static final String  ENVIRONMENT_BROKER_CONFIG_NAME     = "name";
+    private static final String  ENVIRONMENT_QOS                    = "defaultQos";
+    private static final String  MQTT                               = "mqtt";
+    private static final String  DEFAULT_CLIENT_ID                  = "mqtt_pip";
+    private static final String  DEFAULT_USERNAME                   = "";
+    private static final String  DEFAULT_BROKER_ADDRESS             = "localhost";
+    private static final int     DEFAULT_BROKER_PORT                = 1883;
+    private static final int     DEFAULT_MAX_PAYLOAD_SIZE           = 1_048_576;
+    private static final int     DEFAULT_MAX_TOPIC_FILTERS          = 32;
+    private static final long    DEFAULT_MAX_TOPIC_FILTER_BYTES     = 8_192L;
+    private static final int     DEFAULT_QOS                        = 0;
+    private static final String  SECRETS_PASSWORD                   = "password";
+    static final boolean         DEFAULT_EMIT_AT_RETRY              = false;
+    private static final boolean DEFAULT_TLS                        = false;
+    private static final String  DEFAULT_TLS_TRUST_STORE            = "";
 
     private static final Duration CONNECT_TIMEOUT     = Duration.ofSeconds(10L);
     private static final Duration SUBSCRIBE_TIMEOUT   = Duration.ofSeconds(5L);
@@ -172,17 +175,17 @@ public class SaplMqttClient implements Closeable {
     }
 
     public Stream<Value> buildSaplMqttMessageStream(Value topic, AttributeAccessContext ctx, Value qos,
-            Value mqttPipConfigVal) {
+            Value brokerSelector) {
         try {
             // Policy may select a broker only by name or default. An inline object could
             // pair a secret with a policy-chosen host.
-            if (mqttPipConfigVal instanceof ObjectValue) {
+            if (brokerSelector instanceof ObjectValue) {
                 return Streams.error(ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED);
             }
             val variables    = ctx.variables();
             val pdpSecrets   = ctx.pdpSecrets();
             val pipConfig    = resolvePipConfig(variables);
-            val brokerConfig = getMqttBrokerConfig(pipConfig, mqttPipConfigVal);
+            val brokerConfig = getMqttBrokerConfig(pipConfig, brokerSelector);
             val effectiveQos = getQos(
                     qos != null ? qos : Value.of(getConfigValueOrDefault(pipConfig, ENVIRONMENT_QOS, DEFAULT_QOS)));
             // A policy-supplied QoS outside 0..2 yields a null MqttQos. Fail with
@@ -191,13 +194,17 @@ public class SaplMqttClient implements Closeable {
             if (effectiveQos == null) {
                 return Streams.error(ERROR_INVALID_QOS);
             }
-            val filters = topicFilters(topic);
+            val maxTopicFilters = getConfigValueOrDefault(pipConfig, ENVIRONMENT_MAX_TOPIC_FILTERS,
+                    DEFAULT_MAX_TOPIC_FILTERS);
+            val maxTopicBytes   = getConfigValueOrDefault(pipConfig, ENVIRONMENT_MAX_TOPIC_FILTER_BYTES,
+                    DEFAULT_MAX_TOPIC_FILTER_BYTES);
+            val filters         = topicFilters(topic, maxTopicFilters, maxTopicBytes);
             // No topics means nothing to subscribe. Fail closed instead of opening
             // an authenticated connection with zero subscriptions.
             if (filters.isEmpty()) {
                 return Streams.error(ERROR_NO_TOPICS);
             }
-            val defaultResponseConfig = getDefaultResponseConfig(pipConfig, mqttPipConfigVal);
+            val defaultResponseConfig = getDefaultResponseConfig(pipConfig, brokerSelector);
             val defaultValue          = getDefaultValue(defaultResponseConfig);
             val timeoutMs             = defaultResponseConfig.getDefaultResponseTimeout();
             val emitAtRetry           = getConfigValueOrDefault(pipConfig, ENVIRONMENT_EMIT_AT_RETRY,
@@ -564,7 +571,7 @@ public class SaplMqttClient implements Closeable {
         if (pdpSecrets == null || pdpSecrets.isEmpty()) {
             return Value.EMPTY_OBJECT;
         }
-        val mqttSecretsValue = pdpSecrets.get(SECRETS_MQTT);
+        val mqttSecretsValue = pdpSecrets.get(MQTT);
         if (!(mqttSecretsValue instanceof ObjectValue mqttSecrets)) {
             return Value.EMPTY_OBJECT;
         }
@@ -601,7 +608,7 @@ public class SaplMqttClient implements Closeable {
     }
 
     private static JsonNode resolvePipConfig(ObjectValue variables) {
-        val raw = variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
+        val raw = variables.get(MQTT);
         if (raw == null || raw instanceof UndefinedValue) {
             return null;
         }

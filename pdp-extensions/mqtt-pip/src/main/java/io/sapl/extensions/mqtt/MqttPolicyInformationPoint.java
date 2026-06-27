@@ -63,9 +63,9 @@ public class MqttPolicyInformationPoint {
 
             ## Broker Configuration
 
-            Configure the PIP through the `mqttPipConfig` SAPL environment variable in `pdp.json`.
+            Configure the PIP through the `variables.mqtt` PDP variable in `pdp.json`.
 
-            Top-level settings:
+            Top-level `variables.mqtt` settings:
             * `brokerConfig`: A single broker configuration object, or an array of named broker
               configuration objects for multi-broker setups
             * `defaultBrokerConfigName`: The `name` of the broker to use when no broker is
@@ -77,6 +77,10 @@ public class MqttPolicyInformationPoint {
             * `emitAtRetry`: Emit value on reconnection -- `"true"` or `"false"` (defaults to `"false"`)
             * `maxPayloadSize`: Maximum incoming message payload in bytes (defaults to 1048576). A
               larger message fails closed to an error value rather than being decoded.
+            * `maxTopicFilters`: Maximum number of topic filters accepted per subscription
+              (defaults to 32).
+            * `maxTopicFilterBytes`: Maximum total UTF-8 bytes across all topic filters accepted
+              per subscription (defaults to 8192).
 
             Each broker configuration object contains:
             * `name`: Broker identifier used for broker selection and secrets matching (see below)
@@ -88,8 +92,10 @@ public class MqttPolicyInformationPoint {
             ```json
             {
               "variables": {
-                "mqttPipConfig": {
+                "mqtt": {
                   "defaultBrokerConfigName": "production",
+                  "maxTopicFilters": 32,
+                  "maxTopicFilterBytes": 8192,
                   "brokerConfig": [
                     {
                       "name": "production",
@@ -112,7 +118,7 @@ public class MqttPolicyInformationPoint {
             ## Broker Selection
 
             When the policy does not specify a broker (e.g. `topic.<mqtt.messages>`):
-            1. The PDP reads `defaultBrokerConfigName` from `mqttPipConfig`.
+            1. The PDP reads `defaultBrokerConfigName` from `variables.mqtt`.
                If not set, the default name is `"default"`.
             2. The `brokerConfig` array is searched for a broker whose `name` matches.
             3. If `brokerConfig` is a single object (not an array), it is used directly
@@ -167,8 +173,10 @@ public class MqttPolicyInformationPoint {
             ```json
             {
               "variables": {
-                "mqttPipConfig": {
+                "mqtt": {
                   "defaultBrokerConfigName": "production",
+                  "maxTopicFilters": 32,
+                  "maxTopicFilterBytes": 8192,
                   "brokerConfig": [
                     { "name": "production", "brokerAddress": "mqtt.example.com", "brokerPort": 1883, "clientId": "sapl-prod" },
                     { "name": "staging", "brokerAddress": "mqtt-staging.example.com", "brokerPort": 1883, "clientId": "sapl-staging" }
@@ -221,7 +229,8 @@ public class MqttPolicyInformationPoint {
      * Uses QoS level 0 (at most once) by default.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param ctx the attribute access context containing MQTT broker configuration.
+     * @param ctx the attribute access context containing {@code variables.mqtt} and
+     * {@code secrets.mqtt}.
      * @return A reactive stream of messages from the subscribed topics.
      */
     @Attribute(name = "messages", docs = """
@@ -230,6 +239,11 @@ public class MqttPolicyInformationPoint {
 
             Accepts a single topic string or an array of topic strings. MQTT wildcards work
             in topic filters.
+
+            Topic arrays are bounded by `variables.mqtt.maxTopicFilters`. The total
+            UTF-8 bytes across all topic filters are bounded by
+            `variables.mqtt.maxTopicFilterBytes`. If either limit is exceeded, the PIP
+            returns an error value before opening a broker subscription.
 
             Example with single topic:
             ```sapl
@@ -269,7 +283,8 @@ public class MqttPolicyInformationPoint {
      * received messages as a reactive stream.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param ctx the attribute access context containing MQTT broker configuration.
+     * @param ctx the attribute access context containing {@code variables.mqtt} and
+     * {@code secrets.mqtt}.
      * @param qos The Quality of Service level (0, 1, or 2).
      * @return A reactive stream of messages from the subscribed topics.
      */
@@ -280,6 +295,12 @@ public class MqttPolicyInformationPoint {
             * QoS 0: At most once - fastest but may lose messages
             * QoS 1: At least once - acknowledged delivery, may receive duplicates
             * QoS 2: Exactly once - slowest but guaranteed
+
+            Accepts a single topic string or an array of topic strings. Topic arrays are
+            bounded by `variables.mqtt.maxTopicFilters`. The total UTF-8 bytes across all
+            topic filters are bounded by `variables.mqtt.maxTopicFilterBytes`. If either
+            limit is exceeded, the PIP returns an error value before opening a broker
+            subscription.
 
             Example with QoS 1 for reliable monitoring:
             ```sapl
@@ -312,18 +333,25 @@ public class MqttPolicyInformationPoint {
      * selecting an operator-configured broker by name.
      *
      * @param topic A topic string or array of topic strings to subscribe to.
-     * @param ctx the attribute access context containing MQTT broker configuration.
+     * @param ctx the attribute access context containing {@code variables.mqtt} and
+     * {@code secrets.mqtt}.
      * @param qos The Quality of Service level (0, 1, or 2).
-     * @param mqttPipConfig The name of an operator-configured broker.
+     * @param brokerName The name of an operator-configured broker.
      * @return A reactive stream of messages from the subscribed topics.
      */
     @Attribute(name = "messages", docs = """
             Subscribes to MQTT topics on an operator-configured broker selected by name.
 
-            The `mqttPipConfig` parameter is the name of a broker from the operator-configured
+            The `brokerName` parameter is the name of a broker from the operator-configured
             `brokerConfig`. A policy may only select a broker by name or use the default. A
             policy may not supply an inline broker configuration object; doing so yields an
             error value.
+
+            Accepts a single topic string or an array of topic strings. Topic arrays are
+            bounded by `variables.mqtt.maxTopicFilters`. The total UTF-8 bytes across all
+            topic filters are bounded by `variables.mqtt.maxTopicFilterBytes`. If either
+            limit is exceeded, the PIP returns an error value before opening a broker
+            subscription.
 
             Example referencing a broker by name:
             ```sapl
@@ -333,7 +361,7 @@ public class MqttPolicyInformationPoint {
               topics.<mqtt.messages(1, "staging")>.operational == true;
             ```
             """)
-    public Stream<Value> messages(Value topic, AttributeAccessContext ctx, Value qos, Value mqttPipConfig) {
-        return saplMqttClient.buildSaplMqttMessageStream(topic, ctx, qos, mqttPipConfig);
+    public Stream<Value> messages(Value topic, AttributeAccessContext ctx, Value qos, Value brokerName) {
+        return saplMqttClient.buildSaplMqttMessageStream(topic, ctx, qos, brokerName);
     }
 }

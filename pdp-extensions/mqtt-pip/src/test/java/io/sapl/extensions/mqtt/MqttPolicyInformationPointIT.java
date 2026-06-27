@@ -102,7 +102,7 @@ class MqttPolicyInformationPointIT {
                   ]
                 }
                 """.formatted(brokerHost, brokerPort, clientId));
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
@@ -139,7 +139,7 @@ class MqttPolicyInformationPointIT {
                   ]
                 }
                 """.formatted(brokerHost, brokerPort, "sapl-down-" + CLIENT_SEQ.incrementAndGet()));
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
@@ -291,7 +291,7 @@ class MqttPolicyInformationPointIT {
                     }
                     """.formatted(type, timeoutMs, brokerHost, brokerPort,
                     "sapl-pip-default-" + CLIENT_SEQ.incrementAndGet()));
-            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
             return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
 
@@ -363,7 +363,7 @@ class MqttPolicyInformationPointIT {
     class ErrorPaths {
 
         @Test
-        @DisplayName("missing mqttPipConfig yields an error stream")
+        @DisplayName("missing mqtt config yields an error stream")
         void whenNoMqttPipConfigThenErrorValue() {
             val emptyCtx = new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
@@ -388,7 +388,7 @@ class MqttPolicyInformationPointIT {
                       ]
                     }
                     """);
-            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
             val ctx       = new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
             try (val stream = pip.messages(Value.of("any/topic"), ctx)) {
@@ -437,7 +437,7 @@ class MqttPolicyInformationPointIT {
                       ]
                     }
                     """.formatted(brokerHost, brokerPort, "sapl-pip-share-" + CLIENT_SEQ.incrementAndGet()));
-            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
             return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
 
