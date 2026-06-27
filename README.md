@@ -250,7 +250,13 @@ repositories {
 <details>
 <summary>SBOM</summary>
 
-Need a [Software Bill of Materials](https://www.cisa.gov/sbom)? See [dependency graph](https://github.com/heutelbeck/sapl-policy-engine/network/dependencies).
+Need a [Software Bill of Materials](https://www.cisa.gov/sbom)? The SAPL Node executable JAR embeds a CycloneDX JSON SBOM at `META-INF/sbom/application.cdx.json`.
+
+```bash
+jar xf sapl-node-4.1.0.jar META-INF/sbom/application.cdx.json
+```
+
+For repository dependency visibility, see the public [GitHub dependency graph](https://github.com/heutelbeck/sapl-policy-engine/network/dependencies).
 
 </details>
 

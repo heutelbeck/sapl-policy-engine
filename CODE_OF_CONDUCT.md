@@ -1,15 +1,54 @@
 # Contributor Code of Conduct
 
-As contributors and maintainers of this project, we pledge to respect all people who contribute through reporting issues, posting feature requests, updating documentation, submitting pull requests or patches, and other activities.
+## Our Pledge
 
-We are committed to making participation in this project a harassment-free experience for everyone, regardless of level of experience, gender, gender identity and expression, sexual orientation, disability, personal appearance, body size, race, ethnicity, age, or religion.
+We want participation in SAPL to be open, respectful, and productive. Contributors,
+maintainers, users, and visitors are expected to help keep project spaces professional
+and welcoming.
 
-Examples of unacceptable behavior by participants include the use of sexual language or imagery, derogatory comments or personal attacks, trolling, public or private harassment, insults, or other unprofessional conduct.
+## Our Standards
 
-Project maintainers have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct. Project maintainers who do not follow the Code of Conduct may be removed from the project team.
+Examples of behavior that supports a healthy project community include:
 
-This code of conduct applies both within project spaces and in public spaces when an individual is representing the project or its community.
+- Using welcoming and inclusive language.
+- Respecting different viewpoints and levels of experience.
+- Giving and receiving constructive feedback.
+- Focusing criticism on ideas, code, documentation, and decisions.
+- Showing care for the community and the people affected by the software.
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by opening an issue or contacting one or more of the project maintainers.
+Examples of unacceptable behavior include:
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 1.1.0, available at https://www.contributor-covenant.org/version/1/1/0/code-of-conduct.html
+- Harassment, intimidation, stalking, or unwanted attention.
+- Insults, personal attacks, trolling, or sustained disruption.
+- Sexualized language, imagery, or attention in project spaces.
+- Publishing private information without explicit permission.
+- Conduct that would reasonably be considered inappropriate in a professional setting.
+
+## Scope
+
+This Code of Conduct applies in all project spaces, including issues, pull requests,
+discussions, documentation, chat channels, events, and any other space where someone
+represents SAPL or its community.
+
+## Reporting
+
+Report conduct concerns privately by email to <dominic@heutelbeck.com>. Do not open a
+public issue for conduct incidents. Include the relevant context, links, screenshots,
+and names where appropriate. Reports will be handled with discretion and only shared
+with people needed to review and resolve the matter.
+
+## Enforcement
+
+Maintainers may remove, edit, or reject comments, commits, code, documentation, issues,
+pull requests, and other contributions that violate this Code of Conduct. Maintainers
+may also temporarily or permanently restrict participation for behavior that is harmful
+to the project community.
+
+Enforcement decisions should be proportionate to the incident, its impact, and any
+previous behavior. People affected by an enforcement decision may contact the reporting
+address above to request review.
+
+## Attribution
+
+This Code of Conduct follows the structure of the Contributor Covenant, version 2.1,
+available at <https://www.contributor-covenant.org/version/2/1/code_of_conduct/>.

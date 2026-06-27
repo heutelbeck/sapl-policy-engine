@@ -111,8 +111,8 @@ Maintaining a consistent code style is crucial for our project's readability.
 We enforce these standards automatically
 using [formatter-maven-plugin][eclipse-formatter-plugin] based
 on [Eclipse Code Formatter][eclipse-formatter-definition] configured in
-the [formatter.xml file](formatter.xml), which checks and ensures adherence to our
-guidelines.
+the [formatter.xml file](sapl-code-style/src/main/resources/eclipse/formatter.xml),
+which checks and ensures adherence to our guidelines.
 
 ##### Rules
 
