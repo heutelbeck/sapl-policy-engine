@@ -40,10 +40,11 @@ import static io.sapl.compiler.util.TrojanSourceUtil.assertNoTrojanSourceCharact
 
 @UtilityClass
 public class DocumentCompiler {
-    private static final String ERROR_DOCUMENT_TOO_LARGE = "Parsing of SAPL document failed: document exceeds the maximum size of %d bytes.";
-    private static final String ERROR_NESTING_TOO_DEEP   = "Parsing of SAPL document failed: document nesting is too deep.";
-    private static final String ERROR_PARSING_AST_NULL   = "Parsing of SAPL document failed: AST was null.";
-    private static final String ERROR_PARSING_FAILED     = "Parsing of SAPL document failed: %s.";
+    private static final String ERROR_COMPILATION_TOO_DEEP = "Compilation of SAPL document failed: expression tree is too deep.";
+    private static final String ERROR_DOCUMENT_TOO_LARGE   = "Parsing of SAPL document failed: document exceeds the maximum size of %d bytes.";
+    private static final String ERROR_NESTING_TOO_DEEP     = "Parsing of SAPL document failed: document nesting is too deep.";
+    private static final String ERROR_PARSING_AST_NULL     = "Parsing of SAPL document failed: AST was null.";
+    private static final String ERROR_PARSING_FAILED       = "Parsing of SAPL document failed: %s.";
 
     /**
      * Maximum size of a SAPL document the engine will compile. Shared with the
@@ -153,9 +154,13 @@ public class DocumentCompiler {
 
     private static CompiledDocument compileDocument(SaplDocument saplDocument, CompilationContext ctx) {
         ctx.resetForNextDocument();
-        return switch (saplDocument) {
-        case Policy policy       -> PolicyCompiler.compilePolicy(policy, ctx);
-        case PolicySet policySet -> PolicySetCompiler.compilePolicySet(policySet, ctx);
-        };
+        try {
+            return switch (saplDocument) {
+            case Policy policy       -> PolicyCompiler.compilePolicy(policy, ctx);
+            case PolicySet policySet -> PolicySetCompiler.compilePolicySet(policySet, ctx);
+            };
+        } catch (StackOverflowError e) {
+            throw new SaplCompilerException(ERROR_COMPILATION_TOO_DEEP, e);
+        }
     }
 }
