@@ -24,7 +24,7 @@ After=network.target
 Type=simple
 User=sapl
 Group=sapl
-ExecStart=/usr/bin/sapl --spring.config.location=file:/etc/sapl/application.yml
+ExecStart=/usr/bin/sapl --spring.config.additional-location=file:/etc/sapl/application.yml
 Restart=on-failure
 RestartSec=5s
 StateDirectory=sapl

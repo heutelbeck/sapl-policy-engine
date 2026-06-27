@@ -22,8 +22,8 @@
 # This file is installed to /etc/sapl/application.yml and is
 # preserved across package upgrades (config|noreplace).
 #
-# The systemd service uses --spring.config.location=file:/etc/sapl/application.yml
-# which fully replaces the JAR-embedded defaults. Only this file is loaded.
+# The systemd service uses --spring.config.additional-location=file:/etc/sapl/application.yml
+# so this file overlays the JAR-embedded defaults.
 #
 # The node will not start until bundle security is configured.
 # See /var/lib/sapl/README for the quick start workflow.
