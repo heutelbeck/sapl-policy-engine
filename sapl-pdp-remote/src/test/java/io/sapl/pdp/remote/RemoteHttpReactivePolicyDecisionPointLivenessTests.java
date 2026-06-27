@@ -125,6 +125,8 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
     void whenStreamGoesSilentThenIndeterminate() throws Exception {
         val pdp = startServer(out -> {
             writeChunk(out, decisionEvent(AuthorizationDecision.PERMIT));
+            // No condition to await: the inactivity timeout fires on elapsed time, so the
+            // server must really stay silent.
             Thread.sleep(15000);
         });
         pdp.setInactivityTimeoutMillis(300);
@@ -142,9 +144,13 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
         val pdp = startServer(out -> {
             writeChunk(out, decisionEvent(AuthorizationDecision.PERMIT));
             for (var i = 0; i < 8; i++) {
+                // No condition to await: keep-alive handling depends on real cadence, so frames
+                // must be spaced in real time.
                 Thread.sleep(150);
                 writeChunk(out, ": keep-alive\n\n");
             }
+            // No condition to await: the timeout fires on elapsed silence, which must
+            // really pass.
             Thread.sleep(5000);
         });
         pdp.setInactivityTimeoutMillis(500);

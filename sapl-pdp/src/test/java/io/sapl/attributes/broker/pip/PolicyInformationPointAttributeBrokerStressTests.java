@@ -213,6 +213,7 @@ class PolicyInformationPointAttributeBrokerStressTests {
                 try {
                     val handles = new ArrayList<>(broker.catalog());
                     if (handles.isEmpty()) {
+                        // Inherently time-based: paces the churn rate, there is no condition to await.
                         Thread.sleep(20);
                         continue;
                     }
@@ -221,6 +222,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
                     broker.swap(target, fresh);
                     allInstances.add(fresh);
                     swapsCompleted.incrementAndGet();
+                    // Inherently time-based: paces the churn rate between swaps, no condition to
+                    // await.
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -321,6 +324,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
                         allInstances.add(fresh);
                         loaded.put(ns, broker.load(fresh));
                     }
+                    // Inherently time-based: paces the load/unload churn rate, no condition to
+                    // await.
                     Thread.sleep(40);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -344,6 +349,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
                 }
                 n++;
                 try {
+                    // Inherently time-based: paces the repository-refresh rate, no condition to
+                    // await.
                     Thread.sleep(60);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -371,6 +378,7 @@ class PolicyInformationPointAttributeBrokerStressTests {
                         }
                     }
                     try {
+                        // Inherently time-based: paces the emitter rate, no condition to await.
                         Thread.sleep(15);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
@@ -611,6 +619,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
         val stop = new AtomicBoolean();
         Thread.ofVirtual().name("stress-emitter-stopper").start(() -> {
             try {
+                // Inherently time-based: the stress window is a fixed duration, not a condition
+                // to await.
                 Thread.sleep(window.toMillis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

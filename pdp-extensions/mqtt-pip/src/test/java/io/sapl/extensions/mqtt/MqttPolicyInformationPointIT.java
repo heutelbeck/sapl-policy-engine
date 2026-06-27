@@ -113,6 +113,8 @@ class MqttPolicyInformationPointIT {
     private static void publishLater(Mqtt5Publish message, long delayMs) {
         Thread.startVirtualThread(() -> {
             try {
+                // No condition to await: this thread produces a timed event, so the publish
+                // must really be deferred.
                 Thread.sleep(delayMs);
                 publisher.publish(message);
             } catch (InterruptedException ie) {

@@ -123,6 +123,8 @@ class PolicyInformationPointAttributeBrokerTests {
 
     private static void simulateSlowCallback(long millis) {
         try {
+            // No state to await: concurrent dispatch only coincides if each callback holds
+            // for a real interval.
             Thread.sleep(millis);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

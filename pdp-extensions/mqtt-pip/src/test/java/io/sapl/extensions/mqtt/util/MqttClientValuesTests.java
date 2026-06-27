@@ -124,6 +124,8 @@ class MqttClientValuesTests {
                 overlap.set(true);
             }
             try {
+                // No state to await: the overlap only occurs if the call holds for a real
+                // interval.
                 Thread.sleep(20);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

@@ -120,6 +120,8 @@ class PipBrokerSpecTests {
 
     private static void sleepUninterruptibly(Duration duration) {
         try {
+            // No condition to await: coalescing and absence-over-a-window checks only hold
+            // if real time elapses.
             Thread.sleep(duration.toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
