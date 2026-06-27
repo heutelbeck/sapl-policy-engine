@@ -106,8 +106,9 @@ public class BlockingWebClient {
     private static final String MEDIATYPE_APPLICATION_JSON  = "application/json";
     private static final String MEDIATYPE_TEXT_EVENT_STREAM = "text/event-stream";
 
-    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(10L);
-    private static final Duration READ_TIMEOUT       = Duration.ofSeconds(30L);
+    private static final Duration CONNECTION_TIMEOUT      = Duration.ofSeconds(10L);
+    private static final Duration READ_TIMEOUT            = Duration.ofSeconds(30L);
+    private static final long     SSE_LINE_OVERHEAD_BYTES = 6L;
 
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
     private static final JsonNode        APPLICATION_JSON = JSON.stringNode(MEDIATYPE_APPLICATION_JSON);
@@ -263,17 +264,18 @@ public class BlockingWebClient {
      * {@code \r}, {@code \r\n}) are recognized and stripped, matching the
      * previous line-stream behavior. A trailing un-terminated line is
      * still dispatched at end of stream. The cap is enforced in UTF-8
-     * bytes across the in-flight accumulated event plus the line being
-     * read. Once it is crossed the read is aborted before any further
+     * bytes across the emitted event data. Individual raw lines are
+     * also bounded while being read so a newline-free payload cannot
+     * exhaust memory. Once a cap is crossed the read is aborted before any further
      * bytes are buffered.
      */
     private void pumpServerSentEvents(InputStream body, Consumer<Value> emit, AtomicBoolean stopped, long maxBytes)
             throws IOException {
         val reader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8));
-        val data   = new StringBuilder();
+        val data   = new ServerSentEventData();
         val line   = new StringBuilder();
         while (!stopped.get()) {
-            val terminated = readLine(reader, line, utf8ByteLength(data), maxBytes, emit, stopped);
+            val terminated = readLine(reader, line, maxBytes, emit, stopped);
             if (stopped.get()) {
                 return;
             }
@@ -290,17 +292,16 @@ public class BlockingWebClient {
 
     /**
      * Reads a single line into {@code line}, treating {@code \n},
-     * {@code \r} and {@code \r\n} as terminators and bounding the combined
-     * size of the already-accumulated event ({@code carriedDataBytes})
-     * plus the line being read against {@code maxBytes}. Returns
+     * {@code \r} and {@code \r\n} as terminators and bounding the raw
+     * line being read against {@code maxBytes}. Returns
      * {@code true} if a terminator was consumed, {@code false} at end of
      * stream. Emits the too-large error and sets {@code stopped} the
      * moment the cap is crossed, before reading on.
      */
-    private boolean readLine(BufferedReader reader, StringBuilder line, long carriedDataBytes, long maxBytes,
-            Consumer<Value> emit, AtomicBoolean stopped) throws IOException {
-        var lineBytes = 0L;
-        int read;
+    private boolean readLine(BufferedReader reader, StringBuilder line, long maxBytes, Consumer<Value> emit,
+            AtomicBoolean stopped) throws IOException {
+        long lineBytes = 0L;
+        int  read;
         while ((read = reader.read()) != -1) {
             val c = (char) read;
             if (c == '\n') {
@@ -315,7 +316,7 @@ public class BlockingWebClient {
             }
             line.append(c);
             lineBytes += charUtf8ByteLength(c);
-            if (carriedDataBytes + lineBytes > maxBytes) {
+            if (lineBytes > maxBytes + SSE_LINE_OVERHEAD_BYTES) {
                 emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                 stopped.set(true);
                 return false;
@@ -324,31 +325,23 @@ public class BlockingWebClient {
         return false;
     }
 
-    private void consumeLine(String line, StringBuilder data, Consumer<Value> emit, AtomicBoolean stopped,
+    private void consumeLine(String line, ServerSentEventData data, Consumer<Value> emit, AtomicBoolean stopped,
             long maxBytes) {
         if (line.isEmpty()) {
             flushEvent(data, emit);
         } else if (line.startsWith("data:")) {
-            appendDataLine(data, line);
-            if (utf8ByteLength(data) > maxBytes) {
+            if (!data.appendDataLine(line, maxBytes)) {
                 emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                 stopped.set(true);
             }
         }
     }
 
-    private void flushEvent(StringBuilder data, Consumer<Value> emit) {
+    private void flushEvent(ServerSentEventData data, Consumer<Value> emit) {
         if (!data.isEmpty()) {
-            emit.accept(parseServerSentEventData(data.toString()));
-            data.setLength(0);
+            emit.accept(parseServerSentEventData(data.payload()));
+            data.clear();
         }
-    }
-
-    private static void appendDataLine(StringBuilder data, String line) {
-        if (!data.isEmpty()) {
-            data.append('\n');
-        }
-        data.append(line.substring(5).stripLeading());
     }
 
     private Value parseServerSentEventData(String data) {
@@ -563,8 +556,12 @@ public class BlockingWebClient {
         return t.getMessage() == null ? t.toString() : t.getMessage();
     }
 
-    private static int utf8ByteLength(CharSequence text) {
-        return text.toString().getBytes(StandardCharsets.UTF_8).length;
+    private static long utf8ByteLength(CharSequence text) {
+        long bytes = 0L;
+        for (int i = 0; i < text.length(); i++) {
+            bytes += charUtf8ByteLength(text.charAt(i));
+        }
+        return bytes;
     }
 
     /**
@@ -602,6 +599,7 @@ public class BlockingWebClient {
         private final Runnable        complete;
         private final JsonMapper      mapper;
         private final long            maxBytes;
+        private long                  accumulatedBytes;
 
         @Override
         public void onOpen(WebSocket webSocket) {
@@ -610,17 +608,21 @@ public class BlockingWebClient {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            accumulator.append(data);
-            if (utf8ByteLength(accumulator) > maxBytes) {
+            val dataBytes = utf8ByteLength(data);
+            if (dataBytes > maxBytes - accumulatedBytes) {
                 emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                 accumulator.setLength(0);
+                accumulatedBytes = 0L;
                 complete.run();
                 webSocket.abort();
                 return null;
             }
+            accumulator.append(data);
+            accumulatedBytes += dataBytes;
             if (last) {
                 emit.accept(parsePayload(accumulator.toString()));
                 accumulator.setLength(0);
+                accumulatedBytes = 0L;
             }
             webSocket.request(1L);
             return null;
@@ -644,6 +646,39 @@ public class BlockingWebClient {
             } catch (JacksonException e) {
                 return Value.error(messageOf(e));
             }
+        }
+    }
+
+    private static final class ServerSentEventData {
+        private final StringBuilder data = new StringBuilder();
+        private long                bytes;
+
+        boolean appendDataLine(String line, long maxBytes) {
+            val value      = line.substring(5).stripLeading();
+            val valueBytes = utf8ByteLength(value);
+            val extraBytes = valueBytes + (data.isEmpty() ? 0L : 1L);
+            if (extraBytes > maxBytes - bytes) {
+                return false;
+            }
+            if (!data.isEmpty()) {
+                data.append('\n');
+            }
+            data.append(value);
+            bytes += extraBytes;
+            return true;
+        }
+
+        boolean isEmpty() {
+            return data.isEmpty();
+        }
+
+        String payload() {
+            return data.toString();
+        }
+
+        void clear() {
+            data.setLength(0);
+            bytes = 0L;
         }
     }
 }

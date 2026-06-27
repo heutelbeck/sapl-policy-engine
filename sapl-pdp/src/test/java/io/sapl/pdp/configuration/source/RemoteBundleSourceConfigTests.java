@@ -43,24 +43,32 @@ class RemoteBundleSourceConfigTests {
 
     @ParameterizedTest(name = "{0} -> exposed={1}")
     @CsvSource({ "http://192.0.2.10/bundles, true", "HTTP://192.0.2.10/bundles, true",
-            "https://192.0.2.10/bundles, false", "https://bundles.example.com/bundles, false",
-            "http://127.0.0.1:8080/bundles, false", "http://localhost:8080/bundles, false" })
-    @DisplayName("a credential is exposed only over non-loopback http")
+            "http://127.0.0.1:8080/bundles, true", "http://localhost:8080/bundles, true",
+            "https://192.0.2.10/bundles, false", "https://bundles.example.com/bundles, false" })
+    @DisplayName("a credential is exposed over any plaintext http URL")
     void credentialExposureByUrl(String baseUrl, boolean exposed) {
         assertThat(RemoteBundleSourceConfig.credentialIsExposed(baseUrl)).isEqualTo(exposed);
     }
 
     @Test
-    @DisplayName("credentials over plain http are warned about, not rejected, so the config still builds")
-    void whenCredentialsOverPlainHttpThenConfigStillBuilds() {
-        assertThatCode(() -> config("http://192.0.2.10/bundles", "Authorization", "Bearer secret"))
+    @DisplayName("credentials over plain http are rejected by default")
+    void whenCredentialsOverPlainHttpWithoutOptInThenConfigFailsClosed() {
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> config("http://192.0.2.10/bundles", "Authorization", "Bearer secret"))
+                .withMessageContaining("plaintext");
+    }
+
+    @Test
+    @DisplayName("credentials over plain http build only with the explicit insecure opt-in")
+    void whenCredentialsOverPlainHttpWithOptInThenConfigBuilds() {
+        assertThatCode(() -> config("http://192.0.2.10/bundles", "Authorization", "Bearer secret", true))
                 .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("toString redacts the auth header value")
     void whenToStringThenAuthHeaderValueRedacted() {
-        var cfg = config("https://bundles.example.com/bundles", "Authorization", "Bearer super-secret-token");
+        val cfg = config("https://bundles.example.com/bundles", "Authorization", "Bearer super-secret-token");
 
         assertThat(cfg.toString()).doesNotContain("super-secret-token").contains("REDACTED");
     }
@@ -103,5 +111,12 @@ class RemoteBundleSourceConfigTests {
         return new RemoteBundleSourceConfig(baseUrl, List.of("default"), RemoteBundleSourceConfig.FetchMode.POLLING,
                 Duration.ofMillis(100), Duration.ofSeconds(5), authName, authValue, true, POLICY, Map.of(),
                 Duration.ofMillis(50), Duration.ofMillis(200));
+    }
+
+    private static RemoteBundleSourceConfig config(String baseUrl, String authName, String authValue,
+            boolean allowInsecureHttp) {
+        return new RemoteBundleSourceConfig(baseUrl, List.of("default"), RemoteBundleSourceConfig.FetchMode.POLLING,
+                Duration.ofMillis(100), Duration.ofSeconds(5), authName, authValue, allowInsecureHttp, true, POLICY,
+                Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
     }
 }

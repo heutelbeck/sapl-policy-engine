@@ -67,6 +67,7 @@ class RemoteBundleAutoConfigurationTests {
                     assertThat(p.getLongPollTimeout()).isEqualTo(Duration.ofSeconds(30));
                     assertThat(p.getAuthHeaderName()).isNull();
                     assertThat(p.getAuthHeaderValue()).isNull();
+                    assertThat(p.isAllowInsecureHttp()).isFalse();
                     assertThat(p.isFollowRedirects()).isTrue();
                     assertThat(p.getPdpIdPollIntervals()).isEmpty();
                     assertThat(p.getFirstBackoff()).isEqualTo(Duration.ofMillis(500));
@@ -83,8 +84,8 @@ class RemoteBundleAutoConfigurationTests {
                     PREFIX + "remoteBundles.mode=LONG_POLL", PREFIX + "remoteBundles.pollInterval=10s",
                     PREFIX + "remoteBundles.longPollTimeout=60s", PREFIX + "remoteBundles.authHeaderName=Authorization",
                     PREFIX + "remoteBundles.authHeaderValue=Bearer token123",
-                    PREFIX + "remoteBundles.followRedirects=false", PREFIX + "remoteBundles.firstBackoff=1s",
-                    PREFIX + "remoteBundles.maxBackoff=30s").run(context -> {
+                    PREFIX + "remoteBundles.allowInsecureHttp=true", PREFIX + "remoteBundles.followRedirects=false",
+                    PREFIX + "remoteBundles.firstBackoff=1s", PREFIX + "remoteBundles.maxBackoff=30s").run(context -> {
                         val props = context.getBean(EmbeddedPDPProperties.class).getRemoteBundles();
                         assertThat(props).satisfies(p -> {
                             assertThat(p.getBaseUrl()).isEqualTo("https://pap.example.com/bundles");
@@ -94,6 +95,7 @@ class RemoteBundleAutoConfigurationTests {
                             assertThat(p.getLongPollTimeout()).isEqualTo(Duration.ofSeconds(60));
                             assertThat(p.getAuthHeaderName()).isEqualTo("Authorization");
                             assertThat(p.getAuthHeaderValue()).isEqualTo("Bearer token123");
+                            assertThat(p.isAllowInsecureHttp()).isTrue();
                             assertThat(p.isFollowRedirects()).isFalse();
                             assertThat(p.getFirstBackoff()).isEqualTo(Duration.ofSeconds(1));
                             assertThat(p.getMaxBackoff()).isEqualTo(Duration.ofSeconds(30));
@@ -135,6 +137,29 @@ class RemoteBundleAutoConfigurationTests {
                     .withPropertyValues(PREFIX + "pdpConfigType=REMOTE_BUNDLES",
                             PREFIX + "remoteBundles.baseUrl=http://localhost:1/bundles",
                             PREFIX + "remoteBundles.pdpIds[0]=default", PREFIX + "bundleSecurity.allowUnsigned=true")
+                    .run(context -> {
+                        assertThat(context).hasNotFailed().hasSingleBean(DelegatingReactivePolicyDecisionPoint.class);
+                    });
+        }
+
+        @Test
+        @DisplayName("REMOTE_BUNDLES with credentials over plain http fails without insecure opt-in")
+        void whenRemoteBundlesCredentialsUsePlainHttpWithoutOptInThenContextFails() {
+            autoConfigRunner.withPropertyValues(PREFIX + "pdpConfigType=REMOTE_BUNDLES",
+                    PREFIX + "remoteBundles.baseUrl=http://localhost:1/bundles",
+                    PREFIX + "remoteBundles.pdpIds[0]=default", PREFIX + "remoteBundles.authHeaderName=Authorization",
+                    PREFIX + "remoteBundles.authHeaderValue=Bearer token123",
+                    PREFIX + "bundleSecurity.allowUnsigned=true").run(context -> assertThat(context).hasFailed());
+        }
+
+        @Test
+        @DisplayName("REMOTE_BUNDLES with credentials over plain http starts only with insecure opt-in")
+        void whenRemoteBundlesCredentialsUsePlainHttpWithOptInThenPdpCreated() {
+            autoConfigRunner.withPropertyValues(PREFIX + "pdpConfigType=REMOTE_BUNDLES",
+                    PREFIX + "remoteBundles.baseUrl=http://localhost:1/bundles",
+                    PREFIX + "remoteBundles.pdpIds[0]=default", PREFIX + "remoteBundles.authHeaderName=Authorization",
+                    PREFIX + "remoteBundles.authHeaderValue=Bearer token123",
+                    PREFIX + "remoteBundles.allowInsecureHttp=true", PREFIX + "bundleSecurity.allowUnsigned=true")
                     .run(context -> {
                         assertThat(context).hasNotFailed().hasSingleBean(DelegatingReactivePolicyDecisionPoint.class);
                     });

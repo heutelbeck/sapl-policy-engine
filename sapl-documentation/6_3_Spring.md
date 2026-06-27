@@ -1009,6 +1009,7 @@ When `pdp-config-type=REMOTE_BUNDLES`, bundles are fetched from a remote HTTP se
 | `io.sapl.pdp.embedded.remote-bundles.long-poll-timeout` | `30s` | Server hold timeout for long-poll mode. |
 | `io.sapl.pdp.embedded.remote-bundles.auth-header-name` | none | HTTP header name for authentication (such as `Authorization`). |
 | `io.sapl.pdp.embedded.remote-bundles.auth-header-value` | none | HTTP header value for authentication (such as `Bearer <token>`). |
+| `io.sapl.pdp.embedded.remote-bundles.allow-insecure-http` | `false` | Permit configured auth headers over plaintext HTTP. Use only on trusted local or proxied hops. |
 | `io.sapl.pdp.embedded.remote-bundles.follow-redirects` | `true` | Follow HTTP 3xx redirects. |
 | `io.sapl.pdp.embedded.remote-bundles.pdp-id-poll-intervals.<id>` | empty | Per-`pdpId` poll interval overrides. |
 | `io.sapl.pdp.embedded.remote-bundles.first-backoff` | `500ms` | Initial backoff after a fetch failure. |

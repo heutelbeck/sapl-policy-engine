@@ -194,6 +194,7 @@ io.sapl:
     #   # long-poll-timeout: 30s
     #   # auth-header-name: Authorization
     #   # auth-header-value: "Bearer <token>"
+    #   # allow-insecure-http: false
     #   # follow-redirects: true
 
 # --- OAuth2 Resource Server ---

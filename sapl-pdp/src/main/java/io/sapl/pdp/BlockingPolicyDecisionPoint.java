@@ -246,10 +246,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             MultiAuthorizationSubscription multiSubscription, String subscriptionId) {
         try {
             return maybePdp.map(pdp -> multiVoteStream(multiSubscription, pdp, subscriptionId))
-                    .orElseGet(() -> singleton(MultiAuthorizationDecision.indeterminate()));
+                    .orElseGet(() -> singleton(indeterminateFor(multiSubscription)));
         } catch (RuntimeException e) {
             log.warn(ERROR_UNEXPECTED_EVALUATION, e);
-            return singleton(MultiAuthorizationDecision.indeterminate());
+            return singleton(indeterminateFor(multiSubscription));
         }
     }
 
@@ -730,7 +730,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                                // so surface a fail-closed INDETERMINATE and complete the stream.
                                terminated.set(true);
                                log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, e.getMessage(), e);
-                               out.put(MultiAuthorizationDecision.indeterminate());
+                               out.put(indeterminateFor(items));
                                out.complete();
                                return firstDeps;
                            }
@@ -786,7 +786,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     private Stream<IdentifiableAuthorizationDecision> identifiableChangeStream(
             Stream<MultiAuthorizationDecision> source, AtomicReference<MultiAuthorizationDecision> previousRef) {
-        val out  = new QueueStream<IdentifiableAuthorizationDecision>();
+        val out  = new LatestIdentifiableDecisionStream();
         val pump = Thread.startVirtualThread(() -> pumpChangedDecisions(source, previousRef, out));
         out.onClose(() -> {
             pump.interrupt();
@@ -796,8 +796,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     private static void pumpChangedDecisions(Stream<MultiAuthorizationDecision> source,
-            AtomicReference<MultiAuthorizationDecision> previousRef,
-            QueueStream<IdentifiableAuthorizationDecision> out) {
+            AtomicReference<MultiAuthorizationDecision> previousRef, LatestIdentifiableDecisionStream out) {
         try {
             while (true) {
                 val current = source.awaitNext();
@@ -815,13 +814,38 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     private static void emitDecisionDiffs(MultiAuthorizationDecision current, MultiAuthorizationDecision previous,
-            QueueStream<IdentifiableAuthorizationDecision> out) {
+            LatestIdentifiableDecisionStream out) {
         for (val identifiable : current) {
             val prevDecision = previous == null ? null : previous.getDecision(identifiable.subscriptionId());
             if (!Objects.equals(prevDecision, identifiable.decision())) {
                 out.put(identifiable);
             }
         }
+        if (previous == null) {
+            return;
+        }
+        for (val identifiable : previous) {
+            if (current.getDecision(identifiable.subscriptionId()) == null) {
+                out.put(new IdentifiableAuthorizationDecision(identifiable.subscriptionId(),
+                        AuthorizationDecision.INDETERMINATE));
+            }
+        }
+    }
+
+    private static MultiAuthorizationDecision indeterminateFor(MultiAuthorizationSubscription multiSubscription) {
+        val multiDecision = new MultiAuthorizationDecision();
+        for (val identifiable : multiSubscription) {
+            multiDecision.setDecision(identifiable.subscriptionId(), AuthorizationDecision.INDETERMINATE);
+        }
+        return multiDecision;
+    }
+
+    private static MultiAuthorizationDecision indeterminateFor(List<IdentifiableAuthorizationSubscription> items) {
+        val multiDecision = new MultiAuthorizationDecision();
+        for (val identifiable : items) {
+            multiDecision.setDecision(identifiable.subscriptionId(), AuthorizationDecision.INDETERMINATE);
+        }
+        return multiDecision;
     }
 
     private static <T> Stream<T> singleton(T value) {

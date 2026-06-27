@@ -60,7 +60,11 @@ public class MultiAuthorizationSubscriptionDeserializer extends StdDeserializer<
                 return context.reportInputMismatch(MultiAuthorizationSubscription.class,
                         ERROR_DUPLICATE_SUBSCRIPTION_ID.formatted(subscriptionId));
             }
-            multiSubscription.addSubscription(subscriptionId, subscription);
+            try {
+                multiSubscription.addSubscription(subscriptionId, subscription);
+            } catch (IllegalArgumentException e) {
+                return context.reportInputMismatch(MultiAuthorizationSubscription.class, e.getMessage());
+            }
         }
 
         return multiSubscription;

@@ -17,13 +17,18 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.api.model.Poll;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
+import io.sapl.attributes.broker.repository.RepositoryKey;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +39,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -66,10 +72,12 @@ class BlockingReactivePolicyDecisionPointTests {
 
     private PdpVoterSource              pdpVoterSource;
     private BlockingPolicyDecisionPoint pdp;
+    private InMemoryAttributeRepository repository;
 
     @BeforeEach
     void setUp() {
-        val components = PolicyDecisionPointBuilder.withoutDefaults().build();
+        repository = new InMemoryAttributeRepository();
+        val components = PolicyDecisionPointBuilder.withoutDefaults().withRepository(repository).build();
         pdpVoterSource = components.pdpVoterSource();
         pdp            = new BlockingPolicyDecisionPoint(pdpVoterSource, components.attributeBroker(),
                 new ThreadLocalRandomIdFactory());
@@ -218,6 +226,51 @@ class BlockingReactivePolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("decideAll retains only the latest pending state while the consumer is idle")
+    void whenMultiSubscriptionEntryChangesRepeatedlyBeforeNextConsumeThenNextBundleContainsLatestState()
+            throws Exception {
+        val attribute = environmentAttribute("test.flag");
+        repository.publish(attribute, Value.of("initial"));
+        loadConfiguration(DENY_OVERRIDES, """
+                policy "first permitted unless stale"
+                permit
+                    subject == "first" && <test.flag> != "stale";
+                obligation <test.flag>
+                """, """
+                policy "first stale state is denied"
+                deny
+                    subject == "first" && <test.flag> == "stale";
+                """, """
+                policy "second always permitted"
+                permit
+                    subject == "second";
+                """);
+
+        val multi = new MultiAuthorizationSubscription();
+        multi.addSubscription("first", subscription("first", "summon", "deep_one"));
+        multi.addSubscription("second", subscription("second", "summon", "deep_one"));
+
+        try (val stream = pdp.decideAll(multi)) {
+            val initial = stream.awaitNext(Duration.ofSeconds(2L));
+
+            assertDecision(initial, "first", Decision.PERMIT);
+            assertDecision(initial, "second", Decision.PERMIT);
+            assertObligation(initial, "first", "initial");
+
+            repository.publish(attribute, Value.of("stale"));
+            repository.publish(attribute, Value.of("latest"));
+            Thread.sleep(Duration.ofMillis(100L));
+
+            val latest = stream.awaitNext(Duration.ofSeconds(2L));
+
+            assertDecision(latest, "first", Decision.PERMIT);
+            assertDecision(latest, "second", Decision.PERMIT);
+            assertObligation(latest, "first", "latest");
+            assertThat(stream.tryNext()).isEqualTo(Poll.empty());
+        }
+    }
+
+    @Test
     @DisplayName("decide on multi-subscription emits per-id changes")
     void whenMultiSubscriptionThenDecideEmitsPerIdChanges() throws Exception {
         loadConfiguration(DENY_UNLESS_PERMIT, """
@@ -238,6 +291,39 @@ class BlockingReactivePolicyDecisionPointTests {
             assertThat(secondChange).isNotNull();
             assertThat(List.of(firstChange.subscriptionId(), secondChange.subscriptionId()))
                     .containsExactlyInAnyOrder("first", "second");
+        }
+    }
+
+    @Test
+    @DisplayName("configuration removal revokes each active multi-subscription ID")
+    void whenConfigurationRemovedAfterMultiSubscriptionPermitThenEachIdBecomesIndeterminate() throws Exception {
+        loadConfiguration(DENY_UNLESS_PERMIT, """
+                policy "permit all"
+                permit
+                """);
+
+        val multi = new MultiAuthorizationSubscription();
+        multi.addSubscription("first", subscription("cultist", "summon", "deep_one"));
+        multi.addSubscription("second", subscription("investigator", "summon", "deep_one"));
+
+        try (val stream = pdp.decide(multi)) {
+            val firstInitial  = stream.awaitNext(Duration.ofSeconds(2L));
+            val secondInitial = stream.awaitNext(Duration.ofSeconds(2L));
+
+            assertThat(List.of(firstInitial, secondInitial)).extracting(decision -> decision.subscriptionId())
+                    .containsExactlyInAnyOrder("first", "second");
+
+            pdpVoterSource.removeConfigurationForPdp("default");
+
+            val firstRevocation  = stream.awaitNext(Duration.ofSeconds(2L));
+            val secondRevocation = stream.awaitNext(Duration.ofSeconds(2L));
+
+            assertThat(List.of(firstRevocation, secondRevocation)).satisfies(revocations -> {
+                assertThat(revocations).extracting(decision -> decision.subscriptionId())
+                        .containsExactlyInAnyOrder("first", "second");
+                assertThat(revocations).allSatisfy(
+                        decision -> assertThat(decision.decision().decision()).isEqualTo(Decision.INDETERMINATE));
+            });
         }
     }
 
@@ -279,5 +365,17 @@ class BlockingReactivePolicyDecisionPointTests {
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
         pdpVoterSource.loadConfiguration(configuration(algorithm, policies), false);
+    }
+
+    private static RepositoryKey environmentAttribute(String attributeName) {
+        return new RepositoryKey(null, attributeName, List.of());
+    }
+
+    private static void assertDecision(MultiAuthorizationDecision decisions, String subscriptionId, Decision expected) {
+        assertThat(decisions.getDecision(subscriptionId).decision()).isEqualTo(expected);
+    }
+
+    private static void assertObligation(MultiAuthorizationDecision decisions, String subscriptionId, String expected) {
+        assertThat(decisions.getDecision(subscriptionId).obligations()).containsExactly(Value.of(expected));
     }
 }

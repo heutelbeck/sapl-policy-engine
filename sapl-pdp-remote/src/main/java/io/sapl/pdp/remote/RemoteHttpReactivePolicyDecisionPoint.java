@@ -126,6 +126,16 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
     @Getter
     private volatile int inactivityTimeoutMillis = 60_000;
 
+    /**
+     * Creates a Basic-auth HTTP PDP client using the supplied TLS context.
+     *
+     * @param baseUrl the remote PDP base URL
+     * @param clientKey Basic-auth username
+     * @param clientSecret Basic-auth password
+     * @param sslContext TLS context for the underlying HTTP client
+     * @throws IllegalStateException if credentials would be sent over plaintext
+     * HTTP
+     */
     public RemoteHttpReactivePolicyDecisionPoint(String baseUrl,
             String clientKey,
             String clientSecret,
@@ -133,14 +143,34 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         this(baseUrl, clientKey, clientSecret, HttpClient.create().secure(spec -> spec.sslContext(sslContext)));
     }
 
+    /**
+     * Creates a Basic-auth HTTPS PDP client using Reactor Netty defaults.
+     *
+     * @param baseUrl the remote PDP base URL
+     * @param clientKey Basic-auth username
+     * @param clientSecret Basic-auth password
+     * @throws IllegalStateException if credentials would be sent over plaintext
+     * HTTP
+     */
     public RemoteHttpReactivePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret) {
         this(baseUrl, clientKey, clientSecret, HttpClient.create().secure());
     }
 
+    /**
+     * Creates a Basic-auth PDP client using a caller-supplied HTTP client.
+     *
+     * @param baseUrl the remote PDP base URL
+     * @param clientKey Basic-auth username
+     * @param clientSecret Basic-auth password
+     * @param httpClient Reactor Netty HTTP client to use
+     * @throws IllegalStateException if credentials would be sent over plaintext
+     * HTTP
+     */
     public RemoteHttpReactivePolicyDecisionPoint(String baseUrl,
             String clientKey,
             String clientSecret,
             HttpClient httpClient) {
+        enforceCredentialTransportSecurity(baseUrl, false);
         client = WebClient.builder().exchangeStrategies(saplExchangeStrategies())
                 .clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl)
                 .defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
@@ -161,6 +191,23 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
             configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
             configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
         }).build();
+    }
+
+    private static void enforceCredentialTransportSecurity(String baseUrl, boolean allowInsecureTransport) {
+        if (isEncryptedBaseUrl(baseUrl)) {
+            return;
+        }
+        if (!allowInsecureTransport) {
+            throw new IllegalStateException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+        }
+        log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
+    }
+
+    private static boolean isEncryptedBaseUrl(String baseUrl) {
+        if (baseUrl == null) {
+            return false;
+        }
+        return baseUrl.regionMatches(true, 0, "https://", 0, "https://".length());
     }
 
     @Override
@@ -385,7 +432,7 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
 
         public RemoteHttpReactivePolicyDecisionPoint build() {
             enforceCredentialTransportSecurity();
-            var builder = WebClient.builder().exchangeStrategies(saplExchangeStrategies())
+            WebClient.Builder builder = WebClient.builder().exchangeStrategies(saplExchangeStrategies())
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
             if (this.authenticationCustomizer != null) {
@@ -395,17 +442,10 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         }
 
         private void enforceCredentialTransportSecurity() {
-            if (authenticationCustomizer == null || isEncryptedBaseUrl()) {
+            if (authenticationCustomizer == null) {
                 return;
             }
-            if (!allowInsecureTransport) {
-                throw new IllegalStateException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
-            }
-            log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
-        }
-
-        private boolean isEncryptedBaseUrl() {
-            return baseUrl.regionMatches(true, 0, "https://", 0, "https://".length());
+            RemoteHttpReactivePolicyDecisionPoint.enforceCredentialTransportSecurity(baseUrl, allowInsecureTransport);
         }
     }
 

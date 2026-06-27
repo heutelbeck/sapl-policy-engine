@@ -279,6 +279,12 @@ public class EmbeddedPDPProperties {
         private String authHeaderValue;
 
         /**
+         * Whether authentication credentials may be sent over plaintext HTTP.
+         * Keep disabled outside trusted local or proxied deployments.
+         */
+        private boolean allowInsecureHttp = false;
+
+        /**
          * Whether to follow HTTP 3xx redirects.
          */
         private boolean followRedirects = true;

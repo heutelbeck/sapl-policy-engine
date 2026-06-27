@@ -205,8 +205,8 @@ public class PDPAutoConfiguration {
             val sourceConfig = new RemoteBundleSourceConfig(props.getBaseUrl(), props.getPdpIds(),
                     RemoteBundleSourceConfig.FetchMode.valueOf(props.getMode().name()), props.getPollInterval(),
                     props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
-                    props.isFollowRedirects(), securityPolicy, props.getPdpIdPollIntervals(), props.getFirstBackoff(),
-                    props.getMaxBackoff());
+                    props.isAllowInsecureHttp(), props.isFollowRedirects(), securityPolicy,
+                    props.getPdpIdPollIntervals(), props.getFirstBackoff(), props.getMaxBackoff());
             yield new RemoteBundlePDPConfigurationSource(sourceConfig);
         }
         case RESOURCES       -> {

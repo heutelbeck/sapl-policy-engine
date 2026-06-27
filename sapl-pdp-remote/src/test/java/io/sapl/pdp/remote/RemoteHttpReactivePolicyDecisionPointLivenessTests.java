@@ -82,8 +82,8 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
                      });
         serverThread.setDaemon(true);
         serverThread.start();
-        val pdp = new RemoteHttpReactivePolicyDecisionPoint("http://127.0.0.1:" + server.getLocalPort(), "key",
-                "secret", HttpClient.create());
+        val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("http://127.0.0.1:" + server.getLocalPort())
+                .withHttpClient(HttpClient.create()).basicAuth("key", "secret").allowInsecureTransport().build();
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
         // Generous first-element budget so a slow CI connection setup cannot
@@ -143,7 +143,7 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
     void whenKeepAlivesArriveThenNoSpuriousIndeterminate() throws Exception {
         val pdp = startServer(out -> {
             writeChunk(out, decisionEvent(AuthorizationDecision.PERMIT));
-            for (var i = 0; i < 8; i++) {
+            for (int i = 0; i < 8; i++) {
                 // No condition to await: keep-alive handling depends on real cadence, so frames
                 // must be spaced in real time.
                 Thread.sleep(150);

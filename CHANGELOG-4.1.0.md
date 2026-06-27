@@ -4,6 +4,16 @@
 
 The full architecture and worked examples are in [`sapl-documentation/6_3_Spring.md`](sapl-documentation/6_3_Spring.md).
 
+## Release hardening
+
+- Multi-subscription correlation IDs must be non-blank, and JSON multi-subscription input reports blank or duplicate IDs as clean databind errors.
+- Strict `Value` JSON serialization rejects nested `undefined` values instead of writing invalid JSON tokens.
+- Blocking multi-subscription streams keep only the latest pending decision per ID while lagging consumers catch up.
+- HTTP PIP `maxResponseBytes` limits are enforced across split SSE `data:` fields and fragmented WebSocket messages.
+- MQTT PIP subscriptions bound topic filter count and total topic-filter bytes via `maxTopicFilters` and `maxTopicFilterBytes`.
+- Remote bundle auth headers require `https` by default. Plaintext HTTP requires `remote-bundles.allow-insecure-http=true`.
+- Remote HTTP PDP Basic-auth constructors reject plaintext HTTP. Use the builder's explicit `allowInsecureTransport()` only for trusted local or proxied hops.
+
 ## SUSPEND decision verb
 
 A new third effect joins `permit` and `deny`. A policy with effect `suspend` casts a vote to **pause** access without terminating the subscription. Streaming PEPs that honour `SUSPEND` stop forwarding data while keeping the subscription alive; a later `permit` resumes flow. One-shot PEPs (`@PreEnforce`, `@PostEnforce`) treat `SUSPEND` exactly like `DENY`: the protected call is denied, and decision-attached obligations / advice / resource handlers run identically to the `DENY` path.

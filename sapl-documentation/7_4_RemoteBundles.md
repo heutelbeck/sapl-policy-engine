@@ -49,6 +49,7 @@ All properties live under `io.sapl.pdp.embedded.remote-bundles`:
 | `long-poll-timeout`    | `Duration`               | `30s`        | Server hold time (LONG_POLL mode).       |
 | `auth-header-name`     | `String`                 | _(none)_     | HTTP header name for authentication.     |
 | `auth-header-value`    | `String`                 | _(none)_     | HTTP header value for authentication.    |
+| `allow-insecure-http`  | `boolean`                | `false`      | Permit auth credentials over plaintext HTTP. |
 | `follow-redirects`     | `boolean`                | `true`       | Follow HTTP 3xx redirects.               |
 | `pdp-id-poll-intervals`| `Map<String, Duration>`  | _(empty)_    | Per-pdpId poll interval overrides.       |
 | `first-backoff`        | `Duration`               | `500ms`      | Initial backoff after a fetch failure.   |
@@ -99,6 +100,10 @@ io.sapl.pdp.embedded:
 
 This covers OAuth2 bearer tokens, static API keys, and custom authentication headers.
 Both `auth-header-name` and `auth-header-value` must be provided together or both omitted.
+When an authentication header is configured, the bundle URL must use `https` by default.
+For trusted local or TLS-terminating deployments that intentionally use plaintext HTTP,
+set `allow-insecure-http: true`. The node logs a warning because the credential is sent
+in cleartext on that hop.
 
 ### Bundle Security
 
@@ -199,7 +204,7 @@ var config = new RemoteBundleSourceConfig(
     Duration.ofSeconds(30),
     Duration.ofSeconds(30),
     "Authorization", "Bearer token",
-    true, securityPolicy,
+    false, true, securityPolicy,
     Map.of(),
     Duration.ofMillis(500),
     Duration.ofSeconds(5));

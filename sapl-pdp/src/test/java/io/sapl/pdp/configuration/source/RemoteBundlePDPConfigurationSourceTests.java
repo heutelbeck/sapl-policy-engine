@@ -273,8 +273,8 @@ class RemoteBundlePDPConfigurationSourceTests {
         void whenAuthConfiguredThenHeaderSentOnEveryRequest() throws InterruptedException {
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5),
-                    "Authorization", "Bearer test-token", true, developmentPolicy, Map.of(), Duration.ofMillis(50),
-                    Duration.ofMillis(200));
+                    "Authorization", "Bearer test-token", true, true, developmentPolicy, Map.of(),
+                    Duration.ofMillis(50), Duration.ofMillis(200));
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
             enqueueNotModified();
 
@@ -711,7 +711,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             // serves a valid bundle from the original, configured URL.
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5),
-                    "X-Auth-Token", "secret", true, developmentPolicy, Map.of(), Duration.ofMillis(50),
+                    "X-Auth-Token", "secret", true, true, developmentPolicy, Map.of(), Duration.ofMillis(50),
                     Duration.ofMillis(200));
 
             server.enqueue(
@@ -1026,7 +1026,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             val poisonedCredential = "Bearer SUPER-SECRET-TOKEN\r\nX-Injected: evil";
             val config             = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5),
-                    "Authorization", poisonedCredential, true, developmentPolicy, Map.of(), Duration.ofMillis(50),
+                    "Authorization", poisonedCredential, true, true, developmentPolicy, Map.of(), Duration.ofMillis(50),
                     Duration.ofMillis(200));
 
             source = new RemoteBundlePDPConfigurationSource(config);
