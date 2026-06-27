@@ -1,55 +1,59 @@
-# The Streaming Attribute Policy Language and Engine Bill of Materials (BOM)
+# SAPL Bill of Materials (BOM)
 
-A Maven bill of materials POM is a utility POM that makes authoring of applications using SAPL easier.
-Including the POM in the `dependencyManagement` section of a POM, the `version` tag of SAPL dependencies can be omitted. Using a BOM does not directly introduce any direct or transient dependencies. All modules can also be used without the BOM in place. However, you will need to specify the matching version for each SAPL dependency individually.
+A Maven bill of materials POM makes authoring applications using SAPL easier.
+When the BOM is imported in `dependencyManagement`, SAPL dependency versions can be omitted from individual dependency declarations.
+Using a BOM does not directly introduce runtime dependencies.
+All modules can also be used without the BOM, but then each SAPL dependency must declare a matching version explicitly.
 
-
-## Latest Release 
+## Stable Release
 
 ```xml
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>io.sapl</groupId>
-				<artifactId>sapl-bom</artifactId>
-				<version>4.1.0</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-bom</artifactId>
+            <version>4.1.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
 ```
 
-## Current Snapshot:
+## Development Snapshot
 
-```XML
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>io.sapl</groupId>
-				<artifactId>sapl-bom</artifactId>
-				<version>4.1.0</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>			
-	</dependencyManagement>
+Use a snapshot version only when you intentionally want unreleased development builds.
+Only add the snapshot repository when the SAPL version ends in `-SNAPSHOT`.
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-bom</artifactId>
+            <version>4.1.1-SNAPSHOT</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
 ```
 
-Snapshots only become accessible to your build by adding a reference to the respective snapshot repository:
+Snapshot artifacts are resolved from the Central Portal snapshot repository:
 
 ```xml
 <repositories>
-		<repository>
-			<name>Central Portal Snapshots</name>
-			<id>central-portal-snapshots</id>
-			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
+    <repository>
+        <name>Central Portal Snapshots</name>
+        <id>central-portal-snapshots</id>
+        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+    </repository>
 </repositories>
 ```

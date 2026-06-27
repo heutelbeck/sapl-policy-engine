@@ -116,6 +116,5 @@ jobs:
         shell: bash
         run: rm -rf ~/.m2/repository/io/sapl
 
-  # macOS native builds are produced by FTKeV/sapl-mac-build (Apple Silicon
-  # macos-14-xlarge runner) and uploaded to the heutelbeck release manually.
-  # See FTKeV/sapl-mac-build/.github/workflows/build-sapl-binary.yml.
+  # macOS native Node builds are release-only because public macOS runners are
+  # memory constrained for this GraalVM build. See FTKeV/sapl-mac-build.
