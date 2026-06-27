@@ -46,3 +46,5 @@ sapl-benchmark/bin/
 **/__pycache__/
 **/*.pyc
 *.lock
+
+.sonarlint/
