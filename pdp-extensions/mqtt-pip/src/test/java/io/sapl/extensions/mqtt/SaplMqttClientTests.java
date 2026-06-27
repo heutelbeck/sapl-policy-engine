@@ -22,6 +22,7 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuth;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
@@ -79,6 +80,18 @@ class SaplMqttClientTests {
         val result = SaplMqttClient.decodePublish(publish, 1024);
 
         assertThat(result).isEqualTo(Value.of("hello"));
+    }
+
+    @Test
+    @DisplayName("a message declared as UTF-8 with malformed bytes fails closed to an error value")
+    void whenUtf8PayloadContainsMalformedBytesThenErrorValue() {
+        val publish = Mqtt5Publish.builder().topic("sapl/test")
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8).payload(new byte[] { (byte) 0xC3, 0x28 })
+                .build();
+
+        val result = SaplMqttClient.decodePublish(publish, 1024);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test

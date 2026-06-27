@@ -73,6 +73,16 @@ class SanitizationFunctionLibraryTests {
         assertThat(result).isEqualTo(inputVal);
     }
 
+    @Test
+    void assertNoSqlInjectionWhenInputExceedsTextLimitThenReturnsError() {
+        val inputVal = Value.of("A".repeat(TextParseLimits.MAX_INPUT_CHARS + 1));
+
+        val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("maximum length");
+    }
+
     @ParameterizedTest(name = "[{index}] {1}: {0}")
     @MethodSource("strictModeValidIdentifiers")
     void assertNoSqlInjectionStrictWhenCleanIdentifierThenReturnsInputUnchanged(String input, String description) {
@@ -101,6 +111,16 @@ class SanitizationFunctionLibraryTests {
         val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
 
         assertThat(result).isEqualTo(inputVal);
+    }
+
+    @Test
+    void assertNoSqlInjectionStrictWhenInputExceedsTextLimitThenReturnsError() {
+        val inputVal = Value.of("A".repeat(TextParseLimits.MAX_INPUT_CHARS + 1));
+
+        val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("maximum length");
     }
 
     @ParameterizedTest(name = "[{index}] {3}: {0}")

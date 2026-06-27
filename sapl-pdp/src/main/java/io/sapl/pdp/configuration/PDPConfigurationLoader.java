@@ -105,10 +105,10 @@ public class PDPConfigurationLoader {
     private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED       = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED      = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
+    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM      = "Total size of SAPL documents exceeds maximum of %d MB.";
 
-    private static final String WARN_PDP_JSON_MISSING_ALGORITHM  = "pdp.json does not contain an 'algorithm' field. Using default: {}.";
-    private static final String WARN_PDP_JSON_NOT_FOUND          = "pdp.json not found at '{}'. Using defaults: algorithm={}, configurationId=default.";
-    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM = "Total size of SAPL documents exceeds maximum of %d MB.";
+    private static final String WARN_PDP_JSON_MISSING_ALGORITHM = "pdp.json does not contain an 'algorithm' field. Using default: {}.";
+    private static final String WARN_PDP_JSON_NOT_FOUND         = "pdp.json not found at '{}'. Using defaults: algorithm={}, configurationId=default.";
 
     private static final JsonMapper MAPPER = createMapper();
 
@@ -223,6 +223,9 @@ public class PDPConfigurationLoader {
             throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_CONFIGURATION_ID.formatted(pdpId));
         }
 
+        val maxDocuments = CompilationContext.intOption(pdpJson.compilerOptions(),
+                CompilationContext.OPTION_MAX_POLICY_DOCUMENTS, CompilationContext.DEFAULT_MAX_POLICY_DOCUMENTS);
+        enforceDocumentCount(saplDocuments.size(), maxDocuments);
         val documents = new ArrayList<>(saplDocuments.values());
         return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.compilerOptions(),
                 documents, new PdpData(pdpJson.variables(), pdpJson.secrets()));
@@ -342,9 +345,7 @@ public class PDPConfigurationLoader {
             throw new PDPConfigurationException(ERROR_FAILED_TO_LIST_SAPL_FILES, e);
         }
 
-        if (saplPaths.size() > maxFileCount) {
-            throw new PDPConfigurationException(ERROR_FILE_COUNT_EXCEEDS_MAXIMUM.formatted(maxFileCount));
-        }
+        enforceDocumentCount(saplPaths.size(), maxFileCount);
 
         // Read files and validate size atomically to prevent TOCTOU attacks.
         // An attacker could replace a small file with a large one between a
@@ -366,6 +367,12 @@ public class PDPConfigurationLoader {
             documents.put(fileNamePath.toString(), content);
         }
         return documents;
+    }
+
+    private static void enforceDocumentCount(int documentCount, int maxDocumentCount) {
+        if (documentCount > maxDocumentCount) {
+            throw new PDPConfigurationException(ERROR_FILE_COUNT_EXCEEDS_MAXIMUM.formatted(maxDocumentCount));
+        }
     }
 
     private static String readSaplDocument(Path path) {

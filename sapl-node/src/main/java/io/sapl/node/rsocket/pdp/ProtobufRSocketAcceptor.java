@@ -198,48 +198,43 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
         @Override
         public @NonNull Mono<Payload> requestResponse(@NonNull Payload payload) {
-            final ByteBuf metadata;
-            final byte[]  data;
             try {
-                metadata = payload.metadata();
-                data     = extractData(payload);
+                val metadata = payload.metadata();
+                if (matches(metadata, ROUTE_DECIDE_ONCE_BUF)) {
+                    val data = extractData(payload);
+                    return Mono.fromCallable(() -> handleDecideOnceBlocking(data))
+                            .subscribeOn(VIRTUAL_THREAD_SCHEDULER);
+                }
+                if (matches(metadata, ROUTE_MULTI_DECIDE_ALL_ONCE_BUF)) {
+                    val data = extractData(payload);
+                    return Mono.fromCallable(() -> handleMultiDecideAllOnceBlocking(data))
+                            .subscribeOn(VIRTUAL_THREAD_SCHEDULER);
+                }
+                log.debug(ERROR_UNKNOWN_ROUTE, decodeRouteForLog(metadata));
+                return Mono.error(new InvalidException(ERROR_BAD_REQUEST));
             } finally {
                 payload.release();
             }
-
-            if (matches(metadata, ROUTE_DECIDE_ONCE_BUF)) {
-                return Mono.fromCallable(() -> handleDecideOnceBlocking(data)).subscribeOn(VIRTUAL_THREAD_SCHEDULER);
-            }
-            if (matches(metadata, ROUTE_MULTI_DECIDE_ALL_ONCE_BUF)) {
-                return Mono.fromCallable(() -> handleMultiDecideAllOnceBlocking(data))
-                        .subscribeOn(VIRTUAL_THREAD_SCHEDULER);
-            }
-            log.debug(ERROR_UNKNOWN_ROUTE, decodeRouteForLog(metadata));
-            return Mono.error(new InvalidException(ERROR_BAD_REQUEST));
         }
 
         @Override
         public @NonNull Flux<Payload> requestStream(@NonNull Payload payload) {
-            final ByteBuf metadata;
-            final byte[]  data;
             try {
-                metadata = payload.metadata();
-                data     = extractData(payload);
+                val metadata = payload.metadata();
+                if (matches(metadata, ROUTE_DECIDE_BUF)) {
+                    return handleDecide(extractData(payload));
+                }
+                if (matches(metadata, ROUTE_MULTI_DECIDE_BUF)) {
+                    return handleMultiDecide(extractData(payload));
+                }
+                if (matches(metadata, ROUTE_MULTI_DECIDE_ALL_BUF)) {
+                    return handleMultiDecideAll(extractData(payload));
+                }
+                log.debug(ERROR_UNKNOWN_ROUTE, decodeRouteForLog(metadata));
+                return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
             } finally {
                 payload.release();
             }
-
-            if (matches(metadata, ROUTE_DECIDE_BUF)) {
-                return handleDecide(data);
-            }
-            if (matches(metadata, ROUTE_MULTI_DECIDE_BUF)) {
-                return handleMultiDecide(data);
-            }
-            if (matches(metadata, ROUTE_MULTI_DECIDE_ALL_BUF)) {
-                return handleMultiDecideAll(data);
-            }
-            log.debug(ERROR_UNKNOWN_ROUTE, decodeRouteForLog(metadata));
-            return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
         }
 
         private Payload handleDecideOnceBlocking(byte[] data) throws InvalidException {

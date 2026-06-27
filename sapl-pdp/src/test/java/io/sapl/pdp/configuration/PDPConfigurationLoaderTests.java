@@ -264,6 +264,20 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
+    void whenBundleContainsMorePoliciesThanConfiguredMaximumThenThrowsException() {
+        val pdpJson       = """
+                {
+                  "configurationId": "bundle-v1",
+                  "compilerOptions": { "maxPolicyDocuments": 1 }
+                }
+                """;
+        val saplDocuments = Map.of("one.sapl", "policy \"one\" permit", "two.sapl", "policy \"two\" permit");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromBundle(pdpJson, saplDocuments, "test-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("File count exceeds maximum");
+    }
+
+    @Test
     void whenAutoGeneratingResourceIdThenItIsPlainPathWithoutContentHash() {
         val config = PDPConfigurationLoader.loadFromContent("""
                 { "algorithm": { "votingMode": "UNIQUE", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }

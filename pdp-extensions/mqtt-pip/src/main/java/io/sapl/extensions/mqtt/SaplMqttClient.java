@@ -143,6 +143,7 @@ public class SaplMqttClient implements Closeable {
     private static final String ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED = "A policy may only select an mqtt broker by name or use the default. Supplying an inline broker configuration object is not permitted.";
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT    = "Refusing to send MQTT broker credentials over a plaintext connection. Enable tls, or explicitly accept the risk with allowInsecureTransport.";
     private static final String ERROR_INVALID_QOS                      = "Invalid MQTT QoS: must be 0, 1, or 2.";
+    private static final String ERROR_INVALID_UTF8_PAYLOAD             = "MQTT message declared UTF-8 payload but contains malformed UTF-8.";
     private static final String ERROR_MQTT_CONNECT_FAILED              = "Failed to connect or subscribe to MQTT broker: %s";
     private static final String ERROR_NO_TOPICS                        = "MQTT subscription requires at least one topic.";
     private static final String ERROR_PAYLOAD_TOO_LARGE                = "MQTT message exceeded the configured limit of %d bytes.";
@@ -604,22 +605,25 @@ public class SaplMqttClient implements Closeable {
     }
 
     static Value decodePublish(Mqtt5Publish publishMessage, int maxPayloadBytes) {
-        if (publishMessage.getPayloadAsBytes().length > maxPayloadBytes) {
+        val payload = publishMessage.getPayloadAsBytes();
+        if (payload.length > maxPayloadBytes) {
             return Value.error(ERROR_PAYLOAD_TOO_LARGE.formatted(maxPayloadBytes));
         }
         val payloadFormatIndicator = getPayloadFormatIndicator(publishMessage);
         val contentType            = getContentType(publishMessage);
-        if (publishMessage.getPayloadFormatIndicator().isEmpty()
-                && isValidUtf8String(publishMessage.getPayloadAsBytes())) {
-            return Value.of(new String(publishMessage.getPayloadAsBytes(), StandardCharsets.UTF_8));
+        if (publishMessage.getPayloadFormatIndicator().isEmpty() && isValidUtf8String(payload)) {
+            return Value.of(new String(payload, StandardCharsets.UTF_8));
         }
         if (payloadFormatIndicator == 1) {
             if ("application/json".equals(contentType)) {
                 return getValueOfJson(publishMessage);
             }
-            return Value.of(new String(publishMessage.getPayloadAsBytes(), StandardCharsets.UTF_8));
+            if (!isValidUtf8String(payload)) {
+                return Value.error(ERROR_INVALID_UTF8_PAYLOAD);
+            }
+            return Value.of(new String(payload, StandardCharsets.UTF_8));
         }
-        return convertBytesToArrayValue(publishMessage.getPayloadAsBytes());
+        return convertBytesToArrayValue(payload);
     }
 
     private static JsonNode resolvePipConfig(ObjectValue variables) {

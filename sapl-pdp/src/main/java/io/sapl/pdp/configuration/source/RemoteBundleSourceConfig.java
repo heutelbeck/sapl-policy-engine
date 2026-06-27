@@ -20,8 +20,10 @@ package io.sapl.pdp.configuration.source;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +82,8 @@ public record RemoteBundleSourceConfig(
 
     private static final String ERROR_AUTH_HEADER_INCOMPLETE = "Both authHeaderName and authHeaderValue must be provided together, or both must be null.";
     private static final String ERROR_BASE_URL_BLANK = "baseUrl must not be null or blank.";
+    private static final String ERROR_BASE_URL_INVALID = "baseUrl must be a valid URI.";
+    private static final String ERROR_BASE_URL_USERINFO = "baseUrl must not contain URI userinfo.";
     private static final String ERROR_FIRST_BACKOFF_NON_POSITIVE = "firstBackoff must be positive.";
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Remote bundle credentials require https. Credentials over plaintext http are refused unless allowInsecureHttp is true.";
     private static final String ERROR_LONG_POLL_TIMEOUT_NON_POSITIVE = "longPollTimeout must be positive.";
@@ -105,6 +109,7 @@ public record RemoteBundleSourceConfig(
         if (baseUrl == null || baseUrl.isBlank()) {
             throw new PDPConfigurationException(ERROR_BASE_URL_BLANK);
         }
+        rejectUserInfo(baseUrl);
         if (pdpIds == null || pdpIds.isEmpty()) {
             throw new PDPConfigurationException(ERROR_PDP_IDS_EMPTY);
         }
@@ -179,6 +184,17 @@ public record RemoteBundleSourceConfig(
             throw new PDPConfigurationException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
         }
         log.warn(WARN_CREDENTIALS_OVER_PLAINTEXT, baseUrl);
+    }
+
+    private static void rejectUserInfo(String baseUrl) {
+        try {
+            val uri = URI.create(baseUrl);
+            if (uri.getRawUserInfo() != null) {
+                throw new PDPConfigurationException(ERROR_BASE_URL_USERINFO);
+            }
+        } catch (IllegalArgumentException e) {
+            throw new PDPConfigurationException(ERROR_BASE_URL_INVALID, e);
+        }
     }
 
     private static boolean isEncryptedBaseUrl(String baseUrl) {

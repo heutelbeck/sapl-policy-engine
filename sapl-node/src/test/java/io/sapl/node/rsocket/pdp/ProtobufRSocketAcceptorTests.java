@@ -20,12 +20,15 @@ package io.sapl.node.rsocket.pdp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.netty.buffer.Unpooled;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.AfterAll;
@@ -153,6 +156,32 @@ class ProtobufRSocketAcceptorTests {
         assertThat(authThread.get().isVirtual()).isTrue();
     }
 
+    @Test
+    @DisplayName("an unknown request-response route is rejected before payload data is read")
+    void whenRequestResponseRouteUnknownThenPayloadDataIsNotRead() {
+        val rsocket = rsocketWithoutAuthenticator();
+        val payload = unknownRoutePayload();
+
+        val result = rsocket.requestResponse(payload);
+
+        StepVerifier.create(result).expectError().verify();
+        verify(payload, never()).data();
+        verify(payload).release();
+    }
+
+    @Test
+    @DisplayName("an unknown request-stream route is rejected before payload data is read")
+    void whenRequestStreamRouteUnknownThenPayloadDataIsNotRead() {
+        val rsocket = rsocketWithoutAuthenticator();
+        val payload = unknownRoutePayload();
+
+        val result = rsocket.requestStream(payload);
+
+        StepVerifier.create(result).expectError().verify();
+        verify(payload, never()).data();
+        verify(payload).release();
+    }
+
     @Nested
     @DisplayName("unauthenticated mode")
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -251,6 +280,20 @@ class ProtobufRSocketAcceptorTests {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static RSocket rsocketWithoutAuthenticator() {
+        val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+        val pdp         = mock(ReactivePolicyDecisionPoint.class);
+        val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp);
+        return acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+    }
+
+    private static Payload unknownRoutePayload() {
+        val payload = mock(Payload.class);
+        when(payload.metadata()).thenReturn(Unpooled.wrappedBuffer("unknown-route".getBytes(StandardCharsets.UTF_8)));
+        when(payload.data()).thenReturn(Unpooled.wrappedBuffer("unused".getBytes(StandardCharsets.UTF_8)));
+        return payload;
     }
 
     private static Payload createDecideOncePayload(AuthorizationSubscription sub) throws IOException {

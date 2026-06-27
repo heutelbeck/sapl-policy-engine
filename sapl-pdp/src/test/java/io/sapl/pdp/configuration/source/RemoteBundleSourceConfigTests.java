@@ -73,6 +73,15 @@ class RemoteBundleSourceConfigTests {
         assertThat(cfg.toString()).doesNotContain("super-secret-token").contains("REDACTED");
     }
 
+    @Test
+    @DisplayName("base URLs with userinfo are rejected without echoing the credential")
+    void whenBaseUrlContainsUserInfoThenConfigFailsClosed() {
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> config("https://user:secret@bundles.example.com/bundles", null, null))
+                .withMessageContaining("userinfo")
+                .satisfies(error -> assertThat(error.getMessage()).doesNotContain("secret"));
+    }
+
     @ParameterizedTest(name = "longPollTimeout={0}s")
     @ValueSource(longs = { 0L, -10L })
     @DisplayName("a non-positive longPollTimeout is rejected at construction, like every other duration field")

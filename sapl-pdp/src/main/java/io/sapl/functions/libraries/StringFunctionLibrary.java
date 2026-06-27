@@ -22,8 +22,8 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.val;
 
-import java.math.BigDecimal;
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -46,9 +46,6 @@ public class StringFunctionLibrary {
     private static final String ERROR_PADDING_MUST_BE_ONE_CHARACTER   = "Padding must be exactly one character.";
     private static final String ERROR_START_INDEX_OUT_OF_BOUNDS       = "Start index out of bounds: %d.";
     private static final String ERROR_TARGET_STRING_CANNOT_BE_EMPTY   = "Target string cannot be empty.";
-
-    private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
-    private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
 
     public static final String NAME          = "string";
     public static final String DESCRIPTION   = "Functions for string manipulation in authorization policies.";
@@ -419,13 +416,12 @@ public class StringFunctionLibrary {
     public static Value substring(TextValue str, NumberValue start) {
         val text = str.value();
 
-        if (start.value().compareTo(MIN_LONG) < 0 || start.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val startIndex = exactInt(start);
+            return extractSubstring(text, startIndex, text.length());
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        val startIndex = start.value().intValue();
-
-        return extractSubstring(text, startIndex, text.length());
     }
 
     @Function(docs = """
@@ -452,19 +448,13 @@ public class StringFunctionLibrary {
     public static Value substringRange(TextValue str, NumberValue start, NumberValue end) {
         val text = str.value();
 
-        if (start.value().compareTo(MIN_LONG) < 0 || start.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val startIndex = exactInt(start);
+            val endIndex   = exactInt(end);
+            return extractSubstring(text, startIndex, endIndex);
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        val startIndex = start.value().intValue();
-
-        if (end.value().compareTo(MIN_LONG) < 0 || end.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
-        }
-
-        val endIndex = end.value().intValue();
-
-        return extractSubstring(text, startIndex, endIndex);
     }
 
     @Function(docs = """
@@ -659,7 +649,7 @@ public class StringFunctionLibrary {
             return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
-        return Value.of(text.replaceFirst(Pattern.quote(targetText), replacementText));
+        return Value.of(text.replaceFirst(Pattern.quote(targetText), Matcher.quoteReplacement(replacementText)));
     }
 
     @Function(docs = """
@@ -688,11 +678,12 @@ public class StringFunctionLibrary {
         val text      = str.value();
         val padString = padChar.value();
 
-        if (length.value().compareTo(MIN_LONG) < 0 || length.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val targetLength = exactInt(length);
+            return padString(text, targetLength, padString, true);
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        return padString(text, length.value().intValue(), padString, true);
     }
 
     @Function(docs = """
@@ -721,11 +712,12 @@ public class StringFunctionLibrary {
         val text      = str.value();
         val padString = padChar.value();
 
-        if (length.value().compareTo(MIN_LONG) < 0 || length.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val targetLength = exactInt(length);
+            return padString(text, targetLength, padString, false);
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        return padString(text, length.value().intValue(), padString, false);
     }
 
     @Function(docs = """
@@ -752,21 +744,20 @@ public class StringFunctionLibrary {
     public static Value repeat(TextValue str, NumberValue count) {
         val text = str.value();
 
-        if (count.value().compareTo(MIN_LONG) < 0 || count.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val countValue = exactInt(count);
+            if (countValue < 0) {
+                return Value.error(ERROR_COUNT_CANNOT_BE_NEGATIVE);
+            }
+
+            if (countValue > MAX_REPEAT_COUNT) {
+                return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
+            }
+
+            return Value.of(text.repeat(countValue));
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        val countValue = count.value().intValue();
-
-        if (countValue < 0) {
-            return Value.error(ERROR_COUNT_CANNOT_BE_NEGATIVE);
-        }
-
-        if (countValue > MAX_REPEAT_COUNT) {
-            return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
-        }
-
-        return Value.of(text.repeat(countValue));
     }
 
     @Function(docs = """
@@ -792,9 +783,10 @@ public class StringFunctionLibrary {
         return Value.of(new StringBuilder(str.value()).reverse().toString());
     }
 
-    /**
-     * Extracts substring from text using start and end indices.
-     */
+    private static int exactInt(NumberValue number) {
+        return number.value().intValueExact();
+    }
+
     private static Value extractSubstring(String text, int start, int end) {
         if (start < 0 || start > text.length()) {
             return Value.error(ERROR_START_INDEX_OUT_OF_BOUNDS, start);
@@ -807,9 +799,6 @@ public class StringFunctionLibrary {
         return Value.of(text.substring(start, end));
     }
 
-    /**
-     * Pads string to specified length with padding character.
-     */
     private static Value padString(String text, int targetLength, String padString, boolean padLeft) {
         if (padString.length() != 1) {
             return Value.error(ERROR_PADDING_MUST_BE_ONE_CHARACTER);

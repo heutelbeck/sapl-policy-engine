@@ -29,6 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +37,10 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 @DisplayName("StringFunctionLibrary")
 class StringFunctionLibraryTests {
+
+    private static NumberValue number(String value) {
+        return (NumberValue) Value.of(new BigDecimal(value));
+    }
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
@@ -229,6 +234,18 @@ class StringFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void substringWhenStartIndexExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.substring((TextValue) Value.of("text"), number("4294967296"));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void substringWhenStartIndexIsFractionalThenReturnsError() {
+        val result = StringFunctionLibrary.substring((TextValue) Value.of("text"), number("1.5"));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
     @ParameterizedTest(name = "substringRange({0}, {1}, {2}) -> {3}")
     @CsvSource(delimiter = '|', textBlock = """
             'summoning ritual'  | 10 | 16 | ritual
@@ -252,6 +269,13 @@ class StringFunctionLibraryTests {
             """)
     void substringRangeReturnsErrorForInvalidIndices(String text, int start, int end) {
         Value result = StringFunctionLibrary.substringRange((TextValue) Value.of(text), Value.of(start), Value.of(end));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void substringRangeWhenEndIndexExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.substringRange((TextValue) Value.of("text"), Value.of(0),
+                number("4294967296"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
@@ -387,6 +411,13 @@ class StringFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void replaceFirstWhenReplacementContainsGroupSyntaxThenTreatsReplacementAsLiteral() {
+        val result = (TextValue) StringFunctionLibrary.replaceFirst((TextValue) Value.of("cat cat"),
+                (TextValue) Value.of("cat"), (TextValue) Value.of("$1"));
+        assertThat(result.value()).isEqualTo("$1 cat");
+    }
+
     @ParameterizedTest(name = "leftPad({0}, {1}, {2}) -> {3}")
     @CsvSource(delimiter = '|', textBlock = """
             '13' | 5 | '0' | '00013'
@@ -408,6 +439,13 @@ class StringFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void leftPadWhenTargetLengthExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.leftPad((TextValue) Value.of("text"), number("4294967296"),
+                (TextValue) Value.of("0"));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
     @ParameterizedTest(name = "rightPad({0}, {1}, {2}) -> {3}")
     @CsvSource(delimiter = '|', textBlock = """
             cult | 10 | '-' | 'cult------'
@@ -424,8 +462,15 @@ class StringFunctionLibraryTests {
     @ParameterizedTest(name = "rightPad with multi-char pad returns error")
     @ValueSource(strings = { "ab", "xyz", "--" })
     void rightPadReturnsErrorForMultiCharacterPad(String padChar) {
-        var result = StringFunctionLibrary.rightPad((TextValue) Value.of("text"), Value.of(10),
+        val result = StringFunctionLibrary.rightPad((TextValue) Value.of("text"), Value.of(10),
                 (TextValue) Value.of(padChar));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void rightPadWhenTargetLengthIsFractionalThenReturnsError() {
+        val result = StringFunctionLibrary.rightPad((TextValue) Value.of("text"), number("5.5"),
+                (TextValue) Value.of("0"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
@@ -445,7 +490,13 @@ class StringFunctionLibraryTests {
     @ParameterizedTest(name = "repeat with count {0} returns error")
     @ValueSource(ints = { -1, -10, 10_001, 20_000 })
     void repeatReturnsErrorForInvalidCount(int count) {
-        var result = StringFunctionLibrary.repeat((TextValue) Value.of("x"), Value.of(count));
+        val result = StringFunctionLibrary.repeat((TextValue) Value.of("x"), Value.of(count));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void repeatWhenCountExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.repeat((TextValue) Value.of("x"), number("4294967296"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
