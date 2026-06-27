@@ -1447,11 +1447,14 @@ public class GeographicFunctionLibrary {
             """)
     public static Value geometryBag(ObjectValue... geometryValues) {
         try {
+            if (geometryValues.length > MAX_GEOMETRY_COUNT) {
+                return Value.error(GEOMETRY_TOO_COMPLEX_ERROR.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
+            }
             var geometries = new Geometry[geometryValues.length];
             for (int i = 0; i < geometryValues.length; i++) {
                 geometries[i] = geoJsonToGeometry(geometryValues[i]);
             }
-            return geometryToGeoJSON(GEOMETRY_FACTORY.createGeometryCollection(geometries));
+            return boundedGeometryToGeoJSON(GEOMETRY_FACTORY.createGeometryCollection(geometries));
         } catch (Exception e) {
             return Value.error(INVALID_GEOJSON_ERROR);
         }
@@ -1467,6 +1470,7 @@ public class GeographicFunctionLibrary {
             **Output:**
 
             - Returns a geometry collection containing all geometries from the input array.
+            - Returns an error if the array exceeds the geometry collection member limit.
 
             **Example:**
 
@@ -1488,6 +1492,9 @@ public class GeographicFunctionLibrary {
             - Useful for combining geometries from arrays into collections.
             """)
     public static Value flattenGeometryBag(ArrayValue arrayOfGeometries) {
+        if (arrayOfGeometries.size() > MAX_GEOMETRY_COUNT) {
+            return Value.error(GEOMETRY_TOO_COMPLEX_ERROR.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
+        }
         var objectValues = new ObjectValue[arrayOfGeometries.size()];
         for (int i = 0; i < arrayOfGeometries.size(); i++) {
             if (!(arrayOfGeometries.get(i) instanceof ObjectValue geometry)) {

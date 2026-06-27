@@ -10,9 +10,14 @@ The full architecture and worked examples are in [`sapl-documentation/6_3_Spring
 - Strict `Value` JSON serialization rejects nested `undefined` values instead of writing invalid JSON tokens.
 - Blocking multi-subscription streams keep only the latest pending decision per ID while lagging consumers catch up.
 - HTTP PIP `maxResponseBytes` limits are enforced across split SSE `data:` fields and fragmented WebSocket messages.
+- MVC OAuth2 authentication now requires JWT `exp` by default, matching PDP HTTP and RSocket authentication. Non-expiring JWTs require the explicit `io.sapl.node.oauth.allow-jwt-without-expiry=true` opt-in.
+- OpenID Authorization API requests that exceed the configured body limit during chunked reads now return 413.
+- Geo `geometryBag` and `flattenGeometryBag` enforce the configured geometry collection member cap.
+- MQTT topic matching functions reject excessive topic filter arrays before parsing them.
 - MQTT PIP subscriptions bound topic filter count and total topic-filter bytes via `maxTopicFilters` and `maxTopicFilterBytes`.
 - Remote bundle auth headers require `https` by default. Plaintext HTTP requires `remote-bundles.allow-insecure-http=true`.
 - Remote HTTP PDP Basic-auth constructors reject plaintext HTTP. Use the builder's explicit `allowInsecureTransport()` only for trusted local or proxied hops.
+- The embedded SBOM no longer reports provided build-time helper artifacts that are not packaged in the node runtime.
 
 ## SUSPEND decision verb
 

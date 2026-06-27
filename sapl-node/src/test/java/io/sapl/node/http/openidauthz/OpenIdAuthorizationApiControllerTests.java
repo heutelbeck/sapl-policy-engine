@@ -54,7 +54,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DisplayName("OpenID Authorization API controller")
 @WebMvcTest(controllers = OpenIdAuthorizationApiController.class)
-@ContextConfiguration(classes = { OpenIdAuthorizationApiController.class, PdpObjectMapperAutoConfiguration.class })
+@ContextConfiguration(classes = { OpenIdAuthorizationApiController.class, OpenIdAuthorizationApiExceptionHandler.class,
+        PdpObjectMapperAutoConfiguration.class })
 class OpenIdAuthorizationApiControllerTests {
 
     private static final String EVALUATION_PATH = "/access/v1/evaluation";

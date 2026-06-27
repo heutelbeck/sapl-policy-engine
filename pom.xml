@@ -95,6 +95,7 @@
 		<sapl.full.tests>false</sapl.full.tests>
 
 		<!-- Dependencies -->
+		<asm.version>9.10</asm.version>
 		<lsp4j.version>0.24.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
 		<okhttp.version>5.4.0</okhttp.version>
@@ -174,6 +175,21 @@
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
 				<version>${guava.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.ow2.asm</groupId>
+				<artifactId>asm</artifactId>
+				<version>${asm.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.ow2.asm</groupId>
+				<artifactId>asm-tree</artifactId>
+				<version>${asm.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.ow2.asm</groupId>
+				<artifactId>asm-commons</artifactId>
+				<version>${asm.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.eclipse.lsp4j</groupId>
