@@ -26,6 +26,9 @@ target/
 # Generated code (ANTLR etc.)
 **/gen/
 
+# GraalVM native-image tracing agent output
+**/native-agent-output/
+
 # Vaadin
 **/frontend/generated/
 **/dev-bundle/
