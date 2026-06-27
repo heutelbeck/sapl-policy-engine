@@ -35,12 +35,9 @@ import tools.jackson.databind.ser.std.StdSerializer;
  * <li>BooleanValue serializes to JSON boolean</li>
  * <li>NumberValue serializes to JSON number</li>
  * <li>TextValue serializes to JSON string</li>
- * <li>ArrayValue serializes to JSON array (UndefinedValue elements are
- * skipped)</li>
- * <li>ObjectValue serializes to JSON object (UndefinedValue values are
- * skipped)</li>
- * <li>UndefinedValue throws IllegalArgumentException when serialized directly
- * (but skipped in containers)</li>
+ * <li>ArrayValue serializes to JSON array</li>
+ * <li>ObjectValue serializes to JSON object</li>
+ * <li>UndefinedValue throws IllegalArgumentException</li>
  * <li>ErrorValue throws IllegalArgumentException (errors must not cross wire
  * boundaries)</li>
  * </ul>
@@ -56,21 +53,20 @@ public class ValueSerializer extends StdSerializer<Value> {
 
     @Override
     public void serialize(Value value, JsonGenerator generator, SerializationContext serializers) {
-        serializeValue(value, generator, true);
+        serializeValue(value, generator);
     }
 
-    private void serializeValue(Value value, JsonGenerator generator, boolean topLevel) {
+    private void serializeValue(Value value, JsonGenerator generator) {
         switch (value) {
-        case NullValue ignored                    -> generator.writeNull();
-        case BooleanValue(boolean booleanValue)   -> generator.writeBoolean(booleanValue);
-        case NumberValue(BigDecimal numberValue)  -> generator.writeNumber(numberValue);
-        case TextValue(String textValue)          -> generator.writeString(textValue);
-        case ArrayValue arrayValue                -> serializeArray(arrayValue, generator);
-        case ObjectValue objectValue              -> serializeObject(objectValue, generator);
-        case UndefinedValue ignored when topLevel ->
+        case NullValue ignored                   -> generator.writeNull();
+        case BooleanValue(boolean booleanValue)  -> generator.writeBoolean(booleanValue);
+        case NumberValue(BigDecimal numberValue) -> generator.writeNumber(numberValue);
+        case TextValue(String textValue)         -> generator.writeString(textValue);
+        case ArrayValue arrayValue               -> serializeArray(arrayValue, generator);
+        case ObjectValue objectValue             -> serializeObject(objectValue, generator);
+        case UndefinedValue ignored              ->
             throw new IllegalArgumentException(ERROR_CANNOT_SERIALIZE_UNDEFINED);
-        case UndefinedValue ignored               -> { /* DROP */ }
-        case ErrorValue errorValue                ->
+        case ErrorValue errorValue               ->
             throw new IllegalArgumentException(ERROR_CANNOT_SERIALIZE_ERROR + errorValue.message());
         }
     }
@@ -78,9 +74,7 @@ public class ValueSerializer extends StdSerializer<Value> {
     private void serializeArray(ArrayValue array, JsonGenerator generator) {
         generator.writeStartArray();
         for (Value element : array) {
-            if (!(element instanceof UndefinedValue)) {
-                serializeValue(element, generator, false);
-            }
+            serializeValue(element, generator);
         }
         generator.writeEndArray();
     }
@@ -88,10 +82,8 @@ public class ValueSerializer extends StdSerializer<Value> {
     private void serializeObject(ObjectValue object, JsonGenerator generator) {
         generator.writeStartObject();
         for (val entry : object.entrySet()) {
-            if (!(entry.getValue() instanceof UndefinedValue)) {
-                generator.writeName(entry.getKey());
-                serializeValue(entry.getValue(), generator, false);
-            }
+            generator.writeName(entry.getKey());
+            serializeValue(entry.getValue(), generator);
         }
         generator.writeEndObject();
     }

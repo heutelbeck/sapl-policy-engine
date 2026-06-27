@@ -118,18 +118,20 @@ class SaplJacksonModuleTests {
     }
 
     @Test
-    void when_serializingArrayWithUndefined_then_undefinedIsSkipped() throws JacksonException {
+    void when_serializingArrayWithUndefined_then_throwsException() {
         val array = Value.ofArray(Value.of("visible"), Value.UNDEFINED, Value.of("also visible"));
-        val json  = mapper.writeValueAsString(array);
-        assertThat(json).isEqualTo("[\"visible\",\"also visible\"]");
+
+        assertThatThrownBy(() -> mapper.writeValueAsString(array)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UndefinedValue");
     }
 
     @Test
-    void when_serializingObjectWithUndefined_then_undefinedIsSkipped() throws JacksonException {
+    void when_serializingObjectWithUndefined_then_throwsException() {
         val object = Value.ofObject(
                 Map.of("name", Value.of("Cthulhu"), "location", Value.UNDEFINED, "status", Value.of("dreaming")));
-        val json   = mapper.writeValueAsString(object);
-        assertThat(json).doesNotContain("location").contains("name").contains("status");
+
+        assertThatThrownBy(() -> mapper.writeValueAsString(object)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UndefinedValue");
     }
 
     @Test
