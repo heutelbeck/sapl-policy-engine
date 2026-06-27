@@ -271,13 +271,26 @@ class CachingHttpAuthHandlerTests {
             val rawKey = "sapl_kid_secret";
             when(request.getHeader(AUTHORIZATION)).thenReturn("Bearer " + rawKey);
             when(properties.isAllowApiKeyAuth()).thenReturn(false);
-            when(properties.isAllowOauth2Auth()).thenReturn(false);
 
             val sut = new CachingHttpAuthHandler(properties, userLookupService, null, Duration.ofMinutes(5),
                     Duration.ofSeconds(5), 100L);
 
             assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
             verify(userLookupService, never()).findByApiKey(anyString());
+        }
+
+        @Test
+        @DisplayName("API key prefix is rejected before JWT decoding when OAuth2 is enabled")
+        void whenApiKeyPrefixAndOauthEnabledButApiKeyDisabledThenRejectedWithoutJwtDecode() {
+            val rawKey = "sapl_kid_secret";
+            when(request.getHeader(AUTHORIZATION)).thenReturn("Bearer " + rawKey);
+            when(properties.isAllowApiKeyAuth()).thenReturn(false);
+
+            val sut = handler();
+
+            assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
+            verify(userLookupService, never()).findByApiKey(anyString());
+            verify(jwtDecoder, never()).decode(anyString());
         }
     }
 

@@ -499,6 +499,9 @@ public class PatternsFunctionLibrary {
                 }
             }
             matcher.appendTail(result);
+            if (result.length() > MAX_OUTPUT_LENGTH) {
+                return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
+            }
             return Value.of(result.toString());
         } catch (Exception e) {
             return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));

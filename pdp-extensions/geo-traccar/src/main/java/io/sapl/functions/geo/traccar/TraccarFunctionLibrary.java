@@ -22,6 +22,7 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarSchemata;
 import lombok.val;
 import org.locationtech.jts.geom.*;
@@ -170,12 +171,14 @@ public class TraccarFunctionLibrary {
             return Value.error(GEOFENCE_MISSING_AREA_ERROR);
         }
         try {
-            val geometry = new WKTReader().read(area.asString());
+            val areaString = area.asString();
+            GeographicFunctionLibrary.requireInputWithinBounds(areaString);
+            val geometry = new WKTReader().read(areaString);
             geometry.setSRID(WGS84);
             // GeoJSON needs coordinates in longitude then latitude. Geometry will have it
             // the other way around.
             geometry.apply(new CoordinateFlippingFilter());
-            return ValueJsonMarshaller.json(GEOJSON_WRITER.write(geometry));
+            return GeographicFunctionLibrary.boundedGeometryToGeoJSON(geometry);
         } catch (ParseException | IllegalArgumentException e) {
             return Value.error(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted(e.getMessage()));
         }

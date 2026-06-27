@@ -1716,11 +1716,12 @@ public class GeographicFunctionLibrary {
             - Useful for converting WKT geometries into GeoJSON for processing.
             """)
     public static Value wktToGeoJSON(TextValue wkt) {
-        if (exceedsInputBound(wkt.value())) {
+        val wktString = wkt.value();
+        if (exceedsInputBound(wktString)) {
             return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
         }
         try {
-            return boundedGeometryToGeoJSON(WKT_READER.read(wkt.value()));
+            return boundedGeometryToGeoJSON(WKT_READER.read(wktString));
         } catch (ParseException e) {
             return Value.error(INVALID_WKT_ERROR);
         }
@@ -1822,11 +1823,32 @@ public class GeographicFunctionLibrary {
         return input.getBytes(StandardCharsets.UTF_8).length > MAX_GEO_INPUT_BYTES;
     }
 
+    /**
+     * Verifies that a geographic text input is within the shared parse boundary.
+     *
+     * @param input the input text to validate
+     * @throws IllegalArgumentException if the input exceeds the configured maximum
+     * size
+     */
+    public static void requireInputWithinBounds(String input) {
+        if (exceedsInputBound(input)) {
+            throw new IllegalArgumentException(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
+    }
+
     private static boolean exceedsComplexityBound(Geometry geometry) {
         return geometry.getNumPoints() > MAX_GEOMETRY_VERTICES || geometry.getNumGeometries() > MAX_GEOMETRY_COUNT;
     }
 
-    private static Value boundedGeometryToGeoJSON(Geometry geometry) {
+    /**
+     * Converts a geometry to GeoJSON after applying the shared geometry complexity
+     * limit.
+     *
+     * @param geometry the geometry to serialize
+     * @return GeoJSON value, or an error value if the geometry is too complex or
+     * serialization fails
+     */
+    public static Value boundedGeometryToGeoJSON(Geometry geometry) {
         if (exceedsComplexityBound(geometry)) {
             return Value.error(GEOMETRY_TOO_COMPLEX_ERROR.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
         }

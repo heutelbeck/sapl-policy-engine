@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -114,6 +115,11 @@ class SaplMqttClientTests {
 
     private static AttributeAccessContext ctxWithMqttConfig(String config) {
         return new AttributeAccessContext(ObjectValue.builder().put("mqtt", json(config)).build(), Value.EMPTY_OBJECT,
+                Value.EMPTY_OBJECT);
+    }
+
+    private static AttributeAccessContext ctxWithMqttConfigAndSecrets(String config, ObjectValue pdpSecrets) {
+        return new AttributeAccessContext(ObjectValue.builder().put("mqtt", json(config)).build(), pdpSecrets,
                 Value.EMPTY_OBJECT);
     }
 
@@ -286,6 +292,38 @@ class SaplMqttClientTests {
             val auth = SaplMqttClient.buildAuth(brokerConfig("{ \"name\": \"default\" }"), Value.EMPTY_OBJECT);
 
             assertThat(SaplMqttClient.carriesCredentialsOverPlaintext(false, auth)).isFalse();
+        }
+
+        @Test
+        @DisplayName("plaintext broker credentials fail before a client is opened without explicit opt-in")
+        void whenPlaintextCredentialsHaveNoOptInThenErrorValueAndNoClientOpened() {
+            val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+            val ctx            = ctxWithMqttConfigAndSecrets("""
+                    {
+                      "brokerConfig": {
+                        "name": "default",
+                        "brokerAddress": "localhost",
+                        "brokerPort": 1
+                      }
+                    }
+                    """, CREDENTIAL_SECRETS);
+
+            try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.of("test/plaintext"), ctx, Value.of(0))) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                        .awaitsNext(v -> assertThat(v).isInstanceOfSatisfying(ErrorValue.class,
+                                error -> assertThat(error.message()).contains("plaintext")));
+            }
+
+            assertThat(saplMqttClient.cache()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("plaintext broker credentials with explicit opt-in are allowed to attempt the connection")
+        void whenPlaintextCredentialsHaveExplicitOptInThenConnectionAttemptAllowed() {
+            val auth = SaplMqttClient.buildAuth(brokerConfig("{ \"name\": \"default\" }"), CREDENTIAL_SECRETS);
+
+            assertThatCode(() -> SaplMqttClient.enforceCredentialTransportSecurity(false, true, auth))
+                    .doesNotThrowAnyException();
         }
     }
 

@@ -68,6 +68,8 @@ public class MqttPolicyInformationPoint {
             Top-level `variables.mqtt` settings:
             * `brokerConfig`: A single broker configuration object, or an array of named broker
               configuration objects for multi-broker setups
+            * `allowInsecureTransport`: Allow broker credentials over plaintext MQTT when set to
+              `true` (defaults to `false`). Prefer `tls: true` for credentialed broker connections.
             * `defaultBrokerConfigName`: The `name` of the broker to use when no broker is
               specified in the policy (defaults to `"default"`)
             * `defaultResponse`: Response when no messages arrive before timeout --
@@ -87,6 +89,7 @@ public class MqttPolicyInformationPoint {
             * `brokerAddress`: Hostname or IP address of the MQTT broker
             * `brokerPort`: Port number of the MQTT broker
             * `clientId`: Unique identifier for the MQTT client connection
+            * `allowInsecureTransport`: Broker-level override for plaintext credential transport
 
             Example `pdp.json` with two named brokers:
             ```json
@@ -135,6 +138,9 @@ public class MqttPolicyInformationPoint {
 
             Broker credentials are sourced exclusively from the `secrets` section in `pdp.json`.
             They are never read from broker configuration objects or policy parameters.
+            When credentials are configured, broker connections require `tls: true` by default.
+            Plaintext credential transport is rejected unless `variables.mqtt.allowInsecureTransport`
+            or the selected broker's `allowInsecureTransport` is explicitly set to `true`.
 
             The broker `name` field is the join key between the broker configuration and the
             secrets. For a broker with `"name": "staging"`, the PDP looks up

@@ -117,8 +117,11 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
     }
 
     private Outcome.Success verify(String header) {
-        if (header.startsWith(BEARER_PREFIX + SAPL_PREFIX) && properties.isAllowApiKeyAuth()) {
-            return new Outcome.Success(verifyApiKey(header.substring(BEARER_PREFIX.length())), null);
+        if (header.startsWith(BEARER_PREFIX + SAPL_PREFIX)) {
+            if (properties.isAllowApiKeyAuth()) {
+                return new Outcome.Success(verifyApiKey(header.substring(BEARER_PREFIX.length())), null);
+            }
+            throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
         if (header.startsWith(BASIC_PREFIX) && properties.isAllowBasicAuth()) {
             return new Outcome.Success(verifyBasic(header.substring(BASIC_PREFIX.length())), null);

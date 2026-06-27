@@ -99,38 +99,41 @@ import static io.sapl.extensions.mqtt.util.SubscriptionUtility.topicFilters;
 public class SaplMqttClient implements Closeable {
 
     /** Configuration key for the MQTT client identifier. */
-    public static final String   ENVIRONMENT_CLIENT_ID              = "clientId";
+    public static final String   ENVIRONMENT_CLIENT_ID                = "clientId";
+    /** Configuration key permitting plaintext transport for credentials. */
+    public static final String   ENVIRONMENT_ALLOW_INSECURE_TRANSPORT = "allowInsecureTransport";
     /** Configuration key for the MQTT broker host. */
-    public static final String   ENVIRONMENT_BROKER_ADDRESS         = "brokerAddress";
+    public static final String   ENVIRONMENT_BROKER_ADDRESS           = "brokerAddress";
     /** Configuration key for the MQTT broker port. */
-    public static final String   ENVIRONMENT_BROKER_PORT            = "brokerPort";
+    public static final String   ENVIRONMENT_BROKER_PORT              = "brokerPort";
     /** Configuration key controlling sentinel emission on reconnect. */
-    public static final String   ENVIRONMENT_EMIT_AT_RETRY          = "emitAtRetry";
+    public static final String   ENVIRONMENT_EMIT_AT_RETRY            = "emitAtRetry";
     /** Configuration key enabling TLS for the broker connection. */
-    public static final String   ENVIRONMENT_TLS                    = "tls";
+    public static final String   ENVIRONMENT_TLS                      = "tls";
     /** Configuration key for a PKCS12/JKS trust store used to verify the broker. */
-    public static final String   ENVIRONMENT_TLS_TRUST_STORE        = "tlsTrustStore";
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE          = "tlsTrustStore";
     /** Configuration key for the trust store password. */
-    public static final String   ENVIRONMENT_TLS_TRUST_STORE_PW     = "tlsTrustStorePassword";
-    private static final String  ENVIRONMENT_MAX_PAYLOAD_SIZE       = "maxPayloadSize";
-    private static final String  ENVIRONMENT_MAX_TOPIC_FILTERS      = "maxTopicFilters";
-    private static final String  ENVIRONMENT_MAX_TOPIC_FILTER_BYTES = "maxTopicFilterBytes";
-    private static final String  ENVIRONMENT_USERNAME               = "username";
-    private static final String  ENVIRONMENT_BROKER_CONFIG_NAME     = "name";
-    private static final String  ENVIRONMENT_QOS                    = "defaultQos";
-    private static final String  MQTT                               = "mqtt";
-    private static final String  DEFAULT_CLIENT_ID                  = "mqtt_pip";
-    private static final String  DEFAULT_USERNAME                   = "";
-    private static final String  DEFAULT_BROKER_ADDRESS             = "localhost";
-    private static final int     DEFAULT_BROKER_PORT                = 1883;
-    private static final int     DEFAULT_MAX_PAYLOAD_SIZE           = 1_048_576;
-    private static final int     DEFAULT_MAX_TOPIC_FILTERS          = 32;
-    private static final long    DEFAULT_MAX_TOPIC_FILTER_BYTES     = 8_192L;
-    private static final int     DEFAULT_QOS                        = 0;
-    private static final String  SECRETS_PASSWORD                   = "password";
-    static final boolean         DEFAULT_EMIT_AT_RETRY              = false;
-    private static final boolean DEFAULT_TLS                        = false;
-    private static final String  DEFAULT_TLS_TRUST_STORE            = "";
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE_PW       = "tlsTrustStorePassword";
+    private static final String  ENVIRONMENT_MAX_PAYLOAD_SIZE         = "maxPayloadSize";
+    private static final String  ENVIRONMENT_MAX_TOPIC_FILTERS        = "maxTopicFilters";
+    private static final String  ENVIRONMENT_MAX_TOPIC_FILTER_BYTES   = "maxTopicFilterBytes";
+    private static final String  ENVIRONMENT_USERNAME                 = "username";
+    private static final String  ENVIRONMENT_BROKER_CONFIG_NAME       = "name";
+    private static final String  ENVIRONMENT_QOS                      = "defaultQos";
+    private static final String  MQTT                                 = "mqtt";
+    private static final String  DEFAULT_CLIENT_ID                    = "mqtt_pip";
+    private static final String  DEFAULT_USERNAME                     = "";
+    private static final String  DEFAULT_BROKER_ADDRESS               = "localhost";
+    private static final int     DEFAULT_BROKER_PORT                  = 1883;
+    private static final int     DEFAULT_MAX_PAYLOAD_SIZE             = 1_048_576;
+    private static final int     DEFAULT_MAX_TOPIC_FILTERS            = 32;
+    private static final long    DEFAULT_MAX_TOPIC_FILTER_BYTES       = 8_192L;
+    private static final int     DEFAULT_QOS                          = 0;
+    private static final String  SECRETS_PASSWORD                     = "password";
+    static final boolean         DEFAULT_EMIT_AT_RETRY                = false;
+    private static final boolean DEFAULT_TLS                          = false;
+    private static final String  DEFAULT_TLS_TRUST_STORE              = "";
+    private static final boolean DEFAULT_ALLOW_INSECURE_TRANSPORT     = false;
 
     private static final Duration CONNECT_TIMEOUT     = Duration.ofSeconds(10L);
     private static final Duration SUBSCRIBE_TIMEOUT   = Duration.ofSeconds(5L);
@@ -138,12 +141,12 @@ public class SaplMqttClient implements Closeable {
     private static final Duration DISCONNECT_TIMEOUT  = Duration.ofSeconds(5L);
 
     private static final String ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED = "A policy may only select an mqtt broker by name or use the default. Supplying an inline broker configuration object is not permitted.";
+    private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT    = "Refusing to send MQTT broker credentials over a plaintext connection. Enable tls, or explicitly accept the risk with allowInsecureTransport.";
     private static final String ERROR_INVALID_QOS                      = "Invalid MQTT QoS: must be 0, 1, or 2.";
     private static final String ERROR_MQTT_CONNECT_FAILED              = "Failed to connect or subscribe to MQTT broker: %s";
     private static final String ERROR_NO_TOPICS                        = "MQTT subscription requires at least one topic.";
     private static final String ERROR_PAYLOAD_TOO_LARGE                = "MQTT message exceeded the configured limit of %d bytes.";
-    private static final String WARN_INSECURE_CREDENTIALS              = "MQTT broker credentials are being transmitted over an "
-            + "unencrypted connection (tls=false). Enable 'tls' whenever credentials are configured.";
+    private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT     = "Sending MQTT broker credentials over a plaintext connection because allowInsecureTransport is set. A network attacker can capture the credential. Do not use in production.";
 
     private static final String CACHE_KEY_CREDENTIAL_FINGERPRINT = "__credentialFingerprint";
 
@@ -158,9 +161,8 @@ public class SaplMqttClient implements Closeable {
         return mqttClientCache;
     }
 
-    // Guards the single runtime warning about credentials being sent over an
-    // unencrypted connection, so the insecure transport is observable once
-    // without flooding the log on every connection.
+    // Guards the single runtime warning about credentials being sent over
+    // plaintext, so the insecure transport is observable without log flooding.
     private static final AtomicBoolean INSECURE_CREDENTIALS_WARNED = new AtomicBoolean(false);
 
     private final Clock         clock;
@@ -508,11 +510,11 @@ public class SaplMqttClient implements Closeable {
             builder = applyTls(builder, brokerConfig, pipConfig);
         }
 
-        val auth = buildAuth(brokerConfig, pdpSecrets);
-        if (carriesCredentialsOverPlaintext(tlsEnabled, auth)
-                && INSECURE_CREDENTIALS_WARNED.compareAndSet(false, true)) {
-            log.warn(WARN_INSECURE_CREDENTIALS);
-        }
+        val auth                   = buildAuth(brokerConfig, pdpSecrets);
+        val allowInsecureTransport = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_ALLOW_INSECURE_TRANSPORT,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_ALLOW_INSECURE_TRANSPORT,
+                        DEFAULT_ALLOW_INSECURE_TRANSPORT));
+        enforceCredentialTransportSecurity(tlsEnabled, allowInsecureTransport, auth);
         return builder.simpleAuth(auth).buildAsync();
     }
 
@@ -525,6 +527,19 @@ public class SaplMqttClient implements Closeable {
         val hasUsername = auth.getUsername().map(u -> !u.toString().isEmpty()).orElse(false);
         val hasPassword = auth.getPassword().map(p -> p.remaining() > 0).orElse(false);
         return hasUsername || hasPassword;
+    }
+
+    static void enforceCredentialTransportSecurity(boolean tlsEnabled, boolean allowInsecureTransport,
+            Mqtt5SimpleAuth auth) {
+        if (!carriesCredentialsOverPlaintext(tlsEnabled, auth)) {
+            return;
+        }
+        if (!allowInsecureTransport) {
+            throw new IllegalArgumentException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+        }
+        if (INSECURE_CREDENTIALS_WARNED.compareAndSet(false, true)) {
+            log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
+        }
     }
 
     private static Mqtt5ClientBuilder applyTls(Mqtt5ClientBuilder builder, JsonNode brokerConfig, JsonNode pipConfig) {

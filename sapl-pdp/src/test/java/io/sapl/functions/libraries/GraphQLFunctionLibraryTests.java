@@ -164,6 +164,19 @@ class GraphQLFunctionLibraryTests {
         }
     }
 
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({ "analyze, false", "validate, true" })
+    void whenQueryExceedsPreparseLimitThenErrorResult(String scenario, boolean useSchema) {
+        val oversizedQuery = "query { " + "field".repeat(120_000) + " }";
+        val result         = useSchema
+                ? GraphQLFunctionLibrary.validateQuery(Value.of(oversizedQuery), Value.of(BASIC_SCHEMA))
+                : GraphQLFunctionLibrary.analyzeQuery(Value.of(oversizedQuery));
+        val parsed         = ValueJsonMarshaller.toJsonNode(result);
+
+        assertThat(parsed.get("valid").asBoolean()).as(scenario).isFalse();
+        assertThat(parsed.get("errors").get(0).asString()).contains("maximum size");
+    }
+
     static Stream<Arguments> provideBasicParsingTestCases() {
         return Stream.of(
                 // Valid queries with schema

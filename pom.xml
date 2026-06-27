@@ -104,6 +104,7 @@
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.46</lombok.version>
 		<jupiter.version>6.1.0</jupiter.version>
+		<mockito.version>5.23.0</mockito.version>
 		<guava.version>33.6.0-jre</guava.version>
 		<assertj.version>3.27.7</assertj.version>
 		<jspecify.version>1.0.0</jspecify.version>
@@ -235,6 +236,16 @@
 				<version>${jupiter.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-core</artifactId>
+				<version>${mockito.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-junit-jupiter</artifactId>
+				<version>${mockito.version}</version>
 			</dependency>
             <dependency>
                 <groupId>com.github.valfirst</groupId>
@@ -471,7 +482,8 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                        <argLine>@{argLine} -Xshare:off
+                        <argLine>@{argLine}
+                            -javaagent:${project.build.directory}/mockito-agent/mockito-core.jar -Xshare:off
                             -XX:+EnableDynamicAgentLoading</argLine>
                         <systemPropertyVariables>
                             <sapl.fullTests>${sapl.full.tests}</sapl.fullTests>
@@ -492,7 +504,8 @@
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>${maven-failsafe-plugin.version}</version>
                     <configuration>
-                        <argLine>@{argLine} -Xshare:off
+                        <argLine>@{argLine}
+                            -javaagent:${project.build.directory}/mockito-agent/mockito-core.jar -Xshare:off
                             -XX:+EnableDynamicAgentLoading</argLine>
                     </configuration>
                 </plugin>
@@ -610,6 +623,30 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-mockito-agent</id>
+						<phase>process-test-classes</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>org.mockito</groupId>
+									<artifactId>mockito-core</artifactId>
+									<version>${mockito.version}</version>
+									<outputDirectory>${project.build.directory}/mockito-agent</outputDirectory>
+									<destFileName>mockito-core.jar</destFileName>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>net.revelc.code.formatter</groupId>

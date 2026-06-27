@@ -20,6 +20,7 @@ package io.sapl.functions.geo.traccar;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 
@@ -28,10 +29,11 @@ import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.withPrecision;
 
+@DisplayName("TraccarFunctionLibrary")
 class TraccarFunctionLibraryTests {
 
     @Test
-    void when_traccarPositionToGeoJSON_withAltitude_then_returnGeoJSONPointWithAltitude() {
+    void whenTraccarPositionHasAltitudeThenReturnsGeoJsonPointWithAltitude() {
         val position = (ObjectValue) json("""
                 {
                   "latitude" : 37.7749,
@@ -55,7 +57,7 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
-    void when_traccarPositionToGeoJSON_withoutAltitude_then_returnGeoJSONPoint() {
+    void whenTraccarPositionHasNoAltitudeThenReturnsGeoJsonPoint() {
         val position = (ObjectValue) json("""
                 {
                   "latitude" : 37.7749,
@@ -78,27 +80,27 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
-    void when_traccarPositionToGeoJSON_missingLongitude_then_returnError() {
+    void whenTraccarPositionMissesLongitudeThenReturnsError() {
         val noLong = (ObjectValue) json("{}");
-        var result = traccarPositionToGeoJSON(noLong);
+        val result = traccarPositionToGeoJSON(noLong);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(NO_VALID_LONGITUDE_FIELD_ERROR);
     }
 
     @Test
-    void when_traccarPositionToGeoJSON_missingLatitude_then_returnError() {
+    void whenTraccarPositionMissesLatitudeThenReturnsError() {
         val noLat  = (ObjectValue) json("""
                 {
                     "longitude": 12.12
                 }
                 """);
-        var result = traccarPositionToGeoJSON(noLat);
+        val result = traccarPositionToGeoJSON(noLat);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(NO_VALID_LATITUDE_FIELD_ERROR);
     }
 
     @Test
-    void when_traccarPositionToGeoJSON_withNonNumericAltitude_then_returnGeoJSONPointWithoutAltitude() {
+    void whenTraccarPositionAltitudeIsNotNumericThenReturnsGeoJsonPointWithoutAltitude() {
         val position = (ObjectValue) json("""
                 {
                   "latitude" : 37.7749,
@@ -122,7 +124,7 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
-    void when_coordinateFlippingFilter_then_swapXandY() {
+    void whenCoordinateFlippingFilterAppliedThenSwapsXAndY() {
         val filter = new CoordinateFlippingFilter();
         val coord  = new Coordinate(10, 20);
         filter.filter(coord);
@@ -131,7 +133,7 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_withValidPolygon_then_returnGeoJSONPolygon() {
+    void whenTraccarGeofenceHasValidPolygonThenReturnsGeoJsonPolygon() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : "POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))"
@@ -153,51 +155,85 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_withInvalidWKT_then_returnError() {
+    void whenTraccarGeofenceWktIsInvalidThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : "invalid WKT"
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message())
                 .contains(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted("Unknown geometry type: INVALID (line 1)"));
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_withDegeneratePolygon_then_returnError() {
+    void whenTraccarGeofencePolygonIsDegenerateThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : "POLYGON ((30 10, 40 40, 20 40))"
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Error processing geometry:");
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_nonStringArea_then_returnError() {
+    void whenTraccarGeofenceAreaIsNotTextThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : 12345
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(GEOFENCE_MISSING_AREA_ERROR);
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_missingArea_then_returnError() {
+    void whenTraccarGeofenceAreaIsMissingThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "invalid" : "data"
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(GEOFENCE_MISSING_AREA_ERROR);
+    }
+
+    @Test
+    void whenTraccarGeofenceWktExceedsInputLimitThenReturnsError() {
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : "%s"
+                }
+                """.formatted("POINT (1 1)".repeat(420_000)));
+        val result   = traccarGeofenceToGeoJson(geofence);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum size");
+    }
+
+    @Test
+    void whenTraccarGeofenceWktHasTooManyGeometriesThenReturnsError() {
+        val builder = new StringBuilder("MULTIPOINT (");
+        for (int i = 0; i < 50_001; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append("(1 1)");
+        }
+        builder.append(')');
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : "%s"
+                }
+                """.formatted(builder));
+        val result   = traccarGeofenceToGeoJson(geofence);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");
     }
 }

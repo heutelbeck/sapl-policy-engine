@@ -224,6 +224,8 @@ public class GraphQLFunctionLibrary {
 
             - Reported query depth is capped at 100. The `depth` metric never exceeds this value regardless of how
               deeply the query or its operations nest, so depth comparisons in policies saturate at 100.
+            - A query passed to `validateQuery` or `analyzeQuery` may be at most 512 KB (524288 bytes). A larger query
+              is rejected with an error before GraphQL parsing.
             - A schema passed to `validateQuery` or `parseSchema` may be at most 512 KB (524288 bytes). A larger schema
               is rejected with an error.
 
@@ -256,6 +258,7 @@ public class GraphQLFunctionLibrary {
      */
     public static final int DEPTH_COMPLEXITY_FACTOR = 2;
 
+    private static final int     MAX_QUERY_SIZE_BYTES  = 512 * 1024;
     private static final int     MAX_SCHEMA_CACHE_SIZE = 20;
     private static final int     MAX_SCHEMA_SIZE_BYTES = 512 * 1024;
     private static final float   CACHE_LOAD_FACTOR     = 0.75f;
@@ -263,6 +266,7 @@ public class GraphQLFunctionLibrary {
 
     private static final String ERROR_NO_OPERATION_FOUND   = "No operation definition found.";
     private static final String ERROR_QUERY_PARSE_FAILED   = "Failed to parse GraphQL query";
+    private static final String ERROR_QUERY_TOO_LARGE      = "Query exceeds maximum size of %d bytes.";
     private static final String ERROR_SCHEMA_PARSE_FAILED  = "Schema parsing failed";
     private static final String ERROR_SCHEMA_TOO_LARGE     = "Schema exceeds maximum size of %d bytes.";
     private static final String ERROR_SHA256_NOT_AVAILABLE = "SHA-256 algorithm not available.";
@@ -384,6 +388,7 @@ public class GraphQLFunctionLibrary {
             """, schema = RETURNS_PARSED_QUERY)
     public static Value validateQuery(TextValue query, TextValue schema) {
         try {
+            requireQueryWithinBounds(query.value());
             val document      = new Parser().parseDocument(query.value());
             val graphQLSchema = parseSchemaWithCache(schema.value());
 
@@ -443,6 +448,7 @@ public class GraphQLFunctionLibrary {
             """, schema = RETURNS_PARSED_QUERY)
     public static Value analyzeQuery(TextValue query) {
         try {
+            requireQueryWithinBounds(query.value());
             val document = new Parser().parseDocument(query.value());
             val result   = ObjectValue.builder();
 
@@ -553,9 +559,7 @@ public class GraphQLFunctionLibrary {
     public static Value parseSchema(TextValue schema) {
         try {
             val schemaString = schema.value();
-            if (schemaString.length() > MAX_SCHEMA_SIZE_BYTES) {
-                throw new IllegalArgumentException(ERROR_SCHEMA_TOO_LARGE.formatted(MAX_SCHEMA_SIZE_BYTES));
-            }
+            requireSchemaWithinBounds(schemaString);
             val schemaParser           = new SchemaParser();
             val typeDefinitionRegistry = schemaParser.parse(schemaString);
 
@@ -1144,9 +1148,7 @@ public class GraphQLFunctionLibrary {
      * if schema exceeds maximum size
      */
     private static GraphQLSchema parseSchemaWithCache(String schemaString) {
-        if (schemaString.length() > MAX_SCHEMA_SIZE_BYTES) {
-            throw new IllegalArgumentException(ERROR_SCHEMA_TOO_LARGE.formatted(MAX_SCHEMA_SIZE_BYTES));
-        }
+        requireSchemaWithinBounds(schemaString);
 
         val cacheKey = computeSchemaHash(schemaString);
         return SCHEMA_CACHE.computeIfAbsent(cacheKey, key -> {
@@ -1169,6 +1171,18 @@ public class GraphQLFunctionLibrary {
         } catch (NoSuchAlgorithmException exception) {
             // SHA-256 is guaranteed to be available
             throw new IllegalStateException(ERROR_SHA256_NOT_AVAILABLE, exception);
+        }
+    }
+
+    private static void requireQueryWithinBounds(String query) {
+        if (query.getBytes(StandardCharsets.UTF_8).length > MAX_QUERY_SIZE_BYTES) {
+            throw new IllegalArgumentException(ERROR_QUERY_TOO_LARGE.formatted(MAX_QUERY_SIZE_BYTES));
+        }
+    }
+
+    private static void requireSchemaWithinBounds(String schema) {
+        if (schema.getBytes(StandardCharsets.UTF_8).length > MAX_SCHEMA_SIZE_BYTES) {
+            throw new IllegalArgumentException(ERROR_SCHEMA_TOO_LARGE.formatted(MAX_SCHEMA_SIZE_BYTES));
         }
     }
 
