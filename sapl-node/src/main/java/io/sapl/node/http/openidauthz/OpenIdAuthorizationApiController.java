@@ -53,7 +53,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 @RequestMapping("/access/v1")
 @Tag(name = "OpenID Authorization API", description = "OpenID Authorization API 1.0 binding for the SAPL PDP. Returns a single boolean decision per request.")
-@ConditionalOnProperty(name = "io.sapl.server.openid-authz-api.enabled", matchIfMissing = true)
+@ConditionalOnProperty(name = "io.sapl.node.openid-authz-api.enabled", matchIfMissing = true)
 public class OpenIdAuthorizationApiController {
 
     private static final String X_REQUEST_ID = "X-Request-ID";

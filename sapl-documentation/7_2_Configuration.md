@@ -149,11 +149,15 @@ The RSocket endpoint shares the same authentication configuration as the HTTP en
 
 ### OpenID Authorization API Properties
 
-The OpenID Authorization API binding at `/access/v1/evaluation` is enabled by default and shares the authentication configuration with the rest of the HTTP transport. One additional knob caps request body size:
+The OpenID Authorization API binding at `/access/v1/evaluation` is enabled by default and shares the authentication configuration with the rest of the HTTP transport. Use `io.sapl.node.openid-authz-api.enabled=false` to disable it.
+
+Before SAPL Node 4.1.0 prerelease builds used `io.sapl.server.openid-authz-api.enabled`. That legacy key is not read anymore. Update deployments to the `io.sapl.node` property before upgrading.
+
+One additional knob caps request body size:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `io.sapl.server.openid-authz-api.enabled` | `boolean` | `true` | Enables the OpenID Authorization API 1.0 binding. |
+| `io.sapl.node.openid-authz-api.enabled` | `boolean` | `true` | Enables the OpenID Authorization API 1.0 binding. |
 | `io.sapl.node.http.max-request-body-bytes` | `long` | `65536` | Caps the request body size on the HTTP PDP endpoints, covering both `/api/pdp/*` and the OpenID Authorization API on `/access/v1/*`. Requests exceeding the limit are rejected with `413 Content Too Large`: a declared `Content-Length` over the limit is rejected before any body bytes are read, and a chunked body sent without a `Content-Length` is aborted with the same status once the limit is crossed while reading. Authorization subscriptions are small (typically below 1 KiB); raise only when policies routinely receive large `properties` maps. Mirrors the `sapl.pdp.rsocket.max-inbound-payload-size` guard on the RSocket transport. |
 
 ### CLI Argument Overrides

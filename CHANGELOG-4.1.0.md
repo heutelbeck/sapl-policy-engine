@@ -18,6 +18,7 @@ The full architecture and worked examples are in [`sapl-documentation/6_3_Spring
 - MQTT PIP subscriptions bound topic filter count and total topic-filter bytes via `maxTopicFilters` and `maxTopicFilterBytes`.
 - Remote bundle auth headers require `https` by default. Plaintext HTTP requires `remote-bundles.allow-insecure-http=true`.
 - Remote HTTP PDP Basic-auth constructors reject plaintext HTTP. Use the builder's explicit `allowInsecureTransport()` only for trusted local or proxied hops.
+- OpenID Authorization API disable switch is now `io.sapl.node.openid-authz-api.enabled`. The prerelease `io.sapl.server.openid-authz-api.enabled` key is no longer read.
 - The embedded SBOM no longer reports provided build-time helper artifacts that are not packaged in the node runtime.
 
 ## SUSPEND decision verb

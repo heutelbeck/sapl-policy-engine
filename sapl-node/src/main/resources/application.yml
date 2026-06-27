@@ -120,6 +120,10 @@ io.sapl:
     # scalar:
     #   oauth-client-id: "sapl-node-scalar"
 
+    # OpenID Authorization API 1.0 binding at /access/v1/evaluation.
+    # openid-authz-api:
+    #   enabled: true
+
     # User entries for Basic Auth and API Key authentication.
     # Each user is associated with a pdp-id for multi-tenant routing.
     #

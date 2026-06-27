@@ -40,6 +40,11 @@
     "description": "JWT claim name containing the PDP ID for OAuth2 authentication."
   },
   {
+    "name": "io.sapl.node.openid-authz-api.enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enables the OpenID Authorization API 1.0 binding at /access/v1/evaluation."
+  },
+  {
     "name": "io.sapl.pdp.embedded.policies-path",
     "type": "java.lang.String",
     "description": "Path to policies."
