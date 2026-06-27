@@ -34,12 +34,8 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
-import com.github.valfirst.slf4jtest.LoggingEvent;
-import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import lombok.val;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
@@ -71,42 +67,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("AttributeBroker end-to-end demo")
 class AttributeBrokerDemoTests {
 
-    private static final boolean PRINT_OUTPUT = false;
-    private static final Clock   CLOCK        = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
-
-    @BeforeEach
-    void clearCapturedLogs() {
-        TestLoggerFactory.clear();
-    }
-
-    @AfterEach
-    void dumpCapturedLogs() {
-        if (!PRINT_OUTPUT) {
-            return;
-        }
-        // The broker emits DEBUG/TRACE around load/swap/unload (cold-path
-        // events). slf4j-test captures them silently. Surface them here so the
-        // demo trace is actually visible when this test runs. Filter to events
-        // from io.sapl.attributes.broker so the noise from unrelated loggers
-        // does not bury the narrative.
-        val events = TestLoggerFactory.getLoggingEvents().stream()
-                .filter(e -> e.getCreatingLogger().getName().startsWith("io.sapl.attributes.broker")).toList();
-        if (events.isEmpty()) {
-            return;
-        }
-        System.out.println();
-        System.out.println("---- Captured broker events (" + events.size() + ") ----");
-        for (LoggingEvent e : events) {
-            System.out.printf("  [%-5s] %-30s %s%n", e.getLevel(), shortenLoggerName(e.getCreatingLogger().getName()),
-                    e.getFormattedMessage());
-        }
-        System.out.println("------------------------------------------------------");
-    }
-
-    private static String shortenLoggerName(String fqn) {
-        val lastDot = fqn.lastIndexOf('.');
-        return lastDot < 0 ? fqn : fqn.substring(lastDot + 1);
-    }
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
 
     @Test
     @DisplayName("load a PIP, observe a value, hot-swap to a new version, observe the new value, unload")
