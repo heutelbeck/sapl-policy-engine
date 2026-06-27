@@ -78,6 +78,21 @@ class PolicySourcePopulatorTests {
         }
 
         @Test
+        @DisplayName("file paths with dot segments stay contained in the candidate directory")
+        void whenFilePathContainsDotSegmentsThenSourcePathIsContained(@TempDir Path tempDir) throws Exception {
+            val candidateDir = Files.createDirectory(tempDir.resolve("candidate"));
+            val outsideFile  = tempDir.resolve("outside.sapl");
+            Files.writeString(outsideFile, "policy \"outside\" permit");
+
+            val policy = new PolicyCoverageData("outside.sapl", null, "policy");
+            policy.setFilePath("../outside.sapl");
+
+            PolicySourcePopulator.populateSources(List.of(policy), List.of(candidateDir));
+
+            assertThat(policy.getDocumentSource()).isNull();
+        }
+
+        @Test
         @DisplayName("skips population when file path is null")
         void whenFilePathNullThenSkipsPopulation() {
             val policy = new PolicyCoverageData("test.sapl", null, "policy");

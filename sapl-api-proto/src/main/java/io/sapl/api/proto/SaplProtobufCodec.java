@@ -19,6 +19,8 @@ package io.sapl.api.proto;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
 import static com.google.protobuf.WireFormat.getTagFieldNumber;
@@ -84,6 +86,7 @@ public class SaplProtobufCodec {
     private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
 
+    private static final String ERROR_DUPLICATE_DECISION_ID     = "Duplicate subscription id in multi-decision payload: %s.";
     private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id in multi-subscription payload.";
     private static final String ERROR_INVALID_NUMBER            = "Malformed or out-of-bounds number value in protobuf payload.";
 
@@ -664,12 +667,13 @@ public class SaplProtobufCodec {
      * @throws IOException if deserialization fails
      */
     public static MultiAuthorizationDecision readMultiAuthorizationDecision(byte[] bytes) throws IOException {
-        val input  = CodedInputStream.newInstance(bytes);
-        val result = new MultiAuthorizationDecision();
+        val input   = CodedInputStream.newInstance(bytes);
+        val result  = new MultiAuthorizationDecision();
+        val seenIds = new HashSet<String>();
         while (!input.isAtEnd()) {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == MULTI_DEC_DECISIONS) {
-                readDecisionMapEntry(input, result);
+                readDecisionMapEntry(input, result, seenIds);
             } else {
                 input.skipField(tag);
             }
@@ -677,11 +681,14 @@ public class SaplProtobufCodec {
         return result;
     }
 
-    private static void readDecisionMapEntry(CodedInputStream input, MultiAuthorizationDecision result)
-            throws IOException {
+    private static void readDecisionMapEntry(CodedInputStream input, MultiAuthorizationDecision result,
+            Set<String> seenIds) throws IOException {
         val limit = input.pushLimit(input.readRawVarint32());
         val idDec = readIdAndDecisionFields(input);
         input.popLimit(limit);
+        if (!seenIds.add(idDec.subscriptionId())) {
+            throw new IOException(ERROR_DUPLICATE_DECISION_ID.formatted(idDec.subscriptionId()));
+        }
         result.setDecision(idDec.subscriptionId(), idDec.decision());
     }
 

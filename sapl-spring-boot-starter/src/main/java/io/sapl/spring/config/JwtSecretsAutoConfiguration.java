@@ -50,7 +50,7 @@ import org.springframework.security.core.Authentication;
 @ConditionalOnClass(name = "org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken")
 public class JwtSecretsAutoConfiguration {
 
-    private static final String WARN_JWT_EXTRACTION_FAILED = "Could not extract JWT from authentication: {}";
+    private static final String WARN_JWT_EXTRACTION_FAILED = "Could not extract JWT from authentication.";
 
     /**
      * Creates a SubscriptionSecretsInjector that extracts the bearer token from
@@ -65,7 +65,7 @@ public class JwtSecretsAutoConfiguration {
     @Bean
     SubscriptionSecretsInjector jwtSubscriptionSecretsInjector(SaplJwtProperties properties) {
         val secretsKey = properties.getSecretsKey();
-        log.info("JWT secrets injection enabled with secrets key '{}'", secretsKey);
+        log.info("JWT secrets injection enabled.");
 
         return authentication -> {
             try {
@@ -80,8 +80,8 @@ public class JwtSecretsAutoConfiguration {
                 val tokenValue    = (String) getTokenValue.invoke(token);
 
                 return ObjectValue.builder().put(secretsKey, Value.of(tokenValue)).build();
-            } catch (Exception e) {
-                log.warn(WARN_JWT_EXTRACTION_FAILED, e.getMessage());
+            } catch (Exception ignored) {
+                log.warn(WARN_JWT_EXTRACTION_FAILED);
                 return Value.EMPTY_OBJECT;
             }
         };

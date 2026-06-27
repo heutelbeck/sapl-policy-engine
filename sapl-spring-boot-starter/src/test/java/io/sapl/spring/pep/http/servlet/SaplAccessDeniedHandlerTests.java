@@ -158,6 +158,24 @@ class SaplAccessDeniedHandlerTests {
         }
 
         @Test
+        @DisplayName("handler that shapes only headers commits a denied response with those headers")
+        void whenDenialHandlerShapesOnlyHeadersThenHeadersAreCommitted() throws Exception {
+            val h        = (ConstraintHandler.Consumer<MutableHttpResponse>) resp -> resp.headers().set("Retry-After",
+                    "120");
+            val plan     = planFor(denyWith("retry"),
+                    provider(constraint -> ConstraintHandlerProvider.constraintIsOfType(constraint, "retry")
+                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
+                            : List.of()));
+            val request  = requestFor(plan);
+            val response = new MockHttpServletResponse();
+
+            handler.handle(request, response, DENIED);
+
+            assertThat(response.getStatus()).isEqualTo(403);
+            assertThat(response.getHeader("Retry-After")).isEqualTo("120");
+        }
+
+        @Test
         @DisplayName("handler that issues a redirect commits a 302 with Location header")
         void redirect() throws Exception {
             ConstraintHandler.Consumer<MutableHttpResponse> h        = resp -> {

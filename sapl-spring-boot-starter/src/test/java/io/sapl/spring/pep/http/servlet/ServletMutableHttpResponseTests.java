@@ -179,6 +179,14 @@ class ServletMutableHttpResponseTests {
             mutable.headers().add("X-A", "2");
             assertThat(mutable.getHeaders("X-A")).containsExactly("1", "2");
         }
+
+        @Test
+        @DisplayName("headers() mutations mark the response as modified")
+        void whenHeadersViewMutatesThenResponseIsModified() {
+            mutable.headers().set("Retry-After", "120");
+
+            assertThat(mutable.isModified()).isTrue();
+        }
     }
 
     @Nested

@@ -34,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +66,7 @@ public class ScenarioInterpreter {
     private static final String DEFAULT_MOCK_EMIT_ERROR      = "Mock emit error";
     private static final String DEFAULT_MOCK_FUNCTION_ERROR  = "Mock function error";
 
+    private static final String ERROR_CONFIGURATION_PATH_OUTSIDE_BASE      = "Configuration path must stay within the configured base path: %s.";
     private static final String ERROR_CONFIGURATION_WITH_DOCUMENTS         = "Cannot use 'configuration' together with 'document' or 'documents'. "
             + "The 'configuration' directive loads all documents from the specified folder.";
     private static final String ERROR_CONFIGURATION_WITH_PDP_CONFIGURATION = "Cannot use 'configuration' together with 'pdp-configuration'. "
@@ -121,6 +123,7 @@ public class ScenarioInterpreter {
             // Load default function libraries so unmocked functions delegate to real
             // implementations
             fixture.withDefaultFunctionLibraries();
+            applyConfiguredExtensions(fixture);
 
             // Configure coverage for test identification
             fixture.withTestIdentifier(requirementName + " > " + scenarioName);
@@ -245,20 +248,39 @@ public class ScenarioInterpreter {
         val basePath = config.basePath();
         if (mergedGiven.configurationPath != null) {
             if (basePath != null) {
-                fixture.withConfigurationFromDirectory(basePath.resolve(mergedGiven.configurationPath).toString());
+                fixture.withConfigurationFromDirectory(
+                        resolveContainedPath(basePath, mergedGiven.configurationPath).toString());
             } else {
                 fixture.withConfigurationFromResources(mergedGiven.configurationPath);
             }
         } else if (mergedGiven.pdpConfigurationPath != null) {
             applyDocumentSelection(fixture, documentSpec, false);
             if (basePath != null) {
-                fixture.withConfigFile(basePath.resolve(mergedGiven.pdpConfigurationPath).toString());
+                fixture.withConfigFile(resolveContainedPath(basePath, mergedGiven.pdpConfigurationPath).toString());
             } else {
                 fixture.withConfigFileFromResource(mergedGiven.pdpConfigurationPath);
             }
         } else {
             applyDocumentSelection(fixture, documentSpec, isUnitTest);
         }
+    }
+
+    private void applyConfiguredExtensions(SaplTestFixture fixture) {
+        for (val library : config.functionLibraries()) {
+            fixture.withFunctionLibrary(library);
+        }
+        for (val pip : config.policyInformationPoints()) {
+            fixture.withPolicyInformationPoint(pip);
+        }
+    }
+
+    private static Path resolveContainedPath(Path basePath, String requestedPath) {
+        val normalizedBase = basePath.toAbsolutePath().normalize();
+        val resolvedPath   = normalizedBase.resolve(requestedPath).normalize();
+        if (!resolvedPath.startsWith(normalizedBase)) {
+            throw new TestValidationException(ERROR_CONFIGURATION_PATH_OUTSIDE_BASE.formatted(requestedPath));
+        }
+        return resolvedPath;
     }
 
     /**
