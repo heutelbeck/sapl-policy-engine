@@ -71,16 +71,16 @@ public class JwtSecretsAutoConfiguration {
             try {
                 val jwtAuthClass = Class.forName(
                         "org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken");
-                if (!jwtAuthClass.isInstance(authentication))
+                if (!jwtAuthClass.isInstance(authentication)) {
                     return Value.EMPTY_OBJECT;
-
+                }
                 val getToken      = jwtAuthClass.getMethod("getToken");
                 val token         = getToken.invoke(authentication);
                 val getTokenValue = token.getClass().getMethod("getTokenValue");
                 val tokenValue    = (String) getTokenValue.invoke(token);
 
                 return ObjectValue.builder().put(secretsKey, Value.of(tokenValue)).build();
-            } catch (Exception ignored) {
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
                 log.warn(WARN_JWT_EXTRACTION_FAILED);
                 return Value.EMPTY_OBJECT;
             }

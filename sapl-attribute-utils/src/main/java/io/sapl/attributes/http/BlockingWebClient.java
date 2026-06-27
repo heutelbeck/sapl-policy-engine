@@ -329,11 +329,9 @@ public class BlockingWebClient {
             long maxBytes) {
         if (line.isEmpty()) {
             flushEvent(data, emit);
-        } else if (line.startsWith("data:")) {
-            if (!data.appendDataLine(line, maxBytes)) {
-                emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
-                stopped.set(true);
-            }
+        } else if (line.startsWith("data:") && !data.appendDataLine(line, maxBytes)) {
+            emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
+            stopped.set(true);
         }
     }
 

@@ -247,19 +247,19 @@ public class MqttFunctionLibrary {
 
     private static long utf8ByteCount(String text) {
         long bytes = 0L;
-        for (int index = 0; index < text.length(); index++) {
-            val character = text.charAt(index);
-            if (character <= 0x7F) {
+        var  index = 0;
+        while (index < text.length()) {
+            val codePoint = text.codePointAt(index);
+            if (codePoint <= 0x7F) {
                 bytes++;
-            } else if (character <= 0x7FF) {
+            } else if (codePoint <= 0x7FF) {
                 bytes += 2L;
-            } else if (Character.isHighSurrogate(character) && index + 1 < text.length()
-                    && Character.isLowSurrogate(text.charAt(index + 1))) {
-                bytes += 4L;
-                index++;
-            } else {
+            } else if (codePoint <= 0xFFFF) {
                 bytes += 3L;
+            } else {
+                bytes += 4L;
             }
+            index += Character.charCount(codePoint);
         }
         return bytes;
     }

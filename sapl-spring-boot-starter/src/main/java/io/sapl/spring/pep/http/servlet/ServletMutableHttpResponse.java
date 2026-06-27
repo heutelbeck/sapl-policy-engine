@@ -390,7 +390,7 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
         }
 
         @Override
-        public List<String> put(String headerName, List<String> headerValues) {
+        public @Nullable List<String> put(String headerName, List<String> headerValues) {
             val previous = super.put(headerName, headerValues);
             markModified();
             return previous;
@@ -413,7 +413,7 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
         }
 
         @Override
-        public List<String> putIfAbsent(String headerName, List<String> headerValues) {
+        public @Nullable List<String> putIfAbsent(String headerName, List<String> headerValues) {
             val previous = super.putIfAbsent(headerName, headerValues);
             if (previous == null) {
                 markModified();
@@ -422,7 +422,7 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
         }
 
         @Override
-        public List<String> remove(String headerName) {
+        public @Nullable List<String> remove(String headerName) {
             val previous = super.remove(headerName);
             if (previous != null) {
                 markModified();

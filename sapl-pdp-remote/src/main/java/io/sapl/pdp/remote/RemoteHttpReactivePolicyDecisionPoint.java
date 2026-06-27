@@ -88,7 +88,7 @@ import java.util.function.UnaryOperator;
  * @see RemotePolicyDecisionPoint#builder()
  */
 @Slf4j
-public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDecisionPoint {
+public final class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDecisionPoint {
 
     private static final String DECIDE                = "/api/pdp/decide";
     private static final String DECIDE_ONCE           = "/api/pdp/decide-once";

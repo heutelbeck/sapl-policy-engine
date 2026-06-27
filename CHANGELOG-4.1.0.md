@@ -13,6 +13,7 @@ The full architecture and worked examples are in [`sapl-documentation/6_3_Spring
 - MVC OAuth2 authentication now requires JWT `exp` by default, matching PDP HTTP and RSocket authentication. Non-expiring JWTs require the explicit `io.sapl.node.oauth.allow-jwt-without-expiry=true` opt-in.
 - OpenID Authorization API requests that exceed the configured body limit during chunked reads now return 413.
 - Geo `geometryBag` and `flattenGeometryBag` enforce the configured geometry collection member cap.
+- Geo CRS lookup now uses GeoTools' WKT-file EPSG CRS authority service, focusing bundled EPSG support on CRS definitions instead of HSQL-backed coordinate system, datum, and coordinate operation authority factories.
 - MQTT topic matching functions reject excessive topic filter arrays before parsing them.
 - MQTT PIP subscriptions bound topic filter count and total topic-filter bytes via `maxTopicFilters` and `maxTopicFilterBytes`.
 - Remote bundle auth headers require `https` by default. Plaintext HTTP requires `remote-bundles.allow-insecure-http=true`.

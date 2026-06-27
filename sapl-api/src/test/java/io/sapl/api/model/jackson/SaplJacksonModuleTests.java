@@ -594,20 +594,52 @@ class SaplJacksonModuleTests {
         assertThat(restored).isEqualTo(original);
     }
 
-    @Test
-    @DisplayName("when deserializing pdp configuration with first voting mode then throws exception")
-    void whenDeserializingPDPConfigurationWithFirstVotingModeThenThrowsException() {
-        val json   = """
-                {
-                    "pdpId": "test-pdp",
-                    "configurationId": "test-security",
-                    "combiningAlgorithm": {"votingMode": "FIRST", "defaultDecision": "ABSTAIN", "errorHandling": "ABSTAIN"},
-                    "saplDocuments": [],
-                    "variables": {}
-                }""";
+    @ParameterizedTest(name = "expected message contains {1}")
+    @MethodSource("invalidPDPConfigurationCases")
+    @DisplayName("when deserializing invalid pdp configuration then throws exception")
+    void whenDeserializingInvalidPDPConfigurationThenThrowsException(String json, String expectedMessage) {
         val decode = (ThrowingCallable) () -> mapper.readValue(json, PDPConfiguration.class);
 
-        assertThatThrownBy(decode).hasMessageContaining("FIRST");
+        assertThatThrownBy(decode).hasMessageContaining(expectedMessage);
+    }
+
+    static Stream<Arguments> invalidPDPConfigurationCases() {
+        return Stream.of(
+                arguments(
+                        """
+                                {
+                                    "pdpId": "test-pdp",
+                                    "configurationId": "test-security",
+                                    "combiningAlgorithm": {"votingMode": "FIRST", "defaultDecision": "ABSTAIN", "errorHandling": "ABSTAIN"},
+                                    "saplDocuments": [],
+                                    "variables": {}
+                                }""",
+                        "FIRST"),
+                arguments(
+                        """
+                                {
+                                    "configurationId": "test-security",
+                                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
+                                    "saplDocuments": [],
+                                    "variables": {}
+                                }""",
+                        "pdpId"),
+                arguments(
+                        """
+                                {
+                                    "pdpId": "test-pdp",
+                                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
+                                    "saplDocuments": [],
+                                    "variables": {}
+                                }""",
+                        "configurationId"),
+                arguments("""
+                        {
+                            "pdpId": "test-pdp",
+                            "configurationId": "test-security",
+                            "saplDocuments": [],
+                            "variables": {}
+                        }""", "combiningAlgorithm"));
     }
 
     @Test
@@ -633,51 +665,6 @@ class SaplJacksonModuleTests {
         assertThat(configuration.data().variables().get("array")).isInstanceOf(ArrayValue.class);
         assertThat(configuration.data().variables().get("bool")).isEqualTo(Value.TRUE);
         assertThat(configuration.data().variables().get("nullable")).isEqualTo(Value.NULL);
-    }
-
-    @Test
-    @DisplayName("when deserializing pdp configuration without pdp id then throws exception")
-    void whenDeserializingPDPConfigurationWithoutPdpIdThenThrowsException() {
-        val json   = """
-                {
-                    "configurationId": "test-security",
-                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
-                    "saplDocuments": [],
-                    "variables": {}
-                }""";
-        val decode = (ThrowingCallable) () -> mapper.readValue(json, PDPConfiguration.class);
-
-        assertThatThrownBy(decode).hasMessageContaining("pdpId");
-    }
-
-    @Test
-    @DisplayName("when deserializing pdp configuration without configuration id then throws exception")
-    void whenDeserializingPDPConfigurationWithoutConfigurationIdThenThrowsException() {
-        val json   = """
-                {
-                    "pdpId": "test-pdp",
-                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
-                    "saplDocuments": [],
-                    "variables": {}
-                }""";
-        val decode = (ThrowingCallable) () -> mapper.readValue(json, PDPConfiguration.class);
-
-        assertThatThrownBy(decode).hasMessageContaining("configurationId");
-    }
-
-    @Test
-    @DisplayName("when deserializing pdp configuration without algorithm then throws exception")
-    void whenDeserializingPDPConfigurationWithoutAlgorithmThenThrowsException() {
-        val json   = """
-                {
-                    "pdpId": "test-pdp",
-                    "configurationId": "test-security",
-                    "saplDocuments": [],
-                    "variables": {}
-                }""";
-        val decode = (ThrowingCallable) () -> mapper.readValue(json, PDPConfiguration.class);
-
-        assertThatThrownBy(decode).hasMessageContaining("combiningAlgorithm");
     }
 
     @Test
