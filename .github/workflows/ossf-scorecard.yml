@@ -1,5 +1,6 @@
 name: Scorecard analysis workflow
 on:
+  workflow_dispatch:
   # Only the default branch is supported.
   branch_protection_rule:
   push:

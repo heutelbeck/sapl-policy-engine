@@ -38,6 +38,7 @@ target/
 **/VAADIN/widgetsets/
 **/VAADIN/themes/**/addons.scss
 **/VAADIN/themes/**/styles.css
+sapl-benchmark/results/
 
 # Maven
 **/.m2/

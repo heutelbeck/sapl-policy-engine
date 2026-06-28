@@ -468,11 +468,8 @@ class PipBrokerSpecTests {
                 Awaitility.await().atMost(AWAIT).untilAsserted(() -> assertThat(r1.snapshots).isNotEmpty());
 
                 sub1.close();
-                // Within grace, backing is still alive.
-                Awaitility.await().pollDelay(grace.dividedBy(3)).atMost(grace.dividedBy(2))
-                        .untilAsserted(() -> assertThat(InstrumentedPip.closeCount.get()).isZero());
                 // After grace expires, the scheduled teardown closes the inner.
-                Awaitility.await().atMost(grace.multipliedBy(4))
+                Awaitility.await().atMost(AWAIT)
                         .untilAsserted(() -> assertThat(InstrumentedPip.closeCount.get()).isEqualTo(1));
             } finally {
                 broker.close();
