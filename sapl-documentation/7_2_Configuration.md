@@ -275,3 +275,23 @@ server:
 ```
 
 Generate the API key hash with `sapl generate apikey --id service-a --pdp-id default`. The command prints the Argon2 encoded value for the configuration and the plaintext key for the client. See [Getting Started](../7_1_GettingStarted/) for the full CLI reference.
+
+### Runtime and Latency Tuning
+
+SAPL Node ships as a native binary and as a JVM application. The native binary starts in milliseconds and has a small memory footprint. It suits most deployments and is the default for the Linux packages. It uses GraalVM's serial garbage collector, which is fine for typical workloads.
+
+For latency-sensitive or high-throughput deployments, run the JVM build. On the JVM you can use a low-pause garbage collector that keeps garbage collection off the request-latency tail. ZGC is the recommended choice.
+
+```bash
+java -XX:+UseZGC -jar sapl-node.jar server
+```
+
+You can also set it through the environment, which the JVM reads even when started with `java -jar`.
+
+```bash
+JAVA_TOOL_OPTIONS="-XX:+UseZGC" java -jar sapl-node.jar server
+```
+
+The Docker image runs the JVM build and enables ZGC by default, so containerized deployments get low-pause collection with no extra configuration. Heap size is derived automatically from the container memory limit.
+
+Garbage collection is the dominant source of tail latency in any managed runtime. The default throughput collector (G1) can pause for tens of milliseconds or more under load, and those pauses show up at the high percentiles such as p99 and p99.9. A concurrent collector such as ZGC keeps pauses below a millisecond at a small cost to peak throughput. For an authorization server on the request path, predictable tail latency is usually the better trade.

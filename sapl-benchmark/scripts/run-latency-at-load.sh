@@ -45,6 +45,18 @@ SCENARIO_DIR="/tmp/sapl-benchmark-scenarios"
 rm -rf "$SCENARIO_DIR"
 mkdir -p "$SCENARIO_DIR"
 
+# HTTP latency-at-load arm (wrk2). loadtest's HTTP client cannot saturate a fast
+# server, so HTTP latency is driven by wrk2 at controlled rates instead.
+LUA_SCRIPT="$SCRIPT_DIR/lib/sapl-wrk.lua"
+HTTP_URL="http://127.0.0.1:8080/api/pdp/decide-once"
+HTTP_LAT_CONNECTIONS="${HTTP_LAT_CONNECTIONS:-256}"
+
+# Low-pause collector for the latency-experiment JVM server. Measured: default G1
+# and large-heap G1 both spike the tail with ~1s full-GC pauses; ZGC keeps pauses
+# off the latency tail. Override via LATENCY_SERVER_GC. JVM server only (the native
+# image uses its own collector).
+LATENCY_SERVER_GC="${LATENCY_SERVER_GC:--XX:+UseZGC -Xmx32g}"
+
 trap_cleanup
 
 echo "Exporting scenarios..."
@@ -57,7 +69,8 @@ echo ""
 RUNTIMES=(jvm)
 $HAS_NATIVE && RUNTIMES+=(native)
 
-TOTAL_STEPS=$(( ${#RUNTIMES[@]} * ${#SERVER_PCORES_SWEEP[@]} * ${#SCENARIOS[@]} * (${#LOAD_PCTS[@]} + 1) ))
+# x2: each scenario runs both an RSocket arm and an HTTP arm, each (LOAD_PCTS + 1) steps.
+TOTAL_STEPS=$(( ${#RUNTIMES[@]} * ${#SERVER_PCORES_SWEEP[@]} * ${#SCENARIOS[@]} * 2 * (${#LOAD_PCTS[@]} + 1) ))
 CURRENT_STEP=0
 
 run_rate_sweep() {
@@ -120,7 +133,8 @@ for runtime in "${RUNTIMES[@]}"; do
     echo "  Profile:    $QUALITY"
     echo "  Scenarios:  ${SCENARIOS[*]}"
     echo "  Load pcts:  ${LOAD_PCTS[*]}% (of measured saturation)"
-    echo "  Transport:  RSocket ($RSOCKET_CONNECTIONS conns x $RSOCKET_CONCURRENCY concurrent)"
+    echo "  Transport:  RSocket ($RSOCKET_CONNECTIONS conns x $RSOCKET_CONCURRENCY concurrent) + HTTP (wrk2 -t$WRK_THREADS, $HTTP_LAT_CONNECTIONS conns)"
+    echo "  Server GC:  ${LATENCY_SERVER_GC:-<jvm default>} (JVM server; native uses its own)"
     echo "  Server:     ${SERVER_PCORES_SWEEP[*]} P-cores"
     echo "  Measure:    ${MEASUREMENT_TIME}s per step"
     echo "  Total:      $TOTAL_STEPS runs across all runtimes"
@@ -137,7 +151,7 @@ for runtime in "${RUNTIMES[@]}"; do
 
         echo "Starting $runtime server: $scenario on CPUs $cpu_range (${pcores} P-cores)"
         if [ "$runtime" = "jvm" ]; then
-            taskset -c "$cpu_range" java \
+            taskset -c "$cpu_range" java $LATENCY_SERVER_GC \
                 -XX:ActiveProcessorCount=$((pcores * 2)) \
                 -jar "$SAPL_NODE_JAR" server \
                 --io.sapl.node.allow-no-auth=true \
@@ -238,6 +252,63 @@ for runtime in "${RUNTIMES[@]}"; do
             --label "$prefix"
 
         echo ""
+
+        # ------------------------------------------------------------------
+        # HTTP arm: same running server, port 8080, driven by wrk2 (loadtest's
+        # HTTP client cannot saturate a fast server). Rates are held below the
+        # measured HTTP saturation so the percentiles are meaningful.
+        # ------------------------------------------------------------------
+        http_sub="$SCENARIO_DIR/$scenario/subscription.json"
+        # Warm the HTTP request path (JIT + GC) before any measured step. The
+        # RSocket arm above warms shared code, but the servlet/JSON path is
+        # distinct; without this the first rate step pays the warmup cost as tail.
+        echo "  HTTP: warmup (convergence-based)..."
+        converge_wrk "$HTTP_LAT_CONNECTIONS" "$HTTP_URL" "$LUA_SCRIPT" "$http_sub"
+        echo "  HTTP: measuring saturation (wrk2 -t$WRK_THREADS)..."
+        wait_cool
+        http_sat_out=$(SUBSCRIPTION_FILE="$http_sub" run_pinned "$client_cpu" \
+            wrk2 -t"$WRK_THREADS" -c"$HTTP_LAT_CONNECTIONS" -d"${MEASUREMENT_TIME}"s -R 10000000 \
+            -s "$LUA_SCRIPT" "$HTTP_URL" 2>&1)
+        http_peak=$(parse_wrk_rps "$http_sat_out" | cut -d. -f1)
+        http_peak=${http_peak:-1}
+        echo "  HTTP saturation: $http_peak req/s"
+
+        for load_pct in "${LOAD_PCTS[@]}"; do
+            rate=$((http_peak * load_pct / 100))
+            [ "$rate" -lt 1 ] && rate=1
+            CURRENT_STEP=$((CURRENT_STEP + 1))
+            pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+            echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / ${pcores}P / HTTP / ${load_pct}% = $rate req/s"
+            wait_cool
+
+            http_out=$(SUBSCRIPTION_FILE="$http_sub" run_pinned "$client_cpu" \
+                wrk2 -t"$WRK_THREADS" -c"$HTTP_LAT_CONNECTIONS" -d"${MEASUREMENT_TIME}"s -R "$rate" --latency \
+                -s "$LUA_SCRIPT" "$HTTP_URL" 2>&1)
+            http_rps=$(parse_wrk_rps "$http_out")
+            IFS=: read -r l50 l90 l99 l999 lmax <<< "$(parse_wrk_latency5 "$http_out")"
+            write_loadtest_csv "$OUTDIR/${scenario}_${runtime}_${pcores}p_${load_pct}pct_http.csv" \
+                "${scenario}_${runtime}_${pcores}p_${load_pct}pct_http" "HTTP" \
+                "$WRK_THREADS" "$HTTP_LAT_CONNECTIONS" "$MEASUREMENT_TIME" \
+                "${http_rps:-0}" "$l50" "$l90" "$l99" "$l999" "$lmax"
+            echo ""
+        done
+
+        # HTTP saturation reference
+        CURRENT_STEP=$((CURRENT_STEP + 1))
+        pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+        echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / ${pcores}P / HTTP / saturation"
+        wait_cool
+        http_out=$(SUBSCRIPTION_FILE="$http_sub" run_pinned "$client_cpu" \
+            wrk2 -t"$WRK_THREADS" -c"$HTTP_LAT_CONNECTIONS" -d"${MEASUREMENT_TIME}"s -R 10000000 --latency \
+            -s "$LUA_SCRIPT" "$HTTP_URL" 2>&1)
+        http_rps=$(parse_wrk_rps "$http_out")
+        IFS=: read -r l50 l90 l99 l999 lmax <<< "$(parse_wrk_latency5 "$http_out")"
+        write_loadtest_csv "$OUTDIR/${scenario}_${runtime}_${pcores}p_saturation_http.csv" \
+            "${scenario}_${runtime}_${pcores}p_saturation_http" "HTTP" \
+            "$WRK_THREADS" "$HTTP_LAT_CONNECTIONS" "$MEASUREMENT_TIME" \
+            "${http_rps:-0}" "$l50" "$l90" "$l99" "$l999" "$lmax"
+        echo ""
+
         stop_server
     done
     done
