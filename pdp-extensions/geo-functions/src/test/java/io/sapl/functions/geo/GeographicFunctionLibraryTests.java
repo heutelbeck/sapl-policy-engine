@@ -1135,7 +1135,9 @@ class GeographicFunctionLibraryTests {
     private static ObjectValue multiPointOf(int count, double latitudeBase, double spacing) {
         val coordinates = new Coordinate[count];
         for (var i = 0; i < count; i++) {
-            coordinates[i] = new Coordinate((i % 100) * spacing, latitudeBase + (i / 100) * spacing);
+            val column = i % 100;
+            val row    = i / 100;
+            coordinates[i] = new Coordinate(column * spacing, latitudeBase + row * spacing);
         }
         return (ObjectValue) geometryToGeoJSON(GEO_FACTORY.createMultiPointFromCoords(coordinates));
     }
