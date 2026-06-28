@@ -280,6 +280,8 @@ class AttributeStreamTests {
 
             Thread.startVirtualThread(() -> {
                 try {
+                    // No observable state to await: the consumer parks in awaitNext, so wait a real
+                    // interval to let it block first.
                     Thread.sleep(Duration.ofMillis(50));
                     stream.close();
                 } catch (InterruptedException ignored) {
@@ -332,9 +334,10 @@ class AttributeStreamTests {
             val stream  = new AttributeStream(
                     invocation("backoffSleepClose", INITIAL_TIMEOUT, POLL_INTERVAL, backoff, 1L), supplier);
 
-            // Wait until the first attempt has fired and the pump is asleep in backoff.
-            Awaitility.await().atMost(AWAIT_BUDGET).until(() -> supplierInvoked.get() >= 1);
-            sleepUninterruptibly(Duration.ofMillis(50));
+            // Wait until the first attempt has fired and the pump has parked in the backoff
+            // sleep.
+            Awaitility.await().atMost(AWAIT_BUDGET).until(
+                    () -> supplierInvoked.get() >= 1 && stream.pumpThread.getState() == Thread.State.TIMED_WAITING);
 
             val before = System.nanoTime();
             stream.close();
@@ -379,15 +382,6 @@ class AttributeStreamTests {
                 Awaitility.await().atMost(AWAIT_BUDGET).until(() -> !stream.pumpThread.isAlive());
                 assertThat(stream.pumpThread.isAlive()).isFalse();
             }
-        }
-    }
-
-    private static void sleepUninterruptibly(Duration duration) {
-        try {
-            Thread.sleep(duration.toMillis());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
         }
     }
 

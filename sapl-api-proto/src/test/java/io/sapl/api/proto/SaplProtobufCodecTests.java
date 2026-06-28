@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.stream.Stream;
 
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import lombok.val;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -61,8 +63,8 @@ class SaplProtobufCodecTests {
         @MethodSource("valueTestCases")
         @DisplayName("should round-trip Value types correctly")
         void shouldRoundTripValueTypes(String description, Value original) throws IOException {
-            var bytes        = SaplProtobufCodec.writeValue(original);
-            var deserialized = SaplProtobufCodec.readValue(bytes);
+            val bytes        = SaplProtobufCodec.writeValue(original);
+            val deserialized = SaplProtobufCodec.readValue(bytes);
             assertThat(deserialized).isEqualTo(original);
         }
 
@@ -75,10 +77,11 @@ class SaplProtobufCodecTests {
             for (int i = 0; i < 1100; i++) {
                 bytes = wrapInArrayValue(bytes);
             }
-            final byte[] nested = bytes;
+            val nested = bytes;
 
-            assertThatThrownBy(() -> SaplProtobufCodec.readValue(nested)).isInstanceOf(IOException.class)
-                    .hasMessageContaining("maximum depth");
+            val decode = (ThrowingCallable) () -> SaplProtobufCodec.readValue(nested);
+
+            assertThatThrownBy(decode).isInstanceOf(IOException.class).hasMessageContaining("maximum depth");
         }
 
         @Test
@@ -90,7 +93,7 @@ class SaplProtobufCodecTests {
                 value = ArrayValue.builder().add(value).build();
             }
 
-            var bytes = SaplProtobufCodec.writeValue(value);
+            val bytes = SaplProtobufCodec.writeValue(value);
 
             assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
         }
@@ -100,9 +103,11 @@ class SaplProtobufCodecTests {
         @DisplayName("decoding a malformed or unbounded number fails closed with an IOException")
         void whenNumberPayloadMalformedOrUnboundedThenReadFailsClosed(String description, String numberLiteral)
                 throws IOException {
-            final byte[] bytes = numberValuePayload(numberLiteral);
+            val bytes = numberValuePayload(numberLiteral);
 
-            assertThatThrownBy(() -> SaplProtobufCodec.readValue(bytes)).isInstanceOf(IOException.class);
+            val decode = (ThrowingCallable) () -> SaplProtobufCodec.readValue(bytes);
+
+            assertThatThrownBy(decode).isInstanceOf(IOException.class);
         }
 
         static Stream<Arguments> malformedNumberCases() {
@@ -120,9 +125,9 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("a number within the accepted magnitude round-trips")
         void whenNumberWithinAcceptedMagnitudeThenRoundTrips() throws IOException {
-            final var value = new NumberValue(new BigDecimal("123456789.123456789"));
+            val value = new NumberValue(new BigDecimal("123456789.123456789"));
 
-            final var bytes = SaplProtobufCodec.writeValue(value);
+            val bytes = SaplProtobufCodec.writeValue(value);
 
             assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
         }
@@ -131,8 +136,8 @@ class SaplProtobufCodecTests {
             // Value fields: one VALUE_NUMBER (field 3) carrying the raw on-the-wire string.
             // Hand-built because the encoder would never emit a malformed or unbounded
             // number.
-            var valueBuffer = new ByteArrayOutputStream();
-            var valueOut    = CodedOutputStream.newInstance(valueBuffer);
+            val valueBuffer = new ByteArrayOutputStream();
+            val valueOut    = CodedOutputStream.newInstance(valueBuffer);
             valueOut.writeString(3, numberLiteral);
             valueOut.flush();
             return valueBuffer.toByteArray();
@@ -140,17 +145,17 @@ class SaplProtobufCodecTests {
 
         private static byte[] wrapInArrayValue(byte[] innerValueBytes) throws IOException {
             // ArrayValue content: one ARRAY_ELEMENTS (field 1) holding the inner value.
-            var elementBuffer = new ByteArrayOutputStream();
-            var elementOut    = CodedOutputStream.newInstance(elementBuffer);
+            val elementBuffer = new ByteArrayOutputStream();
+            val elementOut    = CodedOutputStream.newInstance(elementBuffer);
             elementOut.writeTag(1, WIRETYPE_LENGTH_DELIMITED);
             elementOut.writeUInt32NoTag(innerValueBytes.length);
             elementOut.writeRawBytes(innerValueBytes);
             elementOut.flush();
-            var elementBytes = elementBuffer.toByteArray();
+            val elementBytes = elementBuffer.toByteArray();
 
             // Value fields: one VALUE_ARRAY (field 5) holding the array content.
-            var valueBuffer = new ByteArrayOutputStream();
-            var valueOut    = CodedOutputStream.newInstance(valueBuffer);
+            val valueBuffer = new ByteArrayOutputStream();
+            val valueOut    = CodedOutputStream.newInstance(valueBuffer);
             valueOut.writeTag(5, WIRETYPE_LENGTH_DELIMITED);
             valueOut.writeUInt32NoTag(elementBytes.length);
             valueOut.writeRawBytes(elementBytes);
@@ -162,7 +167,7 @@ class SaplProtobufCodecTests {
             return Stream.of(arguments("null value", Value.NULL), arguments("undefined value", Value.UNDEFINED),
                     arguments("boolean true", Value.of(true)), arguments("boolean false", Value.of(false)),
                     arguments("integer number", new NumberValue(new BigDecimal("42"))),
-                    arguments("decimal number", new NumberValue(new BigDecimal("3.14159"))),
+                    arguments("decimal number", new NumberValue(new BigDecimal("2.5"))),
                     arguments("negative number", new NumberValue(new BigDecimal("-999"))),
                     arguments("large number", new NumberValue(new BigDecimal("12345678901234567890"))),
                     arguments("empty string", Value.of("")), arguments("simple string", Value.of("hello")),
@@ -237,10 +242,10 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("an error value round-trips carrying only its message")
         void whenErrorValueEncodedThenOnlyMessageIsCarried() throws IOException {
-            final var error = Value.error("policy evaluation failed");
+            val error = Value.error("policy evaluation failed");
 
-            final var bytes        = SaplProtobufCodec.writeValue(error);
-            final var deserialized = SaplProtobufCodec.readValue(bytes);
+            val bytes        = SaplProtobufCodec.writeValue(error);
+            val deserialized = SaplProtobufCodec.readValue(bytes);
 
             assertThat(deserialized).isInstanceOfSatisfying(ErrorValue.class,
                     e -> assertThat(e.message()).isEqualTo("policy evaluation failed"));
@@ -250,9 +255,9 @@ class SaplProtobufCodecTests {
         @DisplayName("an error payload carrying the reserved arguments field is decoded without corruption")
         void whenErrorPayloadCarriesReservedArgumentsFieldThenItIsIgnored() throws IOException {
             // Field 2 is reserved. The decoder must skip it and recover the message.
-            final byte[] bytes = errorValuePayloadWithLegacyArguments("boom", "ignored-argument");
+            val bytes = errorValuePayloadWithLegacyArguments("boom", "ignored-argument");
 
-            final var deserialized = SaplProtobufCodec.readValue(bytes);
+            val deserialized = SaplProtobufCodec.readValue(bytes);
 
             assertThat(deserialized).isInstanceOfSatisfying(ErrorValue.class,
                     e -> assertThat(e.message()).isEqualTo("boom"));
@@ -261,16 +266,16 @@ class SaplProtobufCodecTests {
         private static byte[] errorValuePayloadWithLegacyArguments(String message, String legacyArgument)
                 throws IOException {
             // Hand-built ErrorValue: message (field 1) plus reserved arguments (field 2).
-            var errorBuffer = new ByteArrayOutputStream();
-            var errorOut    = CodedOutputStream.newInstance(errorBuffer);
+            val errorBuffer = new ByteArrayOutputStream();
+            val errorOut    = CodedOutputStream.newInstance(errorBuffer);
             errorOut.writeString(1, message);
             errorOut.writeString(2, legacyArgument);
             errorOut.flush();
-            var errorBytes = errorBuffer.toByteArray();
+            val errorBytes = errorBuffer.toByteArray();
 
             // VALUE_ERROR (field 8) holding the error content.
-            var valueBuffer = new ByteArrayOutputStream();
-            var valueOut    = CodedOutputStream.newInstance(valueBuffer);
+            val valueBuffer = new ByteArrayOutputStream();
+            val valueOut    = CodedOutputStream.newInstance(valueBuffer);
             valueOut.writeTag(8, WIRETYPE_LENGTH_DELIMITED);
             valueOut.writeUInt32NoTag(errorBytes.length);
             valueOut.writeRawBytes(errorBytes);
@@ -286,12 +291,12 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip subscription with all fields")
         void shouldRoundTripSubscriptionWithAllFields() throws IOException {
-            var subscription = new AuthorizationSubscription(Value.of("user123"), Value.of("read"),
+            val subscription = new AuthorizationSubscription(Value.of("user123"), Value.of("read"),
                     Value.of("document/456"), ObjectValue.builder().put("time", Value.of("morning")).build(),
                     ObjectValue.builder().put("apiKey", Value.of("secret123")).build());
 
-            var bytes        = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
-            var deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
+            val bytes        = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
+            val deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
 
             assertThat(deserialized).satisfies(s -> {
                 assertThat(s.subject()).isEqualTo(subscription.subject());
@@ -305,11 +310,11 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip subscription with undefined fields")
         void shouldRoundTripSubscriptionWithUndefinedFields() throws IOException {
-            var subscription = new AuthorizationSubscription(Value.of("user"), Value.of("action"), Value.UNDEFINED,
+            val subscription = new AuthorizationSubscription(Value.of("user"), Value.of("action"), Value.UNDEFINED,
                     Value.UNDEFINED, Value.EMPTY_OBJECT);
 
-            var bytes        = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
-            var deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
+            val bytes        = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
+            val deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
 
             assertThat(deserialized).satisfies(d -> {
                 assertThat(d.resource()).isEqualTo(Value.UNDEFINED);
@@ -323,24 +328,24 @@ class SaplProtobufCodecTests {
         void whenSecretsPayloadIsNotAnObjectThenSecretsDecodeAsEmptyObject() throws IOException {
             // A non-object value in field 5 must decode to an empty object, not leak
             // through.
-            final byte[] bytes = subscriptionWithNonObjectSecrets("not-an-object");
+            val bytes = subscriptionWithNonObjectSecrets("not-an-object");
 
-            final var deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
+            val deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
 
             assertThat(deserialized.secrets()).isEqualTo(Value.EMPTY_OBJECT);
         }
 
         private static byte[] subscriptionWithNonObjectSecrets(String secretText) throws IOException {
             // secrets as VALUE_TEXT (field 4) rather than an object.
-            var secretValueBuffer = new ByteArrayOutputStream();
-            var secretValueOut    = CodedOutputStream.newInstance(secretValueBuffer);
+            val secretValueBuffer = new ByteArrayOutputStream();
+            val secretValueOut    = CodedOutputStream.newInstance(secretValueBuffer);
             secretValueOut.writeString(4, secretText);
             secretValueOut.flush();
-            var secretValueBytes = secretValueBuffer.toByteArray();
+            val secretValueBytes = secretValueBuffer.toByteArray();
 
             // SUBSCRIPTION_SECRETS (field 5).
-            var subscriptionBuffer = new ByteArrayOutputStream();
-            var subscriptionOut    = CodedOutputStream.newInstance(subscriptionBuffer);
+            val subscriptionBuffer = new ByteArrayOutputStream();
+            val subscriptionOut    = CodedOutputStream.newInstance(subscriptionBuffer);
             subscriptionOut.writeTag(5, WIRETYPE_LENGTH_DELIMITED);
             subscriptionOut.writeUInt32NoTag(secretValueBytes.length);
             subscriptionOut.writeRawBytes(secretValueBytes);
@@ -357,11 +362,11 @@ class SaplProtobufCodecTests {
         @MethodSource("decisionTestCases")
         @DisplayName("should round-trip decisions correctly")
         void shouldRoundTripDecisions(String description, Decision decision) throws IOException {
-            var authDecision = new AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+            val authDecision = new AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.UNDEFINED);
 
-            var bytes        = SaplProtobufCodec.writeAuthorizationDecision(authDecision);
-            var deserialized = SaplProtobufCodec.readAuthorizationDecision(bytes);
+            val bytes        = SaplProtobufCodec.writeAuthorizationDecision(authDecision);
+            val deserialized = SaplProtobufCodec.readAuthorizationDecision(bytes);
 
             assertThat(deserialized.decision()).isEqualTo(decision);
         }
@@ -375,16 +380,16 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip decision with obligations and advice")
         void shouldRoundTripDecisionWithObligationsAndAdvice() throws IOException {
-            var obligations = ArrayValue.builder().add(ObjectValue.builder().put("type", Value.of("log")).build())
+            val obligations = ArrayValue.builder().add(ObjectValue.builder().put("type", Value.of("log")).build())
                     .build();
-            var advice      = ArrayValue.builder().add(ObjectValue.builder().put("type", Value.of("notify")).build())
+            val advice      = ArrayValue.builder().add(ObjectValue.builder().put("type", Value.of("notify")).build())
                     .build();
-            var resource    = ObjectValue.builder().put("filtered", Value.of(true)).build();
+            val resource    = ObjectValue.builder().put("filtered", Value.of(true)).build();
 
-            var authDecision = new AuthorizationDecision(Decision.PERMIT, obligations, advice, resource);
+            val authDecision = new AuthorizationDecision(Decision.PERMIT, obligations, advice, resource);
 
-            var bytes        = SaplProtobufCodec.writeAuthorizationDecision(authDecision);
-            var deserialized = SaplProtobufCodec.readAuthorizationDecision(bytes);
+            val bytes        = SaplProtobufCodec.writeAuthorizationDecision(authDecision);
+            val deserialized = SaplProtobufCodec.readAuthorizationDecision(bytes);
 
             assertThat(deserialized).satisfies(d -> {
                 assertThat(d.decision()).isEqualTo(Decision.PERMIT);
@@ -402,10 +407,10 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip empty multi-subscription")
         void shouldRoundTripEmptyMultiSubscription() throws IOException {
-            var multi = new MultiAuthorizationSubscription();
+            val multi = new MultiAuthorizationSubscription();
 
-            var bytes        = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
-            var deserialized = SaplProtobufCodec.readMultiAuthorizationSubscription(bytes);
+            val bytes        = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
+            val deserialized = SaplProtobufCodec.readMultiAuthorizationSubscription(bytes);
 
             assertThat(deserialized.hasSubscriptions()).isFalse();
         }
@@ -413,14 +418,14 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip multi-subscription with multiple entries")
         void shouldRoundTripMultiSubscriptionWithMultipleEntries() throws IOException {
-            var multi = new MultiAuthorizationSubscription();
+            val multi = new MultiAuthorizationSubscription();
             multi.addSubscription("sub1", new AuthorizationSubscription(Value.of("user1"), Value.of("read"),
                     Value.of("doc1"), Value.UNDEFINED, Value.EMPTY_OBJECT));
             multi.addSubscription("sub2", new AuthorizationSubscription(Value.of("user2"), Value.of("write"),
                     Value.of("doc2"), Value.UNDEFINED, Value.EMPTY_OBJECT));
 
-            var bytes        = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
-            var deserialized = SaplProtobufCodec.readMultiAuthorizationSubscription(bytes);
+            val bytes        = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
+            val deserialized = SaplProtobufCodec.readMultiAuthorizationSubscription(bytes);
 
             assertThat(deserialized).isInstanceOfSatisfying(MultiAuthorizationSubscription.class, d -> {
                 assertThat(d.size()).isEqualTo(2);
@@ -432,16 +437,32 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("a payload carrying two entries with the same id fails closed as IOException, not an unchecked exception")
         void whenDuplicateSubscriptionIdThenIOException() throws IOException {
-            var single = new MultiAuthorizationSubscription();
+            val single = new MultiAuthorizationSubscription();
             single.addSubscription("dup", new AuthorizationSubscription(Value.of("user"), Value.of("read"),
                     Value.of("doc"), Value.UNDEFINED, Value.EMPTY_OBJECT));
-            var oneEntry  = SaplProtobufCodec.writeMultiAuthorizationSubscription(single);
-            var twoSameId = new byte[oneEntry.length * 2];
+            val oneEntry  = SaplProtobufCodec.writeMultiAuthorizationSubscription(single);
+            val twoSameId = new byte[oneEntry.length * 2];
             System.arraycopy(oneEntry, 0, twoSameId, 0, oneEntry.length);
             System.arraycopy(oneEntry, 0, twoSameId, oneEntry.length, oneEntry.length);
 
-            assertThatThrownBy(() -> SaplProtobufCodec.readMultiAuthorizationSubscription(twoSameId))
-                    .isInstanceOf(IOException.class);
+            val decode = (ThrowingCallable) () -> SaplProtobufCodec.readMultiAuthorizationSubscription(twoSameId);
+
+            assertThatThrownBy(decode).isInstanceOf(IOException.class);
+        }
+
+        @Test
+        @DisplayName("a multi-subscription above the configured entry limit fails closed as IOException")
+        void whenMultiSubscriptionCountExceedsLimitThenIOException() throws IOException {
+            val multi = new MultiAuthorizationSubscription();
+            multi.addSubscription("sub1", new AuthorizationSubscription(Value.of("user1"), Value.of("read"),
+                    Value.of("doc1"), Value.UNDEFINED, Value.EMPTY_OBJECT));
+            multi.addSubscription("sub2", new AuthorizationSubscription(Value.of("user2"), Value.of("write"),
+                    Value.of("doc2"), Value.UNDEFINED, Value.EMPTY_OBJECT));
+            val bytes = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
+
+            val decode = (ThrowingCallable) () -> SaplProtobufCodec.readMultiAuthorizationSubscription(bytes, 1);
+
+            assertThatThrownBy(decode).isInstanceOf(IOException.class).hasMessageContaining("maximum");
         }
     }
 
@@ -452,10 +473,10 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip empty multi-decision")
         void shouldRoundTripEmptyMultiDecision() throws IOException {
-            var multi = new MultiAuthorizationDecision();
+            val multi = new MultiAuthorizationDecision();
 
-            var bytes        = SaplProtobufCodec.writeMultiAuthorizationDecision(multi);
-            var deserialized = SaplProtobufCodec.readMultiAuthorizationDecision(bytes);
+            val bytes        = SaplProtobufCodec.writeMultiAuthorizationDecision(multi);
+            val deserialized = SaplProtobufCodec.readMultiAuthorizationDecision(bytes);
 
             assertThat(deserialized.size()).isZero();
         }
@@ -463,20 +484,30 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip multi-decision with multiple entries")
         void shouldRoundTripMultiDecisionWithMultipleEntries() throws IOException {
-            var multi = new MultiAuthorizationDecision();
+            val multi = new MultiAuthorizationDecision();
             multi.setDecision("sub1",
                     new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED));
             multi.setDecision("sub2",
                     new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED));
 
-            var bytes        = SaplProtobufCodec.writeMultiAuthorizationDecision(multi);
-            var deserialized = SaplProtobufCodec.readMultiAuthorizationDecision(bytes);
+            val bytes        = SaplProtobufCodec.writeMultiAuthorizationDecision(multi);
+            val deserialized = SaplProtobufCodec.readMultiAuthorizationDecision(bytes);
 
             assertThat(deserialized).isInstanceOfSatisfying(MultiAuthorizationDecision.class, d -> {
                 assertThat(d.size()).isEqualTo(2);
                 assertThat(d.getDecision("sub1").decision()).isEqualTo(Decision.PERMIT);
                 assertThat(d.getDecision("sub2").decision()).isEqualTo(Decision.DENY);
             });
+        }
+
+        @Test
+        @DisplayName("a multi-decision payload with duplicate subscription IDs is rejected")
+        void whenMultiDecisionPayloadContainsDuplicateSubscriptionIdThenDecoderRejectsIt() throws IOException {
+            val bytes = multiDecisionPayloadWithDuplicateId();
+
+            val decode = (ThrowingCallable) () -> SaplProtobufCodec.readMultiAuthorizationDecision(bytes);
+
+            assertThatThrownBy(decode).isInstanceOf(IOException.class).hasMessageContaining("subscription id");
         }
     }
 
@@ -487,13 +518,13 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("should round-trip identifiable decision")
         void shouldRoundTripIdentifiableDecision() throws IOException {
-            var idDec = new IdentifiableAuthorizationDecision("subscription-123",
+            val idDec = new IdentifiableAuthorizationDecision("subscription-123",
                     new AuthorizationDecision(Decision.PERMIT,
                             ArrayValue.builder().add(ObjectValue.builder().put("log", Value.of(true)).build()).build(),
                             Value.EMPTY_ARRAY, Value.UNDEFINED));
 
-            var bytes        = SaplProtobufCodec.writeIdentifiableAuthorizationDecision(idDec);
-            var deserialized = SaplProtobufCodec.readIdentifiableAuthorizationDecision(bytes);
+            val bytes        = SaplProtobufCodec.writeIdentifiableAuthorizationDecision(idDec);
+            val deserialized = SaplProtobufCodec.readIdentifiableAuthorizationDecision(bytes);
 
             assertThat(deserialized).satisfies(d -> {
                 assertThat(d.subscriptionId()).isEqualTo("subscription-123");
@@ -501,5 +532,26 @@ class SaplProtobufCodecTests {
                 assertThat(d.decision().obligations()).hasSize(1);
             });
         }
+    }
+
+    private static byte[] multiDecisionPayloadWithDuplicateId() throws IOException {
+        val first  = multiDecisionEntry("guarded-action", AuthorizationDecision.DENY);
+        val second = multiDecisionEntry("guarded-action", AuthorizationDecision.PERMIT);
+        val out    = new ByteArrayOutputStream(first.length + second.length);
+        out.writeBytes(first);
+        out.writeBytes(second);
+        return out.toByteArray();
+    }
+
+    private static byte[] multiDecisionEntry(String subscriptionId, AuthorizationDecision decision) throws IOException {
+        val content = SaplProtobufCodec.writeIdentifiableAuthorizationDecision(
+                new IdentifiableAuthorizationDecision(subscriptionId, decision));
+        val out     = new ByteArrayOutputStream();
+        val output  = CodedOutputStream.newInstance(out);
+        output.writeTag(1, WIRETYPE_LENGTH_DELIMITED);
+        output.writeUInt32NoTag(content.length);
+        output.writeRawBytes(content);
+        output.flush();
+        return out.toByteArray();
     }
 }

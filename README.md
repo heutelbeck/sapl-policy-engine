@@ -203,6 +203,20 @@ The SAPL language server provides syntax highlighting, diagnostics, content assi
 | 4.0.x | 21+   | 4.0.x       |
 | 3.0.x | 17+   | 3.x         |
 
+## Project Origin
+
+SAPL is maintained by Dominic Heutelbeck and developed in the context of work
+at [FTK e.V.](https://ftk.de), the Research Institute for Telecommunication
+and Cooperation in Dortmund, Germany.
+
+SAPL originated in European research and has received funding from the European
+Union's Horizon 2020 research and innovation programme under Grant Agreement No.
+[957852](https://cordis.europa.eu/project/id/957852) (VPP4Islands) and from the
+European Union's Horizon Europe programme under Grant Agreement No.
+[101080923](https://cordis.europa.eu/project/id/101080923) (SMILE). The views
+expressed are those of the authors and do not necessarily reflect those of the
+European Commission.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -248,9 +262,25 @@ repositories {
 </details>
 
 <details>
+<summary>Quality gates</summary>
+
+The public [SonarCloud project](https://sonarcloud.io/dashboard?id=heutelbeck_sapl-policy-engine)
+tracks code quality and security analysis. Release CI waits for the SonarCloud
+quality gate, so releases are cut from a passing gate. False positives are
+tracked in SonarCloud rather than suppressed in source code.
+
+</details>
+
+<details>
 <summary>SBOM</summary>
 
-Need a [Software Bill of Materials](https://www.cisa.gov/sbom)? See [dependency graph](https://github.com/heutelbeck/sapl-policy-engine/network/dependencies).
+Need a [Software Bill of Materials](https://www.cisa.gov/sbom)? The SAPL Node executable JAR embeds a CycloneDX JSON SBOM at `META-INF/sbom/application.cdx.json`.
+
+```bash
+jar xf sapl-node-4.1.0.jar META-INF/sbom/application.cdx.json
+```
+
+For repository dependency visibility, see the public [GitHub dependency graph](https://github.com/heutelbeck/sapl-policy-engine/network/dependencies).
 
 </details>
 

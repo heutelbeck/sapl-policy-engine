@@ -90,19 +90,18 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-		    <!-- replaces the xml-commons-resolver excluded above -->
-    			<groupId>org.xmlresolver</groupId>
-    			<artifactId>xmlresolver</artifactId>
-    			<version>6.0.19</version>
+			<groupId>org.geotools.xsd</groupId>
+			<artifactId>gt-xsd-gml2</artifactId>
+			<version>${geotools.version}</version>
 		</dependency>
- 		<dependency>
-        		<groupId>org.geotools.xsd</groupId>
-        		<artifactId>gt-xsd-wfs</artifactId>
-        		<version>${geotools.version}</version>
-    		</dependency>
+		<dependency>
+			<groupId>org.geotools.xsd</groupId>
+			<artifactId>gt-xsd-gml3</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
-			<artifactId>gt-epsg-hsql</artifactId>
+			<artifactId>gt-epsg-wkt</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
 		<dependency>

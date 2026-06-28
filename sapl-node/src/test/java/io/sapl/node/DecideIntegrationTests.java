@@ -22,9 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -59,11 +60,8 @@ class DecideIntegrationTests extends AbstractCliIntegrationTests {
 
     }
 
-    private void waitForOutput(int timeoutSeconds) throws InterruptedException {
-        val deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(timeoutSeconds);
-        while (capturedSize() == 0 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(100);
-        }
+    private void waitForOutput(int timeoutSeconds) {
+        Awaitility.await().atMost(Duration.ofSeconds(timeoutSeconds)).until(() -> capturedSize() > 0);
     }
 
 }

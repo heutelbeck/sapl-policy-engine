@@ -21,9 +21,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import javax.net.ssl.SSLException;
+
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,6 +36,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import lombok.val;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import reactor.netty.http.client.HttpClient;
 
 @DisplayName("HTTP remote PDP builder transport security")
 class RemoteHttpBuilderSecurityTests {
@@ -80,5 +86,34 @@ class RemoteHttpBuilderSecurityTests {
         val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost").build();
 
         assertThat(pdp).isNotNull();
+    }
+
+    @Test
+    @DisplayName("public Basic-auth constructor refuses plaintext http credentials")
+    void whenPublicBasicConstructorUsesPlaintextHttpThenFailsClosed() {
+        ThrowingCallable constructorCall = () -> new RemoteHttpReactivePolicyDecisionPoint("http://localhost", "user",
+                "secret");
+
+        assertThatThrownBy(constructorCall).isInstanceOf(IllegalStateException.class).hasMessageContaining("plaintext");
+    }
+
+    @Test
+    @DisplayName("public Basic-auth HttpClient constructor refuses plaintext http credentials")
+    void whenPublicBasicHttpClientConstructorUsesPlaintextHttpThenFailsClosed() {
+        ThrowingCallable constructorCall = () -> new RemoteHttpReactivePolicyDecisionPoint("http://localhost", "user",
+                "secret", HttpClient.create());
+
+        assertThatThrownBy(constructorCall).isInstanceOf(IllegalStateException.class).hasMessageContaining("plaintext");
+    }
+
+    @Test
+    @DisplayName("public Basic-auth SslContext constructor refuses plaintext http credentials")
+    void whenPublicBasicSslContextConstructorUsesPlaintextHttpThenFailsClosed() throws SSLException {
+        val              sslContext      = SslContextBuilder.forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        ThrowingCallable constructorCall = () -> new RemoteHttpReactivePolicyDecisionPoint("http://localhost", "user",
+                "secret", sslContext);
+
+        assertThatThrownBy(constructorCall).isInstanceOf(IllegalStateException.class).hasMessageContaining("plaintext");
     }
 }

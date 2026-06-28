@@ -107,6 +107,7 @@ public class ArrayFunctionLibrary {
             To bound memory and computation on untrusted input, the following limits apply:
 
             - `range` and `rangeStepped` reject a range that would produce more than 65535 elements, returning an error.
+            - `crossProduct` rejects a Cartesian product that would produce more than 65535 pairs, returning an error.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -129,24 +130,26 @@ public class ArrayFunctionLibrary {
             }
             """;
 
-    private static final String ERROR_EMPTY_ARRAY_AVERAGE         = "Cannot calculate average of an empty array.";
-    private static final String ERROR_EMPTY_ARRAY_HEAD            = "Cannot get head of an empty array.";
-    private static final String ERROR_EMPTY_ARRAY_LAST            = "Cannot get last of an empty array.";
-    private static final String ERROR_EMPTY_ARRAY_MEDIAN          = "Cannot calculate median of an empty array.";
-    private static final String ERROR_MIXED_TYPE_NON_NUMERIC      = "All array elements must be numeric. Found non-numeric element: ";
-    private static final String ERROR_MIXED_TYPE_NON_TEXT         = "All array elements must be text. Found non-text element: ";
-    private static final String ERROR_PARAMETERS_MUST_BE_INTEGERS = "All parameters must be integers.";
-    private static final String ERROR_PREFIX_ALL_ELEMENTS_MUST_BE = "All array elements must be ";
-    private static final String ERROR_PREFIX_CANNOT_FIND          = "Cannot find ";
-    private static final String ERROR_PREFIX_ELEMENTS_MUST_BE     = "Array elements must be numeric or text. First element is: ";
-    private static final String ERROR_PREFIX_FOUND_NON            = ". Found non-";
-    private static final String ERROR_RANGE_EXCEEDS_MAXIMUM       = "Range size %s exceeds the maximum of %d.";
-    private static final String ERROR_STEP_MUST_NOT_BE_ZERO       = "Step must not be zero.";
-    private static final String ERROR_SUFFIX_ELEMENT              = " element: ";
-    private static final String ERROR_SUFFIX_EMPTY_ARRAY          = " of an empty array.";
-    private static final String ERROR_SUFFIX_PERIOD               = ".";
+    private static final String ERROR_CROSS_PRODUCT_EXCEEDS_MAXIMUM = "Cross product size %d exceeds the maximum of %d pairs.";
+    private static final String ERROR_EMPTY_ARRAY_AVERAGE           = "Cannot calculate average of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_HEAD              = "Cannot get head of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_LAST              = "Cannot get last of an empty array.";
+    private static final String ERROR_EMPTY_ARRAY_MEDIAN            = "Cannot calculate median of an empty array.";
+    private static final String ERROR_MIXED_TYPE_NON_NUMERIC        = "All array elements must be numeric. Found non-numeric element: ";
+    private static final String ERROR_MIXED_TYPE_NON_TEXT           = "All array elements must be text. Found non-text element: ";
+    private static final String ERROR_PARAMETERS_MUST_BE_INTEGERS   = "All parameters must be integers.";
+    private static final String ERROR_PREFIX_ALL_ELEMENTS_MUST_BE   = "All array elements must be ";
+    private static final String ERROR_PREFIX_CANNOT_FIND            = "Cannot find ";
+    private static final String ERROR_PREFIX_ELEMENTS_MUST_BE       = "Array elements must be numeric or text. First element is: ";
+    private static final String ERROR_PREFIX_FOUND_NON              = ". Found non-";
+    private static final String ERROR_RANGE_EXCEEDS_MAXIMUM         = "Range size %s exceeds the maximum of %d.";
+    private static final String ERROR_STEP_MUST_NOT_BE_ZERO         = "Step must not be zero.";
+    private static final String ERROR_SUFFIX_ELEMENT                = " element: ";
+    private static final String ERROR_SUFFIX_EMPTY_ARRAY            = " of an empty array.";
+    private static final String ERROR_SUFFIX_PERIOD                 = ".";
 
-    private static final int MAX_RANGE_COUNT = 65535;
+    private static final int MAX_CROSS_PRODUCT_PAIRS = 65535;
+    private static final int MAX_RANGE_COUNT         = 65535;
 
     private static final String TYPE_NAME_NUMERIC = "numeric";
     private static final String TYPE_NAME_TEXT    = "text";
@@ -1109,6 +1112,10 @@ public class ArrayFunctionLibrary {
     public static Value crossProduct(ArrayValue array1, ArrayValue array2) {
         if (array1.isEmpty() || array2.isEmpty()) {
             return Value.EMPTY_ARRAY;
+        }
+        val pairCount = (long) array1.size() * array2.size();
+        if (pairCount > MAX_CROSS_PRODUCT_PAIRS) {
+            return Value.error(ERROR_CROSS_PRODUCT_EXCEEDS_MAXIMUM, pairCount, MAX_CROSS_PRODUCT_PAIRS);
         }
 
         val builder = ArrayValue.builder();

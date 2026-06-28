@@ -1,0 +1,111 @@
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '24 3 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze Java
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install SAPL Code Style
+        run: mvn -B -f sapl-code-style/pom.xml -DskipTests install
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@411bbbe57033eedfc1a82d68c01345aa96c737d7 # v4
+        with:
+          languages: java-kotlin
+          queries: +security-extended
+          build-mode: manual
+
+      - name: Build for CodeQL
+        run: mvn -B -DskipTests -Dformatter.skip=true package -pl '!sapl-bom,!sapl-code-style' -T 1.5C
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@411bbbe57033eedfc1a82d68c01345aa96c737d7 # v4
+
+      - name: CodeQL results summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.head_ref || github.ref_name }}
+          REF: ${{ github.ref }}
+        run: |
+          encoded_ref="${REF_NAME//\//%2F}"
+          url="${SERVER_URL}/${REPOSITORY}/security/code-scanning?query=is%3Aopen+branch%3A${encoded_ref}+tool%3ACodeQL"
+
+          {
+            echo "### CodeQL results"
+            echo ""
+            echo "[Open CodeQL alerts for branch \`${REF_NAME}\` (tool: CodeQL)](${url})"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Best-effort alert list. Needs security-events: read and the alerts to be processed.
+          if ! alerts=$(gh api "/repos/${REPOSITORY}/code-scanning/alerts?state=open&tool_name=CodeQL&ref=${REF}&per_page=100" 2>/dev/null); then
+            echo "_Alert list unavailable (results may still be processing, or the token lacks read access). Use the link above._" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          count=$(echo "$alerts" | jq 'length')
+          echo "**${count} open CodeQL alert(s) on \`${REF_NAME}\`.**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Open CodeQL alerts on ${REF_NAME}: ${count}"
+
+          if [ "$count" -gt 0 ]; then
+            {
+              echo ""
+              echo "| Severity | Rule | Location | Message |"
+              echo "| --- | --- | --- | --- |"
+              echo "$alerts" | jq -r '.[:50][] | "| \(.rule.security_severity_level // .rule.severity // "-") | \(.rule.id) | \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line) | \(.most_recent_instance.message.text | gsub("[|\r\n]"; " ")) |"'
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ "$count" -gt 50 ]; then
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "_Showing first 50. Open the link above for the full list._" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "$alerts" | jq -r '.[] | "- [\(.rule.security_severity_level // .rule.severity // "-")] \(.rule.id) @ \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)"'
+          fi
+          echo "Filter URL: ${url}"

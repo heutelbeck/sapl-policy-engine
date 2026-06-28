@@ -108,19 +108,4 @@ public class PayloadFormatUtility {
         return MAPPER.readTree(bytes);
     }
 
-    /**
-     * Converts the given array of bytes to an ArrayValue containing the bytes as
-     * integers.
-     *
-     * @param bytes the given array of bytes to convert
-     * @return an ArrayValue containing the bytes as integer values
-     */
-    public static Value convertBytesToArrayValue(byte[] bytes) {
-        var values = new Value[bytes.length];
-        for (int i = 0; i < bytes.length; i++) {
-            values[i] = Value.of(bytes[i] & 0xFF);
-        }
-        return Value.ofArray(values);
-    }
-
 }

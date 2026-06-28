@@ -170,6 +170,14 @@ class ArrayFunctionLibraryTests {
         assertThat(((ErrorValue) result).message()).contains("exceeds");
     }
 
+    @Test
+    void whenCrossProductWouldExceedMaximumPairsThenError() {
+        val result = ArrayFunctionLibrary.crossProduct(arrayWithSize(256), arrayWithSize(256));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cross product size").contains("65535");
+    }
+
     @Nested
     @DisplayName("numeric aggregation precision and overflow")
     class NumericAggregationTests {
@@ -227,5 +235,13 @@ class ArrayFunctionLibraryTests {
             assertThat(result).isInstanceOf(NumberValue.class).extracting(value -> ((NumberValue) value).value())
                     .satisfies(value -> assertThat(value).isEqualByComparingTo(new BigDecimal("1E616")));
         }
+    }
+
+    private static ArrayValue arrayWithSize(int size) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < size; i++) {
+            builder.add(Value.of(i));
+        }
+        return builder.build();
     }
 }

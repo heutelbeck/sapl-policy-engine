@@ -102,30 +102,39 @@ public class CidrFunctionLibrary {
             To bound memory and computation on untrusted input, the following limits apply:
 
             - `expand` rejects a CIDR range that contains more than 65535 addresses, returning an error.
+            - `containsMatches` rejects more than 1000000 pairwise comparisons or more than 65535 emitted match tuples.
+            - `merge` rejects more than 1000 input addresses, returning an error.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
-    private static final int MAX_EXPANSION_COUNT = 65535;
+    private static final int MAX_CONTAINS_MATCH_COMPARISONS = 1_000_000;
+    private static final int MAX_CONTAINS_MATCH_RESULTS     = 65535;
+    private static final int MAX_EXPANSION_COUNT            = 65535;
+    private static final int MAX_MATCH_ADDRESS_ARRAY_LENGTH = 10_000;
+    private static final int MAX_MERGE_ADDRESS_COUNT        = 1_000;
 
     private static final String ADDRESS_FAMILY_IPV4 = "IPv4";
     private static final String ADDRESS_FAMILY_IPV6 = "IPv6";
     private static final String ALGORITHM_SHA256    = "SHA-256";
 
-    private static final String ERROR_ALGORITHM_NOT_AVAILABLE        = " not available: ";
-    private static final String ERROR_ARRAY_MUST_BE_STRINGS          = "Array must contain only strings.";
-    private static final String ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM = "CIDR contains %d addresses, maximum is %d.";
-    private static final String ERROR_CIDR_MISSING_PREFIX            = "CIDR missing prefix length: %s.";
-    private static final String ERROR_INVALID_ADDRESS                = "Invalid address: %s.";
-    private static final String ERROR_INVALID_CIDR                   = "Invalid CIDR: %s.";
-    private static final String ERROR_INVALID_FIRST_CIDR             = "Invalid first CIDR: %s.";
-    private static final String ERROR_INVALID_FIRST_IP               = "Invalid first IP: %s.";
-    private static final String ERROR_INVALID_IP_ADDRESS             = "Invalid IP address: %s.";
-    private static final String ERROR_INVALID_SECOND_CIDR            = "Invalid second CIDR: %s.";
-    private static final String ERROR_INVALID_SECOND_IP              = "Invalid second IP: %s.";
-    private static final String ERROR_PREFIX                         = "Prefix ";
-    private static final String ERROR_PREFIX_NOT_INTEGRAL            = "Prefix length must be an integer: %s.";
-    private static final String ERROR_PREFIX_OUT_OF_RANGE            = " out of range for ";
+    private static final String ERROR_ADDRESS_ARRAY_EXCEEDS_MAXIMUM     = "Address array size %d exceeds the maximum of %d.";
+    private static final String ERROR_ALGORITHM_NOT_AVAILABLE           = " not available: ";
+    private static final String ERROR_ARRAY_MUST_BE_STRINGS             = "Array must contain only strings.";
+    private static final String ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM    = "CIDR contains %d addresses, maximum is %d.";
+    private static final String ERROR_CIDR_MATCH_COMPARISONS_TOO_LARGE  = "CIDR comparison count %d exceeds the maximum of %d.";
+    private static final String ERROR_CIDR_MATCH_OUTPUT_EXCEEDS_MAXIMUM = "CIDR match output exceeds the maximum of %d tuples.";
+    private static final String ERROR_CIDR_MISSING_PREFIX               = "CIDR missing prefix length: %s.";
+    private static final String ERROR_INVALID_ADDRESS                   = "Invalid address: %s.";
+    private static final String ERROR_INVALID_CIDR                      = "Invalid CIDR: %s.";
+    private static final String ERROR_INVALID_FIRST_CIDR                = "Invalid first CIDR: %s.";
+    private static final String ERROR_INVALID_FIRST_IP                  = "Invalid first IP: %s.";
+    private static final String ERROR_INVALID_IP_ADDRESS                = "Invalid IP address: %s.";
+    private static final String ERROR_INVALID_SECOND_CIDR               = "Invalid second CIDR: %s.";
+    private static final String ERROR_INVALID_SECOND_IP                 = "Invalid second IP: %s.";
+    private static final String ERROR_PREFIX                            = "Prefix ";
+    private static final String ERROR_PREFIX_NOT_INTEGRAL               = "Prefix length must be an integer: %s.";
+    private static final String ERROR_PREFIX_OUT_OF_RANGE               = " out of range for ";
 
     private static final String RANGE_IPV4 = " (0-32).";
     private static final String RANGE_IPV6 = " (0-128).";
@@ -229,14 +238,24 @@ public class CidrFunctionLibrary {
             """)
     public static Value containsMatches(ArrayValue cidrs, ArrayValue cidrsOrIps) {
         try {
-            val cidrAddresses = parseAddressArray(cidrs);
-            val testAddresses = parseAddressArray(cidrsOrIps);
+            val comparisonCount = (long) cidrs.size() * cidrsOrIps.size();
+            if (comparisonCount > MAX_CONTAINS_MATCH_COMPARISONS) {
+                return Value.error(ERROR_CIDR_MATCH_COMPARISONS_TOO_LARGE, comparisonCount,
+                        MAX_CONTAINS_MATCH_COMPARISONS);
+            }
+            val cidrAddresses = parseAddressArray(cidrs, MAX_MATCH_ADDRESS_ARRAY_LENGTH);
+            val testAddresses = parseAddressArray(cidrsOrIps, MAX_MATCH_ADDRESS_ARRAY_LENGTH);
             val resultBuilder = ArrayValue.builder();
+            var matchCount    = 0;
 
             for (int i = 0; i < cidrAddresses.size(); i++) {
                 val cidrBlock = cidrAddresses.get(i).toPrefixBlock();
                 for (int j = 0; j < testAddresses.size(); j++) {
                     if (cidrBlock.contains(testAddresses.get(j))) {
+                        matchCount++;
+                        if (matchCount > MAX_CONTAINS_MATCH_RESULTS) {
+                            return Value.error(ERROR_CIDR_MATCH_OUTPUT_EXCEEDS_MAXIMUM, MAX_CONTAINS_MATCH_RESULTS);
+                        }
                         val tupleBuilder = ArrayValue.builder();
                         tupleBuilder.add(Value.of(i));
                         tupleBuilder.add(Value.of(j));
@@ -376,7 +395,7 @@ public class CidrFunctionLibrary {
             """)
     public static Value merge(ArrayValue addresses) {
         try {
-            val ipAddresses = parseAddressArray(addresses);
+            val ipAddresses = parseAddressArray(addresses, MAX_MERGE_ADDRESS_COUNT);
             if (ipAddresses.isEmpty()) {
                 return Value.EMPTY_ARRAY;
             }
@@ -1146,7 +1165,11 @@ public class CidrFunctionLibrary {
      * @throws IllegalArgumentException
      * if input is invalid
      */
-    private static List<IPAddress> parseAddressArray(ArrayValue addresses) {
+    private static List<IPAddress> parseAddressArray(ArrayValue addresses, int maxAddressCount) {
+        if (addresses.size() > maxAddressCount) {
+            throw new IllegalArgumentException(
+                    ERROR_ADDRESS_ARRAY_EXCEEDS_MAXIMUM.formatted(addresses.size(), maxAddressCount));
+        }
         val result = new ArrayList<IPAddress>();
         for (val element : addresses) {
             if (!(element instanceof TextValue textValue)) {

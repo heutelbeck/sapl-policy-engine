@@ -25,10 +25,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.time.Instant;
 import java.util.List;
 
-import static io.sapl.node.auth.SecurityConfiguration.audienceValidator;
+import static io.sapl.node.auth.SecurityConfiguration.jwtValidator;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("SecurityConfiguration JWT audience validation")
+@DisplayName("SecurityConfiguration JWT validation")
 class SecurityConfigurationAudienceTests {
 
     private static final String       ISSUER  = "https://idp.example.org/realms/sapl";
@@ -44,10 +44,15 @@ class SecurityConfigurationAudienceTests {
         return builder.build();
     }
 
+    private static Jwt jwtWithoutExpiry() {
+        return Jwt.withTokenValue("token").header("alg", "RS256").subject("user").issuer(ISSUER).issuedAt(Instant.now())
+                .audience(ALLOWED).build();
+    }
+
     @Test
     @DisplayName("a token whose audience is in the allowlist is accepted")
     void whenAudienceInAllowlistThenAccepted() {
-        val validator = audienceValidator(ISSUER, ALLOWED);
+        val validator = jwtValidator(ISSUER, ALLOWED, false);
 
         val result = validator.validate(jwtWithAudience(List.of("sapl-pdp")));
 
@@ -57,7 +62,7 @@ class SecurityConfigurationAudienceTests {
     @Test
     @DisplayName("a token minted for a different resource server (foreign audience) is rejected")
     void whenAudienceNotInAllowlistThenRejected() {
-        val validator = audienceValidator(ISSUER, ALLOWED);
+        val validator = jwtValidator(ISSUER, ALLOWED, false);
 
         val result = validator.validate(jwtWithAudience(List.of("other-api")));
 
@@ -67,7 +72,7 @@ class SecurityConfigurationAudienceTests {
     @Test
     @DisplayName("a token without an audience claim is rejected when an allowlist is configured")
     void whenAudienceMissingAndAllowlistConfiguredThenRejected() {
-        val validator = audienceValidator(ISSUER, ALLOWED);
+        val validator = jwtValidator(ISSUER, ALLOWED, false);
 
         val result = validator.validate(jwtWithAudience(null));
 
@@ -77,9 +82,29 @@ class SecurityConfigurationAudienceTests {
     @Test
     @DisplayName("with an empty allowlist the audience is not checked, preserving the default validation")
     void whenAllowlistEmptyThenAudienceNotChecked() {
-        val validator = audienceValidator(ISSUER, List.of());
+        val validator = jwtValidator(ISSUER, List.of(), false);
 
         val result = validator.validate(jwtWithAudience(List.of("other-api")));
+
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("a token without an expiry is rejected by default")
+    void whenJwtHasNoExpiryThenNodeValidatorRejectsToken() {
+        val validator = jwtValidator(ISSUER, ALLOWED, false);
+
+        val result = validator.validate(jwtWithoutExpiry());
+
+        assertThat(result.hasErrors()).isTrue();
+    }
+
+    @Test
+    @DisplayName("a token without an expiry is accepted only when explicitly allowed")
+    void whenJwtHasNoExpiryAndInsecureOptInThenNodeValidatorAcceptsToken() {
+        val validator = jwtValidator(ISSUER, ALLOWED, true);
+
+        val result = validator.validate(jwtWithoutExpiry());
 
         assertThat(result.hasErrors()).isFalse();
     }

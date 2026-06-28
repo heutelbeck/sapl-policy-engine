@@ -22,6 +22,7 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuth;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
@@ -51,6 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -81,6 +83,30 @@ class SaplMqttClientTests {
     }
 
     @Test
+    @DisplayName("a message declared as UTF-8 with malformed bytes fails closed to an error value")
+    void whenUtf8PayloadContainsMalformedBytesThenErrorValue() {
+        val publish = Mqtt5Publish.builder().topic("sapl/test")
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8).payload(new byte[] { (byte) 0xC3, 0x28 })
+                .build();
+
+        val result = SaplMqttClient.decodePublish(publish, 1024);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    @DisplayName("a binary message fails closed to an error value")
+    void whenBinaryPayloadThenErrorValue() {
+        val publish = Mqtt5Publish.builder().topic("sapl/test").payload(new byte[] { (byte) 0xFF, (byte) 0xFE })
+                .build();
+
+        val result = SaplMqttClient.decodePublish(publish, 1024);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("binary"));
+    }
+
+    @Test
     @DisplayName("the client cache key separates tenants that share a broker config but use different credentials")
     void whenSameBrokerDifferentSecretsThenDifferentCacheKey() {
         val broker = (ObjectNode) toJsonNode(json("""
@@ -108,8 +134,18 @@ class SaplMqttClientTests {
                   ]
                 }
                 """);
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+    }
+
+    private static AttributeAccessContext ctxWithMqttConfig(String config) {
+        return new AttributeAccessContext(ObjectValue.builder().put("mqtt", json(config)).build(), Value.EMPTY_OBJECT,
+                Value.EMPTY_OBJECT);
+    }
+
+    private static AttributeAccessContext ctxWithMqttConfigAndSecrets(String config, ObjectValue pdpSecrets) {
+        return new AttributeAccessContext(ObjectValue.builder().put("mqtt", json(config)).build(), pdpSecrets,
+                Value.EMPTY_OBJECT);
     }
 
     @Test
@@ -148,6 +184,45 @@ class SaplMqttClientTests {
         val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
 
         try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.EMPTY_ARRAY, ctx(), Value.of(0))) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                    .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+        }
+
+        assertThat(saplMqttClient.cache()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("too many topic filters yield an error value and never open a client")
+    void whenTopicFilterCountExceedsLimitThenErrorValueAndNoClientOpened() {
+        val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        val ctx            = ctxWithMqttConfig("""
+                {
+                  "maxTopicFilters": 1,
+                  "brokerConfig": { "brokerAddress": "localhost" }
+                }
+                """);
+        val topics         = Value.ofArray(Value.of("test/one"), Value.of("test/two"));
+
+        try (val stream = saplMqttClient.buildSaplMqttMessageStream(topics, ctx, Value.of(0))) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                    .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+        }
+
+        assertThat(saplMqttClient.cache()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("topic filters exceeding the byte limit yield an error value and never open a client")
+    void whenTopicFilterBytesExceedLimitThenErrorValueAndNoClientOpened() {
+        val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        val ctx            = ctxWithMqttConfig("""
+                {
+                  "maxTopicFilterBytes": 4,
+                  "brokerConfig": { "brokerAddress": "localhost" }
+                }
+                """);
+
+        try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.of("tests/too-large"), ctx, Value.of(0))) {
             StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
                     .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
         }
@@ -242,6 +317,38 @@ class SaplMqttClientTests {
             val auth = SaplMqttClient.buildAuth(brokerConfig("{ \"name\": \"default\" }"), Value.EMPTY_OBJECT);
 
             assertThat(SaplMqttClient.carriesCredentialsOverPlaintext(false, auth)).isFalse();
+        }
+
+        @Test
+        @DisplayName("plaintext broker credentials fail before a client is opened without explicit opt-in")
+        void whenPlaintextCredentialsHaveNoOptInThenErrorValueAndNoClientOpened() {
+            val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+            val ctx            = ctxWithMqttConfigAndSecrets("""
+                    {
+                      "brokerConfig": {
+                        "name": "default",
+                        "brokerAddress": "localhost",
+                        "brokerPort": 1
+                      }
+                    }
+                    """, CREDENTIAL_SECRETS);
+
+            try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.of("test/plaintext"), ctx, Value.of(0))) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                        .awaitsNext(v -> assertThat(v).isInstanceOfSatisfying(ErrorValue.class,
+                                error -> assertThat(error.message()).contains("plaintext")));
+            }
+
+            assertThat(saplMqttClient.cache()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("plaintext broker credentials with explicit opt-in are allowed to attempt the connection")
+        void whenPlaintextCredentialsHaveExplicitOptInThenConnectionAttemptAllowed() {
+            val auth = SaplMqttClient.buildAuth(brokerConfig("{ \"name\": \"default\" }"), CREDENTIAL_SECRETS);
+
+            assertThatCode(() -> SaplMqttClient.enforceCredentialTransportSecurity(false, true, auth))
+                    .doesNotThrowAnyException();
         }
     }
 

@@ -198,6 +198,7 @@ public class SaplNodeApplication {
             hints.resources().registerPattern("ch/qos/logback/core/logback-core-version.properties");
             hints.resources().registerPattern("ch/qos/logback/classic/logback-classic-version.properties");
             hints.resources().registerPattern("static/css/sapl-scalar-theme.css");
+            hints.resources().registerPattern("static/openapi/pdp-http.yaml");
             registerScalarReflection(hints, classLoader);
         }
 

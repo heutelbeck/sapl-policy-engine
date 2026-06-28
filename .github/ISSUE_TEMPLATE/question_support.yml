@@ -3,18 +3,40 @@ description: "Questions and requests for support."
 labels: ["question"]
 
 body:
-
   - type: markdown
     attributes:
       value: |
-        Before posting any questions or asking for support, first read the project's README.md file, the documentation, the website, or other additional documentation that might be listed in the project's or module's README.md file.
+        Search open and closed issues before submitting a question.
+        For informal discussion, Discord may be a faster fit.
 
-        To expedite issue processing, please search open and closed issues before submitting a new one.
-        Please read our Code of Conduct and Contributing Guidelines at this repository.
+  - type: input
+    id: sapl-version
+    attributes:
+      label: SAPL version
+      description: "Example: 4.1.0 or 4.2.0-SNAPSHOT"
+    validations:
+      required: false
 
   - type: textarea
+    id: question
     attributes:
-      label: "Describe your question or ask for support."
-      description: "A clear and concise description of what your doubt is."
+      label: Question
+      description: Describe what you are trying to understand or accomplish.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include the relevant policy, command, configuration, framework, or deployment mode.
+    validations:
+      required: true
+
+  - type: textarea
+    id: docs-checked
+    attributes:
+      label: What have you checked?
+      description: Link the README, documentation page, example, or issue you already reviewed.
     validations:
       required: true

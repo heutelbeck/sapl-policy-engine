@@ -102,6 +102,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-rsocket</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-codec-native-quic</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
@@ -180,6 +186,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
+			<scope>provided</scope>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -406,6 +413,7 @@
 				</executions>
 				<configuration>
 					<projectType>application</projectType>
+					<includeProvidedScope>false</includeProvidedScope>
 					<outputDirectory>${project.build.outputDirectory}/META-INF/sbom</outputDirectory>
 					<outputName>application.cdx</outputName>
 					<outputFormat>json</outputFormat>

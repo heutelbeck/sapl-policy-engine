@@ -20,6 +20,7 @@ package io.sapl.functions.libraries;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -68,9 +69,11 @@ public class GraphFunctionLibrary {
             ## Limits
 
             The transitive closure functions are capped at 1000000 output entries and return an error
-            value above that. This limit applies because the input may originate from the authorization
-            subscription or from policy information points, which are not vetted to the same degree as
-            the policies and variables shipped with the PDP configuration.
+            value above that. `transitiveClosureProjection` additionally caps flattened projected
+            attribute values at 1000000 across the whole returned object. These limits apply because
+            the input may originate from the authorization subscription or from policy information points,
+            which are not vetted to the same degree as the policies and variables shipped with the PDP
+            configuration.
             """;
 
     private static final String NODE_ID_NULL           = "null";
@@ -84,9 +87,11 @@ public class GraphFunctionLibrary {
             { "type": "boolean" }
             """;
 
-    private static final String ERROR_CLOSURE_TOO_LARGE = "Transitive closure exceeds the maximum of %d entries.";
+    private static final String ERROR_CLOSURE_TOO_LARGE    = "Transitive closure exceeds the maximum of %d entries.";
+    private static final String ERROR_PROJECTION_TOO_LARGE = "Transitive closure projection exceeds the maximum of %d projected values.";
 
-    private static final int MAX_CLOSURE_ENTRIES = 1_000_000;
+    private static final int MAX_CLOSURE_ENTRIES            = 1_000_000;
+    private static final int MAX_PROJECTED_ATTRIBUTE_VALUES = 1_000_000;
 
     /**
      * Single-source BFS reachability. O(V + E).
@@ -241,10 +246,17 @@ public class GraphFunctionLibrary {
         } catch (IllegalArgumentException e) {
             return Value.error(e.getMessage());
         }
-        val attr   = attrKey.value();
-        val result = ObjectValue.builder();
+        val attr            = attrKey.value();
+        val result          = ObjectValue.builder();
+        var projectedValues = 0L;
         for (val entry : closure.entrySet()) {
-            result.put(entry.getKey(), collectAttribute(graph, entry.getValue(), attr));
+            val collectedAttribute = collectAttribute(graph, entry.getValue(), attr,
+                    MAX_PROJECTED_ATTRIBUTE_VALUES - projectedValues);
+            if (collectedAttribute instanceof ErrorValue error) {
+                return error;
+            }
+            projectedValues += ((ArrayValue) collectedAttribute).size();
+            result.put(entry.getKey(), collectedAttribute);
         }
         return result.build();
     }
@@ -584,16 +596,25 @@ public class GraphFunctionLibrary {
         return result.build();
     }
 
-    private static Value collectAttribute(ObjectValue graph, Set<String> reachableIds, String attrKey) {
+    private static Value collectAttribute(ObjectValue graph, Set<String> reachableIds, String attrKey,
+            long remainingBudget) {
         val collected = new ArrayList<Value>();
         for (val nodeId : reachableIds) {
             val attrValue = resolveAttribute(graph, nodeId, attrKey);
             if (attrValue instanceof ArrayValue arrayAttr) {
                 for (val element : arrayAttr) {
+                    if (remainingBudget == 0L) {
+                        return Value.error(ERROR_PROJECTION_TOO_LARGE, MAX_PROJECTED_ATTRIBUTE_VALUES);
+                    }
                     collected.add(element);
+                    remainingBudget--;
                 }
             } else if (attrValue != null) {
+                if (remainingBudget == 0L) {
+                    return Value.error(ERROR_PROJECTION_TOO_LARGE, MAX_PROJECTED_ATTRIBUTE_VALUES);
+                }
                 collected.add(attrValue);
+                remainingBudget--;
             }
         }
         return Value.ofArray(collected.toArray(Value[]::new));

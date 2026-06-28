@@ -17,6 +17,8 @@
  */
 package io.sapl.api.model.jackson;
 
+import java.util.HashSet;
+
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import lombok.val;
 import tools.jackson.core.JsonParser;
@@ -31,16 +33,17 @@ import tools.jackson.databind.deser.std.StdDeserializer;
  */
 public class MultiAuthorizationDecisionDeserializer extends StdDeserializer<MultiAuthorizationDecision> {
 
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id in multi-decision payload: %s.";
+    private static final String ERROR_EXPECTED_START_OBJECT     = "Expected START_OBJECT for MultiAuthorizationDecision.";
+
+    private final AuthorizationDecisionDeserializer decisionDeserializer = new AuthorizationDecisionDeserializer();
+
     /**
      * Default constructor required by Jackson 3.
      */
     public MultiAuthorizationDecisionDeserializer() {
         super(MultiAuthorizationDecision.class);
     }
-
-    private static final String ERROR_EXPECTED_START_OBJECT = "Expected START_OBJECT for MultiAuthorizationDecision.";
-
-    private final AuthorizationDecisionDeserializer decisionDeserializer = new AuthorizationDecisionDeserializer();
 
     @Override
     public MultiAuthorizationDecision deserialize(JsonParser parser, DeserializationContext context) {
@@ -49,9 +52,14 @@ public class MultiAuthorizationDecisionDeserializer extends StdDeserializer<Mult
         }
 
         val multiDecision = new MultiAuthorizationDecision();
+        val seenIds       = new HashSet<String>();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val subscriptionId = parser.currentName();
+            if (!seenIds.add(subscriptionId)) {
+                return context.reportInputMismatch(MultiAuthorizationDecision.class,
+                        ERROR_DUPLICATE_SUBSCRIPTION_ID.formatted(subscriptionId));
+            }
             parser.nextToken();
             val decision = decisionDeserializer.deserialize(parser, context);
             multiDecision.setDecision(subscriptionId, decision);

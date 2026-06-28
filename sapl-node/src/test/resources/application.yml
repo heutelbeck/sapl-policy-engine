@@ -167,6 +167,9 @@ server:
 # seconds. Keep it below the smallest proxy idle timeout on the path.
 # io.sapl.node.keep-alive: 15
 
+# Maximum number of entries accepted in a MultiAuthorizationSubscription on public HTTP and RSocket PDP endpoints.
+# io.sapl.node.max-multi-subscription-count: 256
+
 spring:
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.rsocket.RSocketSecurityAutoConfiguration

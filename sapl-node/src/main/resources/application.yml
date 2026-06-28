@@ -120,6 +120,10 @@ io.sapl:
     # scalar:
     #   oauth-client-id: "sapl-node-scalar"
 
+    # OpenID Authorization API 1.0 binding at /access/v1/evaluation.
+    # openid-authz-api:
+    #   enabled: true
+
     # User entries for Basic Auth and API Key authentication.
     # Each user is associated with a pdp-id for multi-tenant routing.
     #
@@ -146,6 +150,10 @@ io.sapl:
     # connections and lets the server detect clients that drop without
     # closing. Always on; default 15 seconds (values below 1 are raised).
     keep-alive: 15
+
+    # Maximum number of entries accepted in a MultiAuthorizationSubscription
+    # on public HTTP and RSocket PDP endpoints.
+    max-multi-subscription-count: 256
 
   # --- PDP Policy Source ---
   #
@@ -203,10 +211,11 @@ io.sapl:
     #   pdp-ids:
     #     - default
     #   mode: POLLING
-    #   poll-interval: 30s
+    #   poll-interval: 5s
     #   # long-poll-timeout: 30s
     #   # auth-header-name: Authorization
     #   # auth-header-value: "Bearer <token>"
+    #   # allow-insecure-http: false
     #   # follow-redirects: true
 
 # --- API Documentation (Scalar UI on top of springdoc-generated OpenAPI) ---

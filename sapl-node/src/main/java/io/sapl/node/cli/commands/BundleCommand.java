@@ -552,7 +552,7 @@ public class BundleCommand {
 
     }
 
-    private static final long MAX_BUNDLE_ENTRY_BYTES = 16L * 1024 * 1024;
+    private static final long MAX_BUNDLE_ENTRY_BYTES = 256L * 1024 * 1024;
     private static final long MAX_BUNDLE_TOTAL_BYTES = 256L * 1024 * 1024;
 
     private static Map<String, String> extractBundleContents(Path bundlePath) throws IOException {

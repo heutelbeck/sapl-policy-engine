@@ -3,30 +3,49 @@ description: "Suggest an idea or possible new feature for this project."
 labels: ["feature"]
 
 body:
-
   - type: markdown
     attributes:
-      value: |
-        To expedite issue processing, please search open and closed issues before submitting a new one.
-        Please read our Code of Conduct and Contributing Guidelines at this repository.
+      value: Search open and closed issues before submitting a feature request.
 
   - type: textarea
+    id: problem
     attributes:
-      label: "Is your feature request related to a problem? "
-      description: "A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]"
+      label: Problem
+      description: Describe the user problem or use case this feature should solve.
     validations:
       required: true
 
   - type: textarea
+    id: proposed-behavior
     attributes:
-      label: "Describe the solution you'd like."
-      description: "A clear and concise description of what you want to happen. "
+      label: Proposed behavior
+      description: Describe how SAPL should behave after this feature exists.
     validations:
       required: true
 
   - type: textarea
+    id: user-value
     attributes:
-      label: "Describe alternatives you've considered."
-      description: "AA clear and concise description of any alternative solutions or features you've considered."
+      label: User value
+      description: Explain who benefits and why this belongs in SAPL.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe workarounds, external tools, or other designs you considered.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      options:
+        - label: This may introduce or require a breaking change.
+        - label: This may affect policy syntax or evaluation semantics.
+        - label: This may affect public Java APIs, CLI commands, or configuration.
     validations:
       required: false

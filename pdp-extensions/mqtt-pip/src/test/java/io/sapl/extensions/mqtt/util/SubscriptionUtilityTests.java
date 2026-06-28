@@ -49,6 +49,35 @@ class SubscriptionUtilityTests {
     }
 
     @Test
+    @DisplayName("topic count over the configured limit is rejected")
+    void whenTopicCountExceedsLimitThenThrows() {
+        val topics = Value.ofArray(Value.of("sensors/temperature"), Value.of("sensors/humidity"));
+
+        assertThatThrownBy(() -> SubscriptionUtility.topicFilters(topics, 1, 1024L))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("count");
+    }
+
+    @Test
+    @DisplayName("topic byte length over the configured limit is rejected")
+    void whenTopicBytesExceedLimitThenThrows() {
+        val topic = Value.of("sensors/temperature");
+
+        assertThatThrownBy(() -> SubscriptionUtility.topicFilters(topic, 1, 4L))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("bytes");
+    }
+
+    @Test
+    @DisplayName("non-positive topic filter limits are rejected")
+    void whenTopicLimitsAreNonPositiveThenThrows() {
+        val topic = Value.of("sensors/temperature");
+
+        assertThatThrownBy(() -> SubscriptionUtility.topicFilters(topic, 0, 1024L))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxTopicFilters");
+        assertThatThrownBy(() -> SubscriptionUtility.topicFilters(topic, 1, 0L))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxTopicFilterBytes");
+    }
+
+    @Test
     @DisplayName("MQTT wildcard syntax is preserved in the filter")
     void whenWildcardTopicThenWildcardPreserved() {
         val filters = SubscriptionUtility.topicFilters(Value.of("building/+/temperature"));

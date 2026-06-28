@@ -39,8 +39,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("SmtddBuilder - diagram construction")
 class SmtddBuilderTests {
 
-    private static final boolean PRINT_RESULTS = false;
-
     @Nested
     @DisplayName("equality branch structure")
     class EqualityBranchTests {
@@ -57,10 +55,6 @@ class SmtddBuilderTests {
 
             val root = buildSmtdd(expressions);
 
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== Two EQ with binary predicates ===\n" + root.toTree());
-            }
-
             assertThat(root).isInstanceOf(EqualityBranch.class)
                     .satisfies(n -> assertThat(((EqualityBranch) n).branches()).hasSize(2));
         }
@@ -73,10 +67,6 @@ class SmtddBuilderTests {
                     new Atom(eqPredicate(operand, Value.of("b"))));
 
             val root = buildSmtdd(expressions);
-
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== Pure EQ ===\n" + root.toTree());
-            }
 
             assertThat(root).isInstanceOf(EqualityBranch.class);
             // All branch children should be terminals (no binary predicates)
@@ -97,10 +87,6 @@ class SmtddBuilderTests {
 
             val root = buildSmtdd(expressions);
 
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== Two equality groups ===\n" + root.toTree());
-            }
-
             assertThat(root).isInstanceOf(EqualityBranch.class);
             // At least one child branch should be another EqualityBranch (nested)
             val outerBranch = (EqualityBranch) root;
@@ -119,10 +105,6 @@ class SmtddBuilderTests {
 
             val root = buildSmtdd(expressions);
 
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== Single binary formula ===\n" + root.toTree());
-            }
-
             assertThat(root).isInstanceOf(BinaryDecision.class);
         }
 
@@ -133,10 +115,6 @@ class SmtddBuilderTests {
                     new Atom(configurablePredicate(2L)));
 
             val root = buildSmtdd(expressions);
-
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== Binary only ===\n" + root.toTree());
-            }
 
             assertThat(root).isNotInstanceOf(EqualityBranch.class);
         }
@@ -156,10 +134,6 @@ class SmtddBuilderTests {
 
             val root = buildSmtdd(expressions);
 
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== NE compaction ===\n" + root.toTree());
-            }
-
             assertThat(root).isInstanceOf(EqualityBranch.class);
         }
     }
@@ -176,10 +150,6 @@ class SmtddBuilderTests {
 
             val root = buildSmtdd(expressions);
 
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== NOT expression ===\n" + root.toTree());
-            }
-
             assertThat(root).isNotInstanceOf(Terminal.class);
         }
 
@@ -191,10 +161,6 @@ class SmtddBuilderTests {
                     new Atom(configurablePredicate(3L)));
 
             val root = buildSmtdd(expressions);
-
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== OR expression ===\n" + root.toTree());
-            }
 
             assertThat(root).isNotInstanceOf(Terminal.class);
         }
@@ -218,10 +184,6 @@ class SmtddBuilderTests {
 
             val root = buildSmtdd(expressions);
 
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== NOT(a AND b) ===\n" + root.toTree());
-            }
-
             assertThat(root).isNotInstanceOf(Terminal.class);
         }
 
@@ -233,10 +195,6 @@ class SmtddBuilderTests {
                     new Atom(configurablePredicate(3L)));
 
             val root = buildSmtdd(expressions);
-
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== NOT(a OR b) ===\n" + root.toTree());
-            }
 
             assertThat(root).isNotInstanceOf(Terminal.class);
         }

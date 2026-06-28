@@ -67,6 +67,7 @@ import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthHandler.HttpAuthResult;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -234,6 +235,42 @@ class SseStreamServletTests {
 
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
         verifyNoInteractions(pumpExecutor, connectionRegistry);
+    }
+
+    @Test
+    @DisplayName("a JSON literal null subscription is rejected with 400 before the stream is opened")
+    void whenSubscriptionBodyIsJsonNullThenBadRequestAndNoStreamOpened() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
+        val body = "null".getBytes(UTF_8);
+        when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+        val response = new MockHttpServletResponse();
+
+        servlet().handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+        verifyNoInteractions(pumpExecutor, connectionRegistry);
+    }
+
+    @Test
+    @DisplayName("a streaming multi-subscription above the configured entry limit is rejected before the stream is opened")
+    void whenStreamingMultiSubscriptionCountExceedsLimitThenBadRequestAndNoStreamOpened() throws Exception {
+        val pdp = mock(BlockingPolicyDecisionPoint.class);
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
+        val body = """
+                {
+                  "sub1": { "subject": "alice", "action": "read", "resource": "doc1" },
+                  "sub2": { "subject": "bob", "action": "write", "resource": "doc2" }
+                }
+                """.getBytes(UTF_8);
+        when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+        val response = new MockHttpServletResponse();
+        val servlet  = new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(15), keepAliveScheduler,
+                pumpExecutor, connectionRegistry, 1);
+
+        servlet.handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+        verifyNoInteractions(pdp, pumpExecutor, connectionRegistry);
     }
 
     @Test

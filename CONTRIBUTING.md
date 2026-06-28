@@ -80,10 +80,10 @@ before implementing.
 We value clean, maintainable, and well-tested code. Key principles:
 
 - **Modern Java (21+)**: Use records, sealed types, pattern matching, `var`
-- **Minimal visibility**: Package-private preferred; private fields always
+- **Minimal visibility**: Package-private preferred. Private fields always
 - **Immutability**: Records for data, final variables
-- **DRY**: No duplication; parameterized tests for similar cases
-- **Fail-fast**: Validate at boundaries, meaningful errors
+- **DRY**: No duplication. Use parameterized tests for similar cases
+- **Fail fast**: Validate at boundaries, meaningful errors
 
 #### Pull requests
 
@@ -111,30 +111,45 @@ Maintaining a consistent code style is crucial for our project's readability.
 We enforce these standards automatically
 using [formatter-maven-plugin][eclipse-formatter-plugin] based
 on [Eclipse Code Formatter][eclipse-formatter-definition] configured in
-the [formatter.xml file](formatter.xml), which checks and ensures adherence to our
-guidelines.
+the [formatter.xml file](sapl-code-style/src/main/resources/eclipse/formatter.xml),
+which checks and ensures adherence to our guidelines.
 
 ##### Rules
 
 Beyond the automatic enforcing of formatting by tools, we have style preferences that are
 described as the following rules.
 
-1. Use `var` instead of explicitly specifying the type whenever possible.
+1. Prefer Lombok `val` for local variables where it improves readability.
 2. Avoid starting interfaces with the letter `I`, e.g., `IFileProvider`.
 3. Avoid using the prefix `My` for variables, methods, and classes.
 4. Use the default scope for test classes and methods.
 5. End the names of test classes with `Tests`.
-6. Follow the pattern `whenSOMETHINGthenSOMETHING-ELSE` for naming test methods.
+6. Follow the pattern `whenConditionThenExpectedBehavior` for naming test methods.
 7. Avoid using `@SuppressWarnings`, except with explicit permission from maintainers.
 8. If a file happens to differ in style from the guidelines, the existing style in that
    file takes precedence.
-9. Use Lombok annotations.
-10. Use the @Slf4j annotation for logging.
+9. Use Lombok for established project patterns, not as a substitute for clear API
+   design.
+10. Use `@Slf4j` for logging classes and structured `{}` log messages.
+
+##### Quality checklist
+
+Before opening a pull request:
+
+1. Keep the change focused and avoid unrelated refactoring.
+2. Add or update public API Javadocs when changing public API.
+3. Validate inputs at public boundaries and return useful error messages.
+4. Keep policy evaluation paths from throwing user-visible exceptions. Return
+   `ErrorValue` where policy authors should see the failure.
+5. Add domain-driven tests for the changed behavior, including boundary and error cases.
+6. Use `StepVerifier` for reactive streams and timeouts for async tests.
+7. Remove dead code, commented-out code, avoidable duplication, and untracked TODOs.
+8. Run the relevant Maven verification command and report it in the pull request.
 
 #### Clean code
 
 We use [SonarCloud][sonarcloud] with [SpotBugs][spotbugs] and [sb-contrib][sb-contrib]
-for static analysis of your code. 
+for static analysis of your code.
 
 Once you create a pull request, test pipelines will run that include static code analysis.
 Results will be posted to your pull request and can be found on [our project site on
@@ -146,11 +161,12 @@ the SonarCloud analysis. If you think issues include false positive results or c
 be fixed, please add a comment to your pull request accordingly.
 
 To avoid issues on SonarCloud, you can use [SonarLint][sonarlint] and the
-[SpotBugs plugin][spotbugs-plugins] in your IDE to keep your code clean. Sb-contrib 
-can be added to the SpotBugs plugin, and you can use our [exclude filter file][spotbugs-exclude-filter] in your SpotBugs plugin configuration to exclude certain 
-source files and rules from your local SpotBugs analysis. \
-Please note that not all issues on SonarCloud can be avoided by using SonarLint due to technical limitations of 
-SonarLint.
+[SpotBugs plugin][spotbugs-plugins] in your IDE to keep your code clean. Sb-contrib
+can be added to the SpotBugs plugin, and you can use our
+[exclude filter file][spotbugs-exclude-filter] in your SpotBugs plugin configuration
+to exclude certain source files and rules from your local SpotBugs analysis. \
+Please note that not all issues on SonarCloud can be avoided by using SonarLint due to
+technical limitations of SonarLint.
 
 #### Code coverage
 
@@ -186,4 +202,3 @@ branches/lines of code.
 [spotbugs-plugins]: https://github.com/spotbugs/spotbugs?tab=readme-ov-file#using-spotbugs
 
 [spotbugs-exclude-filter]: https://github.com/heutelbeck/sapl-policy-engine/blob/master/spotbugsExcludeFilter.xml
-

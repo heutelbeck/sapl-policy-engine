@@ -259,7 +259,7 @@ public class EmbeddedPDPProperties {
          * Default interval between polls. Applies to all pdpIds unless
          * overridden in {@link #pdpIdPollIntervals}.
          */
-        private Duration pollInterval = Duration.ofSeconds(30);
+        private Duration pollInterval = Duration.ofSeconds(5);
 
         /**
          * Server hold timeout for long-poll mode.
@@ -277,6 +277,12 @@ public class EmbeddedPDPProperties {
          * (e.g., {@code Bearer <token>}, {@code <api-key>}).
          */
         private String authHeaderValue;
+
+        /**
+         * Whether authentication credentials may be sent over plaintext HTTP.
+         * Keep disabled outside trusted local or proxied deployments.
+         */
+        private boolean allowInsecureHttp = false;
 
         /**
          * Whether to follow HTTP 3xx redirects.

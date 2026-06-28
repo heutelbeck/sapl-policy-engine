@@ -122,6 +122,18 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      */
     protected abstract D indeterminate();
 
+    /**
+     * Validates the parsed subscription before the SSE response is opened.
+     *
+     * @param subscription the parsed subscription
+     * @param response the HTTP response
+     * @return true if stream setup may continue
+     * @throws IOException if writing an error response fails
+     */
+    protected boolean acceptSubscription(S subscription, HttpServletResponse response) throws IOException {
+        return true;
+    }
+
     @Override
     protected void handlePost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
             throws ServletException, IOException {
@@ -149,6 +161,14 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             }
             log.debug("Failed to parse subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed subscription.");
+            return;
+        }
+        if (subscription == null) {
+            log.debug("Rejected null subscription.");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed subscription.");
+            return;
+        }
+        if (!acceptSubscription(subscription, response)) {
             return;
         }
 

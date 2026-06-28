@@ -1164,10 +1164,7 @@ jobs:
     if: >-
       ${{
         !failure() && !cancelled() &&
-        (
-          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
-          || needs.version-check.outputs.is_tag == 'true'
-        )
+        needs.version-check.outputs.is_tag == 'true'
       }}
     name: Deploy Playground
     runs-on: ubuntu-latest

@@ -231,6 +231,7 @@ public class SanitizationFunctionLibrary {
             (Portland OR Seattle), and contractions (What's your name?).
 
             Takes a TEXT value and returns it unchanged if clean, or an error if injection patterns are detected.
+            Inputs longer than 1,048,576 characters return an error before Unicode normalization.
 
             These inputs pass through:
             ```
@@ -265,6 +266,9 @@ public class SanitizationFunctionLibrary {
             Use assertNoSqlInjectionStrict if the input should be a structured identifier where SQL syntax never belongs.
             """)
     public static Value assertNoSqlInjection(TextValue inputToSanitize) {
+        if (TextParseLimits.exceedsMaxInput(inputToSanitize.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         val potentialInjectionDetected = BALANCED_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
         if (potentialInjectionDetected) {
             return Value.error(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
@@ -292,6 +296,7 @@ public class SanitizationFunctionLibrary {
             contain SQL syntax.
 
             Takes a TEXT value and returns it unchanged if clean, or an error if any SQL syntax is found.
+            Inputs longer than 1,048,576 characters return an error before Unicode normalization.
 
             These inputs pass through:
             ```
@@ -326,6 +331,9 @@ public class SanitizationFunctionLibrary {
             For natural language or user names, use assertNoSqlInjection instead.
             """)
     public static Value assertNoSqlInjectionStrict(TextValue inputToSanitize) {
+        if (TextParseLimits.exceedsMaxInput(inputToSanitize.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         val potentialInjectionDetected = STRICT_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
         if (potentialInjectionDetected) {
             return Value.error(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);

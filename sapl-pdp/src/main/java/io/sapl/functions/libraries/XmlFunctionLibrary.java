@@ -28,6 +28,7 @@ import tools.jackson.dataformat.xml.XmlFactory;
 import tools.jackson.dataformat.xml.XmlMapper;
 
 import javax.xml.stream.XMLInputFactory;
+import java.io.IOException;
 
 /**
  * Function library providing XML marshalling and unmarshalling operations.
@@ -51,6 +52,7 @@ public class XmlFunctionLibrary {
 
             - The input is limited to 1 MB.
             - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+            - Serialization output is limited to 10000000 characters.
 
             DTD processing and external entity resolution are disabled, so XXE and entity-expansion payloads are rejected with an error.
 
@@ -146,9 +148,11 @@ public class XmlFunctionLibrary {
         }
         try {
             val jsonNode  = ValueJsonMarshaller.toJsonNode(value);
-            val xmlString = XML_MAPPER.writeValueAsString(jsonNode);
+            val xmlString = TextOutputLimits.write(writer -> XML_MAPPER.writeValue(writer, jsonNode));
             return Value.of(xmlString);
-        } catch (JacksonException exception) {
+        } catch (TextOutputLimits.OutputLimitExceededException exception) {
+            return Value.error(exception.getMessage());
+        } catch (JacksonException | IOException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

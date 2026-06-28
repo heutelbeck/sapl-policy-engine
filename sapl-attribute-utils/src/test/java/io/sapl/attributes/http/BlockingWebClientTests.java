@@ -50,6 +50,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.PushPromiseHandler;
 import java.net.http.HttpResponse.ResponseInfo;
+import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -487,6 +488,28 @@ class BlockingWebClientTests {
     }
 
     @Test
+    @DisplayName("an SSE event split across data fields is limited by emitted payload bytes")
+    void whenServerSentEventPayloadFitsAcrossManyDataFieldsThenEventIsEmitted() {
+        val expectedPayload = "{\"message\":\n\"success\"}";
+        val eventStream     = "data:{\"message\":\ndata:\"success\"}\n\n";
+        val maxBytes        = expectedPayload.getBytes(StandardCharsets.UTF_8).length;
+        server.enqueue(new MockResponse().setBody(eventStream).addHeader("Content-Type", "text/event-stream"));
+        val template = """
+                {
+                    "baseUrl" : "%s",
+                    "accept" : "text/event-stream",
+                    "maxResponseBytes" : %d
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl, maxBytes));
+
+        val drained = StreamAssertions.assertThat(client.httpRequest("GET", request))
+                .withinTimeout(Duration.ofSeconds(2L)).drain();
+
+        assertThat(drained).singleElement().satisfies(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
+    }
+
+    @Test
     @DisplayName("an unterminated SSE line aborts the read once the byte cap is crossed without unbounded buffering")
     void whenServerSentEventLineHasNoTerminatorThenAbortsReadOnceCapCrossedAndFailsClosed() {
         // A hostile SSE host streams a single newline-free line forever. A bounded
@@ -584,12 +607,57 @@ class BlockingWebClientTests {
         assertThat(bodyStream.wasClosed()).isTrue();
     }
 
+    @Test
+    @DisplayName("a fragmented WebSocket message within maxResponseBytes is emitted when complete")
+    void whenFragmentedWebSocketMessageWithinMaxResponseBytesThenPayloadIsEmitted() {
+        val payload          = DEFAULT_BODY;
+        val fragmentedClient = new BlockingWebClient(MAPPER,
+                new FragmentedWebSocketHttpClient(List.of("{\"message\"", ":\"success\"}")));
+        val template         = """
+                {
+                    "baseUrl" : "ws://localhost:1",
+                    "maxResponseBytes" : %d
+                }
+                """;
+        val request          = (ObjectValue) ValueJsonMarshaller
+                .json(template.formatted(payload.getBytes(StandardCharsets.UTF_8).length));
+
+        val drained = StreamAssertions.assertThat(fragmentedClient.consumeWebSocket(request))
+                .withinTimeout(Duration.ofSeconds(2L)).drain();
+
+        assertThat(drained).singleElement().satisfies(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
+    }
+
+    @Test
+    @DisplayName("a fragmented WebSocket message exceeding maxResponseBytes fails closed")
+    void whenFragmentedWebSocketMessageExceedsMaxResponseBytesThenErrorValue() {
+        val fragmentedClient = new BlockingWebClient(MAPPER,
+                new FragmentedWebSocketHttpClient(List.of("{\"message\":\"", "too-large\"}")));
+        val template         = """
+                {
+                    "baseUrl" : "ws://localhost:1",
+                    "maxResponseBytes" : 16
+                }
+                """;
+        val request          = (ObjectValue) ValueJsonMarshaller.json(template.formatted());
+
+        val drained = StreamAssertions.assertThat(fragmentedClient.consumeWebSocket(request))
+                .withinTimeout(Duration.ofSeconds(2L)).drain();
+
+        assertThat(drained).anySatisfy(v -> {
+            if (!(v instanceof ErrorValue err)) {
+                throw new AssertionError("Expected ErrorValue, got: " + v);
+            }
+            assertThat(err.message()).contains("16");
+        });
+    }
+
     /**
      * Stand-in transport whose blocking send throws an unchecked
      * exception, modelling a flaky endpoint or an invalid request that
      * surfaces as a RuntimeException from {@link HttpClient#send}.
      */
-    private static final class ThrowingHttpClient extends HttpClient {
+    private static class ThrowingHttpClient extends HttpClient {
 
         @Override
         public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> responseBodyHandler) {
@@ -985,6 +1053,107 @@ class BlockingWebClientTests {
         @Override
         public Optional<Executor> executor() {
             return Optional.empty();
+        }
+    }
+
+    @RequiredArgsConstructor
+    private static final class FragmentedWebSocketHttpClient extends ThrowingHttpClient {
+        private final List<String> fragments;
+
+        @Override
+        public WebSocket.Builder newWebSocketBuilder() {
+            return new FragmentedWebSocketBuilder(fragments);
+        }
+    }
+
+    @RequiredArgsConstructor
+    private static final class FragmentedWebSocketBuilder implements WebSocket.Builder {
+        private final List<String> fragments;
+
+        @Override
+        public WebSocket.Builder header(String name, String value) {
+            return this;
+        }
+
+        @Override
+        public WebSocket.Builder connectTimeout(Duration timeout) {
+            return this;
+        }
+
+        @Override
+        public WebSocket.Builder subprotocols(String mostPreferred, String... lesserPreferred) {
+            return this;
+        }
+
+        @Override
+        public CompletableFuture<WebSocket> buildAsync(URI uri, WebSocket.Listener listener) {
+            val webSocket = new RecordingWebSocket();
+            listener.onOpen(webSocket);
+            for (int i = 0; i < fragments.size() && !webSocket.aborted(); i++) {
+                listener.onText(webSocket, fragments.get(i), i == fragments.size() - 1);
+            }
+            listener.onClose(webSocket, WebSocket.NORMAL_CLOSURE, "done");
+            return CompletableFuture.completedFuture(webSocket);
+        }
+    }
+
+    private static final class RecordingWebSocket implements WebSocket {
+        private final AtomicBoolean aborted = new AtomicBoolean(false);
+        private final AtomicBoolean closed  = new AtomicBoolean(false);
+
+        @Override
+        public CompletableFuture<WebSocket> sendText(CharSequence data, boolean last) {
+            return CompletableFuture.completedFuture(this);
+        }
+
+        @Override
+        public CompletableFuture<WebSocket> sendBinary(ByteBuffer data, boolean last) {
+            return CompletableFuture.completedFuture(this);
+        }
+
+        @Override
+        public CompletableFuture<WebSocket> sendPing(ByteBuffer message) {
+            return CompletableFuture.completedFuture(this);
+        }
+
+        @Override
+        public CompletableFuture<WebSocket> sendPong(ByteBuffer message) {
+            return CompletableFuture.completedFuture(this);
+        }
+
+        @Override
+        public CompletableFuture<WebSocket> sendClose(int statusCode, String reason) {
+            closed.set(true);
+            return CompletableFuture.completedFuture(this);
+        }
+
+        @Override
+        public void request(long n) {
+            // The fake builder pushes fragments synchronously.
+        }
+
+        @Override
+        public String getSubprotocol() {
+            return "";
+        }
+
+        @Override
+        public boolean isOutputClosed() {
+            return closed.get() || aborted.get();
+        }
+
+        @Override
+        public boolean isInputClosed() {
+            return closed.get() || aborted.get();
+        }
+
+        @Override
+        public void abort() {
+            aborted.set(true);
+        }
+
+        boolean aborted() {
+            return aborted.get();
         }
     }
 

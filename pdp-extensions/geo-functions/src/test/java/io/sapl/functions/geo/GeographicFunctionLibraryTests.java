@@ -56,6 +56,8 @@ class GeographicFunctionLibraryTests {
 
     private static final String WGS84 = "EPSG:4326";
 
+    private static final int EXCESSIVE_WKT_NESTING_DEPTH = 130;
+
     private static final GeoJsonWriter   GEOJSON_WRITER = new GeoJsonWriter();
     private static final GeometryFactory GEO_FACTORY    = new GeometryFactory();
     private static final GeometryFactory WGS84_FACTORY  = new GeometryFactory(new PrecisionModel(), 4326);
@@ -856,7 +858,7 @@ class GeographicFunctionLibraryTests {
 
         val result = kmlToGeoJSON(Value.of(emptyKml));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.NO_GEOMETRIES_IN_KML_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.ERROR_NO_GEOMETRIES_IN_KML);
     }
 
     @Test
@@ -915,7 +917,15 @@ class GeographicFunctionLibraryTests {
         val invalidWkt = "POINT 10 20"; // missing parentheses => parse error
         val result     = wktToGeoJSON(Value.of(invalidWkt));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.INVALID_WKT_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.ERROR_INVALID_WKT);
+    }
+
+    @Test
+    void wktToGeoJSONWhenNestingExceedsMaximumThenError() {
+        val result = wktToGeoJSON(Value.of(nestedGeometryCollection(EXCESSIVE_WKT_NESTING_DEPTH)));
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("nesting exceeds"));
     }
 
     @Test
@@ -988,7 +998,7 @@ class GeographicFunctionLibraryTests {
                 """;
         val result     = gml3ToGeoJSON(Value.of(invalidGml));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.ERROR_FAILED_TO_PARSE_GML);
     }
 
     @Test
@@ -1071,7 +1081,7 @@ class GeographicFunctionLibraryTests {
                 """;
         val result    = gml2ToGeoJSON(Value.of(gml2Empty));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.NO_GEOMETRIES_IN_GML_ERROR);
+        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.ERROR_NO_GEOMETRIES_IN_GML);
     }
 
     @Test
@@ -1081,7 +1091,7 @@ class GeographicFunctionLibraryTests {
                 """;
         val result      = gml2ToGeoJSON(Value.of(gml2Invalid));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.ERROR_FAILED_TO_PARSE_GML);
     }
 
     @Test
@@ -1122,6 +1132,39 @@ class GeographicFunctionLibraryTests {
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("members");
     }
 
+    private static ObjectValue multiPointOf(int count, double latitudeBase, double spacing) {
+        val coordinates = new Coordinate[count];
+        for (var i = 0; i < count; i++) {
+            val column = i % 100;
+            val row    = i / 100;
+            coordinates[i] = new Coordinate(column * spacing, latitudeBase + row * spacing);
+        }
+        return (ObjectValue) geometryToGeoJSON(GEO_FACTORY.createMultiPointFromCoords(coordinates));
+    }
+
+    @Test
+    void bufferWhenOutputExceedsVertexLimitThenReturnsError() {
+        val input  = multiPointOf(4_000, 0.0D, 1.0D);
+        val result = buffer(input, (NumberValue) Value.of(0.1D));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void unionWhenOutputExceedsCountLimitThenReturnsError() {
+        val a      = multiPointOf(25_001, 0.0D, 0.01D);
+        val b      = multiPointOf(25_001, 50.0D, 0.01D);
+        val result = union(a, b);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void symDifferenceWhenOutputExceedsCountLimitThenReturnsError() {
+        val a      = multiPointOf(25_001, 0.0D, 0.01D);
+        val b      = multiPointOf(25_001, 50.0D, 0.01D);
+        val result = symDifference(a, b);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
     @Test
     void wktToGeoJSONWhenInputExceedsMaximumThenError() {
         val oversizedWkt = "POINT(1 1)" + " ".repeat(MAX_GEO_INPUT_BYTES);
@@ -1153,6 +1196,16 @@ class GeographicFunctionLibraryTests {
             geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
         }
         return geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
+    }
+
+    private static String nestedGeometryCollection(int depth) {
+        val builder = new StringBuilder();
+        for (int i = 0; i < depth; i++) {
+            builder.append("GEOMETRYCOLLECTION(");
+        }
+        builder.append("POINT (1 1)");
+        builder.append(")".repeat(depth));
+        return builder.toString();
     }
 
 }

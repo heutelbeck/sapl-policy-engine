@@ -19,6 +19,7 @@ package io.sapl.api.model.jackson;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import lombok.val;
 import tools.jackson.databind.DatabindException;
 import tools.jackson.databind.json.JsonMapper;
 
+@DisplayName("MultiAuthorizationSubscription deserialization")
 class MultiAuthorizationSubscriptionDeserializerTests {
 
     private static JsonMapper mapper;
@@ -40,12 +42,25 @@ class MultiAuthorizationSubscriptionDeserializerTests {
     @Test
     @DisplayName("Duplicate subscription IDs in the JSON body are rejected as a clean Jackson databind error, not a raw runtime exception")
     void whenDeserializingMultiSubscriptionWithDuplicateIdThenThrowsDatabindException() {
-        val json = """
+        val              json        = """
                 {
                     "read-tome": {"subject":"scholar","action":"read","resource":"necronomicon"},
                     "read-tome": {"subject":"scholar","action":"read","resource":"pnakotic_manuscripts"}
                 }""";
-        assertThatThrownBy(() -> mapper.readValue(json, MultiAuthorizationSubscription.class))
-                .isInstanceOf(DatabindException.class).hasMessageContaining("read-tome");
+        ThrowingCallable deserialize = () -> mapper.readValue(json, MultiAuthorizationSubscription.class);
+
+        assertThatThrownBy(deserialize).isInstanceOf(DatabindException.class).hasMessageContaining("read-tome");
+    }
+
+    @Test
+    @DisplayName("Empty subscription IDs in the JSON body are rejected as invalid correlation IDs")
+    void whenDeserializingMultiSubscriptionWithEmptyIdThenThrowsDatabindException() {
+        val              json        = """
+                {
+                    "": {"subject":"scholar","action":"read","resource":"necronomicon"}
+                }""";
+        ThrowingCallable deserialize = () -> mapper.readValue(json, MultiAuthorizationSubscription.class);
+
+        assertThatThrownBy(deserialize).isInstanceOf(DatabindException.class).hasMessageContaining("empty");
     }
 }

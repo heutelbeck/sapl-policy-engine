@@ -275,5 +275,19 @@ class JsonFunctionLibraryTests {
             assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
                     error -> assertThat(error.message()).startsWith("Failed to serialize to JSON:"));
         }
+
+        @Test
+        void whenSerializedOutputExceedsMaximumThenReturnsError() {
+            val object = ObjectValue.builder().put("payload", oversizedOutputText()).build();
+
+            val result = JsonFunctionLibrary.valToJson(object);
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).contains("Output exceeds the maximum length"));
+        }
+    }
+
+    private static Value oversizedOutputText() {
+        return Value.of("a".repeat(TextOutputLimits.MAX_OUTPUT_CHARS));
     }
 }

@@ -153,7 +153,7 @@ name and value are sent on every request. Common patterns:
 A minimal compatible server must:
 
 1. Serve `.saplbundle` ZIP files at `{baseUrl}/{pdpId}` with `200 OK`.
-2. Keep bundle responses under 16 MB (the client rejects larger responses).
+2. Keep bundle responses under 256 MiB (the client rejects larger responses).
 3. Return `404` for unknown pdpIds.
 4. Optionally: support `If-None-Match` / `ETag` for conditional requests with `304`
    responses.

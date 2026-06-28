@@ -21,6 +21,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -292,11 +293,17 @@ class DocumentCompilerTests {
     @DisplayName("resource limits")
     class ResourceLimitTests {
 
-        private static final int OVER_SIZE_LIMIT = 2 * 1024 * 1024 + 1;
-        private static final int DEEP_NESTING    = 50_000;
+        private static final int OVER_SIZE_LIMIT             = 2 * 1024 * 1024 + 1;
+        private static final int DEEP_NESTING                = 50_000;
+        private static final int FLAT_BINARY_CHAIN_OPERATORS = 10_000;
 
         private static String deeplyNestedPolicy() {
             return "policy \"x\" permit " + "(".repeat(DEEP_NESTING) + "true" + ")".repeat(DEEP_NESTING);
+        }
+
+        private static String flatBinaryChainPolicy() {
+            return "policy \"x\" permit " + "1" + " + 1".repeat(FLAT_BINARY_CHAIN_OPERATORS) + " == "
+                    + (FLAT_BINARY_CHAIN_OPERATORS + 1) + ";";
         }
 
         @Test
@@ -341,6 +348,15 @@ class DocumentCompilerTests {
 
             assertThatThrownBy(() -> DocumentCompiler.compileDocument(nested, ctx))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("nesting");
+        }
+
+        @Test
+        @DisplayName("compileDocument rejects a flat binary expression chain that is too deep")
+        void whenFlatBinaryExpressionChainIsTooDeepThenCompileThrowsCompilerException() {
+            val              flatChain = flatBinaryChainPolicy();
+            ThrowingCallable compile   = () -> DocumentCompiler.compileDocument(flatChain, ctx);
+
+            assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class).hasMessageContaining("too deep");
         }
     }
 }

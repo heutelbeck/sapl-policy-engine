@@ -20,109 +20,75 @@ package io.sapl.functions.geo.traccar;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.Coordinate;
+
+import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.withPrecision;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+@DisplayName("TraccarFunctionLibrary")
 class TraccarFunctionLibraryTests {
 
-    @Test
-    void when_traccarPositionToGeoJSON_withAltitude_then_returnGeoJSONPointWithAltitude() {
-        val position = (ObjectValue) json("""
-                {
-                  "latitude" : 37.7749,
-                  "longitude": -122.4194,
-                  "altitude" : 100.0
-                }
-                """);
-        val expected = json("""
-                {
-                    "type":"Point",
-                    "coordinates":[-122.4194,37.7749,100],
-                    "crs":{
-                        "type":"name",
-                        "properties":{
-                            "name":"EPSG:4326"
-                            }
-                        }
-                }
-                """);
+    private static final int EXCESSIVE_WKT_NESTING_DEPTH = 130;
+
+    static Stream<Arguments> traccarPositionConversionCases() {
+        return Stream.of(arguments("""
+                { "latitude": 37.7749, "longitude": -122.4194, "altitude": 100.0 }
+                """, """
+                {"type":"Point","coordinates":[-122.4194,37.7749,100],
+                 "crs":{"type":"name","properties":{"name":"EPSG:4326"}}}
+                """), arguments("""
+                { "latitude": 37.7749, "longitude": -122.4194 }
+                """, """
+                {"type":"Point","coordinates":[-122.4194,37.7749],
+                 "crs":{"type":"name","properties":{"name":"EPSG:4326"}}}
+                """), arguments("""
+                { "latitude": 37.7749, "longitude": -122.4194, "altitude": "not-a-number" }
+                """, """
+                {"type":"Point","coordinates":[-122.4194,37.7749],
+                 "crs":{"type":"name","properties":{"name":"EPSG:4326"}}}
+                """));
+    }
+
+    @ParameterizedTest
+    @MethodSource("traccarPositionConversionCases")
+    void whenTraccarPositionConvertedThenReturnsExpectedGeoJson(String positionJson, String expectedJson) {
+        val position = (ObjectValue) json(positionJson);
+        val expected = json(expectedJson);
         assertThat(traccarPositionToGeoJSON(position)).isEqualTo(expected);
     }
 
     @Test
-    void when_traccarPositionToGeoJSON_withoutAltitude_then_returnGeoJSONPoint() {
-        val position = (ObjectValue) json("""
-                {
-                  "latitude" : 37.7749,
-                  "longitude": -122.4194
-                }
-                """);
-        val expected = json("""
-                {
-                    "type":"Point",
-                    "coordinates":[-122.4194,37.7749],
-                    "crs":{
-                        "type":"name",
-                        "properties":{
-                            "name":"EPSG:4326"
-                            }
-                        }
-                }
-                """);
-        assertThat(traccarPositionToGeoJSON(position)).isEqualTo(expected);
-    }
-
-    @Test
-    void when_traccarPositionToGeoJSON_missingLongitude_then_returnError() {
+    void whenTraccarPositionMissesLongitudeThenReturnsError() {
         val noLong = (ObjectValue) json("{}");
-        var result = traccarPositionToGeoJSON(noLong);
+        val result = traccarPositionToGeoJSON(noLong);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(NO_VALID_LONGITUDE_FIELD_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_NO_VALID_LONGITUDE_FIELD);
     }
 
     @Test
-    void when_traccarPositionToGeoJSON_missingLatitude_then_returnError() {
+    void whenTraccarPositionMissesLatitudeThenReturnsError() {
         val noLat  = (ObjectValue) json("""
                 {
                     "longitude": 12.12
                 }
                 """);
-        var result = traccarPositionToGeoJSON(noLat);
+        val result = traccarPositionToGeoJSON(noLat);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(NO_VALID_LATITUDE_FIELD_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_NO_VALID_LATITUDE_FIELD);
     }
 
     @Test
-    void when_traccarPositionToGeoJSON_withNonNumericAltitude_then_returnGeoJSONPointWithoutAltitude() {
-        val position = (ObjectValue) json("""
-                {
-                  "latitude" : 37.7749,
-                  "longitude": -122.4194,
-                  "altitude" : "not-a-number"
-                }
-                """);
-        val expected = json("""
-                {
-                    "type":"Point",
-                    "coordinates":[-122.4194,37.7749],
-                    "crs":{
-                        "type":"name",
-                        "properties":{
-                            "name":"EPSG:4326"
-                            }
-                        }
-                }
-                """);
-        assertThat(traccarPositionToGeoJSON(position)).isEqualTo(expected);
-    }
-
-    @Test
-    void when_coordinateFlippingFilter_then_swapXandY() {
+    void whenCoordinateFlippingFilterAppliedThenSwapsXAndY() {
         val filter = new CoordinateFlippingFilter();
         val coord  = new Coordinate(10, 20);
         filter.filter(coord);
@@ -131,7 +97,7 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_withValidPolygon_then_returnGeoJSONPolygon() {
+    void whenTraccarGeofenceHasValidPolygonThenReturnsGeoJsonPolygon() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : "POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))"
@@ -153,51 +119,108 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_withInvalidWKT_then_returnError() {
+    void whenTraccarGeofenceWktIsInvalidThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : "invalid WKT"
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message())
-                .contains(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted("Unknown geometry type: INVALID (line 1)"));
+                .contains(ERROR_GEOMETRY_PROCESSING_S.formatted("Unknown geometry type: INVALID (line 1)"));
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_withDegeneratePolygon_then_returnError() {
+    void whenTraccarGeofencePolygonIsDegenerateThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : "POLYGON ((30 10, 40 40, 20 40))"
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Error processing geometry:");
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_nonStringArea_then_returnError() {
+    void whenTraccarGeofenceAreaIsNotTextThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "area" : 12345
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GEOFENCE_MISSING_AREA_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_GEOFENCE_MISSING_AREA);
     }
 
     @Test
-    void when_traccarGeofenceToGeoJson_missingArea_then_returnError() {
+    void whenTraccarGeofenceAreaIsMissingThenReturnsError() {
         val geofence = (ObjectValue) json("""
                 {
                   "invalid" : "data"
                 }
                 """);
-        var result   = traccarGeofenceToGeoJson(geofence);
+        val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GEOFENCE_MISSING_AREA_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_GEOFENCE_MISSING_AREA);
+    }
+
+    @Test
+    void whenTraccarGeofenceWktExceedsInputLimitThenReturnsError() {
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : "%s"
+                }
+                """.formatted("POINT (1 1)".repeat(420_000)));
+        val result   = traccarGeofenceToGeoJson(geofence);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum size");
+    }
+
+    @Test
+    void whenTraccarGeofenceWktNestingExceedsMaximumThenReturnsError() {
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : "%s"
+                }
+                """.formatted(nestedGeometryCollection(EXCESSIVE_WKT_NESTING_DEPTH)));
+        val result   = traccarGeofenceToGeoJson(geofence);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("nesting exceeds"));
+    }
+
+    @Test
+    void whenTraccarGeofenceWktHasTooManyGeometriesThenReturnsError() {
+        val builder = new StringBuilder("MULTIPOINT (");
+        for (int i = 0; i < 50_001; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append("(1 1)");
+        }
+        builder.append(')');
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : "%s"
+                }
+                """.formatted(builder));
+        val result   = traccarGeofenceToGeoJson(geofence);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");
+    }
+
+    private static String nestedGeometryCollection(int depth) {
+        val builder = new StringBuilder();
+        for (int i = 0; i < depth; i++) {
+            builder.append("GEOMETRYCOLLECTION(");
+        }
+        builder.append("POINT (1 1)");
+        builder.append(")".repeat(depth));
+        return builder.toString();
     }
 }

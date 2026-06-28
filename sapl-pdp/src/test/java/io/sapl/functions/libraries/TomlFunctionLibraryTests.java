@@ -236,10 +236,24 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
+    void whenSerializedOutputExceedsMaximumThenReturnsError() {
+        val object = ObjectValue.builder().put("payload", oversizedOutputText()).build();
+
+        val result = TomlFunctionLibrary.valToToml(object);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("Output exceeds the maximum length"));
+    }
+
+    @Test
     void whenTomlExceedsMaxInputThenError() {
         val result = TomlFunctionLibrary.tomlToVal(Value.of("a".repeat(1024 * 1024 + 1)));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
+
+    private static Value oversizedOutputText() {
+        return Value.of("a".repeat(TextOutputLimits.MAX_OUTPUT_CHARS));
     }
 }

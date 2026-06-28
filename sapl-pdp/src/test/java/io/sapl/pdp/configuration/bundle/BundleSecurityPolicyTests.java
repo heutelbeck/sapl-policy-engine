@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -273,6 +274,21 @@ class BundleSecurityPolicyTests {
 
             assertThat(policy.resolvePublicKey("production", "key-2025")).isEqualTo(elderKeyPair.getPublic());
             assertThat(policy.resolvePublicKey("production", "key-2026")).isEqualTo(stagingKeyPair.getPublic());
+        }
+
+        @Test
+        @DisplayName("tenant trust remains immutable after build")
+        void whenTenantTrustInputSetMutatesAfterBuildThenPolicyTrustDoesNotChange() {
+            val trustedKeys = new HashSet<>(Set.of("prod-key"));
+            val catalogue   = Map.of("prod-key", elderKeyPair.getPublic(), "staging-key", stagingKeyPair.getPublic());
+            val policy      = BundleSecurityPolicy.builder().withKeyCatalogue(catalogue)
+                    .withTenantTrust(Map.of("production", trustedKeys)).build();
+
+            trustedKeys.add("staging-key");
+
+            assertThatThrownBy(() -> policy.resolvePublicKey("production", "staging-key"))
+                    .isInstanceOf(BundleSignatureException.class).hasMessageContaining("not trusted")
+                    .hasMessageContaining("production");
         }
 
         @Test

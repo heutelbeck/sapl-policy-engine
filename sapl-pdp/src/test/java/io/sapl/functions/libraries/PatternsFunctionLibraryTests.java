@@ -540,4 +540,14 @@ class PatternsFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("too long");
     }
+
+    @Test
+    void whenReplacementTailPushesOutputOverLimitThenErrorValue() {
+        val value       = Value.of("a" + "b".repeat(99_999));
+        val replacement = Value.of("X".repeat(10_000_000));
+        val result      = PatternsFunctionLibrary.replaceAll(value, Value.of("a"), replacement);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("too long");
+    }
 }

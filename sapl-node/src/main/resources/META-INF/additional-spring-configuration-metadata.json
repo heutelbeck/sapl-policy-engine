@@ -30,6 +30,11 @@
     "description": "Default PDP ID used when pdpId is not configured or missing from JWT claim."
   },
   {
+    "name": "io.sapl.node.max-multi-subscription-count",
+    "type": "java.lang.Integer",
+    "description": "Maximum number of entries accepted in one MultiAuthorizationSubscription on public HTTP and RSocket PDP endpoints."
+  },
+  {
     "name": "io.sapl.node.users",
     "type": "java.util.List",
     "description": "List of user entries with id, pdpId, and credentials (basic or apiKey)."
@@ -38,6 +43,11 @@
     "name": "io.sapl.node.oauth.pdpIdClaim",
     "type": "java.lang.String",
     "description": "JWT claim name containing the PDP ID for OAuth2 authentication."
+  },
+  {
+    "name": "io.sapl.node.openid-authz-api.enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enables the OpenID Authorization API 1.0 binding at /access/v1/evaluation."
   },
   {
     "name": "io.sapl.pdp.embedded.policies-path",

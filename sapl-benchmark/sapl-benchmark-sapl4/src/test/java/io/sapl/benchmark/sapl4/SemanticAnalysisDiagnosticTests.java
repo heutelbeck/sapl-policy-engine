@@ -42,10 +42,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 @DisplayName("Semantic analysis diagnostic for hospital scenarios")
 class SemanticAnalysisDiagnosticTests {
-
-    private static final boolean PRINT_RESULTS = false;
 
     private static final int[] HOSPITAL_SCALES = { 1, 5, 50, 300 };
 
@@ -89,15 +90,6 @@ class SemanticAnalysisDiagnosticTests {
 
         val result = SemanticVariableOrder.analyze(allPredicatesPerFormula);
 
-        if (PRINT_RESULTS) {
-            val totalGrouped = result.equalityGroups().stream()
-                    .mapToInt(g -> g.getEqualsFormulas().size() + g.getExcludeFormulas().size()).sum();
-            val totalPreds   = totalGrouped + result.remainingPredicates().size();
-            System.out.printf("%nhospital-%d: %d docs, %d formulas, %d predicates -> %d eq groups + %d remaining%n",
-                    departments, documents.size(), formulaCount, totalPreds, result.equalityGroups().size(),
-                    result.remainingPredicates().size());
-        }
-
         // Extract boolean expressions for BDD construction
         val booleanExpressions = new ArrayList<BooleanExpression>();
         for (val document : documents) {
@@ -106,8 +98,13 @@ class SemanticAnalysisDiagnosticTests {
             }
         }
 
-        // Build the SMTDD - validates it completes without blowup
-        SmtddBuilder.build(result, booleanExpressions, 0);
+        // The scenario must yield indexable formulas, otherwise the build below is
+        // vacuous.
+        assertThat(formulaCount).isPositive();
+
+        // The SMTDD must build for the hospital scenario without exceeding the node
+        // limit.
+        assertThatCode(() -> SmtddBuilder.build(result, booleanExpressions, 0)).doesNotThrowAnyException();
     }
 
     static IntStream hospitalScales() {

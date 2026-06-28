@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.security.PublicKey;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -358,7 +359,7 @@ public final class BundleSecurityPolicy {
          * @return this builder
          */
         public Builder withTenantTrust(Map<String, Set<String>> tenantTrust) {
-            this.tenantTrust = tenantTrust != null ? Map.copyOf(tenantTrust) : Map.of();
+            this.tenantTrust = copyTenantTrust(tenantTrust);
             return this;
         }
 
@@ -400,6 +401,17 @@ public final class BundleSecurityPolicy {
             }
 
             return new BundleSecurityPolicy(publicKey, signatureRequired, unsignedTenants, keyCatalogue, tenantTrust);
+        }
+
+        private static Map<String, Set<String>> copyTenantTrust(Map<String, Set<String>> tenantTrust) {
+            if (tenantTrust == null) {
+                return Map.of();
+            }
+            val copy = new HashMap<String, Set<String>>();
+            for (val entry : tenantTrust.entrySet()) {
+                copy.put(entry.getKey(), Set.copyOf(entry.getValue()));
+            }
+            return Map.copyOf(copy);
         }
     }
 

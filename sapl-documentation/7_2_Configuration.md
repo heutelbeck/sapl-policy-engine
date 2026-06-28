@@ -71,6 +71,7 @@ All properties live under the prefix `io.sapl.node`:
 | `scalar.oauth-client-id` | `String` | | OIDC client id pre-filled in the Scalar API reference Authorize dialog. Optional and independent of whether OAuth2 is enabled server-side. |
 | `scalar.oauth-redirect-uri` | `String` | `/scalar` | Redirect URI used by the Scalar API reference OAuth2 flow. |
 | `keep-alive` | `long` | `15` | Seconds between SSE keep-alive frames on idle streaming connections. Prevents proxies and firewalls from dropping inactive connections and lets the server detect clients that drop without closing. Always on and cannot be disabled; values below `1` are raised to the default. Keep it below the smallest proxy idle timeout on the path. See [Reverse Proxy Configuration](../7_6_Security/#reverse-proxy-configuration). |
+| `max-multi-subscription-count` | `int` | `256` | Maximum number of entries accepted in one `MultiAuthorizationSubscription` on public HTTP and RSocket PDP endpoints. Requests above the limit are rejected before PDP fan-out. Raise only for clients that intentionally batch more subscriptions in one request. |
 | `http.sse.keep-alive-pool-size` | `int` | `0` (auto) | Size of the scheduled thread pool that emits SSE keep-alive frames. `0` (or any non-positive value) auto-sizes to `max(2, availableProcessors / 2)`. |
 | `http.auth-cache.positive-ttl` | `Duration` | `5m` | Time successful authentication results stay cached on the bypass-Spring `/api/pdp/*` HTTP path before re-verification. Higher values trade staleness for fewer Argon2 verifications per second. |
 | `http.auth-cache.negative-ttl` | `Duration` | `5s` | Time failed authentication results stay cached. Short by design so a transient lookup miss recovers quickly while still throttling brute-force probes. |
@@ -149,11 +150,15 @@ The RSocket endpoint shares the same authentication configuration as the HTTP en
 
 ### OpenID Authorization API Properties
 
-The OpenID Authorization API binding at `/access/v1/evaluation` is enabled by default and shares the authentication configuration with the rest of the HTTP transport. One additional knob caps request body size:
+The OpenID Authorization API binding at `/access/v1/evaluation` is enabled by default and shares the authentication configuration with the rest of the HTTP transport. Use `io.sapl.node.openid-authz-api.enabled=false` to disable it.
+
+Before SAPL Node 4.1.0 prerelease builds used `io.sapl.server.openid-authz-api.enabled`. That legacy key is not read anymore. Update deployments to the `io.sapl.node` property before upgrading.
+
+One additional knob caps request body size:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `io.sapl.server.openid-authz-api.enabled` | `boolean` | `true` | Enables the OpenID Authorization API 1.0 binding. |
+| `io.sapl.node.openid-authz-api.enabled` | `boolean` | `true` | Enables the OpenID Authorization API 1.0 binding. |
 | `io.sapl.node.http.max-request-body-bytes` | `long` | `65536` | Caps the request body size on the HTTP PDP endpoints, covering both `/api/pdp/*` and the OpenID Authorization API on `/access/v1/*`. Requests exceeding the limit are rejected with `413 Content Too Large`: a declared `Content-Length` over the limit is rejected before any body bytes are read, and a chunked body sent without a `Content-Length` is aborted with the same status once the limit is crossed while reading. Authorization subscriptions are small (typically below 1 KiB); raise only when policies routinely receive large `properties` maps. Mirrors the `sapl.pdp.rsocket.max-inbound-payload-size` guard on the RSocket transport. |
 
 ### CLI Argument Overrides

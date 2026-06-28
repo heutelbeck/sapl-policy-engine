@@ -22,8 +22,8 @@
 # This file is installed to /etc/sapl/application.yml and is
 # preserved across package upgrades (config|noreplace).
 #
-# The systemd service uses --spring.config.location=file:/etc/sapl/application.yml
-# which fully replaces the JAR-embedded defaults. Only this file is loaded.
+# The systemd service uses --spring.config.additional-location=file:/etc/sapl/application.yml
+# so this file overlays the JAR-embedded defaults.
 #
 # The node will not start until bundle security is configured.
 # See /var/lib/sapl/README for the quick start workflow.
@@ -190,10 +190,11 @@ io.sapl:
     #   pdp-ids:
     #     - default
     #   mode: POLLING
-    #   poll-interval: 30s
+    #   poll-interval: 5s
     #   # long-poll-timeout: 30s
     #   # auth-header-name: Authorization
     #   # auth-header-value: "Bearer <token>"
+    #   # allow-insecure-http: false
     #   # follow-redirects: true
 
 # --- OAuth2 Resource Server ---
@@ -221,6 +222,13 @@ io.sapl:
 # be disabled. Keep it below the smallest proxy idle timeout on the path.
 #
 # io.sapl.node.keep-alive: 15
+
+# --- Multi-Subscription Limit ---
+#
+# Maximum number of entries accepted in a MultiAuthorizationSubscription on
+# public HTTP and RSocket PDP endpoints.
+#
+# io.sapl.node.max-multi-subscription-count: 256
 
 # --- Rate Limiting ---
 

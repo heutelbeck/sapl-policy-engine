@@ -207,6 +207,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String FRAGMENT_PREFIX_EXAMPLE   = "example/";
     private static final String FRAGMENT_PREFIX_PERMALINK = "permalink/";
 
+    private static final String ERROR_SUBSCRIPTION = "Subscription error: ";
+
     private static final String JS_COPY_TO_CLIPBOARD     = "window.copyToClipboard($0)";
     private static final String JS_GET_URL_FRAGMENT      = "return window.getUrlFragment()";
     private static final String JS_REFRESH_CODEMIRROR    = "if (this.editor && this.editor.refresh) { this.editor.refresh(); }";
@@ -289,7 +291,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String MESSAGE_REACHED_SUFFIX            = ") reached";
     private static final String MESSAGE_SHARE_EXPLANATION         = "Share this link to preserve and share the current playground state including all policies, subscription, variables, and combining algorithm.";
     private static final String MESSAGE_STATE_TOO_MANY_POLICIES   = "State has too many policies. Maximum: ";
-    private static final String MESSAGE_SUBSCRIPTION_ERROR        = "Subscription error: ";
     private static final String MESSAGE_SUFFIX_KB                 = "KB";
 
     private static final String POLICY_NAME_PREFIX  = "Policy ";
@@ -964,7 +965,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         log.error("Error in PDP subscription", error);
         getUI().ifPresent(userInterface -> userInterface.access(() -> {
             stopSubscription();
-            showNotification(MESSAGE_SUBSCRIPTION_ERROR + error.getMessage());
+            showNotification(ERROR_SUBSCRIPTION + error.getMessage());
         }));
     }
 

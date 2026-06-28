@@ -86,7 +86,7 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     private static final String WARN_FETCH_FAILED                      = "Fetch failed for pdpId '{}' (retry #{}): {}";
     private static final String WARN_REDIRECTS_DISABLED_FOR_CREDENTIAL = "Disabling redirect following for bundle source '{}' because a custom auth header is configured. A redirect would replay the credential to a cross-origin target. Point at the final URL to keep redirects.";
 
-    private static final int MAX_BUNDLE_RESPONSE_BYTES = 16 * 1024 * 1024;
+    private static final int MAX_BUNDLE_RESPONSE_BYTES = 256 * 1024 * 1024;
 
     private static final Duration CONNECT_TIMEOUT          = Duration.ofSeconds(10);
     private static final Duration POLLING_RESPONSE_TIMEOUT = Duration.ofSeconds(30);

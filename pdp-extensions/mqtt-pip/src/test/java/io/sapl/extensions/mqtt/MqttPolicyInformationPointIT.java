@@ -22,7 +22,6 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import io.sapl.api.attributes.AttributeAccessContext;
-import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
@@ -102,7 +101,7 @@ class MqttPolicyInformationPointIT {
                   ]
                 }
                 """.formatted(brokerHost, brokerPort, clientId));
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
@@ -113,6 +112,8 @@ class MqttPolicyInformationPointIT {
     private static void publishLater(Mqtt5Publish message, long delayMs) {
         Thread.startVirtualThread(() -> {
             try {
+                // No condition to await: this thread produces a timed event, so the publish
+                // must really be deferred.
                 Thread.sleep(delayMs);
                 publisher.publish(message);
             } catch (InterruptedException ie) {
@@ -137,7 +138,7 @@ class MqttPolicyInformationPointIT {
                   ]
                 }
                 """.formatted(brokerHost, brokerPort, "sapl-down-" + CLIENT_SEQ.incrementAndGet()));
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
@@ -257,8 +258,8 @@ class MqttPolicyInformationPointIT {
         }
 
         @Test
-        @DisplayName("non-UTF-8 binary payload becomes ArrayValue of bytes")
-        void whenBinaryPayloadThenArrayOfBytes() {
+        @DisplayName("non-UTF-8 binary payload becomes an error value")
+        void whenBinaryPayloadThenErrorValue() {
             val topic       = "test/payload/binary";
             val invalidUtf8 = new byte[] { (byte) 0xFF, (byte) 0xFE, (byte) 0xFD };
             val message     = Mqtt5Publish.builder().topic(topic).qos(MqttQos.AT_MOST_ONCE).payload(invalidUtf8)
@@ -267,7 +268,8 @@ class MqttPolicyInformationPointIT {
             try (val stream = pip.messages(Value.of(topic), freshCtx())) {
                 publishLater(message, 500L);
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
-                        .awaitsNext(v -> assertThat(v).isInstanceOf(ArrayValue.class));
+                        .awaitsNext(v -> assertThat(v).isInstanceOfSatisfying(ErrorValue.class,
+                                error -> assertThat(error.message()).contains("binary")));
             }
         }
     }
@@ -289,7 +291,7 @@ class MqttPolicyInformationPointIT {
                     }
                     """.formatted(type, timeoutMs, brokerHost, brokerPort,
                     "sapl-pip-default-" + CLIENT_SEQ.incrementAndGet()));
-            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
             return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
 
@@ -361,7 +363,7 @@ class MqttPolicyInformationPointIT {
     class ErrorPaths {
 
         @Test
-        @DisplayName("missing mqttPipConfig yields an error stream")
+        @DisplayName("missing mqtt config yields an error stream")
         void whenNoMqttPipConfigThenErrorValue() {
             val emptyCtx = new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
@@ -386,7 +388,7 @@ class MqttPolicyInformationPointIT {
                       ]
                     }
                     """);
-            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
             val ctx       = new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
             try (val stream = pip.messages(Value.of("any/topic"), ctx)) {
@@ -435,7 +437,7 @@ class MqttPolicyInformationPointIT {
                       ]
                     }
                     """.formatted(brokerHost, brokerPort, "sapl-pip-share-" + CLIENT_SEQ.incrementAndGet()));
-            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
             return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
 
