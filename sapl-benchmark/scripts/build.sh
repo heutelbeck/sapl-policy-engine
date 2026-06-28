@@ -48,8 +48,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Copy JVM artifacts to stable location
-cp "$REPO_ROOT/sapl-node/target/sapl-node-"*"-SNAPSHOT.jar" "$BIN_DIR/sapl-node.jar"
-cp "$REPO_ROOT/sapl-benchmark/sapl-benchmark-sapl4/target/sapl-benchmark-sapl4-"*"-SNAPSHOT.jar" "$BIN_DIR/sapl-benchmark-sapl4.jar"
+cp "$REPO_ROOT/sapl-node/target/sapl-node-"*".jar" "$BIN_DIR/sapl-node.jar"
+cp "$REPO_ROOT/sapl-benchmark/sapl-benchmark-sapl4/target/sapl-benchmark-sapl4-"*".jar" "$BIN_DIR/sapl-benchmark-sapl4.jar"
 
 echo "  sapl-node.jar              $(du -h "$BIN_DIR/sapl-node.jar" | cut -f1)"
 echo "  sapl-benchmark-sapl4.jar   $(du -h "$BIN_DIR/sapl-benchmark-sapl4.jar" | cut -f1)"

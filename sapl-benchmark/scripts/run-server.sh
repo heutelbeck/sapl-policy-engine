@@ -251,7 +251,7 @@ for runtime in "${RUNTIMES[@]}"; do
                     >/dev/null 2>&1 &
                 SERVER_PID=$!
 
-                max_wait=30
+                max_wait=120
                 started=false
                 for i in $(seq 1 $max_wait); do
                     if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1 \

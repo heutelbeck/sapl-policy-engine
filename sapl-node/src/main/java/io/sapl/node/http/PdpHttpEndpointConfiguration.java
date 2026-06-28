@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -84,7 +85,8 @@ class PdpHttpEndpointConfiguration {
         return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, positiveTtl, negativeTtl, maxSize);
     }
 
-    @Bean(destroyMethod = "shutdown")
+    // Disable inferred reflective shutdown, sseExecutorShutdown closes it for native images.
+    @Bean(destroyMethod = "")
     ScheduledExecutorService sseKeepAliveScheduler(
             @Value("${io.sapl.node.http.sse.keep-alive-pool-size:0}") int configuredPoolSize) {
         val poolSize    = configuredPoolSize > 0 ? configuredPoolSize
@@ -104,9 +106,19 @@ class PdpHttpEndpointConfiguration {
     // shutdownNow (not shutdown) so pumps blocked in awaitNext() are
     // interrupted at context destroy. Without this, long-lived SSE
     // streams hold the JVM open past Spring's normal shutdown window.
-    @Bean(destroyMethod = "shutdownNow")
+    // Disable inferred reflective shutdownNow, sseExecutorShutdown closes it for native images.
+    @Bean(destroyMethod = "")
     ExecutorService sseStreamPumpExecutor() {
         return Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @Bean
+    DisposableBean sseExecutorShutdown(ScheduledExecutorService sseKeepAliveScheduler,
+            ExecutorService sseStreamPumpExecutor) {
+        return () -> {
+            sseKeepAliveScheduler.shutdown();
+            sseStreamPumpExecutor.shutdownNow();
+        };
     }
 
     @Bean
