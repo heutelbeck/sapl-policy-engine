@@ -21,10 +21,10 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.passay.CharacterData;
-import org.passay.CharacterRule;
-import org.passay.EnglishCharacterData;
-import org.passay.PasswordGenerator;
+import org.passay.data.CharacterData;
+import org.passay.data.EnglishCharacterData;
+import org.passay.generate.PasswordGenerator;
+import org.passay.rule.CharacterRule;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import lombok.experimental.UtilityClass;
@@ -33,9 +33,10 @@ import lombok.val;
 @UtilityClass
 public class SecretGenerator {
 
-    public static final int BASIC_KEY_LENGTH    = 10;
-    public static final int BASIC_SECRET_LENGTH = 32;
-    public static final int MIN_API_KEY_LENGTH  = 32;
+    public static final int  BASIC_KEY_LENGTH    = 10;
+    public static final int  BASIC_SECRET_LENGTH = 32;
+    public static final int  MIN_API_KEY_LENGTH  = 32;
+    private static final int RETRY_LIMIT         = 2;
 
     public static String newSecret() {
         return generatePassword(BASIC_SECRET_LENGTH);
@@ -86,13 +87,13 @@ public class SecretGenerator {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private static String generateKey(int length) {
-        return new PasswordGenerator(SECURE_RANDOM).generatePassword(length, baseRules());
+        return new PasswordGenerator(SECURE_RANDOM, length, RETRY_LIMIT, baseRules()).generate().toString();
     }
 
     private static String generatePassword(int length) {
         val rules = new ArrayList<CharacterRule>();
         rules.add(new CharacterRule(SPECIAL_CHARACTERS, 2));
         rules.addAll(baseRules());
-        return new PasswordGenerator(SECURE_RANDOM).generatePassword(length, rules);
+        return new PasswordGenerator(SECURE_RANDOM, length, RETRY_LIMIT, rules).generate().toString();
     }
 }

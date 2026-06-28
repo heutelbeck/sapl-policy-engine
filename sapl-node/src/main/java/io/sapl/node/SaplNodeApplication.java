@@ -249,12 +249,10 @@ public class SaplNodeApplication {
                     "org.springframework.boot.webmvc.actuate.endpoint.web.AbstractWebMvcEndpointHandlerMapping$OperationHandler",
                     MemberCategory.ACCESS_DECLARED_FIELDS);
 
-            // Passay reflects on its CharacterData / CharacterRule types when
-            // building generators. SAPL's `generate basic`/`generate apikey`
-            // CLI commands depend on this. Without the hints the native
-            // binary fails at first credential generation.
-            for (val passayClass : List.of("org.passay.PasswordGenerator", "org.passay.CharacterRule",
-                    "org.passay.EnglishCharacterData")) {
+            // Passay reflects on its generator rule types. SAPL's `generate
+            // basic`/`generate apikey` CLI commands depend on this in native images.
+            for (val passayClass : List.of("org.passay.generate.PasswordGenerator", "org.passay.rule.CharacterRule",
+                    "org.passay.data.EnglishCharacterData")) {
                 hints.reflection().registerTypeIfPresent(classLoader, passayClass,
                         MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_DECLARED_METHODS);
             }
