@@ -760,13 +760,14 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                     .withSnapshot(snapshot);
             val r   = evaluateVoter(pdp.voter(), ctx);
             depsAccumulator.addAll(r.dependencies().keySet());
-            if (r.vote() == null) {
+            val vote = r.vote();
+            if (vote == null) {
                 return null;
             }
             if (perSubTraceObserver != null) {
                 perSubTraceObserver.accept(buildTracedVote(r, snapshot, timestampSource), item);
             }
-            multi.setDecision(item.subscriptionId(), r.vote().authorizationDecision());
+            multi.setDecision(item.subscriptionId(), vote.authorizationDecision());
         }
         return multi;
     }

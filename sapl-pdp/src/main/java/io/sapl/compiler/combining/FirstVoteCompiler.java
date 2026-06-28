@@ -96,7 +96,8 @@ public class FirstVoteCompiler {
     private static CoverageVoter compileCoverageVoter(PolicySet policySet, CompiledExpression isApplicable,
             List<CompiledPolicy> compiledPolicies, VoterMetadata voterMetadata,
             CombiningAlgorithm.DefaultDecision defaultDecision, CombiningAlgorithm.ErrorHandling errorHandling) {
-        val targetLocation = policySet.target() != null ? policySet.target().location() : null;
+        val target         = policySet.target();
+        val targetLocation = target != null ? target.location() : null;
         return new FirstPolicySetCoverageVoter(isApplicable, targetLocation, compiledPolicies, voterMetadata,
                 defaultDecision, errorHandling);
     }
@@ -302,13 +303,14 @@ public class FirstVoteCompiler {
             val allVotes          = new ArrayList<Vote>();
             val perPolicyCoverage = new ArrayList<Coverage.DocumentCoverage>();
             for (var i = 0; i < policies.size(); i++) {
-                val sub = policies.get(i).coverageVoter().evaluate(ctx);
-                StreamOperator.mergeDependencies(deps, sub.voteResult().dependencies());
-                if (sub.voteResult().vote() == null) {
+                val sub        = policies.get(i).coverageVoter().evaluate(ctx);
+                val voteResult = sub.voteResult();
+                StreamOperator.mergeDependencies(deps, voteResult.dependencies());
+                val policyVote = voteResult.vote();
+                if (policyVote == null) {
                     val partial = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
                     return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
                 }
-                val policyVote = sub.voteResult().vote();
                 allVotes.add(policyVote);
                 perPolicyCoverage.add(sub.coverage());
                 if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {

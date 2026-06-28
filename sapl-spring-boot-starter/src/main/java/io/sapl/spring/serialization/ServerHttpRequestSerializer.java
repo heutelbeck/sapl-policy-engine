@@ -177,8 +177,9 @@ public class ServerHttpRequestSerializer extends StdSerializer<ServerHttpRequest
         if (parsed.proto() != null) {
             gen.writeStringProperty(HttpServletRequestSerializer.FORWARDED_PROTO, parsed.proto());
         }
-        if (parsed.port() != null) {
-            gen.writeNumberProperty(HttpServletRequestSerializer.FORWARDED_PORT, parsed.port());
+        val port = parsed.port();
+        if (port != null) {
+            gen.writeNumberProperty(HttpServletRequestSerializer.FORWARDED_PORT, port);
         }
         gen.writeEndObject();
     }

@@ -86,11 +86,13 @@ class PdpHealthIndicator implements HealthIndicator {
             detail.put("combiningAlgorithm", status.combiningAlgorithm());
         }
         detail.put("documentCount", status.documentCount());
-        if (status.lastSuccessfulLoad() != null) {
-            detail.put("lastSuccessfulLoad", status.lastSuccessfulLoad().toString());
+        val lastSuccessfulLoad = status.lastSuccessfulLoad();
+        if (lastSuccessfulLoad != null) {
+            detail.put("lastSuccessfulLoad", lastSuccessfulLoad.toString());
         }
-        if (status.lastFailedLoad() != null) {
-            detail.put("lastFailedLoad", status.lastFailedLoad().toString());
+        val lastFailedLoad = status.lastFailedLoad();
+        if (lastFailedLoad != null) {
+            detail.put("lastFailedLoad", lastFailedLoad.toString());
         }
         if (status.lastError() != null) {
             detail.put("lastError", status.lastError());

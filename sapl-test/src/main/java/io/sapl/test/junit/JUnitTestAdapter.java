@@ -27,6 +27,7 @@ import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
 import io.sapl.test.lang.SaplTestParser;
 import io.sapl.test.plain.*;
+import lombok.val;
 import org.junit.jupiter.api.*;
 import org.opentest4j.AssertionFailedError;
 
@@ -223,9 +224,9 @@ public class JUnitTestAdapter {
         if (result.status() == TestStatus.FAILED) {
             throw new AssertionFailedError(result.failureMessage());
         } else if (result.status() == TestStatus.ERROR) {
-            if (result.failureCause() != null) {
-                throw new AssertionFailedError("Test execution error: " + result.failureCause().getMessage(),
-                        result.failureCause());
+            val cause = result.failureCause();
+            if (cause != null) {
+                throw new AssertionFailedError("Test execution error: " + cause.getMessage(), cause);
             } else {
                 throw new AssertionFailedError("Test execution error: " + result.failureMessage());
             }

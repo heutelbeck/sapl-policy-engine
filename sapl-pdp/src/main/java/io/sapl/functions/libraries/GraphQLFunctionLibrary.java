@@ -1014,7 +1014,10 @@ public class GraphQLFunctionLibrary {
         return switch (value) {
         case IntValue intValue                        -> Value.of(new BigDecimal(intValue.getValue()));
         case FloatValue floatValue                    -> Value.of(floatValue.getValue().doubleValue());
-        case StringValue stringValue                  -> Value.of(stringValue.getValue());
+        case StringValue stringValue                  -> {
+            val string = stringValue.getValue();
+            yield string != null ? Value.of(string) : Value.NULL;
+        }
         case BooleanValue booleanValue                -> Value.of(booleanValue.isValue());
         case EnumValue enumValue                      -> Value.of(enumValue.getName());
         case NullValue ignored                        -> Value.NULL;

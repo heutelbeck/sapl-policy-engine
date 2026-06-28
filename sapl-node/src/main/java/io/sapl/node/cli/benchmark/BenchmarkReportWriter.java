@@ -259,6 +259,9 @@ public class BenchmarkReportWriter {
         sb.append(sep);
         for (val r : withLatency) {
             val l = r.latency();
+            if (l == null) {
+                continue;
+            }
             sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %12.0f | %12.0f | %12.0f | %12.0f | %12.0f |",
                     r.method(), r.threads(), l.p50(), l.p90(), l.p99(), l.p999(), l.max())).append('\n');
         }

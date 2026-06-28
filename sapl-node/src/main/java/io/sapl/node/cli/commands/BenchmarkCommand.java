@@ -125,9 +125,10 @@ public class BenchmarkCommand implements Callable<Integer> {
             }
 
             val runCfg = BenchmarkRunConfig.resolve(benchmarkOptions);
+            val output = runCfg.output();
 
-            if (runCfg.output() != null) {
-                Files.createDirectories(runCfg.output());
+            if (output != null) {
+                Files.createDirectories(output);
             }
 
             val allResults = runAllBenchmarks(ctx, runCfg, out, err);
@@ -135,8 +136,8 @@ public class BenchmarkCommand implements Callable<Integer> {
                 return 1;
             }
 
-            if (runCfg.output() != null && !runCfg.machineReadable()) {
-                BenchmarkReportWriter.writeReports(allResults, ctx, runCfg, "timing loop", runCfg.output(), err);
+            if (output != null && !runCfg.machineReadable()) {
+                BenchmarkReportWriter.writeReports(allResults, ctx, runCfg, "timing loop", output, err);
             }
             return 0;
         } catch (IllegalArgumentException e) {

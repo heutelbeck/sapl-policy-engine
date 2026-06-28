@@ -123,7 +123,7 @@ import java.util.stream.Collectors;
 @PageTitle("SAPL Playground")
 @JsModule("./copytoclipboard.js")
 @JavaScript("./fragment-reader.js")
-public class PlaygroundView extends Composite<VerticalLayout> {
+public final class PlaygroundView extends Composite<VerticalLayout> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
@@ -1803,7 +1803,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val logoSubtitle = new Span("Playground " + SaplBuildInfo.version().replace("-SNAPSHOT", ""));
         logoSubtitle.getStyle().set(CSS_FONT_SIZE, "0.55rem").set(CSS_FONT_WEIGHT, "500")
                 .set(CSS_COLOR, "var(--vaadin-text-color-secondary)").set("letter-spacing", "0.04em")
-                .set(CSS_MARGIN_TOP, "-2px").set("white-space", "nowrap");
+                .set(CSS_MARGIN_TOP, "-2px").set(CSS_WHITE_SPACE, "nowrap");
 
         val logoText = new Div(logoTitle, logoSubtitle);
         logoText.getStyle().set("display", "flex").set("flex-direction", "column").set(CSS_GAP, "0");

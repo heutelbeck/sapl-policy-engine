@@ -98,7 +98,8 @@ public class UnanimousVoteCompiler {
     private static CoverageVoter compileCoverageVoter(PolicySet policySet, CompiledExpression isApplicable,
             List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             DefaultDecision defaultDecision, ErrorHandling errorHandling, boolean strictMode) {
-        val targetLocation = policySet.target() != null ? policySet.target().location() : null;
+        val target         = policySet.target();
+        val targetLocation = target != null ? target.location() : null;
         return new UnanimousPolicySetCoverageVoter(isApplicable, targetLocation, compiledPolicies, voterMetadata,
                 defaultDecision, errorHandling, strictMode);
     }
@@ -334,15 +335,16 @@ public class UnanimousVoteCompiler {
             val perPolicyCoverage = new ArrayList<Coverage.DocumentCoverage>(policies.size());
             var combinedVote      = Vote.abstain(voterMetadata);
             for (var i = 0; i < policies.size(); i++) {
-                val sub = policies.get(i).coverageVoter().evaluate(ctx);
-                StreamOperator.mergeDependencies(deps, sub.voteResult().dependencies());
-                if (sub.voteResult().vote() == null) {
+                val sub        = policies.get(i).coverageVoter().evaluate(ctx);
+                val voteResult = sub.voteResult();
+                StreamOperator.mergeDependencies(deps, voteResult.dependencies());
+                val vote = voteResult.vote();
+                if (vote == null) {
                     val partial = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
                     return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
                 }
                 perPolicyCoverage.add(sub.coverage());
-                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, sub.voteResult().vote(), voterMetadata,
-                        strictMode);
+                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, vote, voterMetadata, strictMode);
                 if (UnanimousVoteCombiner.isTerminal(combinedVote, strictMode)) {
                     combinedVote = CombiningUtils.completeSetOutcome(combinedVote,
                             policies.subList(i + 1, policies.size()));
@@ -379,15 +381,16 @@ public class UnanimousVoteCompiler {
             val perDocumentCoverage = new ArrayList<Coverage.DocumentCoverage>(documents.size());
             var combinedVote        = Vote.abstain(voterMetadata);
             for (val document : documents) {
-                val sub = document.coverageVoter().evaluate(ctx);
-                StreamOperator.mergeDependencies(deps, sub.voteResult().dependencies());
-                if (sub.voteResult().vote() == null) {
+                val sub        = document.coverageVoter().evaluate(ctx);
+                val voteResult = sub.voteResult();
+                StreamOperator.mergeDependencies(deps, voteResult.dependencies());
+                val vote = voteResult.vote();
+                if (vote == null) {
                     val partial = new Coverage.PdpCoverage(voterMetadata, perDocumentCoverage);
                     return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
                 }
                 perDocumentCoverage.add(sub.coverage());
-                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, sub.voteResult().vote(), voterMetadata,
-                        strictMode);
+                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, vote, voterMetadata, strictMode);
                 if (UnanimousVoteCombiner.isTerminal(combinedVote, strictMode)) {
                     val finalVote = combinedVote.finalizeVote(defaultDecision, errorHandling);
                     val coverage  = new Coverage.PdpCoverage(voterMetadata, perDocumentCoverage);

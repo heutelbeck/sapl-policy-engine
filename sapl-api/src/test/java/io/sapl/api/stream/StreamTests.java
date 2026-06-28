@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
@@ -226,8 +227,7 @@ class StreamTests {
                         timeoutCount.incrementAndGet();
                     } catch (InterruptedException interruptedException) {
                         Thread.currentThread().interrupt();
-                        throw new AssertionError("unexpected InterruptedException leaked from awaitNext",
-                                interruptedException);
+                        fail("unexpected InterruptedException leaked from awaitNext", interruptedException);
                     }
                 }
             }
