@@ -32,7 +32,7 @@
 # Build context must contain the static musl binary. Default name is `sapl`;
 # override SAPL_BINARY for per-architecture build contexts in CI.
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot@sha256:d093aa3e30dbadd3efe1310db061a14da60299baff8450a17fe0ccc514a16639
 
 ARG SAPL_BINARY=sapl
 COPY ${SAPL_BINARY} /sapl
