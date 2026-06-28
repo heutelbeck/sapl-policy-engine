@@ -255,7 +255,11 @@ The systemd unit runs with strict security restrictions: `NoNewPrivileges`, `Pro
 
 For container deployments, the server runs inside Docker while you use the local `sapl` binary for CLI operations like bundle creation and credential generation.
 
-The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.1.0`). The examples below use the current development tag `4.1.0`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
+The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.1.0`). The examples below use the current development tag `4.1.0`. This is the original JVM image. It is the best default for sustained throughput, low tail latency, and deployments that load extension jars at runtime.
+
+SAPL Node also publishes minimal native images. The `ghcr.io/heutelbeck/sapl-node:<version>-min` tag is a multi architecture manifest for amd64 and arm64. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-amd64` to pin x86_64 deployments. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-arm64` to pin ARM64 deployments.
+
+The minimal images package the native binary on a distroless base. They are smaller, have less attack surface, and boot faster than the JVM image. The tradeoff is a lower performance ceiling under sustained load because there is no JIT, no ZGC, and no runtime loadable extension jars. All Docker images default to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
 To get started with signed bundles:
 

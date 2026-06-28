@@ -57,7 +57,8 @@ class RemotePDPRSocketIT {
 
     private static final int             RSOCKET_PORT      = 7000;
     private static final int             HTTP_PORT         = 8080;
-    private static final String          SAPL_SERVER_IMAGE = "ghcr.io/heutelbeck/sapl-node:4.1.0";
+    private static final String          SAPL_SERVER_IMAGE = System.getProperty("sapl.node.image",
+            "ghcr.io/heutelbeck/sapl-node:4.1.0");
     private static final ImagePullPolicy NEVER_PULL        = imageName -> false;
     private static final Duration        STARTUP           = Duration.ofMinutes(2);
     private static final String          STARTUP_LOG       = ".*SAPL Node ready.*\\n";

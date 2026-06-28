@@ -295,3 +295,17 @@ JAVA_TOOL_OPTIONS="-XX:+UseZGC" java -jar sapl-node.jar server
 The Docker image runs the JVM build and enables ZGC by default, so containerized deployments get low-pause collection with no extra configuration. Heap size is derived automatically from the container memory limit.
 
 Garbage collection is the dominant source of tail latency in any managed runtime. The default throughput collector (G1) can pause for tens of milliseconds or more under load, and those pauses show up at the high percentiles such as p99 and p99.9. A concurrent collector such as ZGC keeps pauses below a millisecond at a small cost to peak throughput. For an authorization server on the request path, predictable tail latency is usually the better trade.
+
+### Minimal Native Images (-min)
+
+Alongside the original JVM image, SAPL Node publishes minimal native images. The `ghcr.io/heutelbeck/sapl-node:<version>-min` tag is a multi architecture manifest for amd64 and arm64. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-amd64` to pin x86_64 deployments. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-arm64` to pin ARM64 deployments.
+
+The minimal images package the static native binary on a `distroless/static` base. There is no JVM, no shell, no package manager, and no libc the binary depends on, which minimizes both image size and attack surface.
+
+The original image runs the JVM build on a buildpack base. It enables ZGC, supports runtime extension jars in `/pdp/data/lib`, and is about 436 MB. The minimal native image runs the native binary on `distroless/static`, uses the serial collector, does not support runtime extension jars, and is about 180 MB. Both images run as a nonroot user.
+
+The minimal native image is compatible with the JVM image. It uses the same mount point (`/pdp/data`), the same Spring profile (`docker`), the same ports (8080 and 7000), and the same environment variable configuration. Mount policies, configuration, and TLS material exactly as for the JVM image.
+
+The one difference is runtime loadable extensions. A native binary is compiled ahead of time with a closed world, so it cannot load third party PIP or function library jars at runtime. Deployments that drop extension jars into `/pdp/data/lib` must use the JVM image, or build a custom native image with the extensions compiled in.
+
+Because the native binary has no JIT and uses the serial collector, it has a lower performance ceiling under sustained load. Use the JVM image with ZGC when throughput and low tail latency matter most. Use the minimal native image when small footprint, fast startup, and minimal attack surface matter most.

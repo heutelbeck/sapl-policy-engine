@@ -627,6 +627,74 @@ jobs:
           echo "Digest of container: $IMAGE_DIGEST"
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
+  publish-min-docker:
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || needs.version-check.outputs.is_tag == 'true'
+        )
+      }}
+    name: Publish Minimal Native Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 20
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download amd64 Native Binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-linux-amd64
+          path: min-context/amd64
+
+      - name: Download arm64 Native Binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-linux-arm64
+          path: min-context/arm64
+
+      - name: Log in to the Container Registry
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+
+      - name: Build Minimal Native Images
+        run: |
+          chmod +x min-context/amd64/sapl min-context/arm64/sapl
+          docker buildx create --use --name sapl-min-builder || docker buildx use sapl-min-builder
+          docker buildx build --platform linux/amd64 -f sapl-node/packaging/docker/Dockerfile \
+            -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64 \
+            --push min-context/amd64
+          docker buildx build --platform linux/arm64 -f sapl-node/packaging/docker/Dockerfile \
+            -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64 \
+            --push min-context/arm64
+
+      - name: Publish Minimal Native Manifest
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: >-
+            docker buildx imagetools create
+            -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min
+            ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64
+            ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64
+
   publish-native-node:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
     if: >-
@@ -795,6 +863,13 @@ jobs:
             ./sapl --version
             ```
 
+            ### Docker Images
+            Pull `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}` for the JVM image. Use it for sustained throughput, low tail latency, and runtime extension jars.
+
+            Pull `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min` for the minimal native image. It is a multi architecture image for amd64 and arm64. It is smaller, boots faster, and has less attack surface. Its tradeoff is a lower performance ceiling under sustained load.
+
+            Use `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64` or `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64` when the deployment platform must be pinned.
+
             Built from commit: ${{ github.sha }}
           files: release/*
           fail_on_unmatched_files: true
@@ -860,10 +935,12 @@ jobs:
             sapl.exe --version
             ```
 
-            ### Docker Alternative
-            ```bash
-            docker pull ghcr.io/heutelbeck/sapl-node:${{ github.ref_name }}
-            ```
+            ### Docker Images
+            Pull `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}` for the JVM image. Use it for sustained throughput, low tail latency, and runtime extension jars.
+
+            Pull `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min` for the minimal native image. It is a multi architecture image for amd64 and arm64. It is smaller, boots faster, and has less attack surface. Its tradeoff is a lower performance ceiling under sustained load.
+
+            Use `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64` or `ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64` when the deployment platform must be pinned.
           files: release/*
           fail_on_unmatched_files: true
 
