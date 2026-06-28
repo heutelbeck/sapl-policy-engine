@@ -585,7 +585,7 @@ jobs:
           password: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
       - name: Push SAPL Node Image to ghcr.io
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -593,7 +593,7 @@ jobs:
           command: docker push ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}
 
       - name: Push Playground Image to ghcr.io
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -1242,7 +1242,7 @@ jobs:
           egress-policy: audit
 
       - name: Trigger CI Build of sapl-demos
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         env:
           GHUB_USERNAME: ${{ secrets.GHUB_USERNAME }}
           GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
@@ -1254,7 +1254,7 @@ jobs:
             curl -XPOST -u "$GHUB_USERNAME:$GHUB_ACCESS_TOKEN" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
 
       - name: Trigger CI Build of sapl-extensions
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         env:
           GHUB_USERNAME: ${{ secrets.GHUB_USERNAME }}
           GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
