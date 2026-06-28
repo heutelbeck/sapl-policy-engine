@@ -832,17 +832,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         }
     }
 
-    private static MultiAuthorizationDecision indeterminateFor(MultiAuthorizationSubscription multiSubscription) {
+    private static MultiAuthorizationDecision indeterminateFor(
+            Iterable<IdentifiableAuthorizationSubscription> subscriptions) {
         val multiDecision = new MultiAuthorizationDecision();
-        for (val identifiable : multiSubscription) {
-            multiDecision.setDecision(identifiable.subscriptionId(), AuthorizationDecision.INDETERMINATE);
-        }
-        return multiDecision;
-    }
-
-    private static MultiAuthorizationDecision indeterminateFor(List<IdentifiableAuthorizationSubscription> items) {
-        val multiDecision = new MultiAuthorizationDecision();
-        for (val identifiable : items) {
+        for (val identifiable : subscriptions) {
             multiDecision.setDecision(identifiable.subscriptionId(), AuthorizationDecision.INDETERMINATE);
         }
         return multiDecision;

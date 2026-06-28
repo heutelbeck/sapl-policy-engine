@@ -152,9 +152,7 @@ public class XmlFunctionLibrary {
             return Value.of(xmlString);
         } catch (TextOutputLimits.OutputLimitExceededException exception) {
             return Value.error(exception.getMessage());
-        } catch (JacksonException exception) {
-            return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
-        } catch (IOException exception) {
+        } catch (JacksonException | IOException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

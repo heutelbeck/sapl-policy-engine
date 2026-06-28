@@ -300,9 +300,7 @@ public class CsvFunctionLibrary {
             return Value.of(csvText);
         } catch (TextOutputLimits.OutputLimitExceededException exception) {
             return Value.error(exception.getMessage());
-        } catch (JacksonException exception) {
-            return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
-        } catch (IOException exception) {
+        } catch (JacksonException | IOException exception) {
             return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
         }
     }

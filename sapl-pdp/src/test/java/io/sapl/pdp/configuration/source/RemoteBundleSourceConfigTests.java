@@ -120,24 +120,34 @@ class RemoteBundleSourceConfigTests {
     @ValueSource(longs = { 0L, -100L })
     @DisplayName("a non-positive per-pdpId poll interval override is rejected at construction")
     void whenPdpIdPollIntervalOverrideNonPositiveThenConstructionFails(long millis) {
-        val pollIntervals = Map.of("default", Duration.ofMillis(millis));
+        val pollIntervals  = Map.of("default", Duration.ofMillis(millis));
+        val pdpIds         = List.of("default");
+        val firstBackoff   = Duration.ofMillis(100);
+        val maxBackoff     = Duration.ofSeconds(5);
+        val connectTimeout = Duration.ofMillis(50);
+        val readTimeout    = Duration.ofMillis(200);
 
-        assertThatExceptionOfType(PDPConfigurationException.class).isThrownBy(
-                () -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", List.of("default"),
-                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                        null, true, POLICY, pollIntervals, Duration.ofMillis(50), Duration.ofMillis(200)))
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", pdpIds,
+                        RemoteBundleSourceConfig.FetchMode.POLLING, firstBackoff, maxBackoff, null, null, true, POLICY,
+                        pollIntervals, connectTimeout, readTimeout))
                 .withMessageContaining("pdpIdPollIntervals");
     }
 
     @Test
     @DisplayName("a per-pdpId poll interval override for an unknown pdpId is rejected")
     void whenPdpIdPollIntervalOverrideUsesUnknownPdpIdThenConstructionFails() {
-        val pollIntervals = Map.of("staging", Duration.ofSeconds(5));
+        val pollIntervals  = Map.of("staging", Duration.ofSeconds(5));
+        val pdpIds         = List.of("production");
+        val firstBackoff   = Duration.ofMillis(100);
+        val maxBackoff     = Duration.ofSeconds(5);
+        val connectTimeout = Duration.ofMillis(50);
+        val readTimeout    = Duration.ofMillis(200);
 
-        assertThatExceptionOfType(PDPConfigurationException.class).isThrownBy(
-                () -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", List.of("production"),
-                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                        null, true, POLICY, pollIntervals, Duration.ofMillis(50), Duration.ofMillis(200)))
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", pdpIds,
+                        RemoteBundleSourceConfig.FetchMode.POLLING, firstBackoff, maxBackoff, null, null, true, POLICY,
+                        pollIntervals, connectTimeout, readTimeout))
                 .withMessageContaining("unknown pdpId");
     }
 

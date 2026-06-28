@@ -183,9 +183,7 @@ public class JsonFunctionLibrary {
             return Value.of(jsonString);
         } catch (TextOutputLimits.OutputLimitExceededException exception) {
             return Value.error(exception.getMessage());
-        } catch (JacksonException | IllegalArgumentException exception) {
-            return Value.error(ERROR_FAILED_TO_SERIALIZE, exception.getMessage());
-        } catch (IOException exception) {
+        } catch (JacksonException | IllegalArgumentException | IOException exception) {
             return Value.error(ERROR_FAILED_TO_SERIALIZE, exception.getMessage());
         }
     }

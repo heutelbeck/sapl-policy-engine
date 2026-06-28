@@ -22,62 +22,48 @@ import io.sapl.api.model.ObjectValue;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.Coordinate;
+
+import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.withPrecision;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("TraccarFunctionLibrary")
 class TraccarFunctionLibraryTests {
 
     private static final int EXCESSIVE_WKT_NESTING_DEPTH = 130;
 
-    @Test
-    void whenTraccarPositionHasAltitudeThenReturnsGeoJsonPointWithAltitude() {
-        val position = (ObjectValue) json("""
-                {
-                  "latitude" : 37.7749,
-                  "longitude": -122.4194,
-                  "altitude" : 100.0
-                }
-                """);
-        val expected = json("""
-                {
-                    "type":"Point",
-                    "coordinates":[-122.4194,37.7749,100],
-                    "crs":{
-                        "type":"name",
-                        "properties":{
-                            "name":"EPSG:4326"
-                            }
-                        }
-                }
-                """);
-        assertThat(traccarPositionToGeoJSON(position)).isEqualTo(expected);
+    static Stream<Arguments> traccarPositionConversionCases() {
+        return Stream.of(arguments("""
+                { "latitude": 37.7749, "longitude": -122.4194, "altitude": 100.0 }
+                """, """
+                {"type":"Point","coordinates":[-122.4194,37.7749,100],
+                 "crs":{"type":"name","properties":{"name":"EPSG:4326"}}}
+                """), arguments("""
+                { "latitude": 37.7749, "longitude": -122.4194 }
+                """, """
+                {"type":"Point","coordinates":[-122.4194,37.7749],
+                 "crs":{"type":"name","properties":{"name":"EPSG:4326"}}}
+                """), arguments("""
+                { "latitude": 37.7749, "longitude": -122.4194, "altitude": "not-a-number" }
+                """, """
+                {"type":"Point","coordinates":[-122.4194,37.7749],
+                 "crs":{"type":"name","properties":{"name":"EPSG:4326"}}}
+                """));
     }
 
-    @Test
-    void whenTraccarPositionHasNoAltitudeThenReturnsGeoJsonPoint() {
-        val position = (ObjectValue) json("""
-                {
-                  "latitude" : 37.7749,
-                  "longitude": -122.4194
-                }
-                """);
-        val expected = json("""
-                {
-                    "type":"Point",
-                    "coordinates":[-122.4194,37.7749],
-                    "crs":{
-                        "type":"name",
-                        "properties":{
-                            "name":"EPSG:4326"
-                            }
-                        }
-                }
-                """);
+    @ParameterizedTest
+    @MethodSource("traccarPositionConversionCases")
+    void whenTraccarPositionConvertedThenReturnsExpectedGeoJson(String positionJson, String expectedJson) {
+        val position = (ObjectValue) json(positionJson);
+        val expected = json(expectedJson);
         assertThat(traccarPositionToGeoJSON(position)).isEqualTo(expected);
     }
 
@@ -99,30 +85,6 @@ class TraccarFunctionLibraryTests {
         val result = traccarPositionToGeoJSON(noLat);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(ERROR_NO_VALID_LATITUDE_FIELD);
-    }
-
-    @Test
-    void whenTraccarPositionAltitudeIsNotNumericThenReturnsGeoJsonPointWithoutAltitude() {
-        val position = (ObjectValue) json("""
-                {
-                  "latitude" : 37.7749,
-                  "longitude": -122.4194,
-                  "altitude" : "not-a-number"
-                }
-                """);
-        val expected = json("""
-                {
-                    "type":"Point",
-                    "coordinates":[-122.4194,37.7749],
-                    "crs":{
-                        "type":"name",
-                        "properties":{
-                            "name":"EPSG:4326"
-                            }
-                        }
-                }
-                """);
-        assertThat(traccarPositionToGeoJSON(position)).isEqualTo(expected);
     }
 
     @Test
