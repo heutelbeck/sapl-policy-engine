@@ -134,7 +134,7 @@ jobs:
 
       - name: Dependency Review
         if: ${{ (env.RUN_ANALYSIS == 'true') && (github.event_name == 'pull_request') }}
-        uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
 
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
