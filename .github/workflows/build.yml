@@ -381,7 +381,7 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download Linux amd64 artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-linux-amd64
           path: artifacts/linux-amd64
@@ -438,7 +438,7 @@ jobs:
           sudo install "$RUNNER_TEMP/wrk2/wrk" /usr/local/bin/wrk2
 
       - name: Download Linux amd64 artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-linux-amd64
           path: artifacts/linux-amd64
@@ -557,12 +557,12 @@ jobs:
           egress-policy: audit
 
       - name: Download Docker Image Artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: docker-images
 
       - name: Download SAPL Node JAR Artifacts
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-node-jars
           path: sapl-node/target
@@ -656,25 +656,25 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download Linux amd64 artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-linux-amd64
           path: artifacts/linux-amd64
 
       - name: Download Linux arm64 artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-linux-arm64
           path: artifacts/linux-arm64
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-windows-amd64
           path: artifacts/windows
 
       - name: Download SAPL Node JAR
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-node-jars
           path: sapl-node/target
@@ -912,25 +912,25 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download Linux amd64 artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-language-server-linux-amd64
           path: artifacts/linux-amd64
 
       - name: Download Linux arm64 artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-language-server-linux-arm64
           path: artifacts/linux-arm64
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-language-server-windows-amd64
           path: artifacts/windows
 
       - name: Download macOS artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: sapl-language-server-macos-arm64
           path: artifacts/macos
