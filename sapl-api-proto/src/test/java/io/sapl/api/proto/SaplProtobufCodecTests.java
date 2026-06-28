@@ -449,6 +449,21 @@ class SaplProtobufCodecTests {
 
             assertThatThrownBy(decode).isInstanceOf(IOException.class);
         }
+
+        @Test
+        @DisplayName("a multi-subscription above the configured entry limit fails closed as IOException")
+        void whenMultiSubscriptionCountExceedsLimitThenIOException() throws IOException {
+            val multi = new MultiAuthorizationSubscription();
+            multi.addSubscription("sub1", new AuthorizationSubscription(Value.of("user1"), Value.of("read"),
+                    Value.of("doc1"), Value.UNDEFINED, Value.EMPTY_OBJECT));
+            multi.addSubscription("sub2", new AuthorizationSubscription(Value.of("user2"), Value.of("write"),
+                    Value.of("doc2"), Value.UNDEFINED, Value.EMPTY_OBJECT));
+            val bytes = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
+
+            val decode = (ThrowingCallable) () -> SaplProtobufCodec.readMultiAuthorizationSubscription(bytes, 1);
+
+            assertThatThrownBy(decode).isInstanceOf(IOException.class).hasMessageContaining("maximum");
+        }
     }
 
     @Nested

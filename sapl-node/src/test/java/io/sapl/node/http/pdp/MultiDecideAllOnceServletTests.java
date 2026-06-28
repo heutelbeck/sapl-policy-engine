@@ -85,6 +85,25 @@ class MultiDecideAllOnceServletTests {
     }
 
     @Test
+    @DisplayName("a multi-subscription above the configured entry limit is rejected with 400 and the PDP is never consulted")
+    void whenMultiSubscriptionCountExceedsLimitThenBadRequestAndPdpNotCalled() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
+        val request = new MockHttpServletRequest();
+        request.setContent("""
+                {
+                  "sub1": { "subject": "alice", "action": "read", "resource": "doc1" },
+                  "sub2": { "subject": "bob", "action": "write", "resource": "doc2" }
+                }
+                """.getBytes(UTF_8));
+        val response = new MockHttpServletResponse();
+
+        new MultiDecideAllOnceServlet(pdp, authHandler, mapper, 1).handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+        verifyNoInteractions(pdp);
+    }
+
+    @Test
     @DisplayName("a PDP runtime failure does not leak a 500 but fails closed to a 200 INDETERMINATE body")
     void whenPdpEvaluationThrowsThenOkWithIndeterminateBody() throws Exception {
         when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));

@@ -27,6 +27,8 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.dataformat.toml.TomlFactory;
 import tools.jackson.dataformat.toml.TomlMapper;
 
+import java.io.IOException;
+
 /**
  * Function library providing TOML marshalling and unmarshalling operations.
  */
@@ -50,6 +52,7 @@ public class TomlFunctionLibrary {
 
             - The input is limited to 1 MB.
             - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+            - Serialization output is limited to 10000000 characters.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -127,9 +130,13 @@ public class TomlFunctionLibrary {
     public static Value valToToml(Value value) {
         try {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
-            val tomlString = TOML_MAPPER.writeValueAsString(jsonNode);
+            val tomlString = TextOutputLimits.write(writer -> TOML_MAPPER.writeValue(writer, jsonNode));
             return Value.of(tomlString);
+        } catch (TextOutputLimits.OutputLimitExceededException exception) {
+            return Value.error(exception.getMessage());
         } catch (JacksonException | IllegalArgumentException exception) {
+            return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
+        } catch (IOException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

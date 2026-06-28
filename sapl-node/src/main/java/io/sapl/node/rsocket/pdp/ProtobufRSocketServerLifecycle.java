@@ -17,6 +17,8 @@
  */
 package io.sapl.node.rsocket.pdp;
 
+import static io.sapl.node.MultiSubscriptionLimits.requirePositiveMax;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,6 +84,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final int                                      maxInboundPayloadSize;
+    private final int                                      maxMultiSubscriptionCount;
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
@@ -113,7 +116,8 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
                 log.warn("RSocket server has no authentication configured");
             }
             log.debug("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
-            val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
+            val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator,
+                    requirePositiveMax(maxMultiSubscriptionCount));
             val transport = createTransport();
             server  = bind(acceptor, transport);
             running = true;

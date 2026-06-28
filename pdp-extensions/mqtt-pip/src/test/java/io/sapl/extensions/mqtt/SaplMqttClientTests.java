@@ -95,6 +95,18 @@ class SaplMqttClientTests {
     }
 
     @Test
+    @DisplayName("a binary message fails closed to an error value")
+    void whenBinaryPayloadThenErrorValue() {
+        val publish = Mqtt5Publish.builder().topic("sapl/test").payload(new byte[] { (byte) 0xFF, (byte) 0xFE })
+                .build();
+
+        val result = SaplMqttClient.decodePublish(publish, 1024);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("binary"));
+    }
+
+    @Test
     @DisplayName("the client cache key separates tenants that share a broker config but use different credentials")
     void whenSameBrokerDifferentSecretsThenDifferentCacheKey() {
         val broker = (ObjectNode) toJsonNode(json("""

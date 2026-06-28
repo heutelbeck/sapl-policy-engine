@@ -32,6 +32,8 @@ import static org.assertj.core.api.Assertions.withPrecision;
 @DisplayName("TraccarFunctionLibrary")
 class TraccarFunctionLibraryTests {
 
+    private static final int EXCESSIVE_WKT_NESTING_DEPTH = 130;
+
     @Test
     void whenTraccarPositionHasAltitudeThenReturnsGeoJsonPointWithAltitude() {
         val position = (ObjectValue) json("""
@@ -217,6 +219,19 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
+    void whenTraccarGeofenceWktNestingExceedsMaximumThenReturnsError() {
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : "%s"
+                }
+                """.formatted(nestedGeometryCollection(EXCESSIVE_WKT_NESTING_DEPTH)));
+        val result   = traccarGeofenceToGeoJson(geofence);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("nesting exceeds"));
+    }
+
+    @Test
     void whenTraccarGeofenceWktHasTooManyGeometriesThenReturnsError() {
         val builder = new StringBuilder("MULTIPOINT (");
         for (int i = 0; i < 50_001; i++) {
@@ -235,5 +250,15 @@ class TraccarFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");
+    }
+
+    private static String nestedGeometryCollection(int depth) {
+        val builder = new StringBuilder();
+        for (int i = 0; i < depth; i++) {
+            builder.append("GEOMETRYCOLLECTION(");
+        }
+        builder.append("POINT (1 1)");
+        builder.append(")".repeat(depth));
+        return builder.toString();
     }
 }

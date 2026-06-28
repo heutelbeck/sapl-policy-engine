@@ -17,6 +17,12 @@
  */
 package io.sapl.node.http.pdp;
 
+import static io.sapl.node.MultiSubscriptionLimits.DEFAULT_MAX_MULTI_SUBSCRIPTION_COUNT;
+import static io.sapl.node.MultiSubscriptionLimits.exceededMessage;
+import static io.sapl.node.MultiSubscriptionLimits.exceedsMaxCount;
+import static io.sapl.node.MultiSubscriptionLimits.requirePositiveMax;
+
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,6 +32,7 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -37,7 +44,19 @@ public final class MultiDecideServlet
         extends SseStreamServlet<MultiAuthorizationSubscription, IdentifiableAuthorizationDecision> {
 
     private final BlockingPolicyDecisionPoint pdp;
+    private final int                         maxMultiSubscriptionCount;
 
+    /**
+     * Creates a servlet with the default multi-subscription entry limit.
+     *
+     * @param pdp the blocking PDP
+     * @param authHandler the HTTP authentication handler
+     * @param mapper the JSON mapper
+     * @param keepAliveInterval the SSE keep-alive interval
+     * @param keepAliveScheduler scheduler for keep-alive frames
+     * @param pumpExecutor executor for stream pumps
+     * @param connectionRegistry registry for active SSE connections
+     */
     public MultiDecideServlet(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler,
             JsonMapper mapper,
@@ -45,8 +64,34 @@ public final class MultiDecideServlet
             ScheduledExecutorService keepAliveScheduler,
             ExecutorService pumpExecutor,
             SseConnectionRegistry connectionRegistry) {
+        this(pdp, authHandler, mapper, keepAliveInterval, keepAliveScheduler, pumpExecutor, connectionRegistry,
+                DEFAULT_MAX_MULTI_SUBSCRIPTION_COUNT);
+    }
+
+    /**
+     * Creates a servlet with a configured multi-subscription entry limit.
+     *
+     * @param pdp the blocking PDP
+     * @param authHandler the HTTP authentication handler
+     * @param mapper the JSON mapper
+     * @param keepAliveInterval the SSE keep-alive interval
+     * @param keepAliveScheduler scheduler for keep-alive frames
+     * @param pumpExecutor executor for stream pumps
+     * @param connectionRegistry registry for active SSE connections
+     * @param maxMultiSubscriptionCount maximum entries accepted per
+     * multi-subscription
+     */
+    public MultiDecideServlet(BlockingPolicyDecisionPoint pdp,
+            HttpAuthHandler authHandler,
+            JsonMapper mapper,
+            Duration keepAliveInterval,
+            ScheduledExecutorService keepAliveScheduler,
+            ExecutorService pumpExecutor,
+            SseConnectionRegistry connectionRegistry,
+            int maxMultiSubscriptionCount) {
         super(authHandler, mapper, keepAliveInterval, keepAliveScheduler, pumpExecutor, connectionRegistry);
-        this.pdp = pdp;
+        this.pdp                       = pdp;
+        this.maxMultiSubscriptionCount = requirePositiveMax(maxMultiSubscriptionCount);
     }
 
     @Override
@@ -58,6 +103,17 @@ public final class MultiDecideServlet
     protected Stream<IdentifiableAuthorizationDecision> openStream(MultiAuthorizationSubscription subscription,
             String pdpId) {
         return pdp.decide(subscription, pdpId);
+    }
+
+    @Override
+    protected boolean acceptSubscription(MultiAuthorizationSubscription subscription, HttpServletResponse response)
+            throws IOException {
+        if (!exceedsMaxCount(subscription, maxMultiSubscriptionCount)) {
+            return true;
+        }
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                exceededMessage(subscription, maxMultiSubscriptionCount));
+        return false;
     }
 
     @Override

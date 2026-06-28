@@ -22,7 +22,6 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import io.sapl.api.attributes.AttributeAccessContext;
-import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
@@ -259,8 +258,8 @@ class MqttPolicyInformationPointIT {
         }
 
         @Test
-        @DisplayName("non-UTF-8 binary payload becomes ArrayValue of bytes")
-        void whenBinaryPayloadThenArrayOfBytes() {
+        @DisplayName("non-UTF-8 binary payload becomes an error value")
+        void whenBinaryPayloadThenErrorValue() {
             val topic       = "test/payload/binary";
             val invalidUtf8 = new byte[] { (byte) 0xFF, (byte) 0xFE, (byte) 0xFD };
             val message     = Mqtt5Publish.builder().topic(topic).qos(MqttQos.AT_MOST_ONCE).payload(invalidUtf8)
@@ -269,7 +268,8 @@ class MqttPolicyInformationPointIT {
             try (val stream = pip.messages(Value.of(topic), freshCtx())) {
                 publishLater(message, 500L);
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
-                        .awaitsNext(v -> assertThat(v).isInstanceOf(ArrayValue.class));
+                        .awaitsNext(v -> assertThat(v).isInstanceOfSatisfying(ErrorValue.class,
+                                error -> assertThat(error.message()).contains("binary")));
             }
         }
     }

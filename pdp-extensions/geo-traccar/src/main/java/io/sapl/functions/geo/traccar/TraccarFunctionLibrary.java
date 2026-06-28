@@ -27,7 +27,6 @@ import io.sapl.pip.geo.traccar.TraccarSchemata;
 import lombok.val;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 
 /**
@@ -143,6 +142,7 @@ public class TraccarFunctionLibrary {
             representing the geofence's geometry.
             The function expects a Traccar geofence object as input, which must contain an `area` field. The `area` field
             represents the geofence's geometry in Well-Known Text (WKT) format.
+            The WKT input is bounded by size and nesting depth before parsing.
             The function will flip the coordinates within the WKT to match the GeoJSON convention of [longitude, latitude].
             The output GeoJSON will also include the WGS84 CRS (Coordinate Reference System) as "EPSG:4326".
 
@@ -172,8 +172,7 @@ public class TraccarFunctionLibrary {
         }
         try {
             val areaString = area.asString();
-            GeographicFunctionLibrary.requireInputWithinBounds(areaString);
-            val geometry = new WKTReader().read(areaString);
+            val geometry   = GeographicFunctionLibrary.wktToGeometryWithinBounds(areaString);
             geometry.setSRID(WGS84);
             // GeoJSON needs coordinates in longitude then latitude. Geometry will have it
             // the other way around.

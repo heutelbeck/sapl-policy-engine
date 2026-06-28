@@ -17,6 +17,11 @@
  */
 package io.sapl.node.http.pdp;
 
+import static io.sapl.node.MultiSubscriptionLimits.DEFAULT_MAX_MULTI_SUBSCRIPTION_COUNT;
+import static io.sapl.node.MultiSubscriptionLimits.exceededMessage;
+import static io.sapl.node.MultiSubscriptionLimits.exceedsMaxCount;
+import static io.sapl.node.MultiSubscriptionLimits.requirePositiveMax;
+
 import java.io.IOException;
 
 import org.jspecify.annotations.NonNull;
@@ -31,7 +36,6 @@ import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import tools.jackson.core.JacksonException;
@@ -45,7 +49,6 @@ import tools.jackson.databind.json.JsonMapper;
  * first emission, then close.
  */
 @Slf4j
-@RequiredArgsConstructor
 public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
 
     private static final String CONTENT_TYPE_JSON = "application/json";
@@ -53,6 +56,37 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
     private final BlockingPolicyDecisionPoint pdp;
     private final HttpAuthHandler             authHandler;
     private final JsonMapper                  mapper;
+    private final int                         maxMultiSubscriptionCount;
+
+    /**
+     * Creates a servlet with the default multi-subscription entry limit.
+     *
+     * @param pdp the blocking PDP
+     * @param authHandler the HTTP authentication handler
+     * @param mapper the JSON mapper
+     */
+    public MultiDecideAllOnceServlet(BlockingPolicyDecisionPoint pdp, HttpAuthHandler authHandler, JsonMapper mapper) {
+        this(pdp, authHandler, mapper, DEFAULT_MAX_MULTI_SUBSCRIPTION_COUNT);
+    }
+
+    /**
+     * Creates a servlet with a configured multi-subscription entry limit.
+     *
+     * @param pdp the blocking PDP
+     * @param authHandler the HTTP authentication handler
+     * @param mapper the JSON mapper
+     * @param maxMultiSubscriptionCount maximum entries accepted per
+     * multi-subscription
+     */
+    public MultiDecideAllOnceServlet(BlockingPolicyDecisionPoint pdp,
+            HttpAuthHandler authHandler,
+            JsonMapper mapper,
+            int maxMultiSubscriptionCount) {
+        this.pdp                       = pdp;
+        this.authHandler               = authHandler;
+        this.mapper                    = mapper;
+        this.maxMultiSubscriptionCount = requirePositiveMax(maxMultiSubscriptionCount);
+    }
 
     @Override
     protected void handlePost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
@@ -83,6 +117,13 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
         if (subscription == null) {
             log.debug("Rejected null multi-subscription.");
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed multi-subscription.");
+            return;
+        }
+        if (exceedsMaxCount(subscription, maxMultiSubscriptionCount)) {
+            log.debug("Rejected multi-subscription with {} entries; maximum is {}.", subscription.size(),
+                    maxMultiSubscriptionCount);
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    exceededMessage(subscription, maxMultiSubscriptionCount));
             return;
         }
 

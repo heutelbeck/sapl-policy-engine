@@ -259,7 +259,7 @@ public class EmbeddedPDPProperties {
          * Default interval between polls. Applies to all pdpIds unless
          * overridden in {@link #pdpIdPollIntervals}.
          */
-        private Duration pollInterval = Duration.ofSeconds(30);
+        private Duration pollInterval = Duration.ofSeconds(5);
 
         /**
          * Server hold timeout for long-poll mode.

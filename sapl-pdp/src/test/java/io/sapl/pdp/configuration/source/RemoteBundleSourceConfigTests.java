@@ -35,7 +35,7 @@ import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.val;
 
-@DisplayName("RemoteBundleSourceConfig credential exposure")
+@DisplayName("RemoteBundleSourceConfig")
 class RemoteBundleSourceConfigTests {
 
     private static final BundleSecurityPolicy POLICY = BundleSecurityPolicy.builder().disableSignatureVerification()
@@ -114,6 +114,41 @@ class RemoteBundleSourceConfigTests {
                         RemoteBundleSourceConfig.FetchMode.POLLING, pollInterval, longPollTimeout, null, null, true,
                         POLICY, pollIntervals, connectTimeout, readTimeout))
                 .withMessageContaining("PDP identifier");
+    }
+
+    @ParameterizedTest(name = "override={0}ms")
+    @ValueSource(longs = { 0L, -100L })
+    @DisplayName("a non-positive per-pdpId poll interval override is rejected at construction")
+    void whenPdpIdPollIntervalOverrideNonPositiveThenConstructionFails(long millis) {
+        val pollIntervals = Map.of("default", Duration.ofMillis(millis));
+
+        assertThatExceptionOfType(PDPConfigurationException.class).isThrownBy(
+                () -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", List.of("default"),
+                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
+                        null, true, POLICY, pollIntervals, Duration.ofMillis(50), Duration.ofMillis(200)))
+                .withMessageContaining("pdpIdPollIntervals");
+    }
+
+    @Test
+    @DisplayName("a per-pdpId poll interval override for an unknown pdpId is rejected")
+    void whenPdpIdPollIntervalOverrideUsesUnknownPdpIdThenConstructionFails() {
+        val pollIntervals = Map.of("staging", Duration.ofSeconds(5));
+
+        assertThatExceptionOfType(PDPConfigurationException.class).isThrownBy(
+                () -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", List.of("production"),
+                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
+                        null, true, POLICY, pollIntervals, Duration.ofMillis(50), Duration.ofMillis(200)))
+                .withMessageContaining("unknown pdpId");
+    }
+
+    @Test
+    @DisplayName("sub-second poll intervals are accepted when explicitly configured")
+    void whenPollIntervalsAreSubSecondButPositiveThenConstructionSucceeds() {
+        val pollIntervals = Map.of("default", Duration.ofMillis(100));
+
+        assertThatCode(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", List.of("default"),
+                RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null, null,
+                true, POLICY, pollIntervals, Duration.ofMillis(50), Duration.ofMillis(200))).doesNotThrowAnyException();
     }
 
     private static RemoteBundleSourceConfig config(String baseUrl, String authName, String authValue) {

@@ -45,7 +45,7 @@ All properties live under `io.sapl.pdp.embedded.remote-bundles`:
 | `base-url`             | `String`                 | _(required)_ | Base URL of the bundle server.           |
 | `pdp-ids`              | `List<String>`           | _(required)_ | PDP identifiers to fetch bundles for.    |
 | `mode`                 | `POLLING` or `LONG_POLL` | `POLLING`    | Change detection mode.                   |
-| `poll-interval`        | `Duration`               | `30s`        | Interval between polls (POLLING mode).   |
+| `poll-interval`        | `Duration`               | `5s`         | Interval between polls (POLLING mode).   |
 | `long-poll-timeout`    | `Duration`               | `30s`        | Server hold time (LONG_POLL mode).       |
 | `auth-header-name`     | `String`                 | _(none)_     | HTTP header name for authentication.     |
 | `auth-header-value`    | `String`                 | _(none)_     | HTTP header value for authentication.    |
@@ -67,7 +67,7 @@ requests (`If-None-Match` with ETag) avoid redundant downloads. The server respo
 io.sapl.pdp.embedded:
   remote-bundles:
     mode: POLLING
-    poll-interval: 30s
+    poll-interval: 5s
 ```
 
 #### Long-Poll (requires server support)
@@ -177,7 +177,7 @@ node continues serving the last-known bundle in DEGRADED state.
 
 ### Size Limit
 
-Remote bundle responses are limited to 16 MB. Bundles exceeding this limit are rejected. This limit is enforced by the client and cannot be configured.
+Remote bundle responses are limited to 256 MiB. Bundles exceeding this limit are rejected. This limit is enforced by the client and cannot be configured.
 
 ### Retry Behavior
 

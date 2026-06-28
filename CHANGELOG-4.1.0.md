@@ -9,6 +9,7 @@ The full architecture and worked examples are in [`sapl-documentation/6_3_Spring
 - Multi-subscription correlation IDs must be non-blank, and JSON multi-subscription input reports blank or duplicate IDs as clean databind errors.
 - Strict `Value` JSON serialization rejects nested `undefined` values instead of writing invalid JSON tokens.
 - Blocking multi-subscription streams keep only the latest pending decision per ID while lagging consumers catch up.
+- SAPL Node HTTP and RSocket PDP endpoints reject multi-subscriptions above `io.sapl.node.max-multi-subscription-count` (default 256) before PDP fan-out.
 - HTTP PIP `maxResponseBytes` limits are enforced across split SSE `data:` fields and fragmented WebSocket messages.
 - MVC OAuth2 authentication now requires JWT `exp` by default, matching PDP HTTP and RSocket authentication. Non-expiring JWTs require the explicit `io.sapl.node.oauth.allow-jwt-without-expiry=true` opt-in.
 - OpenID Authorization API requests that exceed the configured body limit during chunked reads now return 413.
@@ -16,6 +17,10 @@ The full architecture and worked examples are in [`sapl-documentation/6_3_Spring
 - Geo CRS lookup now uses GeoTools' WKT-file EPSG CRS authority service, focusing bundled EPSG support on CRS definitions instead of HSQL-backed coordinate system, datum, and coordinate operation authority factories.
 - MQTT topic matching functions reject excessive topic filter arrays before parsing them.
 - MQTT PIP subscriptions bound topic filter count and total topic-filter bytes via `maxTopicFilters` and `maxTopicFilterBytes`.
+- MQTT PIP messages reject binary payloads instead of expanding them into SAPL number arrays; publish text, JSON, or an explicit encoded string.
+- Remote bundle polling now defaults to `5s`, and per-PDP poll interval overrides must use configured PDP IDs and positive durations.
+- Bundle fetches and inspection now accept entries up to 256 MiB, while directory `pdp.json` is bounded to 1 GiB before parsing.
+- Array, graph, CIDR, and text-format functions now reject oversized materialized outputs instead of allocating unbounded results.
 - Remote bundle auth headers require `https` by default. Plaintext HTTP requires `remote-bundles.allow-insecure-http=true`.
 - Remote HTTP PDP Basic-auth constructors reject plaintext HTTP. Use the builder's explicit `allowInsecureTransport()` only for trusted local or proxied hops.
 - OpenID Authorization API disable switch is now `io.sapl.node.openid-authz-api.enabled`. The prerelease `io.sapl.server.openid-authz-api.enabled` key is no longer read.

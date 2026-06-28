@@ -79,7 +79,6 @@ import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getQos;
 import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultResponseConfig;
 import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultValue;
-import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.convertBytesToArrayValue;
 import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.getContentType;
 import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.getPayloadFormatIndicator;
 import static io.sapl.extensions.mqtt.util.PayloadFormatUtility.getValueOfJson;
@@ -140,6 +139,7 @@ public class SaplMqttClient implements Closeable {
     private static final Duration UNSUBSCRIBE_TIMEOUT = Duration.ofSeconds(5L);
     private static final Duration DISCONNECT_TIMEOUT  = Duration.ofSeconds(5L);
 
+    private static final String ERROR_BINARY_PAYLOAD_UNSUPPORTED       = "MQTT binary payloads are not supported. Publish UTF-8 text, JSON, or encode binary data before publishing.";
     private static final String ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED = "A policy may only select an mqtt broker by name or use the default. Supplying an inline broker configuration object is not permitted.";
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT    = "Refusing to send MQTT broker credentials over a plaintext connection. Enable tls, or explicitly accept the risk with allowInsecureTransport.";
     private static final String ERROR_INVALID_QOS                      = "Invalid MQTT QoS: must be 0, 1, or 2.";
@@ -623,7 +623,7 @@ public class SaplMqttClient implements Closeable {
             }
             return Value.of(new String(payload, StandardCharsets.UTF_8));
         }
-        return convertBytesToArrayValue(payload);
+        return Value.error(ERROR_BINARY_PAYLOAD_UNSUPPORTED);
     }
 
     private static JsonNode resolvePipConfig(ObjectValue variables) {

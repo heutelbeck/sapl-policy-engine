@@ -106,12 +106,13 @@ public class ProtobufRSocketServerConfiguration {
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
             @Value("${sapl.pdp.rsocket.socket-path:#{null}}") @Nullable String socketPath,
             @Value("${sapl.pdp.rsocket.max-inbound-payload-size:16777215}") int maxInboundPayloadSize,
+            @Value("${io.sapl.node.max-multi-subscription-count:256}") int maxMultiSubscriptionCount,
             @Value("${sapl.pdp.rsocket.ssl.bundle:#{null}}") @Nullable String sslBundleName,
             BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
             ObjectProvider<RSocketConnectionAuthenticator> authenticator, ObjectProvider<SslBundles> sslBundles) {
         val sslContext = resolveSslContext(sslBundleName, sslBundles.getIfAvailable());
         return new ProtobufRSocketServerLifecycle(enabled, bindAddress, port, socketPath, maxInboundPayloadSize,
-                blockingPdp, pdp, authenticator.getIfAvailable(), sslContext);
+                maxMultiSubscriptionCount, blockingPdp, pdp, authenticator.getIfAvailable(), sslContext);
     }
 
     private static @Nullable SslContext resolveSslContext(@Nullable String bundleName,

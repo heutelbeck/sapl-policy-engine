@@ -484,6 +484,29 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
+    @DisplayName("transitiveClosureProjection caps flattened projected values")
+    void transitiveClosureProjectionWhenProjectedValuesExceedMaximumThenError() {
+        val permissions = ArrayValue.builder();
+        val permission  = Value.of("read");
+        for (var i = 0; i <= 1_000_000; i++) {
+            permissions.add(permission);
+        }
+        val graph = ObjectValue.builder()
+                .put("role",
+                        ObjectValue.builder().put("children", Value.EMPTY_ARRAY)
+                                .put("attributes",
+                                        ObjectValue.builder().put("permissions", permissions.build()).build())
+                                .build())
+                .build();
+
+        val result = GraphFunctionLibrary.transitiveClosureProjection(graph, Value.of("children"),
+                Value.of("permissions"));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("projection").contains("1000000");
+    }
+
+    @Test
     @DisplayName("playground hierarchical RBAC example: closure + multi-root reachable")
     void playgroundHierarchicalRbacExampleWithTransitiveClosure() {
         val rolesHierarchy = (ObjectValue) Value.ofJson("""

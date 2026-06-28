@@ -149,6 +149,28 @@ class CidrFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void containsMatchesWhenComparisonProductExceedsMaximumThenErrorBeforeParsing() {
+        val cidrs = repeatedStringArray("not-parsed", 1001);
+        val ips   = repeatedStringArray("also-not-parsed", 1000);
+
+        val result = CidrFunctionLibrary.containsMatches(cidrs, ips);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("comparison count").contains("1000000");
+    }
+
+    @Test
+    void containsMatchesWhenMatchOutputExceedsMaximumThenError() {
+        val cidrs = repeatedStringArray("0.0.0.0/0", 257);
+        val ips   = repeatedStringArray("10.0.0.1", 256);
+
+        val result = CidrFunctionLibrary.containsMatches(cidrs, ips);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("match output").contains("65535");
+    }
+
     @ParameterizedTest(name = "Expand {0} into expected addresses")
     @MethodSource("expandTestCases")
     void expandWhenValidCidrThenReturnsExpectedAddresses(String cidr, String[] expectedAddresses) {
@@ -243,6 +265,14 @@ class CidrFunctionLibraryTests {
         }
 
         assertThat(mergedCidrs).containsExactlyInAnyOrder(expectedCidrs);
+    }
+
+    @Test
+    void mergeWhenAddressCountExceedsMaximumThenError() {
+        val result = CidrFunctionLibrary.merge(repeatedStringArray("192.168.1.0/24", 1001));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Address array size").contains("1000");
     }
 
     static Stream<Arguments> mergeTestCases() {
@@ -795,5 +825,13 @@ class CidrFunctionLibraryTests {
 
     private static ArrayValue buildStringArray(String... values) {
         return Value.ofArray(Stream.of(values).map(Value::of).toArray(Value[]::new));
+    }
+
+    private static ArrayValue repeatedStringArray(String value, int count) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < count; i++) {
+            builder.add(Value.of(value));
+        }
+        return builder.build();
     }
 }

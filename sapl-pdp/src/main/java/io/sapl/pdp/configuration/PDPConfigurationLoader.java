@@ -32,6 +32,7 @@ import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -95,6 +96,9 @@ public class PDPConfigurationLoader {
     // It is not a published compiler option.
     private static final String OPTION_MAX_TOTAL_SIZE_MEGABYTES  = "maxTotalSizeMegabytes";
     private static final int    DEFAULT_MAX_TOTAL_SIZE_MEGABYTES = 1024;
+    private static final int    MAX_PDP_JSON_SIZE_MEBIBYTES      = 1024;
+    private static final long   MAX_PDP_JSON_BYTES               = MAX_PDP_JSON_SIZE_MEBIBYTES * 1024L * 1024L;
+    private static final int    READ_BUFFER_SIZE                 = 8192;
 
     private static final String ERROR_BUNDLE_MISSING_CONFIGURATION_ID = "Bundle '%s' pdp.json is missing required field 'configurationId'.";
     private static final String ERROR_BUNDLE_MISSING_PDP_JSON         = "Bundle '%s' is missing pdp.json. Bundles require pdp.json with a configurationId.";
@@ -105,6 +109,7 @@ public class PDPConfigurationLoader {
     private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED       = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED      = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
+    private static final String ERROR_PDP_JSON_SIZE_EXCEEDS_MAXIMUM   = "pdp.json exceeds maximum size of %d MiB.";
     private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM      = "Total size of SAPL documents exceeds maximum of %d MB.";
 
     private static final String WARN_PDP_JSON_MISSING_ALGORITHM = "pdp.json does not contain an 'algorithm' field. Using default: {}.";
@@ -267,7 +272,7 @@ public class PDPConfigurationLoader {
             return new PdpJsonContent(CombiningAlgorithm.DEFAULT, "default", Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
         try {
-            val content = Files.readString(pdpJsonPath, StandardCharsets.UTF_8);
+            val content = readPdpJsonContent(pdpJsonPath);
             return parsePdpJson(content);
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_READ_PDP_JSON.formatted(pdpJsonPath), e);
@@ -380,6 +385,28 @@ public class PDPConfigurationLoader {
             return Files.readString(path, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_READ_SAPL_DOCUMENT.formatted(path.getFileName()), e);
+        }
+    }
+
+    private static String readPdpJsonContent(Path path) throws IOException {
+        enforcePdpJsonSize(Files.size(path));
+        try (val input = Files.newInputStream(path); val output = new ByteArrayOutputStream()) {
+            val buffer = new byte[READ_BUFFER_SIZE];
+            var total  = 0L;
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                total += read;
+                enforcePdpJsonSize(total);
+                output.write(buffer, 0, read);
+            }
+            return output.toString(StandardCharsets.UTF_8);
+        }
+    }
+
+    private static void enforcePdpJsonSize(long size) {
+        if (size > MAX_PDP_JSON_BYTES) {
+            throw new PDPConfigurationException(
+                    ERROR_PDP_JSON_SIZE_EXCEEDS_MAXIMUM.formatted(MAX_PDP_JSON_SIZE_MEBIBYTES));
         }
     }
 

@@ -88,6 +88,8 @@ public record RemoteBundleSourceConfig(
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Remote bundle credentials require https. Credentials over plaintext http are refused unless allowInsecureHttp is true.";
     private static final String ERROR_LONG_POLL_TIMEOUT_NON_POSITIVE = "longPollTimeout must be positive.";
     private static final String ERROR_MAX_BACKOFF_NON_POSITIVE = "maxBackoff must be positive.";
+    private static final String ERROR_PDP_ID_POLL_INTERVAL_NON_POSITIVE = "pdpIdPollIntervals for pdpId '%s' must be positive.";
+    private static final String ERROR_PDP_ID_POLL_INTERVAL_UNKNOWN_ID = "pdpIdPollIntervals contains unknown pdpId '%s'.";
     private static final String ERROR_PDP_IDS_EMPTY = "pdpIds must not be null or empty.";
     private static final String ERROR_POLL_INTERVAL_NON_POSITIVE = "pollInterval must be positive.";
     private static final String WARN_CREDENTIALS_OVER_PLAINTEXT = "Bundle source sends an authentication credential to '{}' over an unencrypted (http) connection because allowInsecureHttp is true. The credential travels in cleartext and can be read by anything on the network path.";
@@ -136,8 +138,13 @@ public record RemoteBundleSourceConfig(
         if (authHeaderValue != null) {
             enforceCredentialTransportSecurity(baseUrl, allowInsecureHttp);
         }
-        pdpIds             = List.copyOf(pdpIds);
-        pdpIdPollIntervals = pdpIdPollIntervals != null ? Map.copyOf(pdpIdPollIntervals) : Map.of();
+        pdpIds = List.copyOf(pdpIds);
+        if (pdpIdPollIntervals == null) {
+            pdpIdPollIntervals = Map.of();
+        } else {
+            validatePdpIdPollIntervals(pdpIds, pdpIdPollIntervals);
+            pdpIdPollIntervals = Map.copyOf(pdpIdPollIntervals);
+        }
     }
 
     public RemoteBundleSourceConfig(String baseUrl,
@@ -202,6 +209,18 @@ public record RemoteBundleSourceConfig(
             return false;
         }
         return baseUrl.regionMatches(true, 0, "https://", 0, "https://".length());
+    }
+
+    private static void validatePdpIdPollIntervals(List<String> pdpIds, Map<String, Duration> intervals) {
+        for (val entry : intervals.entrySet()) {
+            if (!pdpIds.contains(entry.getKey())) {
+                throw new PDPConfigurationException(ERROR_PDP_ID_POLL_INTERVAL_UNKNOWN_ID.formatted(entry.getKey()));
+            }
+            val interval = entry.getValue();
+            if (interval == null || interval.isNegative() || interval.isZero()) {
+                throw new PDPConfigurationException(ERROR_PDP_ID_POLL_INTERVAL_NON_POSITIVE.formatted(entry.getKey()));
+            }
+        }
     }
 
 }

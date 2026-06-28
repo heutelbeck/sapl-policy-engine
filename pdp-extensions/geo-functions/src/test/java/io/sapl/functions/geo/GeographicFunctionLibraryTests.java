@@ -56,6 +56,8 @@ class GeographicFunctionLibraryTests {
 
     private static final String WGS84 = "EPSG:4326";
 
+    private static final int EXCESSIVE_WKT_NESTING_DEPTH = 130;
+
     private static final GeoJsonWriter   GEOJSON_WRITER = new GeoJsonWriter();
     private static final GeometryFactory GEO_FACTORY    = new GeometryFactory();
     private static final GeometryFactory WGS84_FACTORY  = new GeometryFactory(new PrecisionModel(), 4326);
@@ -919,6 +921,14 @@ class GeographicFunctionLibraryTests {
     }
 
     @Test
+    void wktToGeoJSONWhenNestingExceedsMaximumThenError() {
+        val result = wktToGeoJSON(Value.of(nestedGeometryCollection(EXCESSIVE_WKT_NESTING_DEPTH)));
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("nesting exceeds"));
+    }
+
+    @Test
     void gmlToGeoJSONPointTest() {
         val singlePointGml = """
                 <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326">
@@ -1153,6 +1163,16 @@ class GeographicFunctionLibraryTests {
             geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
         }
         return geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
+    }
+
+    private static String nestedGeometryCollection(int depth) {
+        val builder = new StringBuilder();
+        for (int i = 0; i < depth; i++) {
+            builder.append("GEOMETRYCOLLECTION(");
+        }
+        builder.append("POINT (1 1)");
+        builder.append(")".repeat(depth));
+        return builder.toString();
     }
 
 }

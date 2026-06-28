@@ -118,9 +118,10 @@ class PdpHttpEndpointConfiguration {
 
     @Bean
     ServletRegistrationBean<MultiDecideAllOnceServlet> multiDecideAllOnceServletRegistration(
-            BlockingPolicyDecisionPoint pdp, HttpAuthHandler authHandler, JsonMapper mapper) {
-        return register(new MultiDecideAllOnceServlet(pdp, authHandler, mapper), "/api/pdp/multi-decide-all-once",
-                "saplMultiDecideAllOnceServlet", false);
+            BlockingPolicyDecisionPoint pdp, HttpAuthHandler authHandler, JsonMapper mapper,
+            @Value("${io.sapl.node.max-multi-subscription-count:256}") int maxMultiSubscriptionCount) {
+        return register(new MultiDecideAllOnceServlet(pdp, authHandler, mapper, maxMultiSubscriptionCount),
+                "/api/pdp/multi-decide-all-once", "saplMultiDecideAllOnceServlet", false);
     }
 
     @Bean
@@ -138,10 +139,11 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<MultiDecideServlet> multiDecideServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds,
+            @Value("${io.sapl.node.max-multi-subscription-count:256}") int maxMultiSubscriptionCount) {
         return register(
                 new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry, maxMultiSubscriptionCount),
                 "/api/pdp/multi-decide", "saplMultiDecideServlet", true);
     }
 
@@ -149,10 +151,11 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<MultiDecideAllServlet> multiDecideAllServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds,
+            @Value("${io.sapl.node.max-multi-subscription-count:256}") int maxMultiSubscriptionCount) {
         return register(
                 new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry, maxMultiSubscriptionCount),
                 "/api/pdp/multi-decide-all", "saplMultiDecideAllServlet", true);
     }
 

@@ -28,6 +28,7 @@ import tools.jackson.dataformat.csv.CsvFactory;
 import tools.jackson.dataformat.csv.CsvMapper;
 import tools.jackson.dataformat.csv.CsvSchema;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -155,6 +156,7 @@ public class CsvFunctionLibrary {
 
             - The input is limited to 1 MB.
             - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+            - Serialization output is limited to 10000000 characters.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -294,8 +296,13 @@ public class CsvFunctionLibrary {
 
         try {
             val arrayNode = convertToJacksonArrayNode(sanitized);
-            return Value.of(CSV_MAPPER.writer(schema).writeValueAsString(arrayNode));
+            val csvText   = TextOutputLimits.write(writer -> CSV_MAPPER.writer(schema).writeValue(writer, arrayNode));
+            return Value.of(csvText);
+        } catch (TextOutputLimits.OutputLimitExceededException exception) {
+            return Value.error(exception.getMessage());
         } catch (JacksonException exception) {
+            return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
+        } catch (IOException exception) {
             return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
         }
     }

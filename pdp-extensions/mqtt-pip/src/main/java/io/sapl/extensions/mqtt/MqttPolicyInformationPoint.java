@@ -209,7 +209,7 @@ public class MqttPolicyInformationPoint {
             Received messages are automatically converted based on their MQTT payload format:
             * Messages with content type `application/json` are parsed as JSON values
             * UTF-8 encoded text messages are returned as text values
-            * Binary payloads are returned as arrays of byte values (as integers)
+            * Binary payloads are rejected with an error value; publish text, JSON, or an explicit encoded string
 
             ## Topic Wildcards
 

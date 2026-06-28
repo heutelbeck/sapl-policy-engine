@@ -17,6 +17,9 @@
  */
 package io.sapl.node.rsocket.pdp;
 
+import static io.sapl.node.MultiSubscriptionLimits.DEFAULT_MAX_MULTI_SUBSCRIPTION_COUNT;
+import static io.sapl.node.MultiSubscriptionLimits.requirePositiveMax;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -115,6 +118,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
+    private final int                                      maxMultiSubscriptionCount;
 
     /**
      * Creates an acceptor with optional connection authentication.
@@ -129,9 +133,30 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp,
             ReactivePolicyDecisionPoint pdp,
             @Nullable RSocketConnectionAuthenticator authenticator) {
-        this.blockingPdp   = blockingPdp;
-        this.pdp           = pdp;
-        this.authenticator = authenticator;
+        this(blockingPdp, pdp, authenticator, DEFAULT_MAX_MULTI_SUBSCRIPTION_COUNT);
+    }
+
+    /**
+     * Creates an acceptor with optional connection authentication and a configured
+     * multi-subscription entry limit.
+     *
+     * @param blockingPdp the blocking policy decision point used for unary
+     * (request-response) calls
+     * @param pdp the reactive policy decision point used for streaming
+     * (request-stream) calls
+     * @param authenticator the connection authenticator, or null for
+     * unauthenticated access
+     * @param maxMultiSubscriptionCount maximum entries accepted per
+     * multi-subscription
+     */
+    public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp,
+            ReactivePolicyDecisionPoint pdp,
+            @Nullable RSocketConnectionAuthenticator authenticator,
+            int maxMultiSubscriptionCount) {
+        this.blockingPdp               = blockingPdp;
+        this.pdp                       = pdp;
+        this.authenticator             = authenticator;
+        this.maxMultiSubscriptionCount = requirePositiveMax(maxMultiSubscriptionCount);
     }
 
     /**
@@ -147,7 +172,8 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
         if (authenticator == null) {
-            return Mono.just(new ProtobufRSocket(blockingPdp, pdp, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID));
+            return Mono.just(new ProtobufRSocket(blockingPdp, pdp, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID,
+                    maxMultiSubscriptionCount));
         }
         // Offload setup authentication (Argon2 verification, JWT/JWKS decode) onto a
         // virtual thread so the blocking work never runs on the Netty event loop and
@@ -155,7 +181,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         // the decision path's subscribeOn below.
         return authenticator.authenticate(setup).subscribeOn(VIRTUAL_THREAD_SCHEDULER).<RSocket>map(result -> {
             scheduleConnectionExpiry(sendingSocket, result.expiresAt());
-            return new ProtobufRSocket(blockingPdp, pdp, result.pdpId());
+            return new ProtobufRSocket(blockingPdp, pdp, result.pdpId(), maxMultiSubscriptionCount);
         }).onErrorMap(e -> {
             log.debug("RSocket setup authentication failed: {}", e.getMessage());
             return new RejectedSetupException(ERROR_AUTH_FAILED);
@@ -189,11 +215,16 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private final BlockingPolicyDecisionPoint blockingPdp;
         private final ReactivePolicyDecisionPoint pdp;
         private final String                      pdpId;
+        private final int                         maxMultiSubscriptionCount;
 
-        ProtobufRSocket(BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp, String pdpId) {
-            this.blockingPdp = blockingPdp;
-            this.pdp         = pdp;
-            this.pdpId       = pdpId;
+        ProtobufRSocket(BlockingPolicyDecisionPoint blockingPdp,
+                ReactivePolicyDecisionPoint pdp,
+                String pdpId,
+                int maxMultiSubscriptionCount) {
+            this.blockingPdp               = blockingPdp;
+            this.pdp                       = pdp;
+            this.pdpId                     = pdpId;
+            this.maxMultiSubscriptionCount = maxMultiSubscriptionCount;
         }
 
         @Override
@@ -272,10 +303,10 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Flux<Payload> handleMultiDecide(byte[] data) {
             final io.sapl.api.pdp.MultiAuthorizationSubscription subscription;
             try {
-                subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-            } catch (IOException e) {
+                subscription = parseMultiSubscriptionOrThrow(data);
+            } catch (InvalidException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
-                return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
+                return Flux.error(e);
             }
             return pdp.decide(subscription, pdpId).onErrorResume(error -> {
                 log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE, error.getMessage());
@@ -286,10 +317,10 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Flux<Payload> handleMultiDecideAll(byte[] data) {
             final io.sapl.api.pdp.MultiAuthorizationSubscription subscription;
             try {
-                subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-            } catch (IOException e) {
+                subscription = parseMultiSubscriptionOrThrow(data);
+            } catch (InvalidException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
-                return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
+                return Flux.error(e);
             }
             return pdp.decideAll(subscription, pdpId).onErrorResume(error -> {
                 log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE_ALL, error.getMessage());
@@ -307,10 +338,10 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             }
         }
 
-        private static io.sapl.api.pdp.MultiAuthorizationSubscription parseMultiSubscriptionOrThrow(byte[] data)
+        private io.sapl.api.pdp.MultiAuthorizationSubscription parseMultiSubscriptionOrThrow(byte[] data)
                 throws InvalidException {
             try {
-                return SaplProtobufCodec.readMultiAuthorizationSubscription(data);
+                return SaplProtobufCodec.readMultiAuthorizationSubscription(data, maxMultiSubscriptionCount);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
                 throw new InvalidException(ERROR_BAD_REQUEST, e);

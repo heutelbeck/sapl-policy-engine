@@ -34,8 +34,11 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -45,6 +48,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PDPConfigurationLoader")
 class PDPConfigurationLoaderTests {
+
+    private static final long MAX_PDP_JSON_BYTES = 1024L * 1024L * 1024L;
 
     @TempDir
     Path tempDir;
@@ -184,6 +189,19 @@ class PDPConfigurationLoaderTests {
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Failed to parse pdp.json");
+    }
+
+    @Test
+    @DisplayName("a directory pdp.json larger than one GiB is rejected before parsing")
+    void whenDirectoryPdpJsonExceedsMaximumSizeThenFailsBeforeParsing() throws IOException {
+        val pdpJson = tempDir.resolve("pdp.json");
+        try (val channel = FileChannel.open(pdpJson, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+            channel.position(MAX_PDP_JSON_BYTES);
+            channel.write(ByteBuffer.wrap(new byte[] { '\n' }));
+        }
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdp.json exceeds maximum size");
     }
 
     @Test

@@ -63,7 +63,7 @@ class RemoteBundleAutoConfigurationTests {
                     assertThat(p.getBaseUrl()).isNull();
                     assertThat(p.getPdpIds()).isEmpty();
                     assertThat(p.getMode()).isEqualTo(RemoteFetchMode.POLLING);
-                    assertThat(p.getPollInterval()).isEqualTo(Duration.ofSeconds(30));
+                    assertThat(p.getPollInterval()).isEqualTo(Duration.ofSeconds(5));
                     assertThat(p.getLongPollTimeout()).isEqualTo(Duration.ofSeconds(30));
                     assertThat(p.getAuthHeaderName()).isNull();
                     assertThat(p.getAuthHeaderValue()).isNull();

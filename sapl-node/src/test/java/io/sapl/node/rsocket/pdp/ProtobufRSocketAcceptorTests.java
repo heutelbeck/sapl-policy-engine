@@ -50,6 +50,7 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.proto.SaplProtobufCodec;
 import io.sapl.node.rsocket.pdp.ProtobufRSocketAcceptor;
 import io.sapl.node.rsocket.pdp.RSocketConnectionAuthenticator.AuthenticationResult;
@@ -182,6 +183,21 @@ class ProtobufRSocketAcceptorTests {
         verify(payload).release();
     }
 
+    @Test
+    @DisplayName("a request-stream multi-subscription above the configured entry limit is rejected before the PDP is called")
+    void whenRequestStreamMultiSubscriptionCountExceedsLimitThenInvalidErrorAndPdpNotCalled() throws IOException {
+        val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+        val pdp         = mock(ReactivePolicyDecisionPoint.class);
+        val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp, null, 1);
+        val rsocket     = acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+        val payload     = createMultiDecidePayload();
+
+        val result = rsocket.requestStream(payload);
+
+        StepVerifier.create(result).expectError().verify();
+        verify(pdp, never()).decide(any(MultiAuthorizationSubscription.class), any());
+    }
+
     @Nested
     @DisplayName("unauthenticated mode")
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -304,6 +320,14 @@ class ProtobufRSocketAcceptorTests {
     private static Payload createDecidePayload(AuthorizationSubscription sub) throws IOException {
         val data = SaplProtobufCodec.writeAuthorizationSubscription(sub);
         return DefaultPayload.create(data, "decide".getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Payload createMultiDecidePayload() throws IOException {
+        val multi = new MultiAuthorizationSubscription();
+        multi.addAuthorizationSubscription("sub1", "alice", "read", "doc1");
+        multi.addAuthorizationSubscription("sub2", "bob", "write", "doc2");
+        val data = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
+        return DefaultPayload.create(data, "multi-decide".getBytes(StandardCharsets.UTF_8));
     }
 
 }

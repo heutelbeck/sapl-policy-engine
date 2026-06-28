@@ -190,7 +190,7 @@ io.sapl:
     #   pdp-ids:
     #     - default
     #   mode: POLLING
-    #   poll-interval: 30s
+    #   poll-interval: 5s
     #   # long-poll-timeout: 30s
     #   # auth-header-name: Authorization
     #   # auth-header-value: "Bearer <token>"
@@ -222,6 +222,13 @@ io.sapl:
 # be disabled. Keep it below the smallest proxy idle timeout on the path.
 #
 # io.sapl.node.keep-alive: 15
+
+# --- Multi-Subscription Limit ---
+#
+# Maximum number of entries accepted in a MultiAuthorizationSubscription on
+# public HTTP and RSocket PDP endpoints.
+#
+# io.sapl.node.max-multi-subscription-count: 256
 
 # --- Rate Limiting ---
 

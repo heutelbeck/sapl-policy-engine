@@ -24,7 +24,7 @@ The first parameter 'qos' stands for a mqtt quality of service level in the rang
 
 ### Return type
 
-The attribute finder will not return the message as it was transmitted. Normally it will try to return the message payload as text for evaluation purposes in the policy. If the content type of the transmitted mqtt message specifies the MIME type "json" the return type of the attribute finder will be a json object. If the payload format indicator is unspecified or the indicator is not specified and the payload contains non-valid UTF-8 characters at the same time, the return type will be an array of bytes specified as integers. Keep this in mind when you subscribe to mqtt messages.
+The attribute finder will not return the message as it was transmitted. Normally it will try to return the message payload as text for evaluation purposes in the policy. If the content type of the transmitted mqtt message specifies the MIME type "json" the return type of the attribute finder will be a json object. Binary payloads are rejected with an error value. Publish text, JSON, or encode binary data explicitly before publishing.
 
 ### Default response
 

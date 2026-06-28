@@ -130,6 +130,7 @@ public class GeographicFunctionLibrary {
     static final String GEOMETRY_INPUT_TOO_LARGE_ERROR       = "Geographic input exceeds the maximum size of %d bytes.";
     static final String GEOMETRY_TOO_COMPLEX_ERROR           = "Geometry exceeds the maximum of %d vertices or %d members.";
     static final String GEOMETRY_TO_GEO_JSON_ERROR_S         = "Error converting Geometry to GeoJSON: %s";
+    static final String GEOMETRY_WKT_NESTING_TOO_DEEP_ERROR  = "WKT nesting exceeds the maximum of %d levels.";
     static final String INCORRECT_NUMER_OF_GEOEMTRIES_ERROR  = "Input must be a GeometryCollection containing only one Geometry.";
     static final String INVALID_WKT_ERROR                    = "Invalid WKT.";
     static final String NO_GEOMETRIES_IN_GML_ERROR           = "No geometries in GML.";
@@ -152,7 +153,6 @@ public class GeographicFunctionLibrary {
     private static final Configuration   GML3_CONFIG   = new org.geotools.gml3.GMLConfiguration();
     private static final Configuration   KML_CONFIG    = new KMLConfiguration();
     private static final GeometryFactory WGS84_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
-    private static final WKTReader       WKT_READER    = new WKTReader();
 
     // Inputs may come from attribute finders or the subscription, not only trusted
     // policy literals, so every parse boundary caps input size and geometry
@@ -161,6 +161,7 @@ public class GeographicFunctionLibrary {
     static final int  MAX_GEOMETRY_VERTICES    = 100_000;
     static final int  MAX_GEOMETRY_COUNT       = 50_000;
     static final long MAX_PAIRWISE_COMPARISONS = 1_000_000L;
+    static final int  MAX_WKT_NESTING_DEPTH    = 128;
 
     /**
      * Resolves external entities and schema references against a fixed allowlist
@@ -1714,16 +1715,16 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Useful for converting WKT geometries into GeoJSON for processing.
+            - The WKT input is bounded by size and nesting depth before parsing.
             """)
     public static Value wktToGeoJSON(TextValue wkt) {
         val wktString = wkt.value();
-        if (exceedsInputBound(wktString)) {
-            return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
-        }
         try {
-            return boundedGeometryToGeoJSON(WKT_READER.read(wktString));
+            return boundedGeometryToGeoJSON(wktToGeometryWithinBounds(wktString));
         } catch (ParseException e) {
             return Value.error(INVALID_WKT_ERROR);
+        } catch (IllegalArgumentException e) {
+            return Value.error(e.getMessage());
         }
     }
 
@@ -1836,8 +1837,42 @@ public class GeographicFunctionLibrary {
         }
     }
 
+    /**
+     * Parses WKT after applying the shared text and nesting bounds.
+     *
+     * @param wkt the WKT input to parse
+     * @return the parsed geometry
+     * @throws ParseException if the WKT syntax is invalid
+     * @throws IllegalArgumentException if the input exceeds a configured bound
+     */
+    public static Geometry wktToGeometryWithinBounds(String wkt) throws ParseException {
+        requireInputWithinBounds(wkt);
+        requireWktNestingWithinBounds(wkt);
+        try {
+            return new WKTReader().read(wkt);
+        } catch (StackOverflowError e) {
+            throw new IllegalArgumentException(GEOMETRY_WKT_NESTING_TOO_DEEP_ERROR.formatted(MAX_WKT_NESTING_DEPTH), e);
+        }
+    }
+
     private static boolean exceedsComplexityBound(Geometry geometry) {
         return geometry.getNumPoints() > MAX_GEOMETRY_VERTICES || geometry.getNumGeometries() > MAX_GEOMETRY_COUNT;
+    }
+
+    private static void requireWktNestingWithinBounds(String input) {
+        int depth = 0;
+        for (int i = 0; i < input.length(); i++) {
+            val character = input.charAt(i);
+            if (character == '(') {
+                depth++;
+                if (depth > MAX_WKT_NESTING_DEPTH) {
+                    throw new IllegalArgumentException(
+                            GEOMETRY_WKT_NESTING_TOO_DEEP_ERROR.formatted(MAX_WKT_NESTING_DEPTH));
+                }
+            } else if (character == ')' && depth > 0) {
+                depth--;
+            }
+        }
     }
 
     /**

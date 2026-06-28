@@ -30,6 +30,11 @@
     "description": "Default PDP ID used when pdpId is not configured or missing from JWT claim."
   },
   {
+    "name": "io.sapl.node.max-multi-subscription-count",
+    "type": "java.lang.Integer",
+    "description": "Maximum number of entries accepted in one MultiAuthorizationSubscription on public HTTP and RSocket PDP endpoints."
+  },
+  {
     "name": "io.sapl.node.users",
     "type": "java.util.List",
     "description": "List of user entries with id, pdpId, and credentials (basic or apiKey)."

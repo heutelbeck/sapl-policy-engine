@@ -151,6 +151,10 @@ io.sapl:
     # closing. Always on; default 15 seconds (values below 1 are raised).
     keep-alive: 15
 
+    # Maximum number of entries accepted in a MultiAuthorizationSubscription
+    # on public HTTP and RSocket PDP endpoints.
+    max-multi-subscription-count: 256
+
   # --- PDP Policy Source ---
   #
   # pdp-config-type options:
@@ -207,7 +211,7 @@ io.sapl:
     #   pdp-ids:
     #     - default
     #   mode: POLLING
-    #   poll-interval: 30s
+    #   poll-interval: 5s
     #   # long-poll-timeout: 30s
     #   # auth-header-name: Authorization
     #   # auth-header-value: "Bearer <token>"

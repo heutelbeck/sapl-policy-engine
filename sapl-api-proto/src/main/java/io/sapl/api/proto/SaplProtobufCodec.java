@@ -86,9 +86,11 @@ public class SaplProtobufCodec {
     private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
 
-    private static final String ERROR_DUPLICATE_DECISION_ID     = "Duplicate subscription id in multi-decision payload: %s.";
-    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id in multi-subscription payload.";
-    private static final String ERROR_INVALID_NUMBER            = "Malformed or out-of-bounds number value in protobuf payload.";
+    private static final String ERROR_DUPLICATE_DECISION_ID             = "Duplicate subscription id in multi-decision payload: %s.";
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID         = "Duplicate subscription id in multi-subscription payload.";
+    private static final String ERROR_INVALID_NUMBER                    = "Malformed or out-of-bounds number value in protobuf payload.";
+    private static final String ERROR_MAX_MULTI_SUBSCRIPTION_COUNT      = "Maximum multi-subscription count must be positive.";
+    private static final String ERROR_MULTI_SUBSCRIPTION_COUNT_EXCEEDED = "Multi-subscription exceeds the maximum of %d entries.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -563,11 +565,34 @@ public class SaplProtobufCodec {
      * @throws IOException if deserialization fails
      */
     public static MultiAuthorizationSubscription readMultiAuthorizationSubscription(byte[] bytes) throws IOException {
+        return readMultiAuthorizationSubscription(bytes, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Deserializes a MultiAuthorizationSubscription from protobuf bytes with a
+     * configured entry limit.
+     *
+     * @param bytes protobuf-encoded bytes
+     * @param maxSubscriptions maximum number of subscriptions accepted
+     * @return the deserialized MultiAuthorizationSubscription
+     * @throws IOException if deserialization fails or the entry limit is exceeded
+     * @throws IllegalArgumentException if the maximum is not positive
+     */
+    public static MultiAuthorizationSubscription readMultiAuthorizationSubscription(byte[] bytes, int maxSubscriptions)
+            throws IOException {
+        if (maxSubscriptions <= 0) {
+            throw new IllegalArgumentException(ERROR_MAX_MULTI_SUBSCRIPTION_COUNT);
+        }
         val input  = CodedInputStream.newInstance(bytes);
         val result = new MultiAuthorizationSubscription();
+        var count  = 0;
         while (!input.isAtEnd()) {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == MULTI_SUB_SUBSCRIPTIONS) {
+                count++;
+                if (count > maxSubscriptions) {
+                    throw new IOException(ERROR_MULTI_SUBSCRIPTION_COUNT_EXCEEDED.formatted(maxSubscriptions));
+                }
                 val idSub = readIdentifiableSubscription(input);
                 try {
                     result.addSubscription(idSub.subscriptionId(), idSub.subscription());
