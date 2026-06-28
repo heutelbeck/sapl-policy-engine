@@ -95,7 +95,7 @@
 		<sapl.full.tests>false</sapl.full.tests>
 
 		<!-- Dependencies -->
-		<asm.version>9.10</asm.version>
+		<asm.version>9.10.1</asm.version>
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
 		<okhttp.version>5.4.0</okhttp.version>
@@ -103,7 +103,7 @@
 		<vaadin.version>25.2.1</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.46</lombok.version>
-		<jupiter.version>6.1.0</jupiter.version>
+		<jupiter.version>6.1.1</jupiter.version>
 		<mockito.version>5.23.0</mockito.version>
 		<guava.version>33.6.0-jre</guava.version>
 		<assertj.version>3.27.7</assertj.version>
@@ -126,9 +126,9 @@
 		<jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
 
 		<!-- Maven Plug-Ins -->
-		<sb-contrib.version>7.7.2</sb-contrib.version>
+		<sb-contrib.version>7.7.4</sb-contrib.version>
 		<maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
-		<maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+		<maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
 		<exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
 		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
 		<maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
@@ -140,10 +140,10 @@
 		<license-maven-plugin.version>5.0.0</license-maven-plugin.version>
 		<sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
-		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
-		<maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
-		<maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
-		<maven-resources-plugin.version>3.4.0</maven-resources-plugin.version>
+		<maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
+		<maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
+		<maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+		<maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
 		<cyclonedx-maven-plugin.version>2.9.2</cyclonedx-maven-plugin.version>
 		<spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
 		<formatter-maven-plugin.version>2.29.0</formatter-maven-plugin.version>
