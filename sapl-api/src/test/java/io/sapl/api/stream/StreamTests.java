@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
@@ -212,22 +212,19 @@ class StreamTests {
                         }
                     });
 
-                    try {
-                        val result = stream.awaitNext(raceWindow);
-                        if ("racey".equals(result)) {
-                            successCount.incrementAndGet();
-                        }
+                    val result = assertDoesNotThrow(() -> awaitNextOrNullOnTimeout(stream, raceWindow),
+                            "unexpected InterruptedException leaked from awaitNext");
+                    if (result == null) {
+                        timeoutCount.incrementAndGet();
+                    } else {
+                        assertThat(result).isEqualTo("racey");
+                        successCount.incrementAndGet();
                         if (Thread.currentThread().isInterrupted()) {
                             val wasSet = Thread.interrupted();
                             if (wasSet) {
                                 spuriousInterrupts.incrementAndGet();
                             }
                         }
-                    } catch (TimeoutException timeoutException) {
-                        timeoutCount.incrementAndGet();
-                    } catch (InterruptedException interruptedException) {
-                        Thread.currentThread().interrupt();
-                        fail("unexpected InterruptedException leaked from awaitNext", interruptedException);
                     }
                 }
             }
@@ -237,6 +234,15 @@ class StreamTests {
             // successful return.
             assertThat(spuriousInterrupts.get()).isZero();
             assertThat(successCount.get() + timeoutCount.get()).isEqualTo(totalIterations);
+        }
+
+        private static String awaitNextOrNullOnTimeout(BlockingTestStream<String> stream, Duration timeout)
+                throws InterruptedException {
+            try {
+                return stream.awaitNext(timeout);
+            } catch (TimeoutException timeoutException) {
+                return null;
+            }
         }
 
         @Test

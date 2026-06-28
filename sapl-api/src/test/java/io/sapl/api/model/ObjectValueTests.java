@@ -560,10 +560,6 @@ class ObjectValueTests {
             var empty = ObjectValue.builder().build();
 
             assertThat(empty.keySet()).isEmpty();
-            for (@SuppressWarnings("unused")
-            String key : empty.keySet()) {
-                fail("Should not iterate over empty keySet");
-            }
         }
 
         @Test
@@ -572,10 +568,6 @@ class ObjectValueTests {
             var empty = ObjectValue.builder().build();
 
             assertThat(empty.values()).isEmpty();
-            for (@SuppressWarnings("unused")
-            Value value : empty.values()) {
-                fail("Should not iterate over empty values");
-            }
         }
 
         @Test
@@ -584,10 +576,6 @@ class ObjectValueTests {
             var empty = ObjectValue.builder().build();
 
             assertThat(empty.entrySet()).isEmpty();
-            for (@SuppressWarnings("unused")
-            var entry : empty.entrySet()) {
-                fail("Should not iterate over empty entrySet");
-            }
         }
 
         @Test
