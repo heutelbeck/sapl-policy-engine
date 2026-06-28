@@ -241,7 +241,7 @@ jobs:
         # See: https://github.com/ScaCap/action-surefire-report/issues/75
       - name: Publish Test Report
         if: ${{ (success() || failure()) && (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
-        uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
+        uses: scacap/action-surefire-report@3dacff26879cd2a7f2160d101254032a3707fe6f # v1.12.0
 
       - name: Clean up Local Repository before Caching
         shell: bash
