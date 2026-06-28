@@ -248,7 +248,11 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   build-docker:
-    if: ${{ github.event_name != 'pull_request' }}
+    if: >-
+      ${{
+        github.event_name != 'pull_request' &&
+        (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+      }}
     needs: [version-check]
     name: Build Docker Images
     runs-on: ubuntu-latest
