@@ -33,6 +33,7 @@ import lombok.val;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility for computing semantic hashes of compiled expressions. These hashes
@@ -84,6 +85,13 @@ public class SemanticHashing {
     private static final long OBJECT_ENTRY_KIND = fmix64(OBJECT_KIND);
     private static final long ZERO_NUMBER_HASH  = ordered(NUMBER_KIND, 0L);
 
+    // Memoization of the pure content hashers. Policy text and constant values repeat heavily across
+    // predicates, so caching avoids re-folding the same strings and re-walking the same containers.
+    // Bounded to cap memory under pathological input.
+    private static final int                             HASH_CACHE_LIMIT = 1 << 20;
+    private static final ConcurrentHashMap<String, Long> TEXT_HASH_CACHE  = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Value, Long>  VALUE_HASH_CACHE = new ConcurrentHashMap<>();
+
     /**
      * Computes a full 64-bit content hash of a constant value, consistent with
      * {@link Value} equality. Equal values produce equal hashes. Unlike
@@ -105,9 +113,21 @@ public class SemanticHashing {
         case UndefinedValue ignored  -> UNDEFINED_KIND;
         case ErrorValue error        -> ordered(ERROR_KIND, textHash(error.message()),
                 error.cause() == null ? 0L : textHash(error.cause().getClass().getName()));
-        case ArrayValue array        -> arrayHash(array);
-        case ObjectValue object      -> objectHash(object);
+        case ArrayValue array        -> cachedContainerHash(array);
+        case ObjectValue object      -> cachedContainerHash(object);
         };
+    }
+
+    private static long cachedContainerHash(Value container) {
+        val cached = VALUE_HASH_CACHE.get(container);
+        if (cached != null) {
+            return cached;
+        }
+        val hash = container instanceof ArrayValue array ? arrayHash(array) : objectHash((ObjectValue) container);
+        if (VALUE_HASH_CACHE.size() < HASH_CACHE_LIMIT) {
+            VALUE_HASH_CACHE.putIfAbsent(container, hash);
+        }
+        return hash;
     }
 
     /**
@@ -122,9 +142,16 @@ public class SemanticHashing {
         if (text == null) {
             return NULL_KIND;
         }
+        val cached = TEXT_HASH_CACHE.get(text);
+        if (cached != null) {
+            return cached;
+        }
         long hash = fmix64(text.length());
         for (var i = 0; i < text.length(); i++) {
             hash = combine(hash, text.charAt(i));
+        }
+        if (TEXT_HASH_CACHE.size() < HASH_CACHE_LIMIT) {
+            TEXT_HASH_CACHE.putIfAbsent(text, hash);
         }
         return hash;
     }

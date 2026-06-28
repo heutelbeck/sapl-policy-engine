@@ -70,6 +70,9 @@ public final class ArrayValue implements Value, List<Value> {
     @Delegate(excludes = ExcludedMethods.class)
     private final List<Value> value;
 
+    // Lazily cached hashCode. Safe because the backing list is immutable; mirrors String's cache pattern.
+    private int hash;
+
     public ArrayValue(@NonNull List<Value> elements) {
         this.value = List.copyOf(elements);
     }
@@ -197,7 +200,12 @@ public final class ArrayValue implements Value, List<Value> {
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        int h = hash;
+        if (h == 0) {
+            h    = value.hashCode();
+            hash = h;
+        }
+        return h;
     }
 
     /**

@@ -72,6 +72,9 @@ public final class ObjectValue implements Value, Map<String, Value> {
     @Delegate(excludes = ExcludedMethods.class)
     private final Map<String, Value> value;
 
+    // Lazily cached hashCode. Safe because the backing map is immutable; mirrors String's cache pattern.
+    private int hash;
+
     ObjectValue(@NonNull Map<String, Value> properties) {
         this.value = Collections.unmodifiableMap(properties);
     }
@@ -210,7 +213,12 @@ public final class ObjectValue implements Value, Map<String, Value> {
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        int h = hash;
+        if (h == 0) {
+            h    = value.hashCode();
+            hash = h;
+        }
+        return h;
     }
 
     /**
