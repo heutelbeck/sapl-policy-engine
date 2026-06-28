@@ -54,13 +54,13 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
 @UtilityClass
 public class PolicyCompiler {
 
-    private static final String ERROR_ADVICE_STATIC_ERROR                         = "Advice expression statically evaluates to an error: %s.";
+    private static final String ERROR_ADVICE_STATIC                               = "Advice expression statically evaluates to an error: %s.";
     private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR                = "%s contains @ or # outside of proper context.";
     private static final String ERROR_MUST_BE_TRUE_OR_A_STREAM_OPERATOR_BUT_WAS_S = "Streaming part of conditions must be TRUE or a StreamOperator, but was: %s. This indicates an implementation bug.";
-    private static final String ERROR_OBLIGATIONS_STATIC_ERROR                    = "Obligation expression statically evaluates to an error: %s.";
+    private static final String ERROR_OBLIGATIONS_STATIC                          = "Obligation expression statically evaluates to an error: %s.";
     private static final String ERROR_STREAM_VOTER_IN_PURE_CONTEXT                = "StreamVoter in pure applicability context";
     private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR            = "Transformation contains @ or # outside of proper context.";
-    private static final String ERROR_TRANSFORMATION_STATIC_ERROR                 = "Transformation expression statically evaluates to an error: %s.";
+    private static final String ERROR_TRANSFORMATION_STATIC                       = "Transformation expression statically evaluates to an error: %s.";
     private static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE               = "Unexpected applicabilityCondition type. Indicates implementation bug.";
 
     /**
@@ -134,16 +134,16 @@ public class PolicyCompiler {
         val location    = policy.location();
         val obligations = compileConstraintArray(policy.obligations(), location, "Obligation", ctx);
         if (obligations instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_OBLIGATIONS_STATIC_ERROR.formatted(error), location);
+            throw new SaplCompilerException(ERROR_OBLIGATIONS_STATIC.formatted(error), location);
         }
         val advice = compileConstraintArray(policy.advice(), location, "Advice", ctx);
         if (advice instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_ADVICE_STATIC_ERROR.formatted(error), location);
+            throw new SaplCompilerException(ERROR_ADVICE_STATIC.formatted(error), location);
         }
         val resourceCompiled = policy.transformation() == null ? Value.UNDEFINED
                 : ExpressionCompiler.compile(policy.transformation(), ctx);
         if (resourceCompiled instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_TRANSFORMATION_STATIC_ERROR.formatted(error), location);
+            throw new SaplCompilerException(ERROR_TRANSFORMATION_STATIC.formatted(error), location);
         }
         if (resourceCompiled instanceof PureOperator po && !po.isDependingOnSubscription()) {
             throw new SaplCompilerException(ERROR_TRANSFORMATION_RELATIVE_ACCESSOR, location);

@@ -43,6 +43,7 @@ public class StringFunctionLibrary {
     private static final String ERROR_COUNT_EXCEEDS_MAXIMUM           = "Count exceeds maximum allowed value of %d.";
     private static final String ERROR_END_INDEX_OUT_OF_BOUNDS         = "End index out of bounds: %d.";
     private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE       = "NumberValue out of range.";
+    private static final String ERROR_OUTPUT_EXCEEDS_MAXIMUM          = "Output exceeds the maximum length of %d characters.";
     private static final String ERROR_PADDING_MUST_BE_ONE_CHARACTER   = "Padding must be exactly one character.";
     private static final String ERROR_START_INDEX_OUT_OF_BOUNDS       = "Start index out of bounds: %d.";
     private static final String ERROR_TARGET_STRING_CANNOT_BE_EMPTY   = "Target string cannot be empty.";
@@ -99,6 +100,7 @@ public class StringFunctionLibrary {
 
             - `repeat` rejects a count above 10,000, returning an error.
             - `leftPad` and `rightPad` reject a target length above 10,000, returning an error.
+            - `join`, `concat`, `replace`, and `repeat` reject output longer than 10,000,000 characters, returning an error.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -543,15 +545,17 @@ public class StringFunctionLibrary {
 
         while (iterator.hasNext()) {
             val element = iterator.next();
-            if (!(element instanceof TextValue)) {
+            if (!(element instanceof TextValue text)) {
                 return Value.error(ERROR_ALL_ARRAY_ELEMENTS_MUST_BE_TEXT);
             }
 
             if (!result.isEmpty()) {
                 result.append(delimiterText);
             }
-            val text = (TextValue) element;
             result.append(text.value());
+            if (result.length() > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
         }
 
         return Value.of(result.toString());
@@ -582,6 +586,9 @@ public class StringFunctionLibrary {
         val result = new StringBuilder();
         for (val str : strings) {
             result.append(str.value());
+            if (result.length() > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
         }
         return Value.of(result.toString());
     }
@@ -616,7 +623,25 @@ public class StringFunctionLibrary {
             return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
+        if (replacementText.length() > targetText.length()) {
+            val growth    = (long) (replacementText.length() - targetText.length());
+            val predicted = (long) text.length() + countOccurrences(text, targetText) * growth;
+            if (predicted > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
+        }
+
         return Value.of(text.replace(targetText, replacementText));
+    }
+
+    private static long countOccurrences(String text, String target) {
+        long count = 0;
+        int  index = text.indexOf(target);
+        while (index >= 0) {
+            count++;
+            index = text.indexOf(target, index + target.length());
+        }
+        return count;
     }
 
     @Function(docs = """
@@ -752,6 +777,10 @@ public class StringFunctionLibrary {
 
             if (countValue > MAX_REPEAT_COUNT) {
                 return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
+            }
+
+            if ((long) text.length() * countValue > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
             }
 
             return Value.of(text.repeat(countValue));

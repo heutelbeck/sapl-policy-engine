@@ -858,7 +858,7 @@ class GeographicFunctionLibraryTests {
 
         val result = kmlToGeoJSON(Value.of(emptyKml));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.NO_GEOMETRIES_IN_KML_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.ERROR_NO_GEOMETRIES_IN_KML);
     }
 
     @Test
@@ -917,7 +917,7 @@ class GeographicFunctionLibraryTests {
         val invalidWkt = "POINT 10 20"; // missing parentheses => parse error
         val result     = wktToGeoJSON(Value.of(invalidWkt));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.INVALID_WKT_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.ERROR_INVALID_WKT);
     }
 
     @Test
@@ -998,7 +998,7 @@ class GeographicFunctionLibraryTests {
                 """;
         val result     = gml3ToGeoJSON(Value.of(invalidGml));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.ERROR_FAILED_TO_PARSE_GML);
     }
 
     @Test
@@ -1081,7 +1081,7 @@ class GeographicFunctionLibraryTests {
                 """;
         val result    = gml2ToGeoJSON(Value.of(gml2Empty));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.NO_GEOMETRIES_IN_GML_ERROR);
+        assertThat(((ErrorValue) result).message()).isEqualTo(GeographicFunctionLibrary.ERROR_NO_GEOMETRIES_IN_GML);
     }
 
     @Test
@@ -1091,7 +1091,7 @@ class GeographicFunctionLibraryTests {
                 """;
         val result      = gml2ToGeoJSON(Value.of(gml2Invalid));
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.ERROR_FAILED_TO_PARSE_GML);
     }
 
     @Test
@@ -1130,6 +1130,37 @@ class GeographicFunctionLibraryTests {
         val tooManyMembers = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
         assertThatThrownBy(() -> GeographicFunctionLibrary.geoJsonToGeometry(tooManyMembers))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("members");
+    }
+
+    private static ObjectValue multiPointOf(int count, double latitudeBase, double spacing) {
+        val coordinates = new Coordinate[count];
+        for (var i = 0; i < count; i++) {
+            coordinates[i] = new Coordinate((i % 100) * spacing, latitudeBase + (i / 100) * spacing);
+        }
+        return (ObjectValue) geometryToGeoJSON(GEO_FACTORY.createMultiPointFromCoords(coordinates));
+    }
+
+    @Test
+    void bufferWhenOutputExceedsVertexLimitThenReturnsError() {
+        val input  = multiPointOf(4_000, 0.0D, 1.0D);
+        val result = buffer(input, (NumberValue) Value.of(0.1D));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void unionWhenOutputExceedsCountLimitThenReturnsError() {
+        val a      = multiPointOf(25_001, 0.0D, 0.01D);
+        val b      = multiPointOf(25_001, 50.0D, 0.01D);
+        val result = union(a, b);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void symDifferenceWhenOutputExceedsCountLimitThenReturnsError() {
+        val a      = multiPointOf(25_001, 0.0D, 0.01D);
+        val b      = multiPointOf(25_001, 50.0D, 0.01D);
+        val result = symDifference(a, b);
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test

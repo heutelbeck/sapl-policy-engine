@@ -86,7 +86,7 @@ class TraccarFunctionLibraryTests {
         val noLong = (ObjectValue) json("{}");
         val result = traccarPositionToGeoJSON(noLong);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(NO_VALID_LONGITUDE_FIELD_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_NO_VALID_LONGITUDE_FIELD);
     }
 
     @Test
@@ -98,7 +98,7 @@ class TraccarFunctionLibraryTests {
                 """);
         val result = traccarPositionToGeoJSON(noLat);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(NO_VALID_LATITUDE_FIELD_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_NO_VALID_LATITUDE_FIELD);
     }
 
     @Test
@@ -166,7 +166,7 @@ class TraccarFunctionLibraryTests {
         val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message())
-                .contains(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted("Unknown geometry type: INVALID (line 1)"));
+                .contains(ERROR_GEOMETRY_PROCESSING_S.formatted("Unknown geometry type: INVALID (line 1)"));
     }
 
     @Test
@@ -190,7 +190,7 @@ class TraccarFunctionLibraryTests {
                 """);
         val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GEOFENCE_MISSING_AREA_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_GEOFENCE_MISSING_AREA);
     }
 
     @Test
@@ -202,7 +202,7 @@ class TraccarFunctionLibraryTests {
                 """);
         val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(GEOFENCE_MISSING_AREA_ERROR);
+        assertThat(((ErrorValue) result).message()).contains(ERROR_GEOFENCE_MISSING_AREA);
     }
 
     @Test

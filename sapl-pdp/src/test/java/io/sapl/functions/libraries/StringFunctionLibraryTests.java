@@ -571,4 +571,59 @@ class StringFunctionLibraryTests {
             assertThat(result.value()).isEqualTo("ADMIN").doesNotContain("İ");
         }
     }
+
+    @Nested
+    @DisplayName("output size limit")
+    class OutputSizeLimit {
+
+        @Test
+        @DisplayName("repeat returns error when input length times count would exceed the output limit")
+        void whenRepeatOutputExceedsLimitThenReturnsError() {
+            val unit   = (TextValue) Value.of("x".repeat(1_100));
+            val result = StringFunctionLibrary.repeat(unit, Value.of(10_000));
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("replace returns error when expanding replacement would exceed the output limit")
+        void whenReplaceOutputExceedsLimitThenReturnsError() {
+            val text        = (TextValue) Value.of("a".repeat(1_000_000));
+            val target      = (TextValue) Value.of("a");
+            val replacement = (TextValue) Value.of("x".repeat(11));
+            val result      = StringFunctionLibrary.replace(text, target, replacement);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("concat returns error when the combined length would exceed the output limit")
+        void whenConcatOutputExceedsLimitThenReturnsError() {
+            val part  = (TextValue) Value.of("x".repeat(1_000_000));
+            val parts = new TextValue[11];
+            for (int i = 0; i < parts.length; i++) {
+                parts[i] = part;
+            }
+            val result = StringFunctionLibrary.concat(parts);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("join returns error when the combined length would exceed the output limit")
+        void whenJoinOutputExceedsLimitThenReturnsError() {
+            val builder = ArrayValue.builder();
+            for (int i = 0; i < 11; i++) {
+                builder.add(Value.of("x".repeat(1_000_000)));
+            }
+            val result = StringFunctionLibrary.join(builder.build(), (TextValue) Value.of(","));
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("repeat still succeeds for output just within the limit")
+        void whenRepeatOutputWithinLimitThenSucceeds() {
+            val unit   = (TextValue) Value.of("x".repeat(1_000));
+            val result = StringFunctionLibrary.repeat(unit, Value.of(9_000));
+            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(((TextValue) result).value()).hasSize(9_000_000);
+        }
+    }
 }

@@ -38,7 +38,7 @@ import java.util.Date;
 
 public class JWTTestUtility {
 
-    static final String UNSUPPORTED_KEY_ERROR = "The type of the provided key is not supported!";
+    static final String ERROR_UNSUPPORTED_KEY = "The type of the provided key is not supported!";
 
     static final long TIME_UNIT             = 2000L; // two seconds in millis
     static final long SYNCHRONOUS_TIME_UNIT = 50L; // fifty milliseconds
@@ -91,7 +91,7 @@ public class JWTTestUtility {
         } else if (RSA.equalsIgnoreCase(keyPair.getPrivate().getAlgorithm())) {
             signer = new RSASSASigner(keyPair.getPrivate());
         } else
-            throw new UnsupportedOperationException(UNSUPPORTED_KEY_ERROR);
+            throw new UnsupportedOperationException(ERROR_UNSUPPORTED_KEY);
 
         SignedJWT signedJwt = new SignedJWT(header, claims);
         signedJwt.sign(signer);

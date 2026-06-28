@@ -44,7 +44,7 @@ import tools.jackson.databind.ser.std.StdSerializer;
  */
 public class ValueSerializer extends StdSerializer<Value> {
 
-    private static final String ERROR_CANNOT_SERIALIZE_ERROR     = "Cannot serialize ErrorValue to JSON: ";
+    private static final String ERROR_CANNOT_SERIALIZE           = "Cannot serialize ErrorValue to JSON: ";
     private static final String ERROR_CANNOT_SERIALIZE_UNDEFINED = "Cannot serialize UndefinedValue to JSON.";
 
     public ValueSerializer() {
@@ -67,7 +67,7 @@ public class ValueSerializer extends StdSerializer<Value> {
         case UndefinedValue ignored              ->
             throw new IllegalArgumentException(ERROR_CANNOT_SERIALIZE_UNDEFINED);
         case ErrorValue errorValue               ->
-            throw new IllegalArgumentException(ERROR_CANNOT_SERIALIZE_ERROR + errorValue.message());
+            throw new IllegalArgumentException(ERROR_CANNOT_SERIALIZE + errorValue.message());
         }
     }
 

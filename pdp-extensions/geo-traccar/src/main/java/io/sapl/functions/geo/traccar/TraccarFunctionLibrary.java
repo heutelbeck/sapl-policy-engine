@@ -42,12 +42,12 @@ public class TraccarFunctionLibrary {
     private static final GeoJsonWriter   GEOJSON_WRITER         = new GeoJsonWriter();
     private static final GeometryFactory WGS84_GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), WGS84);
 
-    static final String GEOMETRY_PROCESSING_ERROR_S_ERROR = "Error processing geometry: %s";
-    static final String GEOFENCE_MISSING_AREA_ERROR       = "The geofence object missing the 'area' field.";
-    static final String EXPECTED_GEOFENCE_BUT_GOT_S_ERROR = "Expected a Traccar geofence object, but got: %s";
-    static final String NO_VALID_LATITUDE_FIELD_ERROR     = "Expected a Traccar position object, but there is no valid latitude field.";
-    static final String NO_VALID_LONGITUDE_FIELD_ERROR    = "Expected a Traccar position object, but there is no valid longitude field.";
-    static final String EXPECTED_POSITION_BUT_GOT_S_ERROR = "Expected a Traccar position object, but got %s";
+    static final String ERROR_EXPECTED_GEOFENCE_BUT_GOT_S = "Expected a Traccar geofence object, but got: %s";
+    static final String ERROR_EXPECTED_POSITION_BUT_GOT_S = "Expected a Traccar position object, but got %s";
+    static final String ERROR_GEOMETRY_PROCESSING_S       = "Error processing geometry: %s";
+    static final String ERROR_GEOFENCE_MISSING_AREA       = "The geofence object missing the 'area' field.";
+    static final String ERROR_NO_VALID_LATITUDE_FIELD     = "Expected a Traccar position object, but there is no valid latitude field.";
+    static final String ERROR_NO_VALID_LONGITUDE_FIELD    = "Expected a Traccar position object, but there is no valid longitude field.";
 
     /**
      * Converts a Traccar position object to a GeoJSON Point.
@@ -95,12 +95,12 @@ public class TraccarFunctionLibrary {
         val positionJson  = ValueJsonMarshaller.toJsonNode(traccarPosition);
         val longitudeNode = positionJson.get(TraccarSchemata.LONGITUDE);
         if (longitudeNode == null || !longitudeNode.isNumber()) {
-            return Value.error(NO_VALID_LONGITUDE_FIELD_ERROR);
+            return Value.error(ERROR_NO_VALID_LONGITUDE_FIELD);
         }
         val longitude    = longitudeNode.asDouble();
         val latitudeNode = positionJson.get(TraccarSchemata.LATITUDE);
         if (latitudeNode == null || !latitudeNode.isNumber()) {
-            return Value.error(NO_VALID_LATITUDE_FIELD_ERROR);
+            return Value.error(ERROR_NO_VALID_LATITUDE_FIELD);
         }
         val      latitude     = latitudeNode.asDouble();
         Geometry geometry;
@@ -113,7 +113,7 @@ public class TraccarFunctionLibrary {
         try {
             return ValueJsonMarshaller.json(GEOJSON_WRITER.write(geometry));
         } catch (Exception e) {
-            return Value.error(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted(e.getMessage()));
+            return Value.error(ERROR_GEOMETRY_PROCESSING_S.formatted(e.getMessage()));
         }
     }
 
@@ -168,7 +168,7 @@ public class TraccarFunctionLibrary {
         val geofenceJson = ValueJsonMarshaller.toJsonNode(geofence);
         val area         = geofenceJson.get(TraccarSchemata.AREA);
         if (area == null || !area.isString()) {
-            return Value.error(GEOFENCE_MISSING_AREA_ERROR);
+            return Value.error(ERROR_GEOFENCE_MISSING_AREA);
         }
         try {
             val areaString = area.asString();
@@ -179,7 +179,7 @@ public class TraccarFunctionLibrary {
             geometry.apply(new CoordinateFlippingFilter());
             return GeographicFunctionLibrary.boundedGeometryToGeoJSON(geometry);
         } catch (ParseException | IllegalArgumentException e) {
-            return Value.error(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted(e.getMessage()));
+            return Value.error(ERROR_GEOMETRY_PROCESSING_S.formatted(e.getMessage()));
         }
     }
 

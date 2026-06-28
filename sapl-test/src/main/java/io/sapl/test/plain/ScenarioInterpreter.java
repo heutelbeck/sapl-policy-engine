@@ -62,15 +62,14 @@ import io.sapl.api.model.Value;
 @RequiredArgsConstructor
 public class ScenarioInterpreter {
 
-    private static final String DEFAULT_MOCK_ATTRIBUTE_ERROR = "Mock attribute error";
-    private static final String DEFAULT_MOCK_EMIT_ERROR      = "Mock emit error";
-    private static final String DEFAULT_MOCK_FUNCTION_ERROR  = "Mock function error";
-
     private static final String ERROR_CONFIGURATION_PATH_OUTSIDE_BASE      = "Configuration path must stay within the configured base path: %s.";
     private static final String ERROR_CONFIGURATION_WITH_DOCUMENTS         = "Cannot use 'configuration' together with 'document' or 'documents'. "
             + "The 'configuration' directive loads all documents from the specified folder.";
     private static final String ERROR_CONFIGURATION_WITH_PDP_CONFIGURATION = "Cannot use 'configuration' together with 'pdp-configuration'. "
             + "The 'configuration' directive already loads the pdp.json from the specified folder.";
+    private static final String ERROR_DEFAULT_MOCK_ATTRIBUTE               = "Mock attribute error";
+    private static final String ERROR_DEFAULT_MOCK_EMIT                    = "Mock emit error";
+    private static final String ERROR_DEFAULT_MOCK_FUNCTION                = "Mock function error";
     private static final String ERROR_DOCUMENT_NOT_FOUND                   = "Document not found: '%s'. Available documents: %s.";
     private static final String ERROR_UNKNOWN_AMOUNT_TYPE                  = "Unknown amount type: %s.";
     private static final String ERROR_UNKNOWN_DECISION_MATCHER             = "Unknown decision matcher type: %s.";
@@ -463,7 +462,7 @@ public class ScenarioInterpreter {
             if (returnValueOrError.isError()) {
                 // Return error Value - causes policy evaluation to result in indeterminate
                 val errorMessage = returnValueOrError.errorMessage() != null ? returnValueOrError.errorMessage()
-                        : DEFAULT_MOCK_FUNCTION_ERROR;
+                        : ERROR_DEFAULT_MOCK_FUNCTION;
                 fixture.givenFunction(functionName, parameters, Value.error(errorMessage));
             } else {
                 fixture.givenFunction(functionName, parameters, returnValueOrError.value());
@@ -538,7 +537,7 @@ public class ScenarioInterpreter {
         val valueOrError = ValueConverter.convertValueOrError(ctx);
         if (valueOrError.isError()) {
             val errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
-                    : DEFAULT_MOCK_ATTRIBUTE_ERROR;
+                    : ERROR_DEFAULT_MOCK_ATTRIBUTE;
             return Value.error(errorMessage);
         }
         return valueOrError.value();
@@ -656,7 +655,7 @@ public class ScenarioInterpreter {
                 val valueOrError = ValueConverter.convertValueOrError(emitStep.emittedValue);
                 if (valueOrError.isError()) {
                     val errorMessage = valueOrError.errorMessage() != null ? valueOrError.errorMessage()
-                            : DEFAULT_MOCK_EMIT_ERROR;
+                            : ERROR_DEFAULT_MOCK_EMIT;
                     decisionResult.thenEmit(mockId, Value.error(errorMessage));
                 } else {
                     decisionResult.thenEmit(mockId, valueOrError.value());
