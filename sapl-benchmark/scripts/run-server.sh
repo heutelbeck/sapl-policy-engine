@@ -280,7 +280,7 @@ for runtime in "${RUNTIMES[@]}"; do
                     if [ "$protocol" = "http" ]; then
                         run_http_converging "$scenario" "$pcores" "$connections" "$OUTDIR"
                     else
-                        local transport="${protocol#rsocket-}"
+                        transport="${protocol#rsocket-}"
                         run_rsocket_converging "$scenario" "$pcores" "$connections" "$RSOCKET_VT" "$OUTDIR" "$transport"
                     fi
                     echo ""

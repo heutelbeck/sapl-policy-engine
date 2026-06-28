@@ -56,6 +56,8 @@ HTTP_LAT_CONNECTIONS="${HTTP_LAT_CONNECTIONS:-256}"
 # off the latency tail. Override via LATENCY_SERVER_GC. JVM server only (the native
 # image uses its own collector).
 LATENCY_SERVER_GC="${LATENCY_SERVER_GC:--XX:+UseZGC -Xmx32g}"
+RSOCKET_SATURATION_WARMUP_SECONDS="${RSOCKET_SATURATION_WARMUP_SECONDS:-10}"
+RSOCKET_SATURATION_MEASUREMENT_SECONDS="${RSOCKET_SATURATION_MEASUREMENT_SECONDS:-5}"
 
 trap_cleanup
 
@@ -66,8 +68,12 @@ for scenario in "${SCENARIOS[@]}"; do
 done
 echo ""
 
-RUNTIMES=(jvm)
-$HAS_NATIVE && RUNTIMES+=(native)
+if [ "${#LATENCY_AT_LOAD_RUNTIMES[@]}" -gt 0 ]; then
+    RUNTIMES=("${LATENCY_AT_LOAD_RUNTIMES[@]}")
+else
+    RUNTIMES=(jvm)
+    $HAS_NATIVE && RUNTIMES+=(native)
+fi
 
 # x2: each scenario runs both an RSocket arm and an HTTP arm, each (LOAD_PCTS + 1) steps.
 TOTAL_STEPS=$(( ${#RUNTIMES[@]} * ${#SERVER_PCORES_SWEEP[@]} * ${#SCENARIOS[@]} * 2 * (${#LOAD_PCTS[@]} + 1) ))
@@ -202,7 +208,8 @@ for runtime in "${RUNTIMES[@]}"; do
             --rsocket --host localhost --port 7000 \
             --connections "$RSOCKET_CONNECTIONS" \
             --vt-per-connection "$RSOCKET_CONCURRENCY" \
-            --warmup-seconds 10 --measurement-seconds 5 \
+            --warmup-seconds "$RSOCKET_SATURATION_WARMUP_SECONDS" \
+            --measurement-seconds "$RSOCKET_SATURATION_MEASUREMENT_SECONDS" \
             --machine-readable \
             -f "$SCENARIO_DIR/$scenario/subscription.json" 2>/dev/null)
         peak_throughput=$(echo "$warmup_output" | grep "^THROUGHPUT:" | cut -d: -f2 | cut -d. -f1)
@@ -262,8 +269,12 @@ for runtime in "${RUNTIMES[@]}"; do
         # Warm the HTTP request path (JIT + GC) before any measured step. The
         # RSocket arm above warms shared code, but the servlet/JSON path is
         # distinct; without this the first rate step pays the warmup cost as tail.
-        echo "  HTTP: warmup (convergence-based)..."
-        converge_wrk "$HTTP_LAT_CONNECTIONS" "$HTTP_URL" "$LUA_SCRIPT" "$http_sub"
+        if $WRK_CONVERGE; then
+            echo "  HTTP: warmup (convergence-based)..."
+            converge_wrk "$HTTP_LAT_CONNECTIONS" "$HTTP_URL" "$LUA_SCRIPT" "$http_sub"
+        else
+            echo "  HTTP: warmup skipped"
+        fi
         echo "  HTTP: measuring saturation (wrk2 -t$WRK_THREADS)..."
         wait_cool
         http_sat_out=$(SUBSCRIPTION_FILE="$http_sub" run_pinned "$client_cpu" \

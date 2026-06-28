@@ -34,6 +34,17 @@ WRK_MEASURE_TIME=1
 WRK_CONVERGE=false
 LATENCY=false
 
+# Keep latency-at-load cheap in CI. This profile checks script wiring, not numbers.
+LATENCY_SERVER_GC="-Xmx512m"
+SCENARIOS_QUICK=(baseline)
+RSOCKET_CONNECTIONS=1
+RSOCKET_CONCURRENCY=8
+RSOCKET_SATURATION_WARMUP_SECONDS=0
+RSOCKET_SATURATION_MEASUREMENT_SECONDS=1
+HTTP_LAT_CONNECTIONS=8
+LATENCY_AT_LOAD_RUNTIMES=(jvm)
+WRK_THREADS=1
+
 # Run anywhere: a CI runner has arbitrary CPU topology, so the fixed pinning
 # ranges would fail. The thermal target is unreachable, so cooling returns at
 # once.
