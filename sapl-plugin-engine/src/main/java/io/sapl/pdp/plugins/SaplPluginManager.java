@@ -116,7 +116,6 @@ public class SaplPluginManager implements AutoCloseable {
         lock.lock();
         try {
             ensureOpen();
-            pluginManager.stopPlugins();
             pluginManager.unloadPlugins();
             pluginManager.loadPlugins();
             pluginManager.startPlugins();
@@ -192,7 +191,9 @@ public class SaplPluginManager implements AutoCloseable {
                 return;
             }
             closed = true;
-            pluginManager.stopPlugins();
+            // unloadPlugins() stops each plugin itself; a separate stopPlugins()
+            // call would hit the PF4J 3.15.0 ConcurrentModificationException (see
+            // reload()).
             pluginManager.unloadPlugins();
         } finally {
             lock.unlock();

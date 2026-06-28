@@ -244,8 +244,7 @@ public class PDPAutoConfiguration {
                     lifecycleListeners.size());
         }
         return new HotReloadingPluginsSource(pluginManager, libraries, attributeBroker,
-                properties.getFunctionCacheSize(), true,
-                decisionInterceptors, lifecycleListeners);
+                properties.getFunctionCacheSize(), true, decisionInterceptors, lifecycleListeners);
     }
 
     @Bean
