@@ -213,7 +213,7 @@ jobs:
         # request's number is needed.
       - name: Upload Artifact
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pr_build
           path: |
@@ -325,7 +325,7 @@ jobs:
         run: docker save ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }} | gzip > sapl-playground-docker-image.tar.gz
 
       - name: Upload Docker Image Artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: docker-images
           path: |
@@ -335,7 +335,7 @@ jobs:
           retention-days: 1
 
       - name: Upload SAPL Node JAR Artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sapl-node-jars
           if-no-files-found: error
