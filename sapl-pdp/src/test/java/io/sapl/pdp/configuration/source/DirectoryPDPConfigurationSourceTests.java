@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import com.github.valfirst.slf4jtest.LoggingEvent;
+import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
@@ -24,6 +26,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
+import org.slf4j.event.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -311,6 +314,16 @@ class DirectoryPDPConfigurationSourceTests {
         source.close();
 
         assertThat(source.isClosed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("closing before the monitor ever started shuts down quietly")
+    void whenClosedBeforeMonitorStartedThenNoWarningOrErrorLogged() {
+        TestLoggerFactory.clearAll();
+        source = new DirectoryPDPConfigurationSource(tempDir);
+        source.close();
+        assertThat(TestLoggerFactory.getAllLoggingEvents()).extracting(LoggingEvent::getLevel)
+                .doesNotContain(Level.WARN, Level.ERROR);
     }
 
     @Test

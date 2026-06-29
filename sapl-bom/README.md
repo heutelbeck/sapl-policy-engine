@@ -13,7 +13,7 @@ All modules can also be used without the BOM, but then each SAPL dependency must
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.1.0</version>
+            <version>4.1.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

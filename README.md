@@ -96,7 +96,7 @@ Add the starter:
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1</version>
 </dependency>
 ```
 
@@ -277,7 +277,7 @@ tracked in SonarCloud rather than suppressed in source code.
 Need a [Software Bill of Materials](https://www.cisa.gov/sbom)? The SAPL Node executable JAR embeds a CycloneDX JSON SBOM at `META-INF/sbom/application.cdx.json`.
 
 ```bash
-jar xf sapl-node-4.1.0.jar META-INF/sbom/application.cdx.json
+jar xf sapl-node-4.1.1.jar META-INF/sbom/application.cdx.json
 ```
 
 For repository dependency visibility, see the public [GitHub dependency graph](https://github.com/heutelbeck/sapl-policy-engine/network/dependencies).

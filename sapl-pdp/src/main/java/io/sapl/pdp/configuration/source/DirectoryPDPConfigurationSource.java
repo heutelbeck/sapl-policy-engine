@@ -96,6 +96,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     private final AtomicBoolean                     activated        = new AtomicBoolean(false);
     private final AtomicBoolean                     closed           = new AtomicBoolean(false);
     private final AtomicBoolean                     directoryPresent = new AtomicBoolean(true);
+    private final AtomicBoolean                     monitorStarted   = new AtomicBoolean(false);
 
     /**
      * Creates a source for the specified directory with default PDP ID.
@@ -224,6 +225,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             observer.addListener(new DirectoryChangeListener());
             monitor.addObserver(observer);
             monitor.start();
+            monitorStarted.set(true);
             log.debug("Started file monitoring on directory: {}.", directoryPath);
         } catch (Exception e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_START_FILE_MONITOR.formatted(directoryPath), e);
@@ -239,6 +241,12 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     }
 
     private void stopMonitorSafely() {
+        if (!monitorStarted.get()) {
+            // Startup failed before the monitor was started, so there is nothing to stop.
+            // Calling stop() on a never-started monitor throws, which would surface a
+            // misleading stack trace during an otherwise clean shutdown.
+            return;
+        }
         try {
             monitor.stop(MONITOR_STOP_TIMEOUT_MS);
         } catch (Exception e) {

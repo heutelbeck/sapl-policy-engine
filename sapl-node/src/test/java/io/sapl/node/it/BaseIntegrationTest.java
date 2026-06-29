@@ -35,7 +35,7 @@ public abstract class BaseIntegrationTest {
 
     protected static final int             SAPL_SERVER_PORT    = 8080;
     protected static final String          SAPL_SERVER_IMAGE   = System.getProperty("sapl.node.image",
-            "ghcr.io/heutelbeck/sapl-node:4.1.0");
+            "ghcr.io/heutelbeck/sapl-node:4.1.1");
     protected static final ImagePullPolicy NEVER_PULL          = imageName -> false;
     protected static final Duration        CONTAINER_STARTUP   = Duration.ofMinutes(2);
     protected static final String          STARTUP_LOG_PATTERN = ".*SAPL Node ready.*\\n";

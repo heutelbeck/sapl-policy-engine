@@ -70,10 +70,15 @@ expectFile() {
 printf 'SAPL smoke test\n  node: %s\n  workdir: %s\n\n' "${SAPL[*]}" "$WORK"
 
 mkdir -p "$POLICIES"
+# indexing is forced to SMTDD so the server round trip below exercises the
+# structural-equality index path. That path reads operator record components
+# reflectively and fails in a native image unless they are registered, which is
+# the regression guard for that class of native-image-only failure.
 cat >"$POLICIES/pdp.json" <<'JSON'
 {
   "configurationId": "smoke",
-  "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" }
+  "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" },
+  "compilerFlags": { "indexing": "SMTDD" }
 }
 JSON
 cat >"$POLICIES/permit-use.sapl" <<'SAPL_POLICY'
@@ -84,6 +89,19 @@ cat >"$POLICIES/deny-delete.sapl" <<'SAPL_POLICY'
 policy "deny delete"
 deny subject == "housemd" & action == "delete" & resource == "MRT";
 SAPL_POLICY
+# Several policies sharing operands with equality on distinct constants. This is
+# what makes the SMTDD index group predicates and compare operators structurally,
+# the path that broke in the native image. They do not match the housemd/MRT
+# requests above, so the existing assertions are unaffected.
+for roleIndex in 1 2 3 4 5 6; do
+    cat >"$POLICIES/role-$roleIndex.sapl" <<SAPL_POLICY
+policy "role $roleIndex"
+permit
+    subject.role == "role$roleIndex";
+    resource.type == "type$roleIndex";
+    action == "read";
+SAPL_POLICY
+done
 cat >"$POLICIES/smoke.sapltest" <<'SAPL_TEST'
 requirement "smoke" {
     scenario "house can use mrt"

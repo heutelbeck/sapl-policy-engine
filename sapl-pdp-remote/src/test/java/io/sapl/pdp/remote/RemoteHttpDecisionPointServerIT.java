@@ -72,7 +72,7 @@ import tools.jackson.databind.json.JsonMapper;
 class RemoteHttpDecisionPointServerIT {
     private static final int             SAPL_SERVER_PORT  = 8080;
     private static final String          SAPL_SERVER_IMAGE = System.getProperty("sapl.node.image",
-            "ghcr.io/heutelbeck/sapl-node:4.1.0");
+            "ghcr.io/heutelbeck/sapl-node:4.1.1");
     private static final ImagePullPolicy NEVER_PULL        = imageName -> false;
     private static final String          OAUTH2_ISSUER_ID  = "default";
     private static final String          OAUTH2_CLIENT_ID  = "0oa62xybztegSdqtZ5d7";
