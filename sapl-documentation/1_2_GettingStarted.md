@@ -6,7 +6,7 @@ nav_order: 2
 
 ## Getting Started
 
-SAPL is a reactive authorization engine: it evaluates access control policies and pushes updated decisions whenever policies, attributes, or subscriptions change. This guide introduces the policy syntax through the browser-based playground, then walks through hands-on policy evaluation using the CLI.
+SAPL is an authorization engine for streaming and request-response access control. It evaluates policies against authorization subscriptions and can push updated decisions when policies, attributes, or subscriptions change. This guide introduces the policy syntax through the browser-based playground, then walks through hands-on policy evaluation using the CLI.
 
 ### Learning Policy Syntax
 
