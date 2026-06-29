@@ -19,7 +19,6 @@ name: Build Native Language Server
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   contents: read

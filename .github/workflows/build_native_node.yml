@@ -24,13 +24,6 @@ on:
         required: false
         type: boolean
         default: false
-  workflow_dispatch:
-    inputs:
-      build_macos:
-        description: Build the macOS native binary on a larger runner.
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
