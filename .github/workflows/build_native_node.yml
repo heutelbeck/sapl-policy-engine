@@ -45,13 +45,14 @@ jobs:
             upload-path: |
               sapl-node/target/sapl
               sapl-node/target/classes/META-INF/sbom/application.cdx.json
-          - os: macos-latest
-            artifact-name: sapl-macos-arm64
-            executable: sapl
-            profile: native
-            upload-path: |
-              sapl-node/target/sapl
-              sapl-node/target/classes/META-INF/sbom/application.cdx.json
+          # macOS SAPL node native builds need larger runners; run them in https://github.com/FTKeV/sapl-mac-build.
+          # - os: macos-latest
+          #   artifact-name: sapl-macos-arm64
+          #   executable: sapl
+          #   profile: native
+          #   upload-path: |
+          #     sapl-node/target/sapl
+          #     sapl-node/target/classes/META-INF/sbom/application.cdx.json
           - os: windows-latest
             artifact-name: sapl-windows-amd64
             executable: sapl.exe
