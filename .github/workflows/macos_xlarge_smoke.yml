@@ -1,4 +1,4 @@
-name: macOS XLarge Smoke Test
+name: macOS XLarge Native Smoke Test
 
 on:
   workflow_dispatch:
@@ -7,15 +7,55 @@ permissions:
   contents: read
 
 jobs:
-  hello:
-    name: Hello from macOS XLarge
+  native-build:
+    name: Native build on macOS XLarge
     runs-on: macos-14-xlarge
-    timeout-minutes: 5
+    timeout-minutes: 120
 
     steps:
-      - name: Hello world
+      - name: Report runner specs
         run: |
           echo "hello world"
           uname -a
-          sysctl -n hw.ncpu
-          sysctl -n hw.memsize
+          echo "Cores: $(sysctl -n hw.ncpu)"
+          echo "Memory bytes: $(sysctl -n hw.memsize)"
+
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1.5.6
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Cache Maven packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-native-smoke-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-native-smoke-
+            ${{ runner.os }}-maven-native-node-
+            ${{ runner.os }}-maven-
+
+      - name: Build dependencies
+        shell: bash
+        run: mvn -B install -pl sapl-node -am -DskipTests
+
+      - name: Build native image
+        shell: bash
+        run: mvn -B package -pl sapl-node -Pnative -DskipTests
+
+      - name: Verify native binary
+        shell: bash
+        run: |
+          ls -lh sapl-node/target/sapl
+          file sapl-node/target/sapl
+          sapl-node/target/sapl --version
+
+      - name: Clean up Local Repository before Caching
+        shell: bash
+        run: rm -rf ~/.m2/repository/io/sapl
