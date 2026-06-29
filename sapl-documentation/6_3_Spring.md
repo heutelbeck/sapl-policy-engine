@@ -15,7 +15,7 @@ The flow is straightforward. Your application sends an authorization subscriptio
 
 This walkthrough shows how the pieces fit together end to end.
 
-**1. Add the BOM and snapshot repository to your `pom.xml`.**
+**1. Add the SAPL BOM to your `pom.xml`.**
 
 ```xml
 <dependencyManagement>
@@ -29,15 +29,9 @@ This walkthrough shows how the pieces fit together end to end.
         </dependency>
     </dependencies>
 </dependencyManagement>
-
-<repositories>
-    <repository>
-        <id>central-portal-snapshots</id>
-        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-        <snapshots><enabled>true</enabled></snapshots>
-    </repository>
-</repositories>
 ```
+
+Released SAPL artifacts are available from Maven Central. If you intentionally test unreleased SAPL builds, use the matching `-SNAPSHOT` version and add the Central Portal snapshots repository.
 
 **2. Add the starter dependency.**
 
@@ -72,11 +66,17 @@ public class SecurityConfig {
 **5. Annotate a method.**
 
 ```java
-@PreEnforce(subject = "authentication.name", action = "'read'", resource = "#id")
+@PreEnforce(
+    subject = "authentication.name",
+    action = "'read'",
+    resource = "{ 'id': #id, 'ownerId': @bookOwnershipService.ownerOf(#id) }"
+)
 public Book findById(Long id) {
     return bookRepository.findById(id);
 }
 ```
+
+The `@bookOwnershipService` expression calls a Spring bean before the repository method runs. The policy can then compare the authenticated user with the owner of the requested book.
 
 **6. Write a policy** in `src/main/resources/policies/books.sapl`.
 
