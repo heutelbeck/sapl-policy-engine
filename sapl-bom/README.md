@@ -13,7 +13,7 @@ All modules can also be used without the BOM, but then each SAPL dependency must
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.1.1</version>
+            <version>4.1.2</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -32,7 +32,7 @@ Only add the snapshot repository when the SAPL version ends in `-SNAPSHOT`.
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.1.1-SNAPSHOT</version>
+            <version>4.1.2-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

@@ -25,7 +25,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 	</parent>
 
 	<artifactId>sapl-pdp</artifactId>

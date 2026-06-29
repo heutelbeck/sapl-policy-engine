@@ -18,14 +18,8 @@
 package io.sapl.node.http;
 
 import java.time.Duration;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jspecify.annotations.Nullable;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -61,6 +55,11 @@ import tools.jackson.databind.json.JsonMapper;
 class PdpHttpEndpointConfiguration {
 
     @Bean
+    SseExecutors sseExecutors(@Value("${io.sapl.node.http.sse.keep-alive-pool-size:0}") int keepAlivePoolSize) {
+        return new SseExecutors(keepAlivePoolSize);
+    }
+
+    @Bean
     FilterRegistrationBean<RequestBodySizeLimitFilter> requestBodySizeLimitFilter(
             @Value("${io.sapl.node.http.max-request-body-bytes:65536}") long maxRequestBodyBytes) {
         // Global cap against oversized POST bodies on the SAPL HTTP surface.
@@ -85,42 +84,6 @@ class PdpHttpEndpointConfiguration {
         return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, positiveTtl, negativeTtl, maxSize);
     }
 
-    // Disable inferred reflective shutdown, sseExecutorShutdown closes it for native images.
-    @Bean(destroyMethod = "")
-    ScheduledExecutorService sseKeepAliveScheduler(
-            @Value("${io.sapl.node.http.sse.keep-alive-pool-size:0}") int configuredPoolSize) {
-        val poolSize    = configuredPoolSize > 0 ? configuredPoolSize
-                : Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
-        val threadIndex = new AtomicInteger();
-        val scheduler   = new ScheduledThreadPoolExecutor(poolSize, r -> {
-                            val t = new Thread(r, "sapl-sse-keepalive-" + threadIndex.incrementAndGet());
-                            t.setDaemon(true);
-                            return t;
-                        });
-        // Purge cancelled keep-alive tasks promptly so they do not pile up under
-        // connection churn.
-        scheduler.setRemoveOnCancelPolicy(true);
-        return scheduler;
-    }
-
-    // shutdownNow (not shutdown) so pumps blocked in awaitNext() are
-    // interrupted at context destroy. Without this, long-lived SSE
-    // streams hold the JVM open past Spring's normal shutdown window.
-    // Disable inferred reflective shutdownNow, sseExecutorShutdown closes it for native images.
-    @Bean(destroyMethod = "")
-    ExecutorService sseStreamPumpExecutor() {
-        return Executors.newVirtualThreadPerTaskExecutor();
-    }
-
-    @Bean
-    DisposableBean sseExecutorShutdown(ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor) {
-        return () -> {
-            sseKeepAliveScheduler.shutdown();
-            sseStreamPumpExecutor.shutdownNow();
-        };
-    }
-
     @Bean
     ServletRegistrationBean<DecideOnceServlet> decideOnceServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper) {
@@ -138,37 +101,33 @@ class PdpHttpEndpointConfiguration {
 
     @Bean
     ServletRegistrationBean<DecideStreamServlet> decideStreamServletRegistration(BlockingPolicyDecisionPoint pdp,
-            HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
+            HttpAuthHandler authHandler, JsonMapper mapper, SseExecutors sseExecutors,
+            SseConnectionRegistry sseConnectionRegistry,
             @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
         return register(
                 new DecideStreamServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
+                        sseExecutors.keepAliveScheduler(), sseExecutors.streamPumpExecutor(), sseConnectionRegistry),
                 "/api/pdp/decide", "saplDecideStreamServlet", true);
     }
 
     @Bean
     ServletRegistrationBean<MultiDecideServlet> multiDecideServletRegistration(BlockingPolicyDecisionPoint pdp,
-            HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds,
+            HttpAuthHandler authHandler, JsonMapper mapper, SseExecutors sseExecutors,
+            SseConnectionRegistry sseConnectionRegistry, @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds,
             @Value("${io.sapl.node.max-multi-subscription-count:256}") int maxMultiSubscriptionCount) {
-        return register(
-                new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry, maxMultiSubscriptionCount),
-                "/api/pdp/multi-decide", "saplMultiDecideServlet", true);
+        return register(new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
+                sseExecutors.keepAliveScheduler(), sseExecutors.streamPumpExecutor(), sseConnectionRegistry,
+                maxMultiSubscriptionCount), "/api/pdp/multi-decide", "saplMultiDecideServlet", true);
     }
 
     @Bean
     ServletRegistrationBean<MultiDecideAllServlet> multiDecideAllServletRegistration(BlockingPolicyDecisionPoint pdp,
-            HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds,
+            HttpAuthHandler authHandler, JsonMapper mapper, SseExecutors sseExecutors,
+            SseConnectionRegistry sseConnectionRegistry, @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds,
             @Value("${io.sapl.node.max-multi-subscription-count:256}") int maxMultiSubscriptionCount) {
-        return register(
-                new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry, maxMultiSubscriptionCount),
-                "/api/pdp/multi-decide-all", "saplMultiDecideAllServlet", true);
+        return register(new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
+                sseExecutors.keepAliveScheduler(), sseExecutors.streamPumpExecutor(), sseConnectionRegistry,
+                maxMultiSubscriptionCount), "/api/pdp/multi-decide-all", "saplMultiDecideAllServlet", true);
     }
 
     private static <T extends Servlet> ServletRegistrationBean<T> register(T servlet, String urlPattern,

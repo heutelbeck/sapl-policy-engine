@@ -182,6 +182,38 @@ else
     tail -n 20 "$WORK/server.log"
 fi
 
+# Graceful shutdown so the bean-destroy path runs, then assert the whole server
+# lifecycle (startup and shutdown) is free of native reflection errors. In a
+# native image a missing reflection registration only surfaces at runtime, so
+# this is the gate against that class of regression.
+reflectionPattern='MissingReflectionRegistrationError|Cannot reflectively|UnsupportedFeatureError|reachability-metadata'
+if [ -n "$SERVER_PID" ]; then
+    kill -TERM "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+    SERVER_PID=""
+fi
+if grep -qE "$reflectionPattern" "$WORK/server.log"; then
+    fail "server lifecycle free of native reflection errors" \
+        "$(grep -m1 -E "$reflectionPattern" "$WORK/server.log")"
+else
+    pass "server lifecycle free of native reflection errors"
+fi
+
+# Fail-closed startup: no authentication configured and none explicitly allowed.
+# The node must refuse to start, and that refusal must be clean, with no native
+# reflection errors in the rollback and destroy path.
+printf '\nVerifying fail-closed startup is clean\n'
+timeout 60 "${SAPL[@]}" server --server.port="$PORT" \
+    --io.sapl.pdp.embedded.pdp-config-type=DIRECTORY \
+    --io.sapl.pdp.embedded.config-path="$POLICIES" \
+    --io.sapl.pdp.embedded.policies-path="$POLICIES" >"$WORK/failclosed.log" 2>&1
+if grep -qE "$reflectionPattern" "$WORK/failclosed.log"; then
+    fail "fail-closed startup free of native reflection errors" \
+        "$(grep -m1 -E "$reflectionPattern" "$WORK/failclosed.log")"
+else
+    pass "fail-closed startup free of native reflection errors"
+fi
+
 printf '\n%s\n' "----------------------------------------"
 printf 'Result: %d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

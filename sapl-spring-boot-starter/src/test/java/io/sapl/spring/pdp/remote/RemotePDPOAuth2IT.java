@@ -66,7 +66,7 @@ class RemotePDPOAuth2IT {
     private static final int             RSOCKET_PORT      = 7000;
     private static final int             HTTP_PORT         = 8080;
     private static final String          SAPL_SERVER_IMAGE = System.getProperty("sapl.node.image",
-            "ghcr.io/heutelbeck/sapl-node:4.1.1");
+            "ghcr.io/heutelbeck/sapl-node:4.1.2");
     private static final String          KEYCLOAK_IMAGE    = "quay.io/keycloak/keycloak:25.0";
     private static final String          REALM             = "sapl-it";
     private static final String          CLIENT_ID         = "sapl-pdp-client";
