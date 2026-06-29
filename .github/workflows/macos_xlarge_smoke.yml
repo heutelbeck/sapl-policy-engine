@@ -1,0 +1,21 @@
+name: macOS XLarge Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hello:
+    name: Hello from macOS XLarge
+    runs-on: macos-14-xlarge
+    timeout-minutes: 5
+
+    steps:
+      - name: Hello world
+        run: |
+          echo "hello world"
+          uname -a
+          sysctl -n hw.ncpu
+          sysctl -n hw.memsize

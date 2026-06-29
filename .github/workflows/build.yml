@@ -352,6 +352,8 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/build_native_node.yml
+    with:
+      build_macos: ${{ needs.version-check.outputs.is_tag == 'true' }}
 
   build-native-lsp:
     if: ${{ github.event_name != 'pull_request' }}
@@ -550,12 +552,12 @@ jobs:
           name: sapl-windows-amd64
           path: artifacts/windows
 
-      # macOS SAPL node native builds need larger runners; run them in https://github.com/FTKeV/sapl-mac-build.
-      # - name: Download macOS artifact
-      #   uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-      #   with:
-      #     name: sapl-macos-arm64
-      #     path: artifacts/macos
+      - name: Download macOS artifact
+        if: ${{ needs.version-check.outputs.is_tag == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-macos-arm64
+          path: artifacts/macos
 
       - name: Download SAPL Node JAR
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -566,6 +568,7 @@ jobs:
       - name: Prepare release assets
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
+          IS_TAG: ${{ needs.version-check.outputs.is_tag }}
         run: |
           mkdir -p release staging/linux-amd64/sbom staging/linux-arm64/sbom staging/windows/sbom
 
@@ -574,7 +577,6 @@ jobs:
           JAR_SBOM_SRC=artifacts/linux-amd64/classes/META-INF/sbom/application.cdx.json
           LINUX_AMD64_SBOM_SRC=artifacts/linux-amd64/classes/META-INF/sbom/application.cdx.json
           LINUX_ARM64_SBOM_SRC=artifacts/linux-arm64/classes/META-INF/sbom/application.cdx.json
-          # MACOS_SBOM_SRC=artifacts/macos/classes/META-INF/sbom/application.cdx.json
           WINDOWS_SBOM_SRC=artifacts/windows/classes/META-INF/sbom/application.cdx.json
 
           cp artifacts/linux-amd64/sapl staging/linux-amd64/sapl
@@ -597,15 +599,20 @@ jobs:
           cp "$LINUX_ARM64_SBOM_SRC" staging/linux-arm64/sbom/application.cdx.json
           tar -czf "release/sapl-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
 
-          # cp artifacts/macos/sapl staging/macos/sapl
-          # chmod +x staging/macos/sapl
-          # cp LICENSE staging/macos/
-          # cp sapl-node/README.md staging/macos/
-          # cp -r "$MAN_SRC" staging/macos/man
-          # mkdir -p staging/macos/completion
-          # cp "$COMPLETION_SRC/sapl.bash" staging/macos/completion/
-          # cp "$MACOS_SBOM_SRC" staging/macos/sbom/application.cdx.json
-          # tar -czf "release/sapl-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
+          if [ "$IS_TAG" = "true" ]; then
+            MACOS_SBOM_SRC=artifacts/macos/classes/META-INF/sbom/application.cdx.json
+            mkdir -p staging/macos/sbom
+            cp artifacts/macos/sapl staging/macos/sapl
+            chmod +x staging/macos/sapl
+            cp LICENSE staging/macos/
+            cp sapl-node/README.md staging/macos/
+            cp -r "$MAN_SRC" staging/macos/man
+            mkdir -p staging/macos/completion
+            cp "$COMPLETION_SRC/sapl.bash" staging/macos/completion/
+            cp "$MACOS_SBOM_SRC" staging/macos/sbom/application.cdx.json
+            tar -czf "release/sapl-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
+            cp "$MACOS_SBOM_SRC" "release/sapl-${VERSION}-macos-arm64.cdx.json"
+          fi
 
           cp artifacts/windows/sapl.exe staging/windows/sapl.exe
           cp LICENSE staging/windows/
@@ -617,7 +624,6 @@ jobs:
           cp "$JAR_SBOM_SRC" "release/sapl-node-${VERSION}.cdx.json"
           cp "$LINUX_AMD64_SBOM_SRC" "release/sapl-${VERSION}-linux-amd64.cdx.json"
           cp "$LINUX_ARM64_SBOM_SRC" "release/sapl-${VERSION}-linux-arm64.cdx.json"
-          # cp "$MACOS_SBOM_SRC" "release/sapl-${VERSION}-macos-arm64.cdx.json"
           cp "$WINDOWS_SBOM_SRC" "release/sapl-${VERSION}-windows-amd64.cdx.json"
 
       - name: Install nfpm
@@ -677,12 +683,12 @@ jobs:
             release/sapl-${{ needs.version-check.outputs.version }}.aarch64.rpm
           sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-linux-arm64.cdx.json
 
-      # macOS SAPL node SBOM attestation is produced by https://github.com/FTKeV/sapl-mac-build.
-      # - name: Attest SAPL Node macOS SBOM
-      #   uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
-      #   with:
-      #     subject-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz
-      #     sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.cdx.json
+      - name: Attest SAPL Node macOS SBOM
+        if: ${{ needs.version-check.outputs.is_tag == 'true' }}
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz
+          sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.cdx.json
 
       - name: Attest SAPL Node Windows SBOM
         uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
@@ -1311,11 +1317,11 @@ jobs:
             | JVM (all platforms) | `sapl-node-${{ needs.version-check.outputs.version }}.jar` |
             | Linux x86_64 | `sapl-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
             | Linux ARM64 | `sapl-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
-            | macOS ARM64 | `sapl-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
             | Windows x86_64 | `sapl-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
 
             Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
             The JVM JAR is a Spring Boot fat JAR that runs on any platform with Java 21+.
+            macOS native archives are built for version tags only.
 
             ### Linux Packages
             | Format | x86_64 | ARM64 |

@@ -19,7 +19,18 @@ name: Build Native SAPL Node
 
 on:
   workflow_call:
+    inputs:
+      build_macos:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      build_macos:
+        description: Build the macOS native binary on a larger runner.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,14 +56,6 @@ jobs:
             upload-path: |
               sapl-node/target/sapl
               sapl-node/target/classes/META-INF/sbom/application.cdx.json
-          # macOS SAPL node native builds need larger runners; run them in https://github.com/FTKeV/sapl-mac-build.
-          # - os: macos-latest
-          #   artifact-name: sapl-macos-arm64
-          #   executable: sapl
-          #   profile: native
-          #   upload-path: |
-          #     sapl-node/target/sapl
-          #     sapl-node/target/classes/META-INF/sbom/application.cdx.json
           - os: windows-latest
             artifact-name: sapl-windows-amd64
             executable: sapl.exe
@@ -122,6 +125,56 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}
           path: ${{ matrix.upload-path }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Clean up Local Repository before Caching
+        shell: bash
+        run: rm -rf ~/.m2/repository/io/sapl
+
+  build-native-macos:
+    name: Build (macos-14-xlarge)
+    if: ${{ inputs.build_macos }}
+    runs-on: macos-14-xlarge
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1.5.6
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Cache Maven packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-native-node-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-native-node-
+            ${{ runner.os }}-maven-native-
+            ${{ runner.os }}-maven-
+
+      - name: Build Dependencies
+        shell: bash
+        run: mvn -B install -pl sapl-node -am -DskipTests
+
+      - name: Build Native Image
+        shell: bash
+        run: mvn -B package -pl sapl-node -Pnative -DskipTests
+
+      - name: Upload Native Executable
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sapl-macos-arm64
+          path: |
+            sapl-node/target/sapl
+            sapl-node/target/classes/META-INF/sbom/application.cdx.json
           if-no-files-found: error
           retention-days: 7
 
