@@ -18,11 +18,11 @@
 
 # nfpm configuration for SAPL Node DEB and RPM packages.
 #
-# The VERSION, ARCH, and BINARY environment variables are set by the CI
+# The VERSION, ARCH, BINARY, and SBOM environment variables are set by the CI
 # publish job. Run locally with:
 #
-#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl MAN_DIR=./man nfpm package --packager deb --target .
-#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl MAN_DIR=./man nfpm package --packager rpm --target .
+#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl SBOM=./application.cdx.json MAN_DIR=./man nfpm package --packager deb --target .
+#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl SBOM=./application.cdx.json MAN_DIR=./man nfpm package --packager rpm --target .
 
 name: sapl
 version: ${VERSION}
@@ -41,6 +41,12 @@ contents:
     expand: true
     file_info:
       mode: 0755
+
+  - src: ${SBOM}
+    dst: /usr/share/doc/sapl/application.cdx.json
+    expand: true
+    file_info:
+      mode: 0644
 
   - src: ${MAN_DIR}/*.1
     dst: /usr/share/man/man1/

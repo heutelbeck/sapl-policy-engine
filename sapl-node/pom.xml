@@ -349,7 +349,7 @@
 						</exclude>
 					</excludes>
 					<image>
-						<builder>paketobuildpacks/builder-jammy-tiny</builder>
+						<builder>paketobuildpacks/builder-jammy-tiny:latest@sha256:13e4dcca1d17a5e13eb0966cba03dea94c225436d3c15ff566cbef3b7eacd250</builder>
 						<buildpacks>
 							<buildpack>urn:cnb:builder:paketo-buildpacks/java</buildpack>
 						</buildpacks>

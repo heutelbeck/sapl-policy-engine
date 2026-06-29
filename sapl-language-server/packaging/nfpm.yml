@@ -18,11 +18,11 @@
 
 # nfpm configuration for sapl-language-server DEB and RPM packages.
 #
-# The VERSION, ARCH, and BINARY environment variables are set by the CI
+# The VERSION, ARCH, BINARY, and SBOM environment variables are set by the CI
 # publish job. Run locally with:
 #
-#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl-language-server nfpm package --packager deb --target .
-#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl-language-server nfpm package --packager rpm --target .
+#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl-language-server SBOM=./application.cdx.json nfpm package --packager deb --target .
+#   VERSION=4.1.0 ARCH=amd64 BINARY=./sapl-language-server SBOM=./application.cdx.json nfpm package --packager rpm --target .
 
 name: sapl-language-server
 version: ${VERSION}
@@ -41,6 +41,12 @@ contents:
     expand: true
     file_info:
       mode: 0755
+
+  - src: ${SBOM}
+    dst: /usr/share/doc/sapl-language-server/application.cdx.json
+    expand: true
+    file_info:
+      mode: 0644
 
   - src: sapl-language-server/packaging/sapl-language-server.1
     dst: /usr/share/man/man1/sapl-language-server.1

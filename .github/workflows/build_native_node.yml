@@ -37,16 +37,28 @@ jobs:
               sapl-node/target/sapl
               sapl-node/target/generated-man/*.1
               sapl-node/target/generated-completion/sapl.bash
+              sapl-node/target/classes/META-INF/sbom/application.cdx.json
           - os: ubuntu-24.04-arm
             artifact-name: sapl-linux-arm64
             executable: sapl
             profile: native-linux-arm
-            upload-path: sapl-node/target/sapl
+            upload-path: |
+              sapl-node/target/sapl
+              sapl-node/target/classes/META-INF/sbom/application.cdx.json
+          - os: macos-latest
+            artifact-name: sapl-macos-arm64
+            executable: sapl
+            profile: native
+            upload-path: |
+              sapl-node/target/sapl
+              sapl-node/target/classes/META-INF/sbom/application.cdx.json
           - os: windows-latest
             artifact-name: sapl-windows-amd64
             executable: sapl.exe
             profile: native
-            upload-path: sapl-node/target/sapl.exe
+            upload-path: |
+              sapl-node/target/sapl.exe
+              sapl-node/target/classes/META-INF/sbom/application.cdx.json
       fail-fast: false
 
     name: Build (${{ matrix.os }})
@@ -71,8 +83,8 @@ jobs:
           # GraalVM hardcodes x86_64-linux-musl-gcc in HostedMuslLibC regardless of arch
           sudo ln -sf /usr/bin/musl-gcc /usr/local/bin/x86_64-linux-musl-gcc
           # Get musl-compiled static zlib from Alpine's package manager
-          docker run --rm -v /tmp/alpine-zlib:/out alpine:latest sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
-          sudo cp /tmp/alpine-zlib/libz.a /usr/lib/$(uname -m)-linux-musl/
+          docker run --rm -v /tmp/alpine-zlib:/out alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
+          sudo cp /tmp/alpine-zlib/libz.a "/usr/lib/$(uname -m)-linux-musl/"
 
       - name: Setup Visual Studio Build Tools (Windows)
         if: matrix.os == 'windows-latest'
@@ -115,6 +127,3 @@ jobs:
       - name: Clean up Local Repository before Caching
         shell: bash
         run: rm -rf ~/.m2/repository/io/sapl
-
-  # macOS native Node builds are release-only because public macOS runners are
-  # memory constrained for this GraalVM build. See FTKeV/sapl-mac-build.

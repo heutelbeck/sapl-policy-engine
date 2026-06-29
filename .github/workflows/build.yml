@@ -84,20 +84,20 @@ jobs:
             exit 1
           fi
           echo "Extracted version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if [[ "$VERSION" == *-SNAPSHOT ]]; then
-            echo "is_snapshot=true" >> $GITHUB_OUTPUT
+            echo "is_snapshot=true" >> "$GITHUB_OUTPUT"
           else
-            echo "is_snapshot=false" >> $GITHUB_OUTPUT
+            echo "is_snapshot=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check Ref Type
         id: check-ref
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "is_tag=true" >> $GITHUB_OUTPUT
+            echo "is_tag=true" >> "$GITHUB_OUTPUT"
           else
-            echo "is_tag=false" >> $GITHUB_OUTPUT
+            echo "is_tag=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Clean up Local Repository before Caching
@@ -248,17 +248,12 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   build-docker:
-    if: >-
-      ${{
-        github.event_name != 'pull_request' &&
-        (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
-      }}
+    if: ${{ github.event_name != 'pull_request' }}
     needs: [version-check]
     name: Build Docker Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     timeout-minutes: 60
 
     steps:
@@ -344,6 +339,7 @@ jobs:
             sapl-node/target/sapl-node-*.jar.asc
             sapl-node/target/sapl-node-*.jar.sha1
             sapl-node/target/sapl-node-*.jar.md5
+            sapl-node/target/classes/META-INF/sbom/application.cdx.json
             sapl-node/target/site/io.*.spdx.json
           retention-days: 1
 
@@ -457,14 +453,418 @@ jobs:
           cp artifacts/linux-amd64/sapl sapl-benchmark/bin/sapl
           chmod +x sapl-benchmark/bin/sapl
           ./sapl-benchmark/scripts/build.sh
-          BENCH_QUALITIES=test ./sapl-benchmark/scripts/run-all.sh "$RUNNER_TEMP/bench-results"
+          env BENCH_QUALITIES=test ./sapl-benchmark/scripts/run-all.sh "$RUNNER_TEMP/bench-results"
+
+  build-min-docker:
+    needs: [version-check, build-native-node, smoke-test-native-node]
+    if: ${{ github.event_name != 'pull_request' }}
+    name: Build Minimal Native Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 20
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download amd64 Native Binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-linux-amd64
+          path: min-context/amd64
+
+      - name: Download arm64 Native Binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-linux-arm64
+          path: min-context/arm64
+
+      - name: Build Minimal Native Image Archives
+        run: |
+          chmod +x min-context/amd64/sapl min-context/arm64/sapl
+          docker buildx create --use --name sapl-min-builder || docker buildx use sapl-min-builder
+          docker buildx build --platform linux/amd64 -f sapl-node/packaging/docker/Dockerfile \
+            -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64 \
+            --output type=docker,dest=sapl-node-min-amd64.tar min-context/amd64
+          docker buildx build --platform linux/arm64 -f sapl-node/packaging/docker/Dockerfile \
+            -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64 \
+            --output type=docker,dest=sapl-node-min-arm64.tar min-context/arm64
+
+      - name: Upload Minimal Native Image Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: minimal-native-docker-images
+          path: |
+            sapl-node-min-amd64.tar
+            sapl-node-min-arm64.tar
+          if-no-files-found: error
+          retention-days: 1
+
+  build-native-node-release-assets:
+    needs: [version-check, build-native-node, build-docker]
+    if: ${{ github.event_name != 'pull_request' }}
+    name: Build Native SAPL Node Release Assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            LICENSE
+            sapl-node/README.md
+            sapl-node/packaging
+          sparse-checkout-cone-mode: false
+
+      - name: Download Linux amd64 artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-linux-amd64
+          path: artifacts/linux-amd64
+
+      - name: Download Linux arm64 artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-linux-arm64
+          path: artifacts/linux-arm64
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-windows-amd64
+          path: artifacts/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-macos-arm64
+          path: artifacts/macos
+
+      - name: Download SAPL Node JAR
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-node-jars
+          path: sapl-node/target
+
+      - name: Prepare release assets
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          mkdir -p release staging/linux-amd64/sbom staging/linux-arm64/sbom staging/macos/sbom staging/windows/sbom
+
+          MAN_SRC=artifacts/linux-amd64/generated-man
+          COMPLETION_SRC=artifacts/linux-amd64/generated-completion
+          JAR_SBOM_SRC=artifacts/linux-amd64/classes/META-INF/sbom/application.cdx.json
+          LINUX_AMD64_SBOM_SRC=artifacts/linux-amd64/classes/META-INF/sbom/application.cdx.json
+          LINUX_ARM64_SBOM_SRC=artifacts/linux-arm64/classes/META-INF/sbom/application.cdx.json
+          MACOS_SBOM_SRC=artifacts/macos/classes/META-INF/sbom/application.cdx.json
+          WINDOWS_SBOM_SRC=artifacts/windows/classes/META-INF/sbom/application.cdx.json
+
+          cp artifacts/linux-amd64/sapl staging/linux-amd64/sapl
+          chmod +x staging/linux-amd64/sapl
+          cp LICENSE staging/linux-amd64/
+          cp sapl-node/README.md staging/linux-amd64/
+          cp -r "$MAN_SRC" staging/linux-amd64/man
+          mkdir -p staging/linux-amd64/completion
+          cp "$COMPLETION_SRC/sapl.bash" staging/linux-amd64/completion/
+          cp "$LINUX_AMD64_SBOM_SRC" staging/linux-amd64/sbom/application.cdx.json
+          tar -czf "release/sapl-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
+
+          cp artifacts/linux-arm64/sapl staging/linux-arm64/sapl
+          chmod +x staging/linux-arm64/sapl
+          cp LICENSE staging/linux-arm64/
+          cp sapl-node/README.md staging/linux-arm64/
+          cp -r "$MAN_SRC" staging/linux-arm64/man
+          mkdir -p staging/linux-arm64/completion
+          cp "$COMPLETION_SRC/sapl.bash" staging/linux-arm64/completion/
+          cp "$LINUX_ARM64_SBOM_SRC" staging/linux-arm64/sbom/application.cdx.json
+          tar -czf "release/sapl-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
+
+          cp artifacts/macos/sapl staging/macos/sapl
+          chmod +x staging/macos/sapl
+          cp LICENSE staging/macos/
+          cp sapl-node/README.md staging/macos/
+          cp -r "$MAN_SRC" staging/macos/man
+          mkdir -p staging/macos/completion
+          cp "$COMPLETION_SRC/sapl.bash" staging/macos/completion/
+          cp "$MACOS_SBOM_SRC" staging/macos/sbom/application.cdx.json
+          tar -czf "release/sapl-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
+
+          cp artifacts/windows/sapl.exe staging/windows/sapl.exe
+          cp LICENSE staging/windows/
+          cp sapl-node/README.md staging/windows/
+          cp "$WINDOWS_SBOM_SRC" staging/windows/sbom/application.cdx.json
+          cd staging/windows && zip -qr "../../release/sapl-${VERSION}-windows-amd64.zip" . && cd ../..
+
+          cp sapl-node/target/sapl-node-*.jar "release/sapl-node-${VERSION}.jar"
+          cp "$JAR_SBOM_SRC" "release/sapl-node-${VERSION}.cdx.json"
+          cp "$LINUX_AMD64_SBOM_SRC" "release/sapl-${VERSION}-linux-amd64.cdx.json"
+          cp "$LINUX_ARM64_SBOM_SRC" "release/sapl-${VERSION}-linux-arm64.cdx.json"
+          cp "$MACOS_SBOM_SRC" "release/sapl-${VERSION}-macos-arm64.cdx.json"
+          cp "$WINDOWS_SBOM_SRC" "release/sapl-${VERSION}-windows-amd64.cdx.json"
+
+      - name: Install nfpm
+        run: |
+          NFPM_VERSION=2.47.0
+          NFPM_ARCHIVE="nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz"
+          NFPM_SHA256=0660ca602b2d2d2ae4781a06c692b3eeb9d437ffea05b831d76e41f4a3188783
+          curl --proto '=https' -fsSLO "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/${NFPM_ARCHIVE}"
+          echo "${NFPM_SHA256}  ${NFPM_ARCHIVE}" | sha256sum -c -
+          tar xzf "${NFPM_ARCHIVE}" -C "$RUNNER_TEMP" nfpm
+          sudo install "$RUNNER_TEMP/nfpm" /usr/local/bin/nfpm
+
+      - name: Build DEB and RPM packages
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          export MAN_DIR=artifacts/linux-amd64/generated-man
+          export COMPLETION_DIR=artifacts/linux-amd64/generated-completion
+          export BINARY=artifacts/linux-amd64/sapl ARCH=amd64 SBOM=artifacts/linux-amd64/classes/META-INF/sbom/application.cdx.json
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl_${VERSION}_amd64.deb"
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-${VERSION}.x86_64.rpm"
+          export BINARY=artifacts/linux-arm64/sapl ARCH=arm64 SBOM=artifacts/linux-arm64/classes/META-INF/sbom/application.cdx.json
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl_${VERSION}_arm64.deb"
+          nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-${VERSION}.aarch64.rpm"
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum ./* > SHA256SUMS.txt
+
+      - name: Attest SAPL Node release artifact provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: release/*
+
+      - name: Attest SAPL Node JVM SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release/sapl-node-${{ needs.version-check.outputs.version }}.jar
+          sbom-path: release/sapl-node-${{ needs.version-check.outputs.version }}.cdx.json
+
+      - name: Attest SAPL Node linux amd64 SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: |
+            release/sapl-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz
+            release/sapl_${{ needs.version-check.outputs.version }}_amd64.deb
+            release/sapl-${{ needs.version-check.outputs.version }}.x86_64.rpm
+          sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-linux-amd64.cdx.json
+
+      - name: Attest SAPL Node linux arm64 SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: |
+            release/sapl-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz
+            release/sapl_${{ needs.version-check.outputs.version }}_arm64.deb
+            release/sapl-${{ needs.version-check.outputs.version }}.aarch64.rpm
+          sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-linux-arm64.cdx.json
+
+      - name: Attest SAPL Node macOS SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz
+          sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.cdx.json
+
+      - name: Attest SAPL Node Windows SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release/sapl-${{ needs.version-check.outputs.version }}-windows-amd64.zip
+          sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-windows-amd64.cdx.json
+
+      - name: Upload SAPL Node release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sapl-node-release-assets
+          path: release/*
+          if-no-files-found: error
+          retention-days: 1
+
+  build-native-lsp-release-assets:
+    needs: [version-check, build-native-lsp]
+    if: ${{ github.event_name != 'pull_request' }}
+    name: Build Native Language Server Release Assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: |
+            LICENSE
+            sapl-language-server/README.md
+            sapl-language-server/packaging
+          sparse-checkout-cone-mode: false
+
+      - name: Download Linux amd64 artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-language-server-linux-amd64
+          path: artifacts/linux-amd64
+
+      - name: Download Linux arm64 artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-language-server-linux-arm64
+          path: artifacts/linux-arm64
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-language-server-windows-amd64
+          path: artifacts/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sapl-language-server-macos-arm64
+          path: artifacts/macos
+
+      - name: Prepare release assets
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          mkdir -p release staging/linux-amd64/sbom staging/linux-arm64/sbom staging/macos/sbom staging/windows/sbom
+          LINUX_AMD64_SBOM_SRC=artifacts/linux-amd64/classes/META-INF/sbom/bom.json
+          LINUX_ARM64_SBOM_SRC=artifacts/linux-arm64/classes/META-INF/sbom/bom.json
+          MACOS_SBOM_SRC=artifacts/macos/classes/META-INF/sbom/bom.json
+          WINDOWS_SBOM_SRC=artifacts/windows/classes/META-INF/sbom/bom.json
+
+          cp artifacts/linux-amd64/sapl-language-server staging/linux-amd64/sapl-language-server
+          chmod +x staging/linux-amd64/sapl-language-server
+          cp LICENSE staging/linux-amd64/
+          cp sapl-language-server/README.md staging/linux-amd64/
+          cp sapl-language-server/packaging/sapl-language-server.1 staging/linux-amd64/
+          cp "$LINUX_AMD64_SBOM_SRC" staging/linux-amd64/sbom/application.cdx.json
+          tar -czf "release/sapl-language-server-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
+
+          cp artifacts/linux-arm64/sapl-language-server staging/linux-arm64/sapl-language-server
+          chmod +x staging/linux-arm64/sapl-language-server
+          cp LICENSE staging/linux-arm64/
+          cp sapl-language-server/README.md staging/linux-arm64/
+          cp sapl-language-server/packaging/sapl-language-server.1 staging/linux-arm64/
+          cp "$LINUX_ARM64_SBOM_SRC" staging/linux-arm64/sbom/application.cdx.json
+          tar -czf "release/sapl-language-server-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
+
+          cp artifacts/macos/sapl-language-server staging/macos/sapl-language-server
+          chmod +x staging/macos/sapl-language-server
+          cp LICENSE staging/macos/
+          cp sapl-language-server/README.md staging/macos/
+          cp sapl-language-server/packaging/sapl-language-server.1 staging/macos/
+          cp "$MACOS_SBOM_SRC" staging/macos/sbom/application.cdx.json
+          tar -czf "release/sapl-language-server-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
+
+          cp artifacts/windows/sapl-language-server.exe staging/windows/sapl-language-server.exe
+          cp LICENSE staging/windows/
+          cp sapl-language-server/README.md staging/windows/
+          cp "$WINDOWS_SBOM_SRC" staging/windows/sbom/application.cdx.json
+          cd staging/windows && zip -qr "../../release/sapl-language-server-${VERSION}-windows-amd64.zip" . && cd ../..
+          cp "$LINUX_AMD64_SBOM_SRC" "release/sapl-language-server-${VERSION}-linux-amd64.cdx.json"
+          cp "$LINUX_ARM64_SBOM_SRC" "release/sapl-language-server-${VERSION}-linux-arm64.cdx.json"
+          cp "$MACOS_SBOM_SRC" "release/sapl-language-server-${VERSION}-macos-arm64.cdx.json"
+          cp "$WINDOWS_SBOM_SRC" "release/sapl-language-server-${VERSION}-windows-amd64.cdx.json"
+
+      - name: Install nfpm
+        run: |
+          NFPM_VERSION=2.47.0
+          NFPM_ARCHIVE="nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz"
+          NFPM_SHA256=0660ca602b2d2d2ae4781a06c692b3eeb9d437ffea05b831d76e41f4a3188783
+          curl --proto '=https' -fsSLO "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/${NFPM_ARCHIVE}"
+          echo "${NFPM_SHA256}  ${NFPM_ARCHIVE}" | sha256sum -c -
+          tar xzf "${NFPM_ARCHIVE}" -C "$RUNNER_TEMP" nfpm
+          sudo install "$RUNNER_TEMP/nfpm" /usr/local/bin/nfpm
+
+      - name: Build DEB and RPM packages
+        env:
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          export BINARY=artifacts/linux-amd64/sapl-language-server ARCH=amd64 SBOM=artifacts/linux-amd64/classes/META-INF/sbom/bom.json
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_amd64.deb"
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.x86_64.rpm"
+          export BINARY=artifacts/linux-arm64/sapl-language-server ARCH=arm64 SBOM=artifacts/linux-arm64/classes/META-INF/sbom/bom.json
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_arm64.deb"
+          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.aarch64.rpm"
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum ./* > SHA256SUMS.txt
+
+      - name: Attest SAPL Language Server release artifact provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: release/*
+
+      - name: Attest SAPL Language Server linux amd64 SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: |
+            release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz
+            release/sapl-language-server_${{ needs.version-check.outputs.version }}_amd64.deb
+            release/sapl-language-server-${{ needs.version-check.outputs.version }}.x86_64.rpm
+          sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-amd64.cdx.json
+
+      - name: Attest SAPL Language Server linux arm64 SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: |
+            release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz
+            release/sapl-language-server_${{ needs.version-check.outputs.version }}_arm64.deb
+            release/sapl-language-server-${{ needs.version-check.outputs.version }}.aarch64.rpm
+          sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-arm64.cdx.json
+
+      - name: Attest SAPL Language Server macOS SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz
+          sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-macos-arm64.cdx.json
+
+      - name: Attest SAPL Language Server Windows SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.zip
+          sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.cdx.json
+
+      - name: Upload SAPL Language Server release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sapl-language-server-release-assets
+          path: release/*
+          if-no-files-found: error
+          retention-days: 1
 
   # ---------------------------------------------------------------------------
   # Phase 2: Publish (gated on all of Phase 1)
   # ---------------------------------------------------------------------------
 
   publish-maven:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -477,6 +877,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
+      attestations: write
     timeout-minutes: 60
 
     steps:
@@ -530,11 +932,20 @@ jobs:
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: Attest Maven artifact provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: |
+            pom.xml
+            **/pom.xml
+            **/target/*.jar
+            **/target/**/*.spdx.json
+
       - name: Clean up Local Repository before Caching
         run: rm -rf ~/.m2/repository/io/sapl
 
   publish-docker:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -551,6 +962,8 @@ jobs:
       sapl-playground-docker-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
     permissions:
       contents: read
+      id-token: write
+      attestations: write
       packages: write
     timeout-minutes: 30
 
@@ -607,14 +1020,14 @@ jobs:
           IMAGE: heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}
         run: |
           # Save the location of the maven output files for easier reference
-          ARTIFACT_PATTERN=sapl-node/target/sapl-node-*.jar
+          ARTIFACT_PATTERN=(sapl-node/target/sapl-node-*.jar)
 
-          echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
+          echo "hashes=$(sha256sum "${ARTIFACT_PATTERN[@]}" | base64 -w0)" >> "$GITHUB_OUTPUT"
 
           # Save the digest of the Docker image for later use
-          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          IMAGE_DIGEST=$(docker inspect "${REGISTRY}/${IMAGE}" --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
           echo "Digest of container: $IMAGE_DIGEST"
-          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Get hash of Playground
         id: get-playground-hash
@@ -623,12 +1036,72 @@ jobs:
           IMAGE: heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
         run: |
           # Save the digest of the Docker image for later use
-          IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
+          IMAGE_DIGEST=$(docker inspect "${REGISTRY}/${IMAGE}" --format '{{index .RepoDigests 0}}' | cut -d'@' -f2)
           echo "Digest of container: $IMAGE_DIGEST"
-          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Generate SAPL Node image SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ghcr.io/heutelbeck/sapl-node@${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+          format: spdx-json
+          output-file: sapl-node-image.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate Playground image SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ghcr.io/heutelbeck/sapl-playground@${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+          format: spdx-json
+          output-file: sapl-playground-image.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Sign JVM Docker images
+        run: |
+          cosign sign --yes ghcr.io/heutelbeck/sapl-node@${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
+          cosign sign --yes ghcr.io/heutelbeck/sapl-playground@${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
+
+      - name: Attest SAPL Node image provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-node
+          subject-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
+          push-to-registry: true
+
+      - name: Attest SAPL Node image SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-node
+          subject-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
+          sbom-path: sapl-node-image.spdx.json
+          push-to-registry: true
+
+      - name: Attest Playground image provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-playground
+          subject-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
+          push-to-registry: true
+
+      - name: Attest Playground image SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-playground
+          subject-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
+          sbom-path: sapl-playground-image.spdx.json
+          push-to-registry: true
 
   publish-min-docker:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -641,6 +1114,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
+      attestations: write
       packages: write
     timeout-minutes: 20
 
@@ -650,20 +1125,10 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Download amd64 Native Binary
+      - name: Download Minimal Native Image Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: sapl-linux-amd64
-          path: min-context/amd64
-
-      - name: Download arm64 Native Binary
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sapl-linux-arm64
-          path: min-context/arm64
+          name: minimal-native-docker-images
 
       - name: Log in to the Container Registry
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
@@ -672,16 +1137,39 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
-      - name: Build Minimal Native Images
+      - name: Load Minimal Native Image Archives
         run: |
-          chmod +x min-context/amd64/sapl min-context/arm64/sapl
-          docker buildx create --use --name sapl-min-builder || docker buildx use sapl-min-builder
-          docker buildx build --platform linux/amd64 -f sapl-node/packaging/docker/Dockerfile \
-            -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64 \
-            --push min-context/amd64
-          docker buildx build --platform linux/arm64 -f sapl-node/packaging/docker/Dockerfile \
-            -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64 \
-            --push min-context/arm64
+          docker load --input sapl-node-min-amd64.tar
+          docker load --input sapl-node-min-arm64.tar
+
+      - name: Push Minimal Native amd64 Image
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: docker push ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64
+
+      - name: Push Minimal Native arm64 Image
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: error
+          command: docker push ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64
+
+      - name: Capture Minimal Native Image Digests
+        id: min-digests
+        env:
+          IMAGE: ghcr.io/heutelbeck/sapl-node
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          AMD64_DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}-min-amd64" | awk '/^Digest:/ {print $2; exit}')
+          ARM64_DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}-min-arm64" | awk '/^Digest:/ {print $2; exit}')
+          echo "amd64_digest=${AMD64_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "arm64_digest=${ARM64_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "amd64_digest=${AMD64_DIGEST}"
+          echo "arm64_digest=${ARM64_DIGEST}"
 
       - name: Publish Minimal Native Manifest
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
@@ -692,11 +1180,89 @@ jobs:
           command: >-
             docker buildx imagetools create
             -t ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min
-            ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64
-            ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64
+            ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-amd64@${{ steps.min-digests.outputs.amd64_digest }}
+            ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }}-min-arm64@${{ steps.min-digests.outputs.arm64_digest }}
+
+      - name: Capture Minimal Native Manifest Digest
+        id: min-manifest-digest
+        env:
+          IMAGE: ghcr.io/heutelbeck/sapl-node
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          MANIFEST_DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}-min" | awk '/^Digest:/ {print $2; exit}')
+          echo "manifest_digest=${MANIFEST_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "manifest_digest=${MANIFEST_DIGEST}"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Generate Minimal Native amd64 image SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ghcr.io/heutelbeck/sapl-node@${{ steps.min-digests.outputs.amd64_digest }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+          format: spdx-json
+          output-file: sapl-node-min-amd64-image.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate Minimal Native arm64 image SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ghcr.io/heutelbeck/sapl-node@${{ steps.min-digests.outputs.arm64_digest }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+          format: spdx-json
+          output-file: sapl-node-min-arm64-image.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Sign Minimal Native Docker images
+        run: |
+          cosign sign --yes ghcr.io/heutelbeck/sapl-node@${{ steps.min-digests.outputs.amd64_digest }}
+          cosign sign --yes ghcr.io/heutelbeck/sapl-node@${{ steps.min-digests.outputs.arm64_digest }}
+          cosign sign --yes ghcr.io/heutelbeck/sapl-node@${{ steps.min-manifest-digest.outputs.manifest_digest }}
+
+      - name: Attest Minimal Native amd64 image provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-node
+          subject-digest: ${{ steps.min-digests.outputs.amd64_digest }}
+          push-to-registry: true
+
+      - name: Attest Minimal Native amd64 image SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-node
+          subject-digest: ${{ steps.min-digests.outputs.amd64_digest }}
+          sbom-path: sapl-node-min-amd64-image.spdx.json
+          push-to-registry: true
+
+      - name: Attest Minimal Native arm64 image provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-node
+          subject-digest: ${{ steps.min-digests.outputs.arm64_digest }}
+          push-to-registry: true
+
+      - name: Attest Minimal Native arm64 image SBOM
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-node
+          subject-digest: ${{ steps.min-digests.outputs.arm64_digest }}
+          sbom-path: sapl-node-min-arm64-image.spdx.json
+          push-to-registry: true
+
+      - name: Attest Minimal Native manifest provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/heutelbeck/sapl-node
+          subject-digest: ${{ steps.min-manifest-digest.outputs.manifest_digest }}
+          push-to-registry: true
 
   publish-native-node:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -717,107 +1283,11 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          sparse-checkout: |
-            LICENSE
-            sapl-node/README.md
-            sapl-node/packaging
-            sapl-language-server/packaging
-          sparse-checkout-cone-mode: false
-
-      - name: Download Linux amd64 artifact
+      - name: Download SAPL Node release assets
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: sapl-linux-amd64
-          path: artifacts/linux-amd64
-
-      - name: Download Linux arm64 artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sapl-linux-arm64
-          path: artifacts/linux-arm64
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sapl-windows-amd64
-          path: artifacts/windows
-
-      - name: Download SAPL Node JAR
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sapl-node-jars
-          path: sapl-node/target
-
-      - name: Prepare release assets
-        env:
-          VERSION: ${{ needs.version-check.outputs.version }}
-        run: |
-          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/windows
-
-          # Man pages and completion are platform-independent, bundled in the linux-amd64 artifact
-          MAN_SRC=artifacts/linux-amd64/generated-man
-          COMPLETION_SRC=artifacts/linux-amd64/generated-completion
-
-          # Linux amd64 (tar.gz)
-          cp artifacts/linux-amd64/sapl staging/linux-amd64/sapl
-          chmod +x staging/linux-amd64/sapl
-          cp LICENSE staging/linux-amd64/
-          cp sapl-node/README.md staging/linux-amd64/
-          cp -r "$MAN_SRC" staging/linux-amd64/man
-          mkdir -p staging/linux-amd64/completion
-          cp "$COMPLETION_SRC/sapl.bash" staging/linux-amd64/completion/
-          tar -czf "release/sapl-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
-
-          # Linux arm64 (tar.gz)
-          cp artifacts/linux-arm64/sapl staging/linux-arm64/sapl
-          chmod +x staging/linux-arm64/sapl
-          cp LICENSE staging/linux-arm64/
-          cp sapl-node/README.md staging/linux-arm64/
-          cp -r "$MAN_SRC" staging/linux-arm64/man
-          mkdir -p staging/linux-arm64/completion
-          cp "$COMPLETION_SRC/sapl.bash" staging/linux-arm64/completion/
-          tar -czf "release/sapl-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
-
-          # Windows (zip)
-          cp artifacts/windows/sapl.exe staging/windows/sapl.exe
-          cp LICENSE staging/windows/
-          cp sapl-node/README.md staging/windows/
-          cd staging/windows && zip -q "../../release/sapl-${VERSION}-windows-amd64.zip" ./* && cd ../..
-
-          # JVM fat JAR
-          cp sapl-node/target/sapl-node-*.jar "release/sapl-node-${VERSION}.jar"
-
-          # macOS arm64 binary is built and uploaded separately by
-          # FTKeV/sapl-mac-build and attached to the release manually.
-
-      # Install nfpm directly instead of using goreleaser/nfpm action.
-      # The action (goreleaser/nfpm@v2) fails with broken symlinks in its
-      # testdata directory during checkout. Revisit periodically to check
-      # if this is fixed upstream: https://github.com/goreleaser/nfpm
-      - name: Install nfpm
-        run: |
-          curl --proto '=https' -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_Linux_x86_64.tar.gz | tar xzf - -C /usr/local/bin nfpm
-
-      - name: Build DEB and RPM packages
-        env:
-          VERSION: ${{ needs.version-check.outputs.version }}
-        run: |
-          export MAN_DIR=artifacts/linux-amd64/generated-man
-          export COMPLETION_DIR=artifacts/linux-amd64/generated-completion
-          export BINARY=artifacts/linux-amd64/sapl ARCH=amd64
-          nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl_${VERSION}_amd64.deb"
-          nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-${VERSION}.x86_64.rpm"
-          export BINARY=artifacts/linux-arm64/sapl ARCH=arm64
-          nfpm package --config sapl-node/packaging/nfpm.yml --packager deb --target "release/sapl_${VERSION}_arm64.deb"
-          nfpm package --config sapl-node/packaging/nfpm.yml --packager rpm --target "release/sapl-${VERSION}.aarch64.rpm"
-
-      - name: Generate checksums
-        run: |
-          cd release
-          sha256sum ./* > SHA256SUMS.txt
+          name: sapl-node-release-assets
+          path: release
 
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
@@ -839,6 +1309,7 @@ jobs:
             | JVM (all platforms) | `sapl-node-${{ needs.version-check.outputs.version }}.jar` |
             | Linux x86_64 | `sapl-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz` |
             | Linux ARM64 | `sapl-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz` |
+            | macOS ARM64 | `sapl-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz` |
             | Windows x86_64 | `sapl-${{ needs.version-check.outputs.version }}-windows-amd64.zip` |
 
             Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
@@ -962,7 +1433,7 @@ jobs:
           git push
 
   publish-native-lsp:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test, publish-native-node]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test, publish-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -983,98 +1454,11 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          sparse-checkout: |
-            LICENSE
-            sapl-language-server/README.md
-            sapl-language-server/packaging
-          sparse-checkout-cone-mode: false
-
-      - name: Download Linux amd64 artifact
+      - name: Download SAPL Language Server release assets
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: sapl-language-server-linux-amd64
-          path: artifacts/linux-amd64
-
-      - name: Download Linux arm64 artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sapl-language-server-linux-arm64
-          path: artifacts/linux-arm64
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sapl-language-server-windows-amd64
-          path: artifacts/windows
-
-      - name: Download macOS artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sapl-language-server-macos-arm64
-          path: artifacts/macos
-
-      - name: Prepare release assets
-        env:
-          VERSION: ${{ needs.version-check.outputs.version }}
-        run: |
-          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/macos staging/windows
-
-          # Linux amd64 (tar.gz)
-          cp artifacts/linux-amd64/sapl-language-server staging/linux-amd64/sapl-language-server
-          chmod +x staging/linux-amd64/sapl-language-server
-          cp LICENSE staging/linux-amd64/
-          cp sapl-language-server/README.md staging/linux-amd64/
-          cp sapl-language-server/packaging/sapl-language-server.1 staging/linux-amd64/
-          tar -czf "release/sapl-language-server-${VERSION}-linux-amd64.tar.gz" -C staging/linux-amd64 .
-
-          # Linux arm64 (tar.gz)
-          cp artifacts/linux-arm64/sapl-language-server staging/linux-arm64/sapl-language-server
-          chmod +x staging/linux-arm64/sapl-language-server
-          cp LICENSE staging/linux-arm64/
-          cp sapl-language-server/README.md staging/linux-arm64/
-          cp sapl-language-server/packaging/sapl-language-server.1 staging/linux-arm64/
-          tar -czf "release/sapl-language-server-${VERSION}-linux-arm64.tar.gz" -C staging/linux-arm64 .
-
-          # macOS (tar.gz)
-          cp artifacts/macos/sapl-language-server staging/macos/sapl-language-server
-          chmod +x staging/macos/sapl-language-server
-          cp LICENSE staging/macos/
-          cp sapl-language-server/README.md staging/macos/
-          cp sapl-language-server/packaging/sapl-language-server.1 staging/macos/
-          tar -czf "release/sapl-language-server-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
-
-          # Windows (zip)
-          cp artifacts/windows/sapl-language-server.exe staging/windows/sapl-language-server.exe
-          cp LICENSE staging/windows/
-          cp sapl-language-server/README.md staging/windows/
-          cd staging/windows && zip -q "../../release/sapl-language-server-${VERSION}-windows-amd64.zip" ./* && cd ../..
-
-      # Install nfpm directly instead of using goreleaser/nfpm action.
-      # The action (goreleaser/nfpm@v2) fails with broken symlinks in its
-      # testdata directory during checkout. Revisit periodically to check
-      # if this is fixed upstream: https://github.com/goreleaser/nfpm
-      - name: Install nfpm
-        run: |
-          curl --proto '=https' -sfL https://github.com/goreleaser/nfpm/releases/download/v2.45.0/nfpm_2.45.0_Linux_x86_64.tar.gz | tar xzf - -C /usr/local/bin nfpm
-
-      - name: Build DEB and RPM packages
-        env:
-          VERSION: ${{ needs.version-check.outputs.version }}
-        run: |
-          export BINARY=artifacts/linux-amd64/sapl-language-server ARCH=amd64
-          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_amd64.deb"
-          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.x86_64.rpm"
-          export BINARY=artifacts/linux-arm64/sapl-language-server ARCH=arm64
-          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager deb --target "release/sapl-language-server_${VERSION}_arm64.deb"
-          nfpm package --config sapl-language-server/packaging/nfpm.yml --packager rpm --target "release/sapl-language-server-${VERSION}.aarch64.rpm"
-
-      - name: Generate checksums
-        run: |
-          cd release
-          sha256sum ./* > SHA256SUMS.txt
+          name: sapl-language-server-release-assets
+          path: release
 
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
@@ -1193,6 +1577,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Harden Runner
@@ -1206,7 +1592,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           mkdir -p sums-staging
-          gh release download "${TAG}" --repo "${{ github.repository }}" --dir sums-staging --pattern '*.tar.gz' --pattern '*.zip' --pattern '*.deb' --pattern '*.rpm' --pattern '*.jar'
+          gh release download "${TAG}" --repo "${{ github.repository }}" --dir sums-staging --pattern '*.tar.gz' --pattern '*.zip' --pattern '*.deb' --pattern '*.rpm' --pattern '*.jar' --pattern '*.cdx.json'
           ls -lh sums-staging/
 
       - name: Generate complete SHA256SUMS.txt
@@ -1215,6 +1601,11 @@ jobs:
           sha256sum -- * > SHA256SUMS.txt
           echo "=== Final SHA256SUMS.txt ($(wc -l < SHA256SUMS.txt) entries) ==="
           cat SHA256SUMS.txt
+
+      - name: Attest final release checksums
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: sums-staging/SHA256SUMS.txt
 
       - name: Upload SHA256SUMS.txt to release
         env:
@@ -1266,7 +1657,7 @@ jobs:
           username: ${{ secrets.PLAYGROUND_SERVER_USERNAME }}
           key: ${{ secrets.PLAYGROUND_SERVER_SSH_KEY }}
           script: |
-            docker pull ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
+            docker pull ghcr.io/heutelbeck/sapl-playground@${{ needs.publish-docker.outputs.sapl-playground-docker-digest }}
             docker stop sapl-playground || true
             docker rm sapl-playground || true
             docker run -d \
@@ -1275,7 +1666,7 @@ jobs:
               -p 9003:8080 \
               -e SAPL_PLAYGROUND_BASEURL=https://playground.sapl.io \
               -e SAPL_EMBED_CORS_ALLOWEDORIGINS_0=https://sapl.io \
-              ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }}
+              ghcr.io/heutelbeck/sapl-playground@${{ needs.publish-docker.outputs.sapl-playground-docker-digest }}
 
             echo "Verifying deployment..."
             sleep 10

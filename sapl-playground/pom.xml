@@ -264,7 +264,7 @@
                                 </exclude>
                             </excludes>
                             <image>
-                                <builder>paketobuildpacks/builder-jammy-base:latest</builder>
+                                <builder>paketobuildpacks/builder-jammy-base:latest@sha256:0ade7fc68caad21a863a7b1be454f4858c6a7d56282688dc1b241880f524b630</builder>
                                 <name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
                                 <createdDate>now</createdDate>
                                 <env>
