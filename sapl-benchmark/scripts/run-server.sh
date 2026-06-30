@@ -46,21 +46,24 @@ if [ ${#RUNTIMES[@]} -eq 0 ]; then
     exit 1
 fi
 
-# Protocol detection from experiment profile variables
+# Protocols are chosen by experiment, not inferred from which sweep variables
+# happen to be set. server-http runs http only, server-rsocket runs the rsocket
+# transports only, server-all runs both. Without this, server-rsocket also ran a
+# full http sweep, duplicating server-http. Rsocket transports come from
+# TRANSPORT_SWEEP (tcp, uds).
 PROTOCOLS=()
-[ -n "${CONN_SWEEP+x}" ] && $HAS_WRK && PROTOCOLS+=(http)
-[ -n "${RSOCKET_VT+x}" ] && PROTOCOLS+=(rsocket-tcp)
-if [ -n "${TRANSPORT_SWEEP+x}" ]; then
-    PROTOCOLS=()
-    for t in "${TRANSPORT_SWEEP[@]}"; do
-        if [ "$t" = "tcp" ]; then
-            PROTOCOLS+=(rsocket-tcp)
-        elif [ "$t" = "uds" ]; then
-            PROTOCOLS+=(rsocket-uds)
-        fi
-    done
-    $HAS_WRK && [ -n "${CONN_SWEEP+x}" ] && PROTOCOLS+=(http)
-fi
+case "$EXPERIMENT" in
+    server-http)
+        $HAS_WRK && PROTOCOLS+=(http)
+        ;;
+    server-rsocket | server-all)
+        for t in "${TRANSPORT_SWEEP[@]:-tcp}"; do
+            [ "$t" = "tcp" ] && PROTOCOLS+=(rsocket-tcp)
+            [ "$t" = "uds" ] && PROTOCOLS+=(rsocket-uds)
+        done
+        [ "$EXPERIMENT" = "server-all" ] && $HAS_WRK && PROTOCOLS+=(http)
+        ;;
+esac
 
 # Defaults for missing profile variables
 RSOCKET_VT=${RSOCKET_VT:-256}
