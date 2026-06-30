@@ -119,7 +119,19 @@
 		<bouncycastle.version>1.84</bouncycastle.version>
 		<flatbuffers.version>25.2.10</flatbuffers.version>
 		<commons-lang.version>3.20.0</commons-lang.version>
-		<reactor-netty.version>1.3.6</reactor-netty.version>
+		<!--
+		  Pinned to 1.3.5, not 1.3.6. reactor-netty 1.3.6 places connections on
+		  only every other event loop (stride-2 selection over netty 4.2's
+		  MultiThreadIoEventLoopGroup), so half the I/O threads stay idle and
+		  RSocket throughput drops about 30% for both the PDP server and the
+		  RSocket clients (sapl-node, sapl-pdp-remote). 1.3.5 uses all loops.
+		  Workaround if a future constraint forces 1.3.6: start the JVM with
+		  reactor.netty.ioWorkerCount set to twice the core count.
+		  On the next reactor-netty upgrade, verify the stride-2 behavior is
+		  fixed before raising this. If it is still broken, prefer setting
+		  ioWorkerCount on the LoopResources programmatically over pinning.
+		-->
+		<reactor-netty.version>1.3.5</reactor-netty.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
 		<nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
 		<json-schema-validator.version>3.0.5</json-schema-validator.version>
@@ -256,6 +268,17 @@
 				<groupId>io.github.classgraph</groupId>
 				<artifactId>classgraph</artifactId>
 				<version>${classgraph.version}</version>
+			</dependency>
+			<!-- Must precede spring-boot-dependencies to override the reactor-netty it manages. See reactor-netty.version for why this is pinned. -->
+			<dependency>
+				<groupId>io.projectreactor.netty</groupId>
+				<artifactId>reactor-netty-core</artifactId>
+				<version>${reactor-netty.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.projectreactor.netty</groupId>
+				<artifactId>reactor-netty-http</artifactId>
+				<version>${reactor-netty.version}</version>
 			</dependency>
             <!-- Spring-Boot -->
 			<dependency>

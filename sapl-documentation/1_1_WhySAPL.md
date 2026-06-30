@@ -6,7 +6,7 @@ nav_order: 1
 
 ## Why SAPL?
 
-SAPL is a policy language and authorization engine for Attribute Stream-Based Access Control (ASBAC). It provides a concise, purpose-built syntax for writing authorization policies, a managed infrastructure for integrating external data sources, and a reactive architecture that supports both continuous streaming and one-shot request-response authorization, with zero overhead when streaming is not used.
+SAPL is a policy language and authorization engine for Attribute Stream-Based Access Control (ASBAC). It provides a concise, purpose-built syntax for writing authorization policies, a managed infrastructure for integrating external data sources, and a stream-oriented evaluation model that supports both continuous streaming and one-shot request-response authorization, with zero overhead when streaming is not used.
 
 ### From ABAC to ASBAC
 
@@ -18,7 +18,7 @@ But many real-world scenarios require authorization that persists beyond a singl
 
 **Attribute Stream-Based Access Control (ASBAC)** extends ABAC by treating attributes as streams rather than snapshots. When a policy accesses an external attribute, the engine subscribes to a live data stream. If the underlying data changes (a clock crosses a shift boundary, a certificate expires, a permission is revoked), the engine re-evaluates the policy and pushes an updated decision to the application automatically.
 
-ASBAC is a strict superset of ABAC. Every request-response authorization decision is also valid in a streaming model. When policies do not access streaming attributes, SAPL's stratified policy compilation produces a fully synchronous evaluation path with no reactive overhead. Applications that use SAPL purely for request-response authorization do not pay for streaming capabilities they are not using.
+ASBAC is a strict superset of ABAC. Every request-response authorization decision is also valid in a streaming model. When policies do not access streaming attributes, SAPL's stratified policy compilation produces a fully synchronous evaluation path with no asynchronous stream-processing overhead. Applications that use SAPL purely for request-response authorization do not pay for streaming capabilities they are not using.
 
 ### Why a New Language and Engine
 
@@ -26,7 +26,7 @@ Streaming attributes are not a feature that can be added to an existing request-
 
 **The language operates on streams, not just data.** In SAPL, adding angle brackets to an expression turns it into a stream subscription. Writing `<time.now>` in a policy does not fetch the current time once. It subscribes to a time stream that emits new values as time passes. The policy author writes what looks like a simple expression. The engine manages the ongoing subscription, re-evaluates the policy when new values arrive, and pushes updated decisions to the application. Continuous monitoring comes from the language semantics, not from infrastructure the application has to build.
 
-**The evaluation model is fundamentally different.** A request-response-only engine evaluates a policy once and returns. A streaming engine maintains live evaluation contexts. When any subscribed attribute stream emits a new value, the engine re-evaluates the affected expressions and determines whether the decision has changed. This requires reactive expression evaluation, dependency tracking between expressions and their attribute sources, and an efficient mechanism for propagating changes through the policy without re-evaluating everything from scratch.
+**The evaluation model is fundamentally different.** A request-response-only engine evaluates a policy once and returns. A streaming engine maintains live evaluation contexts. When any subscribed attribute stream emits a new value, the engine re-evaluates the affected expressions and determines whether the decision has changed. This requires incremental expression evaluation, dependency tracking between expressions and their attribute sources, and an efficient mechanism for propagating changes through the policy without re-evaluating everything from scratch.
 
 **The engine must manage stream lifecycles.** When two policies access the same attribute, the engine shares a single connection to the data source rather than creating two. When a data source disconnects, the engine retries with exponential backoff. When no policy is currently using an attribute, the engine keeps the connection alive briefly in case a new subscription arrives. When a PIP plugin is loaded or unloaded at runtime, active streams reconnect automatically. When policies are added, removed, or modified, the engine re-evaluates all active subscriptions against the new policy set without interrupting them.
 

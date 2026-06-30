@@ -170,7 +170,7 @@ Options control the **stream infrastructure** that wraps every attribute lookup.
 <http.get(request) [{ "initialTimeOutMs": 500, "retries": 5 }]>
 ```
 
-Options are not passed to the PIP itself. Instead, they configure how the engine handles the reactive stream that the PIP returns. The available option fields are:
+Options are not passed to the PIP itself. Instead, they configure how the engine handles the SAPL stream produced by the attribute lookup. The available option fields are:
 
 | Option             | Default | Purpose                                                     |
 |--------------------|---------|-------------------------------------------------------------|

@@ -64,6 +64,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Role;
 import tools.jackson.databind.json.JsonMapper;
@@ -123,6 +124,7 @@ import java.util.Set;
  */
 @Slf4j
 @AutoConfiguration
+@ImportRuntimeHints(SaplOperatorRuntimeHints.class)
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
 @ConditionalOnClass(name = "io.sapl.pdp.PolicyDecisionPointBuilder")
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true", matchIfMissing = true)

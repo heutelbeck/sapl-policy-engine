@@ -32,7 +32,7 @@ Only add the snapshot repository when the SAPL version ends in `-SNAPSHOT`.
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.1.1-SNAPSHOT</version>
+            <version>4.2.0-SNAPSHOT-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
