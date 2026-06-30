@@ -1,7 +1,7 @@
 # SAPL 4.1.2
 
-A patch release fixing a native-image-only failure. The JVM build was not affected.
+This release restores RSocket throughput that had regressed through a transitive dependency, and clears native-image reflection noise on shutdown.
 
-In a native image, SAPL Node logged `MissingReflectionRegistrationError` stack traces on shutdown and on the fail-closed startup that occurs when no authentication is configured, burying a correct refusal under unrelated reflection errors. The two Server-Sent-Events executors were Spring beans of an `AutoCloseable` type; Spring AOT drops their `@Bean(destroyMethod = "")` suppression, so the native image re-inferred a reflective shutdown at context destroy and failed to invoke it. They are now owned by their configuration and shut down through `DisposableBean.destroy()`, an interface call that never uses reflection.
+reactor-netty 1.3.6, brought in by the Spring Boot 4.1 dependency set, places connections on only every other event loop and leaves half the I/O threads idle. Measured against the RSocket load generator, this cut its generated throughput by about 30 percent. The PDP server and the remote PEP client use the same library and are likely affected, but that was not measured here. reactor-netty is pinned to 1.3.5, which uses all event loops, until the upstream behavior is fixed. The decision and the workaround are documented at the pin in the root POM.
 
-The fail-closed behavior is unchanged. Running without an authentication mechanism, and without explicitly allowing none, still refuses to start.
+In a native image, SAPL Node also logged reflection-error stack traces on shutdown and on the fail-closed startup. The Server-Sent-Events executors now shut down through `DisposableBean`, which uses no reflection. The JVM build was never affected.

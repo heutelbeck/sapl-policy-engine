@@ -240,6 +240,15 @@ for runtime in "${RUNTIMES[@]}"; do
                     server_cmd="java -XX:ActiveProcessorCount=$((pcores * 2)) -jar $SAPL_NODE_JAR"
                 fi
 
+                # RSocket binds EITHER a TCP port OR a Unix domain socket, never both,
+                # so the uds transport needs the server started on the socket path the
+                # client dials. Without this the uds runs connect to nothing.
+                rsocket_bind="--sapl.pdp.rsocket.port=7000"
+                if [ "$protocol" = "rsocket-uds" ]; then
+                    rm -f "$UDS_SOCKET"
+                    rsocket_bind="--sapl.pdp.rsocket.socket-path=$UDS_SOCKET"
+                fi
+
                 taskset -c "$cpu_range" $server_cmd server \
                     --io.sapl.node.allow-no-auth=true \
                     --io.sapl.pdp.embedded.metrics-enabled=false \
@@ -247,15 +256,20 @@ for runtime in "${RUNTIMES[@]}"; do
                     --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
                     --logging.level.root=WARN \
                     --sapl.pdp.rsocket.enabled=true \
-                    --sapl.pdp.rsocket.port=7000 \
+                    $rsocket_bind \
                     >/dev/null 2>&1 &
                 SERVER_PID=$!
 
                 max_wait=120
                 started=false
                 for i in $(seq 1 $max_wait); do
+                    if [ "$protocol" = "rsocket-uds" ]; then
+                        rsocket_ready=$([ -S "$UDS_SOCKET" ] && echo true || echo false)
+                    else
+                        rsocket_ready=$(ss -tln | grep -q ":7000 " 2>/dev/null && echo true || echo false)
+                    fi
                     if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1 \
-                       && ss -tln | grep -q ":7000 " 2>/dev/null; then
+                       && [ "$rsocket_ready" = true ]; then
                         started=true
                         break
                     fi
