@@ -54,10 +54,11 @@ public class SecretSealing {
     private static final Curve            CURVE      = Curve.X25519;
     private static final String           KEY_ID     = "recipient";
 
-    private static final String ERROR_CANNOT_GENERATE_KEY  = "Cannot generate a recipient key.";
-    private static final String ERROR_CANNOT_SEAL          = "Cannot seal a secret.";
-    private static final String ERROR_CANNOT_UNSEAL        = "Cannot unseal a secret.";
-    private static final String ERROR_UNEXPECTED_ALGORITHM = "Refusing to unseal: expected %s/%s but the token declares %s/%s.";
+    private static final String ERROR_CANNOT_GENERATE_KEY    = "Cannot generate a recipient key.";
+    private static final String ERROR_CANNOT_SEAL            = "Cannot seal a secret.";
+    private static final String ERROR_CANNOT_UNSEAL          = "Cannot unseal a secret.";
+    private static final String ERROR_UNEXPECTED_ALGORITHM   = "Refusing to unseal: expected %s/%s but the token declares %s/%s.";
+    private static final String ERROR_UNEXPECTED_COMPRESSION = "Refusing to unseal: the token declares compression %s but none is expected.";
 
     /** Generates a recipient key pair (the private key; its public part seals). */
     public static OctetKeyPair generateRecipientKey() {
@@ -88,6 +89,10 @@ public class SecretSealing {
             if (!ALGORITHM.equals(header.getAlgorithm()) || !ENCRYPTION.equals(header.getEncryptionMethod())) {
                 throw new SecretSealingException(ERROR_UNEXPECTED_ALGORITHM.formatted(ALGORITHM, ENCRYPTION,
                         header.getAlgorithm(), header.getEncryptionMethod()));
+            }
+            if (header.getCompressionAlgorithm() != null) {
+                throw new SecretSealingException(
+                        ERROR_UNEXPECTED_COMPRESSION.formatted(header.getCompressionAlgorithm()));
             }
             jwe.decrypt(new X25519Decrypter(recipientPrivateKey));
             return jwe.getPayload().toString();

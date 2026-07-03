@@ -53,7 +53,8 @@ public class ValueSealer {
     private static final String MARKER_PREFIX = "ENC[";
     private static final String MARKER_SUFFIX = "]";
 
-    private static final String ERROR_UNSEALABLE_VALUE = "Refusing to seal a %s value in a secrets object.";
+    private static final String ERROR_UNSEALABLE_VALUE    = "Refusing to seal a %s value in a secrets object.";
+    private static final String ERROR_UNSEALED_NOT_SCALAR = "Refusing to unseal a %s value from a secrets leaf.";
 
     /** Seals a {@code secrets} object to the recipient, returning an object. */
     public static ObjectValue seal(OctetKeyPair recipientPublicKey, ObjectValue object) {
@@ -82,13 +83,12 @@ public class ValueSealer {
         return builder.build();
     }
 
-    /** Unseals any value; sealed leaves are restored to their original type. */
+    /** Unseals any value; sealed leaves are restored to their original scalar type, non-scalar leaves are refused. */
     public static Value unseal(OctetKeyPair recipientPrivateKey, Value value) {
         return switch (value) {
         case ObjectValue object                      -> unseal(recipientPrivateKey, object);
         case ArrayValue array                        -> unsealArray(recipientPrivateKey, array);
-        case TextValue(var text) when isSealed(text) ->
-            Value.ofJson(SecretSealing.unseal(recipientPrivateKey, unwrap(text)));
+        case TextValue(var text) when isSealed(text) -> unsealLeaf(recipientPrivateKey, text);
         default                                      -> value;
         };
     }
@@ -102,8 +102,7 @@ public class ValueSealer {
     }
 
     private static Value sealLeaf(OctetKeyPair key, Value value) {
-        if (value instanceof TextValue || value instanceof NumberValue || value instanceof BooleanValue
-                || value instanceof NullValue) {
+        if (isScalar(value)) {
             return Value.of(
                     MARKER_PREFIX + SecretSealing.seal(key, ValueJsonMarshaller.toJsonString(value)) + MARKER_SUFFIX);
         }
@@ -116,6 +115,19 @@ public class ValueSealer {
             elements.add(unseal(key, element));
         }
         return Value.ofArray(elements);
+    }
+
+    private static Value unsealLeaf(OctetKeyPair key, String text) {
+        val restored = Value.ofJson(SecretSealing.unseal(key, unwrap(text)));
+        if (isScalar(restored)) {
+            return restored;
+        }
+        throw new SecretSealingException(ERROR_UNSEALED_NOT_SCALAR.formatted(restored.getClass().getSimpleName()));
+    }
+
+    private static boolean isScalar(Value value) {
+        return value instanceof TextValue || value instanceof NumberValue || value instanceof BooleanValue
+                || value instanceof NullValue;
     }
 
     private static boolean isSealed(String text) {

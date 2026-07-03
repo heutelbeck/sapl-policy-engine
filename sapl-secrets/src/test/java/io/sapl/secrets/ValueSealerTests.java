@@ -61,6 +61,10 @@ class ValueSealerTests {
                 ObjectValue.builder().put("bad", Value.error("boom")).build());
     }
 
+    static Stream<String> nonScalarLeafPayloads() {
+        return Stream.of("[1,2,3]", "{}", "{ broken");
+    }
+
     @MethodSource("scalars")
     @ParameterizedTest(name = "{0}")
     @DisplayName("a scalar leaf seals to an ENC token and unseals to its original type and value")
@@ -119,6 +123,15 @@ class ValueSealerTests {
         assertThatThrownBy(() -> ValueSealer.seal(key, value)).isInstanceOf(SecretSealingException.class);
     }
 
+    @MethodSource("nonScalarLeafPayloads")
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("a sealed leaf that decrypts to a non-scalar or unparseable payload is refused (fail closed)")
+    void whenSealedLeafIsNotScalarThenThrows(String payload) {
+        var token   = SecretSealing.seal(sealingKey(), payload);
+        var secrets = ObjectValue.builder().put("field", Value.of("ENC[" + token + "]")).build();
+        assertThatThrownBy(() -> ValueSealer.unseal(recipient, secrets)).isInstanceOf(SecretSealingException.class);
+    }
+
     @Nested
     @DisplayName("unseal")
     class Unseal {
@@ -127,6 +140,13 @@ class ValueSealerTests {
         @DisplayName("a value with no sealed leaves is returned unchanged")
         void whenNothingSealedThenPassedThrough() {
             var plain = sampleSecrets();
+            assertThat(ValueSealer.unseal(recipient, plain)).isEqualTo(plain);
+        }
+
+        @Test
+        @DisplayName("text that opens the marker but is not a complete token is left unchanged")
+        void whenTextHasPartialMarkerThenPassedThrough() {
+            var plain = ObjectValue.builder().put("hint", Value.of("ENC[not-closed")).build();
             assertThat(ValueSealer.unseal(recipient, plain)).isEqualTo(plain);
         }
 
