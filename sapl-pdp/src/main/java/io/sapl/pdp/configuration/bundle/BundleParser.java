@@ -146,7 +146,7 @@ public class BundleParser {
     private static final String ERROR_PATH_TRAVERSAL_ATTEMPT            = "ZIP security violation: Path traversal attempt in bundle from %s.";
     private static final String ERROR_TOO_MANY_ENTRIES                  = "Too many entries (>%d).";
     private static final String ERROR_UNCOMPRESSED_SIZE_EXCEEDS         = "Uncompressed size exceeds %d MB.";
-    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE         = "Unexpected file in bundle from %s: %s. Bundles may only contain pdp.json, the manifest, and root-level .sapl files.";
+    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE         = "Unexpected file in bundle from %s: %s. Bundles may only contain pdp.json, the manifest, root-level .sapl files, and ext-*.json extension files.";
     private static final String ERROR_ZIP_BOMB_DETECTED                 = "ZIP bomb detected: %s Source: %s.";
 
     /**
@@ -314,13 +314,20 @@ public class BundleParser {
     }
 
     private Bundle toBundleContent(HashMap<String, String> content) {
-        val manifestJson = content.remove(MANIFEST_FILENAME);
-        val pdpJson      = content.remove(PDP_JSON);
-        val saplFiles    = new HashMap<String, String>();
+        val manifestJson     = content.remove(MANIFEST_FILENAME);
+        val pdpJson          = content.remove(PDP_JSON);
+        val saplFiles        = new HashMap<String, String>();
+        val extensions       = new HashMap<String, String>();
+        val extensionSecrets = new HashMap<String, String>();
 
         for (val entry : content.entrySet()) {
-            if (entry.getKey().endsWith(SAPL_EXTENSION)) {
-                saplFiles.put(entry.getKey(), entry.getValue());
+            val name = entry.getKey();
+            if (name.endsWith(SAPL_EXTENSION)) {
+                saplFiles.put(name, entry.getValue());
+            } else if (name.endsWith(Bundle.EXTENSION_SECRETS_SUFFIX)) {
+                extensionSecrets.put(extensionName(name, Bundle.EXTENSION_SECRETS_SUFFIX), entry.getValue());
+            } else if (isExtensionEntry(name)) {
+                extensions.put(extensionName(name, Bundle.EXTENSION_SUFFIX), entry.getValue());
             }
         }
 
@@ -329,7 +336,15 @@ public class BundleParser {
             manifest = BundleManifest.fromJson(manifestJson);
         }
 
-        return new Bundle(pdpJson, saplFiles, manifest);
+        return new Bundle(pdpJson, saplFiles, extensions, extensionSecrets, manifest);
+    }
+
+    private static String extensionName(String entryName, String suffix) {
+        return entryName.substring(Bundle.EXTENSION_PREFIX.length(), entryName.length() - suffix.length());
+    }
+
+    private static boolean isExtensionEntry(String normalizedName) {
+        return normalizedName.startsWith(Bundle.EXTENSION_PREFIX) && normalizedName.endsWith(Bundle.EXTENSION_SUFFIX);
     }
 
     private boolean isAllowedEntry(ZipEntry entry, String normalizedName) {
@@ -337,7 +352,7 @@ public class BundleParser {
             return false;
         }
         return PDP_JSON.equals(normalizedName) || MANIFEST_FILENAME.equals(normalizedName)
-                || normalizedName.endsWith(SAPL_EXTENSION);
+                || normalizedName.endsWith(SAPL_EXTENSION) || isExtensionEntry(normalizedName);
     }
 
     private void validateZipEntry(ZipEntry entry, int entryCount, String sourceDescription) {

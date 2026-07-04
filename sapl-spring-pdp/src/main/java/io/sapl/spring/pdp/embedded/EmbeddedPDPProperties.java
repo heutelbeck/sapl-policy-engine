@@ -103,6 +103,12 @@ public class EmbeddedPDPProperties {
     private BundleSecurityProperties bundleSecurity = new BundleSecurityProperties();
 
     /**
+     * Secrets decryption configuration. Used to unseal bundle secrets sealed with
+     * this PDP's (or its cluster's) X25519 recipient public key.
+     */
+    private SecretsProperties secrets = new SecretsProperties();
+
+    /**
      * Configuration for remote bundle fetching.
      * Only used when pdpConfigType is REMOTE_BUNDLES.
      */
@@ -151,6 +157,36 @@ public class EmbeddedPDPProperties {
      * <li>Otherwise: startup fails with clear error</li>
      * </ul>
      */
+    /**
+     * Secrets decryption configuration for bundles whose secrets are sealed to
+     * this PDP's X25519 recipient public key.
+     */
+    @Data
+    public static class SecretsProperties {
+
+        /**
+         * Path to the X25519 recipient private key file (JWK) used to unseal bundle
+         * secrets. If unset, secrets are left as {@code ENC[...]} tokens.
+         */
+        private String privateKeyPath;
+
+        /**
+         * The X25519 recipient private key as a JWK string. Alternative to
+         * privateKeyPath for containerized deployments where the key is injected via
+         * environment variable.
+         */
+        private String privateKey;
+
+        /**
+         * Accept configurations whose secrets are not sealed.
+         * <p>
+         * WARNING: When a decryption key is configured, cleartext secrets are refused
+         * by default. Enabling this accepts them. Only use in trusted or development
+         * environments.
+         */
+        private boolean acceptUnencrypted = false;
+    }
+
     @Data
     public static class BundleSecurityProperties {
 

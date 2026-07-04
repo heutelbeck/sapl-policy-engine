@@ -125,6 +125,25 @@ public class ValueSealer {
         throw new SecretSealingException(ERROR_UNSEALED_NOT_SCALAR.formatted(restored.getClass().getSimpleName()));
     }
 
+    /**
+     * Returns whether a value carries no unsealed secret: every scalar leaf is a
+     * sealed {@code ENC[...]} token. An empty object or array is trivially sealed.
+     * Use this to reject configurations whose secrets arrived in cleartext.
+     *
+     * @param value
+     * the value to inspect
+     *
+     * @return true if the value contains no unsealed scalar leaf
+     */
+    public static boolean isSealed(Value value) {
+        return switch (value) {
+        case ObjectValue object  -> object.values().stream().allMatch(ValueSealer::isSealed);
+        case ArrayValue array    -> array.stream().allMatch(ValueSealer::isSealed);
+        case TextValue(var text) -> isSealed(text);
+        default                  -> false;
+        };
+    }
+
     private static boolean isScalar(Value value) {
         return value instanceof TextValue || value instanceof NumberValue || value instanceof BooleanValue
                 || value instanceof NullValue;

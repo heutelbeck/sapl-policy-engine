@@ -17,10 +17,12 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.val;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -29,16 +31,36 @@ import java.util.TreeMap;
  *
  * @param pdpJson the pdp.json content, or null if not present
  * @param saplDocuments map of SAPL document file names to content
+ * @param extensions cleartext extension files keyed by extension name
+ * @param extensionSecrets sealed extension files keyed by extension name
  * @param manifest the bundle manifest, or null if bundle is unsigned
  */
-record Bundle(String pdpJson, Map<String, String> saplDocuments, BundleManifest manifest) {
+record Bundle(
+        String pdpJson,
+        Map<String, String> saplDocuments,
+        Map<String, String> extensions,
+        Map<String, String> extensionSecrets,
+        BundleManifest manifest) {
     private static final String ERROR_SECURITY_POLICY_REQUIRED = "Security policy is required. Use BundleSecurityPolicy.builder(publicKey).build() for production or explicitly disable verification with risk acceptance for development.";
 
     private static final String PDP_JSON = "pdp.json";
 
+    static final String EXTENSION_PREFIX = "ext-";
+    static final String EXTENSION_SUFFIX = ".json";
+    static final String EXTENSION_SECRETS_SUFFIX = "-secrets.json";
+
     PDPConfiguration toPDPConfiguration(String pdpId, BundleSecurityPolicy securityPolicy) {
         verifySignature(pdpId, securityPolicy);
-        return PDPConfigurationLoader.loadFromBundle(pdpJson, saplDocuments, pdpId);
+        val configuration = PDPConfigurationLoader.loadFromBundle(pdpJson, saplDocuments, pdpId);
+        return configuration.withExtensions(toValues(extensions), toValues(extensionSecrets));
+    }
+
+    private static Map<String, Value> toValues(Map<String, String> jsonByName) {
+        val values = new LinkedHashMap<String, Value>();
+        for (val entry : jsonByName.entrySet()) {
+            values.put(entry.getKey(), Value.ofJson(entry.getValue()));
+        }
+        return values;
     }
 
     private void verifySignature(String pdpId, BundleSecurityPolicy securityPolicy) {
@@ -73,6 +95,12 @@ record Bundle(String pdpJson, Map<String, String> saplDocuments, BundleManifest 
         }
 
         files.putAll(saplDocuments);
+        for (val entry : extensions.entrySet()) {
+            files.put(EXTENSION_PREFIX + entry.getKey() + EXTENSION_SUFFIX, entry.getValue());
+        }
+        for (val entry : extensionSecrets.entrySet()) {
+            files.put(EXTENSION_PREFIX + entry.getKey() + EXTENSION_SECRETS_SUFFIX, entry.getValue());
+        }
         return files;
     }
 }

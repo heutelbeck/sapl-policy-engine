@@ -17,7 +17,9 @@
  */
 package io.sapl.node.cli.commands;
 
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import io.sapl.functions.libraries.crypto.PemUtils;
+import io.sapl.secrets.SecretSealing;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleManifest;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
@@ -40,6 +42,8 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -66,14 +70,17 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
     subcommands = {
         BundleCommand.Create.class, BundleCommand.Sign.class,
         BundleCommand.Verify.class, BundleCommand.Inspect.class,
-        BundleCommand.Keygen.class
+        BundleCommand.Keygen.class, BundleCommand.SecretsKeygen.class
     }
 )
 // @formatter:on
 public class BundleCommand {
 
-    private static final String PDP_JSON       = "pdp.json";
-    private static final String SAPL_EXTENSION = ".sapl";
+    private static final String PDP_JSON                 = "pdp.json";
+    private static final String SAPL_EXTENSION           = ".sapl";
+    private static final String EXTENSION_PREFIX         = "ext-";
+    private static final String EXTENSION_SUFFIX         = ".json";
+    private static final String EXTENSION_SECRETS_SUFFIX = "-secrets.json";
 
     public static final String  ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: %s.";
     private static final String ERROR_BUNDLE_NOT_SIGNED   = "Error: Bundle is not signed (no manifest found).";
@@ -100,6 +107,13 @@ public class BundleCommand {
             directory into a .saplbundle file. Policies are validated for
             correct SAPL syntax during creation.
 
+            Extension files in the directory are packaged too: ext-<name>.json
+            as cleartext extension data, and ext-<name>-secrets.json as sealed
+            secrets. With --seal-to, the pdp.json secrets section and every
+            ext-<name>-secrets.json file are sealed to the given X25519 recipient
+            public key; the recipient PDP unseals them with the matching private
+            key. Generate the recipient keypair with 'sapl bundle keygen-secrets'.
+
             Optionally signs the bundle when a private key is provided.
             This is equivalent to creating then running 'sapl bundle sign'.
             """ },
@@ -116,7 +130,10 @@ public class BundleCommand {
               # Create and sign in one step
               sapl bundle create -i ./policies -o policies.saplbundle -k signing.pem --key-id prod-2026
 
-            See Also: sapl-bundle-sign(1), sapl-bundle-keygen(1)
+              # Create a bundle with secrets sealed to a recipient
+              sapl bundle create -i ./policies -o policies.saplbundle --seal-to recipient.pub.jwk
+
+            See Also: sapl-bundle-sign(1), sapl-bundle-keygen(1), sapl-bundle-keygen-secrets(1)
             """ }
     )
     // @formatter:on
@@ -136,6 +153,10 @@ public class BundleCommand {
 
         @Option(names = { "-o", "--output" }, required = true, description = "Output bundle file path")
         private Path outputFile;
+
+        @Option(names = {
+                "--seal-to" }, description = "X25519 recipient public key (JWK file); seals the bundle's secrets to it")
+        private Path sealToFile;
 
         @Override
         public Integer call() {
@@ -175,6 +196,12 @@ public class BundleCommand {
                     return 1;
                 }
 
+                addExtensions(builder);
+
+                if (sealToFile != null) {
+                    builder.sealSecretsWith(loadX25519PublicKey(sealToFile));
+                }
+
                 if (keyFile != null) {
                     val privateKey = loadEd25519PrivateKey(keyFile);
                     builder.signWith(privateKey, keyId);
@@ -189,9 +216,23 @@ public class BundleCommand {
                 }
                 return 0;
 
-            } catch (IOException | GeneralSecurityException e) {
+            } catch (IOException | GeneralSecurityException | ParseException e) {
                 err.println(ERROR_CREATING_BUNDLE.formatted(e.getMessage()));
                 return 1;
+            }
+        }
+
+        private void addExtensions(BundleBuilder builder) throws IOException {
+            try (val stream = Files.list(inputDir)) {
+                for (val file : stream.filter(BundleCommand::isExtensionFile).toList()) {
+                    val filename = file.getFileName().toString();
+                    val content  = Files.readString(file);
+                    if (filename.endsWith(EXTENSION_SECRETS_SUFFIX)) {
+                        builder.withExtensionSecrets(extensionName(filename, EXTENSION_SECRETS_SUFFIX), content);
+                    } else {
+                        builder.withExtension(extensionName(filename, EXTENSION_SUFFIX), content);
+                    }
+                }
             }
         }
 
@@ -552,6 +593,79 @@ public class BundleCommand {
 
     }
 
+    // @formatter:off
+    @Command(
+        name = "keygen-secrets",
+        mixinStandardHelpOptions = true,
+        header = "Generate an X25519 keypair for sealing bundle secrets.",
+        description = { """
+            Generates an X25519 recipient keypair as JWK files: <prefix>.jwk
+            (private) and <prefix>.pub.jwk (public). Seal a bundle's secrets to
+            the public key with 'sapl bundle create --seal-to <prefix>.pub.jwk';
+            the PDP unseals them with the matching private key. Keep the private
+            key secret and distribute it only to the recipient (or cluster).
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Keypair generated",
+            " 1:Error (file exists without --force, or generation failed)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle keygen-secrets -o recipient
+              sapl bundle create -i ./policies -o policies.saplbundle --seal-to recipient.pub.jwk
+            """ }
+    )
+    // @formatter:on
+    static class SecretsKeygen implements Callable<Integer> {
+
+        @Spec
+        private CommandSpec spec;
+
+        @Option(names = { "-o",
+                "--output" }, required = true, description = "Output file prefix (creates <prefix>.jwk and <prefix>.pub.jwk)")
+        private Path outputPrefix;
+
+        @Option(names = { "--force" }, description = "Overwrite existing files")
+        private boolean force;
+
+        @Override
+        public Integer call() {
+            val out        = spec.commandLine().getOut();
+            val err        = spec.commandLine().getErr();
+            val privateKey = outputPrefix.resolveSibling(outputPrefix.getFileName() + ".jwk");
+            val publicKey  = outputPrefix.resolveSibling(outputPrefix.getFileName() + ".pub.jwk");
+
+            if (!force && Files.exists(privateKey)) {
+                err.println(ERROR_FILE_ALREADY_EXISTS.formatted(privateKey));
+                err.println(HINT_USE_FORCE);
+                return 1;
+            }
+            if (!force && Files.exists(publicKey)) {
+                err.println(ERROR_FILE_ALREADY_EXISTS.formatted(publicKey));
+                err.println(HINT_USE_FORCE);
+                return 1;
+            }
+
+            try {
+                val recipient = SecretSealing.generateRecipientKey();
+                Files.writeString(privateKey, recipient.toJSONString());
+                restrictToOwner(privateKey);
+                Files.writeString(publicKey, recipient.toPublicJWK().toJSONString());
+
+                out.println("Generated X25519 secrets keypair:");
+                out.printf("  Private key: %s%n", privateKey);
+                out.printf("  Public key:  %s%n", publicKey);
+                return 0;
+
+            } catch (IOException e) {
+                err.println(ERROR_GENERATING_KEYPAIR.formatted(e.getMessage()));
+                return 1;
+            }
+        }
+
+    }
+
     private static final long MAX_BUNDLE_ENTRY_BYTES = 256L * 1024 * 1024;
     private static final long MAX_BUNDLE_TOTAL_BYTES = 256L * 1024 * 1024;
 
@@ -594,6 +708,27 @@ public class BundleCommand {
     private static PrivateKey loadEd25519PrivateKey(Path keyFile) throws IOException, GeneralSecurityException {
         val keyBytes = PemUtils.decodePemFromFile(keyFile);
         return KeyFactory.getInstance(ALGORITHM_ED25519).generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+    }
+
+    private static OctetKeyPair loadX25519PublicKey(Path keyFile) throws IOException, ParseException {
+        return OctetKeyPair.parse(Files.readString(keyFile)).toPublicJWK();
+    }
+
+    private static boolean isExtensionFile(Path path) {
+        val name = path.getFileName().toString();
+        return name.startsWith(EXTENSION_PREFIX) && name.endsWith(EXTENSION_SUFFIX);
+    }
+
+    private static String extensionName(String filename, String suffix) {
+        return filename.substring(EXTENSION_PREFIX.length(), filename.length() - suffix.length());
+    }
+
+    private static void restrictToOwner(Path file) {
+        try {
+            Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rw-------"));
+        } catch (IOException | UnsupportedOperationException e) {
+            // Best effort: filesystems without POSIX permissions cannot restrict the file here.
+        }
     }
 
     private static PublicKey loadEd25519PublicKey(Path keyFile) throws IOException, GeneralSecurityException {

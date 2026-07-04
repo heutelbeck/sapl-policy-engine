@@ -62,6 +62,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>sapl-api-test</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

@@ -21,6 +21,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
 import static io.sapl.pdp.PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker;
 import static io.sapl.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
 
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
@@ -33,6 +35,7 @@ import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.pdp.SecretsUnsealing;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.CoarseClock;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
@@ -52,6 +55,7 @@ import io.sapl.pdp.plugins.StaticPluginsSource;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
+import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.SecretsProperties;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.ObjectProvider;
@@ -70,7 +74,9 @@ import org.springframework.context.annotation.Role;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -130,9 +136,11 @@ import java.util.Set;
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class PDPAutoConfiguration {
 
-    private static final String ERROR_FAILED_TO_PARSE_KEY_IN_CATALOGUE = "Failed to parse public key '%s' in key catalogue";
-    private static final String ERROR_FAILED_TO_PARSE_PUBLIC_KEY       = "Failed to parse Ed25519 public key";
+    private static final String ERROR_FAILED_TO_PARSE_KEY_IN_CATALOGUE = "Failed to parse public key '%s' in key catalogue.";
+    private static final String ERROR_FAILED_TO_PARSE_PUBLIC_KEY       = "Failed to parse Ed25519 public key.";
     private static final String ERROR_FAILED_TO_READ_PUBLIC_KEY        = "Failed to read public key from: ";
+    private static final String ERROR_FAILED_TO_READ_SECRETS_KEY       = "Failed to read the secrets decryption key.";
+    private static final String ERROR_INVALID_SECRETS_KEY              = "Secrets decryption key must be an X25519 private key.";
 
     @Bean
     @ConditionalOnMissingBean
@@ -237,12 +245,19 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PdpVoterSource pdpVoterSource(PluginsSource pluginsSource, Clock clock,
+    PdpVoterSource pdpVoterSource(EmbeddedPDPProperties properties, PluginsSource pluginsSource, Clock clock,
             ObjectProvider<PDPConfigurationSource> sourceProvider) {
         val voterSource = new PdpVoterSource(pluginsSource, clock);
         val source      = sourceProvider.getIfAvailable();
         if (source != null) {
-            source.subscribe(voterSource::handle);
+            val decryptionKey = loadSecretsDecryptionKey(properties.getSecrets());
+            if (decryptionKey != null) {
+                val acceptUnencrypted = properties.getSecrets().isAcceptUnencrypted();
+                source.subscribe(event -> voterSource
+                        .handle(SecretsUnsealing.processEvent(decryptionKey, acceptUnencrypted, event)));
+            } else {
+                source.subscribe(voterSource::handle);
+            }
         }
         return voterSource;
     }
@@ -339,6 +354,32 @@ public class PDPAutoConfiguration {
             return loadPublicKeyFromBase64(securityProps.getPublicKey());
         }
         return null;
+    }
+
+    private OctetKeyPair loadSecretsDecryptionKey(SecretsProperties secrets) {
+        val key = readSecretsDecryptionKey(secrets);
+        if (key == null) {
+            return null;
+        }
+        if (!Curve.X25519.equals(key.getCurve()) || !key.isPrivate()) {
+            throw new IllegalStateException(ERROR_INVALID_SECRETS_KEY);
+        }
+        log.info("Bundle secrets decryption ENABLED with an X25519 recipient key.");
+        return key;
+    }
+
+    private OctetKeyPair readSecretsDecryptionKey(SecretsProperties secrets) {
+        try {
+            if (secrets.getPrivateKeyPath() != null && !secrets.getPrivateKeyPath().isBlank()) {
+                return OctetKeyPair.parse(Files.readString(Path.of(secrets.getPrivateKeyPath())));
+            }
+            if (secrets.getPrivateKey() != null && !secrets.getPrivateKey().isBlank()) {
+                return OctetKeyPair.parse(secrets.getPrivateKey());
+            }
+            return null;
+        } catch (IOException | ParseException e) {
+            throw new IllegalStateException(ERROR_FAILED_TO_READ_SECRETS_KEY, e);
+        }
     }
 
     private PublicKey loadPublicKeyFromFile(String keyPath) {

@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp;
 
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -136,9 +138,16 @@ public class PolicyDecisionPointBuilder {
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
-    private static final String ERROR_NO_PLUGINS_AVAILABLE      = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
-    private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
-    private static final String WARN_ERROR_CLOSING_RESOURCE     = "Error closing {} during failed PDP build: {}.";
+    private OctetKeyPair secretsDecryptionKey;
+    private boolean      acceptUnencryptedSecrets;
+
+    private static final String ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE  = "Secrets decryption key must contain a private key component.";
+    private static final String ERROR_DECRYPTION_KEY_MUST_BE_X25519   = "Secrets decryption key must be an X25519 key.";
+    private static final String ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL = "Secrets decryption key must not be null.";
+    private static final String ERROR_NO_PLUGINS_AVAILABLE            = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
+    private static final String ERROR_SOURCE_ALREADY_REGISTERED       = "A configuration source has already been registered. Only one source is allowed.";
+    private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS    = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
+    private static final String WARN_ERROR_CLOSING_RESOURCE           = "Error closing {} during failed PDP build: {}.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper) {
         this.mapper = mapper;
@@ -483,6 +492,55 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
+     * Sets the X25519 recipient private key with which this PDP unseals the secrets
+     * of the configurations it consumes.
+     * <p>
+     * The key is the identity of the recipient (this PDP, or the cluster that shares
+     * it). Bundles whose secrets were sealed to the matching public key via
+     * {@code BundleBuilder.sealSecretsWith} are decrypted as they are ingested,
+     * after the source has verified them. Sources are unaffected. When no key is
+     * configured, sealed secrets are left as {@code ENC[...]} tokens.
+     *
+     * @param recipientPrivateKey
+     * the X25519 recipient private key
+     *
+     * @return this builder
+     *
+     * @throws IllegalArgumentException
+     * if the key is null, not X25519, or has no private component
+     */
+    public PolicyDecisionPointBuilder withSecretsDecryptionKey(OctetKeyPair recipientPrivateKey) {
+        if (recipientPrivateKey == null) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL);
+        }
+        if (!Curve.X25519.equals(recipientPrivateKey.getCurve())) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_BE_X25519);
+        }
+        if (!recipientPrivateKey.isPrivate()) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE);
+        }
+        this.secretsDecryptionKey = recipientPrivateKey;
+        return this;
+    }
+
+    /**
+     * Opts into accepting configurations whose secrets are not sealed.
+     * <p>
+     * By default, once a {@link #withSecretsDecryptionKey decryption key} is
+     * configured, a configuration carrying secrets in cleartext is rejected as it is
+     * ingested. This opt-in relaxes that check for trusted or development
+     * environments and logs a warning. It has no effect when no decryption key is
+     * configured.
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder acceptUnencryptedSecrets() {
+        this.acceptUnencryptedSecrets = true;
+        log.warn(WARN_ACCEPTING_UNENCRYPTED_SECRETS);
+        return this;
+    }
+
+    /**
      * Loads policies from a filesystem directory. The directory should contain
      * pdp.json (optional) and .sapl files.
      * Changes are monitored and hot-reloaded.
@@ -789,13 +847,13 @@ public class PolicyDecisionPointBuilder {
             // Load initial configurations: false signals fail-fast on compile error,
             // propagating PDPConfigurationException to the build() caller.
             for (val config : initialConfigurations) {
-                voterSource.loadConfiguration(config, false);
+                voterSource.loadConfiguration(unsealSecrets(config), false);
             }
 
             if (configurationSource != null) {
                 // Subscribe propagates source-side compile errors via the same
                 // fail-fast path when the source emits Load with keepOldOnError=false.
-                configurationSource.subscribe(voterSource::handle);
+                configurationSource.subscribe(event -> voterSource.handle(unsealSecrets(event)));
             }
 
             val plugins = voterSource.getPlugins();
@@ -834,6 +892,16 @@ public class PolicyDecisionPointBuilder {
         } catch (Exception e) {
             log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
         }
+    }
+
+    private PDPConfiguration unsealSecrets(PDPConfiguration configuration) {
+        return secretsDecryptionKey == null ? configuration
+                : SecretsUnsealing.process(secretsDecryptionKey, acceptUnencryptedSecrets, configuration);
+    }
+
+    private PDPConfigurationSource.ConfigurationEvent unsealSecrets(PDPConfigurationSource.ConfigurationEvent event) {
+        return secretsDecryptionKey == null ? event
+                : SecretsUnsealing.processEvent(secretsDecryptionKey, acceptUnencryptedSecrets, event);
     }
 
     private PluginsSource resolvePluginsSource() {

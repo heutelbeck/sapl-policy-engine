@@ -75,6 +75,15 @@ class ValueSealerTests {
         assertThat(ValueSealer.unseal(recipient, sealed)).isEqualTo(scalar);
     }
 
+    @Test
+    @DisplayName("isSealed is true for a fully sealed object, false when a leaf is plaintext, true when empty")
+    void isSealedReflectsLeafState() {
+        var sealed = ValueSealer.seal(sealingKey(), sampleSecrets());
+        assertThat(ValueSealer.isSealed(sealed)).isTrue();
+        assertThat(ValueSealer.isSealed(sampleSecrets())).isFalse();
+        assertThat(ValueSealer.isSealed(Value.EMPTY_OBJECT)).isTrue();
+    }
+
     @Nested
     @DisplayName("round-trip")
     class RoundTrip {

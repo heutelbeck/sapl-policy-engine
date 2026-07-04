@@ -22,6 +22,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.secrets.SecretSealing;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -574,6 +575,104 @@ class BundleBuilderTests {
 
             assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("syntax errors").hasMessageContaining("empty.sapl");
+        }
+    }
+
+    @Nested
+    @DisplayName("secrets sealing")
+    class SecretsSealing {
+
+        private static final String PDP_JSON_WITH_SECRETS = """
+                { "configurationId": "test", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "secrets": { "http": { "weather-api": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } } } }
+                """;
+
+        @Test
+        @DisplayName("secret values are sealed while structure and keys stay in cleartext")
+        void whenSealingKeyProvidedThenSecretsAreSealed() throws IOException {
+            val recipient = SecretSealing.generateRecipientKey();
+            val bundle    = BundleBuilder.create().withPdpJson(PDP_JSON_WITH_SECRETS)
+                    .sealSecretsWith(recipient.toPublicJWK()).build();
+            val pdpJson   = extractEntries(bundle).get("pdp.json");
+            assertThat(pdpJson).contains("secrets", "http", "weather-api", "X-API-Key", "ENC[")
+                    .doesNotContain("TOP-SECRET-VALUE");
+        }
+
+        @Test
+        @DisplayName("a pdp.json without a secrets section is left unchanged")
+        void whenNoSecretsSectionThenSealingIsNoOp() throws IOException {
+            val recipient = SecretSealing.generateRecipientKey();
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
+                    .build();
+            assertThat(extractEntries(bundle).get("pdp.json")).isEqualTo(VALID_PDP_JSON).doesNotContain("ENC[");
+        }
+    }
+
+    @Nested
+    @DisplayName("extensions")
+    class Extensions {
+
+        @Test
+        @DisplayName("a cleartext extension is written as ext-<name>.json")
+        void whenExtensionAddedThenWrittenAsExtJson() throws IOException {
+            val bundle  = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("paratron-gateway", """
+                    { "route": "/api" }""").build();
+            val entries = extractEntries(bundle);
+            assertThat(entries).containsKey("ext-paratron-gateway.json");
+            assertThat(entries.get("ext-paratron-gateway.json")).contains("route");
+        }
+
+        @Test
+        @DisplayName("an extension-secrets file is sealed as ext-<name>-secrets.json")
+        void whenExtensionSecretsAddedThenSealed() throws IOException {
+            val recipient = SecretSealing.generateRecipientKey();
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
+                    .withExtensionSecrets("paratron-gateway", """
+                            { "apiKey": "TOP-SECRET-VALUE" }""").build();
+            val entries   = extractEntries(bundle);
+            assertThat(entries).containsKey("ext-paratron-gateway-secrets.json");
+            assertThat(entries.get("ext-paratron-gateway-secrets.json")).contains("apiKey", "ENC[")
+                    .doesNotContain("TOP-SECRET-VALUE");
+        }
+
+        @Test
+        @DisplayName("extension secrets without a sealing key are rejected")
+        void whenExtensionSecretsWithoutKeyThenThrows() {
+            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtensionSecrets("paratron-gateway",
+                    """
+                            { "k": "v" }""");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("sealing key");
+        }
+
+        @NullAndEmptySource
+        @ValueSource(strings = { "Paratron", "para_tron", "para tron", "-para", "para-", "para--tron" })
+        @ParameterizedTest(name = "\"{0}\"")
+        @DisplayName("a non-slug extension name is rejected")
+        void whenExtensionNameNotSlugThenThrows(String name) {
+            val builder = BundleBuilder.create();
+            assertThatThrownBy(() -> builder.withExtension(name, "{}")).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("slug");
+        }
+
+        @Test
+        @DisplayName("a plain extension name ending in -secrets is rejected")
+        void whenPlainExtensionNameReservedThenThrows() {
+            val builder = BundleBuilder.create();
+            assertThatThrownBy(() -> builder.withExtension("my-secrets", "{}"))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("-secrets");
+        }
+
+        @Test
+        @DisplayName("a signed bundle's extension files are covered by the signature")
+        void whenSignedBundleWithExtensionsThenSignatureCoversThem() {
+            val recipient = SecretSealing.generateRecipientKey();
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
+                    .withExtension("paratron-gateway", """
+                            { "route": "/api" }""").withExtensionSecrets("paratron-gateway", """
+                            { "apiKey": "x" }""").signWith(cultKeyPair.getPrivate(), "elder-key").build();
+            val config    = BundleParser.parse(bundle, "pdp", signedPolicy);
+            assertThat(config.extensions()).containsKey("paratron-gateway");
+            assertThat(config.extensionSecrets()).containsKey("paratron-gateway");
         }
     }
 

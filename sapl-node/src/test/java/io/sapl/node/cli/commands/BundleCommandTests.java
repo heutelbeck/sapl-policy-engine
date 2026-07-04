@@ -19,11 +19,14 @@ package io.sapl.node.cli.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
@@ -291,6 +294,95 @@ class BundleCommandTests {
             assertThat(err.toString()).contains("Key file not found");
         }
 
+    }
+
+    @Nested
+    @DisplayName("bundle secrets sealing")
+    class SecretsSealingTests {
+
+        @Test
+        @DisplayName("keygen-secrets creates an X25519 JWK keypair")
+        void whenKeygenSecretsThenCreatesJwkFiles() {
+            val prefix   = tempDir.resolve("recipient");
+            val exitCode = cmd.execute("bundle", "keygen-secrets", "-o", prefix.toString());
+            assertThat(exitCode).isZero();
+            assertThat(tempDir.resolve("recipient.jwk")).exists();
+            assertThat(tempDir.resolve("recipient.pub.jwk")).exists();
+        }
+
+        @Test
+        @DisplayName("create --seal-to seals the pdp.json secrets")
+        void whenSealToThenSecretsAreSealed() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            val inputDir   = policyDirWithSecrets();
+            val outputFile = tempDir.resolve("sealed.saplbundle");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(),
+                    "--seal-to", tempDir.resolve("recipient.pub.jwk").toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(bundleEntry(outputFile, "pdp.json")).contains("ENC[").doesNotContain("TOP-SECRET-VALUE");
+        }
+
+        @Test
+        @DisplayName("one create command both seals and signs, and the result verifies")
+        void whenSealAndSignInOneCommandThenBundleVerifies() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            cmd.execute("bundle", "keygen", "-o", tempDir.resolve("signing").toString());
+            val inputDir   = policyDirWithSecrets();
+            val outputFile = tempDir.resolve("sealed-signed.saplbundle");
+
+            val createExit = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(),
+                    "-k", tempDir.resolve("signing.pem").toString(), "--seal-to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+            val verifyExit = cmd.execute("bundle", "verify", "-b", outputFile.toString(), "-k",
+                    tempDir.resolve("signing.pub").toString());
+
+            assertThat(createExit).isZero();
+            assertThat(verifyExit).isZero();
+        }
+
+        @Test
+        @DisplayName("extension files in the input directory are packaged, secrets sealed")
+        void whenExtensionFilesThenPackaged() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            val inputDir = policyDirWithSecrets();
+            Files.writeString(inputDir.resolve("ext-paratron-gateway.json"), """
+                    { "route": "/api" }""");
+            Files.writeString(inputDir.resolve("ext-paratron-gateway-secrets.json"), """
+                    { "apiKey": "K" }""");
+            val outputFile = tempDir.resolve("with-ext.saplbundle");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(),
+                    "--seal-to", tempDir.resolve("recipient.pub.jwk").toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(bundleEntry(outputFile, "ext-paratron-gateway.json")).contains("route");
+            assertThat(bundleEntry(outputFile, "ext-paratron-gateway-secrets.json")).contains("ENC[");
+        }
+
+        private Path policyDirWithSecrets() throws IOException {
+            val inputDir = tempDir.resolve("policies-secrets");
+            Files.createDirectories(inputDir);
+            Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
+            Files.writeString(inputDir.resolve("pdp.json"),
+                    """
+                            { "configurationId": "test-v1", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }, "secrets": { "http": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } } }
+                            """);
+            return inputDir;
+        }
+
+        private String bundleEntry(Path bundle, String entryName) throws IOException {
+            try (val zip = new ZipInputStream(Files.newInputStream(bundle))) {
+                ZipEntry entry;
+                while ((entry = zip.getNextEntry()) != null) {
+                    if (entry.getName().equals(entryName)) {
+                        return new String(zip.readAllBytes(), StandardCharsets.UTF_8);
+                    }
+                }
+            }
+            return "";
+        }
     }
 
     @Nested
