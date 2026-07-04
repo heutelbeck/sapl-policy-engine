@@ -25,9 +25,13 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.realm.RealmIndex;
+import io.sapl.pdp.configuration.realm.RealmIndexEntry;
+import io.sapl.pdp.configuration.realm.RealmIndexSigner;
 import com.github.valfirst.slf4jtest.LoggingEvent;
 import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import lombok.val;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -39,10 +43,13 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -125,6 +132,164 @@ class RemoteBundlePDPConfigurationSourceTests {
     private void awaitRetries() {
         await().atMost(Duration.ofSeconds(2))
                 .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2));
+    }
+
+    @Nested
+    @DisplayName("MULTI: realm index")
+    class MultiRealmIndex {
+
+        private final Map<String, Entry> entries  = new ConcurrentHashMap<>();
+        private volatile long            sequence = 1;
+        private volatile PrivateKey      indexSigningKey;
+
+        @BeforeEach
+        void multiSetUp() {
+            indexSigningKey = elderKeyPair.getPrivate();
+            server.setDispatcher(realmDispatcher());
+        }
+
+        @Test
+        @DisplayName("discovers the realm's bundles from the signed index and loads them")
+        void whenIndexListsBundlesThenAllAreLoaded() {
+            putEntry("orders", "orders@1");
+            putEntry("billing", "billing@1");
+            val capture = subscribe();
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs())
+                    .extracting(PDPConfiguration::pdpId).containsExactlyInAnyOrder("orders", "billing"));
+        }
+
+        @Test
+        @DisplayName("a bundle added to the index is loaded on the next poll")
+        void whenEntryAddedThenLoaded() {
+            putEntry("orders", "orders@1");
+            val capture = subscribe();
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs()).hasSize(1));
+            putEntry("billing", "billing@1");
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(
+                    () -> assertThat(capture.configs()).extracting(PDPConfiguration::pdpId).contains("billing"));
+        }
+
+        @Test
+        @DisplayName("a changed configId reloads the bundle")
+        void whenConfigIdChangesThenReloaded() {
+            putEntry("orders", "orders@1");
+            val capture = subscribe();
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs()).hasSize(1));
+            putEntry("orders", "orders@2");
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs())
+                    .extracting(PDPConfiguration::configurationId).contains("orders@2"));
+        }
+
+        @Test
+        @DisplayName("a bundle removed from the index is removed")
+        void whenEntryRemovedThenRemoveEmitted() {
+            putEntry("orders", "orders@1");
+            putEntry("billing", "billing@1");
+            val capture = subscribe();
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs()).hasSize(2));
+            entries.remove("billing");
+            publish();
+            await().atMost(Duration.ofSeconds(3))
+                    .untilAsserted(() -> assertThat(capture.removedPdpIds()).contains("billing"));
+        }
+
+        @Test
+        @DisplayName("an index with a stale sequence (rollback) is ignored")
+        void whenSequenceRollsBackThenIgnored() throws InterruptedException {
+            putEntry("orders", "orders@1");
+            putEntry("billing", "billing@1");
+            val capture = subscribe();
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs()).hasSize(2));
+            entries.remove("billing");
+            sequence = 0;
+            Thread.sleep(600);
+            assertThat(capture.removedPdpIds()).doesNotContain("billing");
+        }
+
+        @Test
+        @DisplayName("an index signed by an untrusted key is ignored")
+        void whenIndexSignedByUntrustedKeyThenIgnored() throws Exception {
+            indexSigningKey = KeyPairGenerator.getInstance("Ed25519").generateKeyPair().getPrivate();
+            putEntry("orders", "orders@1");
+            val capture = subscribe();
+            Thread.sleep(600);
+            assertThat(capture.configs()).isEmpty();
+        }
+
+        private CapturingSubscriber subscribe() {
+            source = new RemoteBundlePDPConfigurationSource(multiConfig());
+            val capture = new CapturingSubscriber();
+            source.subscribe(capture);
+            return capture;
+        }
+
+        private void putEntry(String pdpId, String configId) {
+            entries.put(pdpId, new Entry(pdpId, configId, buildBundle(configId)));
+            publish();
+        }
+
+        private void publish() {
+            sequence++;
+        }
+
+        private RemoteBundleSourceConfig multiConfig() {
+            return new RemoteBundleSourceConfig(server.url("/realms/acme").toString(), List.of(),
+                    RemoteBundleSourceConfig.FetchMode.MULTI, Duration.ofMillis(100), Duration.ofSeconds(5), null, null,
+                    true, true, signedPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200), "acme", "index");
+        }
+
+        private byte[] buildBundle(String configId) {
+            return BundleBuilder.create()
+                    .withPdpJson(
+                            """
+                                    { "configurationId": "%s", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                                    """
+                                    .formatted(configId))
+                    .withPolicy("test.sapl", "policy \"p\" permit true;")
+                    .signWith(elderKeyPair.getPrivate(), "test-key").build();
+        }
+
+        private Dispatcher realmDispatcher() {
+            return new Dispatcher() {
+                @Override
+                public MockResponse dispatch(RecordedRequest request) {
+                    val path = request.getPath();
+                    if (path != null && path.endsWith("/index")) {
+                        return indexResponse(request);
+                    }
+                    for (val entry : entries.values()) {
+                        val suffix = "/bundles/" + entry.pdpId() + "/" + entry.configId() + ".saplbundle";
+                        if (path != null && path.endsWith(suffix)) {
+                            val buffer = new okio.Buffer();
+                            buffer.write(entry.bytes());
+                            return new MockResponse().setBody(buffer)
+                                    .addHeader("Content-Type", "application/octet-stream")
+                                    .addHeader("ETag", "\"" + entry.configId() + "\"");
+                        }
+                    }
+                    return new MockResponse().setResponseCode(404);
+                }
+            };
+        }
+
+        private MockResponse indexResponse(RecordedRequest request) {
+            val etag = "\"" + sequence + "\"";
+            if (etag.equals(request.getHeader("If-None-Match"))) {
+                return new MockResponse().setResponseCode(304);
+            }
+            val bundles = new ArrayList<RealmIndexEntry>();
+            for (val entry : entries.values()) {
+                bundles.add(new RealmIndexEntry(entry.pdpId(), entry.configId(),
+                        server.url("/realms/acme/bundles/" + entry.pdpId() + "/" + entry.configId() + ".saplbundle")
+                                .toString()));
+            }
+            val index = new RealmIndex("acme", sequence, "2026-07-04T00:00:00Z", bundles);
+            val jws   = RealmIndexSigner.sign(index, indexSigningKey, "test-key");
+            return new MockResponse().setBody(jws).addHeader("Content-Type", "application/jose").addHeader("ETag",
+                    etag);
+        }
+
+        private record Entry(String pdpId, String configId, byte[] bytes) {}
     }
 
     @Nested
@@ -1035,7 +1200,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             await().atMost(Duration.ofSeconds(5))
                     .untilAsserted(() -> assertThat(TestLoggerFactory.getAllLoggingEvents())
                             .extracting(LoggingEvent::getFormattedMessage)
-                            .anyMatch(message -> message.startsWith("Fetch failed for pdpId"))
+                            .anyMatch(message -> message.startsWith("Fetch failed for"))
                             .noneMatch(message -> message.contains("SUPER-SECRET-TOKEN")));
             assertThat(source.isClosed()).isFalse();
         }

@@ -341,6 +341,18 @@ public class EmbeddedPDPProperties {
          */
         private Duration maxBackoff = Duration.ofSeconds(5);
 
+        /**
+         * The realm identifier. Required in MULTI mode; the signed index must
+         * declare this realm.
+         */
+        private String realm;
+
+        /**
+         * The path of the signed realm index, appended to baseUrl. Required in
+         * MULTI mode.
+         */
+        private String indexPath = "index";
+
     }
 
     /**
@@ -350,7 +362,9 @@ public class EmbeddedPDPProperties {
         /** Regular interval-based polling. */
         POLLING,
         /** Long-poll GET with automatic reconnect on timeout. */
-        LONG_POLL
+        LONG_POLL,
+        /** Monitor a signed realm index and fetch its dynamic set of bundles. */
+        MULTI
     }
 
     /**

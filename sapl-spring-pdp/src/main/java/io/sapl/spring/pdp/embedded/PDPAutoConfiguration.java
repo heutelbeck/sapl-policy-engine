@@ -215,7 +215,8 @@ public class PDPAutoConfiguration {
                     RemoteBundleSourceConfig.FetchMode.valueOf(props.getMode().name()), props.getPollInterval(),
                     props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
                     props.isAllowInsecureHttp(), props.isFollowRedirects(), securityPolicy,
-                    props.getPdpIdPollIntervals(), props.getFirstBackoff(), props.getMaxBackoff());
+                    props.getPdpIdPollIntervals(), props.getFirstBackoff(), props.getMaxBackoff(), props.getRealm(),
+                    props.getIndexPath());
             log.info("Loading policies from remote bundles: {}", sourceConfig.baseUrl());
             yield new RemoteBundlePDPConfigurationSource(sourceConfig);
         }

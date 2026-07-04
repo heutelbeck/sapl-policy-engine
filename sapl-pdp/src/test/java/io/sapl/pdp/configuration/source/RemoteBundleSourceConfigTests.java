@@ -135,6 +135,45 @@ class RemoteBundleSourceConfigTests {
     }
 
     @Test
+    @DisplayName("MULTI mode requires a realm")
+    void whenMultiWithoutRealmThenConstructionFails() {
+        assertThatExceptionOfType(PDPConfigurationException.class).isThrownBy(() -> multiConfig(null, "index"))
+                .withMessageContaining("realm");
+    }
+
+    @Test
+    @DisplayName("MULTI mode requires an index path")
+    void whenMultiWithoutIndexPathThenConstructionFails() {
+        assertThatExceptionOfType(PDPConfigurationException.class).isThrownBy(() -> multiConfig("acme", null))
+                .withMessageContaining("indexPath");
+    }
+
+    @Test
+    @DisplayName("MULTI mode builds with an empty pdpIds list and exposes realm and index path")
+    void whenMultiWithRealmAndIndexPathThenBuildsWithoutPdpIds() {
+        val cfg = multiConfig("acme", "index");
+        assertThat(cfg.realm()).isEqualTo("acme");
+        assertThat(cfg.indexPath()).isEqualTo("index");
+        assertThat(cfg.pdpIds()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("single mode still requires a non-empty pdpIds list")
+    void whenSingleModeWithEmptyPdpIdsThenConstructionFails() {
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", List.of(),
+                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
+                        null, false, true, POLICY, Map.of(), Duration.ofMillis(100), Duration.ofSeconds(5)))
+                .withMessageContaining("pdpIds");
+    }
+
+    private static RemoteBundleSourceConfig multiConfig(String realm, String indexPath) {
+        return new RemoteBundleSourceConfig("https://regent.example.com/realms/acme/", List.of(),
+                RemoteBundleSourceConfig.FetchMode.MULTI, Duration.ofMillis(100), Duration.ofSeconds(5), null, null,
+                false, true, POLICY, Map.of(), Duration.ofMillis(100), Duration.ofSeconds(5), realm, indexPath);
+    }
+
+    @Test
     @DisplayName("a per-pdpId poll interval override for an unknown pdpId is rejected")
     void whenPdpIdPollIntervalOverrideUsesUnknownPdpIdThenConstructionFails() {
         val pollIntervals  = Map.of("staging", Duration.ofSeconds(5));
