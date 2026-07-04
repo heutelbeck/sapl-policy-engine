@@ -102,7 +102,8 @@ public class SecretsUnsealing {
         }
         return new PDPConfiguration(configuration.pdpId(), configuration.configurationId(),
                 configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
-                new PdpData(data.variables(), unsealedSecrets), configuration.extensions(), unsealedExtras);
+                new PdpData(data.variables(), unsealedSecrets), configuration.extensions(), unsealedExtras,
+                configuration.criticalExtensions());
     }
 
     private static void requireSealed(PDPConfiguration configuration) {

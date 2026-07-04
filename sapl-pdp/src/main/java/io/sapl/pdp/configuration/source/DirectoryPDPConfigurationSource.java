@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration.source;
 
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.NonNull;
@@ -237,7 +238,9 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             return false;
         }
         val name = file.getName();
-        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name);
+        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name)
+                || ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(name) || ExtensionFiles.isExtensionFile(name)
+                || ExtensionFiles.isExtensionSecretsFile(name);
     }
 
     private void stopMonitorSafely() {

@@ -100,17 +100,19 @@ public class PDPConfigurationLoader {
     private static final long   MAX_PDP_JSON_BYTES               = MAX_PDP_JSON_SIZE_MEBIBYTES * 1024L * 1024L;
     private static final int    READ_BUFFER_SIZE                 = 8192;
 
-    private static final String ERROR_BUNDLE_MISSING_CONFIGURATION_ID = "Bundle '%s' pdp.json is missing required field 'configurationId'.";
-    private static final String ERROR_BUNDLE_MISSING_PDP_JSON         = "Bundle '%s' is missing pdp.json. Bundles require pdp.json with a configurationId.";
-    private static final String ERROR_FAILED_TO_LIST_SAPL_FILES       = "Failed to list SAPL files in directory.";
-    private static final String ERROR_FAILED_TO_PARSE_PDP_JSON        = "Failed to parse pdp.json content.";
-    private static final String ERROR_FAILED_TO_READ_PDP_JSON         = "Failed to read pdp.json from '%s'.";
-    private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT    = "Failed to read SAPL document '%s'.";
-    private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM      = "File count exceeds maximum of %d files.";
-    private static final String ERROR_PDP_JSON_CONTENT_REQUIRED       = "pdp.json content must not be empty.";
-    private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED      = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
-    private static final String ERROR_PDP_JSON_SIZE_EXCEEDS_MAXIMUM   = "pdp.json exceeds maximum size of %d MiB.";
-    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM      = "Total size of SAPL documents exceeds maximum of %d MB.";
+    private static final String ERROR_BUNDLE_MISSING_CONFIGURATION_ID  = "Bundle '%s' pdp.json is missing required field 'configurationId'.";
+    private static final String ERROR_BUNDLE_MISSING_PDP_JSON          = "Bundle '%s' is missing pdp.json. Bundles require pdp.json with a configurationId.";
+    private static final String ERROR_CONFIG_FILE_SIZE_EXCEEDS_MAXIMUM = "%s exceeds maximum size of %d MiB.";
+    private static final String ERROR_FAILED_TO_LIST_EXTENSION_FILES   = "Failed to list extension files in directory.";
+    private static final String ERROR_FAILED_TO_LIST_SAPL_FILES        = "Failed to list SAPL files in directory.";
+    private static final String ERROR_FAILED_TO_PARSE_PDP_JSON         = "Failed to parse pdp.json content.";
+    private static final String ERROR_FAILED_TO_READ_EXTENSION_FILE    = "Failed to read extension file '%s'.";
+    private static final String ERROR_FAILED_TO_READ_PDP_JSON          = "Failed to read pdp.json from '%s'.";
+    private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT     = "Failed to read SAPL document '%s'.";
+    private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM       = "File count exceeds maximum of %d files.";
+    private static final String ERROR_PDP_JSON_CONTENT_REQUIRED        = "pdp.json content must not be empty.";
+    private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED       = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
+    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM       = "Total size of SAPL documents exceeds maximum of %d MB.";
 
     private static final String WARN_PDP_JSON_MISSING_ALGORITHM = "pdp.json does not contain an 'algorithm' field. Using default: {}.";
     private static final String WARN_PDP_JSON_NOT_FOUND         = "pdp.json not found at '{}'. Using defaults: algorithm={}, configurationId=default.";
@@ -156,13 +158,53 @@ public class PDPConfigurationLoader {
                 OPTION_MAX_TOTAL_SIZE_MEGABYTES, DEFAULT_MAX_TOTAL_SIZE_MEGABYTES);
         val saplContents          = loadSaplDocumentsAsMap(path, maxDocuments, maxTotalSizeMegabytes);
         val documents             = new ArrayList<>(saplContents.values());
+        val extensionData         = loadExtensionsFromDirectory(path);
 
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path);
 
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
-                new PdpData(pdpJson.variables(), pdpJson.secrets()));
+                new PdpData(pdpJson.variables(), pdpJson.secrets()), extensionData.extensions(),
+                extensionData.extensionSecrets(), extensionData.criticalExtensions());
     }
+
+    private static DirectoryExtensions loadExtensionsFromDirectory(Path directory) {
+        val    extensions       = new LinkedHashMap<String, Value>();
+        val    extensionSecrets = new LinkedHashMap<String, Value>();
+        String criticalJson     = null;
+
+        List<Path> files;
+        try (Stream<Path> paths = Files.list(directory)) {
+            files = paths.filter(Files::isRegularFile).toList();
+        } catch (IOException e) {
+            throw new PDPConfigurationException(ERROR_FAILED_TO_LIST_EXTENSION_FILES, e);
+        }
+
+        for (val path : files) {
+            val fileNamePath = path.getFileName();
+            if (fileNamePath == null) {
+                continue;
+            }
+            val name = fileNamePath.toString();
+            if (ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(name)) {
+                criticalJson = readExtensionFileContent(path);
+            } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name),
+                        Value.ofJson(readExtensionFileContent(path)));
+            } else if (ExtensionFiles.isExtensionFile(name)) {
+                extensions.put(ExtensionFiles.extensionNameOf(name), Value.ofJson(readExtensionFileContent(path)));
+            }
+        }
+
+        val criticalExtensions = ExtensionFiles.parseCriticalExtensions(criticalJson);
+        ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), extensionSecrets.keySet());
+        return new DirectoryExtensions(extensions, extensionSecrets, criticalExtensions);
+    }
+
+    private record DirectoryExtensions(
+            Map<String, Value> extensions,
+            Map<String, Value> extensionSecrets,
+            Set<String> criticalExtensions) {}
 
     /**
      * Loads a PDP configuration from raw content.
@@ -272,7 +314,7 @@ public class PDPConfigurationLoader {
             return new PdpJsonContent(CombiningAlgorithm.DEFAULT, "default", Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
         try {
-            val content = readPdpJsonContent(pdpJsonPath);
+            val content = readCappedText(pdpJsonPath);
             return parsePdpJson(content);
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_READ_PDP_JSON.formatted(pdpJsonPath), e);
@@ -388,25 +430,33 @@ public class PDPConfigurationLoader {
         }
     }
 
-    private static String readPdpJsonContent(Path path) throws IOException {
-        enforcePdpJsonSize(Files.size(path));
+    private static String readExtensionFileContent(Path path) {
+        try {
+            return readCappedText(path);
+        } catch (IOException e) {
+            throw new PDPConfigurationException(ERROR_FAILED_TO_READ_EXTENSION_FILE.formatted(path.getFileName()), e);
+        }
+    }
+
+    private static String readCappedText(Path path) throws IOException {
+        enforceConfigFileSize(path, Files.size(path));
         try (val input = Files.newInputStream(path); val output = new ByteArrayOutputStream()) {
             val buffer = new byte[READ_BUFFER_SIZE];
             var total  = 0L;
             int read;
             while ((read = input.read(buffer)) != -1) {
                 total += read;
-                enforcePdpJsonSize(total);
+                enforceConfigFileSize(path, total);
                 output.write(buffer, 0, read);
             }
             return output.toString(StandardCharsets.UTF_8);
         }
     }
 
-    private static void enforcePdpJsonSize(long size) {
+    private static void enforceConfigFileSize(Path path, long size) {
         if (size > MAX_PDP_JSON_BYTES) {
             throw new PDPConfigurationException(
-                    ERROR_PDP_JSON_SIZE_EXCEEDS_MAXIMUM.formatted(MAX_PDP_JSON_SIZE_MEBIBYTES));
+                    ERROR_CONFIG_FILE_SIZE_EXCEEDS_MAXIMUM.formatted(path.getFileName(), MAX_PDP_JSON_SIZE_MEBIBYTES));
         }
     }
 

@@ -18,8 +18,14 @@
 package io.sapl.node.cli.commands;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.secrets.SecretSealing;
+import io.sapl.secrets.ValueSealer;
+import io.sapl.pdp.configuration.ExtensionFiles;
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleManifest;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
@@ -44,6 +50,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -68,7 +75,7 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
         Ed25519 keys for integrity verification at load time.
         """ },
     subcommands = {
-        BundleCommand.Create.class, BundleCommand.Sign.class,
+        BundleCommand.Create.class, BundleCommand.Unpack.class, BundleCommand.Sign.class,
         BundleCommand.Verify.class, BundleCommand.Inspect.class,
         BundleCommand.Keygen.class, BundleCommand.SecretsKeygen.class
     }
@@ -76,26 +83,28 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
 // @formatter:on
 public class BundleCommand {
 
-    private static final String PDP_JSON                 = "pdp.json";
-    private static final String SAPL_EXTENSION           = ".sapl";
-    private static final String EXTENSION_PREFIX         = "ext-";
-    private static final String EXTENSION_SUFFIX         = ".json";
-    private static final String EXTENSION_SECRETS_SUFFIX = "-secrets.json";
+    private static final String PDP_JSON       = "pdp.json";
+    private static final String SAPL_EXTENSION = ".sapl";
+    private static final String SECRETS        = "secrets";
 
-    public static final String  ERROR_BUNDLE_NOT_FOUND    = "Error: Bundle file not found: %s.";
-    private static final String ERROR_BUNDLE_NOT_SIGNED   = "Error: Bundle is not signed (no manifest found).";
-    private static final String ERROR_CREATING_BUNDLE     = "Error creating bundle: %s.";
-    private static final String ERROR_FILE_ALREADY_EXISTS = "Error: File already exists: %s.";
-    private static final String ERROR_GENERATING_KEYPAIR  = "Error generating keypair: %s.";
-    private static final String ERROR_INSPECTING_BUNDLE   = "Error inspecting bundle: %s.";
-    private static final String ERROR_KEY_NOT_FOUND       = "Error: Key file not found: %s.";
-    private static final String ERROR_NOT_A_BUNDLE        = "Error: Not a valid SAPL bundle: %s.";
-    private static final String ERROR_NOT_A_DIRECTORY     = "Error: Input path is not a directory: %s.";
-    private static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: %s.";
-    private static final String ERROR_SIGNING_BUNDLE      = "Error signing bundle: %s.";
-    private static final String ERROR_VERIFICATION_FAILED = "Verification FAILED: %s.";
-    private static final String ERROR_VERIFYING_BUNDLE    = "Error verifying bundle: %s.";
-    private static final String HINT_USE_FORCE            = "Use --force to overwrite.";
+    private static final String ERROR_ALREADY_SEALED             = "Error: The input folder is already sealed. Omit --seal-to to bundle it verbatim.";
+    public static final String  ERROR_BUNDLE_NOT_FOUND           = "Error: Bundle file not found: %s.";
+    private static final String ERROR_BUNDLE_NOT_SIGNED          = "Error: Bundle is not signed (no manifest found).";
+    private static final String ERROR_CREATING_BUNDLE            = "Error creating bundle: %s.";
+    private static final String ERROR_FILE_ALREADY_EXISTS        = "Error: File already exists: %s.";
+    private static final String ERROR_GENERATING_KEYPAIR         = "Error generating keypair: %s.";
+    private static final String ERROR_INSPECTING_BUNDLE          = "Error inspecting bundle: %s.";
+    private static final String ERROR_KEY_NOT_FOUND              = "Error: Key file not found: %s.";
+    private static final String ERROR_MIXED_SEALING              = "Error: The input folder mixes sealed and plaintext secrets. Seal all secrets or none.";
+    private static final String ERROR_NOT_A_BUNDLE               = "Error: Not a valid SAPL bundle: %s.";
+    private static final String ERROR_NOT_A_DIRECTORY            = "Error: Input path is not a directory: %s.";
+    private static final String ERROR_NO_POLICIES_FOUND          = "Error: No .sapl files found in: %s.";
+    private static final String ERROR_PLAINTEXT_SECRETS_UNSEALED = "Error: The input folder has plaintext secrets. Provide --seal-to to seal them, or pre-seal the folder.";
+    private static final String ERROR_SIGNING_BUNDLE             = "Error signing bundle: %s.";
+    private static final String ERROR_UNPACKING_BUNDLE           = "Error unpacking bundle: %s.";
+    private static final String ERROR_VERIFICATION_FAILED        = "Verification FAILED: %s.";
+    private static final String ERROR_VERIFYING_BUNDLE           = "Error verifying bundle: %s.";
+    private static final String HINT_USE_FORCE                   = "Use --force to overwrite.";
 
     // @formatter:off
     @Command(
@@ -196,10 +205,34 @@ public class BundleCommand {
                     return 1;
                 }
 
-                addExtensions(builder);
+                addExtensionConfigs(builder);
+                addCriticalExtensions(builder);
 
-                if (sealToFile != null) {
+                switch (detectSealingState(inputDir)) {
+                case MIXED     -> {
+                    err.println(ERROR_MIXED_SEALING);
+                    return 1;
+                }
+                case SEALED    -> {
+                    if (sealToFile != null) {
+                        err.println(ERROR_ALREADY_SEALED);
+                        return 1;
+                    }
+                    addExtensionSecrets(builder, true);
+                }
+                case PLAINTEXT -> {
+                    if (sealToFile == null) {
+                        err.println(ERROR_PLAINTEXT_SECRETS_UNSEALED);
+                        return 1;
+                    }
+                    addExtensionSecrets(builder, false);
                     builder.sealSecretsWith(loadX25519PublicKey(sealToFile));
+                }
+                case NONE      -> {
+                    if (sealToFile != null) {
+                        builder.sealSecretsWith(loadX25519PublicKey(sealToFile));
+                    }
+                }
                 }
 
                 if (keyFile != null) {
@@ -216,26 +249,223 @@ public class BundleCommand {
                 }
                 return 0;
 
-            } catch (IOException | GeneralSecurityException | ParseException e) {
+            } catch (IOException | GeneralSecurityException | ParseException | PDPConfigurationException e) {
                 err.println(ERROR_CREATING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
         }
 
-        private void addExtensions(BundleBuilder builder) throws IOException {
+        private void addExtensionConfigs(BundleBuilder builder) throws IOException {
             try (val stream = Files.list(inputDir)) {
-                for (val file : stream.filter(BundleCommand::isExtensionFile).toList()) {
+                for (val file : stream.filter(Files::isRegularFile).toList()) {
                     val filename = file.getFileName().toString();
-                    val content  = Files.readString(file);
-                    if (filename.endsWith(EXTENSION_SECRETS_SUFFIX)) {
-                        builder.withExtensionSecrets(extensionName(filename, EXTENSION_SECRETS_SUFFIX), content);
-                    } else {
-                        builder.withExtension(extensionName(filename, EXTENSION_SUFFIX), content);
+                    if (ExtensionFiles.isExtensionFile(filename)) {
+                        builder.withExtension(ExtensionFiles.extensionNameOf(filename), Files.readString(file));
                     }
                 }
             }
         }
 
+        private void addExtensionSecrets(BundleBuilder builder, boolean alreadySealed) throws IOException {
+            try (val stream = Files.list(inputDir)) {
+                for (val file : stream.filter(Files::isRegularFile).toList()) {
+                    val filename = file.getFileName().toString();
+                    if (!ExtensionFiles.isExtensionSecretsFile(filename)) {
+                        continue;
+                    }
+                    val name    = ExtensionFiles.extensionSecretsNameOf(filename);
+                    val content = Files.readString(file);
+                    if (alreadySealed) {
+                        builder.withSealedExtensionSecrets(name, content);
+                    } else {
+                        builder.withExtensionSecrets(name, content);
+                    }
+                }
+            }
+        }
+
+        private void addCriticalExtensions(BundleBuilder builder) throws IOException {
+            val criticalFile = inputDir.resolve(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
+            if (!Files.exists(criticalFile)) {
+                return;
+            }
+            for (val name : ExtensionFiles.parseCriticalExtensions(Files.readString(criticalFile))) {
+                builder.withCriticalExtension(name);
+            }
+        }
+
+        private SealingState detectSealingState(Path dir) throws IOException {
+            val statuses    = new ArrayList<Boolean>();
+            val pdpJsonPath = dir.resolve(PDP_JSON);
+            if (Files.exists(pdpJsonPath)) {
+                val secrets = secretsSection(Files.readString(pdpJsonPath));
+                if (secrets != null && !secrets.isEmpty()) {
+                    statuses.add(ValueSealer.isSealed(secrets));
+                }
+            }
+            try (val stream = Files.list(dir)) {
+                for (val file : stream.filter(Files::isRegularFile).toList()) {
+                    if (ExtensionFiles.isExtensionSecretsFile(file.getFileName().toString())) {
+                        statuses.add(ValueSealer.isSealed(Value.ofJson(Files.readString(file))));
+                    }
+                }
+            }
+            if (statuses.isEmpty()) {
+                return SealingState.NONE;
+            }
+            if (statuses.stream().allMatch(Boolean::booleanValue)) {
+                return SealingState.SEALED;
+            }
+            if (statuses.stream().noneMatch(Boolean::booleanValue)) {
+                return SealingState.PLAINTEXT;
+            }
+            return SealingState.MIXED;
+        }
+
+        private static ObjectValue secretsSection(String pdpJson) {
+            if (Value.ofJson(pdpJson) instanceof ObjectValue root && root.get(SECRETS) instanceof ObjectValue secrets) {
+                return secrets;
+            }
+            return null;
+        }
+
+        private enum SealingState {
+            NONE,
+            PLAINTEXT,
+            SEALED,
+            MIXED
+        }
+
+    }
+
+    // @formatter:off
+    @Command(
+        name = "unpack",
+        mixinStandardHelpOptions = true,
+        header = "Unpack a policy bundle into a directory.",
+        description = { """
+            Extracts every file from a .saplbundle into the output directory:
+            pdp.json, .sapl policies, extension files, and critical-extensions.json.
+            The manifest is not written, so the directory can be edited and
+            repackaged with 'sapl bundle create'.
+
+            With -k the signature is verified before unpacking and a mismatch
+            aborts. With --unseal-with the pdp.json secrets and every
+            ext-<name>-secrets.json are unsealed to cleartext with the X25519
+            private key, producing a plaintext directory. Without it, sealed
+            content is written verbatim, which allows repackaging without the key.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Bundle unpacked successfully",
+            " 1:Error (bundle or key not found, verification failed, or I/O error)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              # Unpack verbatim
+              sapl bundle unpack -b policies.saplbundle -o ./policies
+
+              # Verify then unpack
+              sapl bundle unpack -b policies.saplbundle -o ./policies -k signing.pub
+
+              # Unpack and unseal secrets to cleartext
+              sapl bundle unpack -b policies.saplbundle -o ./policies --unseal-with recipient.jwk
+
+            See Also: sapl-bundle-create(1), sapl-bundle-verify(1)
+            """ }
+    )
+    // @formatter:on
+    static class Unpack implements Callable<Integer> {
+
+        @Spec
+        private CommandSpec spec;
+
+        @Option(names = { "-b", "--bundle" }, required = true, description = "Bundle file to unpack")
+        private Path bundleFile;
+
+        @Option(names = { "-o", "--output" }, required = true, description = "Output directory")
+        private Path outputDir;
+
+        @Option(names = { "-k",
+                "--key" }, description = "Ed25519 public key (PEM); verifies the signature before unpacking")
+        private Path keyFile;
+
+        @Option(names = {
+                "--unseal-with" }, description = "X25519 recipient private key (JWK); unseals secrets to cleartext")
+        private Path unsealKeyFile;
+
+        @Override
+        public Integer call() {
+            val out = spec.commandLine().getOut();
+            val err = spec.commandLine().getErr();
+
+            if (!Files.exists(bundleFile)) {
+                err.println(ERROR_BUNDLE_NOT_FOUND.formatted(bundleFile));
+                return 1;
+            }
+            if (keyFile != null && !Files.exists(keyFile)) {
+                err.println(ERROR_KEY_NOT_FOUND.formatted(keyFile));
+                return 1;
+            }
+            if (unsealKeyFile != null && !Files.exists(unsealKeyFile)) {
+                err.println(ERROR_KEY_NOT_FOUND.formatted(unsealKeyFile));
+                return 1;
+            }
+
+            try {
+                val contents     = extractBundleContents(bundleFile);
+                val manifestJson = contents.remove(BundleManifest.MANIFEST_FILENAME);
+
+                if (keyFile != null) {
+                    if (manifestJson == null) {
+                        err.println(ERROR_BUNDLE_NOT_SIGNED);
+                        return 1;
+                    }
+                    BundleSigner.verify(BundleManifest.fromJson(manifestJson), contents, loadEd25519PublicKey(keyFile));
+                }
+
+                val unsealKey = unsealKeyFile != null ? loadX25519PrivateKey(unsealKeyFile) : null;
+                val base      = outputDir.toAbsolutePath().normalize();
+                Files.createDirectories(base);
+
+                var files = 0;
+                for (val entry : contents.entrySet()) {
+                    val name    = entry.getKey();
+                    val target  = safeResolve(base, name);
+                    var content = entry.getValue();
+                    if (unsealKey != null) {
+                        if (PDP_JSON.equals(name)) {
+                            content = unsealPdpJsonSecrets(content, unsealKey);
+                        } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                            content = unsealDocument(content, unsealKey);
+                        }
+                    }
+                    Files.writeString(target, content);
+                    files++;
+                }
+
+                out.printf("Unpacked bundle: %s (%d files) to %s%n", bundleFile, files, outputDir);
+                return 0;
+
+            } catch (BundleSignatureException e) {
+                err.println(ERROR_VERIFICATION_FAILED.formatted(e.getMessage()));
+                return 1;
+            } catch (IOException | GeneralSecurityException | ParseException | PDPConfigurationException e) {
+                err.println(ERROR_UNPACKING_BUNDLE.formatted(e.getMessage()));
+                return 1;
+            }
+        }
+
+        private static Path safeResolve(Path base, String entryName) throws IOException {
+            if (entryName.contains("/") || entryName.contains("\\") || entryName.contains("..")) {
+                throw new IOException("Refusing to write unsafe bundle entry name: " + entryName);
+            }
+            val target = base.resolve(entryName).normalize();
+            if (!target.startsWith(base) || !base.equals(target.getParent())) {
+                throw new IOException("Refusing to write unsafe bundle entry name: " + entryName);
+            }
+            return target;
+        }
     }
 
     // @formatter:off
@@ -306,16 +536,28 @@ public class BundleCommand {
                 val contents   = extractBundleContents(bundleFile);
                 val builder    = BundleBuilder.create();
 
+                contents.remove(BundleManifest.MANIFEST_FILENAME);
                 val pdpJson = contents.remove(PDP_JSON);
                 if (pdpJson != null) {
                     builder.withPdpJson(pdpJson);
                 }
-
-                contents.remove(BundleManifest.MANIFEST_FILENAME);
+                val criticalJson = contents.remove(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
 
                 for (val entry : contents.entrySet()) {
-                    if (entry.getKey().endsWith(SAPL_EXTENSION)) {
-                        builder.withPolicy(entry.getKey(), entry.getValue());
+                    val name = entry.getKey();
+                    if (name.endsWith(SAPL_EXTENSION)) {
+                        builder.withPolicy(name, entry.getValue());
+                    } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                        builder.withSealedExtensionSecrets(ExtensionFiles.extensionSecretsNameOf(name),
+                                entry.getValue());
+                    } else if (ExtensionFiles.isExtensionFile(name)) {
+                        builder.withExtension(ExtensionFiles.extensionNameOf(name), entry.getValue());
+                    }
+                }
+
+                if (criticalJson != null) {
+                    for (val critical : ExtensionFiles.parseCriticalExtensions(criticalJson)) {
+                        builder.withCriticalExtension(critical);
                     }
                 }
 
@@ -327,7 +569,7 @@ public class BundleCommand {
                 out.printf("Signed bundle: %s (key-id: %s)%n", target, keyId);
                 return 0;
 
-            } catch (IOException | GeneralSecurityException e) {
+            } catch (IOException | GeneralSecurityException | PDPConfigurationException e) {
                 err.println(ERROR_SIGNING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
@@ -714,13 +956,25 @@ public class BundleCommand {
         return OctetKeyPair.parse(Files.readString(keyFile)).toPublicJWK();
     }
 
-    private static boolean isExtensionFile(Path path) {
-        val name = path.getFileName().toString();
-        return name.startsWith(EXTENSION_PREFIX) && name.endsWith(EXTENSION_SUFFIX);
+    private static OctetKeyPair loadX25519PrivateKey(Path keyFile) throws IOException, ParseException {
+        return OctetKeyPair.parse(Files.readString(keyFile));
     }
 
-    private static String extensionName(String filename, String suffix) {
-        return filename.substring(EXTENSION_PREFIX.length(), filename.length() - suffix.length());
+    private static String unsealPdpJsonSecrets(String pdpJson, OctetKeyPair privateKey) {
+        if (!(Value.ofJson(pdpJson) instanceof ObjectValue root)
+                || !(root.get(SECRETS) instanceof ObjectValue secrets)) {
+            return pdpJson;
+        }
+        val unsealed = ValueSealer.unseal(privateKey, secrets);
+        val builder  = ObjectValue.builder();
+        for (val entry : root.entrySet()) {
+            builder.put(entry.getKey(), SECRETS.equals(entry.getKey()) ? unsealed : entry.getValue());
+        }
+        return ValueJsonMarshaller.toJsonString(builder.build());
+    }
+
+    private static String unsealDocument(String sealedJson, OctetKeyPair privateKey) {
+        return ValueJsonMarshaller.toJsonString(ValueSealer.unseal(privateKey, Value.ofJson(sealedJson)));
     }
 
     private static void restrictToOwner(Path file) {

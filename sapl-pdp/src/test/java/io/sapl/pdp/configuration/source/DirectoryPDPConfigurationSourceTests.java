@@ -269,6 +269,24 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    @DisplayName("adding an extension file triggers a reload that carries the extension")
+    void whenExtensionFileAddedThenConfigurationCarriesExtension() throws IOException {
+        writePdpJson(tempDir);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val configs = captureConfigurations(source);
+
+        assertThat(configs).hasSize(1).first().satisfies(config -> assertThat(config.extensions()).isEmpty());
+
+        createFile(tempDir.resolve("ext-upstreams.json"), """
+                { "servers": [] }""");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
+                .last().satisfies(config -> assertThat(config.extensions()).containsKey("upstreams")));
+    }
+
+    @Test
     void whenFileIsDeletedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         writePdpJson(tempDir);
         val firstPolicy  = tempDir.resolve("first.sapl");

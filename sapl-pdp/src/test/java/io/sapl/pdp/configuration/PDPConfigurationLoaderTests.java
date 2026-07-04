@@ -65,6 +65,37 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
+    @DisplayName("extension files in the directory are loaded into the configuration")
+    void whenDirectoryHasExtensionFilesThenLoadedIntoConfiguration() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("ext-upstreams.json"), """
+                { "servers": [] }""");
+        Files.writeString(tempDir.resolve("ext-upstreams-secrets.json"), """
+                { "apiKey": "ENC[value]" }""");
+        Files.writeString(tempDir.resolve("critical-extensions.json"), """
+                ["upstreams"]""");
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
+
+        assertThat(config.extensions()).containsKey("upstreams");
+        assertThat(config.extensionSecrets()).containsKey("upstreams");
+        assertThat(config.criticalExtensions()).containsExactly("upstreams");
+    }
+
+    @Test
+    @DisplayName("a critical extension without its configuration file is rejected")
+    void whenDirectoryCriticalExtensionMissingConfigThenThrows() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("critical-extensions.json"), """
+                ["upstreams"]""");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Critical extension 'upstreams'");
+    }
+
+    @Test
     @DisplayName("an explicit null algorithm degrades gracefully to the default, like an absent field (run2-078)")
     void whenLoadingWithExplicitNullAlgorithmThenFallsBackToDefault() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """

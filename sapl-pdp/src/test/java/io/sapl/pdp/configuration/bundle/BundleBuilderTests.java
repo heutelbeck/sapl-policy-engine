@@ -626,7 +626,8 @@ class BundleBuilderTests {
         void whenExtensionSecretsAddedThenSealed() throws IOException {
             val recipient = SecretSealing.generateRecipientKey();
             val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
-                    .withExtensionSecrets("paratron-gateway", """
+                    .withExtension("paratron-gateway", """
+                            { "route": "/api" }""").withExtensionSecrets("paratron-gateway", """
                             { "apiKey": "TOP-SECRET-VALUE" }""").build();
             val entries   = extractEntries(bundle);
             assertThat(entries).containsKey("ext-paratron-gateway-secrets.json");
@@ -642,6 +643,27 @@ class BundleBuilderTests {
                             { "k": "v" }""");
             assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("sealing key");
+        }
+
+        @Test
+        @DisplayName("already-sealed extension secrets are stored verbatim without a key")
+        void whenSealedExtensionSecretsAddedThenStoredVerbatim() throws IOException {
+            val sealed  = """
+                    { "apiKey": "ENC[ciphertext]" }""";
+            val bundle  = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", "{}")
+                    .withSealedExtensionSecrets("upstreams", sealed).build();
+            val entries = extractEntries(bundle);
+            assertThat(entries.get("ext-upstreams-secrets.json")).isEqualTo(sealed);
+        }
+
+        @Test
+        @DisplayName("plaintext content passed as sealed extension secrets is rejected")
+        void whenSealedExtensionSecretsNotSealedThenThrows() {
+            val builder   = BundleBuilder.create();
+            val cleartext = """
+                    { "apiKey": "cleartext" }""";
+            assertThatThrownBy(() -> builder.withSealedExtensionSecrets("upstreams", cleartext))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already be sealed");
         }
 
         @NullAndEmptySource
@@ -673,6 +695,49 @@ class BundleBuilderTests {
             val config    = BundleParser.parse(bundle, "pdp", signedPolicy);
             assertThat(config.extensions()).containsKey("paratron-gateway");
             assertThat(config.extensionSecrets()).containsKey("paratron-gateway");
+        }
+    }
+
+    @Nested
+    @DisplayName("critical extensions")
+    class CriticalExtensions {
+
+        @Test
+        @DisplayName("a critical extension is written to critical-extensions.json")
+        void whenCriticalExtensionMarkedThenWrittenToFile() throws IOException {
+            val bundle  = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", """
+                    { "servers": [] }""").withCriticalExtension("upstreams").build();
+            val entries = extractEntries(bundle);
+            assertThat(entries).containsKey("critical-extensions.json");
+            assertThat(entries.get("critical-extensions.json")).contains("upstreams");
+        }
+
+        @Test
+        @DisplayName("a critical extension without its configuration fails the build")
+        void whenCriticalExtensionMissingConfigThenBuildFails() {
+            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withCriticalExtension("upstreams");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("Critical extension 'upstreams'");
+        }
+
+        @Test
+        @DisplayName("extension secrets without their configuration fail the build")
+        void whenSecretsWithoutConfigThenBuildFails() {
+            val recipient = SecretSealing.generateRecipientKey();
+            val builder   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
+                    .withExtensionSecrets("upstreams", """
+                            { "apiKey": "x" }""");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("has sealed secrets");
+        }
+
+        @Test
+        @DisplayName("a signed bundle's critical set survives a parse round-trip")
+        void whenSignedBundleWithCriticalExtensionThenParsedFromConfig() {
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", "{}")
+                    .withCriticalExtension("upstreams").signWith(cultKeyPair.getPrivate(), "elder-key").build();
+            val config = BundleParser.parse(bundle, "pdp", signedPolicy);
+            assertThat(config.criticalExtensions()).containsExactly("upstreams");
         }
     }
 

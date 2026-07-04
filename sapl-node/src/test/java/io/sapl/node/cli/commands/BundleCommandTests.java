@@ -361,6 +361,138 @@ class BundleCommandTests {
             assertThat(bundleEntry(outputFile, "ext-paratron-gateway-secrets.json")).contains("ENC[");
         }
 
+        @Test
+        @DisplayName("a critical-extensions.json in the input directory is packaged")
+        void whenCriticalExtensionsFileThenPackaged() throws Exception {
+            val inputDir = createPolicyInputDir();
+            Files.writeString(inputDir.resolve("ext-upstreams.json"), """
+                    { "servers": [] }""");
+            Files.writeString(inputDir.resolve("critical-extensions.json"), """
+                    ["upstreams"]""");
+            val outputFile = tempDir.resolve("with-critical.saplbundle");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(bundleEntry(outputFile, "critical-extensions.json")).contains("upstreams");
+        }
+
+        @Test
+        @DisplayName("create rejects plaintext secrets without --seal-to")
+        void whenPlaintextSecretsWithoutSealToThenError() throws Exception {
+            val inputDir = policyDirWithSecrets();
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o",
+                    tempDir.resolve("x.saplbundle").toString());
+            assertThat(exitCode).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("unpack extracts every file and drops the manifest, secrets stay sealed")
+        void whenUnpackThenFilesExtractedSealed() throws Exception {
+            val bundle = sealedAndSignedBundle();
+            val outDir = tempDir.resolve("unpacked");
+
+            val exitCode = cmd.execute("bundle", "unpack", "-b", bundle.toString(), "-o", outDir.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(outDir.resolve("test.sapl")).exists();
+            assertThat(outDir.resolve(".sapl-manifest.json")).doesNotExist();
+            assertThat(Files.readString(outDir.resolve("pdp.json"))).contains("ENC[")
+                    .doesNotContain("TOP-SECRET-VALUE");
+        }
+
+        @Test
+        @DisplayName("unpack --unseal-with restores plaintext secrets")
+        void whenUnpackUnsealThenPlaintext() throws Exception {
+            val bundle = sealedAndSignedBundle();
+            val outDir = tempDir.resolve("unsealed");
+
+            val exitCode = cmd.execute("bundle", "unpack", "-b", bundle.toString(), "-o", outDir.toString(),
+                    "--unseal-with", tempDir.resolve("recipient.jwk").toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(Files.readString(outDir.resolve("pdp.json"))).contains("TOP-SECRET-VALUE")
+                    .doesNotContain("ENC[");
+        }
+
+        @Test
+        @DisplayName("a pre-sealed unpacked folder is re-bundled without the sealing key")
+        void whenPresealedFolderThenRebundledWithoutKey() throws Exception {
+            val presealedDir = tempDir.resolve("presealed");
+            cmd.execute("bundle", "unpack", "-b", sealedAndSignedBundle().toString(), "-o", presealedDir.toString());
+            val rebundled = tempDir.resolve("rebundled.saplbundle");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", presealedDir.toString(), "-o", rebundled.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(bundleEntry(rebundled, "pdp.json")).contains("ENC[").doesNotContain("TOP-SECRET-VALUE");
+        }
+
+        @Test
+        @DisplayName("create --seal-to on an already-sealed folder is rejected")
+        void whenSealToOnPresealedFolderThenError() throws Exception {
+            val presealedDir = tempDir.resolve("presealed-reject");
+            cmd.execute("bundle", "unpack", "-b", sealedAndSignedBundle().toString(), "-o", presealedDir.toString());
+
+            val exitCode = cmd.execute("bundle", "create", "-i", presealedDir.toString(), "-o",
+                    tempDir.resolve("x.saplbundle").toString(), "--seal-to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+            assertThat(exitCode).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("create rejects a folder that mixes sealed and plaintext secrets")
+        void whenMixedSealingThenError() throws Exception {
+            val dir = tempDir.resolve("mixed");
+            cmd.execute("bundle", "unpack", "-b", sealedAndSignedBundle().toString(), "-o", dir.toString());
+            Files.writeString(dir.resolve("ext-foo.json"), "{}");
+            Files.writeString(dir.resolve("ext-foo-secrets.json"), """
+                    { "k": "plaintext" }""");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", dir.toString(), "-o",
+                    tempDir.resolve("x.saplbundle").toString());
+            assertThat(exitCode).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("sign preserves extension files and the critical set, and the result verifies")
+        void whenSignPreservesExtensionsAndCritical() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            cmd.execute("bundle", "keygen", "-o", tempDir.resolve("signing").toString());
+            val inputDir = policyDirWithSecrets();
+            Files.writeString(inputDir.resolve("ext-upstreams.json"), """
+                    { "servers": [] }""");
+            Files.writeString(inputDir.resolve("ext-upstreams-secrets.json"), """
+                    { "apiKey": "K" }""");
+            Files.writeString(inputDir.resolve("critical-extensions.json"), """
+                    ["upstreams"]""");
+            val bundle = tempDir.resolve("unsigned.saplbundle");
+            cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundle.toString(), "--seal-to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+
+            val signExit   = cmd.execute("bundle", "sign", "-b", bundle.toString(), "-k",
+                    tempDir.resolve("signing.pem").toString(), "--key-id", "prod");
+            val verifyExit = cmd.execute("bundle", "verify", "-b", bundle.toString(), "-k",
+                    tempDir.resolve("signing.pub").toString());
+
+            assertThat(signExit).isZero();
+            assertThat(verifyExit).isZero();
+            assertThat(bundleEntry(bundle, "ext-upstreams.json")).contains("servers");
+            assertThat(bundleEntry(bundle, "ext-upstreams-secrets.json")).contains("ENC[");
+            assertThat(bundleEntry(bundle, "critical-extensions.json")).contains("upstreams");
+        }
+
+        private Path sealedAndSignedBundle() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            cmd.execute("bundle", "keygen", "-o", tempDir.resolve("signing").toString());
+            val inputDir = policyDirWithSecrets();
+            val bundle   = tempDir.resolve("sealed-signed.saplbundle");
+            cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundle.toString(), "-k",
+                    tempDir.resolve("signing.pem").toString(), "--seal-to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+            return bundle;
+        }
+
         private Path policyDirWithSecrets() throws IOException {
             val inputDir = tempDir.resolve("policies-secrets");
             Files.createDirectories(inputDir);

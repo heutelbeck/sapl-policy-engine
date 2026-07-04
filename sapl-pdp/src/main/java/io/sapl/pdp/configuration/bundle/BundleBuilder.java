@@ -24,6 +24,7 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
@@ -120,6 +121,7 @@ public final class BundleBuilder {
     private static final String ERROR_BUNDLE_MISSING_PDP_JSON       = "Bundle is missing pdp.json. Bundles require a pdp.json with a 'configurationId' field.";
     private static final String ERROR_EXTENSION_NAME_NOT_SLUG       = "Extension name '%s' must be a slug (lowercase letters, digits, and single hyphens).";
     private static final String ERROR_EXTENSION_NAME_RESERVED       = "Extension name '%s' must not end with '-secrets'; use withExtensionSecrets for sealed data.";
+    private static final String ERROR_EXTENSION_SECRETS_NOT_SEALED  = "Extension secrets '%s' must already be sealed. Use withExtensionSecrets to seal cleartext.";
     private static final String ERROR_EXTENSION_SECRETS_REQUIRE_KEY = "Extension secrets require a sealing key; call sealSecretsWith before building.";
     private static final String ERROR_FAILED_TO_CREATE_BUNDLE       = "Failed to create bundle.";
     private static final String ERROR_FAILED_TO_WRITE_BUNDLE        = "Failed to write bundle to path: %s.";
@@ -129,9 +131,11 @@ public final class BundleBuilder {
     private static final String ERROR_PRIVATE_KEY_NULL              = "Private key must not be null.";
 
     private String                    pdpJson;
-    private final Map<String, String> policies         = new LinkedHashMap<>();
-    private final Map<String, String> extensions       = new LinkedHashMap<>();
-    private final Map<String, String> extensionSecrets = new LinkedHashMap<>();
+    private final Map<String, String> policies               = new LinkedHashMap<>();
+    private final Map<String, String> extensions             = new LinkedHashMap<>();
+    private final Map<String, String> extensionSecrets       = new LinkedHashMap<>();
+    private final Map<String, String> sealedExtensionSecrets = new LinkedHashMap<>();
+    private final Set<String>         criticalExtensions     = new LinkedHashSet<>();
 
     private PrivateKey   signingKey;
     private String       signingKeyId;
@@ -406,6 +410,57 @@ public final class BundleBuilder {
         return this;
     }
 
+    /**
+     * Adds an already-sealed extension secrets file to the bundle verbatim as
+     * {@code ext-<name>-secrets.json}.
+     * <p>
+     * Unlike {@link #withExtensionSecrets}, the content is stored byte for byte
+     * without sealing and needs no sealing key. This is the path for re-bundling
+     * content that is already sealed, for example from {@code sapl bundle unpack}
+     * without unsealing. The content must already be sealed, so plaintext cannot be
+     * stored as if it were sealed.
+     *
+     * @param name
+     * the extension name (a slug, e.g. {@code upstreams})
+     * @param sealedJsonContent
+     * the already-sealed extension secret content
+     *
+     * @return this builder for method chaining
+     *
+     * @throws IllegalArgumentException
+     * if the name is not a slug, or the content is not sealed
+     */
+    public BundleBuilder withSealedExtensionSecrets(String name, String sealedJsonContent) {
+        validateExtensionName(name);
+        if (sealedJsonContent == null || !ValueSealer.isSealed(Value.ofJson(sealedJsonContent))) {
+            throw new IllegalArgumentException(ERROR_EXTENSION_SECRETS_NOT_SEALED.formatted(name));
+        }
+        sealedExtensionSecrets.put(name, sealedJsonContent);
+        return this;
+    }
+
+    /**
+     * Marks an extension as critical.
+     * <p>
+     * A critical extension must be understood by the consumer. A consumer without a
+     * registered processor for it rejects the whole configuration. Building fails if
+     * a name is marked critical without a matching {@link #withExtension}
+     * configuration.
+     *
+     * @param name
+     * the extension name (a slug, e.g. {@code upstreams})
+     *
+     * @return this builder for method chaining
+     *
+     * @throws IllegalArgumentException
+     * if the name is not a slug
+     */
+    public BundleBuilder withCriticalExtension(String name) {
+        validateExtensionName(name);
+        criticalExtensions.add(name);
+        return this;
+    }
+
     private static void validateExtensionName(String name) {
         if (name == null || !SLUG.matcher(name).matches()) {
             throw new IllegalArgumentException(ERROR_EXTENSION_NAME_NOT_SLUG.formatted(name));
@@ -468,6 +523,9 @@ public final class BundleBuilder {
         if (!extensionSecrets.isEmpty() && secretsSealingKey == null) {
             throw new PDPConfigurationException(ERROR_EXTENSION_SECRETS_REQUIRE_KEY);
         }
+        val allSecretNames = new LinkedHashSet<>(extensionSecrets.keySet());
+        allSecretNames.addAll(sealedExtensionSecrets.keySet());
+        ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), allSecretNames);
         val effectivePdpJson = secretsSealingKey != null ? sealSecrets(pdpJson, secretsSealingKey) : pdpJson;
         try (val zipStream = new ZipOutputStream(outputStream)) {
             // Collect all files for potential signing
@@ -478,11 +536,19 @@ public final class BundleBuilder {
             allFiles.putAll(policies);
 
             for (val entry : extensions.entrySet()) {
-                allFiles.put(Bundle.EXTENSION_PREFIX + entry.getKey() + Bundle.EXTENSION_SUFFIX, entry.getValue());
+                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SUFFIX,
+                        entry.getValue());
             }
             for (val entry : extensionSecrets.entrySet()) {
-                allFiles.put(Bundle.EXTENSION_PREFIX + entry.getKey() + Bundle.EXTENSION_SECRETS_SUFFIX,
+                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SECRETS_SUFFIX,
                         sealDocument(entry.getValue()));
+            }
+            for (val entry : sealedExtensionSecrets.entrySet()) {
+                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SECRETS_SUFFIX,
+                        entry.getValue());
+            }
+            if (!criticalExtensions.isEmpty()) {
+                allFiles.put(ExtensionFiles.CRITICAL_EXTENSIONS_FILE, ExtensionFiles.toJson(criticalExtensions));
             }
 
             // Write all content files

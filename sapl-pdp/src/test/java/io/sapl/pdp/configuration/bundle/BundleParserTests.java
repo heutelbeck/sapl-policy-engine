@@ -371,6 +371,26 @@ class BundleParserTests {
                 .hasMessageContaining("nested/policy.sapl");
     }
 
+    @Test
+    @DisplayName("a critical-extensions.json entry is an allowed bundle file")
+    void whenCriticalExtensionsFilePresentThenAccepted() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("critical-extensions.json", "[]");
+
+        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
+
+        assertThat(config.criticalExtensions()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a critical extension without its configuration is rejected at parse time")
+    void whenCriticalExtensionMissingConfigThenRejected() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("critical-extensions.json", """
+                ["upstreams"]""");
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Critical extension 'upstreams'");
+    }
+
     private byte[] createBundleWithConfigId(String pdpJson, String saplFileName, String saplContent)
             throws IOException {
         val baos = new ByteArrayOutputStream();

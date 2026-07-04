@@ -21,6 +21,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ObjectValue;
@@ -40,6 +41,8 @@ import io.sapl.api.model.Value;
  * (cleartext)
  * @param extensionSecrets bundle-carried extension secrets, keyed by extension
  * name (sealed in transit, unsealed by the recipient)
+ * @param criticalExtensions names of extensions the consumer must be able to
+ * process, else the configuration is rejected
  */
 public record PDPConfiguration(
         String pdpId,
@@ -49,13 +52,15 @@ public record PDPConfiguration(
         List<String> saplDocuments,
         PdpData data,
         Map<String, Value> extensions,
-        Map<String, Value> extensionSecrets) implements Serializable {
+        Map<String, Value> extensionSecrets,
+        Set<String> criticalExtensions) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public PDPConfiguration {
-        extensions       = extensions == null ? Map.of() : Map.copyOf(extensions);
-        extensionSecrets = extensionSecrets == null ? Map.of() : Map.copyOf(extensionSecrets);
+        extensions         = extensions == null ? Map.of() : Map.copyOf(extensions);
+        extensionSecrets   = extensionSecrets == null ? Map.of() : Map.copyOf(extensionSecrets);
+        criticalExtensions = criticalExtensions == null ? Set.of() : Set.copyOf(criticalExtensions);
     }
 
     /**
@@ -67,7 +72,8 @@ public record PDPConfiguration(
             ObjectValue compilerOptions,
             List<String> saplDocuments,
             PdpData data) {
-        this(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data, Map.of(), Map.of());
+        this(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data, Map.of(), Map.of(),
+                Set.of());
     }
 
     /**
@@ -83,7 +89,8 @@ public record PDPConfiguration(
     }
 
     /**
-     * Returns a copy of this configuration with the given extension data.
+     * Returns a copy of this configuration with the given extension data,
+     * preserving the current critical extension set.
      *
      * @param extensions the cleartext extension data, keyed by extension name
      * @param extensionSecrets the extension secrets, keyed by extension name
@@ -91,8 +98,24 @@ public record PDPConfiguration(
      * @return a copy carrying the extension data
      */
     public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets) {
+        return withExtensions(extensions, extensionSecrets, criticalExtensions);
+    }
+
+    /**
+     * Returns a copy of this configuration with the given extension data and
+     * critical extension set.
+     *
+     * @param extensions the cleartext extension data, keyed by extension name
+     * @param extensionSecrets the extension secrets, keyed by extension name
+     * @param criticalExtensions names of extensions the consumer must be able to
+     * process
+     *
+     * @return a copy carrying the extension data
+     */
+    public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets,
+            Set<String> criticalExtensions) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets);
+                extensions, extensionSecrets, criticalExtensions);
     }
 
     @Override
@@ -100,6 +123,7 @@ public record PDPConfiguration(
         return "PDPConfiguration[pdpId=" + pdpId + ", configurationId=" + configurationId + ", combiningAlgorithm="
                 + combiningAlgorithm + ", compilerOptions=" + compilerOptions + ", saplDocuments=" + saplDocuments
                 + ", data=" + data + ", extensions=" + extensions.keySet() + ", extensionSecrets="
-                + (extensionSecrets.isEmpty() ? "NO EXTENSION SECRETS" : "EXTENSION SECRETS REDACTED") + "]";
+                + (extensionSecrets.isEmpty() ? "NO EXTENSION SECRETS" : "EXTENSION SECRETS REDACTED")
+                + ", criticalExtensions=" + criticalExtensions + "]";
     }
 }
