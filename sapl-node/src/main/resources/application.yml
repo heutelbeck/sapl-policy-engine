@@ -201,6 +201,9 @@ io.sapl:
     #   allow-unsigned: true
     #   unsigned-tenants:
     #     - "development"
+    #   # SECURITY: never combine allow-unsigned or unsigned-tenants with
+    #   # REMOTE_BUNDLES. A network-fetched unsigned bundle can be replaced in
+    #   # transit to inject arbitrary policy. Use only with local trusted sources.
 
     # --- Remote Bundles ---
     #
@@ -217,6 +220,12 @@ io.sapl:
     #   # auth-header-value: "Bearer <token>"
     #   # allow-insecure-http: false
     #   # follow-redirects: true
+    #   # Transport freshness: mark a pdpId stale after this long without a
+    #   # successful contact (default derived from the poll cadence).
+    #   # stale-after-no-contact: 60s
+    #   # Fail closed (deny) after this long without contact. Off by default.
+    #   # When set it must be greater than stale-after-no-contact.
+    #   # fail-closed-after-no-contact: 300s
 
 # --- API Documentation (Scalar UI on top of springdoc-generated OpenAPI) ---
 

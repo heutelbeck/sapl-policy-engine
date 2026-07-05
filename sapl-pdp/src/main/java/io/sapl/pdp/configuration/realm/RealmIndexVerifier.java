@@ -26,6 +26,7 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSObject;
 
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
@@ -54,6 +55,7 @@ public class RealmIndexVerifier {
     private static final String ERROR_STALE_SEQUENCE       = "Refusing realm index with sequence %d; not newer than the last accepted %d.";
     private static final String ERROR_UNEXPECTED_ALGORITHM = "Refusing realm index: expected EdDSA but the token declares %s.";
     private static final String ERROR_UNEXPECTED_TYPE      = "Refusing realm index: expected type %s but the token declares %s.";
+    private static final String ERROR_UNRESOLVED_KEY       = "Realm index signing key could not be resolved: %s";
     private static final String ERROR_WRONG_REALM          = "Realm index is for realm '%s' but '%s' was expected.";
 
     /**
@@ -76,7 +78,15 @@ public class RealmIndexVerifier {
         val jws = parse(compactJws);
         if (securityPolicy.signatureRequired()) {
             requireHeader(jws.getHeader());
-            val publicKey = securityPolicy.resolvePublicKey(expectedRealm, jws.getHeader().getKeyID());
+            final PublicKey publicKey;
+            try {
+                publicKey = securityPolicy.resolvePublicKey(expectedRealm, jws.getHeader().getKeyID());
+            } catch (BundleSignatureException e) {
+                // Honour the documented contract: an unresolved or untrusted key is a
+                // rejected index, not a leaking exception type that callers catching
+                // RealmIndexException would miss.
+                throw new RealmIndexException(ERROR_UNRESOLVED_KEY.formatted(e.getMessage()), e);
+            }
             verifySignature(jws, publicKey);
         }
         val index = readIndex(jws);

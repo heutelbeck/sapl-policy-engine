@@ -62,6 +62,7 @@ public record PdpSetup(
     static final String DEFAULT_HTTP_URL = "http://localhost:8080";
 
     public static final String ERROR_BASIC_AUTH_FORMAT = "Error: --basic-auth must be in format 'user:password'.";
+    static final String ERROR_BUNDLE_VERIFICATION_NOT_CONFIGURED = "Refusing to load bundles with signature verification disabled without an explicit opt-in.";
     public static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
     public static final String ERROR_REMOTE_CONNECTION = "Error: Failed to connect to remote PDP: %s.";
     public static final String ERROR_REMOTE_WITH_LOCAL = "Error: --remote cannot be used with --dir or --bundle.";
@@ -168,7 +169,13 @@ public record PdpSetup(
         if (resolved.publicKey() != null) {
             return BundleSecurityPolicy.builder(resolved.publicKey()).build();
         }
-        return BundleSecurityPolicy.builder().disableSignatureVerification().build();
+        if (resolved.allowUnsigned()) {
+            return BundleSecurityPolicy.builder().disableSignatureVerification().build();
+        }
+        // Unreachable for a policy from PolicySourceResolver, which already fails closed
+        // when neither a key nor an explicit opt-in is present. Guard so a future caller
+        // cannot silently load unverified bundles.
+        throw new IllegalStateException(ERROR_BUNDLE_VERIFICATION_NOT_CONFIGURED);
     }
 
     private static void configureRsocketAuth(ProtobufRemoteReactivePolicyDecisionPoint.Builder builder,

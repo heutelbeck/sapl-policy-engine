@@ -24,6 +24,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -87,6 +89,16 @@ class RealmIndexSignerVerifierTests {
         val jws = RealmIndexSigner.sign(sampleIndex(10), untrustedKeys.getPrivate(), "k1");
         assertThatThrownBy(() -> RealmIndexVerifier.verify(jws, signedPolicy, "acme", 5))
                 .isInstanceOf(RealmIndexException.class).hasMessageContaining("signature");
+    }
+
+    @Test
+    @DisplayName("an unresolvable key id is rejected as a RealmIndexException, not a leaking exception type")
+    void whenKeyIdNotTrustedForRealmThenRejectedAsRealmIndexException() {
+        val catalogue = BundleSecurityPolicy.builder().withKeyCatalogue(Map.of("k1", trustedKeys.getPublic()))
+                .withTenantTrust(Map.of("acme", Set.of("k1"))).build();
+        val jws       = RealmIndexSigner.sign(sampleIndex(10), trustedKeys.getPrivate(), "k9");
+        assertThatThrownBy(() -> RealmIndexVerifier.verify(jws, catalogue, "acme", 5))
+                .isInstanceOf(RealmIndexException.class).hasMessageContaining("key");
     }
 
     @Test

@@ -183,7 +183,7 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
     class HealthEndpointTests {
 
         @Test
-        @DisplayName("G1: health reports DOWN when no valid bundle has been loaded")
+        @DisplayName("health reports DOWN when no valid bundle has been loaded")
         void whenNoBundleLoadedThenHealthDown() {
             try (val network = Network.newNetwork(); val wiremock = createWireMockContainer(network)) {
                 wiremock.start();
@@ -202,7 +202,7 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("G2: health reports UP after successful bundle fetch")
+        @DisplayName("health reports UP after successful bundle fetch")
         void whenBundleLoadedThenHealthUp() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                     .withPolicy("permit-all", PERMIT_POLICY).build();
@@ -225,7 +225,7 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("G3: health stays UP during server outage with last-known bundle")
+        @DisplayName("health stays UP during server outage with last-known bundle")
         void whenServerOutageThenHealthStillUp() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                     .withPolicy("permit-all", PERMIT_POLICY).build();

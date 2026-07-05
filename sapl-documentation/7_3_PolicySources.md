@@ -35,4 +35,6 @@ For `REMOTE_BUNDLES`, the PDP periodically fetches bundles from an HTTP server. 
 
 The `BUNDLES` and `REMOTE_BUNDLES` source types support Ed25519 signature verification. Bundles can be signed with `sapl bundle sign` and verified against a configured public key or per-tenant key catalogue. By default, signature verification is mandatory. Unsigned bundles are only accepted in development environments with an explicit opt-in (`allow-unsigned: true`).
 
+The unsigned escape hatches (`allow-unsigned` and `unsigned-tenants`) must never be combined with `REMOTE_BUNDLES`. A network-fetched unsigned bundle can be replaced in transit to inject arbitrary policy, so these opt-ins are safe only with local, trusted sources.
+
 See [Getting Started](../7_1_GettingStarted/) for a quickstart with the `DIRECTORY` source, [Remote Bundles](../7_4_RemoteBundles/) for remote bundle configuration, and [Security](../7_6_Security/) for bundle signing.
