@@ -99,7 +99,7 @@
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
 		<okhttp.version>5.4.0</okhttp.version>
-		<scalar.version>0.6.49</scalar.version>
+		<scalar.version>0.6.53</scalar.version>
 		<vaadin.version>25.2.1</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.46</lombok.version>
@@ -131,7 +131,7 @@
 		  fixed before raising this. If it is still broken, prefer setting
 		  ioWorkerCount on the LoopResources programmatically over pinning.
 		-->
-		<reactor-netty.version>1.3.5</reactor-netty.version>
+		<reactor-netty.version>1.3.6</reactor-netty.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
 		<nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
 		<json-schema-validator.version>3.0.5</json-schema-validator.version>
