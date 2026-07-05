@@ -20,11 +20,12 @@ package io.sapl.api.model.jackson;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
-import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 
 import java.util.List;
+import java.util.Map;
 
 import lombok.val;
 
@@ -91,6 +92,19 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeName("secrets");
         serializeValueMap(configuration.data().secrets(), generator, serializers);
 
+        if (!configuration.extensions().isEmpty()) {
+            generator.writeName("extensions");
+            serializeValueMap(configuration.extensions(), generator, serializers);
+        }
+        if (!configuration.extensionSecrets().isEmpty()) {
+            generator.writeName("extensionSecrets");
+            serializeValueMap(configuration.extensionSecrets(), generator, serializers);
+        }
+        if (!configuration.criticalExtensions().isEmpty()) {
+            generator.writeName("criticalExtensions");
+            serializeStringList(List.copyOf(configuration.criticalExtensions()), generator);
+        }
+
         generator.writeEndObject();
     }
 
@@ -110,7 +124,7 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         generator.writeEndArray();
     }
 
-    private void serializeValueMap(ObjectValue map, JsonGenerator generator, SerializationContext serializers) {
+    private void serializeValueMap(Map<String, Value> map, JsonGenerator generator, SerializationContext serializers) {
         generator.writeStartObject();
         for (val entry : map.entrySet()) {
             generator.writeName(entry.getKey());

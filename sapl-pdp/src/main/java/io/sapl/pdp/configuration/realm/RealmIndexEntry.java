@@ -19,11 +19,15 @@ package io.sapl.pdp.configuration.realm;
 
 /**
  * One entry of a {@link RealmIndex}: a bundle that belongs to the realm.
+ * <p>
+ * The URL is the binding the consumer monitors autonomously. A URL pointing at
+ * the mutable latest endpoint tracks updates as the server publishes them. A
+ * URL pointing at an immutable version pins the pdpId to that exact version,
+ * which is how a deliberate rollback is expressed: it arrives as a signed
+ * rebinding through the index.
  *
- * @param pdpId the stable identity of the bundle within the realm; the key a
+ * @param pdpId the stable identity of the bundle within the realm, the key a
  * consumer loads and removes under
- * @param configId the current version identifier; equals the bundle's own
- * {@code configurationId}. A change signals the consumer to refetch.
- * @param url the absolute URL of the immutable bundle for this {@code configId}
+ * @param url the absolute URL of the bundle endpoint to monitor
  */
-public record RealmIndexEntry(String pdpId, String configId, String url) {}
+public record RealmIndexEntry(String pdpId, String url) {}

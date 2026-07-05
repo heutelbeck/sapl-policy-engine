@@ -47,6 +47,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -592,6 +593,23 @@ class SaplJacksonModuleTests {
         val restored = mapper.readValue(json, PDPConfiguration.class);
 
         assertThat(restored).isEqualTo(original);
+    }
+
+    @Test
+    @DisplayName("when round tripping pdp configuration with extensions then extension data preserved")
+    void whenRoundTrippingPDPConfigurationWithExtensionsThenExtensionDataPreserved() throws JacksonException {
+        val algorithm = new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
+        val original  = new PDPConfiguration("arkham-pdp", "v2", algorithm, Value.EMPTY_OBJECT,
+                List.of("policy gate permit"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT),
+                Map.of("upstreams", Value.ofObject(Map.of("servers", Value.of("mcp-billing")))),
+                Map.of("upstreams", Value.ofObject(Map.of("apiKey", Value.of("ENC[ciphertext]")))),
+                Set.of("upstreams"));
+
+        val json     = mapper.writeValueAsString(original);
+        val restored = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(restored).isEqualTo(original);
+        assertThat(restored.criticalExtensions()).containsExactly("upstreams");
     }
 
     @ParameterizedTest(name = "expected message contains {1}")

@@ -406,7 +406,7 @@ public final class BundleBuilder {
      * if the content is not sealed
      */
     public BundleBuilder withSealedSecrets(String sealedJsonContent) {
-        if (sealedJsonContent == null || !ValueSealer.isSealed(Value.ofJson(sealedJsonContent))) {
+        if (sealedJsonContent == null || !ValueSealer.hasSealedShape(Value.ofJson(sealedJsonContent))) {
             throw new IllegalArgumentException(ERROR_SECRETS_NOT_SEALED);
         }
         this.sealedSecrets = sealedJsonContent;
@@ -487,7 +487,7 @@ public final class BundleBuilder {
      */
     public BundleBuilder withSealedExtensionSecrets(String name, String sealedJsonContent) {
         validateExtensionName(name);
-        if (sealedJsonContent == null || !ValueSealer.isSealed(Value.ofJson(sealedJsonContent))) {
+        if (sealedJsonContent == null || !ValueSealer.hasSealedShape(Value.ofJson(sealedJsonContent))) {
             throw new IllegalArgumentException(ERROR_EXTENSION_SECRETS_NOT_SEALED.formatted(name));
         }
         sealedExtensionSecrets.put(name, sealedJsonContent);

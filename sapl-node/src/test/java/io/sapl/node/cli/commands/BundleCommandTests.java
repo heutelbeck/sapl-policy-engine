@@ -116,6 +116,22 @@ class BundleCommandTests {
         }
 
         @Test
+        @DisplayName("refuses to overwrite an existing output file without --force")
+        void whenOutputExistsThenFailsWithoutForce() throws Exception {
+            val inputDir   = createPolicyInputDir();
+            val outputFile = tempDir.resolve("existing.saplbundle");
+            cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString());
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString());
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("already exists").contains("--force");
+
+            val forcedExit = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(),
+                    "--force");
+            assertThat(forcedExit).isZero();
+        }
+
+        @Test
         @DisplayName("fails when input directory does not exist")
         void whenInputNotExistsThenFails() {
             val inputDir   = tempDir.resolve("nonexistent");
@@ -491,6 +507,22 @@ class BundleCommandTests {
         }
 
         @Test
+        @DisplayName("unpack refuses to overwrite existing files without --force")
+        void whenUnpackTargetExistsThenFailsWithoutForce() throws Exception {
+            val bundle = sealedAndSignedBundle();
+            val outDir = tempDir.resolve("unpack-collision");
+            cmd.execute("bundle", "unpack", "-b", bundle.toString(), "-o", outDir.toString());
+
+            val exitCode = cmd.execute("bundle", "unpack", "-b", bundle.toString(), "-o", outDir.toString());
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("already exists").contains("--force");
+
+            val forcedExit = cmd.execute("bundle", "unpack", "-b", bundle.toString(), "-o", outDir.toString(),
+                    "--force");
+            assertThat(forcedExit).isZero();
+        }
+
+        @Test
         @DisplayName("unpack --unseal-with restores plaintext secrets")
         void whenUnpackUnsealThenPlaintext() throws Exception {
             val bundle = sealedAndSignedBundle();
@@ -582,7 +614,7 @@ class BundleCommandTests {
             Files.writeString(inputDir.resolve("ext-upstreams-secrets.json"), """
                     { "apiKey": "K" }""");
 
-            val exitCode = cmd.execute("bundle", "seal", "-i", inputDir.toString(), "--to",
+            val exitCode = cmd.execute("bundle", "seal", "-i", inputDir.toString(), "--seal-to",
                     tempDir.resolve("recipient.pub.jwk").toString());
 
             assertThat(exitCode).isZero();
@@ -599,10 +631,10 @@ class BundleCommandTests {
         void whenUnsealCommandThenFolderPlaintext() throws Exception {
             cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
             val inputDir = policyDirWithSecrets();
-            cmd.execute("bundle", "seal", "-i", inputDir.toString(), "--to",
+            cmd.execute("bundle", "seal", "-i", inputDir.toString(), "--seal-to",
                     tempDir.resolve("recipient.pub.jwk").toString());
 
-            val exitCode = cmd.execute("bundle", "unseal", "-i", inputDir.toString(), "--with",
+            val exitCode = cmd.execute("bundle", "unseal", "-i", inputDir.toString(), "--unseal-with",
                     tempDir.resolve("recipient.jwk").toString());
 
             assertThat(exitCode).isZero();
@@ -621,7 +653,7 @@ class BundleCommandTests {
             Files.writeString(workDir.resolve("secrets.json"), """
                     { "http": { "headers": { "X-API-Key": "ROTATED-VALUE" } } }
                     """);
-            val sealExit   = cmd.execute("bundle", "seal", "-i", workDir.toString(), "--to",
+            val sealExit   = cmd.execute("bundle", "seal", "-i", workDir.toString(), "--seal-to",
                     tempDir.resolve("recipient.pub.jwk").toString());
             val rebuilt    = tempDir.resolve("maintained.saplbundle");
             val createExit = cmd.execute("bundle", "create", "-i", workDir.toString(), "-o", rebuilt.toString(), "-k",

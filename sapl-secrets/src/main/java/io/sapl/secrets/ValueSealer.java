@@ -86,10 +86,10 @@ public class ValueSealer {
     /** Unseals any value; sealed leaves are restored to their original scalar type, non-scalar leaves are refused. */
     public static Value unseal(OctetKeyPair recipientPrivateKey, Value value) {
         return switch (value) {
-        case ObjectValue object                      -> unseal(recipientPrivateKey, object);
-        case ArrayValue array                        -> unsealArray(recipientPrivateKey, array);
-        case TextValue(var text) when isSealed(text) -> unsealLeaf(recipientPrivateKey, text);
-        default                                      -> value;
+        case ObjectValue object                            -> unseal(recipientPrivateKey, object);
+        case ArrayValue array                              -> unsealArray(recipientPrivateKey, array);
+        case TextValue(var text) when hasSealedShape(text) -> unsealLeaf(recipientPrivateKey, text);
+        default                                            -> value;
         };
     }
 
@@ -126,20 +126,22 @@ public class ValueSealer {
     }
 
     /**
-     * Returns whether a value carries no unsealed secret: every scalar leaf is a
-     * sealed {@code ENC[...]} token. An empty object or array is trivially sealed.
-     * Use this to reject configurations whose secrets arrived in cleartext.
+     * Returns whether a value has the sealed shape: every scalar leaf is an
+     * {@code ENC[...]} token. An empty object or array trivially has the shape.
+     * This is a format claim, not a cryptographic verification. A leaf that
+     * merely looks like a token counts as sealed here and fails loudly at unseal
+     * time. Use this to reject configurations whose secrets arrived in cleartext.
      *
      * @param value
      * the value to inspect
      *
-     * @return true if the value contains no unsealed scalar leaf
+     * @return true if every scalar leaf is an {@code ENC[...]} token
      */
-    public static boolean isSealed(Value value) {
+    public static boolean hasSealedShape(Value value) {
         return switch (value) {
-        case ObjectValue object  -> object.values().stream().allMatch(ValueSealer::isSealed);
-        case ArrayValue array    -> array.stream().allMatch(ValueSealer::isSealed);
-        case TextValue(var text) -> isSealed(text);
+        case ObjectValue object  -> object.values().stream().allMatch(ValueSealer::hasSealedShape);
+        case ArrayValue array    -> array.stream().allMatch(ValueSealer::hasSealedShape);
+        case TextValue(var text) -> hasSealedShape(text);
         default                  -> false;
         };
     }
@@ -149,7 +151,7 @@ public class ValueSealer {
                 || value instanceof NullValue;
     }
 
-    private static boolean isSealed(String text) {
+    private static boolean hasSealedShape(String text) {
         return text.startsWith(MARKER_PREFIX) && text.endsWith(MARKER_SUFFIX);
     }
 

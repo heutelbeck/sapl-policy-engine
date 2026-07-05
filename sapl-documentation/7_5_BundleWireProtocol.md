@@ -104,8 +104,10 @@ timeouts.
 
 Regular and long-poll modes fetch a single, client-declared `pdpId`. **Realm mode** points
 the client at a *realm*, a server-managed dynamic set of bundles, and lets it discover
-and track that set from a **signed index**. The client learns which bundles exist, loads
-them, and reacts to additions, removals, and version changes without reconfiguration.
+and track that set from a **signed index**. The index attests *membership and binding*:
+which pdpIds exist and which URL each one is bound to. For every listed entry the client
+runs an autonomous single-mode fetch loop against the bound URL, so version updates flow
+through the ordinary bundle endpoints without any index change.
 
 #### URL Convention
 
@@ -115,8 +117,8 @@ A realm exposes three URL families, all derived from one server-side "current" p
 | URL | Mutability | Purpose |
 |-----|------------|---------|
 | `{baseUrl}/{indexPath}` | mutable | The signed realm index. |
-| `{baseUrl}/bundles/{pdpId}/{configId}.saplbundle` | immutable | One exact bundle version. The index points here. Cacheable forever. |
-| `{baseUrl}/bundles/{pdpId}` and `.../{pdpId}/latest` | mutable | The current bundle for a `pdpId` (single-mode endpoint). |
+| `{baseUrl}/bundles/{pdpId}` and `.../{pdpId}/latest` | mutable | The current bundle for a `pdpId`. The index normally binds here. |
+| `{baseUrl}/bundles/{pdpId}/{configId}.saplbundle` | immutable | One exact bundle version. Used by the index to pin or roll back. Cacheable forever. |
 
 A bundle is signed once per `(pdpId, configId)` and served byte-for-byte from both the
 immutable and `latest` URLs, so ETags stay stable and immutable URLs cache forever.
@@ -159,8 +161,8 @@ Decoded protected header and payload:
   "sequence": 1751632260000,
   "issuedAt": "2026-07-04T12:31:00Z",
   "bundles": [
-    { "pdpId": "orders", "configId": "orders@2026-07-04T10:15:00Z",
-      "url": "https://pap.example.com/realms/acme/bundles/orders/orders@2026-07-04T10-15-00Z.saplbundle" }
+    { "pdpId": "orders",
+      "url": "https://pap.example.com/realms/acme/bundles/orders" }
   ]
 }
 ```
@@ -170,11 +172,16 @@ Decoded protected header and payload:
 | `realm` | The realm identifier. The client refuses an index whose realm does not match its own. |
 | `sequence` | A monotonic counter. The client refuses any index whose sequence is not strictly greater than the last accepted, defeating rollback/replay of an old, validly-signed index. |
 | `bundles[].pdpId` | Stable identity, the key the client loads and removes under. |
-| `bundles[].configId` | Version signal, equal to the bundle's own `configurationId`. A change triggers a refetch. |
-| `bundles[].url` | Absolute URL of the **immutable** bundle for this `configId`, so the fetched bytes match exactly the version the signature attests. |
+| `bundles[].url` | Absolute URL of the bundle endpoint the client monitors for this `pdpId`. |
+
+The URL is the binding, and its mutability class is the policy. Binding to the mutable
+`latest` endpoint means the client tracks whatever the server publishes there. Binding to
+an immutable version URL pins the `pdpId` to that exact version, which is how a deliberate
+rollback is expressed: it arrives as a signed rebinding through the index.
 
 The server returns `304 Not Modified` when the index is unchanged. Under `Prefer: wait`,
-it holds the request until the realm changes or the wait elapses.
+it holds the request until the realm changes or the wait elapses. The index only changes
+when membership or a binding changes, so index traffic is light.
 
 #### Index Signature and Trust
 
@@ -191,27 +198,38 @@ the realm and sequence checks still apply.
 
 #### Reconciliation
 
-On each verified, newer index the client diffs the listed bundles against what it has
-loaded:
+On each verified, newer index the client diffs the listed bindings against its running
+fetch loops:
 
 | Case | Action |
 |------|--------|
-| New `pdpId` | Fetch the bundle URL, verify, load. |
-| Same `pdpId`, changed `configId` | Fetch and reload (atomic replace). |
-| `pdpId` absent from the index | Remove. |
-| Same `pdpId` and `configId` | No fetch. |
+| New `pdpId` | Start a fetch loop on the bound URL, load the bundle. |
+| Same `pdpId`, changed `url` | Replace the fetch loop with one bound to the new URL and reset its conditional-request and freshness state, so a pin to an older version loads. |
+| `pdpId` absent from the index | Stop the fetch loop and remove the configuration. |
+| Same `pdpId` and `url` | Nothing, the running loop keeps monitoring. |
 
 An unverifiable, wrong-realm, or stale index is a no-op. The client keeps its current
-configuration and never mass-removes on a malformed index. A single failed bundle fetch
-drops only that entry.
+configuration and never mass-removes on a malformed index. A valid index with an empty
+bundle list is a legitimate operation and empties the realm. Each fetch loop retries
+transport failures with bounded exponential backoff independently, so one unreachable
+bundle never blocks the others.
+
+#### Version Freshness
+
+Within one binding, the client rejects any bundle whose manifest signing time (`created`,
+which is covered by the bundle signature) is older than the currently loaded bundle's.
+This defeats the replay of an older, validly signed bundle at a mutable URL. A signed
+rebinding through the index resets the check, so deliberate pins and rollbacks load. The
+consequence is a clean discipline: the `latest` endpoint only ever moves forward, and
+going backwards requires the signed index.
 
 #### Single vs Realm Integrity
 
-The mutable `latest` endpoint (single mode) authenticates bundle *content* via the manifest
-signature, but which version is current is only server-asserted via ETag. Realm mode's
-signed index adds a monotonic, signed attestation of the set and its versions, closing
-rollback of the pointer itself. Choose realm mode when membership discovery or rollback
-protection matters.
+Single mode authenticates bundle *content* via the manifest signature, but membership is
+client-configured and version currency is only server-asserted via ETag. Realm mode adds
+a monotonic, signed attestation of membership and binding, plus the version freshness
+check within each binding. Choose realm mode when the set of bundles is server-managed or
+when replay and rollback protection matter.
 
 ### Error Responses
 
@@ -309,12 +327,13 @@ For long-poll support, the server must additionally:
 
 For realm mode, the server must additionally:
 
-8. Serve immutable bundles at `{baseUrl}/bundles/{pdpId}/{configId}.saplbundle` and the
-   current bundle at `{baseUrl}/bundles/{pdpId}` (and `/latest`).
+8. Serve the current bundle at `{baseUrl}/bundles/{pdpId}` (and `/latest`), and immutable
+   bundles at `{baseUrl}/bundles/{pdpId}/{configId}.saplbundle` for pinning and rollback.
 9. Serve a compact-JWS realm index at `{baseUrl}/{indexPath}`, signed with `EdDSA` using
-   the same key as the bundle manifests, whose `bundles[].url` reference the immutable URLs.
-10. Increase the index `sequence` monotonically on every change, and keep old `configId`
-    values addressable so the index can reference or roll back to them.
+   the same key as the bundle manifests, whose `bundles[].url` bind each `pdpId` to the
+   endpoint the client monitors, normally the `latest` URL.
+10. Increase the index `sequence` monotonically on every membership or binding change, and
+    keep old `configId` versions addressable so the index can pin or roll back to them.
 
 Static file servers (Nginx, S3, CDN) inherently support the regular polling mode with
 ETag-based conditional requests.

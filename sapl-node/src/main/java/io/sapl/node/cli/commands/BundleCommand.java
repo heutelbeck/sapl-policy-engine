@@ -52,6 +52,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -90,6 +91,10 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
         keygen / keygen-secrets, then seal, create, verify, inspect, and
         for editing an existing bundle: unpack, unseal, edit, seal,
         create, sign.
+
+        Key option convention: -k always takes an Ed25519 signing or
+        verification key (PEM). Sealing keys are X25519 JWKs and always
+        use --seal-to (public key) or --unseal-with (private key).
         """ },
     subcommands = {
         BundleCommand.Create.class, BundleCommand.Unpack.class,
@@ -198,6 +203,9 @@ public class BundleCommand {
                 "--seal-to" }, description = "X25519 recipient public key (JWK file) that plaintext secrets are sealed to")
         private Path sealToFile;
 
+        @Option(names = { "--force" }, description = "Overwrite an existing output file")
+        private boolean force;
+
         @Override
         public Integer call() {
             val out = spec.commandLine().getOut();
@@ -210,6 +218,11 @@ public class BundleCommand {
 
             if (keyFile != null && !Files.exists(keyFile)) {
                 err.println(ERROR_KEY_NOT_FOUND.formatted(keyFile));
+                return 1;
+            }
+            if (!force && Files.exists(outputFile)) {
+                err.println(ERROR_FILE_ALREADY_EXISTS.formatted(outputFile));
+                err.println(HINT_USE_FORCE);
                 return 1;
             }
 
@@ -375,6 +388,9 @@ public class BundleCommand {
                 "--unseal-with" }, description = "X25519 recipient private key (JWK) to unseal secrets to cleartext")
         private Path unsealKeyFile;
 
+        @Option(names = { "--force" }, description = "Overwrite existing files in the output directory")
+        private boolean force;
+
         @Override
         public Integer call() {
             val out = spec.commandLine().getOut();
@@ -409,21 +425,41 @@ public class BundleCommand {
                 val base      = outputDir.toAbsolutePath().normalize();
                 Files.createDirectories(base);
 
-                var files = 0;
+                val unpacked = new LinkedHashMap<String, UnpackedFile>();
                 for (val entry : contents.entrySet()) {
-                    var name    = entry.getKey();
-                    var content = entry.getValue();
+                    var name     = entry.getKey();
+                    var content  = entry.getValue();
+                    var unsealed = false;
                     // Unsealing restores the plaintext file names, so the output
                     // directory is a valid plaintext folder.
                     if (unsealKey != null && ExtensionFiles.SEALED_SECRETS_FILE.equals(name)) {
-                        name    = ExtensionFiles.SECRETS_FILE;
-                        content = unsealDocument(content, unsealKey);
+                        name     = ExtensionFiles.SECRETS_FILE;
+                        content  = unsealDocument(content, unsealKey);
+                        unsealed = true;
                     } else if (unsealKey != null && ExtensionFiles.isSealedExtensionSecretsFile(name)) {
-                        name    = ExtensionFiles.EXTENSION_PREFIX + ExtensionFiles.sealedExtensionSecretsNameOf(name)
+                        name     = ExtensionFiles.EXTENSION_PREFIX + ExtensionFiles.sealedExtensionSecretsNameOf(name)
                                 + ExtensionFiles.EXTENSION_SECRETS_SUFFIX;
-                        content = unsealDocument(content, unsealKey);
+                        content  = unsealDocument(content, unsealKey);
+                        unsealed = true;
                     }
-                    Files.writeString(safeResolve(base, name), content);
+                    unpacked.put(name, new UnpackedFile(content, unsealed));
+                }
+                if (!force) {
+                    for (val name : unpacked.keySet()) {
+                        if (Files.exists(safeResolve(base, name))) {
+                            err.println(ERROR_FILE_ALREADY_EXISTS.formatted(base.resolve(name)));
+                            err.println(HINT_USE_FORCE);
+                            return 1;
+                        }
+                    }
+                }
+                var files = 0;
+                for (val entry : unpacked.entrySet()) {
+                    val target = safeResolve(base, entry.getKey());
+                    Files.writeString(target, entry.getValue().content());
+                    if (entry.getValue().unsealed()) {
+                        restrictToOwner(target);
+                    }
                     files++;
                 }
 
@@ -449,6 +485,8 @@ public class BundleCommand {
             }
             return target;
         }
+
+        private record UnpackedFile(String content, boolean unsealed) {}
     }
 
     // @formatter:off
@@ -470,7 +508,7 @@ public class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
-              sapl bundle seal -i ./policies --to recipient.pub.jwk
+              sapl bundle seal -i ./policies --seal-to recipient.pub.jwk
 
             See Also: sapl-bundle-unseal(1), sapl-bundle-keygen-secrets(1)
             """ }
@@ -484,7 +522,7 @@ public class BundleCommand {
         @Option(names = { "-i", "--input" }, required = true, description = "Directory whose secrets are sealed")
         private Path inputDir;
 
-        @Option(names = { "--to" }, required = true, description = "X25519 recipient public key (JWK file)")
+        @Option(names = { "--seal-to" }, required = true, description = "X25519 recipient public key (JWK file)")
         private Path recipientFile;
 
         @Override
@@ -553,7 +591,7 @@ public class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
-              sapl bundle unseal -i ./policies --with recipient.jwk
+              sapl bundle unseal -i ./policies --unseal-with recipient.jwk
 
             See Also: sapl-bundle-seal(1), sapl-bundle-keygen-secrets(1)
             """ }
@@ -567,7 +605,7 @@ public class BundleCommand {
         @Option(names = { "-i", "--input" }, required = true, description = "Directory whose secrets are unsealed")
         private Path inputDir;
 
-        @Option(names = { "--with" }, required = true, description = "X25519 recipient private key (JWK file)")
+        @Option(names = { "--unseal-with" }, required = true, description = "X25519 recipient private key (JWK file)")
         private Path recipientFile;
 
         @Override
@@ -589,16 +627,17 @@ public class BundleCommand {
                 val secretsFiles = SecretsFiles.scan(inputDir);
                 var unsealed     = 0;
                 if (secretsFiles.sealedSecrets() != null) {
-                    transform(secretsFiles.sealedSecrets(), inputDir.resolve(ExtensionFiles.SECRETS_FILE),
-                            content -> unsealDocument(content, recipient));
+                    val target = inputDir.resolve(ExtensionFiles.SECRETS_FILE);
+                    transform(secretsFiles.sealedSecrets(), target, content -> unsealDocument(content, recipient));
+                    restrictToOwner(target);
                     unsealed++;
                 }
                 for (val file : secretsFiles.sealedExtensionSecrets()) {
-                    val name = ExtensionFiles.sealedExtensionSecretsNameOf(fileNameOf(file));
-                    transform(file,
-                            inputDir.resolve(
-                                    ExtensionFiles.EXTENSION_PREFIX + name + ExtensionFiles.EXTENSION_SECRETS_SUFFIX),
-                            content -> unsealDocument(content, recipient));
+                    val name   = ExtensionFiles.sealedExtensionSecretsNameOf(fileNameOf(file));
+                    val target = inputDir
+                            .resolve(ExtensionFiles.EXTENSION_PREFIX + name + ExtensionFiles.EXTENSION_SECRETS_SUFFIX);
+                    transform(file, target, content -> unsealDocument(content, recipient));
+                    restrictToOwner(target);
                     unsealed++;
                 }
                 if (unsealed == 0) {
@@ -922,7 +961,7 @@ public class BundleCommand {
                 var policyCount = 0;
                 for (val entry : contents.entrySet()) {
                     if (entry.getKey().endsWith(SAPL_EXTENSION)) {
-                        out.printf("  - %s (%d bytes)%n", entry.getKey(), entry.getValue().length());
+                        out.printf("  - %s (%d bytes)%n", entry.getKey(), byteSize(entry.getValue()));
                         policyCount++;
                     }
                 }
@@ -970,10 +1009,10 @@ public class BundleCommand {
             val sealedSecrets = contents.get(ExtensionFiles.SEALED_SECRETS_FILE);
             val plainSecrets  = contents.get(ExtensionFiles.SECRETS_FILE);
             if (sealedSecrets != null) {
-                out.printf("  - %s (sealed, %d bytes)%n", ExtensionFiles.SEALED_SECRETS_FILE, sealedSecrets.length());
+                out.printf("  - %s (sealed, %d bytes)%n", ExtensionFiles.SEALED_SECRETS_FILE, byteSize(sealedSecrets));
             }
             if (plainSecrets != null) {
-                out.printf("  - %s (PLAINTEXT, %d bytes)%n", ExtensionFiles.SECRETS_FILE, plainSecrets.length());
+                out.printf("  - %s (PLAINTEXT, %d bytes)%n", ExtensionFiles.SECRETS_FILE, byteSize(plainSecrets));
             }
             if (sealedSecrets == null && plainSecrets == null) {
                 out.println("  (none)");
@@ -987,13 +1026,13 @@ public class BundleCommand {
                 val name = entry.getKey();
                 if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
                     detail(names, ExtensionFiles.sealedExtensionSecretsNameOf(name))
-                            .append("sealed secrets (%d bytes)".formatted(entry.getValue().length()));
+                            .append("sealed secrets (%d bytes)".formatted(byteSize(entry.getValue())));
                 } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
                     detail(names, ExtensionFiles.extensionSecretsNameOf(name))
-                            .append("PLAINTEXT secrets (%d bytes)".formatted(entry.getValue().length()));
+                            .append("PLAINTEXT secrets (%d bytes)".formatted(byteSize(entry.getValue())));
                 } else if (ExtensionFiles.isExtensionFile(name)) {
                     detail(names, ExtensionFiles.extensionNameOf(name))
-                            .append("config (%d bytes)".formatted(entry.getValue().length()));
+                            .append("config (%d bytes)".formatted(byteSize(entry.getValue())));
                 }
             }
 
@@ -1019,6 +1058,10 @@ public class BundleCommand {
                 val marker = critical.contains(entry.getKey()) ? " [critical]" : "";
                 out.printf("  - %s%s: %s%n", entry.getKey(), marker, entry.getValue());
             }
+        }
+
+        private static int byteSize(String content) {
+            return content.getBytes(StandardCharsets.UTF_8).length;
         }
 
         private static StringBuilder detail(Map<String, StringBuilder> names, String name) {
@@ -1119,7 +1162,7 @@ public class BundleCommand {
         description = { """
             Generates an X25519 recipient keypair as JWK files: <prefix>.jwk
             (private) and <prefix>.pub.jwk (public). Seal secrets to the
-            public key with 'sapl bundle seal --to <prefix>.pub.jwk' or
+            public key with 'sapl bundle seal --seal-to <prefix>.pub.jwk' or
             'sapl bundle create --seal-to <prefix>.pub.jwk'. The PDP unseals
             them with the matching private key. Keep the private key secret
             and distribute it only to the recipient (or cluster).

@@ -22,6 +22,7 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.secrets.ValueSealer;
+import org.jspecify.annotations.Nullable;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -32,6 +33,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -281,6 +283,44 @@ public class BundleParser {
         return parse(bundleBytes, pdpId, securityPolicy, MAX_UNCOMPRESSED_SIZE_BYTES);
     }
 
+    /**
+     * A parsed bundle together with the signing time from its manifest.
+     *
+     * @param configuration the PDP configuration extracted from the bundle
+     * @param signedAt the manifest's signature-covered creation time, or null for
+     * an unsigned bundle
+     */
+    public record ParsedBundle(PDPConfiguration configuration, @Nullable Instant signedAt) {}
+
+    /**
+     * Parses a bundle from a byte array like {@link #parse(byte[], String,
+     * BundleSecurityPolicy)} and additionally returns the manifest's signing time.
+     * The signing time is covered by the bundle signature, so consumers can use it
+     * for freshness checks, for example to reject the replay of an older, validly
+     * signed bundle at a mutable URL.
+     *
+     * @param bundleBytes
+     * the bundle data as byte array
+     * @param pdpId
+     * the PDP identifier
+     * @param securityPolicy
+     * the security policy defining signature verification requirements
+     *
+     * @return the PDP configuration together with the signing time
+     *
+     * @throws PDPConfigurationException
+     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * @throws BundleSignatureException
+     * if signature verification fails or security policy is violated
+     */
+    public ParsedBundle parseWithMetadata(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy) {
+        val bundle        = parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
+                MAX_UNCOMPRESSED_SIZE_BYTES);
+        val configuration = bundle.toPDPConfiguration(pdpId, securityPolicy);
+        val signedAt      = bundle.manifest() != null ? bundle.manifest().created() : null;
+        return new ParsedBundle(configuration, signedAt);
+    }
+
     PDPConfiguration parse(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy,
             long maxUncompressedBytes) {
         return parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
@@ -371,7 +411,7 @@ public class BundleParser {
     }
 
     private static void requireSealedContent(String name, String content) {
-        if (!ValueSealer.isSealed(Value.ofJson(content))) {
+        if (!ValueSealer.hasSealedShape(Value.ofJson(content))) {
             throw new PDPConfigurationException(ERROR_SEALED_CONTENT_NOT_SEALED.formatted(name));
         }
     }

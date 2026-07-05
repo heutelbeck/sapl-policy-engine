@@ -107,11 +107,11 @@ public class SecretsUnsealing {
     }
 
     private static void requireSealed(PDPConfiguration configuration) {
-        if (!ValueSealer.isSealed(configuration.data().secrets())) {
+        if (!ValueSealer.hasSealedShape(configuration.data().secrets())) {
             throw new PDPConfigurationException(ERROR_UNENCRYPTED_SECRETS);
         }
         for (val secret : configuration.extensionSecrets().values()) {
-            if (!ValueSealer.isSealed(secret)) {
+            if (!ValueSealer.hasSealedShape(secret)) {
                 throw new PDPConfigurationException(ERROR_UNENCRYPTED_SECRETS);
             }
         }

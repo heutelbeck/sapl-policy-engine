@@ -76,12 +76,12 @@ class ValueSealerTests {
     }
 
     @Test
-    @DisplayName("isSealed is true for a fully sealed object, false when a leaf is plaintext, true when empty")
-    void isSealedReflectsLeafState() {
+    @DisplayName("hasSealedShape is true for a fully sealed object, false when a leaf is plaintext, true when empty")
+    void hasSealedShapeReflectsLeafState() {
         var sealed = ValueSealer.seal(sealingKey(), sampleSecrets());
-        assertThat(ValueSealer.isSealed(sealed)).isTrue();
-        assertThat(ValueSealer.isSealed(sampleSecrets())).isFalse();
-        assertThat(ValueSealer.isSealed(Value.EMPTY_OBJECT)).isTrue();
+        assertThat(ValueSealer.hasSealedShape(sealed)).isTrue();
+        assertThat(ValueSealer.hasSealedShape(sampleSecrets())).isFalse();
+        assertThat(ValueSealer.hasSealedShape(Value.EMPTY_OBJECT)).isTrue();
     }
 
     @Nested

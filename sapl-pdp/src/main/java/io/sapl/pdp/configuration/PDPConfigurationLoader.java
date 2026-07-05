@@ -235,7 +235,7 @@ public class PDPConfigurationLoader {
     }
 
     private static void requireSealedContent(String fileName, Value value) {
-        if (!ValueSealer.isSealed(value)) {
+        if (!ValueSealer.hasSealedShape(value)) {
             throw new PDPConfigurationException(ERROR_SEALED_CONTENT_NOT_SEALED.formatted(fileName));
         }
     }

@@ -64,8 +64,8 @@ class RealmIndexSignerVerifierTests {
     }
 
     private static RealmIndex sampleIndex(long sequence) {
-        return new RealmIndex("acme", sequence, "2026-07-04T12:31:00Z", List.of(new RealmIndexEntry("odoo-erp",
-                "odoo-erp@1", "https://regent.example.com/realms/acme/bundles/odoo-erp/odoo-erp@1.saplbundle")));
+        return new RealmIndex("acme", sequence, "2026-07-04T12:31:00Z",
+                List.of(new RealmIndexEntry("odoo-erp", "https://regent.example.com/realms/acme/bundles/odoo-erp")));
     }
 
     @Test
@@ -77,8 +77,7 @@ class RealmIndexSignerVerifierTests {
         assertThat(index.sequence()).isEqualTo(10);
         assertThat(index.bundles()).singleElement().satisfies(entry -> {
             assertThat(entry.pdpId()).isEqualTo("odoo-erp");
-            assertThat(entry.configId()).isEqualTo("odoo-erp@1");
-            assertThat(entry.url()).endsWith("odoo-erp@1.saplbundle");
+            assertThat(entry.url()).endsWith("/bundles/odoo-erp");
         });
     }
 
