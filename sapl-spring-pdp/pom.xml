@@ -42,6 +42,7 @@
 
     <properties>
         <main.basedir>${project.basedir}/../</main.basedir>
+        <sapl-plugin-engine.scope>compile</sapl-plugin-engine.scope>
     </properties>
 
     <dependencies>
@@ -64,6 +65,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>sapl-plugin-engine</artifactId>
             <version>${project.version}</version>
+            <scope>${sapl-plugin-engine.scope}</scope>
         </dependency>
 
         <dependency>
@@ -116,4 +118,24 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <id>native</id>
+            <properties>
+                <sapl-plugin-engine.scope>provided</sapl-plugin-engine.scope>
+            </properties>
+        </profile>
+        <profile>
+            <id>native-linux</id>
+            <properties>
+                <sapl-plugin-engine.scope>provided</sapl-plugin-engine.scope>
+            </properties>
+        </profile>
+        <profile>
+            <id>native-linux-arm</id>
+            <properties>
+                <sapl-plugin-engine.scope>provided</sapl-plugin-engine.scope>
+            </properties>
+        </profile>
+    </profiles>
 </project>

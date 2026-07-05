@@ -46,10 +46,7 @@ import io.sapl.pdp.configuration.source.PdpIdValidator;
 import io.sapl.pdp.configuration.source.RemoteBundlePDPConfigurationSource;
 import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
 import io.sapl.pdp.configuration.source.ResourcesPDPConfigurationSource;
-import io.sapl.pdp.plugins.HotReloadingPluginsSource;
-import io.sapl.pdp.plugins.PluginsBundle;
-import io.sapl.pdp.plugins.PluginsSource;
-import io.sapl.pdp.plugins.SaplPluginManager;
+import io.sapl.pdp.plugins.*;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
@@ -60,6 +57,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -219,32 +217,19 @@ public class PDPAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingClass("io.sapl.pdp.plugins.HotReloadingPluginsSource")
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    SaplPluginManager saplPluginManager(EmbeddedPDPProperties properties) {
-        var pluginsPath = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPluginsPath());
-        return new SaplPluginManager(pluginsPath);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PluginsSource pluginsSource(SaplPluginManager pluginManager, PolicyInformationPointAttributeBroker attributeBroker,
-            EmbeddedPDPProperties properties, ObjectProvider<FunctionLibraryProvider> functionLibraryProviders,
-            ApplicationContext applicationContext, ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
+    PluginsSource pluginsSourceFallback(FunctionBroker functionBroker,
+            ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
             ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
-        val libraries = new ArrayList<Object>();
-        libraries.addAll(collectFunctionLibrariesFromProviders(functionLibraryProviders));
-        libraries.addAll(collectFunctionLibraries(applicationContext));
-
         val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
         val lifecycleListeners   = lifecycleListenerProvider.orderedStream().toList();
         if (!decisionInterceptors.isEmpty() || !lifecycleListeners.isEmpty()) {
             log.debug("Registering {} decision interceptors and {} lifecycle listeners.", decisionInterceptors.size(),
                     lifecycleListeners.size());
         }
-        return new HotReloadingPluginsSource(pluginManager, libraries, attributeBroker,
-                properties.getFunctionCacheSize(), true, decisionInterceptors, lifecycleListeners);
+        return new StaticPluginsSource(new PluginsBundle(functionBroker, decisionInterceptors, lifecycleListeners));
     }
 
     @Bean
@@ -415,7 +400,7 @@ public class PDPAutoConfiguration {
         return trust;
     }
 
-    private List<Object> collectFunctionLibraries(ApplicationContext context) {
+    private static List<Object> collectFunctionLibraries(ApplicationContext context) {
         val libraries = new ArrayList<>();
         val beanNames = context.getBeanNamesForAnnotation(FunctionLibrary.class);
         for (val beanName : beanNames) {
@@ -437,7 +422,8 @@ public class PDPAutoConfiguration {
         return pips;
     }
 
-    private List<Object> collectFunctionLibrariesFromProviders(ObjectProvider<FunctionLibraryProvider> providers) {
+    private static List<Object> collectFunctionLibrariesFromProviders(
+            ObjectProvider<FunctionLibraryProvider> providers) {
         val libraries = new ArrayList<>();
         providers.orderedStream().forEach(provider -> {
             val providerLibraries = provider.functionLibraries();
@@ -448,4 +434,42 @@ public class PDPAutoConfiguration {
         return libraries;
     }
 
+    /**
+     * Hot-reloading plugin support, only present when {@code sapl-plugin-engine}
+     * is on the classpath. Excluded e.g. in native-image builds. 
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "io.sapl.pdp.plugins.HotReloadingPluginsSource")
+    static class HotReloadingPluginsConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        SaplPluginManager saplPluginManager(EmbeddedPDPProperties properties) {
+            var pluginsPath = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPluginsPath());
+            return new SaplPluginManager(pluginsPath);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean(PluginsSource.class)
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        PluginsSource hotReloadingPluginsSource(SaplPluginManager pluginManager,
+                PolicyInformationPointAttributeBroker attributeBroker, EmbeddedPDPProperties properties,
+                ObjectProvider<FunctionLibraryProvider> functionLibraryProviders, ApplicationContext applicationContext,
+                ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
+                ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
+            val libraries = new ArrayList<Object>();
+            libraries.addAll(collectFunctionLibrariesFromProviders(functionLibraryProviders));
+            libraries.addAll(collectFunctionLibraries(applicationContext));
+
+            val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
+            val lifecycleListeners   = lifecycleListenerProvider.orderedStream().toList();
+            if (!decisionInterceptors.isEmpty() || !lifecycleListeners.isEmpty()) {
+                log.debug("Registering {} decision interceptors and {} lifecycle listeners.",
+                        decisionInterceptors.size(), lifecycleListeners.size());
+            }
+            return new HotReloadingPluginsSource(pluginManager, libraries, attributeBroker,
+                    properties.getFunctionCacheSize(), true, decisionInterceptors, lifecycleListeners);
+        }
+    }
 }

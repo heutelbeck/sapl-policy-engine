@@ -53,6 +53,7 @@
 		<dependency>
 			<groupId>org.pf4j</groupId>
 			<artifactId>pf4j</artifactId>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- Annotations -->
