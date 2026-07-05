@@ -93,7 +93,7 @@ class PdpHotReloadSemanticsTests {
     }
 
     private static void load(PDPComponents components, String... policies) {
-        components.pdpVoterSource().loadConfiguration(configuration(DENY_UNLESS_PERMIT, policies), false);
+        components.pdpVoterSource().loadConfiguration(configuration(DENY_UNLESS_PERMIT, policies));
     }
 
     private static MultiAuthorizationSubscription twoSubs() {

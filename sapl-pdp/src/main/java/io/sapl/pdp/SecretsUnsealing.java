@@ -63,9 +63,9 @@ public class SecretsUnsealing {
      */
     public static ConfigurationEvent processEvent(OctetKeyPair recipientPrivateKey, boolean acceptUnencryptedSecrets,
             ConfigurationEvent event) {
-        if (event instanceof ConfigurationEvent.Load(var configuration, var keepOldOnError)) {
-            return new ConfigurationEvent.Load(process(recipientPrivateKey, acceptUnencryptedSecrets, configuration),
-                    keepOldOnError);
+        if (event instanceof ConfigurationEvent.NewConfiguration(var configuration)) {
+            return new ConfigurationEvent.NewConfiguration(
+                    process(recipientPrivateKey, acceptUnencryptedSecrets, configuration));
         }
         return event;
     }

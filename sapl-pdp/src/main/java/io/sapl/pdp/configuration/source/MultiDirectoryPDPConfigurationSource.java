@@ -62,7 +62,7 @@ import java.util.function.Consumer;
  * This source delegates to {@link DirectoryPDPConfigurationSource} for each
  * subdirectory, providing full hot-reload support. When subdirectories are
  * added or removed, corresponding sources are created or closed and
- * {@link ConfigurationEvent.Remove} is emitted for removed PDPs.
+ * {@link ConfigurationEvent.ConfigurationRemoved} is emitted for removed PDPs.
  * </p>
  * <h2>Thread Safety</h2>
  * <p>
@@ -279,7 +279,7 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
         val source = childSources.remove(pdpId);
         if (source != null) {
             source.close();
-            emit(new ConfigurationEvent.Remove(pdpId));
+            emit(new ConfigurationEvent.ConfigurationRemoved(pdpId));
             log.debug("Removed and closed child source for PDP '{}'.", pdpId);
         }
     }
@@ -289,7 +289,7 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     void removeChildSourceIfCurrent(String pdpId, DirectoryPDPConfigurationSource source) {
         if (childSources.remove(pdpId, source)) {
             source.close();
-            emit(new ConfigurationEvent.Remove(pdpId));
+            emit(new ConfigurationEvent.ConfigurationRemoved(pdpId));
             log.debug("Removed and closed child source for PDP '{}'.", pdpId);
         }
     }

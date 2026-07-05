@@ -27,20 +27,22 @@ import java.util.function.Consumer;
 /**
  * Test helper that subscribes to a {@link PDPConfigurationSource} and
  * records every emitted {@link ConfigurationEvent} for later inspection.
- * Loaded configurations are accessible via {@link #configs()} and removal
- * events via {@link #removedPdpIds()}. Both lists are thread-safe and
- * preserve emission order.
+ * Loaded configurations are accessible via {@link #configs()}, removal
+ * events via {@link #removedPdpIds()}, and error events via {@link #errors()}.
+ * All lists are thread-safe and preserve emission order.
  */
 final class CapturingSubscriber implements Consumer<ConfigurationEvent> {
 
-    private final List<PDPConfiguration> configs       = new CopyOnWriteArrayList<>();
-    private final List<String>           removedPdpIds = new CopyOnWriteArrayList<>();
+    private final List<PDPConfiguration>                      configs       = new CopyOnWriteArrayList<>();
+    private final List<String>                                removedPdpIds = new CopyOnWriteArrayList<>();
+    private final List<ConfigurationEvent.ConfigurationError> errors        = new CopyOnWriteArrayList<>();
 
     @Override
     public void accept(ConfigurationEvent event) {
         switch (event) {
-        case ConfigurationEvent.Load(var config, var keepOldOnError) -> configs.add(config);
-        case ConfigurationEvent.Remove(var pdpId)                    -> removedPdpIds.add(pdpId);
+        case ConfigurationEvent.NewConfiguration(var config)    -> configs.add(config);
+        case ConfigurationEvent.ConfigurationRemoved(var pdpId) -> removedPdpIds.add(pdpId);
+        case ConfigurationEvent.ConfigurationError error        -> errors.add(error);
         }
     }
 
@@ -50,5 +52,9 @@ final class CapturingSubscriber implements Consumer<ConfigurationEvent> {
 
     List<String> removedPdpIds() {
         return removedPdpIds;
+    }
+
+    List<ConfigurationEvent.ConfigurationError> errors() {
+        return errors;
     }
 }

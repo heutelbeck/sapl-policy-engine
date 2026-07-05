@@ -218,10 +218,13 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
 
         try {
             val config = BundleParser.parse(bundlePath, pdpId, securityPolicy);
-            emit(new ConfigurationEvent.Load(config, true));
+            emit(new ConfigurationEvent.NewConfiguration(config));
             log.debug("Loaded bundle '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
         } catch (Exception e) {
+            // A present bundle that is definitively broken (bad signature, malformed).
             log.error("Failed to load bundle '{}': {}.", pdpId, e.getMessage(), e);
+            emit(new ConfigurationEvent.ConfigurationError(pdpId,
+                    e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
     }
 
@@ -296,7 +299,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
             }
             val pdpId = derivePdpIdFromBundleName(file.toPath());
             if (pdpId != null && PdpIdValidator.isValidPdpId(pdpId)) {
-                emit(new ConfigurationEvent.Remove(pdpId));
+                emit(new ConfigurationEvent.ConfigurationRemoved(pdpId));
                 log.info("Removed configuration for deleted bundle '{}'.", pdpId);
             }
         }

@@ -121,7 +121,7 @@ class DeduplicationTests {
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
-            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
+            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY));
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
             val decisions = pdp.gatherVotes(sub, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)
@@ -155,7 +155,7 @@ class DeduplicationTests {
                 val components  = PolicyDecisionPointBuilder.withDefaults(mapper).withClock(fixedClock).build();
                 val voterSource = components.pdpVoterSource();
                 val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
-                voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
+                voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY));
                 return pdp.decide(sub);
             }).assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT)).expectNoEvent(Duration.ofSeconds(5))
                     .thenCancel().verify();
@@ -170,7 +170,7 @@ class DeduplicationTests {
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
-            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
+            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY));
 
             val sub = subscription("user", "stream:heartbeat", "heartbeat");
 
@@ -187,7 +187,7 @@ class DeduplicationTests {
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
-            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
+            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY));
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
             val decisions = pdp.gatherVotes(sub, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)
@@ -207,7 +207,7 @@ class DeduplicationTests {
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
-            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
+            voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY));
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
             val decisions = pdp.decide(sub).take(Duration.ofSeconds(5)).collectList().block(Duration.ofSeconds(10));
@@ -239,8 +239,8 @@ class DeduplicationTests {
             val received = new CopyOnWriteArrayList<PdpUpdateEvent>();
             voterSource.subscribeToUpdates("default", received::add);
 
-            voterSource.loadConfiguration(config, false);
-            voterSource.loadConfiguration(config, false);
+            voterSource.loadConfiguration(config);
+            voterSource.loadConfiguration(config);
 
             // Current state first (Removed, no config yet), then one Voter per reload.
             // Duplicate reloads are not deduplicated at the source.
@@ -260,12 +260,12 @@ class DeduplicationTests {
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
             val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);
 
-            voterSource.loadConfiguration(config, false);
+            voterSource.loadConfiguration(config);
 
             val sub = subscription("user", "read", "data");
 
             StepVerifier.create(pdp.decide(sub)).assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT))
-                    .then(() -> voterSource.loadConfiguration(config, false)).expectNoEvent(Duration.ofMillis(500))
+                    .then(() -> voterSource.loadConfiguration(config)).expectNoEvent(Duration.ofMillis(500))
                     .thenCancel().verify(Duration.ofSeconds(5));
         }
     }

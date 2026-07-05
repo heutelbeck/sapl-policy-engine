@@ -183,14 +183,18 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNoPdpJsonInBundleThenBundleIsSkipped() throws IOException {
+    @DisplayName("a bundle without pdp.json is reported as a configuration error, not a configuration")
+    void whenNoPdpJsonInBundleThenConfigurationErrorEmitted() throws IOException {
         createBundleWithoutPdpJson(tempDir.resolve("miskatonic.saplbundle"), "policy.sapl",
                 "policy \"test\" permit true;");
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
 
-        // Bundles without pdp.json are now skipped (they're invalid)
-        assertThat(captureConfigurations(source)).isEmpty();
+        assertThat(capture.configs()).isEmpty();
+        assertThat(capture.errors()).singleElement()
+                .satisfies(error -> assertThat(error.pdpId()).isEqualTo("miskatonic"));
     }
 
     @Test

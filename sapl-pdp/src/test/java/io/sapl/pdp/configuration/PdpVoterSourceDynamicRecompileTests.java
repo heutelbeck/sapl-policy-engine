@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PdpVoterSource dynamic recompile")
 class PdpVoterSourceDynamicRecompileTests {
@@ -108,23 +107,25 @@ class PdpVoterSourceDynamicRecompileTests {
     }
 
     @Test
-    @DisplayName("a fail-fast rejected configuration is not retained for later recompiles")
-    void whenLoadFailsFastThenRejectedConfigurationIsNotRetained() {
+    @DisplayName("a broken configuration is served as an error voter and stays fail-closed across a plugins push")
+    void whenLoadFailsThenErrorVoterServedAndRetained() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
 
             val rejectedPdpId = "rejected-pdp";
             val badConfig     = new PDPConfiguration(rejectedPdpId, "config-bad", CombiningAlgorithm.DEFAULT,
                     List.of("this is not valid sapl"), EMPTY);
-            assertThatThrownBy(() -> voterSource.loadConfiguration(badConfig, false))
-                    .isInstanceOf(PDPConfigurationException.class);
+            voterSource.loadConfiguration(badConfig);
+            assertThat(voterSource.getCurrentConfiguration(rejectedPdpId)).isPresent();
 
-            // A plugins push recompiles every retained configuration, so a rejected config
-            // must not be retained.
+            // A plugins push recompiles the retained (still broken) config: it stays an
+            // error voter, keeping the pdpId fail-closed rather than being forgotten.
             pluginsSource.publish(pluginsOf(brokerWithStandard()));
 
-            assertThat(voterSource.getCurrentConfiguration(rejectedPdpId)).isEmpty();
+            assertThat(voterSource.getCurrentConfiguration(rejectedPdpId)).isPresent();
+            assertThat(voterSource.getPdpStatus(rejectedPdpId))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
         }
     }
 
@@ -133,7 +134,7 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenSubscribingThenCurrentConfigurationDeliveredImmediately() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val current = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
 
             // State must be delivered under the source lock at subscription time, else a
@@ -150,12 +151,12 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenConfigurationRemovedThenReloadedThenTheSameListenerIsNotifiedAgain() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
 
             val received = new ArrayList<PdpUpdateEvent>();
             voterSource.subscribeToUpdates(PDP_ID, received::add);
             voterSource.removeConfigurationForPdp(PDP_ID);
-            voterSource.loadConfiguration(policyConfig("config-B"), false);
+            voterSource.loadConfiguration(policyConfig("config-B"));
 
             // The PDP never closes a client subscription server-side.
             // Removal emits Removed and the consumer sees INDETERMINATE.
@@ -171,7 +172,7 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenLastListenerUnsubscribesThenTheListenerMapEntryIsPruned() throws Exception {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             final Consumer<PdpUpdateEvent> listener = event -> {};
             voterSource.subscribeToUpdates(PDP_ID, listener);
             assertThat(listenerEntryPresent(voterSource, PDP_ID)).isTrue();
@@ -215,7 +216,7 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenPluginsPushedThenAllRetainedConfigurationsRecompileWithNewBroker() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val before = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
 
             val newBroker = brokerWithStandard();
@@ -233,7 +234,7 @@ class PdpVoterSourceDynamicRecompileTests {
         val broker        = brokerWithStandard();
         val pluginsSource = new MutablePluginsSource(pluginsOf(broker));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val before = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
             assertThat(before.plugins().decisionInterceptors()).isEmpty();
 
@@ -253,7 +254,7 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenPluginsPushedThenBrokerAndInterceptorsApplyTogether() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
 
             val newBroker      = brokerWithStandard();
             val newInterceptor = new RecordingDecisionInterceptor();
@@ -273,7 +274,7 @@ class PdpVoterSourceDynamicRecompileTests {
         val bundle        = new PluginsBundle(broker, List.of(new RecordingDecisionInterceptor()), List.of());
         val pluginsSource = new MutablePluginsSource(bundle);
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val compiled = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
 
             assertThat(compiled.plugins()).isEqualTo(bundle);
@@ -285,7 +286,7 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenPluginsNotReadyThenLoadConfigurationDefersAndExposesAwaitingPluginsStatus() {
         val pluginsSource = new MutablePluginsSource();
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
 
             assertThat(voterSource.getCurrentConfiguration(PDP_ID)).isEmpty();
             assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
@@ -310,7 +311,7 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenLifecycleListenersChangeThenGetPluginsReturnsLatest() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val listener = new RecordingLifecycleListener();
             pluginsSource.publish(new PluginsBundle(brokerWithStandard(), List.of(), List.of(listener)));
 
@@ -324,12 +325,12 @@ class PdpVoterSourceDynamicRecompileTests {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
             // LOADED against the first bundle.
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
 
-            // A broken config update with keepOld leaves the pdpId STALE, still serving the
-            // last-good voter, which is bound to the first bundle's broker.
-            voterSource.loadConfiguration(brokenConfig(), true);
+            // A broken config update leaves the pdpId STALE, still serving the last-good
+            // voter, which is bound to the first bundle's broker.
+            voterSource.loadConfiguration(brokenConfig());
             assertThat(voterSource.getPdpStatus(PDP_ID))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
 
@@ -355,7 +356,7 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenPluginsSwapBrokerThrowsDuringCompileThenFailsClosed() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(configFoldingFunction(CONFIG_A), false);
+            voterSource.loadConfiguration(configFoldingFunction(CONFIG_A));
             val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
             assertThat(voterSource.getPdpStatus(PDP_ID))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.LOADED));
@@ -372,12 +373,12 @@ class PdpVoterSourceDynamicRecompileTests {
     }
 
     @Test
-    @DisplayName("a deferred broken config compiles to ERROR on first plugins arrival, regardless of keepOld (no last-good to retain)")
+    @DisplayName("a deferred broken config compiles to ERROR on first plugins arrival (no last-good to retain)")
     void whenDeferredBrokenConfigThenFirstSnapshotErrors() {
         val pluginsSource = new MutablePluginsSource();
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            // keepOld=true, but deferred because no plugins have arrived yet.
-            voterSource.loadConfiguration(brokenConfig(), true);
+            // Deferred because no plugins have arrived yet.
+            voterSource.loadConfiguration(brokenConfig());
             assertThat(voterSource.getPdpStatus(PDP_ID))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS));
 
@@ -391,14 +392,14 @@ class PdpVoterSourceDynamicRecompileTests {
     }
 
     @Test
-    @DisplayName("a config-update compile failure with keepOld still goes STALE and keeps serving the last-good voter")
-    void whenConfigUpdateFailsWithKeepOldThenStaleKeepsServingLastGoodVoter() {
+    @DisplayName("a config-update compile failure still goes STALE and keeps serving the last-good voter")
+    void whenConfigUpdateFailsThenStaleKeepsServingLastGoodVoter() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val good = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
 
-            voterSource.loadConfiguration(brokenConfig(), true);
+            voterSource.loadConfiguration(brokenConfig());
 
             assertThat(voterSource.getPdpStatus(PDP_ID))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
@@ -412,9 +413,9 @@ class PdpVoterSourceDynamicRecompileTests {
     void whenPluginsPushedThenAllRetainedPdpIdsMigrateToNewBundle() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
             voterSource.loadConfiguration(new PDPConfiguration("pdp-2", "config-2", CombiningAlgorithm.DEFAULT,
-                    List.of("policy \"p\" permit"), EMPTY), false);
+                    List.of("policy \"p\" permit"), EMPTY));
 
             val newBroker = brokerWithStandard();
             pluginsSource.publish(pluginsOf(newBroker));

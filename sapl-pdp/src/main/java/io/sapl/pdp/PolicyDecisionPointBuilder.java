@@ -43,6 +43,8 @@ import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -75,7 +77,7 @@ import java.util.List;
  *         .withPolicyInformationPoint(new MyCustomPIP()).build();
  *
  * var pdp = pdpComponents.pdp();
- * pdpComponents.pdpRegister().loadConfiguration(pdpConfiguration, false);
+ * pdpComponents.pdpVoterSource().loadConfiguration(pdpConfiguration);
  * }</pre>
  *
  * <h2>Configuration Sources</h2>
@@ -131,6 +133,7 @@ public class PolicyDecisionPointBuilder {
 
     private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
     private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
+    private final List<ExtensionProcessor>            extensionProcessors  = new ArrayList<>();
 
     private PDPConfigurationSource       configurationSource;
     private final List<PDPConfiguration> initialConfigurations = new ArrayList<>();
@@ -144,10 +147,12 @@ public class PolicyDecisionPointBuilder {
     private static final String ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE  = "Secrets decryption key must contain a private key component.";
     private static final String ERROR_DECRYPTION_KEY_MUST_BE_X25519   = "Secrets decryption key must be an X25519 key.";
     private static final String ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL = "Secrets decryption key must not be null.";
+    private static final String ERROR_INITIAL_CONFIGURATION_FAILED    = "The initial configuration for pdpId '%s' failed to compile: %s";
     private static final String ERROR_NO_PLUGINS_AVAILABLE            = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
     private static final String ERROR_SOURCE_ALREADY_REGISTERED       = "A configuration source has already been registered. Only one source is allowed.";
     private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS    = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
     private static final String WARN_ERROR_CLOSING_RESOURCE           = "Error closing {} during failed PDP build: {}.";
+    private static final String WARN_EXTENSION_PROCESSOR_THREW        = "An extension processor threw while handling a configuration event: {}.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper) {
         this.mapper = mapper;
@@ -433,6 +438,19 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withDecisionInterceptors(Collection<? extends DecisionInterceptor> interceptors) {
         this.decisionInterceptors.addAll(interceptors);
+        return this;
+    }
+
+    /**
+     * Adds an extension processor that is notified, after the PDP applies each
+     * configuration, of the bundle-carried extension data for it. The extension
+     * data arrives already unsealed. See {@link ExtensionProcessor}.
+     *
+     * @param processor the extension processor
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withExtensionProcessor(ExtensionProcessor processor) {
+        this.extensionProcessors.add(processor);
         return this;
     }
 
@@ -832,7 +850,12 @@ public class PolicyDecisionPointBuilder {
         val pluginsSource           = resolvePluginsSource();
         val ownsPluginsSource       = externalPluginsSource == null;
         val voterSource             = new PdpVoterSource(pluginsSource, clock);
-        val blockingPdp             = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
+        // Wrap the configured source so secrets are unsealed at the source
+        // boundary. Downstream, the compiler included, only ever sees cleartext.
+        val effectiveSource = secretsDecryptionKey != null && configurationSource != null
+                ? new SecretsUnsealingSource(configurationSource, secretsDecryptionKey, acceptUnencryptedSecrets)
+                : configurationSource;
+        val blockingPdp     = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
                 resolvedTimestampSource);
 
         try {
@@ -844,16 +867,23 @@ public class PolicyDecisionPointBuilder {
                 initialConfigurations.add(config);
             }
 
-            // Load initial configurations: false signals fail-fast on compile error,
-            // propagating PDPConfigurationException to the build() caller.
+            // Initial configurations are fail-fast: a compile failure leaves the voter
+            // in ERROR, which is surfaced here as a build failure rather than a PDP that
+            // silently starts denied.
             for (val config : initialConfigurations) {
-                voterSource.loadConfiguration(unsealSecrets(config), false);
+                val unsealed = unsealSecrets(config);
+                voterSource.loadConfiguration(unsealed);
+                requireInitialConfigurationLoaded(voterSource, unsealed);
+                notifyExtensionProcessors(new PDPConfigurationSource.ConfigurationEvent.NewConfiguration(unsealed));
             }
 
-            if (configurationSource != null) {
-                // Subscribe propagates source-side compile errors via the same
-                // fail-fast path when the source emits Load with keepOldOnError=false.
-                configurationSource.subscribe(event -> voterSource.handle(unsealSecrets(event)));
+            if (effectiveSource != null) {
+                // Processors are notified after the PDP applies the config, so policies
+                // are live before a processor's side effects.
+                effectiveSource.subscribe(event -> {
+                    voterSource.handle(event);
+                    notifyExtensionProcessors(event);
+                });
             }
 
             val plugins = voterSource.getPlugins();
@@ -861,14 +891,14 @@ public class PolicyDecisionPointBuilder {
                 throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
             }
             return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
-                    configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
+                    effectiveSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
                     plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource, resolvedBroker.ownedRepository());
         } catch (RuntimeException e) {
             // A failed build never transfers ownership to PDPComponents, so close what this
             // builder created.
             closeQuietly(voterSource);
-            if (configurationSource != null) {
-                closeQuietly(configurationSource);
+            if (effectiveSource != null) {
+                closeQuietly(effectiveSource);
             }
             if (ownsPluginsSource) {
                 closeQuietly(pluginsSource);
@@ -886,6 +916,28 @@ public class PolicyDecisionPointBuilder {
         }
     }
 
+    private void notifyExtensionProcessors(PDPConfigurationSource.ConfigurationEvent event) {
+        if (extensionProcessors.isEmpty()) {
+            return;
+        }
+        for (val processor : extensionProcessors) {
+            try {
+                switch (event) {
+                case PDPConfigurationSource.ConfigurationEvent.NewConfiguration(var configuration)       -> processor
+                        .onLoad(configuration.pdpId(), configuration.extensions(), configuration.extensionSecrets());
+                case PDPConfigurationSource.ConfigurationEvent.ConfigurationRemoved(var pdpId)           ->
+                    processor.onRemove(pdpId);
+                case PDPConfigurationSource.ConfigurationEvent.ConfigurationError(var pdpId, var reason) -> log.debug(
+                        "Not notifying extension processors of configuration error for pdpId '{}': {}.", pdpId, reason);
+                }
+            } catch (RuntimeException e) {
+                // Isolate processors: a throwing one must not affect the PDP or the
+                // other processors.
+                log.warn(WARN_EXTENSION_PROCESSOR_THREW, e.getMessage());
+            }
+        }
+    }
+
     private void closeQuietly(AutoCloseable resource) {
         try {
             resource.close();
@@ -894,14 +946,17 @@ public class PolicyDecisionPointBuilder {
         }
     }
 
+    private static void requireInitialConfigurationLoaded(PdpVoterSource voterSource, PDPConfiguration configuration) {
+        val status = voterSource.getPdpStatus(configuration.pdpId()).orElse(null);
+        if (status != null && status.state() == PdpState.ERROR) {
+            throw new PDPConfigurationException(
+                    ERROR_INITIAL_CONFIGURATION_FAILED.formatted(configuration.pdpId(), status.lastError()));
+        }
+    }
+
     private PDPConfiguration unsealSecrets(PDPConfiguration configuration) {
         return secretsDecryptionKey == null ? configuration
                 : SecretsUnsealing.process(secretsDecryptionKey, acceptUnencryptedSecrets, configuration);
-    }
-
-    private PDPConfigurationSource.ConfigurationEvent unsealSecrets(PDPConfigurationSource.ConfigurationEvent event) {
-        return secretsDecryptionKey == null ? event
-                : SecretsUnsealing.processEvent(secretsDecryptionKey, acceptUnencryptedSecrets, event);
     }
 
     private PluginsSource resolvePluginsSource() {

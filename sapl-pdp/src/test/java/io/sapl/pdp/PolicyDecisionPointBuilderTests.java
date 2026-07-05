@@ -196,6 +196,14 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
+    @DisplayName("an initial configuration that fails to compile fails the build fast")
+    void whenInitialConfigurationBrokenThenBuildFails() {
+        val builder = PolicyDecisionPointBuilder.withDefaults().withPolicy("this is not valid sapl");
+        assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("failed to compile");
+    }
+
+    @Test
     @DisplayName("acceptUnencryptedSecrets allows a configuration whose secrets are unencrypted")
     void whenAcceptUnencryptedThenBuildSucceeds() {
         val key        = SecretSealing.generateRecipientKey();

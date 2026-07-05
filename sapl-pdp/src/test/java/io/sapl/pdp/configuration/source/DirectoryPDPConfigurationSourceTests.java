@@ -201,6 +201,20 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    @DisplayName("a malformed pdp.json is reported as a configuration error, not a configuration")
+    void whenPdpJsonMalformedThenConfigurationErrorEmitted() throws IOException {
+        createFile(tempDir.resolve("pdp.json"), "{ this is not valid json");
+        createFile(tempDir.resolve("policy.sapl"), "policy \"p\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+
+        assertThat(capture.errors()).singleElement().satisfies(error -> assertThat(error.pdpId()).isEqualTo("default"));
+        assertThat(capture.configs()).isEmpty();
+    }
+
+    @Test
     void whenFileIsModifiedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """

@@ -419,7 +419,7 @@ class DelegatingReactivePolicyDecisionPointTests {
         voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, """
                 policy "allow all"
                 permit
-                """), false);
+                """));
 
         val subscription = subscription("test", "read", "data");
 
@@ -433,6 +433,6 @@ class DelegatingReactivePolicyDecisionPointTests {
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
-        pdpVoterSource.loadConfiguration(configuration(algorithm, policies), false);
+        pdpVoterSource.loadConfiguration(configuration(algorithm, policies));
     }
 }

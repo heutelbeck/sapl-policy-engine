@@ -104,7 +104,7 @@ class MultiSubscriptionDeglitchTests {
 
     private static PDPComponents buildComponents(FlagPip flagPip, String... policies) {
         val components = PolicyDecisionPointBuilder.withoutDefaults().withPolicyInformationPoint(flagPip).build();
-        components.pdpVoterSource().loadConfiguration(configuration(DENY_UNLESS_PERMIT, policies), false);
+        components.pdpVoterSource().loadConfiguration(configuration(DENY_UNLESS_PERMIT, policies));
         return components;
     }
 

@@ -242,8 +242,11 @@ when replay and rollback protection matter.
 | `404` | pdpId not found on server | Log error, retry with exponential backoff. |
 | `5xx` | Server error | Log error, retry with exponential backoff. |
 
-All error responses trigger retry with exponential backoff. The client never stops
-retrying. After the server recovers, the client resumes normal operation.
+Transport-level error responses (`401`, `403`, `404`, `5xx`, and connection timeouts)
+are transient. They trigger retry with exponential backoff, the client never stops
+retrying, and it resumes normal operation after the server recovers. A `200 OK` that
+carries a definitively invalid bundle is not a transport error. It is handled as a
+configuration error rather than retried in silence (see [Bundle Validity](#bundle-validity)).
 
 ### Bundle Format
 
@@ -281,6 +284,22 @@ listed name must have a payload in the bundle (`ext-<name>.json` or
 critical set is covered by the manifest signature, so it cannot be stripped in
 transit.
 
+### Bundle Validity
+
+A bundle that is fetched successfully but is definitively invalid is handled as a
+configuration error rather than being retried in silence. This covers an invalid or
+missing signature, a malformed archive, a missing or unreadable `pdp.json`, secrets
+that cannot be unsealed, and a missing payload for a critical extension.
+
+For each such bundle the client reports a configuration error for the affected pdpId.
+It keeps serving the last successfully loaded configuration and marks that pdpId
+`STALE`. When there is no last-good configuration to keep, the pdpId goes to `ERROR`
+and fails closed, so its decisions are `INDETERMINATE`. The failure and a
+human-readable reason appear in the client health status, and the bundle is
+re-evaluated when its content changes (a new ETag). This is distinct from a transient
+transport error such as a timeout or a `5xx`, which the client retries silently and
+which does not emit a configuration error.
+
 ### Security Considerations
 
 #### Transport Security
@@ -294,9 +313,12 @@ Bundles fetched over HTTP are verified using Ed25519 signatures by default. The
 signature verification is performed client-side using the public key configured on the
 node. This provides end-to-end integrity verification independent of transport security.
 
-A server serving unsigned bundles to a client with mandatory signature verification will
-cause the client to reject the bundle and retry. The client never loads an unsigned
-bundle when signatures are required.
+A server serving an unsigned or wrongly signed bundle to a client with mandatory
+signature verification causes the client to reject that bundle. This is a definitive
+configuration error, not a transient transport failure. The client never loads the
+bundle, keeps serving its last-good configuration, marks the pdpId `STALE` (or `ERROR`
+and fails closed if there is no last-good), and reports the reason in its health status.
+See [Bundle Validity](#bundle-validity).
 
 #### Authentication
 
