@@ -28,6 +28,7 @@ import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.realm.RealmIndex;
 import io.sapl.pdp.configuration.realm.RealmIndexEntry;
 import io.sapl.pdp.configuration.realm.RealmIndexSigner;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import com.github.valfirst.slf4jtest.LoggingEvent;
 import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import lombok.val;
@@ -45,12 +46,15 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1311,6 +1315,102 @@ class RemoteBundlePDPConfigurationSourceTests {
                             .anyMatch(message -> message.startsWith("Fetch failed for"))
                             .noneMatch(message -> message.contains("SUPER-SECRET-TOKEN")));
             assertThat(source.isClosed()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("J: Transport Freshness")
+    class TransportFreshness {
+
+        private final MutableClock clock = new MutableClock();
+
+        private RemoteBundleSourceConfig stalenessConfig(Duration staleAfterNoContact) {
+            return stalenessConfig(staleAfterNoContact, null);
+        }
+
+        private RemoteBundleSourceConfig stalenessConfig(Duration staleAfterNoContact,
+                Duration failClosedAfterNoContact) {
+            return new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
+                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(50), Duration.ofSeconds(5), null,
+                    null, false, true, developmentPolicy, Map.of(), Duration.ofMillis(20), Duration.ofMillis(80), null,
+                    null, staleAfterNoContact, failClosedAfterNoContact);
+        }
+
+        @Test
+        @DisplayName("no successful contact past the staleness threshold escalates to a stale error and recovers on the next contact")
+        void whenNoContactPastThresholdThenStaleErrorThenRecovery() {
+            val serving = new AtomicBoolean(false);
+            server.setDispatcher(new Dispatcher() {
+                @Override
+                public MockResponse dispatch(RecordedRequest request) {
+                    if (serving.get()) {
+                        val buffer = new okio.Buffer();
+                        buffer.write(createUnsignedBundle());
+                        return new MockResponse().setBody(buffer).addHeader("ETag", "v1");
+                    }
+                    return new MockResponse().setResponseCode(503);
+                }
+            });
+
+            source = new RemoteBundlePDPConfigurationSource(stalenessConfig(Duration.ofSeconds(30)), clock);
+            val capture = new CapturingSubscriber();
+            source.subscribe(capture);
+
+            // The loop anchors the freshness clock at its start instant, so waiting for a
+            // first request guarantees the anchor is in place before the clock advances.
+            await().atMost(Duration.ofSeconds(3))
+                    .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(1));
+
+            clock.advance(Duration.ofSeconds(31));
+
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.errors())
+                    .extracting(ConfigurationEvent.ConfigurationError::pdpId).contains(PDP_ID));
+
+            serving.set(true);
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(
+                    () -> assertThat(capture.configs()).extracting(PDPConfiguration::pdpId).contains(PDP_ID));
+        }
+
+        @Test
+        @DisplayName("no successful contact past the configured fail-closed threshold escalates to an expiry event")
+        void whenNoContactPastFailClosedThresholdThenExpired() {
+            server.setDispatcher(new Dispatcher() {
+                @Override
+                public MockResponse dispatch(RecordedRequest request) {
+                    return new MockResponse().setResponseCode(503);
+                }
+            });
+
+            source = new RemoteBundlePDPConfigurationSource(
+                    stalenessConfig(Duration.ofSeconds(30), Duration.ofSeconds(90)), clock);
+            val capture = new CapturingSubscriber();
+            source.subscribe(capture);
+
+            await().atMost(Duration.ofSeconds(3))
+                    .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(1));
+
+            clock.advance(Duration.ofSeconds(31));
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.errors())
+                    .extracting(ConfigurationEvent.ConfigurationError::pdpId).contains(PDP_ID));
+            assertThat(capture.expirations()).isEmpty();
+
+            clock.advance(Duration.ofSeconds(60));
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.expirations())
+                    .extracting(ConfigurationEvent.ConfigurationExpired::pdpId).contains(PDP_ID));
+        }
+    }
+
+    private static final class MutableClock implements InstantSource {
+
+        private volatile Instant now = Instant.EPOCH;
+
+        @Override
+        public Instant instant() {
+            return now;
+        }
+
+        void advance(Duration amount) {
+            now = now.plus(amount);
         }
     }
 

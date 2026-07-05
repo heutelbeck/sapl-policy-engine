@@ -46,6 +46,13 @@ import java.util.function.Consumer;
  * file changes emit a fresh {@link ConfigurationEvent.NewConfiguration} to all
  * subscribers.
  * </p>
+ * <p>
+ * This filesystem source is a convenience for development and experimentation. It
+ * hot-reloads plain, unsigned policy files with no integrity or atomicity
+ * guarantees, so an editor writing a file in place can be observed mid-write.
+ * Enterprise and production deployments should use signed bundles instead, via
+ * {@link BundlePDPConfigurationSource} or {@link RemoteBundlePDPConfigurationSource}.
+ * </p>
  * <h2>Directory Layout</h2>
  *
  * <pre>

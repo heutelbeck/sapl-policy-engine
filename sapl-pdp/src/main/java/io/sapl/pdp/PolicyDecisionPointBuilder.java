@@ -867,6 +867,14 @@ public class PolicyDecisionPointBuilder {
                 initialConfigurations.add(config);
             }
 
+            // Fail-fast validation of the initial configurations requires the plugins to
+            // be available, so they compile synchronously here rather than being deferred.
+            // A PDP cannot be built before its plugins source has delivered a snapshot.
+            val plugins = voterSource.getPlugins();
+            if (plugins == null) {
+                throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
+            }
+
             // Initial configurations are fail-fast: a compile failure leaves the voter
             // in ERROR, which is surfaced here as a build failure rather than a PDP that
             // silently starts denied.
@@ -886,10 +894,6 @@ public class PolicyDecisionPointBuilder {
                 });
             }
 
-            val plugins = voterSource.getPlugins();
-            if (plugins == null) {
-                throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
-            }
             return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
                     effectiveSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
                     plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource, resolvedBroker.ownedRepository());
@@ -929,6 +933,8 @@ public class PolicyDecisionPointBuilder {
                     processor.onRemove(pdpId);
                 case PDPConfigurationSource.ConfigurationEvent.ConfigurationError(var pdpId, var reason) -> log.debug(
                         "Not notifying extension processors of configuration error for pdpId '{}': {}.", pdpId, reason);
+                case PDPConfigurationSource.ConfigurationEvent.ConfigurationExpired expired              ->
+                    processor.onRemove(expired.pdpId());
                 }
             } catch (RuntimeException e) {
                 // Isolate processors: a throwing one must not affect the PDP or the

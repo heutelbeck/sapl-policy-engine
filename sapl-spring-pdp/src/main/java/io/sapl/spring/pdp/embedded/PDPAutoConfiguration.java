@@ -216,7 +216,7 @@ public class PDPAutoConfiguration {
                     props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
                     props.isAllowInsecureHttp(), props.isFollowRedirects(), securityPolicy,
                     props.getPdpIdPollIntervals(), props.getFirstBackoff(), props.getMaxBackoff(), props.getRealm(),
-                    props.getIndexPath());
+                    props.getIndexPath(), props.getStaleAfterNoContact(), props.getFailClosedAfterNoContact());
             log.info("Loading policies from remote bundles: {}", sourceConfig.baseUrl());
             yield new RemoteBundlePDPConfigurationSource(sourceConfig);
         }

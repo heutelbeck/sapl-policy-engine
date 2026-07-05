@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,6 +60,7 @@ import java.util.function.Consumer;
 public class PdpVoterSource implements AutoCloseable {
 
     private static final String ERROR_RECOMPILE_FAILED      = "Recompilation failed: %s";
+    private static final String WARN_CONFIGURATION_EXPIRED  = "Configuration expired, failing closed:\n{}";
     private static final String WARN_CONFIGURATION_REJECTED = "Configuration rejected:\n{}";
     private static final String WARN_DEFERRED_CONFIGURATION = "Configuration for pdpId '{}' arrived before plugins source delivered an initial snapshot. Retained and will compile when plugins are available.";
     private static final String WARN_LISTENER_THREW         = "Update listener for pdpId '{}' threw: {}";
@@ -261,21 +263,17 @@ public class PdpVoterSource implements AutoCloseable {
             PluginsBundle plugins, SaplCompilerException compilerException) {
         val formattedError = CompilationErrorFormatter.format(compilerException);
         val now            = clock.instant();
-        val currentState   = getStatusRef(pdpConfiguration.pdpId()).get().state();
+        val pdpId          = pdpConfiguration.pdpId();
         // Keep serving the last-good voter (STALE) only on a config update, where that
         // voter is still bound to the live runtime. A plugin swap (FAIL_CLOSED) must
         // fail closed instead: the last-good voter is bound to the retired bundle.
-        if (onCompileError == OnCompileError.RETAIN_LAST_GOOD
-                && (currentState == PdpState.LOADED || currentState == PdpState.STALE)) {
-            getStatusRef(pdpConfiguration.pdpId()).updateAndGet(
-                    current -> new PdpStatus(PdpState.STALE, current.configurationId(), current.combiningAlgorithm(),
-                            current.documentCount(), current.lastSuccessfulLoad(), now, formattedError));
+        if (onCompileError == OnCompileError.RETAIN_LAST_GOOD && hasLastGood(getStatusRef(pdpId).get().state())) {
+            markStale(pdpId, now, formattedError);
         } else {
             val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException, plugins);
-            getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(errorVoter));
-            notifyListeners(pdpConfiguration.pdpId(), new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), errorVoter));
-            getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null, 0,
-                    current.lastSuccessfulLoad(), now, formattedError));
+            getConfigRef(pdpId).set(Optional.of(errorVoter));
+            notifyListeners(pdpId, new PdpUpdateEvent.Voter(pdpId, errorVoter));
+            markError(pdpId, now, formattedError);
         }
         log.warn(WARN_CONFIGURATION_REJECTED, formattedError);
     }
@@ -289,9 +287,10 @@ public class PdpVoterSource implements AutoCloseable {
      */
     public void handle(ConfigurationEvent event) {
         switch (event) {
-        case ConfigurationEvent.NewConfiguration(var configuration)       -> loadConfiguration(configuration);
-        case ConfigurationEvent.ConfigurationRemoved(var pdpId)           -> removeConfigurationForPdp(pdpId);
-        case ConfigurationEvent.ConfigurationError(var pdpId, var reason) -> reportConfigurationError(pdpId, reason);
+        case ConfigurationEvent.NewConfiguration(var configuration)         -> loadConfiguration(configuration);
+        case ConfigurationEvent.ConfigurationRemoved(var pdpId)             -> removeConfigurationForPdp(pdpId);
+        case ConfigurationEvent.ConfigurationError(var pdpId, var reason)   -> reportConfigurationError(pdpId, reason);
+        case ConfigurationEvent.ConfigurationExpired(var pdpId, var reason) -> expireConfigurationForPdp(pdpId, reason);
         }
     }
 
@@ -306,20 +305,54 @@ public class PdpVoterSource implements AutoCloseable {
     private void reportConfigurationError(String pdpId, String reason) {
         stateLock.lock();
         try {
-            val now          = clock.instant();
-            val currentState = getStatusRef(pdpId).get().state();
-            if (currentState == PdpState.LOADED || currentState == PdpState.STALE) {
-                getStatusRef(pdpId).updateAndGet(current -> new PdpStatus(PdpState.STALE, current.configurationId(),
-                        current.combiningAlgorithm(), current.documentCount(), current.lastSuccessfulLoad(), now,
-                        reason));
+            val now = clock.instant();
+            if (hasLastGood(getStatusRef(pdpId).get().state())) {
+                markStale(pdpId, now, reason);
             } else {
-                getStatusRef(pdpId).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null, 0,
-                        current.lastSuccessfulLoad(), now, reason));
+                markError(pdpId, now, reason);
             }
             log.warn(WARN_CONFIGURATION_REJECTED, reason);
         } finally {
             stateLock.unlock();
         }
+    }
+
+    /**
+     * Fails a pdpId closed while keeping it visible. The served voter is dropped so
+     * decisions resolve to the fail-closed no-configuration vote, the retained
+     * configuration is discarded so a later plugins recompile cannot resurrect the
+     * expired configuration, and the PDP transitions to ERROR. A later
+     * {@code NewConfiguration} repopulates and re-serves normally.
+     */
+    private void expireConfigurationForPdp(String pdpId, String reason) {
+        stateLock.lock();
+        try {
+            val now = clock.instant();
+            retainedConfigurations.remove(pdpId);
+            servedGeneration.remove(pdpId);
+            getConfigRef(pdpId).set(Optional.empty());
+            markError(pdpId, now, reason);
+            notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
+            log.warn(WARN_CONFIGURATION_EXPIRED, reason);
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    private static boolean hasLastGood(PdpState state) {
+        return state == PdpState.LOADED || state == PdpState.STALE;
+    }
+
+    /** Keeps serving the last-good voter and records the failure reason. Call under {@link #stateLock}. */
+    private void markStale(String pdpId, Instant now, String reason) {
+        getStatusRef(pdpId).updateAndGet(current -> new PdpStatus(PdpState.STALE, current.configurationId(),
+                current.combiningAlgorithm(), current.documentCount(), current.lastSuccessfulLoad(), now, reason));
+    }
+
+    /** No servable configuration: fail closed and record the failure reason. Call under {@link #stateLock}. */
+    private void markError(String pdpId, Instant now, String reason) {
+        getStatusRef(pdpId).updateAndGet(
+                current -> new PdpStatus(PdpState.ERROR, null, null, 0, current.lastSuccessfulLoad(), now, reason));
     }
 
     /**

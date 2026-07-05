@@ -21,6 +21,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import io.sapl.pdp.plugins.MutablePluginsSource;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.StaticPluginsSource;
@@ -276,6 +277,65 @@ class PdpVoterSourceStatusTrackingTests {
                 assertThat(s.configurationId()).isEqualTo("config-1");
                 assertThat(s.lastSuccessfulLoad()).isEqualTo(FIXED_TIME);
             });
+        }
+
+    }
+
+    @Nested
+    @DisplayName("when a configuration expires (fails closed on staleness)")
+    class WhenConfigurationExpired {
+
+        @Test
+        @DisplayName("then the served voter is dropped and state is ERROR while staying visible")
+        void thenServedVoterDroppedAndErrorVisible() {
+            val source = createSource();
+            source.loadConfiguration(validConfig("default", "config-1"));
+            assertThat(source.getCurrentConfiguration("default")).isPresent();
+
+            source.handle(new ConfigurationEvent.ConfigurationExpired("default", "no contact"));
+
+            assertThat(source.getCurrentConfiguration("default")).isEmpty();
+            assertThat(source.getPdpStatus("default")).isPresent().hasValueSatisfying(s -> {
+                assertThat(s.state()).isEqualTo(PdpState.ERROR);
+                assertThat(s.configurationId()).isNull();
+                assertThat(s.lastError()).isNotBlank();
+            });
+            assertThat(source.getAllPdpStatuses()).containsKey("default");
+        }
+
+        @Test
+        @DisplayName("then a later valid configuration returns to LOADED")
+        void thenLaterValidConfigurationReturnsToLoaded() {
+            val source = createSource();
+            source.loadConfiguration(validConfig("default", "config-1"));
+            source.handle(new ConfigurationEvent.ConfigurationExpired("default", "no contact"));
+            assertThat(source.getPdpStatus("default"))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+
+            source.loadConfiguration(validConfig("default", "config-2"));
+
+            assertThat(source.getCurrentConfiguration("default")).isPresent();
+            assertThat(source.getPdpStatus("default")).isPresent().hasValueSatisfying(s -> {
+                assertThat(s.state()).isEqualTo(PdpState.LOADED);
+                assertThat(s.configurationId()).isEqualTo("config-2");
+            });
+        }
+
+        @Test
+        @DisplayName("then a later plugins snapshot does not resurrect the expired configuration")
+        void thenLaterPluginsSnapshotDoesNotResurrectExpiredConfiguration() {
+            val pluginsSource = new MutablePluginsSource();
+            try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
+                pluginsSource.publish(pluginsBundle());
+                source.loadConfiguration(validConfig("default", "config-1"));
+                source.handle(new ConfigurationEvent.ConfigurationExpired("default", "no contact"));
+
+                pluginsSource.publish(pluginsBundle());
+
+                assertThat(source.getCurrentConfiguration("default")).isEmpty();
+                assertThat(source.getPdpStatus("default"))
+                        .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+            }
         }
 
     }

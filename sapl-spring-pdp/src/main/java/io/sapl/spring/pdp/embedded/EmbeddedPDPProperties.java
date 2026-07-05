@@ -353,6 +353,21 @@ public class EmbeddedPDPProperties {
          */
         private String indexPath = "index";
 
+        /**
+         * Wall-clock duration without any successful contact (a 200 or 304) after
+         * which a pdpId is marked stale and a health warning is raised, while the
+         * last-good configuration keeps serving. When unset, a value derived from
+         * the effective poll or long-poll cadence is used.
+         */
+        private Duration staleAfterNoContact;
+
+        /**
+         * Wall-clock duration without any successful contact after which a pdpId
+         * fails closed. Off by default. When set, it must be greater than
+         * {@link #staleAfterNoContact}.
+         */
+        private Duration failClosedAfterNoContact;
+
     }
 
     /**

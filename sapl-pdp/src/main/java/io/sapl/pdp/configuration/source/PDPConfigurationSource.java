@@ -100,5 +100,19 @@ public interface PDPConfigurationSource extends AutoCloseable {
          * material
          */
         record ConfigurationError(String pdpId, String reason) implements ConfigurationEvent {}
+
+        /**
+         * A previously-loaded configuration for a pdpId has become too stale
+         * to keep serving and must fail closed. Unlike {@link ConfigurationError},
+         * which keeps the last-good configuration in service while flagging it,
+         * this event drops the served configuration so the pdpId denies until a
+         * fresh configuration arrives. Only remote sources that track transport
+         * freshness emit this event.
+         *
+         * @param pdpId the identifier of the affected configuration
+         * @param reason a human-readable cause that never contains secret
+         * material
+         */
+        record ConfigurationExpired(String pdpId, String reason) implements ConfigurationEvent {}
     }
 }

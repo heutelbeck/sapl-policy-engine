@@ -54,6 +54,15 @@ import java.util.function.Consumer;
  *   development.saplbundle    # pdpId = "development"
  * </pre>
  *
+ * <h2>Publishing Bundles</h2>
+ * <p>
+ * Publish a bundle atomically: write it to a temporary file and then atomically move
+ * or rename it into the watched directory (for example {@link java.nio.file.Files#move}
+ * with {@link java.nio.file.StandardCopyOption#ATOMIC_MOVE}). Writing a bundle in place
+ * lets the file watcher observe a partial file, which is rejected as a broken bundle
+ * and briefly marks the pdpId {@code STALE} until the write completes. An atomic
+ * publish is observed as a single complete replacement.
+ * </p>
  * <h2>Security Model</h2>
  * <p>
  * This source requires a {@link BundleSecurityPolicy} that determines how
