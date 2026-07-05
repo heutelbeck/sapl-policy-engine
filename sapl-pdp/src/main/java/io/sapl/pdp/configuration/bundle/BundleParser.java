@@ -57,15 +57,23 @@ import java.util.zip.ZipInputStream;
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- *   .sapl-manifest.json  (signature and file hashes)
- *   pdp.json             (optional configuration)
+ *   .sapl-manifest.json               (signature and file hashes)
+ *   pdp.json                          (configuration, never secrets)
+ *   secrets.sealed.json               (optional, sealed PDP-level secrets)
  *   access-control.sapl
  *   audit.sapl
- *   logging.sapl
+ *   ext-upstreams.json                (optional, cleartext extension data)
+ *   ext-upstreams-secrets.sealed.json (optional, sealed extension secrets)
+ *   critical-extensions.json          (optional, names the consumer must support)
  * </pre>
  * <p>
  * Subdirectories inside bundles are ignored. Only root-level files are
- * processed.
+ * processed. Secrets files carry their sealing state in the name: a
+ * {@code .sealed.json} name must hold sealed content, and a bundle never mixes
+ * sealed and plaintext secrets files. Plaintext secrets files
+ * ({@code secrets.json}, {@code ext-<name>-secrets.json}) are accepted for
+ * development setups only, gated by the consumer's
+ * {@code acceptUnencryptedSecrets} opt-in.
  * </p>
  * <h2>Archive Security</h2>
  * <p>

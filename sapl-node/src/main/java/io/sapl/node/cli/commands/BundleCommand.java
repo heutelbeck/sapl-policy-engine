@@ -36,6 +36,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,6 +54,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.UnaryOperator;
 import java.util.zip.ZipEntry;
@@ -71,9 +74,22 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
     mixinStandardHelpOptions = true,
     header = "Manage policy bundles for deployment.",
     description = { """
-        Bundles package SAPL policies and PDP configuration into a single
-        .saplbundle file. They can be cryptographically signed with
-        Ed25519 keys for integrity verification at load time.
+        Bundles package SAPL policies, PDP configuration, secrets, and
+        extension data into a single .saplbundle file. They can be
+        cryptographically signed with Ed25519 keys for integrity
+        verification at load time, and their secrets can be sealed to an
+        X25519 recipient so no cleartext credentials travel with the
+        bundle.
+
+        A secrets file carries its sealing state in its name: secrets.json
+        and ext-<name>-secrets.json are cleartext, secrets.sealed.json and
+        ext-<name>-secrets.sealed.json are sealed. A bundle or directory
+        never mixes both states.
+
+        The commands compose into a full maintenance loop:
+        keygen / keygen-secrets, then seal, create, verify, inspect, and
+        for editing an existing bundle: unpack, unseal, edit, seal,
+        create, sign.
         """ },
     subcommands = {
         BundleCommand.Create.class, BundleCommand.Unpack.class,
@@ -119,14 +135,21 @@ public class BundleCommand {
         description = { """
             Packages all .sapl policy files and pdp.json from the input
             directory into a .saplbundle file. Policies are validated for
-            correct SAPL syntax during creation.
+            correct SAPL syntax during creation. Extension data
+            (ext-<name>.json), extension secrets, PDP-level secrets, and
+            critical-extensions.json are packaged too.
 
-            Extension files in the directory are packaged too: ext-<name>.json
-            as cleartext extension data, and ext-<name>-secrets.json as sealed
-            secrets. With --seal-to, the pdp.json secrets section and every
-            ext-<name>-secrets.json file are sealed to the given X25519 recipient
-            public key; the recipient PDP unseals them with the matching private
-            key. Generate the recipient keypair with 'sapl bundle keygen-secrets'.
+            Secrets are handled by file name. A plaintext folder
+            (secrets.json, ext-<name>-secrets.json) requires --seal-to: the
+            files are sealed to the given X25519 recipient public key and
+            written as secrets.sealed.json and
+            ext-<name>-secrets.sealed.json. A pre-sealed folder (only
+            *.sealed.json secrets, for example from 'sapl bundle seal' or a
+            verbatim unpack) is bundled as-is and needs no key, and
+            --seal-to is rejected. A folder that mixes plaintext and sealed
+            secrets is rejected. Plaintext secrets are never written into a
+            bundle. Generate the recipient keypair with
+            'sapl bundle keygen-secrets'.
 
             Optionally signs the bundle when a private key is provided.
             This is equivalent to creating then running 'sapl bundle sign'.
@@ -134,7 +157,7 @@ public class BundleCommand {
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
             " 0:Bundle created successfully",
-            " 1:Error (invalid input, no policies found, or I/O error)"
+            " 1:Error (invalid input, no policies found, mixed or unsealed secrets, or I/O error)"
         },
         footerHeading = "%nExamples:%n",
         footer = { """
@@ -144,10 +167,13 @@ public class BundleCommand {
               # Create and sign in one step
               sapl bundle create -i ./policies -o policies.saplbundle -k signing.pem --key-id prod-2026
 
-              # Create a bundle with secrets sealed to a recipient
+              # Create a bundle, sealing plaintext secrets to a recipient
               sapl bundle create -i ./policies -o policies.saplbundle --seal-to recipient.pub.jwk
 
-            See Also: sapl-bundle-sign(1), sapl-bundle-keygen(1), sapl-bundle-keygen-secrets(1)
+              # Create from a pre-sealed folder (no key needed)
+              sapl bundle create -i ./sealed-policies -o policies.saplbundle
+
+            See Also: sapl-bundle-sign(1), sapl-bundle-seal(1), sapl-bundle-unpack(1), sapl-bundle-keygen-secrets(1)
             """ }
     )
     // @formatter:on
@@ -169,7 +195,7 @@ public class BundleCommand {
         private Path outputFile;
 
         @Option(names = {
-                "--seal-to" }, description = "X25519 recipient public key (JWK file); seals the bundle's secrets to it")
+                "--seal-to" }, description = "X25519 recipient public key (JWK file) that plaintext secrets are sealed to")
         private Path sealToFile;
 
         @Override
@@ -298,15 +324,17 @@ public class BundleCommand {
         header = "Unpack a policy bundle into a directory.",
         description = { """
             Extracts every file from a .saplbundle into the output directory:
-            pdp.json, .sapl policies, extension files, and critical-extensions.json.
-            The manifest is not written, so the directory can be edited and
-            repackaged with 'sapl bundle create'.
+            pdp.json, .sapl policies, secrets files, extension files, and
+            critical-extensions.json. The manifest is not written, so the
+            directory can be edited and repackaged with 'sapl bundle create'.
 
             With -k the signature is verified before unpacking and a mismatch
-            aborts. With --unseal-with the pdp.json secrets and every
-            ext-<name>-secrets.json are unsealed to cleartext with the X25519
-            private key, producing a plaintext directory. Without it, sealed
-            content is written verbatim, which allows repackaging without the key.
+            aborts. With --unseal-with, secrets.sealed.json and every
+            ext-<name>-secrets.sealed.json are unsealed with the X25519
+            recipient private key and written under their plaintext names
+            (secrets.json, ext-<name>-secrets.json), producing a valid
+            plaintext directory. Without it, sealed files are written
+            verbatim, which allows repackaging without the key.
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
@@ -315,7 +343,7 @@ public class BundleCommand {
         },
         footerHeading = "%nExamples:%n",
         footer = { """
-              # Unpack verbatim
+              # Unpack verbatim (sealed secrets stay sealed)
               sapl bundle unpack -b policies.saplbundle -o ./policies
 
               # Verify then unpack
@@ -324,7 +352,7 @@ public class BundleCommand {
               # Unpack and unseal secrets to cleartext
               sapl bundle unpack -b policies.saplbundle -o ./policies --unseal-with recipient.jwk
 
-            See Also: sapl-bundle-create(1), sapl-bundle-verify(1)
+            See Also: sapl-bundle-create(1), sapl-bundle-seal(1), sapl-bundle-unseal(1), sapl-bundle-verify(1)
             """ }
     )
     // @formatter:on
@@ -340,11 +368,11 @@ public class BundleCommand {
         private Path outputDir;
 
         @Option(names = { "-k",
-                "--key" }, description = "Ed25519 public key (PEM); verifies the signature before unpacking")
+                "--key" }, description = "Ed25519 public key (PEM) to verify the signature before unpacking")
         private Path keyFile;
 
         @Option(names = {
-                "--unseal-with" }, description = "X25519 recipient private key (JWK); unseals secrets to cleartext")
+                "--unseal-with" }, description = "X25519 recipient private key (JWK) to unseal secrets to cleartext")
         private Path unsealKeyFile;
 
         @Override
@@ -596,8 +624,13 @@ public class BundleCommand {
         description = { """
             Creates a manifest containing SHA-256 hashes of all files in
             the bundle and signs it with the provided Ed25519 private key.
-            The signature enables the PDP server to verify bundle integrity
-            and authenticity at load time.
+            All files are preserved: pdp.json, policies, sealed secrets,
+            extension files, and critical-extensions.json. The signature
+            enables the PDP server to verify bundle integrity and
+            authenticity at load time.
+
+            A bundle containing plaintext secrets is refused. Unpack it,
+            seal the directory, and re-create it before signing.
 
             By default, the input bundle is overwritten with the signed
             version. Use -o to write to a different file.
@@ -605,7 +638,7 @@ public class BundleCommand {
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
             " 0:Bundle signed successfully",
-            " 1:Error (bundle or key not found, or signing failed)"
+            " 1:Error (bundle or key not found, plaintext secrets, or signing failed)"
         },
         footerHeading = "%nExamples:%n",
         footer = { """
@@ -615,7 +648,7 @@ public class BundleCommand {
               # Sign and write to a new file
               sapl bundle sign -b policies.saplbundle -k signing.pem -o signed.saplbundle --key-id prod-2026
 
-            See Also: sapl-bundle-keygen(1), sapl-bundle-verify(1)
+            See Also: sapl-bundle-keygen(1), sapl-bundle-verify(1), sapl-bundle-seal(1)
             """ }
     )
     // @formatter:on
@@ -797,18 +830,29 @@ public class BundleCommand {
         header = "Show bundle contents and metadata.",
         description = { """
             Displays the signature status, PDP configuration (pdp.json),
-            and a list of all policies with their sizes. Useful for
-            auditing bundles before deployment.
+            all policies with their sizes, the secrets files with their
+            sealing state, and the extensions with their payloads and
+            critical markers. Secret values are never printed, only file
+            names and sizes. Useful for auditing bundles before deployment.
+
+            The Integrity line is always explicit. With -k the signature
+            and all file hashes are checked and reported as VERIFIED or
+            FAILED, and a failure also sets the exit code. Without -k the
+            line reads NOT CHECKED, so an unverified bundle can never be
+            mistaken for a verified one.
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {
-            " 0:Inspection completed",
-            " 1:Error reading bundle"
+            " 0:Inspection completed (and integrity verified, when -k was given)",
+            " 1:Error reading bundle, or integrity check failed"
         },
         footerHeading = "%nExamples:%n",
         footer = { """
               # Show bundle contents and signature status
               sapl bundle inspect -b policies.saplbundle
+
+              # Inspect and verify integrity in one step
+              sapl bundle inspect -b policies.saplbundle -k signing.pub
 
             See Also: sapl-bundle-verify(1)
             """ }
@@ -822,6 +866,10 @@ public class BundleCommand {
         @Option(names = { "-b", "--bundle" }, required = true, description = "Bundle file to inspect")
         private Path bundleFile;
 
+        @Option(names = { "-k",
+                "--key" }, description = "Ed25519 public key (PEM) to verify the signature and file hashes")
+        private Path keyFile;
+
         @Override
         public Integer call() {
             val out = spec.commandLine().getOut();
@@ -829,6 +877,10 @@ public class BundleCommand {
 
             if (!Files.exists(bundleFile)) {
                 err.println(ERROR_BUNDLE_NOT_FOUND.formatted(bundleFile));
+                return 1;
+            }
+            if (keyFile != null && !Files.exists(keyFile)) {
+                err.println(ERROR_KEY_NOT_FOUND.formatted(keyFile));
                 return 1;
             }
 
@@ -854,6 +906,7 @@ public class BundleCommand {
                     out.println("Signature:");
                     out.printf("  Status: UNSIGNED%n");
                 }
+                val integrityOk = printIntegrity(out, contents, manifestJson);
                 out.println();
 
                 val pdpJson = contents.get(PDP_JSON);
@@ -876,13 +929,104 @@ public class BundleCommand {
                 if (policyCount == 0) {
                     out.println("  (none)");
                 }
+                out.println();
 
-                return 0;
+                printSecrets(out, contents);
+                out.println();
+                printExtensions(out, contents);
+
+                return integrityOk ? 0 : 1;
 
             } catch (IOException e) {
                 err.println(ERROR_INSPECTING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
+        }
+
+        private boolean printIntegrity(PrintWriter out, Map<String, String> contents, String manifestJson) {
+            if (keyFile == null) {
+                val reason = manifestJson != null ? "no key provided" : "bundle is not signed";
+                out.printf("  Integrity: NOT CHECKED (%s)%n", reason);
+                return true;
+            }
+            if (manifestJson == null) {
+                out.println("  Integrity: FAILED (bundle is not signed)");
+                return false;
+            }
+            try {
+                val files = new HashMap<>(contents);
+                files.remove(BundleManifest.MANIFEST_FILENAME);
+                BundleSigner.verify(BundleManifest.fromJson(manifestJson), files, loadEd25519PublicKey(keyFile));
+                out.println("  Integrity: VERIFIED");
+                return true;
+            } catch (BundleSignatureException | IOException | GeneralSecurityException e) {
+                out.printf("  Integrity: FAILED (%s)%n", e.getMessage());
+                return false;
+            }
+        }
+
+        private static void printSecrets(PrintWriter out, Map<String, String> contents) {
+            out.println("Secrets:");
+            val sealedSecrets = contents.get(ExtensionFiles.SEALED_SECRETS_FILE);
+            val plainSecrets  = contents.get(ExtensionFiles.SECRETS_FILE);
+            if (sealedSecrets != null) {
+                out.printf("  - %s (sealed, %d bytes)%n", ExtensionFiles.SEALED_SECRETS_FILE, sealedSecrets.length());
+            }
+            if (plainSecrets != null) {
+                out.printf("  - %s (PLAINTEXT, %d bytes)%n", ExtensionFiles.SECRETS_FILE, plainSecrets.length());
+            }
+            if (sealedSecrets == null && plainSecrets == null) {
+                out.println("  (none)");
+            }
+        }
+
+        private static void printExtensions(PrintWriter out, Map<String, String> contents) {
+            out.println("Extensions:");
+            val names = new TreeMap<String, StringBuilder>();
+            for (val entry : contents.entrySet()) {
+                val name = entry.getKey();
+                if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
+                    detail(names, ExtensionFiles.sealedExtensionSecretsNameOf(name))
+                            .append("sealed secrets (%d bytes)".formatted(entry.getValue().length()));
+                } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                    detail(names, ExtensionFiles.extensionSecretsNameOf(name))
+                            .append("PLAINTEXT secrets (%d bytes)".formatted(entry.getValue().length()));
+                } else if (ExtensionFiles.isExtensionFile(name)) {
+                    detail(names, ExtensionFiles.extensionNameOf(name))
+                            .append("config (%d bytes)".formatted(entry.getValue().length()));
+                }
+            }
+
+            Set<String> critical;
+            try {
+                critical = ExtensionFiles
+                        .parseCriticalExtensions(contents.get(ExtensionFiles.CRITICAL_EXTENSIONS_FILE));
+            } catch (PDPConfigurationException e) {
+                critical = Set.of();
+                out.println("  (malformed critical-extensions.json)");
+            }
+            for (val name : critical) {
+                if (!names.containsKey(name)) {
+                    detail(names, name).append("NO PAYLOAD");
+                }
+            }
+
+            if (names.isEmpty()) {
+                out.println("  (none)");
+                return;
+            }
+            for (val entry : names.entrySet()) {
+                val marker = critical.contains(entry.getKey()) ? " [critical]" : "";
+                out.printf("  - %s%s: %s%n", entry.getKey(), marker, entry.getValue());
+            }
+        }
+
+        private static StringBuilder detail(Map<String, StringBuilder> names, String name) {
+            val builder = names.computeIfAbsent(name, key -> new StringBuilder());
+            if (!builder.isEmpty()) {
+                builder.append(", ");
+            }
+            return builder;
         }
 
     }
@@ -974,10 +1118,11 @@ public class BundleCommand {
         header = "Generate an X25519 keypair for sealing bundle secrets.",
         description = { """
             Generates an X25519 recipient keypair as JWK files: <prefix>.jwk
-            (private) and <prefix>.pub.jwk (public). Seal a bundle's secrets to
-            the public key with 'sapl bundle create --seal-to <prefix>.pub.jwk';
-            the PDP unseals them with the matching private key. Keep the private
-            key secret and distribute it only to the recipient (or cluster).
+            (private) and <prefix>.pub.jwk (public). Seal secrets to the
+            public key with 'sapl bundle seal --to <prefix>.pub.jwk' or
+            'sapl bundle create --seal-to <prefix>.pub.jwk'. The PDP unseals
+            them with the matching private key. Keep the private key secret
+            and distribute it only to the recipient (or cluster).
             """ },
         exitCodeListHeading = "%nExit Codes:%n",
         exitCodeList = {

@@ -54,11 +54,23 @@ import java.util.zip.ZipOutputStream;
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- *   pdp.json           (required, must contain configurationId)
+ *   pdp.json                        (required, must contain configurationId, never secrets)
+ *   secrets.sealed.json             (optional, sealed PDP-level secrets)
  *   access-control.sapl
  *   audit.sapl
- *   logging.sapl
+ *   ext-upstreams.json              (optional, cleartext extension data)
+ *   ext-upstreams-secrets.sealed.json (optional, sealed extension secrets)
+ *   critical-extensions.json        (optional, names the consumer must support)
  * </pre>
+ *
+ * <h2>Secrets</h2>
+ * <p>
+ * Secrets are set via {@link #withSecrets} / {@link #withExtensionSecrets}
+ * (cleartext input, sealed at build with the key from {@link #sealSecretsWith})
+ * or via {@link #withSealedSecrets} / {@link #withSealedExtensionSecrets}
+ * (already-sealed input, stored verbatim, no key needed). Either way the bundle
+ * only ever contains sealed secrets files, and pdp.json is written unchanged.
+ * </p>
  *
  * <h2>Usage Examples</h2>
  *
@@ -119,7 +131,7 @@ public final class BundleBuilder {
     private static final String ERROR_AMBIGUOUS_SECRETS            = "Both cleartext and sealed PDP-level secrets were set. Use withSecrets or withSealedSecrets, not both.";
     private static final String ERROR_BUNDLE_MISSING_PDP_JSON      = "Bundle is missing pdp.json. Bundles require a pdp.json with a 'configurationId' field.";
     private static final String ERROR_EXTENSION_NAME_NOT_SLUG      = "Extension name '%s' must be a slug (lowercase letters, digits, and single hyphens).";
-    private static final String ERROR_EXTENSION_NAME_RESERVED      = "Extension name '%s' must not end with '-secrets'; use withExtensionSecrets for sealed data.";
+    private static final String ERROR_EXTENSION_NAME_RESERVED      = "Extension name '%s' must not end with '-secrets'. Use withExtensionSecrets for sealed data.";
     private static final String ERROR_EXTENSION_SECRETS_NOT_SEALED = "Extension secrets '%s' must already be sealed. Use withExtensionSecrets to seal cleartext.";
     private static final String ERROR_FAILED_TO_CREATE_BUNDLE      = "Failed to create bundle.";
     private static final String ERROR_FAILED_TO_WRITE_BUNDLE       = "Failed to write bundle to path: %s.";
@@ -128,7 +140,7 @@ public final class BundleBuilder {
     private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519  = "Private key must be Ed25519, got: %s.";
     private static final String ERROR_PRIVATE_KEY_NULL             = "Private key must not be null.";
     private static final String ERROR_SECRETS_NOT_SEALED           = "Secrets must already be sealed. Use withSecrets to seal cleartext.";
-    private static final String ERROR_SECRETS_REQUIRE_KEY          = "Secrets require a sealing key; call sealSecretsWith before building.";
+    private static final String ERROR_SECRETS_REQUIRE_KEY          = "Secrets require a sealing key. Call sealSecretsWith before building.";
 
     private String                    pdpJson;
     private String                    secrets;

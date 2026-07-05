@@ -229,14 +229,39 @@ retrying. After the server recovers, the client resumes normal operation.
 
 ### Bundle Format
 
-The response body for `200 OK` is a `.saplbundle` file: a ZIP archive containing:
+The response body for `200 OK` is a `.saplbundle` file: a ZIP archive with only
+root-level files. Subdirectories and unknown file names are rejected.
 
-- **`pdp.json`** (required): PDP configuration including combining algorithm and
-  a `configurationId` field that uniquely identifies this configuration version.
-- **`*.sapl`** files: SAPL policy documents.
-- **`.sapl-manifest.json`** (if signed): Cryptographic manifest with SHA-256 content hashes and Ed25519 signature.
+| File | Required | Purpose |
+|------|----------|---------|
+| `pdp.json` | Yes | PDP configuration: combining algorithm, variables, and a `configurationId` that uniquely identifies this configuration version. Never contains secrets. |
+| `*.sapl` | Yes | SAPL policy documents. |
+| `secrets.sealed.json` | No | Sealed PDP-level secrets. Scalar leaves are `ENC[...]` tokens encrypted to an X25519 recipient key, structure and key names stay readable. |
+| `ext-<name>.json` | No | Cleartext extension data. Named JSON for consumers other than the PDP, for example gateway upstream configuration. |
+| `ext-<name>-secrets.sealed.json` | No | Sealed extension secrets for the same `<name>`. |
+| `critical-extensions.json` | No | A JSON array of extension names the consumer MUST be able to process, e.g. `["upstreams"]`. |
+| `.sapl-manifest.json` | If signed | Cryptographic manifest with SHA-256 content hashes and an Ed25519 signature covering every other file. |
 
-See the SAPL bundle documentation for the full archive format specification.
+#### Secrets Sealing
+
+A secrets file carries its sealing state in its name: a `.sealed.json` name holds
+sealed content, a plain `.json` name holds cleartext. A bundle never mixes both
+states, and a sealed-named file whose content is not sealed is rejected. Cleartext
+variants (`secrets.json`, `ext-<name>-secrets.json`) exist for development setups
+only and require the consumer's explicit unencrypted-secrets opt-in. Sealing runs
+before signing, so the manifest signature covers the ciphertext.
+
+#### Extensions and Criticality
+
+Extension files let a bundle carry configuration for consumers other than the PDP.
+The consumer receives them alongside the policy configuration, keyed by extension
+name. `critical-extensions.json` follows the JOSE `crit` idea: a consumer without
+support for a listed extension MUST reject the whole configuration rather than
+silently ignore it, while unlisted extensions it does not know are ignored. Every
+listed name must have a payload in the bundle (`ext-<name>.json` or
+`ext-<name>-secrets.sealed.json` or both), otherwise the bundle is rejected. The
+critical set is covered by the manifest signature, so it cannot be stripped in
+transit.
 
 ### Security Considerations
 

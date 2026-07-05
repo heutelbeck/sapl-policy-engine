@@ -220,7 +220,7 @@ class BundleCommandTests {
         }
 
         @Test
-        @DisplayName("shows signed bundle metadata")
+        @DisplayName("shows signed bundle metadata and an explicit not-checked integrity state")
         void whenSignedBundleThenShowsSignatureMetadata() throws Exception {
             val bundleFile = createSignedTestBundle();
 
@@ -232,6 +232,93 @@ class BundleCommandTests {
                 assertThat(output).contains("Ed25519");
                 assertThat(output).contains("Key ID:");
                 assertThat(output).contains("Created:");
+                assertThat(output).contains("Integrity: NOT CHECKED (no key provided)");
+            });
+        }
+
+        @Test
+        @DisplayName("verifies integrity when the matching public key is provided")
+        void whenKeyProvidedAndSignatureValidThenIntegrityVerified() throws Exception {
+            val keyPair    = generateEd25519KeyPair();
+            val bundleFile = createSignedTestBundle(keyPair.privateKey());
+            val publicKeyF = tempDir.resolve("inspect-public.pem");
+            Files.writeString(publicKeyF, toPem(keyPair.publicKey(), "PUBLIC KEY"));
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString(), "-k", publicKeyF.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Integrity: VERIFIED");
+        }
+
+        @Test
+        @DisplayName("reports failed integrity and exit code 1 with the wrong public key")
+        void whenKeyProvidedAndSignatureInvalidThenIntegrityFailed() throws Exception {
+            val bundleFile = createSignedTestBundle();
+            val wrongKey   = generateEd25519KeyPair();
+            val publicKeyF = tempDir.resolve("inspect-wrong.pem");
+            Files.writeString(publicKeyF, toPem(wrongKey.publicKey(), "PUBLIC KEY"));
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString(), "-k", publicKeyF.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(out.toString()).contains("Integrity: FAILED");
+        }
+
+        @Test
+        @DisplayName("reports failed integrity when a key is provided but the bundle is unsigned")
+        void whenKeyProvidedAndBundleUnsignedThenIntegrityFailed() throws Exception {
+            val bundleFile = createTestBundle();
+            val keyPair    = generateEd25519KeyPair();
+            val publicKeyF = tempDir.resolve("inspect-unsigned.pem");
+            Files.writeString(publicKeyF, toPem(keyPair.publicKey(), "PUBLIC KEY"));
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString(), "-k", publicKeyF.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(out.toString()).contains("Integrity: FAILED (bundle is not signed)");
+        }
+
+        @Test
+        @DisplayName("shows secrets, extensions, and the critical set")
+        void whenBundleHasSecretsAndExtensionsThenInspectShowsThem() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            val inputDir = tempDir.resolve("full-inspect");
+            Files.createDirectories(inputDir);
+            Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
+            Files.writeString(inputDir.resolve("pdp.json"), TEST_PDP_JSON);
+            Files.writeString(inputDir.resolve("secrets.json"), """
+                    { "apiKey": "TOP-SECRET-VALUE" }""");
+            Files.writeString(inputDir.resolve("ext-upstreams.json"), """
+                    { "servers": [] }""");
+            Files.writeString(inputDir.resolve("ext-upstreams-secrets.json"), """
+                    { "token": "T" }""");
+            Files.writeString(inputDir.resolve("critical-extensions.json"), """
+                    ["upstreams"]""");
+            val bundleFile = tempDir.resolve("full-inspect.saplbundle");
+            cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundleFile.toString(), "--seal-to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).satisfies(output -> {
+                assertThat(output).contains("Secrets:").contains("secrets.sealed.json (sealed");
+                assertThat(output).contains("Extensions:").contains("upstreams [critical]").contains("config (")
+                        .contains("sealed secrets (");
+                assertThat(output).doesNotContain("TOP-SECRET-VALUE");
+            });
+        }
+
+        @Test
+        @DisplayName("shows none markers when a bundle has no secrets or extensions")
+        void whenBundleHasNoSecretsOrExtensionsThenInspectShowsNone() throws Exception {
+            val bundleFile = createTestBundle();
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).satisfies(output -> {
+                assertThat(output).contains("Secrets:").contains("Extensions:").contains("(none)");
             });
         }
 
