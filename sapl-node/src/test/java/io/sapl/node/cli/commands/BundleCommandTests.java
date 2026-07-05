@@ -321,7 +321,9 @@ class BundleCommandTests {
                     "--seal-to", tempDir.resolve("recipient.pub.jwk").toString());
 
             assertThat(exitCode).isZero();
-            assertThat(bundleEntry(outputFile, "pdp.json")).contains("ENC[").doesNotContain("TOP-SECRET-VALUE");
+            assertThat(bundleEntry(outputFile, "secrets.sealed.json")).contains("ENC[")
+                    .doesNotContain("TOP-SECRET-VALUE");
+            assertThat(bundleEntry(outputFile, "pdp.json")).doesNotContain("ENC[", "TOP-SECRET-VALUE");
         }
 
         @Test
@@ -358,7 +360,7 @@ class BundleCommandTests {
 
             assertThat(exitCode).isZero();
             assertThat(bundleEntry(outputFile, "ext-paratron-gateway.json")).contains("route");
-            assertThat(bundleEntry(outputFile, "ext-paratron-gateway-secrets.json")).contains("ENC[");
+            assertThat(bundleEntry(outputFile, "ext-paratron-gateway-secrets.sealed.json")).contains("ENC[");
         }
 
         @Test
@@ -397,7 +399,7 @@ class BundleCommandTests {
             assertThat(exitCode).isZero();
             assertThat(outDir.resolve("test.sapl")).exists();
             assertThat(outDir.resolve(".sapl-manifest.json")).doesNotExist();
-            assertThat(Files.readString(outDir.resolve("pdp.json"))).contains("ENC[")
+            assertThat(Files.readString(outDir.resolve("secrets.sealed.json"))).contains("ENC[")
                     .doesNotContain("TOP-SECRET-VALUE");
         }
 
@@ -411,8 +413,9 @@ class BundleCommandTests {
                     "--unseal-with", tempDir.resolve("recipient.jwk").toString());
 
             assertThat(exitCode).isZero();
-            assertThat(Files.readString(outDir.resolve("pdp.json"))).contains("TOP-SECRET-VALUE")
+            assertThat(Files.readString(outDir.resolve("secrets.json"))).contains("TOP-SECRET-VALUE")
                     .doesNotContain("ENC[");
+            assertThat(outDir.resolve("secrets.sealed.json")).doesNotExist();
         }
 
         @Test
@@ -425,7 +428,8 @@ class BundleCommandTests {
             val exitCode = cmd.execute("bundle", "create", "-i", presealedDir.toString(), "-o", rebundled.toString());
 
             assertThat(exitCode).isZero();
-            assertThat(bundleEntry(rebundled, "pdp.json")).contains("ENC[").doesNotContain("TOP-SECRET-VALUE");
+            assertThat(bundleEntry(rebundled, "secrets.sealed.json")).contains("ENC[")
+                    .doesNotContain("TOP-SECRET-VALUE");
         }
 
         @Test
@@ -478,8 +482,70 @@ class BundleCommandTests {
             assertThat(signExit).isZero();
             assertThat(verifyExit).isZero();
             assertThat(bundleEntry(bundle, "ext-upstreams.json")).contains("servers");
-            assertThat(bundleEntry(bundle, "ext-upstreams-secrets.json")).contains("ENC[");
+            assertThat(bundleEntry(bundle, "ext-upstreams-secrets.sealed.json")).contains("ENC[");
             assertThat(bundleEntry(bundle, "critical-extensions.json")).contains("upstreams");
+        }
+
+        @Test
+        @DisplayName("seal converts plaintext secrets files to sealed files and deletes the plaintext")
+        void whenSealCommandThenFolderSealed() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            val inputDir = policyDirWithSecrets();
+            Files.writeString(inputDir.resolve("ext-upstreams.json"), "{}");
+            Files.writeString(inputDir.resolve("ext-upstreams-secrets.json"), """
+                    { "apiKey": "K" }""");
+
+            val exitCode = cmd.execute("bundle", "seal", "-i", inputDir.toString(), "--to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(inputDir.resolve("secrets.json")).doesNotExist();
+            assertThat(inputDir.resolve("ext-upstreams-secrets.json")).doesNotExist();
+            assertThat(Files.readString(inputDir.resolve("secrets.sealed.json"))).contains("ENC[")
+                    .doesNotContain("TOP-SECRET-VALUE");
+            assertThat(Files.readString(inputDir.resolve("ext-upstreams-secrets.sealed.json"))).contains("ENC[")
+                    .doesNotContain("\"K\"");
+        }
+
+        @Test
+        @DisplayName("unseal restores the plaintext secrets files and deletes the sealed ones")
+        void whenUnsealCommandThenFolderPlaintext() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
+            val inputDir = policyDirWithSecrets();
+            cmd.execute("bundle", "seal", "-i", inputDir.toString(), "--to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+
+            val exitCode = cmd.execute("bundle", "unseal", "-i", inputDir.toString(), "--with",
+                    tempDir.resolve("recipient.jwk").toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(inputDir.resolve("secrets.sealed.json")).doesNotExist();
+            assertThat(Files.readString(inputDir.resolve("secrets.json"))).contains("TOP-SECRET-VALUE")
+                    .doesNotContain("ENC[");
+        }
+
+        @Test
+        @DisplayName("the full maintenance loop works: unpack, unseal, edit, seal, create, verify")
+        void whenFullMaintenanceLoopThenBundleVerifies() throws Exception {
+            val workDir = tempDir.resolve("maintenance");
+            cmd.execute("bundle", "unpack", "-b", sealedAndSignedBundle().toString(), "-o", workDir.toString(),
+                    "--unseal-with", tempDir.resolve("recipient.jwk").toString());
+
+            Files.writeString(workDir.resolve("secrets.json"), """
+                    { "http": { "headers": { "X-API-Key": "ROTATED-VALUE" } } }
+                    """);
+            val sealExit   = cmd.execute("bundle", "seal", "-i", workDir.toString(), "--to",
+                    tempDir.resolve("recipient.pub.jwk").toString());
+            val rebuilt    = tempDir.resolve("maintained.saplbundle");
+            val createExit = cmd.execute("bundle", "create", "-i", workDir.toString(), "-o", rebuilt.toString(), "-k",
+                    tempDir.resolve("signing.pem").toString());
+            val verifyExit = cmd.execute("bundle", "verify", "-b", rebuilt.toString(), "-k",
+                    tempDir.resolve("signing.pub").toString());
+
+            assertThat(sealExit).isZero();
+            assertThat(createExit).isZero();
+            assertThat(verifyExit).isZero();
+            assertThat(bundleEntry(rebuilt, "secrets.sealed.json")).contains("ENC[").doesNotContain("ROTATED-VALUE");
         }
 
         private Path sealedAndSignedBundle() throws Exception {
@@ -497,10 +563,10 @@ class BundleCommandTests {
             val inputDir = tempDir.resolve("policies-secrets");
             Files.createDirectories(inputDir);
             Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
-            Files.writeString(inputDir.resolve("pdp.json"),
-                    """
-                            { "configurationId": "test-v1", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }, "secrets": { "http": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } } }
-                            """);
+            Files.writeString(inputDir.resolve("pdp.json"), TEST_PDP_JSON);
+            Files.writeString(inputDir.resolve("secrets.json"), """
+                    { "http": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } }
+                    """);
             return inputDir;
         }
 

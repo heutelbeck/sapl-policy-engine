@@ -582,28 +582,67 @@ class BundleBuilderTests {
     @DisplayName("secrets sealing")
     class SecretsSealing {
 
-        private static final String PDP_JSON_WITH_SECRETS = """
-                { "configurationId": "test", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "secrets": { "http": { "weather-api": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } } } }
+        private static final String SECRETS_JSON = """
+                { "http": { "weather-api": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } } }
                 """;
 
         @Test
-        @DisplayName("secret values are sealed while structure and keys stay in cleartext")
+        @DisplayName("secret values are sealed to secrets.sealed.json while pdp.json stays untouched")
         void whenSealingKeyProvidedThenSecretsAreSealed() throws IOException {
             val recipient = SecretSealing.generateRecipientKey();
-            val bundle    = BundleBuilder.create().withPdpJson(PDP_JSON_WITH_SECRETS)
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSecrets(SECRETS_JSON)
                     .sealSecretsWith(recipient.toPublicJWK()).build();
-            val pdpJson   = extractEntries(bundle).get("pdp.json");
-            assertThat(pdpJson).contains("secrets", "http", "weather-api", "X-API-Key", "ENC[")
+            val entries   = extractEntries(bundle);
+            assertThat(entries.get("secrets.sealed.json")).contains("http", "weather-api", "X-API-Key", "ENC[")
                     .doesNotContain("TOP-SECRET-VALUE");
+            assertThat(entries.get("pdp.json")).isEqualTo(VALID_PDP_JSON);
         }
 
         @Test
-        @DisplayName("a pdp.json without a secrets section is left unchanged")
-        void whenNoSecretsSectionThenSealingIsNoOp() throws IOException {
+        @DisplayName("a pdp.json with an inline secrets section is rejected")
+        void whenPdpJsonHasInlineSecretsThenBuildFails() {
+            val builder = BundleBuilder.create().withPdpJson("""
+                    { "configurationId": "test", "secrets": { "k": "v" } }""");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("must not contain a 'secrets' section");
+        }
+
+        @Test
+        @DisplayName("cleartext secrets without a sealing key are rejected")
+        void whenSecretsWithoutKeyThenThrows() {
+            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSecrets(SECRETS_JSON);
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("sealing key");
+        }
+
+        @Test
+        @DisplayName("already-sealed secrets are stored verbatim without a key")
+        void whenSealedSecretsThenStoredVerbatim() throws IOException {
+            val sealed = """
+                    { "apiKey": "ENC[ciphertext]" }""";
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed).build();
+            assertThat(extractEntries(bundle).get("secrets.sealed.json")).isEqualTo(sealed);
+        }
+
+        @Test
+        @DisplayName("plaintext content passed as sealed secrets is rejected")
+        void whenSealedSecretsNotSealedThenThrows() {
+            val builder   = BundleBuilder.create();
+            val cleartext = """
+                    { "apiKey": "cleartext" }""";
+            assertThatThrownBy(() -> builder.withSealedSecrets(cleartext)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("already be sealed");
+        }
+
+        @Test
+        @DisplayName("setting both cleartext and sealed secrets is rejected")
+        void whenBothSecretsVariantsThenBuildFails() {
             val recipient = SecretSealing.generateRecipientKey();
-            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
-                    .build();
-            assertThat(extractEntries(bundle).get("pdp.json")).isEqualTo(VALID_PDP_JSON).doesNotContain("ENC[");
+            val builder   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
+                    .withSecrets(SECRETS_JSON).withSealedSecrets("""
+                            { "apiKey": "ENC[x]" }""");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("not both");
         }
     }
 
@@ -626,12 +665,11 @@ class BundleBuilderTests {
         void whenExtensionSecretsAddedThenSealed() throws IOException {
             val recipient = SecretSealing.generateRecipientKey();
             val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
-                    .withExtension("paratron-gateway", """
-                            { "route": "/api" }""").withExtensionSecrets("paratron-gateway", """
+                    .withExtensionSecrets("paratron-gateway", """
                             { "apiKey": "TOP-SECRET-VALUE" }""").build();
             val entries   = extractEntries(bundle);
-            assertThat(entries).containsKey("ext-paratron-gateway-secrets.json");
-            assertThat(entries.get("ext-paratron-gateway-secrets.json")).contains("apiKey", "ENC[")
+            assertThat(entries).containsKey("ext-paratron-gateway-secrets.sealed.json");
+            assertThat(entries.get("ext-paratron-gateway-secrets.sealed.json")).contains("apiKey", "ENC[")
                     .doesNotContain("TOP-SECRET-VALUE");
         }
 
@@ -653,7 +691,7 @@ class BundleBuilderTests {
             val bundle  = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", "{}")
                     .withSealedExtensionSecrets("upstreams", sealed).build();
             val entries = extractEntries(bundle);
-            assertThat(entries.get("ext-upstreams-secrets.json")).isEqualTo(sealed);
+            assertThat(entries.get("ext-upstreams-secrets.sealed.json")).isEqualTo(sealed);
         }
 
         @Test
@@ -713,22 +751,21 @@ class BundleBuilderTests {
         }
 
         @Test
-        @DisplayName("a critical extension without its configuration fails the build")
-        void whenCriticalExtensionMissingConfigThenBuildFails() {
+        @DisplayName("a critical extension without any payload fails the build")
+        void whenCriticalExtensionMissingPayloadThenBuildFails() {
             val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withCriticalExtension("upstreams");
             assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("Critical extension 'upstreams'");
         }
 
         @Test
-        @DisplayName("extension secrets without their configuration fail the build")
-        void whenSecretsWithoutConfigThenBuildFails() {
+        @DisplayName("a critical extension with only sealed secrets builds")
+        void whenCriticalExtensionHasOnlySecretsThenBuilds() {
             val recipient = SecretSealing.generateRecipientKey();
             val builder   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
                     .withExtensionSecrets("upstreams", """
-                            { "apiKey": "x" }""");
-            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("has sealed secrets");
+                            { "apiKey": "x" }""").withCriticalExtension("upstreams");
+            assertThat(builder.build()).isNotEmpty();
         }
 
         @Test

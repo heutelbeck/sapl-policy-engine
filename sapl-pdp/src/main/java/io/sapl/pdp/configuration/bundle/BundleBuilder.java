@@ -18,7 +18,6 @@
 package io.sapl.pdp.configuration.bundle;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
-import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -114,23 +113,26 @@ public final class BundleBuilder {
 
     private static final String  PDP_JSON            = "pdp.json";
     private static final String  SAPL_EXTENSION      = ".sapl";
-    private static final String  SECRETS             = "secrets";
     private static final String  SECRETS_NAME_SUFFIX = "-secrets";
     private static final Pattern SLUG                = Pattern.compile("^[a-z0-9]+(?:-[a-z0-9]+)*$");
 
-    private static final String ERROR_BUNDLE_MISSING_PDP_JSON       = "Bundle is missing pdp.json. Bundles require a pdp.json with a 'configurationId' field.";
-    private static final String ERROR_EXTENSION_NAME_NOT_SLUG       = "Extension name '%s' must be a slug (lowercase letters, digits, and single hyphens).";
-    private static final String ERROR_EXTENSION_NAME_RESERVED       = "Extension name '%s' must not end with '-secrets'; use withExtensionSecrets for sealed data.";
-    private static final String ERROR_EXTENSION_SECRETS_NOT_SEALED  = "Extension secrets '%s' must already be sealed. Use withExtensionSecrets to seal cleartext.";
-    private static final String ERROR_EXTENSION_SECRETS_REQUIRE_KEY = "Extension secrets require a sealing key; call sealSecretsWith before building.";
-    private static final String ERROR_FAILED_TO_CREATE_BUNDLE       = "Failed to create bundle.";
-    private static final String ERROR_FAILED_TO_WRITE_BUNDLE        = "Failed to write bundle to path: %s.";
-    private static final String ERROR_POLICY_FILENAME_NULL_EMPTY    = "Policy filename must not be null or empty.";
-    private static final String ERROR_POLICY_SYNTAX_ERRORS          = "Bundle contains policies with syntax errors:%n%s";
-    private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519   = "Private key must be Ed25519, got: %s.";
-    private static final String ERROR_PRIVATE_KEY_NULL              = "Private key must not be null.";
+    private static final String ERROR_AMBIGUOUS_SECRETS            = "Both cleartext and sealed PDP-level secrets were set. Use withSecrets or withSealedSecrets, not both.";
+    private static final String ERROR_BUNDLE_MISSING_PDP_JSON      = "Bundle is missing pdp.json. Bundles require a pdp.json with a 'configurationId' field.";
+    private static final String ERROR_EXTENSION_NAME_NOT_SLUG      = "Extension name '%s' must be a slug (lowercase letters, digits, and single hyphens).";
+    private static final String ERROR_EXTENSION_NAME_RESERVED      = "Extension name '%s' must not end with '-secrets'; use withExtensionSecrets for sealed data.";
+    private static final String ERROR_EXTENSION_SECRETS_NOT_SEALED = "Extension secrets '%s' must already be sealed. Use withExtensionSecrets to seal cleartext.";
+    private static final String ERROR_FAILED_TO_CREATE_BUNDLE      = "Failed to create bundle.";
+    private static final String ERROR_FAILED_TO_WRITE_BUNDLE       = "Failed to write bundle to path: %s.";
+    private static final String ERROR_POLICY_FILENAME_NULL_EMPTY   = "Policy filename must not be null or empty.";
+    private static final String ERROR_POLICY_SYNTAX_ERRORS         = "Bundle contains policies with syntax errors:%n%s";
+    private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519  = "Private key must be Ed25519, got: %s.";
+    private static final String ERROR_PRIVATE_KEY_NULL             = "Private key must not be null.";
+    private static final String ERROR_SECRETS_NOT_SEALED           = "Secrets must already be sealed. Use withSecrets to seal cleartext.";
+    private static final String ERROR_SECRETS_REQUIRE_KEY          = "Secrets require a sealing key; call sealSecretsWith before building.";
 
     private String                    pdpJson;
+    private String                    secrets;
+    private String                    sealedSecrets;
     private final Map<String, String> policies               = new LinkedHashMap<>();
     private final Map<String, String> extensions             = new LinkedHashMap<>();
     private final Map<String, String> extensionSecrets       = new LinkedHashMap<>();
@@ -338,14 +340,15 @@ public final class BundleBuilder {
     }
 
     /**
-     * Seals the {@code secrets} section of pdp.json to the given recipient before
-     * the bundle is signed.
+     * Seals every cleartext secrets document to the given recipient before the
+     * bundle is signed.
      * <p>
-     * Each scalar leaf under {@code secrets} is replaced by an {@code ENC[...]}
-     * token (see {@link ValueSealer}) while the structure and keys remain in
-     * cleartext. Sealing runs before signing, so the sealed values are covered by
-     * the bundle signature. If pdp.json has no {@code secrets} section, this has no
-     * effect. The recipient key holder unseals the secrets when the bundle is
+     * Each scalar leaf is replaced by an {@code ENC[...]} token (see
+     * {@link ValueSealer}) while the structure and keys remain in cleartext. The
+     * sealed documents are written under their sealed file names
+     * ({@code secrets.sealed.json}, {@code ext-<name>-secrets.sealed.json}).
+     * Sealing runs before signing, so the sealed values are covered by the bundle
+     * signature. The recipient key holder unseals the secrets when the bundle is
      * consumed.
      *
      * @param recipientPublicKey
@@ -355,6 +358,46 @@ public final class BundleBuilder {
      */
     public BundleBuilder sealSecretsWith(OctetKeyPair recipientPublicKey) {
         this.secretsSealingKey = recipientPublicKey;
+        return this;
+    }
+
+    /**
+     * Sets the bundle's cleartext PDP-level secrets, sealed at build time and
+     * written as {@code secrets.sealed.json}.
+     * <p>
+     * Building fails if no sealing key is configured via {@link #sealSecretsWith}.
+     *
+     * @param jsonContent
+     * the secrets JSON object content
+     *
+     * @return this builder for method chaining
+     */
+    public BundleBuilder withSecrets(String jsonContent) {
+        this.secrets = jsonContent;
+        return this;
+    }
+
+    /**
+     * Sets the bundle's already-sealed PDP-level secrets, stored verbatim as
+     * {@code secrets.sealed.json}.
+     * <p>
+     * Unlike {@link #withSecrets}, the content is stored byte for byte without
+     * sealing and needs no sealing key. The content must already be sealed, so
+     * plaintext cannot be stored as if it were sealed.
+     *
+     * @param sealedJsonContent
+     * the already-sealed secrets content
+     *
+     * @return this builder for method chaining
+     *
+     * @throws IllegalArgumentException
+     * if the content is not sealed
+     */
+    public BundleBuilder withSealedSecrets(String sealedJsonContent) {
+        if (sealedJsonContent == null || !ValueSealer.isSealed(Value.ofJson(sealedJsonContent))) {
+            throw new IllegalArgumentException(ERROR_SECRETS_NOT_SEALED);
+        }
+        this.sealedSecrets = sealedJsonContent;
         return this;
     }
 
@@ -386,8 +429,8 @@ public final class BundleBuilder {
     }
 
     /**
-     * Adds a sealed extension secrets file to the bundle as
-     * {@code ext-<name>-secrets.json}.
+     * Adds a cleartext extension secrets file to the bundle, sealed at build time
+     * and written as {@code ext-<name>-secrets.sealed.json}.
      * <p>
      * The whole document is sealed (SOPS style) to the recipient configured via
      * {@link #sealSecretsWith}, so structure and keys stay in cleartext while scalar
@@ -412,7 +455,7 @@ public final class BundleBuilder {
 
     /**
      * Adds an already-sealed extension secrets file to the bundle verbatim as
-     * {@code ext-<name>-secrets.json}.
+     * {@code ext-<name>-secrets.sealed.json}.
      * <p>
      * Unlike {@link #withExtensionSecrets}, the content is stored byte for byte
      * without sealing and needs no sealing key. This is the path for re-bundling
@@ -445,7 +488,7 @@ public final class BundleBuilder {
      * A critical extension must be understood by the consumer. A consumer without a
      * registered processor for it rejects the whole configuration. Building fails if
      * a name is marked critical without a matching {@link #withExtension}
-     * configuration.
+     * configuration or extension secrets.
      *
      * @param name
      * the extension name (a slug, e.g. {@code upstreams})
@@ -520,32 +563,40 @@ public final class BundleBuilder {
     public void writeTo(OutputStream outputStream) {
         validatePdpJson();
         validatePolicies();
-        if (!extensionSecrets.isEmpty() && secretsSealingKey == null) {
-            throw new PDPConfigurationException(ERROR_EXTENSION_SECRETS_REQUIRE_KEY);
+        if (secrets != null && sealedSecrets != null) {
+            throw new PDPConfigurationException(ERROR_AMBIGUOUS_SECRETS);
+        }
+        if ((secrets != null || !extensionSecrets.isEmpty()) && secretsSealingKey == null) {
+            throw new PDPConfigurationException(ERROR_SECRETS_REQUIRE_KEY);
         }
         val allSecretNames = new LinkedHashSet<>(extensionSecrets.keySet());
         allSecretNames.addAll(sealedExtensionSecrets.keySet());
         ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), allSecretNames);
-        val effectivePdpJson = secretsSealingKey != null ? sealSecrets(pdpJson, secretsSealingKey) : pdpJson;
         try (val zipStream = new ZipOutputStream(outputStream)) {
             // Collect all files for potential signing
             val allFiles = new TreeMap<String, String>();
 
-            allFiles.put(PDP_JSON, effectivePdpJson);
+            allFiles.put(PDP_JSON, pdpJson);
 
             allFiles.putAll(policies);
 
+            if (secrets != null) {
+                allFiles.put(ExtensionFiles.SEALED_SECRETS_FILE, sealDocument(secrets));
+            }
+            if (sealedSecrets != null) {
+                allFiles.put(ExtensionFiles.SEALED_SECRETS_FILE, sealedSecrets);
+            }
             for (val entry : extensions.entrySet()) {
                 allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SUFFIX,
                         entry.getValue());
             }
             for (val entry : extensionSecrets.entrySet()) {
-                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SECRETS_SUFFIX,
-                        sealDocument(entry.getValue()));
+                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey()
+                        + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX, sealDocument(entry.getValue()));
             }
             for (val entry : sealedExtensionSecrets.entrySet()) {
-                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SECRETS_SUFFIX,
-                        entry.getValue());
+                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey()
+                        + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX, entry.getValue());
             }
             if (!criticalExtensions.isEmpty()) {
                 allFiles.put(ExtensionFiles.CRITICAL_EXTENSIONS_FILE, ExtensionFiles.toJson(criticalExtensions));
@@ -586,7 +637,7 @@ public final class BundleBuilder {
         if (pdpJson == null || pdpJson.isBlank()) {
             throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_PDP_JSON);
         }
-        PDPConfigurationLoader.loadFromBundle(pdpJson, Map.of(), "build-validation");
+        PDPConfigurationLoader.loadFromBundle(pdpJson, null, Map.of(), "build-validation");
     }
 
     private void validatePolicies() {
@@ -600,19 +651,6 @@ public final class BundleBuilder {
         if (!errors.isEmpty()) {
             throw new PDPConfigurationException(ERROR_POLICY_SYNTAX_ERRORS.formatted(String.join("\n", errors)));
         }
-    }
-
-    private static String sealSecrets(String pdpJsonContent, OctetKeyPair recipientPublicKey) {
-        if (!(Value.ofJson(pdpJsonContent) instanceof ObjectValue root)
-                || !(root.get(SECRETS) instanceof ObjectValue secrets)) {
-            return pdpJsonContent;
-        }
-        val sealed  = ValueSealer.seal(recipientPublicKey, secrets);
-        val builder = ObjectValue.builder();
-        for (val entry : root.entrySet()) {
-            builder.put(entry.getKey(), SECRETS.equals(entry.getKey()) ? sealed : entry.getValue());
-        }
-        return ValueJsonMarshaller.toJsonString(builder.build());
     }
 
     private String sealDocument(String jsonContent) {

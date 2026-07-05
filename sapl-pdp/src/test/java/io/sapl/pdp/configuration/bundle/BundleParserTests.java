@@ -382,8 +382,50 @@ class BundleParserTests {
     }
 
     @Test
-    @DisplayName("a critical extension without its configuration is rejected at parse time")
-    void whenCriticalExtensionMissingConfigThenRejected() throws IOException {
+    @DisplayName("a bundle mixing sealed and plaintext secrets files is rejected")
+    void whenBundleMixesSealingThenRejected() throws IOException {
+        val baos = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+            zos.putNextEntry(new ZipEntry("secrets.sealed.json"));
+            zos.write("""
+                    { "apiKey": "ENC[ciphertext]" }""".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+            zos.putNextEntry(new ZipEntry("ext-upstreams-secrets.json"));
+            zos.write("""
+                    { "apiKey": "cleartext" }""".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        val bundleBytes = baos.toByteArray();
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("mixes sealed and plaintext");
+    }
+
+    @Test
+    @DisplayName("a sealed-named entry with plaintext content is rejected")
+    void whenSealedNamedEntryHasPlaintextThenRejected() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("secrets.sealed.json", """
+                { "apiKey": "cleartext" }""");
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("content is not sealed");
+    }
+
+    @Test
+    @DisplayName("a bundle's secrets file is loaded into the PDP data")
+    void whenBundleHasSecretsFileThenLoaded() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("secrets.sealed.json", """
+                { "apiKey": "ENC[ciphertext]" }""");
+
+        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
+
+        assertThat(config.data().secrets()).containsKey("apiKey");
+    }
+
+    @Test
+    @DisplayName("a critical extension without any payload is rejected at parse time")
+    void whenCriticalExtensionMissingPayloadThenRejected() throws IOException {
         val bundleBytes = createBundleWithEntryAndConfig("critical-extensions.json", """
                 ["upstreams"]""");
 

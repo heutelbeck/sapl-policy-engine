@@ -30,23 +30,28 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Shared conventions for extension artifacts carried alongside a PDP configuration. Extensions are supplementary named
- * JSON files that consumers other than the PDP read, for example to configure upstream connections. They are carried
- * identically whether they sit loose in a policy directory or zipped in a bundle, so both sources use these helpers to
- * recognize the files, parse the critical set, and validate structural integrity.
+ * Shared conventions for the supplementary files carried alongside a PDP configuration. Extensions are named JSON
+ * files that consumers other than the PDP read, for example to configure upstream connections. Secrets files carry
+ * their sealing state in the filename: a {@code .sealed.json} name holds sealed content, a plain {@code .json} name
+ * holds cleartext. All files are carried identically whether they sit loose in a policy directory or zipped in a
+ * bundle, so both sources use these helpers to recognize the files, parse the critical set, and validate structural
+ * integrity.
  * <p>
  * The files are:
  * <ul>
+ * <li>{@code secrets.json} / {@code secrets.sealed.json}: PDP-level secrets, cleartext or sealed.</li>
  * <li>{@code ext-<name>.json}: cleartext extension configuration.</li>
- * <li>{@code ext-<name>-secrets.json}: sealed extension secrets.</li>
+ * <li>{@code ext-<name>-secrets.json} / {@code ext-<name>-secrets.sealed.json}: extension secrets, cleartext or
+ * sealed.</li>
  * <li>{@code critical-extensions.json}: a JSON array of extension names the consumer must be able to process.</li>
  * </ul>
+ * An artifact never mixes cleartext and sealed secrets files: either every secrets file is sealed or none is.
  */
 @UtilityClass
 public class ExtensionFiles {
 
     /**
-     * Filename prefix shared by both extension file kinds.
+     * Filename prefix shared by all extension file kinds.
      */
     public static final String EXTENSION_PREFIX = "ext-";
 
@@ -56,18 +61,32 @@ public class ExtensionFiles {
     public static final String EXTENSION_SUFFIX = ".json";
 
     /**
-     * Filename suffix of a sealed extension secrets file.
+     * Filename suffix of a cleartext extension secrets file.
      */
     public static final String EXTENSION_SECRETS_SUFFIX = "-secrets.json";
+
+    /**
+     * Filename suffix of a sealed extension secrets file.
+     */
+    public static final String SEALED_EXTENSION_SECRETS_SUFFIX = "-secrets.sealed.json";
+
+    /**
+     * Name of the cleartext PDP-level secrets file.
+     */
+    public static final String SECRETS_FILE = "secrets.json";
+
+    /**
+     * Name of the sealed PDP-level secrets file.
+     */
+    public static final String SEALED_SECRETS_FILE = "secrets.sealed.json";
 
     /**
      * Name of the file declaring the critical extension set.
      */
     public static final String CRITICAL_EXTENSIONS_FILE = "critical-extensions.json";
 
-    private static final String ERROR_CRITICAL_WITHOUT_CONFIG       = "Critical extension '%s' is declared but its 'ext-%s.json' configuration is missing.";
+    private static final String ERROR_CRITICAL_WITHOUT_PAYLOAD      = "Critical extension '%s' is declared but neither 'ext-%s.json' nor 'ext-%s-secrets.json' is present.";
     private static final String ERROR_MALFORMED_CRITICAL_EXTENSIONS = "The 'critical-extensions.json' file must be a JSON array of extension name strings.";
-    private static final String ERROR_SECRETS_WITHOUT_CONFIG        = "Extension '%s' has sealed secrets but its 'ext-%s.json' configuration is missing.";
 
     /**
      * @param fileName
@@ -75,8 +94,19 @@ public class ExtensionFiles {
      *
      * @return true if the name is a sealed extension secrets file
      */
+    public static boolean isSealedExtensionSecretsFile(String fileName) {
+        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(SEALED_EXTENSION_SECRETS_SUFFIX);
+    }
+
+    /**
+     * @param fileName
+     * a root-level file name
+     *
+     * @return true if the name is a cleartext extension secrets file
+     */
     public static boolean isExtensionSecretsFile(String fileName) {
-        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(EXTENSION_SECRETS_SUFFIX);
+        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(EXTENSION_SECRETS_SUFFIX)
+                && !isSealedExtensionSecretsFile(fileName);
     }
 
     /**
@@ -87,7 +117,7 @@ public class ExtensionFiles {
      */
     public static boolean isExtensionFile(String fileName) {
         return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(EXTENSION_SUFFIX)
-                && !isExtensionSecretsFile(fileName);
+                && !isExtensionSecretsFile(fileName) && !isSealedExtensionSecretsFile(fileName);
     }
 
     /**
@@ -102,12 +132,23 @@ public class ExtensionFiles {
 
     /**
      * @param fileName
-     * a sealed extension secrets file name
+     * a cleartext extension secrets file name
      *
      * @return the extension name with the prefix and secrets suffix stripped
      */
     public static String extensionSecretsNameOf(String fileName) {
         return fileName.substring(EXTENSION_PREFIX.length(), fileName.length() - EXTENSION_SECRETS_SUFFIX.length());
+    }
+
+    /**
+     * @param fileName
+     * a sealed extension secrets file name
+     *
+     * @return the extension name with the prefix and sealed secrets suffix stripped
+     */
+    public static String sealedExtensionSecretsNameOf(String fileName) {
+        return fileName.substring(EXTENSION_PREFIX.length(),
+                fileName.length() - SEALED_EXTENSION_SECRETS_SUFFIX.length());
     }
 
     /**
@@ -162,8 +203,10 @@ public class ExtensionFiles {
     }
 
     /**
-     * Enforces the structural integrity rules that make an extension set well-formed. Both rules fail closed with a
-     * {@link PDPConfigurationException}.
+     * Enforces the structural integrity rule that makes an extension set well-formed: every declared critical
+     * extension must have a payload present, a cleartext configuration or sealed secrets or both. A critical
+     * extension declared without any payload would let the consumer believe it is honored while it silently runs on
+     * nothing. The check fails closed with a {@link PDPConfigurationException}.
      *
      * @param criticalExtensions
      * the declared critical extension names
@@ -173,18 +216,14 @@ public class ExtensionFiles {
      * the names with sealed secrets present
      *
      * @throws PDPConfigurationException
-     * if a critical extension has no configuration, or sealed secrets have no configuration
+     * if a critical extension has neither configuration nor secrets
      */
     public static void validateIntegrity(Set<String> criticalExtensions, Set<String> extensionNames,
             Set<String> extensionSecretNames) {
         for (val critical : criticalExtensions) {
-            if (!extensionNames.contains(critical)) {
-                throw new PDPConfigurationException(ERROR_CRITICAL_WITHOUT_CONFIG.formatted(critical, critical));
-            }
-        }
-        for (val secret : extensionSecretNames) {
-            if (!extensionNames.contains(secret)) {
-                throw new PDPConfigurationException(ERROR_SECRETS_WITHOUT_CONFIG.formatted(secret, secret));
+            if (!extensionNames.contains(critical) && !extensionSecretNames.contains(critical)) {
+                throw new PDPConfigurationException(
+                        ERROR_CRITICAL_WITHOUT_PAYLOAD.formatted(critical, critical, critical));
             }
         }
     }

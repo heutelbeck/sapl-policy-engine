@@ -38,14 +38,18 @@ class ExtensionFilesTests {
     @DisplayName("file recognition")
     class Recognition {
 
-        @ParameterizedTest(name = "\"{0}\" -> config={1}, secrets={2}")
-        @CsvSource({ "ext-upstreams.json, true, false", "ext-upstreams-secrets.json, false, true",
-                "pdp.json, false, false", "policy.sapl, false, false", "critical-extensions.json, false, false",
-                "upstreams.json, false, false", "ext-.json, true, false" })
+        @ParameterizedTest(name = "\"{0}\" -> config={1}, secrets={2}, sealedSecrets={3}")
+        @CsvSource({ "ext-upstreams.json, true, false, false", "ext-upstreams-secrets.json, false, true, false",
+                "ext-upstreams-secrets.sealed.json, false, false, true", "pdp.json, false, false, false",
+                "policy.sapl, false, false, false", "critical-extensions.json, false, false, false",
+                "secrets.json, false, false, false", "secrets.sealed.json, false, false, false",
+                "upstreams.json, false, false, false", "ext-.json, true, false, false" })
         @DisplayName("classifies root-level file names")
-        void whenNameGivenThenClassifiedCorrectly(String name, boolean isConfig, boolean isSecrets) {
+        void whenNameGivenThenClassifiedCorrectly(String name, boolean isConfig, boolean isSecrets,
+                boolean isSealedSecrets) {
             assertThat(ExtensionFiles.isExtensionFile(name)).isEqualTo(isConfig);
             assertThat(ExtensionFiles.isExtensionSecretsFile(name)).isEqualTo(isSecrets);
+            assertThat(ExtensionFiles.isSealedExtensionSecretsFile(name)).isEqualTo(isSealedSecrets);
         }
 
         @Test
@@ -53,6 +57,8 @@ class ExtensionFilesTests {
         void whenExtensionFileThenNameRecovered() {
             assertThat(ExtensionFiles.extensionNameOf("ext-upstreams.json")).isEqualTo("upstreams");
             assertThat(ExtensionFiles.extensionSecretsNameOf("ext-upstreams-secrets.json")).isEqualTo("upstreams");
+            assertThat(ExtensionFiles.sealedExtensionSecretsNameOf("ext-upstreams-secrets.sealed.json"))
+                    .isEqualTo("upstreams");
         }
     }
 
@@ -99,26 +105,24 @@ class ExtensionFilesTests {
     class Integrity {
 
         @Test
-        @DisplayName("a consistent extension set passes")
-        void whenConsistentThenPasses() {
-            ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of("upstreams", "branding"), Set.of("upstreams"));
+        @DisplayName("a critical extension with a configuration passes")
+        void whenCriticalHasConfigThenPasses() {
+            ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of("upstreams", "branding"), Set.of());
         }
 
         @Test
-        @DisplayName("a critical extension without configuration is rejected")
-        void whenCriticalWithoutConfigThenThrows() {
+        @DisplayName("a critical extension with only sealed secrets passes")
+        void whenCriticalHasOnlySecretsThenPasses() {
+            ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of(), Set.of("upstreams"));
+        }
+
+        @Test
+        @DisplayName("a critical extension with neither configuration nor secrets is rejected")
+        void whenCriticalWithoutPayloadThenThrows() {
             val throwable = assertThatThrownBy(
-                    () -> ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of(), Set.of()));
+                    () -> ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of("branding"), Set.of("audit")));
             throwable.isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("Critical extension 'upstreams'");
-        }
-
-        @Test
-        @DisplayName("sealed secrets without configuration are rejected")
-        void whenSecretsWithoutConfigThenThrows() {
-            val throwable = assertThatThrownBy(
-                    () -> ExtensionFiles.validateIntegrity(Set.of(), Set.of(), Set.of("upstreams")));
-            throwable.isInstanceOf(PDPConfigurationException.class).hasMessageContaining("has sealed secrets");
         }
     }
 }

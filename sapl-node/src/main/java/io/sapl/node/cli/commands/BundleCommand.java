@@ -18,7 +18,6 @@
 package io.sapl.node.cli.commands;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
-import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.libraries.crypto.PemUtils;
@@ -52,8 +51,10 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.function.UnaryOperator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -75,7 +76,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
         Ed25519 keys for integrity verification at load time.
         """ },
     subcommands = {
-        BundleCommand.Create.class, BundleCommand.Unpack.class, BundleCommand.Sign.class,
+        BundleCommand.Create.class, BundleCommand.Unpack.class,
+        BundleCommand.Seal.class, BundleCommand.Unseal.class, BundleCommand.Sign.class,
         BundleCommand.Verify.class, BundleCommand.Inspect.class,
         BundleCommand.Keygen.class, BundleCommand.SecretsKeygen.class
     }
@@ -85,7 +87,6 @@ public class BundleCommand {
 
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
-    private static final String SECRETS        = "secrets";
 
     private static final String ERROR_ALREADY_SEALED             = "Error: The input folder is already sealed. Omit --seal-to to bundle it verbatim.";
     public static final String  ERROR_BUNDLE_NOT_FOUND           = "Error: Bundle file not found: %s.";
@@ -100,8 +101,12 @@ public class BundleCommand {
     private static final String ERROR_NOT_A_DIRECTORY            = "Error: Input path is not a directory: %s.";
     private static final String ERROR_NO_POLICIES_FOUND          = "Error: No .sapl files found in: %s.";
     private static final String ERROR_PLAINTEXT_SECRETS_UNSEALED = "Error: The input folder has plaintext secrets. Provide --seal-to to seal them, or pre-seal the folder.";
+    private static final String ERROR_SEALING_DIRECTORY          = "Error sealing directory: %s.";
     private static final String ERROR_SIGNING_BUNDLE             = "Error signing bundle: %s.";
+    private static final String ERROR_SIGN_PLAINTEXT_SECRETS     = "Error: The bundle contains plaintext secrets. Unpack, seal the directory, and re-create before signing.";
+    private static final String ERROR_TARGET_EXISTS              = "Target file already exists: %s.";
     private static final String ERROR_UNPACKING_BUNDLE           = "Error unpacking bundle: %s.";
+    private static final String ERROR_UNSEALING_DIRECTORY        = "Error unsealing directory: %s.";
     private static final String ERROR_VERIFICATION_FAILED        = "Verification FAILED: %s.";
     private static final String ERROR_VERIFYING_BUNDLE           = "Error verifying bundle: %s.";
     private static final String HINT_USE_FORCE                   = "Use --force to overwrite.";
@@ -208,31 +213,22 @@ public class BundleCommand {
                 addExtensionConfigs(builder);
                 addCriticalExtensions(builder);
 
-                switch (detectSealingState(inputDir)) {
-                case MIXED     -> {
+                val secretsFiles = SecretsFiles.scan(inputDir);
+                if (secretsFiles.hasPlaintext() && secretsFiles.hasSealed()) {
                     err.println(ERROR_MIXED_SEALING);
                     return 1;
                 }
-                case SEALED    -> {
-                    if (sealToFile != null) {
-                        err.println(ERROR_ALREADY_SEALED);
-                        return 1;
-                    }
-                    addExtensionSecrets(builder, true);
+                if (secretsFiles.hasPlaintext() && sealToFile == null) {
+                    err.println(ERROR_PLAINTEXT_SECRETS_UNSEALED);
+                    return 1;
                 }
-                case PLAINTEXT -> {
-                    if (sealToFile == null) {
-                        err.println(ERROR_PLAINTEXT_SECRETS_UNSEALED);
-                        return 1;
-                    }
-                    addExtensionSecrets(builder, false);
+                if (secretsFiles.hasSealed() && sealToFile != null) {
+                    err.println(ERROR_ALREADY_SEALED);
+                    return 1;
+                }
+                addSecrets(builder, secretsFiles);
+                if (sealToFile != null) {
                     builder.sealSecretsWith(loadX25519PublicKey(sealToFile));
-                }
-                case NONE      -> {
-                    if (sealToFile != null) {
-                        builder.sealSecretsWith(loadX25519PublicKey(sealToFile));
-                    }
-                }
                 }
 
                 if (keyFile != null) {
@@ -266,21 +262,20 @@ public class BundleCommand {
             }
         }
 
-        private void addExtensionSecrets(BundleBuilder builder, boolean alreadySealed) throws IOException {
-            try (val stream = Files.list(inputDir)) {
-                for (val file : stream.filter(Files::isRegularFile).toList()) {
-                    val filename = file.getFileName().toString();
-                    if (!ExtensionFiles.isExtensionSecretsFile(filename)) {
-                        continue;
-                    }
-                    val name    = ExtensionFiles.extensionSecretsNameOf(filename);
-                    val content = Files.readString(file);
-                    if (alreadySealed) {
-                        builder.withSealedExtensionSecrets(name, content);
-                    } else {
-                        builder.withExtensionSecrets(name, content);
-                    }
-                }
+        private void addSecrets(BundleBuilder builder, SecretsFiles secretsFiles) throws IOException {
+            if (secretsFiles.plainSecrets() != null) {
+                builder.withSecrets(Files.readString(secretsFiles.plainSecrets()));
+            }
+            if (secretsFiles.sealedSecrets() != null) {
+                builder.withSealedSecrets(Files.readString(secretsFiles.sealedSecrets()));
+            }
+            for (val file : secretsFiles.plainExtensionSecrets()) {
+                builder.withExtensionSecrets(ExtensionFiles.extensionSecretsNameOf(fileNameOf(file)),
+                        Files.readString(file));
+            }
+            for (val file : secretsFiles.sealedExtensionSecrets()) {
+                builder.withSealedExtensionSecrets(ExtensionFiles.sealedExtensionSecretsNameOf(fileNameOf(file)),
+                        Files.readString(file));
             }
         }
 
@@ -292,48 +287,6 @@ public class BundleCommand {
             for (val name : ExtensionFiles.parseCriticalExtensions(Files.readString(criticalFile))) {
                 builder.withCriticalExtension(name);
             }
-        }
-
-        private SealingState detectSealingState(Path dir) throws IOException {
-            val statuses    = new ArrayList<Boolean>();
-            val pdpJsonPath = dir.resolve(PDP_JSON);
-            if (Files.exists(pdpJsonPath)) {
-                val secrets = secretsSection(Files.readString(pdpJsonPath));
-                if (secrets != null && !secrets.isEmpty()) {
-                    statuses.add(ValueSealer.isSealed(secrets));
-                }
-            }
-            try (val stream = Files.list(dir)) {
-                for (val file : stream.filter(Files::isRegularFile).toList()) {
-                    if (ExtensionFiles.isExtensionSecretsFile(file.getFileName().toString())) {
-                        statuses.add(ValueSealer.isSealed(Value.ofJson(Files.readString(file))));
-                    }
-                }
-            }
-            if (statuses.isEmpty()) {
-                return SealingState.NONE;
-            }
-            if (statuses.stream().allMatch(Boolean::booleanValue)) {
-                return SealingState.SEALED;
-            }
-            if (statuses.stream().noneMatch(Boolean::booleanValue)) {
-                return SealingState.PLAINTEXT;
-            }
-            return SealingState.MIXED;
-        }
-
-        private static ObjectValue secretsSection(String pdpJson) {
-            if (Value.ofJson(pdpJson) instanceof ObjectValue root && root.get(SECRETS) instanceof ObjectValue secrets) {
-                return secrets;
-            }
-            return null;
-        }
-
-        private enum SealingState {
-            NONE,
-            PLAINTEXT,
-            SEALED,
-            MIXED
         }
 
     }
@@ -430,17 +383,19 @@ public class BundleCommand {
 
                 var files = 0;
                 for (val entry : contents.entrySet()) {
-                    val name    = entry.getKey();
-                    val target  = safeResolve(base, name);
+                    var name    = entry.getKey();
                     var content = entry.getValue();
-                    if (unsealKey != null) {
-                        if (PDP_JSON.equals(name)) {
-                            content = unsealPdpJsonSecrets(content, unsealKey);
-                        } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
-                            content = unsealDocument(content, unsealKey);
-                        }
+                    // Unsealing restores the plaintext file names, so the output
+                    // directory is a valid plaintext folder.
+                    if (unsealKey != null && ExtensionFiles.SEALED_SECRETS_FILE.equals(name)) {
+                        name    = ExtensionFiles.SECRETS_FILE;
+                        content = unsealDocument(content, unsealKey);
+                    } else if (unsealKey != null && ExtensionFiles.isSealedExtensionSecretsFile(name)) {
+                        name    = ExtensionFiles.EXTENSION_PREFIX + ExtensionFiles.sealedExtensionSecretsNameOf(name)
+                                + ExtensionFiles.EXTENSION_SECRETS_SUFFIX;
+                        content = unsealDocument(content, unsealKey);
                     }
-                    Files.writeString(target, content);
+                    Files.writeString(safeResolve(base, name), content);
                     files++;
                 }
 
@@ -466,6 +421,171 @@ public class BundleCommand {
             }
             return target;
         }
+    }
+
+    // @formatter:off
+    @Command(
+        name = "seal",
+        mixinStandardHelpOptions = true,
+        header = "Seal a policy directory's secrets to a recipient.",
+        description = { """
+            Seals every plaintext secrets file in the directory to the given
+            X25519 recipient public key: secrets.json becomes
+            secrets.sealed.json and each ext-<name>-secrets.json becomes
+            ext-<name>-secrets.sealed.json. The plaintext files are deleted, so
+            the directory holds no cleartext secrets afterwards.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Secrets sealed (or none found)",
+            " 1:Error (directory or key not found, sealed target exists, or I/O error)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle seal -i ./policies --to recipient.pub.jwk
+
+            See Also: sapl-bundle-unseal(1), sapl-bundle-keygen-secrets(1)
+            """ }
+    )
+    // @formatter:on
+    static class Seal implements Callable<Integer> {
+
+        @Spec
+        private CommandSpec spec;
+
+        @Option(names = { "-i", "--input" }, required = true, description = "Directory whose secrets are sealed")
+        private Path inputDir;
+
+        @Option(names = { "--to" }, required = true, description = "X25519 recipient public key (JWK file)")
+        private Path recipientFile;
+
+        @Override
+        public Integer call() {
+            val out = spec.commandLine().getOut();
+            val err = spec.commandLine().getErr();
+
+            if (!Files.isDirectory(inputDir)) {
+                err.println(ERROR_NOT_A_DIRECTORY.formatted(inputDir));
+                return 1;
+            }
+            if (!Files.exists(recipientFile)) {
+                err.println(ERROR_KEY_NOT_FOUND.formatted(recipientFile));
+                return 1;
+            }
+
+            try {
+                val recipient    = loadX25519PublicKey(recipientFile);
+                val secretsFiles = SecretsFiles.scan(inputDir);
+                var sealed       = 0;
+                if (secretsFiles.plainSecrets() != null) {
+                    transform(secretsFiles.plainSecrets(), inputDir.resolve(ExtensionFiles.SEALED_SECRETS_FILE),
+                            content -> sealDocument(content, recipient));
+                    sealed++;
+                }
+                for (val file : secretsFiles.plainExtensionSecrets()) {
+                    val name = ExtensionFiles.extensionSecretsNameOf(fileNameOf(file));
+                    transform(file,
+                            inputDir.resolve(ExtensionFiles.EXTENSION_PREFIX + name
+                                    + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX),
+                            content -> sealDocument(content, recipient));
+                    sealed++;
+                }
+                if (sealed == 0) {
+                    out.println("No plaintext secrets found.");
+                } else {
+                    out.printf("Sealed %d secrets file(s) in %s%n", sealed, inputDir);
+                }
+                return 0;
+
+            } catch (IOException | ParseException e) {
+                err.println(ERROR_SEALING_DIRECTORY.formatted(e.getMessage()));
+                return 1;
+            }
+        }
+
+    }
+
+    // @formatter:off
+    @Command(
+        name = "unseal",
+        mixinStandardHelpOptions = true,
+        header = "Unseal a policy directory's secrets with the recipient key.",
+        description = { """
+            Unseals every sealed secrets file in the directory with the given
+            X25519 recipient private key: secrets.sealed.json becomes
+            secrets.json and each ext-<name>-secrets.sealed.json becomes
+            ext-<name>-secrets.json. The sealed files are deleted. The
+            resulting plaintext directory can be edited and resealed with
+            'sapl bundle seal'.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Secrets unsealed (or none found)",
+            " 1:Error (directory or key not found, plaintext target exists, or I/O error)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle unseal -i ./policies --with recipient.jwk
+
+            See Also: sapl-bundle-seal(1), sapl-bundle-keygen-secrets(1)
+            """ }
+    )
+    // @formatter:on
+    static class Unseal implements Callable<Integer> {
+
+        @Spec
+        private CommandSpec spec;
+
+        @Option(names = { "-i", "--input" }, required = true, description = "Directory whose secrets are unsealed")
+        private Path inputDir;
+
+        @Option(names = { "--with" }, required = true, description = "X25519 recipient private key (JWK file)")
+        private Path recipientFile;
+
+        @Override
+        public Integer call() {
+            val out = spec.commandLine().getOut();
+            val err = spec.commandLine().getErr();
+
+            if (!Files.isDirectory(inputDir)) {
+                err.println(ERROR_NOT_A_DIRECTORY.formatted(inputDir));
+                return 1;
+            }
+            if (!Files.exists(recipientFile)) {
+                err.println(ERROR_KEY_NOT_FOUND.formatted(recipientFile));
+                return 1;
+            }
+
+            try {
+                val recipient    = loadX25519PrivateKey(recipientFile);
+                val secretsFiles = SecretsFiles.scan(inputDir);
+                var unsealed     = 0;
+                if (secretsFiles.sealedSecrets() != null) {
+                    transform(secretsFiles.sealedSecrets(), inputDir.resolve(ExtensionFiles.SECRETS_FILE),
+                            content -> unsealDocument(content, recipient));
+                    unsealed++;
+                }
+                for (val file : secretsFiles.sealedExtensionSecrets()) {
+                    val name = ExtensionFiles.sealedExtensionSecretsNameOf(fileNameOf(file));
+                    transform(file,
+                            inputDir.resolve(
+                                    ExtensionFiles.EXTENSION_PREFIX + name + ExtensionFiles.EXTENSION_SECRETS_SUFFIX),
+                            content -> unsealDocument(content, recipient));
+                    unsealed++;
+                }
+                if (unsealed == 0) {
+                    out.println("No sealed secrets found.");
+                } else {
+                    out.printf("Unsealed %d secrets file(s) in %s%n", unsealed, inputDir);
+                }
+                return 0;
+
+            } catch (IOException | ParseException e) {
+                err.println(ERROR_UNSEALING_DIRECTORY.formatted(e.getMessage()));
+                return 1;
+            }
+        }
+
     }
 
     // @formatter:off
@@ -541,15 +661,27 @@ public class BundleCommand {
                 if (pdpJson != null) {
                     builder.withPdpJson(pdpJson);
                 }
-                val criticalJson = contents.remove(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
+                val criticalJson  = contents.remove(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
+                val sealedSecrets = contents.remove(ExtensionFiles.SEALED_SECRETS_FILE);
+                if (sealedSecrets != null) {
+                    builder.withSealedSecrets(sealedSecrets);
+                }
+                val plaintextSecrets = contents.remove(ExtensionFiles.SECRETS_FILE);
+                if (plaintextSecrets != null) {
+                    err.println(ERROR_SIGN_PLAINTEXT_SECRETS);
+                    return 1;
+                }
 
                 for (val entry : contents.entrySet()) {
                     val name = entry.getKey();
                     if (name.endsWith(SAPL_EXTENSION)) {
                         builder.withPolicy(name, entry.getValue());
-                    } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
-                        builder.withSealedExtensionSecrets(ExtensionFiles.extensionSecretsNameOf(name),
+                    } else if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
+                        builder.withSealedExtensionSecrets(ExtensionFiles.sealedExtensionSecretsNameOf(name),
                                 entry.getValue());
+                    } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                        err.println(ERROR_SIGN_PLAINTEXT_SECRETS);
+                        return 1;
                     } else if (ExtensionFiles.isExtensionFile(name)) {
                         builder.withExtension(ExtensionFiles.extensionNameOf(name), entry.getValue());
                     }
@@ -960,21 +1092,70 @@ public class BundleCommand {
         return OctetKeyPair.parse(Files.readString(keyFile));
     }
 
-    private static String unsealPdpJsonSecrets(String pdpJson, OctetKeyPair privateKey) {
-        if (!(Value.ofJson(pdpJson) instanceof ObjectValue root)
-                || !(root.get(SECRETS) instanceof ObjectValue secrets)) {
-            return pdpJson;
-        }
-        val unsealed = ValueSealer.unseal(privateKey, secrets);
-        val builder  = ObjectValue.builder();
-        for (val entry : root.entrySet()) {
-            builder.put(entry.getKey(), SECRETS.equals(entry.getKey()) ? unsealed : entry.getValue());
-        }
-        return ValueJsonMarshaller.toJsonString(builder.build());
+    private static String sealDocument(String jsonContent, OctetKeyPair recipientPublicKey) {
+        return ValueJsonMarshaller.toJsonString(ValueSealer.seal(recipientPublicKey, Value.ofJson(jsonContent)));
     }
 
     private static String unsealDocument(String sealedJson, OctetKeyPair privateKey) {
         return ValueJsonMarshaller.toJsonString(ValueSealer.unseal(privateKey, Value.ofJson(sealedJson)));
+    }
+
+    private static String fileNameOf(Path path) {
+        return path.getFileName().toString();
+    }
+
+    private static void transform(Path source, Path target, UnaryOperator<String> transformation) throws IOException {
+        if (Files.exists(target)) {
+            throw new IOException(ERROR_TARGET_EXISTS.formatted(target));
+        }
+        Files.writeString(target, transformation.apply(Files.readString(source)));
+        Files.delete(source);
+    }
+
+    /**
+     * The secrets files found in a policy directory, split by sealing state as
+     * carried in the file names.
+     *
+     * @param plainSecrets the cleartext PDP-level secrets file, or null
+     * @param sealedSecrets the sealed PDP-level secrets file, or null
+     * @param plainExtensionSecrets the cleartext extension secrets files
+     * @param sealedExtensionSecrets the sealed extension secrets files
+     */
+    private record SecretsFiles(
+            Path plainSecrets,
+            Path sealedSecrets,
+            List<Path> plainExtensionSecrets,
+            List<Path> sealedExtensionSecrets) {
+
+        static SecretsFiles scan(Path directory) throws IOException {
+            Path plainSecrets           = null;
+            Path sealedSecrets          = null;
+            val  plainExtensionSecrets  = new ArrayList<Path>();
+            val  sealedExtensionSecrets = new ArrayList<Path>();
+            try (val stream = Files.list(directory)) {
+                for (val file : stream.filter(Files::isRegularFile).toList()) {
+                    val name = fileNameOf(file);
+                    if (ExtensionFiles.SECRETS_FILE.equals(name)) {
+                        plainSecrets = file;
+                    } else if (ExtensionFiles.SEALED_SECRETS_FILE.equals(name)) {
+                        sealedSecrets = file;
+                    } else if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
+                        sealedExtensionSecrets.add(file);
+                    } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                        plainExtensionSecrets.add(file);
+                    }
+                }
+            }
+            return new SecretsFiles(plainSecrets, sealedSecrets, plainExtensionSecrets, sealedExtensionSecrets);
+        }
+
+        boolean hasPlaintext() {
+            return plainSecrets != null || !plainExtensionSecrets.isEmpty();
+        }
+
+        boolean hasSealed() {
+            return sealedSecrets != null || !sealedExtensionSecrets.isEmpty();
+        }
     }
 
     private static void restrictToOwner(Path file) {

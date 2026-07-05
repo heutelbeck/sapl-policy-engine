@@ -33,15 +33,19 @@ import lombok.val;
 @DisplayName("SecretsUnsealing")
 class SecretsUnsealingTests {
 
-    private static final String PDP_JSON_WITH_SECRETS = """
-            { "configurationId": "test", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }, "secrets": { "http": { "api": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } } } }
+    private static final String PDP_JSON = """
+            { "configurationId": "test", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+            """;
+
+    private static final String SECRETS_JSON = """
+            { "http": { "api": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } } }
             """;
 
     @Test
     @DisplayName("a bundle's sealed secrets are restored with the recipient private key while structure is preserved")
     void whenUnsealingSealedConfigurationThenSecretsRestored() {
         val recipient = SecretSealing.generateRecipientKey();
-        val bundle    = BundleBuilder.create().withPdpJson(PDP_JSON_WITH_SECRETS)
+        val bundle    = BundleBuilder.create().withPdpJson(PDP_JSON).withSecrets(SECRETS_JSON)
                 .sealSecretsWith(recipient.toPublicJWK()).build();
         val sealed    = BundleParser.parse(bundle, "pdp",
                 BundleSecurityPolicy.builder().disableSignatureVerification().build());
@@ -58,7 +62,7 @@ class SecretsUnsealingTests {
     @DisplayName("extension secrets are exposed sealed and unsealed with the recipient key, cleartext extensions pass through")
     void whenBundleHasExtensionsThenSecretsUnsealedAndCleartextPreserved() {
         val recipient = SecretSealing.generateRecipientKey();
-        val bundle    = BundleBuilder.create().withPdpJson(PDP_JSON_WITH_SECRETS)
+        val bundle    = BundleBuilder.create().withPdpJson(PDP_JSON).withSecrets(SECRETS_JSON)
                 .sealSecretsWith(recipient.toPublicJWK()).withExtension("paratron-gateway", """
                         { "route": "/api" }""").withExtensionSecrets("paratron-gateway", """
                         { "apiKey": "EXT-SECRET-VALUE" }""").build();
