@@ -43,6 +43,8 @@ import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.EmptyExtensionsProcessor;
+import io.sapl.pdp.configuration.ExtensionsProcessor;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
@@ -136,7 +138,7 @@ public class PolicyDecisionPointBuilder {
 
     private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
     private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
-    private final List<ExtensionProcessor>            extensionProcessors  = new ArrayList<>();
+    private ExtensionsProcessor                       extensionsProcessor  = new EmptyExtensionsProcessor();
 
     private PDPConfigurationSource       configurationSource;
     private final List<PDPConfiguration> initialConfigurations = new ArrayList<>();
@@ -156,7 +158,6 @@ public class PolicyDecisionPointBuilder {
     private static final String ERROR_SOURCE_ALREADY_REGISTERED       = "A configuration source has already been registered. Only one source is allowed.";
     private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS    = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
     private static final String WARN_ERROR_CLOSING_RESOURCE           = "Error closing {} during failed PDP build: {}.";
-    private static final String WARN_EXTENSION_PROCESSOR_THREW        = "An extension processor threw while handling a configuration event: {}.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper) {
         this.mapper = mapper;
@@ -446,15 +447,18 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds an extension processor that is notified, after the PDP applies each
-     * configuration, of the bundle-carried extension data for it. The extension
-     * data arrives already unsealed. See {@link ExtensionProcessor}.
+     * Sets the extension processor through which the PDP coordinates
+     * bundle-carried extension data with the host. Defaults to
+     * {@link EmptyExtensionsProcessor}, which is a no-op for configurations
+     * without critical capabilities and rejects any that declare one it cannot
+     * deploy. A configuration goes live only when its policies compile and the
+     * processor accepts its extension slice. See {@link ExtensionsProcessor}.
      *
-     * @param processor the extension processor
+     * @param extensionsProcessor the extension processor
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withExtensionProcessor(ExtensionProcessor processor) {
-        this.extensionProcessors.add(processor);
+    public PolicyDecisionPointBuilder withExtensionsProcessor(ExtensionsProcessor extensionsProcessor) {
+        this.extensionsProcessor = Objects.requireNonNull(extensionsProcessor, "extensionsProcessor");
         return this;
     }
 
@@ -871,7 +875,7 @@ public class PolicyDecisionPointBuilder {
         val attributeBroker         = resolvedBroker.broker();
         val pluginsSource           = resolvePluginsSource();
         val ownsPluginsSource       = externalPluginsSource == null;
-        val voterSource             = new PdpVoterSource(pluginsSource, clock);
+        val voterSource             = new PdpVoterSource(pluginsSource, clock, extensionsProcessor);
         // Wrap the configured source so secrets are unsealed at the source
         // boundary. Downstream, the compiler included, only ever sees cleartext.
         val effectiveSource = secretsDecryptionKey != null && configurationSource != null
@@ -904,16 +908,10 @@ public class PolicyDecisionPointBuilder {
                 val unsealed = unsealSecrets(config);
                 voterSource.loadConfiguration(unsealed);
                 requireInitialConfigurationLoaded(voterSource, unsealed);
-                notifyExtensionProcessors(new PDPConfigurationSource.ConfigurationEvent.NewConfiguration(unsealed));
             }
 
             if (effectiveSource != null) {
-                // Processors are notified after the PDP applies the config, so policies
-                // are live before a processor's side effects.
-                effectiveSource.subscribe(event -> {
-                    voterSource.handle(event);
-                    notifyExtensionProcessors(event);
-                });
+                effectiveSource.subscribe(voterSource::handle);
             }
 
             return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
@@ -939,30 +937,6 @@ public class PolicyDecisionPointBuilder {
                 closeQuietly(resolvedBroker.ownedRepository());
             }
             throw e;
-        }
-    }
-
-    private void notifyExtensionProcessors(PDPConfigurationSource.ConfigurationEvent event) {
-        if (extensionProcessors.isEmpty()) {
-            return;
-        }
-        for (val processor : extensionProcessors) {
-            try {
-                switch (event) {
-                case PDPConfigurationSource.ConfigurationEvent.NewConfiguration(var configuration)       -> processor
-                        .onLoad(configuration.pdpId(), configuration.extensions(), configuration.extensionSecrets());
-                case PDPConfigurationSource.ConfigurationEvent.ConfigurationRemoved(var pdpId)           ->
-                    processor.onRemove(pdpId);
-                case PDPConfigurationSource.ConfigurationEvent.ConfigurationError(var pdpId, var reason) -> log.debug(
-                        "Not notifying extension processors of configuration error for pdpId '{}': {}.", pdpId, reason);
-                case PDPConfigurationSource.ConfigurationEvent.ConfigurationExpired expired              ->
-                    processor.onRemove(expired.pdpId());
-                }
-            } catch (RuntimeException e) {
-                // Isolate processors: a throwing one must not affect the PDP or the
-                // other processors.
-                log.warn(WARN_EXTENSION_PROCESSOR_THREW, e.getMessage());
-            }
         }
     }
 

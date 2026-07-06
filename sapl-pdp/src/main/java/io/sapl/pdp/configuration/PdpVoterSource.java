@@ -59,14 +59,17 @@ import java.util.function.Consumer;
 @Slf4j
 public class PdpVoterSource implements AutoCloseable {
 
-    private static final String ERROR_RECOMPILE_FAILED      = "Recompilation failed: %s";
-    private static final String WARN_CONFIGURATION_EXPIRED  = "Configuration expired, failing closed:\n{}";
-    private static final String WARN_CONFIGURATION_REJECTED = "Configuration rejected:\n{}";
-    private static final String WARN_DEFERRED_CONFIGURATION = "Configuration for pdpId '{}' arrived before plugins source delivered an initial snapshot. Retained and will compile when plugins are available.";
-    private static final String WARN_LISTENER_THREW         = "Update listener for pdpId '{}' threw: {}";
+    private static final String ERROR_EXTENSIONS_REJECTED      = "The runtime environment rejected the extension data for pdpId '%s'.";
+    private static final String ERROR_RECOMPILE_FAILED         = "Recompilation failed: %s";
+    private static final String WARN_CONFIGURATION_EXPIRED     = "Configuration expired, failing closed:\n{}";
+    private static final String WARN_CONFIGURATION_REJECTED    = "Configuration rejected:\n{}";
+    private static final String WARN_DEFERRED_CONFIGURATION    = "Configuration for pdpId '{}' arrived before plugins source delivered an initial snapshot. Retained and will compile when plugins are available.";
+    private static final String WARN_EXTENSION_PROCESSOR_THREW = "The extension processor threw while handling the configuration for pdpId '{}': {}";
+    private static final String WARN_LISTENER_THREW            = "Update listener for pdpId '{}' threw: {}";
 
-    private final Clock         clock;
-    private final PluginsSource pluginsSource;
+    private final Clock               clock;
+    private final PluginsSource       pluginsSource;
+    private final ExtensionsProcessor extensionsProcessor;
 
     private final ReentrantLock           stateLock      = new ReentrantLock();
     private final Consumer<PluginsBundle> pluginListener = this::onPluginsSnapshot;
@@ -113,8 +116,13 @@ public class PdpVoterSource implements AutoCloseable {
     private final Map<String, AtomicReference<PdpStatus>> statusCache = new ConcurrentHashMap<>();
 
     public PdpVoterSource(PluginsSource pluginsSource, Clock clock) {
-        this.clock         = clock;
-        this.pluginsSource = pluginsSource;
+        this(pluginsSource, clock, new EmptyExtensionsProcessor());
+    }
+
+    public PdpVoterSource(PluginsSource pluginsSource, Clock clock, ExtensionsProcessor extensionsProcessor) {
+        this.clock               = clock;
+        this.pluginsSource       = pluginsSource;
+        this.extensionsProcessor = extensionsProcessor;
         pluginsSource.subscribe(pluginListener);
     }
 
@@ -201,17 +209,28 @@ public class PdpVoterSource implements AutoCloseable {
     public void loadConfiguration(PDPConfiguration pdpConfiguration) {
         stateLock.lock();
         try {
+            val pdpId = pdpConfiguration.pdpId();
+            // The configuration goes live only if the runtime environment accepts its
+            // extension slice. A rejection keeps the last-good configuration and compiles
+            // and swaps nothing.
+            if (!prepareExtensions(pdpId, pdpConfiguration)) {
+                reportConfigurationErrorLocked(pdpId, ERROR_EXTENSIONS_REJECTED.formatted(pdpId));
+                return;
+            }
             val plugins = currentPlugins;
             if (plugins == null) {
-                retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
-                getStatusRef(pdpConfiguration.pdpId()).set(new PdpStatus(PdpState.AWAITING_PLUGINS,
-                        pdpConfiguration.configurationId(), pdpConfiguration.combiningAlgorithm(),
-                        pdpConfiguration.saplDocuments().size(), null, null, null));
-                log.warn(WARN_DEFERRED_CONFIGURATION, pdpConfiguration.pdpId());
+                retainedConfigurations.put(pdpId, pdpConfiguration);
+                getStatusRef(pdpId).set(new PdpStatus(PdpState.AWAITING_PLUGINS, pdpConfiguration.configurationId(),
+                        pdpConfiguration.combiningAlgorithm(), pdpConfiguration.saplDocuments().size(), null, null,
+                        null));
+                log.warn(WARN_DEFERRED_CONFIGURATION, pdpId);
                 return;
             }
             loadConfigurationLocked(pdpConfiguration, OnCompileError.RETAIN_LAST_GOOD, plugins);
-            servedGeneration.put(pdpConfiguration.pdpId(), pluginGeneration);
+            servedGeneration.put(pdpId, pluginGeneration);
+            if (getStatusRef(pdpId).get().state() == PdpState.LOADED) {
+                commitExtensions(pdpId, pdpConfiguration);
+            }
         } finally {
             stateLock.unlock();
         }
@@ -305,15 +324,47 @@ public class PdpVoterSource implements AutoCloseable {
     private void reportConfigurationError(String pdpId, String reason) {
         stateLock.lock();
         try {
-            val now = clock.instant();
-            if (hasLastGood(getStatusRef(pdpId).get().state())) {
-                markStale(pdpId, now, reason);
-            } else {
-                markError(pdpId, now, reason);
-            }
-            log.warn(WARN_CONFIGURATION_REJECTED, reason);
+            reportConfigurationErrorLocked(pdpId, reason);
         } finally {
             stateLock.unlock();
+        }
+    }
+
+    /** Keeps the last-good voter (STALE) or fails closed (ERROR) with a reason. Call under {@link #stateLock}. */
+    private void reportConfigurationErrorLocked(String pdpId, String reason) {
+        val now = clock.instant();
+        if (hasLastGood(getStatusRef(pdpId).get().state())) {
+            markStale(pdpId, now, reason);
+        } else {
+            markError(pdpId, now, reason);
+        }
+        log.warn(WARN_CONFIGURATION_REJECTED, reason);
+    }
+
+    // The extension processor is host code. Its calls are isolated so a throw never
+    // crashes the configuration path, a throwing prepare fails closed as a rejection.
+    private boolean prepareExtensions(String pdpId, PDPConfiguration configuration) {
+        try {
+            return extensionsProcessor.prepare(pdpId, configuration);
+        } catch (RuntimeException e) {
+            log.warn(WARN_EXTENSION_PROCESSOR_THREW, pdpId, e.getMessage());
+            return false;
+        }
+    }
+
+    private void commitExtensions(String pdpId, PDPConfiguration configuration) {
+        try {
+            extensionsProcessor.commit(pdpId, configuration);
+        } catch (RuntimeException e) {
+            log.warn(WARN_EXTENSION_PROCESSOR_THREW, pdpId, e.getMessage());
+        }
+    }
+
+    private void removeExtensions(String pdpId) {
+        try {
+            extensionsProcessor.remove(pdpId);
+        } catch (RuntimeException e) {
+            log.warn(WARN_EXTENSION_PROCESSOR_THREW, pdpId, e.getMessage());
         }
     }
 
@@ -333,6 +384,7 @@ public class PdpVoterSource implements AutoCloseable {
             getConfigRef(pdpId).set(Optional.empty());
             markError(pdpId, now, reason);
             notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
+            removeExtensions(pdpId);
             log.warn(WARN_CONFIGURATION_EXPIRED, reason);
         } finally {
             stateLock.unlock();
@@ -369,6 +421,7 @@ public class PdpVoterSource implements AutoCloseable {
             notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
             statusCache.remove(pdpId);
             configCache.remove(pdpId);
+            removeExtensions(pdpId);
         } finally {
             stateLock.unlock();
         }
