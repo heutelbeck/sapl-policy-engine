@@ -391,7 +391,7 @@ class RemoteBundlePDPConfigurationSourceTests {
                 await().atMost(Duration.ofSeconds(3))
                         .untilAsserted(() -> assertThat(capture.removedPdpIds()).contains("billing"));
 
-                // Releasing the held response must not resurrect the cancelled child. Assert
+                // Releasing the held response must not resurrect the removed child. Assert
                 // billing stays absent for a window rather than sleeping and checking once.
                 release.countDown();
                 await().atMost(Duration.ofSeconds(2)).during(Duration.ofMillis(500))
