@@ -317,7 +317,12 @@ public class BundleParser {
         val bundle        = parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
                 MAX_UNCOMPRESSED_SIZE_BYTES);
         val configuration = bundle.toPDPConfiguration(pdpId, securityPolicy);
-        val signedAt      = bundle.manifest() != null ? bundle.manifest().created() : null;
+        // Only expose the signing time when the signature was actually verified. With
+        // verification disabled, or for an unsigned bundle, the manifest's created time is
+        // unauthenticated and must not be used as a freshness or replay signal.
+        val verified = securityPolicy.signatureRequired() && bundle.manifest() != null
+                && BundleSigner.isSigned(bundle.manifest());
+        val signedAt = verified ? bundle.manifest().created() : null;
         return new ParsedBundle(configuration, signedAt);
     }
 

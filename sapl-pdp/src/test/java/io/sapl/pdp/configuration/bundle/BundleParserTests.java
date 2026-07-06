@@ -38,6 +38,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -59,13 +62,30 @@ class BundleParserTests {
             DefaultDecision.DENY, ErrorHandling.ABSTAIN);
 
     private static BundleSecurityPolicy developmentPolicy;
+    private static BundleSecurityPolicy signedPolicy;
+    private static KeyPair              signingKeyPair;
 
     @TempDir
     Path tempDir;
 
     @BeforeAll
-    static void setupSecurityPolicy() {
+    static void setupSecurityPolicy() throws NoSuchAlgorithmException {
         developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+        signingKeyPair    = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        signedPolicy      = BundleSecurityPolicy.builder(signingKeyPair.getPublic()).build();
+    }
+
+    @Test
+    @DisplayName("signedAt is exposed only when the signature was actually verified")
+    void whenSignatureNotVerifiedThenSignedAtIsNull() {
+        val signedBundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                .withPolicy("test.sapl", "policy \"p\" permit true;").signWith(signingKeyPair.getPrivate(), "test-key")
+                .build();
+
+        // Verified against the trusted key: the signing time is authenticated and exposed.
+        assertThat(BundleParser.parseWithMetadata(signedBundle, TEST_PDP_ID, signedPolicy).signedAt()).isNotNull();
+        // Verification disabled: the same signing time is unauthenticated and withheld.
+        assertThat(BundleParser.parseWithMetadata(signedBundle, TEST_PDP_ID, developmentPolicy).signedAt()).isNull();
     }
 
     @Test
