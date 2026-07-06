@@ -95,12 +95,12 @@ public final class SecretsUnsealingSource implements PDPConfigurationSource {
             // monitoring thread. Only a NewConfiguration can fail to unseal (other events
             // pass through untouched). Report the definitively broken configuration as an
             // error event rather than dropping it, without revealing any secret material.
-            if (event instanceof ConfigurationEvent.NewConfiguration(var configuration)) {
-                val reason = reasonWithoutSecrets(failure);
-                log.warn(WARN_UNSEAL_REJECTED, configuration.pdpId(), configuration.configurationId(), reason);
-                return new ConfigurationEvent.ConfigurationError(configuration.pdpId(), reason);
+            if (!(event instanceof ConfigurationEvent.NewConfiguration(var configuration))) {
+                return event;
             }
-            return event;
+            val reason = reasonWithoutSecrets(failure);
+            log.warn(WARN_UNSEAL_REJECTED, configuration.pdpId(), configuration.configurationId(), reason);
+            return new ConfigurationEvent.ConfigurationError(configuration.pdpId(), reason);
         }
     }
 

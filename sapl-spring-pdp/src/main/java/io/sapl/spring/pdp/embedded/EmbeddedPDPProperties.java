@@ -148,16 +148,6 @@ public class EmbeddedPDPProperties {
     }
 
     /**
-     * Security properties for bundle signature verification.
-     * <p>
-     * Behavior:
-     * <ul>
-     * <li>If publicKeyPath or publicKey is set: signature verification enabled</li>
-     * <li>If no key and allowUnsigned=true: unsigned bundles accepted</li>
-     * <li>Otherwise: startup fails with clear error</li>
-     * </ul>
-     */
-    /**
      * Secrets decryption configuration for bundles whose secrets are sealed to
      * this PDP's X25519 recipient public key.
      */
@@ -187,6 +177,16 @@ public class EmbeddedPDPProperties {
         private boolean acceptUnencrypted = false;
     }
 
+    /**
+     * Security properties for bundle signature verification.
+     * <p>
+     * Behavior:
+     * <ul>
+     * <li>If publicKeyPath or publicKey is set: signature verification enabled</li>
+     * <li>If no key and allowUnsigned=true: unsigned bundles accepted</li>
+     * <li>Otherwise: startup fails with clear error</li>
+     * </ul>
+     */
     @Data
     public static class BundleSecurityProperties {
 

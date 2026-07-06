@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -107,11 +108,13 @@ class ExtensionsProcessorTests {
     }
 
     private static String endpointOf(PDPConfiguration configuration) {
-        return ((TextValue) ((ObjectValue) configuration.extensions().get("upstreams")).get("endpoint")).value();
+        val upstreams = (ObjectValue) requireNonNull(configuration.extensions().get("upstreams"));
+        return ((TextValue) requireNonNull(upstreams.get("endpoint"))).value();
     }
 
     private static String secretOf(PDPConfiguration configuration) {
-        return ((TextValue) ((ObjectValue) configuration.extensionSecrets().get("upstreams")).get("apiKey")).value();
+        val upstreams = (ObjectValue) requireNonNull(configuration.extensionSecrets().get("upstreams"));
+        return ((TextValue) requireNonNull(upstreams.get("apiKey"))).value();
     }
 
     private record Recorder(CopyOnWriteArrayList<PDPConfiguration> committed) implements ExtensionsProcessor {

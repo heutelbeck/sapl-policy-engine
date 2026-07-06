@@ -58,6 +58,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -150,7 +151,7 @@ class RemoteBundlePDPConfigurationSourceTests {
         private final Map<String, byte[]> archive                 = new ConcurrentHashMap<>();
         private final Map<String, String> pinnedUrls              = new ConcurrentHashMap<>();
         private final AtomicInteger       bundleFailuresRemaining = new AtomicInteger(0);
-        private volatile long             sequence                = 1;
+        private final AtomicLong          sequence                = new AtomicLong(1);
         private volatile PrivateKey       indexSigningKey;
         private volatile String           failingPdpId;
 
@@ -207,15 +208,16 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("an index with a stale sequence (rollback) is ignored")
-        void whenSequenceRollsBackThenIgnored() throws InterruptedException {
+        void whenSequenceRollsBackThenIgnored() {
             putEntry("orders", "orders@1");
             putEntry("billing", "billing@1");
             val capture = subscribe();
             await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs()).hasSize(2));
             entries.remove("billing");
-            sequence = 0;
-            Thread.sleep(600);
-            assertThat(capture.removedPdpIds()).doesNotContain("billing");
+            sequence.set(0);
+            // The rolled-back index must stay ignored across several polls, not just once.
+            await().atMost(Duration.ofSeconds(2)).during(Duration.ofMillis(600))
+                    .untilAsserted(() -> assertThat(capture.removedPdpIds()).doesNotContain("billing"));
         }
 
         @Test
@@ -224,8 +226,9 @@ class RemoteBundlePDPConfigurationSourceTests {
             indexSigningKey = KeyPairGenerator.getInstance("Ed25519").generateKeyPair().getPrivate();
             putEntry("orders", "orders@1");
             val capture = subscribe();
-            Thread.sleep(600);
-            assertThat(capture.configs()).isEmpty();
+            // The untrusted index must stay ignored across several polls, not just once.
+            await().atMost(Duration.ofSeconds(2)).during(Duration.ofMillis(600))
+                    .untilAsserted(() -> assertThat(capture.configs()).isEmpty());
         }
 
         @Test
@@ -261,9 +264,9 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("a signed rebinding to an immutable version pins the pdpId to that version (rollback)")
-        void whenIndexRebindsToImmutableVersionThenPinnedVersionLoaded() throws InterruptedException {
+        void whenIndexRebindsToImmutableVersionThenPinnedVersionLoaded() {
             putEntry("orders", "orders@1");
-            Thread.sleep(10);
+            awaitLaterSigningInstant();
             putEntry("orders", "orders@2");
             val capture = subscribe();
             await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(lastConfigFor(capture, "orders"))
@@ -277,9 +280,9 @@ class RemoteBundlePDPConfigurationSourceTests {
 
         @Test
         @DisplayName("replaying an older, validly signed bundle at the latest endpoint is rejected")
-        void whenOlderBundleReplayedAtLatestThenRejected() throws InterruptedException {
+        void whenOlderBundleReplayedAtLatestThenRejected() {
             putEntry("orders", "orders@1");
-            Thread.sleep(10);
+            awaitLaterSigningInstant();
             val capture = subscribe();
             await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(capture.configs()).hasSize(1));
             putEntry("orders", "orders@2");
@@ -288,9 +291,11 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             val loadsBeforeReplay = capture.configs().size();
             replayAtLatest("orders", "orders@1");
-            Thread.sleep(2500);
 
-            assertThat(capture.configs()).hasSize(loadsBeforeReplay);
+            // The replayed bytes are re-offered on every poll (their ETag is never stored),
+            // so the rejection must hold across several fetch cycles, not just one.
+            await().atMost(Duration.ofSeconds(4)).during(Duration.ofMillis(2500))
+                    .untilAsserted(() -> assertThat(capture.configs()).hasSize(loadsBeforeReplay));
             assertThat(lastConfigFor(capture, "orders")).extracting(PDPConfiguration::configurationId)
                     .isEqualTo("orders@2");
         }
@@ -321,9 +326,8 @@ class RemoteBundlePDPConfigurationSourceTests {
         @Test
         @DisplayName("the auth credential is withheld from an index-supplied cross-origin bundle URL")
         void whenIndexBindsCrossOriginUrlThenCredentialWithheld() throws IOException {
-            val bundleHost = new MockWebServer();
-            bundleHost.start();
-            try {
+            try (val bundleHost = new MockWebServer()) {
+                bundleHost.start();
                 val ordersBytes = buildBundle("orders@1");
                 val authSeen    = new AtomicReference<String>("UNSET");
                 bundleHost.setDispatcher(new Dispatcher() {
@@ -350,8 +354,6 @@ class RemoteBundlePDPConfigurationSourceTests {
 
                 // The cross-origin bundle host must never have seen the credential.
                 assertThat(authSeen.get()).isNull();
-            } finally {
-                bundleHost.shutdown();
             }
         }
 
@@ -418,7 +420,7 @@ class RemoteBundlePDPConfigurationSourceTests {
                     .untilAsserted(() -> assertThat(capture.configs()).isEmpty());
 
             // An index newer than the floor is accepted, confirming the floor came from the store.
-            sequence = 2000;
+            sequence.set(2000);
             await().atMost(Duration.ofSeconds(3)).untilAsserted(
                     () -> assertThat(capture.configs()).extracting(PDPConfiguration::pdpId).contains("orders"));
         }
@@ -438,7 +440,14 @@ class RemoteBundlePDPConfigurationSourceTests {
         }
 
         private void publish() {
-            sequence++;
+            sequence.incrementAndGet();
+        }
+
+        // Bundles are signed with Instant.now(). Waiting for the clock to advance
+        // guarantees the next bundle gets a strictly later signing time.
+        private void awaitLaterSigningInstant() {
+            val floor = Instant.now();
+            await().atMost(Duration.ofSeconds(1)).until(() -> Instant.now().isAfter(floor));
         }
 
         private void pin(String pdpId, String configId) {
@@ -468,8 +477,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             return BundleBuilder.create()
                     .withPdpJson(
                             """
-                                    { "configurationId": "%s", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
-                                    """
+                                    { "configurationId": "%s", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }"""
                                     .formatted(configId))
                     .withPolicy("test.sapl", "policy \"p\" permit true;")
                     .signWith(elderKeyPair.getPrivate(), "test-key").build();
@@ -516,7 +524,8 @@ class RemoteBundlePDPConfigurationSourceTests {
         }
 
         private MockResponse indexResponse(RecordedRequest request) {
-            val etag = "\"" + sequence + "\"";
+            val currentSequence = sequence.get();
+            val etag            = "\"" + currentSequence + "\"";
             if (etag.equals(request.getHeader("If-None-Match"))) {
                 return new MockResponse().setResponseCode(304);
             }
@@ -526,7 +535,7 @@ class RemoteBundlePDPConfigurationSourceTests {
                         server.url("/realms/acme/bundles/" + entry.pdpId()).toString());
                 bundles.add(new RealmIndexEntry(entry.pdpId(), url));
             }
-            val index = new RealmIndex("acme", sequence, "2026-07-04T00:00:00Z", bundles);
+            val index = new RealmIndex("acme", currentSequence, "2026-07-04T00:00:00Z", bundles);
             val jws   = RealmIndexSigner.sign(index, indexSigningKey, "test-key");
             return new MockResponse().setBody(jws).addHeader("Content-Type", "application/jose").addHeader("ETag",
                     etag);

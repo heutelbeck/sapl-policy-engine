@@ -123,10 +123,12 @@ import java.util.zip.ZipOutputStream;
  */
 public final class BundleBuilder {
 
-    private static final String  PDP_JSON            = "pdp.json";
-    private static final String  SAPL_EXTENSION      = ".sapl";
-    private static final String  SECRETS_NAME_SUFFIX = "-secrets";
-    private static final Pattern SLUG                = Pattern.compile("^[a-z0-9]+(?:-[a-z0-9]+)*$");
+    private static final String PDP_JSON            = "pdp.json";
+    private static final String SAPL_EXTENSION      = ".sapl";
+    private static final String SECRETS_NAME_SUFFIX = "-secrets";
+    // No repeated groups. Group repetition recurses per iteration in the JDK regex
+    // engine and can overflow the stack on large inputs.
+    private static final Pattern SLUG = Pattern.compile("^(?!-)(?!.*--)[a-z0-9-]+(?<!-)$");
 
     private static final String ERROR_AMBIGUOUS_SECRETS            = "Both cleartext and sealed PDP-level secrets were set. Use withSecrets or withSealedSecrets, not both.";
     private static final String ERROR_BUNDLE_MISSING_PDP_JSON      = "Bundle is missing pdp.json. Bundles require a pdp.json with a 'configurationId' field.";

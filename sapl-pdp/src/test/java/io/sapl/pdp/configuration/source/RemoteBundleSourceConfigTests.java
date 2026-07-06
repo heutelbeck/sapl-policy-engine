@@ -160,10 +160,17 @@ class RemoteBundleSourceConfigTests {
     @Test
     @DisplayName("single mode still requires a non-empty pdpIds list")
     void whenSingleModeWithEmptyPdpIdsThenConstructionFails() {
+        val noPdpIds        = List.<String>of();
+        val pollInterval    = Duration.ofMillis(100);
+        val longPollTimeout = Duration.ofSeconds(5);
+        val pollIntervals   = Map.<String, Duration>of();
+        val firstBackoff    = Duration.ofMillis(100);
+        val maxBackoff      = Duration.ofSeconds(5);
+
         assertThatExceptionOfType(PDPConfigurationException.class)
-                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", List.of(),
-                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                        null, false, true, POLICY, Map.of(), Duration.ofMillis(100), Duration.ofSeconds(5)))
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", noPdpIds,
+                        RemoteBundleSourceConfig.FetchMode.POLLING, pollInterval, longPollTimeout, null, null, false,
+                        true, POLICY, pollIntervals, firstBackoff, maxBackoff))
                 .withMessageContaining("pdpIds");
     }
 
