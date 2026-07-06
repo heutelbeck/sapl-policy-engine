@@ -470,9 +470,12 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
                 try {
                     builder.header(authName, authValue);
                 } catch (IllegalArgumentException e) {
-                    // The rejected value is the credential. Never propagate it into a message that
-                    // reaches the logs.
-                    throw new IllegalArgumentException(ERROR_ILLEGAL_AUTH_HEADER.formatted(etagKey));
+                    // The rejected value is the credential. Keep the original stack trace for
+                    // diagnostics, but never the original message or cause, which may carry
+                    // the credential into the logs.
+                    val sanitized = new IllegalArgumentException(ERROR_ILLEGAL_AUTH_HEADER.formatted(etagKey));
+                    sanitized.setStackTrace(e.getStackTrace());
+                    throw sanitized;
                 }
             }
         }
