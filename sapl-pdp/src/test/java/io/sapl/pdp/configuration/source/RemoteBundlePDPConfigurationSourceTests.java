@@ -25,6 +25,7 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.realm.InMemoryRealmSequenceStore;
 import io.sapl.pdp.configuration.realm.RealmIndex;
 import io.sapl.pdp.configuration.realm.RealmIndexEntry;
 import io.sapl.pdp.configuration.realm.RealmIndexSigner;
@@ -400,6 +401,26 @@ class RemoteBundlePDPConfigurationSourceTests {
             } finally {
                 release.countDown();
             }
+        }
+
+        @Test
+        @DisplayName("the injected realm sequence store provides the anti-rollback floor")
+        void whenSequenceStoreSeededThenLowerSequenceIndexRejectedUntilNewerArrives() {
+            val store = new InMemoryRealmSequenceStore();
+            store.recordAcceptedSequence("acme", 1000);
+            putEntry("orders", "orders@1"); // the served index sequence starts well below the seeded floor
+            source = new RemoteBundlePDPConfigurationSource(multiConfig(), store);
+            val capture = new CapturingSubscriber();
+            source.subscribe(capture);
+
+            // Indexes below the seeded floor are rejected, so nothing loads.
+            await().atMost(Duration.ofSeconds(2)).during(Duration.ofMillis(500))
+                    .untilAsserted(() -> assertThat(capture.configs()).isEmpty());
+
+            // An index newer than the floor is accepted, confirming the floor came from the store.
+            sequence = 2000;
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(
+                    () -> assertThat(capture.configs()).extracting(PDPConfiguration::pdpId).contains("orders"));
         }
 
         private CapturingSubscriber subscribe() {

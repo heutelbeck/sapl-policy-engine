@@ -48,6 +48,8 @@ import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.realm.InMemoryRealmSequenceStore;
+import io.sapl.pdp.configuration.realm.RealmSequenceStore;
 import io.sapl.pdp.configuration.source.*;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSource;
@@ -65,6 +67,7 @@ import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -137,6 +140,7 @@ public class PolicyDecisionPointBuilder {
 
     private PDPConfigurationSource       configurationSource;
     private final List<PDPConfiguration> initialConfigurations = new ArrayList<>();
+    private RealmSequenceStore           realmSequenceStore    = new InMemoryRealmSequenceStore();
 
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
@@ -666,7 +670,25 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withRemoteBundleSource(RemoteBundleSourceConfig config) {
-        return withConfigurationSource(new RemoteBundlePDPConfigurationSource(config));
+        return withConfigurationSource(new RemoteBundlePDPConfigurationSource(config, realmSequenceStore));
+    }
+
+    /**
+     * Sets the store that holds the realm index anti-rollback sequence for
+     * {@code REMOTE_BUNDLES} in realm ({@code MULTI}) mode. Defaults to
+     * {@link InMemoryRealmSequenceStore}, which keeps the baseline only in memory
+     * and so resets on restart. Provide a persistent implementation to preserve
+     * the anti-rollback baseline across restarts. Must be set before
+     * {@link #withRemoteBundleSource(RemoteBundleSourceConfig)}.
+     *
+     * @param realmSequenceStore
+     * the store to use
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withRealmSequenceStore(RealmSequenceStore realmSequenceStore) {
+        this.realmSequenceStore = Objects.requireNonNull(realmSequenceStore, "realmSequenceStore");
+        return this;
     }
 
     /**
