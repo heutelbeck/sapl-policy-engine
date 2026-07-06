@@ -169,6 +169,7 @@ public class PdpVoterSource implements AutoCloseable {
             if (config == null || plugins == null) {
                 return;
             }
+            val wasLoaded = getStatusRef(pdpId).get().state() == PdpState.LOADED;
             try {
                 // A plugin swap changes the compile-time runtime. A voter compiled against
                 // the retired bundle must not keep being served, so a recompile failure
@@ -181,6 +182,12 @@ public class PdpVoterSource implements AutoCloseable {
                 // a concurrent newer snapshot may exceed targetGeneration. Both were read
                 // under this single lock hold, so they are consistent.
                 servedGeneration.put(pdpId, pluginGeneration);
+                // Deploy extensions when a configuration first reaches LOADED here, which is
+                // the case for one deferred until the plugins arrived. An already-loaded
+                // configuration keeps its extensions, its data has not changed.
+                if (!wasLoaded && getStatusRef(pdpId).get().state() == PdpState.LOADED) {
+                    commitExtensions(pdpId, config);
+                }
             } catch (Exception e) {
                 log.warn("Recompile of pdpId '{}' after plugins push threw: {}", pdpId, e.getMessage());
             }
@@ -539,6 +546,11 @@ public class PdpVoterSource implements AutoCloseable {
             }
             closed = true;
             pluginsSource.unsubscribe(pluginListener);
+            // Tear down the runtime environment's extensions for every pdpId still held, so
+            // the host releases what it deployed for them.
+            for (val pdpId : retainedConfigurations.keySet()) {
+                removeExtensions(pdpId);
+            }
             updateListeners.clear();
             configCache.clear();
             statusCache.clear();

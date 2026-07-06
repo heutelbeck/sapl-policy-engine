@@ -18,9 +18,13 @@
 package io.sapl.pdp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.junit.jupiter.api.DisplayName;
@@ -29,8 +33,12 @@ import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.pdp.configuration.ExtensionsProcessor;
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PdpState;
 import lombok.val;
 
@@ -85,6 +93,17 @@ class ExtensionsProcessorTests {
                     .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.ERROR));
             assertThat(components.pdpVoterSource().getCurrentConfiguration("default")).isEmpty();
         }
+    }
+
+    @Test
+    @DisplayName("an initial configuration declaring a critical capability the default processor cannot deploy fails the build")
+    void whenInitialConfigurationDeclaresUncoveredCriticalThenBuildFails() {
+        val configuration = new PDPConfiguration("default", "cfg-1", CombiningAlgorithm.DEFAULT,
+                List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
+                .withExtensions(Map.of(), Map.of(), Set.of("upstreams"));
+        val builder       = PolicyDecisionPointBuilder.withDefaults().withConfiguration(configuration);
+
+        assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class);
     }
 
     private static String endpointOf(PDPConfiguration configuration) {
