@@ -235,6 +235,9 @@ public class PdpVoterSource implements AutoCloseable {
             }
             loadConfigurationLocked(pdpConfiguration, OnCompileError.RETAIN_LAST_GOOD, plugins);
             servedGeneration.put(pdpId, pluginGeneration);
+            // Ordering invariant: the served voter is swapped inside loadConfigurationLocked, and
+            // it reaches LOADED only after that swap, so gating the commit on LOADED enables the
+            // runtime environment's extensions only once the policies that govern them are live.
             if (getStatusRef(pdpId).get().state() == PdpState.LOADED) {
                 commitExtensions(pdpId, pdpConfiguration);
             }
