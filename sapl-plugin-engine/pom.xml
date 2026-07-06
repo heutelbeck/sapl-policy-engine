@@ -22,76 +22,49 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>4.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>sapl-api</artifactId>
-	<name>SAPL API</name>
-	<description>Core API types for SAPL policy evaluation including Value model,
-		authorization decisions, and extension interfaces.</description>
+
+	<artifactId>sapl-plugin-engine</artifactId>
+	<name>SAPL Plugin Engine</name>
+	<description>PF4J-based engine that loads function libraries and Policy
+		Information Points from plugin JARs and hot-reloads them at runtime.</description>
 
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
 
 	<dependencies>
-		<!-- JSON Processing (Jackson 3) -->
 		<dependency>
-			<groupId>tools.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-api</artifactId>
+			<version>${project.version}</version>
 		</dependency>
-
-		<!-- Logging API (used by Streams infrastructure via @Slf4j) -->
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-pdp</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.pf4j</groupId>
+			<artifactId>pf4j</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
-
-		<!-- PF4J Plugins -->
 		<dependency>
-			<groupId>org.pf4j</groupId>
-			<artifactId>pf4j</artifactId>
-			<optional>true</optional>
-		</dependency>
-
-		<!-- Annotations -->
-		<dependency>
-			<groupId>org.jspecify</groupId>
-			<artifactId>jspecify</artifactId>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.jetbrains</groupId>
-			<artifactId>annotations</artifactId>
-			<scope>provided</scope>
-		</dependency>
-
-		<!-- Testing -->
-		<dependency>
-			<groupId>org.assertj</groupId>
-			<artifactId>assertj-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.awaitility</groupId>
-			<artifactId>awaitility</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-nop</artifactId>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+    </dependencies>
 </project>

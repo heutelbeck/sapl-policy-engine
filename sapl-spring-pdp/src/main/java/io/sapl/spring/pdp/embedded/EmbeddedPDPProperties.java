@@ -88,6 +88,16 @@ public class EmbeddedPDPProperties {
     private String policiesPath = "/policies";
 
     /**
+     * This property sets the path to the folder where the plugins are located.
+     * <p>
+     * Plugins are loaded from a directory on the host file system (classpath
+     * resource locations are not supported). The directory is watched for
+     * {@code *.jar} changes to hot-reload plugins at runtime.
+     */
+    @NotEmpty
+    private String pluginsPath = "/plugins";
+
+    /**
      * Use a coarse-resolution cached clock for observability timestamps (decision
      * trace and attribute value freshness) instead of the accurate system clock.
      * Cheaper per decision at high throughput, at the cost of coarser timestamp

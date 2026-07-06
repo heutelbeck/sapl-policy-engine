@@ -161,6 +161,7 @@ io.sapl:
     pdp-config-type: DIRECTORY
     config-path: .
     policies-path: .
+    plugins-path: ./plugins
     metrics-enabled: true
 
     # --- Decision Reporting ---

@@ -15,20 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api;
+package io.sapl.api.pdp.plugins;
 
-import lombok.experimental.UtilityClass;
+import io.sapl.api.pdp.DecisionInterceptor;
+import org.pf4j.ExtensionPoint;
 
-/**
- * Class defining the common serialization ID for all Serializable classes.
- * Objects are not intended to be serializable between versions of the engine.
- */
-@UtilityClass
-public class SaplVersion {
-    public static final long VERSION_UID = 4_01_00L;
+import java.util.List;
 
+public interface SaplDecisionInterceptorPlugin extends ExtensionPoint {
     /**
-     * SAPL Version as String in semantic version format.
+     * Returns the collection of DecisionInterceptor instances to register.
+     *
+     * @return collection of DecisionInterceptor instances
      */
-    public static final String SEMANTIC_VERSION = "4.1.0";
+    List<DecisionInterceptor> decisionInterceptors();
 }
