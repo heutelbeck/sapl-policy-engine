@@ -35,7 +35,7 @@
 
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
-		<tink.version>1.15.0</tink.version>
+		<tink.version>1.22.0</tink.version>
 	</properties>
 
 	<dependencies>
