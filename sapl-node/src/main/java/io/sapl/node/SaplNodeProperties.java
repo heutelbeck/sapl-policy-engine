@@ -235,6 +235,9 @@ public class SaplNodeProperties implements InitializingBean {
     public static class OAuthConfig {
         private String       pdpIdClaim = "sapl_pdp_id";
         private List<String> audiences  = new ArrayList<>();
+        // Empty means no scope gate: any token passing signature, issuer,
+        // timestamp, and audience validation is accepted, as before.
+        private List<String> requiredScopes = new ArrayList<>();
         // Secure by default: a JWT without an exp claim is rejected. It would grant
         // non-expiring access.
         private boolean allowJwtWithoutExpiry = false;

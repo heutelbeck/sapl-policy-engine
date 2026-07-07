@@ -109,9 +109,19 @@ io.sapl:
     # reject-on-missing-pdp-id: false
     # default-pdp-id: "default"
 
-    # OAuth2 settings (only relevant if allow-oauth2-auth is true)
+    # OAuth2 settings (only relevant if allow-oauth2-auth is true).
+    # pdp-id-claim accepts a claim name or a dot-separated path into
+    # nested claims (an exact top-level claim wins over path reading).
+    # audiences and required-scopes are opt-in access gates: when set, a
+    # token must carry one of the listed aud values / scopes (scope or
+    # scp claim) or it is rejected. Set at least one on a shared IdP,
+    # otherwise any valid token from the issuer grants PDP access.
     # oauth:
     #   pdp-id-claim: "sapl_pdp_id"
+    #   audiences:
+    #     - "sapl-pdp"
+    #   required-scopes:
+    #     - "sapl:pdp"
 
     # Scalar OAuth2 client id (optional). When set, the Scalar Authorize
     # dialog presents this id as the suggested OIDC client. Independent

@@ -17,6 +17,8 @@
  */
 package io.sapl.node.auth.http;
 
+import static io.sapl.node.auth.JwtClaimPaths.resolveStringClaim;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -181,7 +183,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS, e);
         }
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();
-        val pdpIdValue = jwt.getClaimAsString(pdpIdClaim);
+        val pdpIdValue = resolveStringClaim(jwt, pdpIdClaim);
         val expiresAt  = jwt.getExpiresAt();
         if (expiresAt == null) {
             if (!properties.getOauth().isAllowJwtWithoutExpiry()) {
