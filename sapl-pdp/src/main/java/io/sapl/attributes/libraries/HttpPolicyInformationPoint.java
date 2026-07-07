@@ -21,17 +21,27 @@ import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.stream.Stream;
+import io.sapl.api.stream.Streams;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.http.BlockingWebClient;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
+import org.jspecify.annotations.Nullable;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION, pipDocumentation = HttpPolicyInformationPoint.DOCUMENTATION)
@@ -72,8 +82,8 @@ public class HttpPolicyInformationPoint {
             | `maxResponseBytes` | number | `1048576` | Maximum response body, SSE event, or WebSocket message size in bytes; an oversized payload fails closed to an error value. |
             | `secretsKey` | text | (none) | Selects a named credential set from secrets (see below). |
 
-            The `secretsKey` field is metadata for credential selection and is stripped before
-            the HTTP request is sent.
+            The `secretsKey` field is request metadata and is stripped before the HTTP request is
+            sent.
 
             Polling cadence is not a request setting. Each call issues one request and emits one
             value; the engine re-evaluates the attribute on its own schedule via the
@@ -86,34 +96,42 @@ public class HttpPolicyInformationPoint {
             `secrets` section in `pdp.json` and/or from subscription secrets. They are never
             embedded directly in policies.
 
+            Every credential is a **named** entry that declares both its headers and the
+            destinations it may be sent to. A policy selects an entry with `secretsKey`; it can
+            never supply the credential itself, and the entry can never be sent to a URL outside
+            its `allowedBaseUrls`. There is no unnamed default credential.
+
+            ### Named Credentials
+
+            Each entry lives at `secrets.http.<name>` and has two fields:
+
+            | Field | Description |
+            |---|---|
+            | `headers` | The credential headers to attach. |
+            | `allowedBaseUrls` | The destinations the entry may be sent to. Required. An entry that declares none permits nothing. |
+
+            For a request with `"secretsKey": "weather-api"`, the PDP resolves
+            `secrets.http.weather-api` from each secrets source, checks the request `baseUrl`
+            against that entry's `allowedBaseUrls`, and attaches its `headers` only if the
+            destination is permitted.
+
+            An `allowedBaseUrls` prefix matches by scheme, host, and port, then by path prefix at
+            a segment boundary. It is a structural match, not a string prefix, so
+            `https://api.example.com` does not match `https://api.example.com.attacker.com`. The
+            scheme is part of the match, so plaintext transport is permitted only when the operator
+            lists an `http`/`ws` prefix explicitly.
+
+            ### Header Precedence
+
             Header precedence (highest to lowest):
             1. **pdpSecrets** -- operator-configured secrets always win
-            2. **Policy headers** -- headers specified in the `requestSettings` object
+            2. **Policy headers** -- non-credential headers specified in the `requestSettings` object
             3. **subscriptionSecrets** -- headers from the authorization subscription
 
             When headers from multiple sources use the same header name, the higher-priority
-            source overwrites the lower-priority value.
-
-            ### Named Credentials with `secretsKey`
-
-            Use the `secretsKey` field in `requestSettings` to select which named credential
-            set to use. For a request with `"secretsKey": "weather-api"`, the PDP resolves
-            `secrets.http.weather-api.headers` from each secrets source.
-
-            If the `secretsKey` is specified but the named entry does not exist in a given
-            secrets source, no headers are contributed from that source (fail closed).
-
-            ### Flat Fallback (no `secretsKey`)
-
-            When no `secretsKey` is specified, the PDP falls back to `secrets.http.headers`
-            as a flat default for each secrets source.
-
-            ### Resolution Walkthrough
-
-            For each secrets source (pdpSecrets and subscriptionSecrets):
-            1. If `secretsKey` is present, look up `secrets.http.<secretsKey>.headers`.
-            2. If `secretsKey` is absent, look up `secrets.http.headers`.
-            3. If neither exists, no headers from that source.
+            source overwrites the lower-priority value. Each secrets source authorizes the
+            destination through its own entry, so a credential can only reach a host that source
+            bound it to.
 
             ### Multi-Service Secrets Example
 
@@ -123,35 +141,46 @@ public class HttpPolicyInformationPoint {
               "secrets": {
                 "http": {
                   "weather-api": {
+                    "allowedBaseUrls": [ "https://api.weather.example" ],
                     "headers": { "X-API-Key": "abc123" }
                   },
                   "internal-api": {
+                    "allowedBaseUrls": [ "https://api.internal.corp" ],
                     "headers": { "Authorization": "Bearer infra-token" }
-                  },
-                  "headers": { "Authorization": "Bearer default-fallback" }
+                  }
                 }
               }
             }
             ```
 
             With this configuration:
-            * A request with `"secretsKey": "weather-api"` gets header `X-API-Key: abc123`.
-            * A request with `"secretsKey": "internal-api"` gets header
-              `Authorization: Bearer infra-token`.
-            * A request without `secretsKey` gets header
-              `Authorization: Bearer default-fallback`.
+            * `{ "secretsKey": "weather-api", "baseUrl": "https://api.weather.example/v1" }` gets
+              header `X-API-Key: abc123`.
+            * `{ "secretsKey": "internal-api", "baseUrl": "https://attacker.example.com" }` is
+              rejected. The secret does not permit that host.
+            * `{ "secretsKey": "internal-api", "baseUrl": "http://api.internal.corp" }` is
+              rejected. The allowlist pins `https`.
 
             ### Subscription Secrets
 
-            Subscription secrets follow the same structure and can be supplied per authorization
-            subscription. They have the lowest priority and are overridden by both policy headers
-            and pdpSecrets headers.
+            Subscription secrets follow the same named structure and can be supplied per
+            authorization subscription. They have the lowest priority and are overridden by both
+            policy headers and pdpSecrets headers.
 
             ## Security
 
-            Avoid embedding credentials directly in policy `headers`. Use the secrets
-            configuration to keep credentials separate from policy logic. The `secretsKey`
-            field itself is non-sensitive metadata and is safe to use in policies.
+            Credentials never travel in policy text, and a secret only travels to a destination the
+            operator bound it to. Both rules are enforced fail closed, so a violating request
+            returns an error instead of leaking the secret.
+
+            * A `requestSettings.headers` object that carries a credential header
+              (`Authorization` or `Proxy-Authorization`) is rejected. Supply credentials through
+              the `secrets` channels instead and select them with `secretsKey`. The `secretsKey`
+              field itself is non-sensitive metadata and is safe to use in policies.
+            * A named secret is attached only when the request `baseUrl` matches that secret's
+              `allowedBaseUrls`. A secret with no matching entry, including one that declares none,
+              is never sent. Because the match includes the scheme, cleartext transport is an
+              explicit operator choice per destination, not a policy decision.
 
             ## Media Type Handling
 
@@ -166,9 +195,18 @@ public class HttpPolicyInformationPoint {
             endpoints result in an error value.
             """;
 
-    private static final String SECRETS_HEADERS = "headers";
-    private static final String SECRETS_HTTP    = "http";
-    private static final String SECRETS_KEY     = "secretsKey";
+    private static final String SECRETS_ALLOWED_BASE_URLS = "allowedBaseUrls";
+    private static final String SECRETS_HEADERS           = "headers";
+    private static final String SECRETS_HTTP              = "http";
+    private static final String SECRETS_KEY               = "secretsKey";
+
+    // Header names that carry authentication material. A policy must never supply
+    // these itself. Credentials come only from the operator or subscription
+    // secrets channels. Compared case-insensitively.
+    private static final Set<String> CREDENTIAL_HEADER_NAMES = Set.of("authorization", "proxy-authorization");
+
+    private static final String ERROR_POLICY_CREDENTIAL_HEADER         = "Policy-supplied requestSettings must not carry the credential header '%s'. Configure credentials in the secrets section and select them with 'secretsKey'.";
+    private static final String ERROR_SECRET_DESTINATION_NOT_PERMITTED = "The secret '%s' does not permit the destination '%s'. Add a matching prefix to that secret's allowedBaseUrls, or correct the request URL.";
 
     /**
      * The credential selection requested by {@code requestSettings.secretsKey}.
@@ -215,7 +253,7 @@ public class HttpPolicyInformationPoint {
             defaults to the engine-wide attribute poll interval.
             """)
     public Stream<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("GET", mergeHeaders(ctx, requestSettings));
+        return dispatchHttp("GET", ctx, requestSettings);
     }
 
     /**
@@ -244,7 +282,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> post(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("POST", mergeHeaders(ctx, requestSettings));
+        return dispatchHttp("POST", ctx, requestSettings);
     }
 
     /**
@@ -273,7 +311,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> put(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("PUT", mergeHeaders(ctx, requestSettings));
+        return dispatchHttp("PUT", ctx, requestSettings);
     }
 
     /**
@@ -302,7 +340,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> patch(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("PATCH", mergeHeaders(ctx, requestSettings));
+        return dispatchHttp("PATCH", ctx, requestSettings);
     }
 
     /**
@@ -330,7 +368,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> delete(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("DELETE", mergeHeaders(ctx, requestSettings));
+        return dispatchHttp("DELETE", ctx, requestSettings);
     }
 
     /**
@@ -361,7 +399,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> websocket(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.consumeWebSocket(mergeHeaders(ctx, requestSettings));
+        return dispatchWebSocket(ctx, requestSettings);
     }
 
     /**
@@ -410,7 +448,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> get(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("GET", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+        return dispatchHttp("GET", ctx, withBaseUrl(resourceUrl, requestSettings));
     }
 
     /**
@@ -452,7 +490,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> post(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("POST", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+        return dispatchHttp("POST", ctx, withBaseUrl(resourceUrl, requestSettings));
     }
 
     /**
@@ -494,7 +532,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> put(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("PUT", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+        return dispatchHttp("PUT", ctx, withBaseUrl(resourceUrl, requestSettings));
     }
 
     /**
@@ -536,7 +574,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> patch(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("PATCH", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+        return dispatchHttp("PATCH", ctx, withBaseUrl(resourceUrl, requestSettings));
     }
 
     /**
@@ -578,7 +616,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> delete(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest("DELETE", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+        return dispatchHttp("DELETE", ctx, withBaseUrl(resourceUrl, requestSettings));
     }
 
     /**
@@ -621,7 +659,7 @@ public class HttpPolicyInformationPoint {
             ```
             """)
     public Stream<Value> websocket(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.consumeWebSocket(withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+        return dispatchWebSocket(ctx, withBaseUrl(resourceUrl, requestSettings));
     }
 
     private static ObjectValue withBaseUrl(TextValue baseUrl, ObjectValue requestSettings) {
@@ -629,6 +667,148 @@ public class HttpPolicyInformationPoint {
         builder.putAll(requestSettings);
         builder.put(BlockingWebClient.BASE_URL, baseUrl);
         return builder.build();
+    }
+
+    private Stream<Value> dispatchHttp(String method, AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return guardAndSend(ctx, requestSettings, settings -> webClient.httpRequest(method, settings));
+    }
+
+    private Stream<Value> dispatchWebSocket(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return guardAndSend(ctx, requestSettings, webClient::consumeWebSocket);
+    }
+
+    /**
+     * Enforces the two credential invariants before the request is sent, then
+     * dispatches through {@code sender}. First, a policy must not supply a
+     * credential header itself. Second, every secret that contributes headers
+     * must permit the request destination through its own {@code allowedBaseUrls}
+     * contract. Either violation returns an error value and no request is made.
+     */
+    private static Stream<Value> guardAndSend(AttributeAccessContext ctx, ObjectValue requestSettings,
+            Function<ObjectValue, Stream<Value>> sender) {
+        val offendingHeader = policyCredentialHeader(requestSettings);
+        if (offendingHeader != null) {
+            return Streams.just(Value.error(ERROR_POLICY_CREDENTIAL_HEADER, offendingHeader));
+        }
+        val destinationViolation = secretDestinationViolation(ctx, requestSettings);
+        if (destinationViolation != null) {
+            return Streams.just(destinationViolation);
+        }
+        return sender.apply(mergeHeaders(ctx, requestSettings));
+    }
+
+    private static @Nullable String policyCredentialHeader(ObjectValue requestSettings) {
+        for (val name : extractPolicyHeaders(requestSettings).keySet()) {
+            if (CREDENTIAL_HEADER_NAMES.contains(name.toLowerCase(Locale.ROOT))) {
+                return name;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Fails closed when a selected secret contributes headers but does not permit
+     * the request destination. Each secrets source authorizes the destination
+     * independently through its own entry, so a credential can only reach a host
+     * the operator (or the subscription) bound it to. A secret with no matching
+     * {@code allowedBaseUrls} entry, including one that declares none, permits
+     * nothing.
+     */
+    private static @Nullable Value secretDestinationViolation(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        val secretsKey = extractSecretsKey(requestSettings);
+        if (!(secretsKey instanceof SecretsKeySelection.Named(var name))) {
+            return null;
+        }
+        val baseUrl = baseUrlOf(requestSettings);
+        for (val secrets : List.of(ctx.pdpSecrets(), ctx.subscriptionSecrets())) {
+            if (!resolveHttpHeaders(secrets, secretsKey).isEmpty() && !destinationPermitted(secrets, name, baseUrl)) {
+                return Value.error(ERROR_SECRET_DESTINATION_NOT_PERMITTED, name, String.valueOf(baseUrl));
+            }
+        }
+        return null;
+    }
+
+    private static boolean destinationPermitted(ObjectValue secrets, String name, @Nullable String baseUrl) {
+        if (baseUrl == null) {
+            return false;
+        }
+        for (val allowedPrefix : allowedBaseUrls(secrets, name)) {
+            if (destinationMatches(allowedPrefix, baseUrl)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> allowedBaseUrls(ObjectValue secrets, String name) {
+        if (secrets == null || !(secrets.get(SECRETS_HTTP) instanceof ObjectValue httpObj)
+                || !(httpObj.get(name) instanceof ObjectValue namedObj)
+                || !(namedObj.get(SECRETS_ALLOWED_BASE_URLS) instanceof ArrayValue urls)) {
+            return List.of();
+        }
+        val result = new ArrayList<String>();
+        for (val url : urls) {
+            if (url instanceof TextValue(var text)) {
+                result.add(text);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * True when {@code requestUrl} falls under {@code allowedPrefix} by scheme,
+     * host, and effective port equality plus a path-segment prefix. Component
+     * comparison, not string prefix, so {@code https://api.corp} does not match
+     * {@code https://api.corp.attacker.com}. A prefix that cannot be parsed
+     * matches nothing.
+     */
+    private static boolean destinationMatches(String allowedPrefix, String requestUrl) {
+        final URI allowed;
+        final URI request;
+        try {
+            allowed = new URI(allowedPrefix);
+            request = new URI(requestUrl);
+        } catch (URISyntaxException e) {
+            return false;
+        }
+        if (allowed.getScheme() == null || request.getScheme() == null
+                || !allowed.getScheme().equalsIgnoreCase(request.getScheme())) {
+            return false;
+        }
+        if (allowed.getHost() == null || request.getHost() == null
+                || !allowed.getHost().equalsIgnoreCase(request.getHost())) {
+            return false;
+        }
+        if (effectivePort(allowed) != effectivePort(request)) {
+            return false;
+        }
+        return pathWithinPrefix(allowed.getRawPath(), request.getRawPath());
+    }
+
+    private static int effectivePort(URI uri) {
+        if (uri.getPort() >= 0) {
+            return uri.getPort();
+        }
+        val scheme = uri.getScheme().toLowerCase(Locale.ROOT);
+        return switch (scheme) {
+        case "https", "wss" -> 443;
+        case "http", "ws"   -> 80;
+        default             -> -1;
+        };
+    }
+
+    private static boolean pathWithinPrefix(@Nullable String prefixPath, @Nullable String requestPath) {
+        val prefix  = prefixPath == null ? "" : prefixPath;
+        val request = requestPath == null ? "" : requestPath;
+        val trimmed = prefix.endsWith("/") ? prefix.substring(0, prefix.length() - 1) : prefix;
+        if (trimmed.isEmpty()) {
+            return true;
+        }
+        return request.equals(trimmed) || request.startsWith(trimmed + "/");
+    }
+
+    private static @Nullable String baseUrlOf(ObjectValue requestSettings) {
+        return requestSettings.get(BlockingWebClient.BASE_URL) instanceof TextValue(var url) ? url : null;
     }
 
     static ObjectValue mergeHeaders(AttributeAccessContext ctx, ObjectValue requestSettings) {
@@ -671,24 +851,15 @@ public class HttpPolicyInformationPoint {
     }
 
     private static ObjectValue resolveHttpHeaders(ObjectValue secrets, SecretsKeySelection secretsKey) {
-        if (secrets == null || secrets.isEmpty() || secretsKey instanceof SecretsKeySelection.Malformed) {
+        // Named secrets only. There is no unnamed flat default: an unbound
+        // credential is exactly the "applies to any URL" shape this PIP must not
+        // have. A request without a valid secretsKey contributes no secret headers.
+        if (secrets == null || secrets.isEmpty() || !(secretsKey instanceof SecretsKeySelection.Named(var name))
+                || !(secrets.get(SECRETS_HTTP) instanceof ObjectValue httpObj)
+                || !(httpObj.get(name) instanceof ObjectValue namedObj)) {
             return Value.EMPTY_OBJECT;
         }
-        val httpValue = secrets.get(SECRETS_HTTP);
-        if (!(httpValue instanceof ObjectValue httpObj)) {
-            return Value.EMPTY_OBJECT;
-        }
-
-        if (secretsKey instanceof SecretsKeySelection.Named(var name)) {
-            val namedValue = httpObj.get(name);
-            if (namedValue instanceof ObjectValue namedObj) {
-                val h = namedObj.get(SECRETS_HEADERS);
-                return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : Value.EMPTY_OBJECT;
-            }
-            return Value.EMPTY_OBJECT;
-        }
-
-        val h = httpObj.get(SECRETS_HEADERS);
+        val h = namedObj.get(SECRETS_HEADERS);
         return h instanceof ObjectValue hObj && !hObj.isEmpty() ? hObj : Value.EMPTY_OBJECT;
     }
 
