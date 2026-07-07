@@ -39,6 +39,7 @@ import io.sapl.pdp.SecretsUnsealing;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.CoarseClock;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
+import io.sapl.pdp.configuration.ExtensionsProcessor;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
@@ -247,9 +248,15 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PdpVoterSource pdpVoterSource(EmbeddedPDPProperties properties, PluginsSource pluginsSource, Clock clock,
-            ObjectProvider<PDPConfigurationSource> sourceProvider) {
-        val voterSource = new PdpVoterSource(pluginsSource, clock);
-        val source      = sourceProvider.getIfAvailable();
+            ObjectProvider<PDPConfigurationSource> sourceProvider,
+            ObjectProvider<ExtensionsProcessor> extensionsProcessorProvider) {
+        // An ExtensionsProcessor bean, when the host provides one, coordinates the deployment of host
+        // extensions declared in a configuration with the configuration's activation.
+        val extensionsProcessor = extensionsProcessorProvider.getIfAvailable();
+        val voterSource         = extensionsProcessor != null
+                ? new PdpVoterSource(pluginsSource, clock, extensionsProcessor)
+                : new PdpVoterSource(pluginsSource, clock);
+        val source              = sourceProvider.getIfAvailable();
         if (source != null) {
             val decryptionKey = loadSecretsDecryptionKey(properties.getSecrets());
             if (decryptionKey != null) {

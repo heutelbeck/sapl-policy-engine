@@ -142,6 +142,8 @@ SAPL Node exposes four custom Prometheus metrics covering the golden signals for
 
 These metrics cover both one shot (`decide-once`) and streaming (`decide`) endpoints. Standard Spring Boot HTTP metrics (`http.server.requests`) are also available for request level monitoring.
 
+When admission limits are configured, the node additionally exposes the `sapl.limits.rejections` counter. It counts requests and connections shed by the configured caps and rate limits and is tagged with the `surface` that rejected the load (`http-sse-streams`, `http-requests`, `rsocket-connections`, `rsocket-streams`, `rsocket-requests`). Alert on this counter to detect clients running into the limits. See [Admission Limits and Rate Limiting](../7_2_Configuration/#admission-limits-and-rate-limiting).
+
 Enable metrics in `application.yml`:
 
 ```yaml

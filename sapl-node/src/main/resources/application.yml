@@ -155,6 +155,26 @@ io.sapl:
     # on public HTTP and RSocket PDP endpoints.
     max-multi-subscription-count: 256
 
+    # --- Admission Limits and Rate Limiting ---
+    #
+    # Optional global caps on concurrent streams and connections and global
+    # rate limits on unary requests. All default to 0, meaning unbounded.
+    # HTTP requests beyond a cap receive 503, requests beyond a rate
+    # receive 429, both with a Retry-After header. RSocket connections and
+    # requests beyond a limit receive the retriable REJECTED_SETUP and
+    # REJECTED errors. Every rejection increments the
+    # sapl.limits.rejections counter and logs a rate limited warning.
+    #
+    # limits:
+    #   http:
+    #     sse:
+    #       max-concurrent-streams: 10000
+    #     requests-per-second: 50000
+    #   rsocket:
+    #     max-connections: 1000
+    #     max-streams-per-connection: 10000
+    #     requests-per-second: 50000
+
   # --- PDP Policy Source ---
   #
   # pdp-config-type options:

@@ -93,7 +93,7 @@ All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is
 
 Connection lifetime is soft. JWT credentials are validated at every decision call. Expired tokens are then rejected, and the client is expected to reconnect with a refreshed credential. The server does not maintain a separate hard-disconnect timer.
 
-Connection counts are bounded by the OS file-descriptor limit (`ulimit -n` on Linux). Per-IP or per-account caps are not enforced inside the node and need to be applied at an upstream load balancer or firewall.
+Without further configuration, connection counts are bounded only by the OS file-descriptor limit (`ulimit -n` on Linux). A global cap on concurrent connections and streams is available, see [Admission Limits and Rate Limiting](#admission-limits-and-rate-limiting). Per-IP or per-account caps are not enforced inside the node and need to be applied at an upstream load balancer or firewall.
 
 Example:
 
@@ -147,6 +147,37 @@ sapl:
 CLI clients connect with `--rsocket --rsocket-tls` (and `--insecure` to skip certificate verification against self-signed dev certificates).
 
 The RSocket endpoint shares the same authentication configuration as the HTTP endpoints (`io.sapl.node.users`, `allow-basic-auth`, `allow-api-key-auth`, `allow-oauth2-auth`). Authentication occurs once at connection setup. See [RSocket API](../6_1_HTTPApi/#rsocket-api) for the wire protocol specification.
+
+### Admission Limits and Rate Limiting
+
+All properties live under the prefix `io.sapl.node.limits`. Every limit is disabled by default. The default `0` means unbounded, which preserves the previous behavior and keeps the request path free of any admission code. A positive value enforces the corresponding check at connection or request admission, never on the hot path of established streams, so configured limits do not slow down decision delivery.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `http.sse.max-concurrent-streams` | `int` | `0` (unbounded) | Global cap on concurrently open SSE decision streams across `/api/pdp/decide`, `/api/pdp/multi-decide`, and `/api/pdp/multi-decide-all`. Requests beyond the cap are rejected with `503 Service Unavailable` and a `Retry-After` header before authentication and body parsing. A slot is released when its stream ends, including client disconnects detected by keep-alive frames and closes at credential expiry. |
+| `http.requests-per-second` | `int` | `0` (unbounded) | Global rate limit on the unary HTTP endpoints `/api/pdp/decide-once` and `/api/pdp/multi-decide-all-once`. Allows a burst of up to one second worth of requests, then throttles to the configured steady rate. Requests beyond the rate are rejected with `429 Too Many Requests` and a `Retry-After` header. |
+| `rsocket.max-connections` | `int` | `0` (unbounded) | Global cap on concurrent RSocket connections. Connections beyond the cap are rejected at setup with the RSocket `REJECTED_SETUP` error, which clients treat as retriable. |
+| `rsocket.max-streams-per-connection` | `int` | `0` (unbounded) | Cap on concurrent decision streams for each RSocket connection. Streams beyond the cap are rejected with the RSocket `REJECTED` error. |
+| `rsocket.requests-per-second` | `int` | `0` (unbounded) | Global rate limit on unary RSocket requests (the `decide-once` and `multi-decide-all-once` routes). Requests beyond the rate are rejected with the RSocket `REJECTED` error. |
+
+All rejections fail closed. A shed request never produces an authorization decision, so a client cannot mistake load shedding for a policy outcome. Every rejection increments the `sapl.limits.rejections` counter, tagged with the shedding surface, and emits a rate limited warning in the log. See [Monitoring](../7_7_Monitoring/#decision-metrics).
+
+These limits compose with the existing per request bounds. `max-multi-subscription-count` limits the entries inside one multi subscription, while the admission limits bound how many streams or requests reach the PDP at all.
+
+Example:
+
+```yaml
+io.sapl.node:
+  limits:
+    http:
+      sse:
+        max-concurrent-streams: 10000
+      requests-per-second: 50000
+    rsocket:
+      max-connections: 1000
+      max-streams-per-connection: 10000
+      requests-per-second: 50000
+```
 
 ### OpenID Authorization API Properties
 

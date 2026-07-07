@@ -592,6 +592,9 @@
 					<groupId>net.revelc.code.formatter</groupId>
 					<artifactId>formatter-maven-plugin</artifactId>
 					<version>${formatter-maven-plugin.version}</version>
+					<configuration>
+						<configFile>eclipse/formatter.xml</configFile>
+					</configuration>
 					<dependencies>
 						<dependency>
 							<groupId>io.sapl</groupId>
@@ -604,9 +607,6 @@
 							<goals>
 								<goal>format</goal>
 							</goals>
-							<configuration>
-								<configFile>eclipse/formatter.xml</configFile>
-							</configuration>
 						</execution>
 					</executions>
 				</plugin>

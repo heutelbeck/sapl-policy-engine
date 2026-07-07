@@ -27,6 +27,7 @@ import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.sapl.node.boot.SaplStartupConfigurationException;
@@ -108,11 +109,17 @@ public class ProtobufRSocketServerConfiguration {
             @Value("${sapl.pdp.rsocket.max-inbound-payload-size:16777215}") int maxInboundPayloadSize,
             @Value("${io.sapl.node.max-multi-subscription-count:256}") int maxMultiSubscriptionCount,
             @Value("${sapl.pdp.rsocket.ssl.bundle:#{null}}") @Nullable String sslBundleName,
+            @Value("${io.sapl.node.limits.rsocket.max-connections:0}") int maxConnections,
+            @Value("${io.sapl.node.limits.rsocket.max-streams-per-connection:0}") int maxStreamsPerConnection,
+            @Value("${io.sapl.node.limits.rsocket.requests-per-second:0}") int requestsPerSecond,
             BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
-            ObjectProvider<RSocketConnectionAuthenticator> authenticator, ObjectProvider<SslBundles> sslBundles) {
+            ObjectProvider<RSocketConnectionAuthenticator> authenticator, ObjectProvider<SslBundles> sslBundles,
+            ObjectProvider<MeterRegistry> meterRegistry) {
         val sslContext = resolveSslContext(sslBundleName, sslBundles.getIfAvailable());
+        val limiter    = RSocketLimiter.of(maxConnections, maxStreamsPerConnection, requestsPerSecond,
+                meterRegistry.getIfAvailable());
         return new ProtobufRSocketServerLifecycle(enabled, bindAddress, port, socketPath, maxInboundPayloadSize,
-                maxMultiSubscriptionCount, blockingPdp, pdp, authenticator.getIfAvailable(), sslContext);
+                maxMultiSubscriptionCount, blockingPdp, pdp, authenticator.getIfAvailable(), limiter, sslContext);
     }
 
     private static @Nullable SslContext resolveSslContext(@Nullable String bundleName,
