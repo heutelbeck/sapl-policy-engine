@@ -7,7 +7,7 @@
 #   yay -S sapl
 
 pkgname=sapl
-pkgver=4.1.2
+pkgver=4.2.0
 pkgrel=1
 pkgdesc='SAPL Node PDP server and policy management CLI'
 arch=('x86_64' 'aarch64')

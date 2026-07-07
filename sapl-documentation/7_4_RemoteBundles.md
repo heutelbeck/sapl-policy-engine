@@ -54,6 +54,8 @@ All properties live under `io.sapl.pdp.embedded.remote-bundles`:
 | `pdp-id-poll-intervals`| `Map<String, Duration>`  | _(empty)_    | Per-pdpId poll interval overrides.       |
 | `first-backoff`        | `Duration`               | `500ms`      | Initial backoff after a fetch failure.   |
 | `max-backoff`          | `Duration`               | `5s`         | Maximum backoff after repeated failures. |
+| `stale-after-no-contact`     | `Duration`         | _(derived)_  | No-contact duration after which a pdpId is marked stale. |
+| `fail-closed-after-no-contact` | `Duration`       | _(off)_      | No-contact duration after which a pdpId fails closed.    |
 
 ### Change Detection
 
@@ -184,6 +186,25 @@ Remote bundle responses are limited to 256 MiB. Bundles exceeding this limit are
 On fetch failure, the node retries with exponential backoff (with jitter). The backoff
 starts at `first-backoff` and caps at `max-backoff`. After recovery, the backoff resets
 to the initial value.
+
+### Transport Freshness
+
+Retries never stop, but a bundle server that stays unreachable means a pdpId keeps
+serving an ever more out-of-date configuration without any signal. The node tracks the
+wall-clock time since the last successful contact per pdpId, where a successful contact
+is a `200` or a `304`. Failures, timeouts, and `4xx` or `5xx` responses do not reset it.
+
+When that time exceeds `stale-after-no-contact`, the pdpId is marked `STALE` and reported
+in the health endpoint while its last-good configuration keeps serving decisions. When it
+is left unset, a threshold of `max(5 x effective poll cadence, 60s)` is derived from the
+poll or long-poll cadence. The next successful contact clears the stale mark automatically.
+
+`fail-closed-after-no-contact` is off by default. When set, it must be greater than
+`stale-after-no-contact`. Once the no-contact time exceeds it, the pdpId drops its
+last-good configuration and transitions to `ERROR`, so decisions fail closed and deny
+while the pdpId stays visible in the health endpoint. The next successful contact loads a
+fresh configuration and restores service. This trades availability for a hard freshness
+bound and should only be enabled where a stale policy is worse than no policy.
 
 ### Graceful Shutdown
 

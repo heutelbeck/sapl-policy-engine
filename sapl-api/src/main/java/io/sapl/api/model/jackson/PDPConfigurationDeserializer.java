@@ -30,6 +30,7 @@ import io.sapl.api.pdp.configuration.PdpData;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import lombok.val;
 
@@ -88,6 +89,9 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         List<String>       saplDocuments      = List.of();
         ObjectValue        variables          = Value.EMPTY_OBJECT;
         ObjectValue        secrets            = Value.EMPTY_OBJECT;
+        ObjectValue        extensions         = Value.EMPTY_OBJECT;
+        ObjectValue        extensionSecrets   = Value.EMPTY_OBJECT;
+        Set<String>        criticalExtensions = Set.of();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val fieldName = parser.currentName();
@@ -102,6 +106,10 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             case "saplDocuments"                    -> saplDocuments = deserializeStringList(parser, context);
             case "variables"                        -> variables = deserializeObjectValue(parser, context);
             case "secrets"                          -> secrets = deserializeObjectValue(parser, context);
+            case "extensions"                       -> extensions = deserializeObjectValue(parser, context);
+            case "extensionSecrets"                 -> extensionSecrets = deserializeObjectValue(parser, context);
+            case "criticalExtensions"               ->
+                criticalExtensions = Set.copyOf(deserializeStringList(parser, context));
             default                                 -> parser.skipChildren();
             }
         }
@@ -117,7 +125,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         }
 
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments,
-                new PdpData(variables, secrets));
+                new PdpData(variables, secrets), extensions, extensionSecrets, criticalExtensions);
     }
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {

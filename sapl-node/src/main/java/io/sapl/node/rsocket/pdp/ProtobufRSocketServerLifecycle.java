@@ -30,6 +30,7 @@ import org.springframework.context.SmartLifecycle;
 
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContext;
+import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
@@ -88,6 +89,10 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
+    // Optional admission limits. When set, the acceptor is wrapped with the
+    // configured connection, stream, and rate checks; when null the raw
+    // acceptor is bound unchanged.
+    private final @Nullable RSocketLimiter limiter;
     // Optional TLS context. When set, the TCP server is wrapped in TLS via
     // Reactor Netty's secure() before being handed to TcpServerTransport.
     // Resolution from a Spring Boot SslBundle happens in the @Configuration.
@@ -116,8 +121,11 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
                 log.warn("RSocket server has no authentication configured");
             }
             log.debug("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
-            val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator,
+            SocketAcceptor acceptor = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator,
                     requirePositiveMax(maxMultiSubscriptionCount));
+            if (limiter != null) {
+                acceptor = limiter.wrap(acceptor);
+            }
             val transport = createTransport();
             server  = bind(acceptor, transport);
             running = true;
@@ -165,7 +173,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         }
     }
 
-    private CloseableChannel bind(ProtobufRSocketAcceptor acceptor, TcpServerTransport transport) {
+    private CloseableChannel bind(SocketAcceptor acceptor, TcpServerTransport transport) {
         try {
             return RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
         } catch (RuntimeException e) {

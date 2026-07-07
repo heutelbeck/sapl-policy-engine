@@ -17,6 +17,8 @@
  */
 package io.sapl.node.auth;
 
+import static io.sapl.node.auth.JwtClaimPaths.resolveStringClaim;
+
 import java.nio.charset.StandardCharsets;
 
 import org.jspecify.annotations.Nullable;
@@ -155,7 +157,7 @@ public class RSocketSecurityConfiguration {
             log.warn(WARN_JWT_NO_EXPIRY_ACCEPTED);
         }
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();
-        val pdpIdValue = jwt.getClaimAsString(pdpIdClaim);
+        val pdpIdValue = resolveStringClaim(jwt, pdpIdClaim);
 
         if (pdpIdValue == null || pdpIdValue.isBlank()) {
             if (properties.isRejectOnMissingPdpId()) {

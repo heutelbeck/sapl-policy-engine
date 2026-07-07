@@ -38,6 +38,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -59,13 +62,30 @@ class BundleParserTests {
             DefaultDecision.DENY, ErrorHandling.ABSTAIN);
 
     private static BundleSecurityPolicy developmentPolicy;
+    private static BundleSecurityPolicy signedPolicy;
+    private static KeyPair              signingKeyPair;
 
     @TempDir
     Path tempDir;
 
     @BeforeAll
-    static void setupSecurityPolicy() {
+    static void setupSecurityPolicy() throws NoSuchAlgorithmException {
         developmentPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+        signingKeyPair    = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        signedPolicy      = BundleSecurityPolicy.builder(signingKeyPair.getPublic()).build();
+    }
+
+    @Test
+    @DisplayName("signedAt is exposed only when the signature was actually verified")
+    void whenSignatureNotVerifiedThenSignedAtIsNull() {
+        val signedBundle = BundleBuilder.create().withCombiningAlgorithm(DENY_OVERRIDES)
+                .withPolicy("test.sapl", "policy \"p\" permit true;").signWith(signingKeyPair.getPrivate(), "test-key")
+                .build();
+
+        // Verified against the trusted key: the signing time is authenticated and exposed.
+        assertThat(BundleParser.parseWithMetadata(signedBundle, TEST_PDP_ID, signedPolicy).signedAt()).isNotNull();
+        // Verification disabled: the same signing time is unauthenticated and withheld.
+        assertThat(BundleParser.parseWithMetadata(signedBundle, TEST_PDP_ID, developmentPolicy).signedAt()).isNull();
     }
 
     @Test
@@ -369,6 +389,68 @@ class BundleParserTests {
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Unexpected file")
                 .hasMessageContaining("nested/policy.sapl");
+    }
+
+    @Test
+    @DisplayName("a critical-extensions.json entry is an allowed bundle file")
+    void whenCriticalExtensionsFilePresentThenAccepted() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("critical-extensions.json", "[]");
+
+        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
+
+        assertThat(config.criticalExtensions()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a bundle mixing sealed and plaintext secrets files is rejected")
+    void whenBundleMixesSealingThenRejected() throws IOException {
+        val baos = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+            zos.putNextEntry(new ZipEntry("secrets.sealed.json"));
+            zos.write("""
+                    { "apiKey": "ENC[ciphertext]" }""".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+            zos.putNextEntry(new ZipEntry("ext-upstreams-secrets.json"));
+            zos.write("""
+                    { "apiKey": "cleartext" }""".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        val bundleBytes = baos.toByteArray();
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("mixes sealed and plaintext");
+    }
+
+    @Test
+    @DisplayName("a sealed-named entry with plaintext content is rejected")
+    void whenSealedNamedEntryHasPlaintextThenRejected() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("secrets.sealed.json", """
+                { "apiKey": "cleartext" }""");
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("content is not sealed");
+    }
+
+    @Test
+    @DisplayName("a bundle's secrets file is loaded into the PDP data")
+    void whenBundleHasSecretsFileThenLoaded() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("secrets.sealed.json", """
+                { "apiKey": "ENC[ciphertext]" }""");
+
+        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
+
+        assertThat(config.data().secrets()).containsKey("apiKey");
+    }
+
+    @Test
+    @DisplayName("a critical extension without any payload is rejected at parse time")
+    void whenCriticalExtensionMissingPayloadThenRejected() throws IOException {
+        val bundleBytes = createBundleWithEntryAndConfig("critical-extensions.json", """
+                ["upstreams"]""");
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Critical extension 'upstreams'");
     }
 
     private byte[] createBundleWithConfigId(String pdpJson, String saplFileName, String saplContent)

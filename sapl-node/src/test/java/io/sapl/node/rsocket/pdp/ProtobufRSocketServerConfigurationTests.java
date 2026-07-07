@@ -39,6 +39,7 @@ import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.boot.ssl.SslManagerBundle;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.val;
@@ -76,6 +77,9 @@ class ProtobufRSocketServerConfigurationTests {
     @Mock
     private ObjectProvider<SslBundles> sslBundlesProvider;
 
+    @Mock
+    private ObjectProvider<MeterRegistry> meterRegistryProvider;
+
     private final ProtobufRSocketServerConfiguration sut = new ProtobufRSocketServerConfiguration();
 
     @Nested
@@ -86,7 +90,8 @@ class ProtobufRSocketServerConfigurationTests {
         @DisplayName("no bundle name configured leaves TLS off and the lifecycle starts in plain TCP mode")
         void whenNoBundleNameThenLifecycleBuiltWithoutSsl() {
             val lifecycle = sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
-                    MAX_MULTI_SUBSCRIPTIONS, null, blockingPdp, pdp, authenticators, sslBundlesProvider);
+                    MAX_MULTI_SUBSCRIPTIONS, null, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
+                    meterRegistryProvider);
 
             assertThat(lifecycle).isNotNull().satisfies(l -> assertThat(l.isAutoStartup()).isTrue());
         }
@@ -95,7 +100,8 @@ class ProtobufRSocketServerConfigurationTests {
         @DisplayName("blank bundle name is treated as not configured (operator-friendly default)")
         void whenBlankBundleNameThenLifecycleBuiltWithoutSsl() {
             val lifecycle = sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
-                    MAX_MULTI_SUBSCRIPTIONS, "   ", blockingPdp, pdp, authenticators, sslBundlesProvider);
+                    MAX_MULTI_SUBSCRIPTIONS, "   ", 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
+                    meterRegistryProvider);
 
             assertThat(lifecycle).isNotNull();
         }
@@ -106,8 +112,8 @@ class ProtobufRSocketServerConfigurationTests {
             when(sslBundlesProvider.getIfAvailable()).thenReturn(null);
 
             assertThatThrownBy(() -> sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
-                    MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, blockingPdp, pdp, authenticators, sslBundlesProvider))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining(BUNDLE_NAME)
+                    MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
+                    meterRegistryProvider)).isInstanceOf(IllegalStateException.class).hasMessageContaining(BUNDLE_NAME)
                     .hasMessageContaining("SslBundles");
         }
 
@@ -119,8 +125,8 @@ class ProtobufRSocketServerConfigurationTests {
                     .thenThrow(new NoSuchSslBundleException(BUNDLE_NAME, "not configured"));
 
             assertThatThrownBy(() -> sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
-                    MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, blockingPdp, pdp, authenticators, sslBundlesProvider))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining(BUNDLE_NAME)
+                    MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
+                    meterRegistryProvider)).isInstanceOf(IllegalStateException.class).hasMessageContaining(BUNDLE_NAME)
                     .hasCauseInstanceOf(NoSuchSslBundleException.class);
         }
 
@@ -138,8 +144,8 @@ class ProtobufRSocketServerConfigurationTests {
             lenient().when(managers.getKeyManagerFactory()).thenReturn(keyManagerFactory);
 
             assertThatCode(() -> sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
-                    MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, blockingPdp, pdp, authenticators, sslBundlesProvider))
-                    .doesNotThrowAnyException();
+                    MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
+                    meterRegistryProvider)).doesNotThrowAnyException();
         }
     }
 }

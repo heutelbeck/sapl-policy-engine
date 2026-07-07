@@ -20,6 +20,8 @@ package io.sapl.api.pdp.configuration;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ObjectValue;
@@ -35,6 +37,12 @@ import io.sapl.api.model.Value;
  * tuning parameters). Each consumer reads the keys it understands.
  * @param saplDocuments the SAPL document source strings
  * @param data PDP-level variables and secrets
+ * @param extensions bundle-carried extension data, keyed by extension name
+ * (cleartext)
+ * @param extensionSecrets bundle-carried extension secrets, keyed by extension
+ * name (sealed in transit, unsealed by the recipient)
+ * @param criticalExtensions names of extensions the consumer must be able to
+ * process, else the configuration is rejected
  */
 public record PDPConfiguration(
         String pdpId,
@@ -42,12 +50,35 @@ public record PDPConfiguration(
         CombiningAlgorithm combiningAlgorithm,
         ObjectValue compilerOptions,
         List<String> saplDocuments,
-        PdpData data) implements Serializable {
+        PdpData data,
+        Map<String, Value> extensions,
+        Map<String, Value> extensionSecrets,
+        Set<String> criticalExtensions) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    public PDPConfiguration {
+        extensions         = extensions == null ? Map.of() : Map.copyOf(extensions);
+        extensionSecrets   = extensionSecrets == null ? Map.of() : Map.copyOf(extensionSecrets);
+        criticalExtensions = criticalExtensions == null ? Set.of() : Set.copyOf(criticalExtensions);
+    }
+
     /**
-     * Convenience constructor defaulting compiler options to empty.
+     * Convenience constructor defaulting extension data to empty.
+     */
+    public PDPConfiguration(String pdpId,
+            String configurationId,
+            CombiningAlgorithm combiningAlgorithm,
+            ObjectValue compilerOptions,
+            List<String> saplDocuments,
+            PdpData data) {
+        this(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data, Map.of(), Map.of(),
+                Set.of());
+    }
+
+    /**
+     * Convenience constructor defaulting compiler options and extension data to
+     * empty.
      */
     public PDPConfiguration(String pdpId,
             String configurationId,
@@ -55,5 +86,44 @@ public record PDPConfiguration(
             List<String> saplDocuments,
             PdpData data) {
         this(pdpId, configurationId, combiningAlgorithm, Value.EMPTY_OBJECT, saplDocuments, data);
+    }
+
+    /**
+     * Returns a copy of this configuration with the given extension data,
+     * preserving the current critical extension set.
+     *
+     * @param extensions the cleartext extension data, keyed by extension name
+     * @param extensionSecrets the extension secrets, keyed by extension name
+     *
+     * @return a copy carrying the extension data
+     */
+    public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets) {
+        return withExtensions(extensions, extensionSecrets, criticalExtensions);
+    }
+
+    /**
+     * Returns a copy of this configuration with the given extension data and
+     * critical extension set.
+     *
+     * @param extensions the cleartext extension data, keyed by extension name
+     * @param extensionSecrets the extension secrets, keyed by extension name
+     * @param criticalExtensions names of extensions the consumer must be able to
+     * process
+     *
+     * @return a copy carrying the extension data
+     */
+    public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets,
+            Set<String> criticalExtensions) {
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
+                extensions, extensionSecrets, criticalExtensions);
+    }
+
+    @Override
+    public String toString() {
+        return "PDPConfiguration[pdpId=" + pdpId + ", configurationId=" + configurationId + ", combiningAlgorithm="
+                + combiningAlgorithm + ", compilerOptions=" + compilerOptions + ", saplDocuments=" + saplDocuments
+                + ", data=" + data + ", extensions=" + extensions.keySet() + ", extensionSecrets="
+                + (extensionSecrets.isEmpty() ? "NO EXTENSION SECRETS" : "EXTENSION SECRETS REDACTED")
+                + ", criticalExtensions=" + criticalExtensions + "]";
     }
 }

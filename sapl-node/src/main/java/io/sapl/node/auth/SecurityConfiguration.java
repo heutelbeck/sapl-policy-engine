@@ -19,6 +19,9 @@ package io.sapl.node.auth;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -32,7 +35,10 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
@@ -86,6 +92,8 @@ import lombok.val;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
+    private static final String CLAIM_SCOPE             = "scope";
+    private static final String CLAIM_SCP               = "scp";
     private static final String JWT_ISSUER_URI_PROPERTY = "spring.security.oauth2.resourceserver.jwt.issuer-uri";
 
     private static final String ERROR_NO_AUTH_MECHANISM  = "SAPL Node refused to start. No authentication mechanism is configured.";
@@ -123,6 +131,24 @@ public class SecurityConfiguration {
             Generate a credential with:
 
               sapl generate basic --id alice""";
+
+    private static final String ERROR_BLANK_REQUIRED_SCOPE  = "SAPL Node refused to start. io.sapl.node.oauth.required-scopes contains a blank entry.";
+    private static final String ACTION_BLANK_REQUIRED_SCOPE = """
+            Every entry in io.sapl.node.oauth.required-scopes must be a
+            non-blank scope value, for example:
+
+              io.sapl.node.oauth.required-scopes=sapl:pdp
+
+            Remove the blank entry, or remove the property entirely to
+            disable the scope gate.""";
+
+    private static final String ERROR_INVALID_PDP_ID_CLAIM  = "SAPL Node refused to start. io.sapl.node.oauth.pdp-id-claim is not a valid claim name or claim path.";
+    private static final String ACTION_INVALID_PDP_ID_CLAIM = """
+            The value must be a non-blank claim name or a dot-separated path
+            into nested claims without empty segments, for example:
+
+              io.sapl.node.oauth.pdp-id-claim=sapl_pdp_id
+              io.sapl.node.oauth.pdp-id-claim=resource_access.sapl.tenant""";
 
     private static final String ERROR_JWT_ISSUER_REQUIRED  = "SAPL Node refused to start. OAuth2 is enabled but no JWT issuer URI is configured.";
     private static final String ACTION_JWT_ISSUER_REQUIRED = """
@@ -272,6 +298,7 @@ public class SecurityConfiguration {
             if (jwtIssuerURI == null) {
                 throw new SaplStartupConfigurationException(ERROR_JWT_ISSUER_REQUIRED, ACTION_JWT_ISSUER_REQUIRED);
             }
+            validateOauthAccessConfiguration();
             val converter = new SaplJwtAuthenticationConverter(pdpProperties);
             http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(skipSaplApiKeyResolver())
                     .jwt(jwt -> jwt.jwtAuthenticationConverter(converter)));
@@ -322,10 +349,10 @@ public class SecurityConfiguration {
         }
         return new SupplierJwtDecoder(() -> {
             try {
-                val decoder   = (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(jwtIssuerURI);
-                val audiences = pdpProperties.getOauth().getAudiences();
-                decoder.setJwtValidator(
-                        jwtValidator(jwtIssuerURI, audiences, pdpProperties.getOauth().isAllowJwtWithoutExpiry()));
+                val decoder = (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(jwtIssuerURI);
+                val oauth   = pdpProperties.getOauth();
+                decoder.setJwtValidator(jwtValidator(jwtIssuerURI, oauth.getAudiences(), oauth.getRequiredScopes(),
+                        oauth.isAllowJwtWithoutExpiry()));
                 return decoder;
             } catch (Exception e) {
                 log.warn("OIDC discovery against issuer {} failed: {}; OAuth2 token validation will retry on the next "
@@ -336,27 +363,78 @@ public class SecurityConfiguration {
     }
 
     /**
+     * Fails startup on a malformed OAuth access configuration, so a claim path
+     * that could never match or a blank required scope surfaces immediately
+     * instead of rejecting every token at runtime.
+     */
+    void validateOauthAccessConfiguration() {
+        val oauth = pdpProperties.getOauth();
+        try {
+            JwtClaimPaths.requireValidPath(oauth.getPdpIdClaim());
+        } catch (IllegalArgumentException e) {
+            throw new SaplStartupConfigurationException(ERROR_INVALID_PDP_ID_CLAIM, ACTION_INVALID_PDP_ID_CLAIM, e);
+        }
+        if (oauth.getRequiredScopes().stream().anyMatch(scope -> scope == null || scope.isBlank())) {
+            throw new SaplStartupConfigurationException(ERROR_BLANK_REQUIRED_SCOPE, ACTION_BLANK_REQUIRED_SCOPE);
+        }
+    }
+
+    /**
      * Builds the token validator for the configured issuer. The node rejects
      * tokens without an {@code exp} claim unless the explicit insecure opt-in is
      * set, matching the raw PDP HTTP and RSocket paths. When the audience allowlist
      * is non-empty, the validator also rejects tokens minted for a different
-     * resource server on the same issuer.
+     * resource server on the same issuer. When required scopes are configured,
+     * tokens carrying none of them are rejected, turning a valid token from a
+     * blanket grant into scoped PDP access.
      *
      * @param issuer the expected token issuer
      * @param audiences the accepted audience values, or empty to disable the check
+     * @param requiredScopes scopes granting PDP access, at least one must be
+     * present on the token, or empty to disable the check
      * @param allowJwtWithoutExpiry true to accept JWTs without an {@code exp} claim
      * @return the combined token validator
      */
-    static OAuth2TokenValidator<Jwt> jwtValidator(String issuer, List<String> audiences,
+    static OAuth2TokenValidator<Jwt> jwtValidator(String issuer, List<String> audiences, List<String> requiredScopes,
             boolean allowJwtWithoutExpiry) {
         val timestampValidator = new JwtTimestampValidator();
         timestampValidator.setAllowEmptyExpiryClaim(allowJwtWithoutExpiry);
-        val issuerValidator = new JwtIssuerValidator(issuer);
-        if (audiences.isEmpty()) {
-            return JwtValidators.createDefaultWithValidators(List.of(timestampValidator, issuerValidator));
+        val validators = new ArrayList<OAuth2TokenValidator<Jwt>>();
+        validators.add(timestampValidator);
+        validators.add(new JwtIssuerValidator(issuer));
+        if (!audiences.isEmpty()) {
+            validators.add(new JwtClaimValidator<Object>(JwtClaimNames.AUD,
+                    aud -> aud instanceof List<?> audienceList && !Collections.disjoint(audienceList, audiences)));
         }
-        val audienceCheck = new JwtClaimValidator<Object>(JwtClaimNames.AUD,
-                aud -> aud instanceof List<?> audienceList && !Collections.disjoint(audienceList, audiences));
-        return JwtValidators.createDefaultWithValidators(List.of(timestampValidator, issuerValidator, audienceCheck));
+        if (!requiredScopes.isEmpty()) {
+            validators.add(requiredScopesValidator(requiredScopes));
+        }
+        return JwtValidators.createDefaultWithValidators(validators);
+    }
+
+    private static OAuth2TokenValidator<Jwt> requiredScopesValidator(List<String> requiredScopes) {
+        val insufficientScope = new OAuth2Error(OAuth2ErrorCodes.INSUFFICIENT_SCOPE,
+                "The token carries none of the scopes required for PDP access.", null);
+        return jwt -> Collections.disjoint(tokenScopes(jwt), requiredScopes)
+                ? OAuth2TokenValidatorResult.failure(insufficientScope)
+                : OAuth2TokenValidatorResult.success();
+    }
+
+    /**
+     * Extracts the token's scopes, accepting both common claim shapes: a
+     * space-delimited {@code scope} string (RFC 8693) and an {@code scp} array
+     * (Azure AD, Okta). Mirrors Spring Security's authorities converter.
+     */
+    private static Collection<String> tokenScopes(Jwt jwt) {
+        for (val claimName : List.of(CLAIM_SCOPE, CLAIM_SCP)) {
+            val claimValue = jwt.getClaim(claimName);
+            if (claimValue instanceof String scopeString) {
+                return Arrays.asList(scopeString.split(" "));
+            }
+            if (claimValue instanceof Collection<?> scopeCollection) {
+                return scopeCollection.stream().map(String::valueOf).toList();
+            }
+        }
+        return List.of();
     }
 }

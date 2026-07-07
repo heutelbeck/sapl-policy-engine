@@ -167,7 +167,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
                     new ThreadLocalRandomIdFactory());
             pdpVoterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, """
                     policy "permit cultists" permit subject == "cultist";
-                    """), false);
+                    """));
 
             val multi = new MultiAuthorizationSubscription();
             multi.addSubscription("first", subscription("cultist", "summon", "deep_one"));

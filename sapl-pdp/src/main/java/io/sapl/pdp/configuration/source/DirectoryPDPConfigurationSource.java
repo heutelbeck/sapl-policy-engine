@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration.source;
 
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.NonNull;
@@ -42,8 +43,15 @@ import java.util.function.Consumer;
  * The source monitors a directory for .sapl policy files and a required
  * pdp.json configuration file. The first {@link #subscribe(Consumer)}
  * loads the initial configuration and starts file monitoring. Subsequent
- * file changes emit a fresh {@link ConfigurationEvent.Load} to all
+ * file changes emit a fresh {@link ConfigurationEvent.NewConfiguration} to all
  * subscribers.
+ * </p>
+ * <p>
+ * This filesystem source is a convenience for development and experimentation. It
+ * hot-reloads plain, unsigned policy files with no integrity or atomicity
+ * guarantees, so an editor writing a file in place can be observed mid-write.
+ * Enterprise and production deployments should use signed bundles instead, via
+ * {@link BundlePDPConfigurationSource} or {@link RemoteBundlePDPConfigurationSource}.
  * </p>
  * <h2>Directory Layout</h2>
  *
@@ -191,15 +199,21 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
         } catch (Exception e) {
             // Intentionally not rethrowing: the file monitor started below will
             // detect corrected files and automatically reload a valid configuration.
+            // The current content is definitively broken, so report it in the meantime.
             log.error(ERROR_FAILED_TO_LOAD_INITIAL_CONFIGURATION, pdpId, e.getMessage(), e);
+            emit(new ConfigurationEvent.ConfigurationError(pdpId, reasonOf(e)));
         }
         startFileMonitor();
     }
 
     private void loadAndEmit() {
         val config = PDPConfigurationLoader.loadFromDirectory(directoryPath, pdpId);
-        emit(new ConfigurationEvent.Load(config, true));
+        emit(new ConfigurationEvent.NewConfiguration(config));
         log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
+    }
+
+    private static String reasonOf(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
     private void emit(ConfigurationEvent event) {
@@ -237,7 +251,10 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             return false;
         }
         val name = file.getName();
-        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name);
+        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name)
+                || ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(name) || ExtensionFiles.SECRETS_FILE.equals(name)
+                || ExtensionFiles.SEALED_SECRETS_FILE.equals(name) || ExtensionFiles.isExtensionFile(name)
+                || ExtensionFiles.isExtensionSecretsFile(name) || ExtensionFiles.isSealedExtensionSecretsFile(name);
     }
 
     private void stopMonitorSafely() {
@@ -283,7 +300,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
                 // watching so a recreation reloads the configuration.
                 if (directoryPresent.compareAndSet(true, false)) {
                     log.error(ERROR_DIRECTORY_MISSING, pdpId, directoryPath);
-                    emit(new ConfigurationEvent.Remove(pdpId));
+                    emit(new ConfigurationEvent.ConfigurationRemoved(pdpId));
                 }
                 return;
             }
@@ -321,6 +338,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
                 log.info("Reloaded PDP configuration '{}'.", pdpId);
             } catch (Exception e) {
                 log.error("Failed to reload configuration for PDP '{}': {}.", pdpId, e.getMessage(), e);
+                emit(new ConfigurationEvent.ConfigurationError(pdpId, reasonOf(e)));
             }
         }
     }

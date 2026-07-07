@@ -201,6 +201,20 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    @DisplayName("a malformed pdp.json is reported as a configuration error, not a configuration")
+    void whenPdpJsonMalformedThenConfigurationErrorEmitted() throws IOException {
+        createFile(tempDir.resolve("pdp.json"), "{ this is not valid json");
+        createFile(tempDir.resolve("policy.sapl"), "policy \"p\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+
+        assertThat(capture.errors()).singleElement().satisfies(error -> assertThat(error.pdpId()).isEqualTo("default"));
+        assertThat(capture.configs()).isEmpty();
+    }
+
+    @Test
     void whenFileIsModifiedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
@@ -266,6 +280,24 @@ class DirectoryPDPConfigurationSourceTests {
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
                 .last().satisfies(config -> assertThat(config.saplDocuments()).hasSize(2)));
+    }
+
+    @Test
+    @DisplayName("adding an extension file triggers a reload that carries the extension")
+    void whenExtensionFileAddedThenConfigurationCarriesExtension() throws IOException {
+        writePdpJson(tempDir);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val configs = captureConfigurations(source);
+
+        assertThat(configs).hasSize(1).first().satisfies(config -> assertThat(config.extensions()).isEmpty());
+
+        createFile(tempDir.resolve("ext-upstreams.json"), """
+                { "servers": [] }""");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
+                .last().satisfies(config -> assertThat(config.extensions()).containsKey("upstreams")));
     }
 
     @Test

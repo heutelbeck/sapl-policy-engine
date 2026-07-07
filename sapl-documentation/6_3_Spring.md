@@ -23,7 +23,7 @@ This walkthrough shows how the pieces fit together end to end.
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.1.2</version>
+            <version>4.2.0-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -1201,10 +1201,11 @@ The mapping from PDP states to overall health.
 | PDP State | Health Status | Meaning |
 |---|---|---|
 | All `LOADED` | `UP` | All PDPs have successfully compiled their policies. |
-| Any `STALE` | `UP` (with warning) | A policy reload failed, but the PDP is still serving the previous valid configuration. |
+| Any `STALE` | `UP` (with warning) | A configuration update failed (a policy that did not compile, or a source-reported error such as an invalid signature or a malformed bundle), but the PDP is still serving the previous valid configuration. |
+| Any `AWAITING_PLUGINS` | `DOWN` | A configuration was accepted but is not yet compiled because the plugins have not been delivered yet. This is normally a brief startup state. |
 | Any `ERROR` or no PDPs | `DOWN` | A PDP has no valid configuration and is returning `INDETERMINATE` decisions. |
 
-Each PDP's details include the configuration ID, combining algorithm, document count, and timestamps for the last successful and failed loads. This information appears in the health endpoint response under the `sapl` component.
+Each PDP's details include the configuration ID, combining algorithm, document count, timestamps for the last successful and failed loads, and `lastError`, a human-readable reason for the last failed load (a compile error or a source-reported configuration error). This information appears in the health endpoint response under the `sapl` component.
 
 No additional configuration is needed. The health indicator is active whenever `spring-boot-starter-actuator` is a dependency and `io.sapl.pdp.embedded.enabled` is `true` (the default).
 

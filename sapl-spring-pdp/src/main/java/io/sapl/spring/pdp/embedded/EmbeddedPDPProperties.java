@@ -103,6 +103,12 @@ public class EmbeddedPDPProperties {
     private BundleSecurityProperties bundleSecurity = new BundleSecurityProperties();
 
     /**
+     * Secrets decryption configuration. Used to unseal bundle secrets sealed with
+     * this PDP's (or its cluster's) X25519 recipient public key.
+     */
+    private SecretsProperties secrets = new SecretsProperties();
+
+    /**
      * Configuration for remote bundle fetching.
      * Only used when pdpConfigType is REMOTE_BUNDLES.
      */
@@ -139,6 +145,36 @@ public class EmbeddedPDPProperties {
          */
         REMOTE_BUNDLES
 
+    }
+
+    /**
+     * Secrets decryption configuration for bundles whose secrets are sealed to
+     * this PDP's X25519 recipient public key.
+     */
+    @Data
+    public static class SecretsProperties {
+
+        /**
+         * Path to the X25519 recipient private key file (JWK) used to unseal bundle
+         * secrets. If unset, secrets are left as {@code ENC[...]} tokens.
+         */
+        private String privateKeyPath;
+
+        /**
+         * The X25519 recipient private key as a JWK string. Alternative to
+         * privateKeyPath for containerized deployments where the key is injected via
+         * environment variable.
+         */
+        private String privateKey;
+
+        /**
+         * Accept configurations whose secrets are not sealed.
+         * <p>
+         * WARNING: When a decryption key is configured, cleartext secrets are refused
+         * by default. Enabling this accepts them. Only use in trusted or development
+         * environments.
+         */
+        private boolean acceptUnencrypted = false;
     }
 
     /**
@@ -305,6 +341,33 @@ public class EmbeddedPDPProperties {
          */
         private Duration maxBackoff = Duration.ofSeconds(5);
 
+        /**
+         * The realm identifier. Required in MULTI mode; the signed index must
+         * declare this realm.
+         */
+        private String realm;
+
+        /**
+         * The path of the signed realm index, appended to baseUrl. Required in
+         * MULTI mode.
+         */
+        private String indexPath = "index";
+
+        /**
+         * Wall-clock duration without any successful contact (a 200 or 304) after
+         * which a pdpId is marked stale and a health warning is raised, while the
+         * last-good configuration keeps serving. When unset, a value derived from
+         * the effective poll or long-poll cadence is used.
+         */
+        private Duration staleAfterNoContact;
+
+        /**
+         * Wall-clock duration without any successful contact after which a pdpId
+         * fails closed. Off by default. When set, it must be greater than
+         * {@link #staleAfterNoContact}.
+         */
+        private Duration failClosedAfterNoContact;
+
     }
 
     /**
@@ -314,7 +377,9 @@ public class EmbeddedPDPProperties {
         /** Regular interval-based polling. */
         POLLING,
         /** Long-poll GET with automatic reconnect on timeout. */
-        LONG_POLL
+        LONG_POLL,
+        /** Monitor a signed realm index and fetch its dynamic set of bundles. */
+        MULTI
     }
 
     /**

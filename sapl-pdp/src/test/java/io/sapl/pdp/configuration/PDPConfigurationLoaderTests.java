@@ -65,6 +65,101 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
+    @DisplayName("extension files in the directory are loaded into the configuration")
+    void whenDirectoryHasExtensionFilesThenLoadedIntoConfiguration() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("ext-upstreams.json"), """
+                { "servers": [] }""");
+        Files.writeString(tempDir.resolve("ext-upstreams-secrets.json"), """
+                { "apiKey": "ENC[value]" }""");
+        Files.writeString(tempDir.resolve("critical-extensions.json"), """
+                ["upstreams"]""");
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
+
+        assertThat(config.extensions()).containsKey("upstreams");
+        assertThat(config.extensionSecrets()).containsKey("upstreams");
+        assertThat(config.criticalExtensions()).containsExactly("upstreams");
+    }
+
+    @Test
+    @DisplayName("a secrets.json file is loaded into the PDP data")
+    void whenDirectoryHasSecretsFileThenLoaded() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("secrets.json"), """
+                { "apiKey": "cleartext-value" }""");
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
+
+        assertThat(config.data().secrets()).containsKey("apiKey");
+    }
+
+    @Test
+    @DisplayName("a secrets.sealed.json file with sealed content is loaded into the PDP data")
+    void whenDirectoryHasSealedSecretsFileThenLoaded() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("secrets.sealed.json"), """
+                { "apiKey": "ENC[ciphertext]" }""");
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
+
+        assertThat(config.data().secrets()).containsKey("apiKey");
+    }
+
+    @Test
+    @DisplayName("a sealed-named secrets file with plaintext content is rejected")
+    void whenSealedNamedSecretsFileHasPlaintextThenThrows() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("secrets.sealed.json"), """
+                { "apiKey": "cleartext-value" }""");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("content is not sealed");
+    }
+
+    @Test
+    @DisplayName("a directory mixing sealed and plaintext secrets files is rejected")
+    void whenDirectoryMixesSealingThenThrows() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("secrets.sealed.json"), """
+                { "apiKey": "ENC[ciphertext]" }""");
+        Files.writeString(tempDir.resolve("ext-upstreams.json"), "{}");
+        Files.writeString(tempDir.resolve("ext-upstreams-secrets.json"), """
+                { "apiKey": "cleartext" }""");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("mixes sealed and plaintext");
+    }
+
+    @Test
+    @DisplayName("a pdp.json with an inline secrets section is rejected")
+    void whenPdpJsonHasInlineSecretsThenThrows() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1", "secrets": { "k": "v" } }""");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("must not contain a 'secrets' section");
+    }
+
+    @Test
+    @DisplayName("a critical extension without any payload file is rejected")
+    void whenDirectoryCriticalExtensionMissingPayloadThenThrows() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("critical-extensions.json"), """
+                ["upstreams"]""");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Critical extension 'upstreams'");
+    }
+
+    @Test
     @DisplayName("an explicit null algorithm degrades gracefully to the default, like an absent field (run2-078)")
     void whenLoadingWithExplicitNullAlgorithmThenFallsBackToDefault() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
@@ -291,7 +386,7 @@ class PDPConfigurationLoaderTests {
                 """;
         val saplDocuments = Map.of("one.sapl", "policy \"one\" permit", "two.sapl", "policy \"two\" permit");
 
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromBundle(pdpJson, saplDocuments, "test-pdp"))
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromBundle(pdpJson, null, saplDocuments, "test-pdp"))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("File count exceeds maximum");
     }
 

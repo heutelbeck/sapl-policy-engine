@@ -20,8 +20,10 @@ package io.sapl.node.http;
 import java.time.Duration;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,10 +31,14 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import jakarta.servlet.Servlet;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.auth.UserLookupService;
 import io.sapl.node.auth.http.CachingHttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthHandler;
+import io.sapl.node.limits.ConcurrencyLimit;
+import io.sapl.node.limits.RateLimit;
+import io.sapl.node.limits.RejectionReporter;
 import io.sapl.node.http.pdp.DecideOnceServlet;
 import io.sapl.node.http.pdp.DecideStreamServlet;
 import io.sapl.node.http.pdp.MultiDecideAllOnceServlet;
@@ -72,6 +78,44 @@ class PdpHttpEndpointConfiguration {
         val registration = new FilterRegistrationBean<>(new RequestBodySizeLimitFilter(maxRequestBodyBytes));
         registration.addUrlPatterns("/api/pdp/*", "/access/v1/*");
         registration.setName("requestBodySizeLimitFilter");
+        return registration;
+    }
+
+    @Bean
+    ServletContextInitializer sseStreamLimitFilter(
+            @Value("${io.sapl.node.limits.http.sse.max-concurrent-streams:0}") int maxConcurrentStreams,
+            ObjectProvider<MeterRegistry> meterRegistry) {
+        // Non-positive means unbounded. The no-op initializer registers no
+        // filter, so an unlimited node runs the identical request path as
+        // before. A runtime check instead of @Conditional keeps this correct in
+        // GraalVM native images, and the servlet bootstrap collects these beans
+        // by type, so returning null is not an option here.
+        if (maxConcurrentStreams <= 0) {
+            return servletContext -> {};
+        }
+        val reporter     = new RejectionReporter("http-sse-streams",
+                "concurrent SSE decision streams limited to " + maxConcurrentStreams, meterRegistry.getIfAvailable());
+        val registration = new FilterRegistrationBean<>(
+                new SseStreamLimitFilter(new ConcurrencyLimit(maxConcurrentStreams), reporter));
+        registration.addUrlPatterns("/api/pdp/decide", "/api/pdp/multi-decide", "/api/pdp/multi-decide-all");
+        registration.setName("sseStreamLimitFilter");
+        return registration;
+    }
+
+    @Bean
+    ServletContextInitializer requestRateLimitFilter(
+            @Value("${io.sapl.node.limits.http.requests-per-second:0}") int requestsPerSecond,
+            ObjectProvider<MeterRegistry> meterRegistry) {
+        // Non-positive means unbounded, same no-op pattern as the SSE cap.
+        if (requestsPerSecond <= 0) {
+            return servletContext -> {};
+        }
+        val reporter     = new RejectionReporter("http-requests",
+                "unary HTTP requests limited to " + requestsPerSecond + " per second", meterRegistry.getIfAvailable());
+        val registration = new FilterRegistrationBean<>(
+                new RequestRateLimitFilter(new RateLimit(requestsPerSecond), reporter));
+        registration.addUrlPatterns("/api/pdp/decide-once", "/api/pdp/multi-decide-all-once");
+        registration.setName("requestRateLimitFilter");
         return registration;
     }
 

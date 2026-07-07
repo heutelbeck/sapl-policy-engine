@@ -42,7 +42,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.sapl</groupId>
 	<artifactId>sapl-policy-engine</artifactId>
-	<version>4.1.2</version>
+	<version>4.2.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Streaming Attribute Policy Language (SAPL) Engine</name>
 	<description>Authorization Engine for Attribute Stream-Based Access Control
@@ -592,6 +592,9 @@
 					<groupId>net.revelc.code.formatter</groupId>
 					<artifactId>formatter-maven-plugin</artifactId>
 					<version>${formatter-maven-plugin.version}</version>
+					<configuration>
+						<configFile>eclipse/formatter.xml</configFile>
+					</configuration>
 					<dependencies>
 						<dependency>
 							<groupId>io.sapl</groupId>
@@ -604,9 +607,6 @@
 							<goals>
 								<goal>format</goal>
 							</goals>
-							<configuration>
-								<configFile>eclipse/formatter.xml</configFile>
-							</configuration>
 						</execution>
 					</executions>
 				</plugin>
@@ -761,6 +761,7 @@
 		<module>sapl-api</module>
 		<module>sapl-api-proto</module>
 		<module>sapl-api-test</module>
+		<module>sapl-secrets</module>
 		<module>sapl-attribute-utils</module>
 		<module>sapl-parser</module>
 		<module>sapl-pdp</module>

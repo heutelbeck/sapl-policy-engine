@@ -113,7 +113,7 @@ public class PlaygroundConfigurationSource {
         val configId      = String.valueOf(configurationVersion.incrementAndGet());
         val configuration = new PDPConfiguration(PDP_ID, configId, currentAlgorithm.get(), currentPolicySources.get(),
                 buildPdpData());
-        pdpVoterSource.loadConfiguration(configuration, true);
+        pdpVoterSource.loadConfiguration(configuration);
     }
 
     /**

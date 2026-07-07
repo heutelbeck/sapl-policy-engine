@@ -16,7 +16,7 @@ The PDP reports one of three operational states:
 | State | Meaning | Health Status |
 |-------|---------|---------------|
 | `LOADED` | Policies compiled and active. The PDP is fully operational. | UP |
-| `STALE` | A hot reload failed, but the PDP is still serving decisions from the previous valid configuration. | UP (with warning) |
+| `STALE` | A configuration update failed and the PDP is still serving decisions from the previous valid configuration. The update can fail because a policy did not compile, or because a source could not deliver a usable configuration (for example an invalid signature, a malformed bundle, a missing `pdp.json`, or secrets that could not be unsealed). | UP (with warning) |
 | `ERROR` | No valid configuration loaded. The PDP cannot make valid authorization decisions and serves INDETERMINATE. | DOWN |
 
 In multi tenant deployments, the health indicator aggregates the state of all PDP instances. If all instances are `LOADED`, health is UP. If any instance is `STALE` while none are `ERROR`, health is UP with a warning detail. If any instance is `ERROR`, health is DOWN.
@@ -31,7 +31,7 @@ The health endpoint returns detail fields for each PDP instance:
 | `documentCount` | Number of SAPL documents in the active configuration. |
 | `lastSuccessfulLoad` | Timestamp of the last successful configuration load. |
 | `lastFailedLoad` | Timestamp of the last failed configuration load. Absent if no failure occurred. |
-| `lastError` | Error message from the last failed load. Absent if no failure occurred. |
+| `lastError` | Human-readable reason for the last failed load, whether a policy compile error or a source-reported configuration error (for example a signature or bundle validity failure). Absent if no failure occurred. |
 
 Example health response with one loaded and one stale PDP:
 
@@ -66,7 +66,7 @@ Example health response with one loaded and one stale PDP:
             "documentCount": 3,
             "lastSuccessfulLoad": "2026-03-10T07:00:00Z",
             "lastFailedLoad": "2026-03-10T08:10:00Z",
-            "lastError": "Parse error in staging-policy.sapl at line 5"
+            "lastError": "Bundle signature verification failed for staging bundle v6"
           }
         }
       }
@@ -101,7 +101,7 @@ spec:
     spec:
       containers:
         - name: sapl
-          image: ghcr.io/heutelbeck/sapl-node:4.1.2
+          image: ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
           ports:
             - containerPort: 8443
           livenessProbe:
@@ -141,6 +141,8 @@ SAPL Node exposes four custom Prometheus metrics covering the golden signals for
 | `sapl.subscription.duration` | Timer | | Total lifetime of completed subscriptions. |
 
 These metrics cover both one shot (`decide-once`) and streaming (`decide`) endpoints. Standard Spring Boot HTTP metrics (`http.server.requests`) are also available for request level monitoring.
+
+When admission limits are configured, the node additionally exposes the `sapl.limits.rejections` counter. It counts requests and connections shed by the configured caps and rate limits and is tagged with the `surface` that rejected the load (`http-sse-streams`, `http-requests`, `rsocket-connections`, `rsocket-streams`, `rsocket-requests`). Alert on this counter to detect clients running into the limits. See [Admission Limits and Rate Limiting](../7_2_Configuration/#admission-limits-and-rate-limiting).
 
 Enable metrics in `application.yml`:
 

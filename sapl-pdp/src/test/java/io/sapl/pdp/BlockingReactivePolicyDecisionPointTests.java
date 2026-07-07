@@ -364,7 +364,7 @@ class BlockingReactivePolicyDecisionPointTests {
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
-        pdpVoterSource.loadConfiguration(configuration(algorithm, policies), false);
+        pdpVoterSource.loadConfiguration(configuration(algorithm, policies));
     }
 
     private static RepositoryKey environmentAttribute(String attributeName) {
