@@ -80,7 +80,11 @@ final class SseStreamLimitFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(trackedRequest, response);
         } finally {
-            if (!trackedRequest.permitFollowsAsyncLifecycle) {
+            // While async processing is active, the listener registered at
+            // startAsync owns the release. An async lifecycle that already
+            // completed releases here a second time, which the idempotent
+            // permit absorbs.
+            if (!trackedRequest.isAsyncStarted()) {
                 permit.close();
             }
         }
@@ -90,8 +94,6 @@ final class SseStreamLimitFilter extends OncePerRequestFilter {
 
         private final ConcurrencyLimit.Permit permit;
 
-        private volatile boolean permitFollowsAsyncLifecycle;
-
         PermitTrackingRequest(HttpServletRequest request, ConcurrencyLimit.Permit permit) {
             super(request);
             this.permit = permit;
@@ -99,18 +101,20 @@ final class SseStreamLimitFilter extends OncePerRequestFilter {
 
         @Override
         public AsyncContext startAsync() {
-            return bindPermit(super.startAsync());
+            val asyncContext = super.startAsync();
+            releasePermitOnCompletion(asyncContext);
+            return asyncContext;
         }
 
         @Override
         public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) {
-            return bindPermit(super.startAsync(servletRequest, servletResponse));
+            val asyncContext = super.startAsync(servletRequest, servletResponse);
+            releasePermitOnCompletion(asyncContext);
+            return asyncContext;
         }
 
-        private AsyncContext bindPermit(AsyncContext asyncContext) {
+        private void releasePermitOnCompletion(AsyncContext asyncContext) {
             asyncContext.addListener(new PermitReleasingListener(permit));
-            permitFollowsAsyncLifecycle = true;
-            return asyncContext;
         }
     }
 

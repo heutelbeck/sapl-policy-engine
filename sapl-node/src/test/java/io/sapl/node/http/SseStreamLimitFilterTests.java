@@ -144,6 +144,7 @@ class SseStreamLimitFilterTests {
         val capturedListener = new AtomicReference<AsyncListener>();
         lenient().when(originalRequest.startAsync()).thenReturn(asyncContext);
         lenient().when(originalRequest.startAsync(any(), any())).thenReturn(asyncContext);
+        lenient().when(originalRequest.isAsyncStarted()).thenReturn(true);
         doAnswer(invocation -> {
             val wrapped = invocation.<HttpServletRequest>getArgument(0);
             asyncStart.start(wrapped);
