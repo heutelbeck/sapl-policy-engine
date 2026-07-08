@@ -185,8 +185,11 @@ class SseStreamServletTests {
             val response = mock(HttpServletResponse.class);
             // the writer is fetched lazily on the first frame write, which may not happen
             // here
+            // getWriter and getResponse are both on the lazy first-frame-write path,
+            // which the expiry-driven teardown may reach only after the invariant below
+            // is already observed. Both are conditional stubs, so both are lenient.
             lenient().when(response.getWriter()).thenReturn(new PrintWriter(Writer.nullWriter()));
-            when(asyncContext.getResponse()).thenReturn(response);
+            lenient().when(asyncContext.getResponse()).thenReturn(response);
             // exp 300ms out, keep-alive 30s, so only the expiry timer closes the stream in
             // the await window
             when(authHandler.authenticate(any()))
