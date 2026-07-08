@@ -1355,9 +1355,11 @@ jobs:
 
       - name: Move snapshot-node tag to current commit
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git tag -f snapshot-node
-          git push origin snapshot-node --force
+          gh api -X PATCH "repos/${{ github.repository }}/git/refs/tags/snapshot-node" \
+            -f sha="${{ github.sha }}" -F force=true
 
       - name: Create release
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
@@ -1511,9 +1513,11 @@ jobs:
 
       - name: Move snapshot tag to current commit
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git tag -f snapshot
-          git push origin snapshot --force
+          gh api -X PATCH "repos/${{ github.repository }}/git/refs/tags/snapshot" \
+            -f sha="${{ github.sha }}" -F force=true
 
       - name: Create release
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
