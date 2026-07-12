@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp;
 
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -32,6 +34,7 @@ import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
+import org.jspecify.annotations.Nullable;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.attributes.broker.pip.PipLoadException;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
@@ -40,9 +43,15 @@ import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.EmptyExtensionsProcessor;
+import io.sapl.pdp.configuration.ExtensionsProcessor;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.realm.InMemoryRealmSequenceStore;
+import io.sapl.pdp.configuration.realm.RealmSequenceStore;
 import io.sapl.pdp.configuration.source.*;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSource;
@@ -60,6 +69,7 @@ import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -72,7 +82,7 @@ import java.util.List;
  *         .withPolicyInformationPoint(new MyCustomPIP()).build();
  *
  * var pdp = pdpComponents.pdp();
- * pdpComponents.pdpRegister().loadConfiguration(pdpConfiguration, false);
+ * pdpComponents.pdpVoterSource().loadConfiguration(pdpConfiguration);
  * }</pre>
  *
  * <h2>Configuration Sources</h2>
@@ -128,16 +138,26 @@ public class PolicyDecisionPointBuilder {
 
     private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
     private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
+    private ExtensionsProcessor                       extensionsProcessor  = new EmptyExtensionsProcessor();
 
     private PDPConfigurationSource       configurationSource;
     private final List<PDPConfiguration> initialConfigurations = new ArrayList<>();
+    private RealmSequenceStore           realmSequenceStore    = new InMemoryRealmSequenceStore();
 
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
-    private static final String ERROR_NO_PLUGINS_AVAILABLE      = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
-    private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
-    private static final String WARN_ERROR_CLOSING_RESOURCE     = "Error closing {} during failed PDP build: {}.";
+    private OctetKeyPair secretsDecryptionKey;
+    private boolean      acceptUnencryptedSecrets;
+
+    private static final String ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE  = "Secrets decryption key must contain a private key component.";
+    private static final String ERROR_DECRYPTION_KEY_MUST_BE_X25519   = "Secrets decryption key must be an X25519 key.";
+    private static final String ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL = "Secrets decryption key must not be null.";
+    private static final String ERROR_INITIAL_CONFIGURATION_FAILED    = "The initial configuration for pdpId '%s' failed to compile: %s";
+    private static final String ERROR_NO_PLUGINS_AVAILABLE            = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
+    private static final String ERROR_SOURCE_ALREADY_REGISTERED       = "A configuration source has already been registered. Only one source is allowed.";
+    private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS    = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
+    private static final String WARN_ERROR_CLOSING_RESOURCE           = "Error closing {} during failed PDP build: {}.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper) {
         this.mapper = mapper;
@@ -427,6 +447,22 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
+     * Sets the extension processor through which the PDP coordinates
+     * bundle-carried extension data with the host. Defaults to
+     * {@link EmptyExtensionsProcessor}, which is a no-op for configurations
+     * without critical capabilities and rejects any that declare one it cannot
+     * deploy. A configuration goes live only when its policies compile and the
+     * processor accepts its extension slice. See {@link ExtensionsProcessor}.
+     *
+     * @param extensionsProcessor the extension processor
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withExtensionsProcessor(ExtensionsProcessor extensionsProcessor) {
+        this.extensionsProcessor = Objects.requireNonNull(extensionsProcessor, "extensionsProcessor");
+        return this;
+    }
+
+    /**
      * Adds a subscription lifecycle listener that receives one
      * {@code onSubscribe} call when an authorization subscription stream
      * begins and one {@code onUnsubscribe} call when it ends.
@@ -482,6 +518,55 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
+     * Sets the X25519 recipient private key with which this PDP unseals the secrets
+     * of the configurations it consumes.
+     * <p>
+     * The key is the identity of the recipient (this PDP, or the cluster that shares
+     * it). Bundles whose secrets were sealed to the matching public key via
+     * {@code BundleBuilder.sealSecretsWith} are decrypted as they are ingested,
+     * after the source has verified them. Sources are unaffected. When no key is
+     * configured, sealed secrets are left as {@code ENC[...]} tokens.
+     *
+     * @param recipientPrivateKey
+     * the X25519 recipient private key
+     *
+     * @return this builder
+     *
+     * @throws IllegalArgumentException
+     * if the key is null, not X25519, or has no private component
+     */
+    public PolicyDecisionPointBuilder withSecretsDecryptionKey(OctetKeyPair recipientPrivateKey) {
+        if (recipientPrivateKey == null) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL);
+        }
+        if (!Curve.X25519.equals(recipientPrivateKey.getCurve())) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_BE_X25519);
+        }
+        if (!recipientPrivateKey.isPrivate()) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE);
+        }
+        this.secretsDecryptionKey = recipientPrivateKey;
+        return this;
+    }
+
+    /**
+     * Opts into accepting configurations whose secrets are not sealed.
+     * <p>
+     * By default, once a {@link #withSecretsDecryptionKey decryption key} is
+     * configured, a configuration carrying secrets in cleartext is rejected as it is
+     * ingested. This opt-in relaxes that check for trusted or development
+     * environments and logs a warning. It has no effect when no decryption key is
+     * configured.
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder acceptUnencryptedSecrets() {
+        this.acceptUnencryptedSecrets = true;
+        log.warn(WARN_ACCEPTING_UNENCRYPTED_SECRETS);
+        return this;
+    }
+
+    /**
      * Loads policies from a filesystem directory. The directory should contain
      * pdp.json (optional) and .sapl files.
      * Changes are monitored and hot-reloaded.
@@ -500,7 +585,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * The configuration ID is determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code dir:<path>@<timestamp>@sha256:<hash>}
+     * {@code dir:<path>@<timestamp>}
      * </p>
      *
      * @param directoryPath
@@ -589,7 +674,25 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withRemoteBundleSource(RemoteBundleSourceConfig config) {
-        return withConfigurationSource(new RemoteBundlePDPConfigurationSource(config));
+        return withConfigurationSource(new RemoteBundlePDPConfigurationSource(config, realmSequenceStore));
+    }
+
+    /**
+     * Sets the store that holds the realm index anti-rollback sequence for
+     * {@code REMOTE_BUNDLES} in realm ({@code MULTI}) mode. Defaults to
+     * {@link InMemoryRealmSequenceStore}, which keeps the baseline only in memory
+     * and so resets on restart. Provide a persistent implementation to preserve
+     * the anti-rollback baseline across restarts. Must be set before
+     * {@link #withRemoteBundleSource(RemoteBundleSourceConfig)}.
+     *
+     * @param realmSequenceStore
+     * the store to use
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withRealmSequenceStore(RealmSequenceStore realmSequenceStore) {
+        this.realmSequenceStore = Objects.requireNonNull(realmSequenceStore, "realmSequenceStore");
+        return this;
     }
 
     /**
@@ -600,7 +703,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @param resourcePath
@@ -617,7 +720,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @return this builder
@@ -768,11 +871,17 @@ public class PolicyDecisionPointBuilder {
         // into a separate one.
         val resolvedTimestampSource = timestampSource != null ? timestampSource : clock;
         val ownsResolvedSource      = ownsTimestampSource;
-        val attributeBroker         = resolveAttributeBroker(resolvedTimestampSource);
+        val resolvedBroker          = resolveAttributeBroker(resolvedTimestampSource);
+        val attributeBroker         = resolvedBroker.broker();
         val pluginsSource           = resolvePluginsSource();
         val ownsPluginsSource       = externalPluginsSource == null;
-        val voterSource             = new PdpVoterSource(pluginsSource, clock);
-        val blockingPdp             = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
+        val voterSource             = new PdpVoterSource(pluginsSource, clock, extensionsProcessor);
+        // Wrap the configured source so secrets are unsealed at the source
+        // boundary. Downstream, the compiler included, only ever sees cleartext.
+        val effectiveSource = secretsDecryptionKey != null && configurationSource != null
+                ? new SecretsUnsealingSource(configurationSource, secretsDecryptionKey, acceptUnencryptedSecrets)
+                : configurationSource;
+        val blockingPdp     = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
                 resolvedTimestampSource);
 
         try {
@@ -784,29 +893,37 @@ public class PolicyDecisionPointBuilder {
                 initialConfigurations.add(config);
             }
 
-            // Load initial configurations: false signals fail-fast on compile error,
-            // propagating PDPConfigurationException to the build() caller.
-            for (val config : initialConfigurations) {
-                voterSource.loadConfiguration(config, false);
-            }
-
-            if (configurationSource != null) {
-                // Subscribe propagates source-side compile errors via the same
-                // fail-fast path when the source emits Load with keepOldOnError=false.
-                configurationSource.subscribe(voterSource::handle);
-            }
-
+            // Fail-fast validation of the initial configurations requires the plugins to
+            // be available, so they compile synchronously here rather than being deferred.
+            // A PDP cannot be built before its plugins source has delivered a snapshot.
             val plugins = voterSource.getPlugins();
             if (plugins == null) {
                 throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
             }
+
+            // Initial configurations are fail-fast: a compile failure leaves the voter
+            // in ERROR, which is surfaced here as a build failure rather than a PDP that
+            // silently starts denied.
+            for (val config : initialConfigurations) {
+                val unsealed = unsealSecrets(config);
+                voterSource.loadConfiguration(unsealed);
+                requireInitialConfigurationLoaded(voterSource, unsealed);
+            }
+
+            if (effectiveSource != null) {
+                effectiveSource.subscribe(voterSource::handle);
+            }
+
             return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
-                    configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
-                    plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource);
+                    effectiveSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
+                    plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource, resolvedBroker.ownedRepository());
         } catch (RuntimeException e) {
             // A failed build never transfers ownership to PDPComponents, so close what this
             // builder created.
             closeQuietly(voterSource);
+            if (effectiveSource != null) {
+                closeQuietly(effectiveSource);
+            }
             if (ownsPluginsSource) {
                 closeQuietly(pluginsSource);
             }
@@ -815,6 +932,9 @@ public class PolicyDecisionPointBuilder {
             }
             if (externalAttributeBroker == null) {
                 closeQuietly(attributeBroker);
+            }
+            if (resolvedBroker.ownedRepository() != null) {
+                closeQuietly(resolvedBroker.ownedRepository());
             }
             throw e;
         }
@@ -826,6 +946,19 @@ public class PolicyDecisionPointBuilder {
         } catch (Exception e) {
             log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
         }
+    }
+
+    private static void requireInitialConfigurationLoaded(PdpVoterSource voterSource, PDPConfiguration configuration) {
+        val status = voterSource.getPdpStatus(configuration.pdpId()).orElse(null);
+        if (status != null && status.state() == PdpState.ERROR) {
+            throw new PDPConfigurationException(
+                    ERROR_INITIAL_CONFIGURATION_FAILED.formatted(configuration.pdpId(), status.lastError()));
+        }
+    }
+
+    private PDPConfiguration unsealSecrets(PDPConfiguration configuration) {
+        return secretsDecryptionKey == null ? configuration
+                : SecretsUnsealing.process(secretsDecryptionKey, acceptUnencryptedSecrets, configuration);
     }
 
     private PluginsSource resolvePluginsSource() {
@@ -869,13 +1002,23 @@ public class PolicyDecisionPointBuilder {
         return functionBroker;
     }
 
-    private AttributeBroker resolveAttributeBroker(InstantSource timestampSource) {
+    /**
+     * The resolved attribute broker plus, when the builder created the default
+     * fallback repository, that repository so {@link PDPComponents} can close it.
+     * {@code ownedRepository} is null when the broker or repository was supplied
+     * by the caller (those stay caller-owned).
+     */
+    private record ResolvedBroker(AttributeBroker broker, @Nullable AttributeRepository ownedRepository) {}
+
+    private ResolvedBroker resolveAttributeBroker(InstantSource timestampSource) {
         if (externalAttributeBroker != null) {
-            return externalAttributeBroker;
+            return new ResolvedBroker(externalAttributeBroker, null);
         }
-        val repository = externalRepository != null ? externalRepository : new InMemoryAttributeRepository();
-        return buildPolicyInformationPointAttributeBroker(clock, timestampSource, mapper,
+        val ownedRepository = externalRepository != null ? null : new InMemoryAttributeRepository();
+        val repository      = externalRepository != null ? externalRepository : ownedRepository;
+        val broker          = buildPolicyInformationPointAttributeBroker(clock, timestampSource, mapper,
                 includeDefaultPolicyInformationPoints, policyInformationPoints, repository);
+        return new ResolvedBroker(broker, ownedRepository);
     }
 
     /**

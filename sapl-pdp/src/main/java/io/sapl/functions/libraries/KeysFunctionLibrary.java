@@ -443,7 +443,7 @@ public class KeysFunctionLibrary {
             return Value.of(keyPem);
         } catch (CryptoException exception) {
             return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage());
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidAlgorithmParameterException exception) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidParameterSpecException exception) {
             return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage() + ".");
         }
     }
@@ -538,7 +538,7 @@ public class KeysFunctionLibrary {
      * Converts a JWK to PublicKey following RFC 7517 and RFC 7518.
      */
     private static PublicKey convertJwkToPublicKey(JsonNode jwkNode)
-            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidAlgorithmParameterException {
+            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException {
         val keyTypeNode = jwkNode.get("kty");
         if (keyTypeNode == null || !keyTypeNode.isString()) {
             throw new CryptoException(ERROR_JWK_MISSING_KTY);
@@ -582,7 +582,7 @@ public class KeysFunctionLibrary {
      * Converts an EC JWK to PublicKey.
      */
     private static PublicKey convertEcJwkToPublicKey(JsonNode jwkNode)
-            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidAlgorithmParameterException {
+            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException {
         val curveNode = jwkNode.get("crv");
         val xNode     = jwkNode.get("x");
         val yNode     = jwkNode.get("y");
@@ -614,13 +614,10 @@ public class KeysFunctionLibrary {
         val y     = new BigInteger(1, yBytes);
         val point = new ECPoint(x, y);
 
-        // Get the curve parameters by generating a temporary key
-        val parameterSpec = new ECGenParameterSpec(javaCurveName);
-        val keyPairGen    = KeyPairGenerator.getInstance(ALGORITHM_EC);
-        keyPairGen.initialize(parameterSpec);
-        val tempKeyPair = keyPairGen.generateKeyPair();
-        val tempEcKey   = (ECPublicKey) tempKeyPair.getPublic();
-        val ecParams    = tempEcKey.getParams();
+        // Derive the curve parameters directly, without generating a key pair
+        val algorithmParameters = AlgorithmParameters.getInstance(ALGORITHM_EC);
+        algorithmParameters.init(new ECGenParameterSpec(javaCurveName));
+        val ecParams = algorithmParameters.getParameterSpec(ECParameterSpec.class);
 
         val keySpec    = new ECPublicKeySpec(point, ecParams);
         val keyFactory = KeyFactory.getInstance(ALGORITHM_EC);

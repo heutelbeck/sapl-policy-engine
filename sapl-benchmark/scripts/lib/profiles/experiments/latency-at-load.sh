@@ -19,13 +19,17 @@
 # Experiment: latency at controlled load via --rate
 # RSocket transport, rate sweep per scenario, JVM + native (if available)
 
-SCENARIOS_QUICK=(hospital-300 github-10)
-SCENARIOS_FULL=(hospital-300 hospital-100 hospital-50 github-10 github-100 gdrive-10 gdrive-50 tinytodo-10 tinytodo-50)
+if [ "${#SCENARIOS_QUICK[@]}" -eq 0 ]; then
+    SCENARIOS_QUICK=(hospital-300 github-10)
+fi
+if [ "${#SCENARIOS_FULL[@]}" -eq 0 ]; then
+    SCENARIOS_FULL=(hospital-300 hospital-100 hospital-50 github-10 github-100 gdrive-10 gdrive-50 tinytodo-10 tinytodo-50)
+fi
 
 # Rate steps as percentage of measured saturation throughput
 LOAD_PCTS_QUICK=(1 10 50 90)
 LOAD_PCTS_FULL=(1 5 10 25 50 75 90)
 
-RSOCKET_CONNECTIONS=8
-RSOCKET_CONCURRENCY=512
+RSOCKET_CONNECTIONS="${RSOCKET_CONNECTIONS:-8}"
+RSOCKET_CONCURRENCY="${RSOCKET_CONCURRENCY:-512}"
 SERVER_PCORES_SWEEP=(1 4 8)

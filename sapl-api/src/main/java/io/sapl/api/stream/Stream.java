@@ -197,7 +197,7 @@ public interface Stream<T> extends AutoCloseable {
                 thread.join();
                 return;
             } catch (InterruptedException ignored) {
-                // keep waiting; caller will deal with the interrupt flag
+                // keep waiting. Caller will deal with the interrupt flag
             }
         }
     }

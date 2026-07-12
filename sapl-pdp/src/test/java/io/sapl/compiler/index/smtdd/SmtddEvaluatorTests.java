@@ -39,8 +39,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("SmtddEvaluator")
 class SmtddEvaluatorTests {
 
-    private static final boolean PRINT_RESULTS = false;
-
     @AfterEach
     void clearResults() {
         PREDICATE_RESULTS.clear();
@@ -123,10 +121,6 @@ class SmtddEvaluatorTests {
                     new Atom(eqPredicate(operand, Value.of("b"))));
 
             val evaluator = buildEvaluator(expressions);
-
-            if (PRINT_RESULTS) {
-                System.out.println("\n=== Mixed EQ + binary ===\n" + evaluator.root.toTree(evaluator.binaryOrder));
-            }
 
             // EQ matches "a", binary true -> formula 0 matches
             OPERATOR_RESULTS.put(100L, Value.of("a"));

@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.awaitility.Awaitility.await;
 
 @DisplayName("RealTimeScheduler")
@@ -81,6 +82,21 @@ class RealTimeSchedulerTests {
 
         await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofMillis(400))
                 .untilAsserted(() -> assertThat(ranCount).hasValue(0));
+    }
+
+    @Test
+    @DisplayName("scheduling a far-future instant clamps the delay instead of throwing")
+    void whenScheduleAtInstantBeyondNanoHorizonThenDoesNotThrowAndTaskStaysPending() {
+        val fired = new AtomicBoolean(false);
+
+        // 1000 years out exceeds the ~292-year long-nanosecond range, so the delay must
+        // saturate, not overflow.
+        val farFuture = REFERENCE.plus(Duration.ofDays(365L * 1000L));
+
+        assertThatCode(() -> scheduler.scheduleAt(farFuture, () -> fired.set(true))).doesNotThrowAnyException();
+
+        await().pollDelay(Duration.ofMillis(200)).atMost(Duration.ofMillis(400))
+                .untilAsserted(() -> assertThat(fired).isFalse());
     }
 
     @Test

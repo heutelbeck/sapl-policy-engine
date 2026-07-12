@@ -19,8 +19,14 @@ package io.sapl.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -94,6 +100,15 @@ class SaplNodeAuthenticationTests {
         return request;
     }
 
+    private static String sha256Hex(String apiKey) {
+        try {
+            val digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(apiKey.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
+    }
+
     @Nested
     @DisplayName("API Key Authentication")
     class ApiKeyAuthenticationTests {
@@ -133,23 +148,25 @@ class SaplNodeAuthenticationTests {
         }
 
         @Test
-        @DisplayName("returns cached SaplUser when API key is in cache")
-        void whenApiKeyInCacheThenReturnsCachedSaplUser() {
-            val cachedUser = new SaplUser(USER_ID, PDP_ID);
+        @DisplayName("returns cached SaplUser without consulting the lookup service when API key is in cache")
+        void whenApiKeyInCacheThenReturnsCachedSaplUserWithoutLookup() {
+            val cachedUser        = new SaplUser(USER_ID, PDP_ID);
+            val lookupServiceMock = mock(UserLookupService.class);
 
             when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
-            when(cache.get(API_KEY)).thenReturn(cacheEntry);
+            when(cache.get(sha256Hex(API_KEY))).thenReturn(cacheEntry);
             when(cacheEntry.get()).thenReturn(cachedUser);
 
             val request       = requestWithBearer(API_KEY);
-            val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
+            val apiKeyService = new ApiKeyService(lookupServiceMock, cacheManager);
             val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
 
-            assertThat(result).isNotNull().isInstanceOf(SaplAuthenticationToken.class)
-                    .satisfies(auth -> assertThat(auth.isAuthenticated()).isTrue());
-
-            val saplAuth = (SaplAuthenticationToken) result;
-            assertThat(saplAuth.getPdpId()).isEqualTo(PDP_ID);
+            assertThat(result).isNotNull().isInstanceOf(SaplAuthenticationToken.class).satisfies(auth -> {
+                assertThat(auth.isAuthenticated()).isTrue();
+                assertThat(((SaplAuthenticationToken) auth).getPrincipal()).isSameAs(cachedUser);
+                assertThat(((SaplAuthenticationToken) auth).getPdpId()).isEqualTo(PDP_ID);
+            });
+            verifyNoInteractions(lookupServiceMock);
         }
 
         @Test

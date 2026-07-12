@@ -3,64 +3,102 @@ description: "Report a bug in this project."
 labels: ["bug"]
 
 body:
-
   - type: markdown
     attributes:
       value: |
-        To expedite issue processing, please search open and closed issues before submitting a new one.
-        Please read our Code of Conduct and Contributing Guidelines at this repository.
+        Search open and closed issues before submitting a new bug report.
+        Do not report security vulnerabilities here. Use GitHub Security Advisories or the process in SECURITY.md.
 
-        **SECURITY RELATED?** Please view our [security policy](https://github.com/heutelbeck/sapl-policy-engine/blob/master/SECURITY.md).
+  - type: checkboxes
+    id: security-check
+    attributes:
+      label: Security check
+      options:
+        - label: This is not a security vulnerability.
+          required: true
+
+  - type: dropdown
+    id: affected-area
+    attributes:
+      label: Affected area
+      options:
+        - Policy language or parser
+        - PDP engine
+        - SAPL Node or CLI
+        - Spring integration
+        - Remote PDP client
+        - Testing DSL or Maven plugin
+        - Language server or editor support
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: sapl-version
+    attributes:
+      label: SAPL version
+      description: "Example: 4.1.0 or 4.2.0-SNAPSHOT"
+    validations:
+      required: true
+
+  - type: input
+    id: java-version
+    attributes:
+      label: Java version
+      description: "Example: OpenJDK 21.0.6"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and deployment mode
+      description: "Example: Ubuntu 24.04, Docker image, DEB package, embedded library, or Windows CLI"
+    validations:
+      required: true
 
   - type: textarea
-    id: bug-report
+    id: actual-behavior
     attributes:
-      label: "What went wrong?"
-      description: "A clear and concise description of what the bug is."
+      label: What happened?
+      description: Describe the observed behavior, including the relevant error message or decision result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: What did you expect?
+      description: Describe the expected behavior.
     validations:
       required: true
 
   - type: textarea
     id: reproducer
     attributes:
-      label: "How to reproduce?"
-      description: "Provide reproducer, code examples, or description for a minimal scenario to replicate the bug."
+      label: Minimal reproducer
+      description: Provide reproduction steps and a minimal policy, subscription, command, configuration, sample project, or failing test case.
+      placeholder: |
+        1. Given this policy/configuration/test case: ...
+        2. Run this command or request: ...
+        3. Observe this result: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Paste relevant logs, stack traces, CLI output, or PDP decisions. Remove secrets first.
+      render: text
     validations:
       required: false
 
   - type: textarea
-    id: expected-behavior
+    id: additional-context
     attributes:
-      label: "What did you expect?"
-      description: "A clear and concise description of what you expected to happen."
+      label: Additional context
+      description: Add links, screenshots, or related issues if useful.
     validations:
       required: false
-
-  - type: markdown
-    attributes:
-      value: "## Your environment"
-
-  - type: input
-    id: sapl-version
-    attributes:
-      label: "Which SAPL version is used?"
-      description: "e.g. 3.0.0 / 4.0.0-SNAPSHOT / 5.0.0-SNAPSHOT ({DATE}) ..."
-    validations:
-      required: false
-
-  - type: input
-    id: java-version
-    attributes:
-      label: "Which Java version is used?"
-      description: "e.g. OpenJDK 17.0.8 ..."
-    validations:
-      required: false
-      
-  - type: input
-    id: operating-system
-    attributes:
-      label: "Which OS is running?"
-      description: "e.g. Ubuntu 5.4.0-26-generic x86_64 / Windows 1904 ..."
-    validations:
-      required: false
-

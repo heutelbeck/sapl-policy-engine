@@ -167,14 +167,15 @@ public class EmbeddedBenchmarkRunner {
         System.gc();
         val histogram = new Histogram(3_600_000_000_000L, 3);
         runLatencyIteration(cfg.measurementTimeSeconds(), threads, method, histogram);
-        if (cfg.output() != null) {
-            writeLatencyJson(histogram, methodName, threads, cfg, err);
+        val output = cfg.output();
+        if (output != null) {
+            writeLatencyJson(histogram, methodName, threads, cfg, output, err);
         }
         return latencyFromHistogram(histogram);
     }
 
     private static void writeLatencyJson(Histogram histogram, String methodName, int threads, BenchmarkRunConfig cfg,
-            PrintWriter err) {
+            Path output, PrintWriter err) {
         val mean   = histogram.getMean();
         val stddev = histogram.getStdDeviation();
         val n      = histogram.getTotalCount();
@@ -220,7 +221,7 @@ public class EmbeddedBenchmarkRunner {
         entry.put("primaryMetric", metric);
 
         val prefix = cfg.outputPrefix() != null ? cfg.outputPrefix() + "_" : "";
-        val path   = cfg.output().resolve(prefix + methodName + "_" + threads + "t_latency.json");
+        val path   = output.resolve(prefix + methodName + "_" + threads + "t_latency.json");
         try {
             val mapper = JsonMapper.builder().build();
             Files.writeString(path, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(List.of(entry)));
@@ -231,7 +232,8 @@ public class EmbeddedBenchmarkRunner {
 
     private static void writeJsonOutput(List<BenchmarkResult> results, BenchmarkRunConfig cfg, int threads,
             PrintWriter err) {
-        if (cfg.output() == null) {
+        val output = cfg.output();
+        if (output == null) {
             return;
         }
         val rawResults = new LinkedHashMap<String, List<Double>>();
@@ -239,7 +241,7 @@ public class EmbeddedBenchmarkRunner {
             rawResults.put(r.method(), r.rawData());
         }
         val fileName = cfg.outputFileName("embedded", "all", threads);
-        writeJsonResults(rawResults, cfg, threads, cfg.output().resolve(fileName), err);
+        writeJsonResults(rawResults, cfg, threads, output.resolve(fileName), err);
     }
 
     private static AuthorizationSubscription[] loadSubscriptions(BenchmarkContext ctx, JsonMapper mapper) {
@@ -378,7 +380,7 @@ public class EmbeddedBenchmarkRunner {
     }
 
     /**
-     * Wait at the start barrier; the barrier action populates the shared
+     * Wait at the start barrier. The barrier action populates the shared
      * deadline so every worker thread reads the same value once released.
      */
     private static boolean awaitStart(CyclicBarrier barrier) {

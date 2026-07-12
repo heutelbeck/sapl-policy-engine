@@ -15,7 +15,7 @@ The flow is straightforward. Your application sends an authorization subscriptio
 
 This walkthrough shows how the pieces fit together end to end.
 
-**1. Add the BOM and snapshot repository to your `pom.xml`.**
+**1. Add the SAPL BOM to your `pom.xml`.**
 
 ```xml
 <dependencyManagement>
@@ -23,21 +23,15 @@ This walkthrough shows how the pieces fit together end to end.
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.1.0-SNAPSHOT</version>
+            <version>4.2.0-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
     </dependencies>
 </dependencyManagement>
-
-<repositories>
-    <repository>
-        <id>central-portal-snapshots</id>
-        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-        <snapshots><enabled>true</enabled></snapshots>
-    </repository>
-</repositories>
 ```
+
+Released SAPL artifacts are available from Maven Central. If you intentionally test unreleased SAPL builds, use the matching `-SNAPSHOT` version and add the Central Portal snapshots repository.
 
 **2. Add the starter dependency.**
 
@@ -72,11 +66,17 @@ public class SecurityConfig {
 **5. Annotate a method.**
 
 ```java
-@PreEnforce(subject = "authentication.name", action = "'read'", resource = "#id")
+@PreEnforce(
+    subject = "authentication.name",
+    action = "'read'",
+    resource = "{ 'id': #id, 'ownerId': @bookOwnershipService.ownerOf(#id) }"
+)
 public Book findById(Long id) {
     return bookRepository.findById(id);
 }
 ```
+
+The `@bookOwnershipService` expression calls a Spring bean before the repository method runs. The policy can then compare the authenticated user with the owner of the requested book.
 
 **6. Write a policy** in `src/main/resources/policies/books.sapl`.
 
@@ -1005,10 +1005,11 @@ When `pdp-config-type=REMOTE_BUNDLES`, bundles are fetched from a remote HTTP se
 | `io.sapl.pdp.embedded.remote-bundles.base-url` | none | Base URL of the bundle server. Bundles are fetched as `{base-url}/{pdpId}`. |
 | `io.sapl.pdp.embedded.remote-bundles.pdp-ids` | empty | List of PDP identifiers to fetch bundles for. |
 | `io.sapl.pdp.embedded.remote-bundles.mode` | `POLLING` | `POLLING` for interval-based or `LONG_POLL` for long-poll change detection. |
-| `io.sapl.pdp.embedded.remote-bundles.poll-interval` | `30s` | Default polling interval. |
+| `io.sapl.pdp.embedded.remote-bundles.poll-interval` | `5s` | Default polling interval. |
 | `io.sapl.pdp.embedded.remote-bundles.long-poll-timeout` | `30s` | Server hold timeout for long-poll mode. |
 | `io.sapl.pdp.embedded.remote-bundles.auth-header-name` | none | HTTP header name for authentication (such as `Authorization`). |
 | `io.sapl.pdp.embedded.remote-bundles.auth-header-value` | none | HTTP header value for authentication (such as `Bearer <token>`). |
+| `io.sapl.pdp.embedded.remote-bundles.allow-insecure-http` | `false` | Permit configured auth headers over plaintext HTTP. Use only on trusted local or proxied hops. |
 | `io.sapl.pdp.embedded.remote-bundles.follow-redirects` | `true` | Follow HTTP 3xx redirects. |
 | `io.sapl.pdp.embedded.remote-bundles.pdp-id-poll-intervals.<id>` | empty | Per-`pdpId` poll interval overrides. |
 | `io.sapl.pdp.embedded.remote-bundles.first-backoff` | `500ms` | Initial backoff after a fetch failure. |
@@ -1200,10 +1201,11 @@ The mapping from PDP states to overall health.
 | PDP State | Health Status | Meaning |
 |---|---|---|
 | All `LOADED` | `UP` | All PDPs have successfully compiled their policies. |
-| Any `STALE` | `UP` (with warning) | A policy reload failed, but the PDP is still serving the previous valid configuration. |
+| Any `STALE` | `UP` (with warning) | A configuration update failed (a policy that did not compile, or a source-reported error such as an invalid signature or a malformed bundle), but the PDP is still serving the previous valid configuration. |
+| Any `AWAITING_PLUGINS` | `DOWN` | A configuration was accepted but is not yet compiled because the plugins have not been delivered yet. This is normally a brief startup state. |
 | Any `ERROR` or no PDPs | `DOWN` | A PDP has no valid configuration and is returning `INDETERMINATE` decisions. |
 
-Each PDP's details include the configuration ID, combining algorithm, document count, and timestamps for the last successful and failed loads. This information appears in the health endpoint response under the `sapl` component.
+Each PDP's details include the configuration ID, combining algorithm, document count, timestamps for the last successful and failed loads, and `lastError`, a human-readable reason for the last failed load (a compile error or a source-reported configuration error). This information appears in the health endpoint response under the `sapl` component.
 
 No additional configuration is needed. The health indicator is active whenever `spring-boot-starter-actuator` is a dependency and `io.sapl.pdp.embedded.enabled` is `true` (the default).
 

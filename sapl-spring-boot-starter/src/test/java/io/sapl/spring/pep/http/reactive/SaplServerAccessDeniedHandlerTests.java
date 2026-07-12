@@ -136,6 +136,23 @@ class SaplServerAccessDeniedHandlerTests {
         }
 
         @Test
+        @DisplayName("handler that shapes only the body without a status still commits 403")
+        void bodyOnlyObligationCommitsForbidden() {
+            ConstraintHandler.Consumer<MutableHttpResponse> h        = resp -> resp
+                    .writeBody("text/plain;charset=UTF-8", "denied by policy");
+            val                                             plan     = planFor(denyWith("bodyonly"),
+                    provider(constraint -> ConstraintHandlerProvider.constraintIsOfType(constraint, "bodyonly")
+                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
+                            : List.of()));
+            val                                             exchange = withPlan(plan);
+            StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
+            assertThat(exchange.getResponse()).satisfies(r -> {
+                assertThat(r.getStatusCode().value()).isEqualTo(403);
+                assertThat(r.getBodyAsString().block()).isEqualTo("denied by policy");
+            });
+        }
+
+        @Test
         @DisplayName("handler that issues a redirect commits a 302 with Location header")
         void redirect() {
             ConstraintHandler.Consumer<MutableHttpResponse> h        = resp -> {

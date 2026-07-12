@@ -21,6 +21,7 @@ import java.io.IOException;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -30,6 +31,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
@@ -37,6 +39,7 @@ import lombok.val;
  * to an {@link AuthenticationConverter} (provided by {@link ApiKeyService})
  * and authentication to an {@link AuthenticationManager}.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
@@ -46,10 +49,21 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain chain) throws ServletException, IOException {
-        val candidate = converter.convert(request);
-        if (candidate != null) {
-            val authenticated = authenticationManager.authenticate(candidate);
-            SecurityContextHolder.getContext().setAuthentication(authenticated);
+        try {
+            val candidate = converter.convert(request);
+            if (candidate != null) {
+                val authenticated = authenticationManager.authenticate(candidate);
+                SecurityContextHolder.getContext().setAuthentication(authenticated);
+            }
+        } catch (AuthenticationException e) {
+            // A presented-but-invalid API key is an authentication failure, not a
+            // server error. This filter runs upstream of ExceptionTranslationFilter,
+            // so a propagating AuthenticationException would surface as 500. Map it
+            // to 401 here instead.
+            SecurityContextHolder.clearContext();
+            log.debug("API key authentication failed: {}", e.getMessage());
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed.");
+            return;
         }
         chain.doFilter(request, response);
     }

@@ -56,6 +56,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID   = "Cannot add two subscriptions with the same ID: %s.";
     private static final String ERROR_FIELD_CANNOT_BE_ERROR_VALUE = "%s cannot be an error value.";
     private static final String ERROR_FIELD_CANNOT_BE_UNDEFINED   = "%s cannot be undefined.";
+    private static final String ERROR_SUBSCRIPTION_ID_BLANK       = "Subscription ID must not be empty or blank.";
 
     private final Map<String, AuthorizationSubscription> subscriptions = new HashMap<>();
 
@@ -66,10 +67,13 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * @param subscription the authorization subscription
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     * exists, or if the ID is empty or blank
      */
     public MultiAuthorizationSubscription addSubscription(@NonNull String subscriptionId,
             @NonNull AuthorizationSubscription subscription) {
+        if (subscriptionId.isBlank()) {
+            throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_BLANK);
+        }
         if (subscriptions.containsKey(subscriptionId)) {
             throw new IllegalArgumentException(ERROR_DUPLICATE_SUBSCRIPTION_ID.formatted(subscriptionId));
         }
@@ -88,8 +92,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * @param environment contextual environment data
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists, or if any Value is undefined or an
-     * error
+     * exists, if the ID is empty or blank, or if any Value is undefined or an error
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId,
             @NonNull Value subject, @NonNull Value action, @NonNull Value resource, @NonNull Value environment) {
@@ -110,8 +113,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * @param secrets secrets needed for policy evaluation (never logged)
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists, or if any Value is undefined or an
-     * error
+     * exists, if the ID is empty or blank, or if any Value is undefined or an error
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId,
             @NonNull Value subject, @NonNull Value action, @NonNull Value resource, @NonNull Value environment,
@@ -135,7 +137,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * @param resource an object describing the resource
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     * exists, or if the ID is empty or blank
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource) {
@@ -154,7 +156,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * @param mapper the ObjectMapper to be used for marshaling
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     * exists, or if the ID is empty or blank
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource, ObjectMapper mapper) {
@@ -174,7 +176,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * UNDEFINED)
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     * exists, or if the ID is empty or blank
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource, Object environment) {
@@ -195,7 +197,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * @param mapper the ObjectMapper to be used for marshaling
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     * exists, or if the ID is empty or blank
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource, Object environment, ObjectMapper mapper) {
@@ -216,10 +218,10 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * UNDEFINED)
      * @param secrets an object describing secrets needed for policy evaluation
      * (null
-     * becomes empty; never logged)
+     * becomes empty. Never logged)
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     * exists, or if the ID is empty or blank
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource, Object environment, Object secrets) {
@@ -241,11 +243,11 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * UNDEFINED)
      * @param secrets an object describing secrets needed for policy evaluation
      * (null
-     * becomes empty; never logged)
+     * becomes empty. Never logged)
      * @param mapper the ObjectMapper to be used for marshaling
      * @return this instance for method chaining
      * @throws IllegalArgumentException if a subscription with the same ID already
-     * exists
+     * exists, or if the ID is empty or blank
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId, Object subject,
             Object action, Object resource, Object environment, Object secrets, ObjectMapper mapper) {

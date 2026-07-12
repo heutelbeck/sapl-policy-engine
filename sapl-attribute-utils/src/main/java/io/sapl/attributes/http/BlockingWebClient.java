@@ -33,7 +33,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -43,7 +46,6 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -62,7 +64,7 @@ import java.util.function.Supplier;
  * <p>
  * For request-response media types ({@code application/json} and
  * arbitrary text), the request is issued once and the response is
- * emitted as a single value, then the stream completes; repetition is
+ * emitted as a single value, then the stream completes. Repetition is
  * the caller's concern (the attribute broker re-invokes per its
  * configured poll interval). For {@code text/event-stream}, the
  * connection is held open and SSE events are emitted as parsed values.
@@ -70,7 +72,7 @@ import java.util.function.Supplier;
  * until the session is closed.
  * <p>
  * The response body, each SSE event, and each WebSocket message are
- * capped at a configurable size; an oversized payload fails closed to
+ * capped at a configurable size. An oversized payload fails closed to
  * an error value rather than buffering without bound.
  * <p>
  * Read and connect timeouts protect against slow or unresponsive
@@ -88,20 +90,25 @@ public class BlockingWebClient {
     public static final String PATH                       = "path";
     public static final String URL_PARAMS                 = "urlParameters";
     static final long          DEFAULT_MAX_RESPONSE_BYTES = 1_048_576L;
+    // Ceiling for an in-memory response buffer, well below Integer.MAX_VALUE so the
+    // +1 sentinel read can never overflow or request a multi-gigabyte allocation.
+    static final long MAX_ALLOWED_RESPONSE_BYTES = 268_435_456L;
 
     private static final String ERROR_BASE_URL_MUST_BE_TEXT                 = "baseUrl must be a text value.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE       = "%s must be a number in HTTP requestSpecification, but was: %s.";
     private static final String ERROR_HTTP_RESPONSE_STATUS                  = "HTTP %d";
     private static final String ERROR_MALFORMED_URI                         = "Malformed request URI: %s";
+    private static final String ERROR_MAX_RESPONSE_BYTES_NOT_POSITIVE       = "maxResponseBytes must be a positive number, but was: %d.";
     private static final String ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
     private static final String ERROR_RESPONSE_TOO_LARGE                    = "HTTP response exceeded the configured limit of %d bytes.";
 
     private static final String MEDIATYPE_APPLICATION_JSON  = "application/json";
     private static final String MEDIATYPE_TEXT_EVENT_STREAM = "text/event-stream";
 
-    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(10L);
-    private static final Duration READ_TIMEOUT       = Duration.ofSeconds(30L);
+    private static final Duration CONNECTION_TIMEOUT      = Duration.ofSeconds(10L);
+    private static final Duration READ_TIMEOUT            = Duration.ofSeconds(30L);
+    private static final long     SSE_LINE_OVERHEAD_BYTES = 6L;
 
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
     private static final JsonNode        APPLICATION_JSON = JSON.stringNode(MEDIATYPE_APPLICATION_JSON);
@@ -138,7 +145,7 @@ public class BlockingWebClient {
             val accept        = jsonOrDefault(requestSettings, ACCEPT_MEDIATYPE, APPLICATION_JSON).asString();
             val contentType   = jsonOrDefault(requestSettings, CONTENT_MEDIATYPE, APPLICATION_JSON).asString();
             val body          = jsonOrDefault(requestSettings, BODY, null);
-            val maxBytes      = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
+            val maxBytes      = maxResponseBytesOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
 
             val uri     = buildUri(baseUrl, path, urlParameters);
             val request = buildRequest(uri, httpMethod, headers, accept, contentType, body);
@@ -167,7 +174,7 @@ public class BlockingWebClient {
             val path     = textOrDefault(requestSettings, PATH, "");
             val headers  = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
             val body     = jsonOrDefault(requestSettings, BODY, null);
-            val maxBytes = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
+            val maxBytes = maxResponseBytesOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
             val uri      = createUri(baseUrl + path);
             return openWebSocket(uri, headers, body, maxBytes);
         } catch (RuntimeException e) {
@@ -180,13 +187,17 @@ public class BlockingWebClient {
             try {
                 val response = httpClient.send(request, BodyHandlers.ofInputStream());
                 if (response.statusCode() >= 400) {
-                    return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
+                    // Close the body to release the connection on the error branch.
+                    try (val ignored = response.body()) {
+                        return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
+                    }
                 }
                 final byte[] bytes;
                 try (val in = response.body()) {
                     // Read one byte past the limit to detect an oversized body without buffering
-                    // more than the cap.
-                    bytes = in.readNBytes((int) Math.min(maxBytes + 1, Integer.MAX_VALUE));
+                    // more than the cap. Clamp before +1 so the sentinel can never overflow.
+                    val limit = (int) Math.min(maxBytes, Integer.MAX_VALUE - 1L) + 1;
+                    bytes = in.readNBytes(limit);
                 }
                 if (bytes.length > maxBytes) {
                     return Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes));
@@ -208,20 +219,22 @@ public class BlockingWebClient {
     private Stream<Value> openServerSentEventStream(HttpRequest request, long maxBytes) {
         return Streams.fromCallback((emit, complete) -> {
             val stopped = new AtomicBoolean(false);
-            val bodyRef = new AtomicReference<java.util.stream.Stream<String>>();
+            val bodyRef = new AtomicReference<InputStream>();
             val thread  = Thread.startVirtualThread(() -> {
                             try {
-                                val response = httpClient.send(request, BodyHandlers.ofLines());
-                                if (response.statusCode() >= 400) {
-                                    emit.accept(
-                                            Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode())));
-                                    return;
+                                val response = httpClient.send(request, BodyHandlers.ofInputStream());
+                                // Open the body before the status check to release the connection on the error
+                                // branch too.
+                                try (val body = response.body()) {
+                                    if (response.statusCode() >= 400) {
+                                        emit.accept(Value
+                                                .error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode())));
+                                        return;
+                                    }
+                                    bodyRef.set(body);
+                                    pumpServerSentEvents(body, emit, stopped, maxBytes);
                                 }
-                                try (val lines = response.body()) {
-                                    bodyRef.set(lines);
-                                    pumpServerSentEvents(lines.iterator(), emit, stopped, maxBytes);
-                                }
-                            } catch (IOException e) {
+                            } catch (IOException | RuntimeException e) {
                                 emit.accept(Value.error(messageOf(e)));
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
@@ -234,44 +247,99 @@ public class BlockingWebClient {
                 thread.interrupt();
                 val body = bodyRef.get();
                 if (body != null) {
-                    body.close();
+                    try {
+                        body.close();
+                    } catch (IOException ignored) {
+                        // Closing the aborted stream is best-effort. Nothing to recover.
+                    }
                 }
             };
         });
     }
 
-    private void pumpServerSentEvents(Iterator<String> iterator, Consumer<Value> emit, AtomicBoolean stopped,
-            long maxBytes) {
-        val data = new StringBuilder();
-        while (!stopped.get() && iterator.hasNext()) {
-            val line = iterator.next();
-            if (line.isEmpty()) {
-                flushEvent(data, emit);
-            } else if (line.startsWith("data:")) {
-                appendDataLine(data, line);
-                if (data.length() > maxBytes) {
-                    emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
-                    stopped.set(true);
-                }
+    /**
+     * Reads the SSE body one line at a time, enforcing {@code maxBytes}
+     * while scanning for a line terminator so a single newline-free
+     * payload cannot exhaust the heap. Line terminators ({@code \n},
+     * {@code \r}, {@code \r\n}) are recognized and stripped, matching the
+     * previous line-stream behavior. A trailing un-terminated line is
+     * still dispatched at end of stream. The cap is enforced in UTF-8
+     * bytes across the emitted event data. Individual raw lines are
+     * also bounded while being read so a newline-free payload cannot
+     * exhaust memory. Once a cap is crossed the read is aborted before any further
+     * bytes are buffered.
+     */
+    private void pumpServerSentEvents(InputStream body, Consumer<Value> emit, AtomicBoolean stopped, long maxBytes)
+            throws IOException {
+        val reader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8));
+        val data   = new ServerSentEventData();
+        val line   = new StringBuilder();
+        while (!stopped.get()) {
+            val terminated = readLine(reader, line, maxBytes, emit, stopped);
+            if (stopped.get()) {
+                return;
             }
+            if (!terminated && line.isEmpty()) {
+                break;
+            }
+            consumeLine(line.toString(), data, emit, stopped, maxBytes);
+            line.setLength(0);
         }
         if (!stopped.get()) {
             flushEvent(data, emit);
         }
     }
 
-    private void flushEvent(StringBuilder data, Consumer<Value> emit) {
-        if (!data.isEmpty()) {
-            emit.accept(parseServerSentEventData(data.toString()));
-            data.setLength(0);
+    /**
+     * Reads a single line into {@code line}, treating {@code \n},
+     * {@code \r} and {@code \r\n} as terminators and bounding the raw
+     * line being read against {@code maxBytes}. Returns
+     * {@code true} if a terminator was consumed, {@code false} at end of
+     * stream. Emits the too-large error and sets {@code stopped} the
+     * moment the cap is crossed, before reading on.
+     */
+    private boolean readLine(BufferedReader reader, StringBuilder line, long maxBytes, Consumer<Value> emit,
+            AtomicBoolean stopped) throws IOException {
+        long lineBytes = 0L;
+        int  read;
+        while ((read = reader.read()) != -1) {
+            val c = (char) read;
+            if (c == '\n') {
+                return true;
+            }
+            if (c == '\r') {
+                reader.mark(1);
+                if (reader.read() != '\n') {
+                    reader.reset();
+                }
+                return true;
+            }
+            line.append(c);
+            lineBytes += charUtf8ByteLength(c);
+            if (lineBytes > maxBytes + SSE_LINE_OVERHEAD_BYTES) {
+                emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
+                stopped.set(true);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private void consumeLine(String line, ServerSentEventData data, Consumer<Value> emit, AtomicBoolean stopped,
+            long maxBytes) {
+        if (line.isEmpty()) {
+            flushEvent(data, emit);
+        } else if (line.startsWith("data:") && !data.appendDataLine(line, maxBytes)) {
+            emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
+            stopped.set(true);
         }
     }
 
-    private static void appendDataLine(StringBuilder data, String line) {
+    private void flushEvent(ServerSentEventData data, Consumer<Value> emit) {
         if (!data.isEmpty()) {
-            data.append('\n');
+            emit.accept(parseServerSentEventData(data.payload()));
+            data.clear();
         }
-        data.append(line.substring(5).stripLeading());
     }
 
     private Value parseServerSentEventData(String data) {
@@ -357,12 +425,27 @@ public class BlockingWebClient {
     }
 
     private static String redactSecrets(String uri) {
-        var redacted = uri;
-        val query    = redacted.indexOf('?');
-        if (query >= 0) {
-            redacted = redacted.substring(0, query) + "?<redacted>";
+        // None of userinfo, path, query, or fragment is safe to surface, so the URI is
+        // reduced structurally to scheme + host[:port] with everything else redacted.
+        val schemeEnd = uri.indexOf("://");
+        if (schemeEnd < 0) {
+            val colon = uri.indexOf(':');
+            return colon >= 0 ? uri.substring(0, colon + 1) + "<redacted>" : "<redacted>";
         }
-        return redacted.replaceAll("//[^/@]*@", "//<redacted>@");
+        val authorityStart = schemeEnd + 3;
+        var authorityEnd   = authorityStart;
+        while (authorityEnd < uri.length()) {
+            val c = uri.charAt(authorityEnd);
+            if (c == '/' || c == '?' || c == '#') {
+                break;
+            }
+            authorityEnd++;
+        }
+        val authority = uri.substring(authorityStart, authorityEnd);
+        val at        = authority.lastIndexOf('@');
+        val hostPort  = at >= 0 ? authority.substring(at + 1) : authority;
+        val prefix    = uri.substring(0, authorityStart) + (at >= 0 ? "<redacted>@" : "") + hostPort;
+        return authorityEnd < uri.length() ? prefix + "/<redacted>" : prefix;
     }
 
     private HttpRequest buildRequest(URI uri, String method, JsonNode headers, String accept, String contentType,
@@ -444,7 +527,7 @@ public class BlockingWebClient {
         return ValueJsonMarshaller.toJsonNode(requestSettings.get(fieldName));
     }
 
-    private long longOrDefault(ObjectValue requestSettings, String fieldName, long defaultValue) {
+    private long maxResponseBytesOrDefault(ObjectValue requestSettings, String fieldName, long defaultValue) {
         if (!requestSettings.containsKey(fieldName)) {
             return defaultValue;
         }
@@ -453,7 +536,11 @@ public class BlockingWebClient {
             throw new IllegalArgumentException(ERROR_FIELD_MUST_BE_NUMBER_NULL.formatted(fieldName));
         }
         if (value instanceof NumberValue(var n)) {
-            return n.longValue();
+            val requested = n.longValue();
+            if (requested <= 0L) {
+                throw new IllegalArgumentException(ERROR_MAX_RESPONSE_BYTES_NOT_POSITIVE.formatted(requested));
+            }
+            return Math.min(requested, MAX_ALLOWED_RESPONSE_BYTES);
         }
         throw new IllegalArgumentException(
                 ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE.formatted(fieldName, value.getClass().getSimpleName()));
@@ -465,6 +552,29 @@ public class BlockingWebClient {
 
     private static String messageOf(Throwable t) {
         return t.getMessage() == null ? t.toString() : t.getMessage();
+    }
+
+    private static long utf8ByteLength(CharSequence text) {
+        long bytes = 0L;
+        for (int i = 0; i < text.length(); i++) {
+            bytes += charUtf8ByteLength(text.charAt(i));
+        }
+        return bytes;
+    }
+
+    /**
+     * UTF-8 byte length contributed by a single UTF-16 code unit. A
+     * surrogate counts as two bytes so that a high plus low surrogate
+     * pair sums to the four bytes of the encoded code point.
+     */
+    private static int charUtf8ByteLength(char c) {
+        if (c < 0x80) {
+            return 1;
+        }
+        if (c < 0x800 || Character.isSurrogate(c)) {
+            return 2;
+        }
+        return 3;
     }
 
     /**
@@ -487,6 +597,7 @@ public class BlockingWebClient {
         private final Runnable        complete;
         private final JsonMapper      mapper;
         private final long            maxBytes;
+        private long                  accumulatedBytes;
 
         @Override
         public void onOpen(WebSocket webSocket) {
@@ -495,17 +606,21 @@ public class BlockingWebClient {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            accumulator.append(data);
-            if (accumulator.length() > maxBytes) {
+            val dataBytes = utf8ByteLength(data);
+            if (dataBytes > maxBytes - accumulatedBytes) {
                 emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                 accumulator.setLength(0);
+                accumulatedBytes = 0L;
                 complete.run();
                 webSocket.abort();
                 return null;
             }
+            accumulator.append(data);
+            accumulatedBytes += dataBytes;
             if (last) {
                 emit.accept(parsePayload(accumulator.toString()));
                 accumulator.setLength(0);
+                accumulatedBytes = 0L;
             }
             webSocket.request(1L);
             return null;
@@ -529,6 +644,39 @@ public class BlockingWebClient {
             } catch (JacksonException e) {
                 return Value.error(messageOf(e));
             }
+        }
+    }
+
+    private static final class ServerSentEventData {
+        private final StringBuilder data = new StringBuilder();
+        private long                bytes;
+
+        boolean appendDataLine(String line, long maxBytes) {
+            val value      = line.substring(5).stripLeading();
+            val valueBytes = utf8ByteLength(value);
+            val extraBytes = valueBytes + (data.isEmpty() ? 0L : 1L);
+            if (extraBytes > maxBytes - bytes) {
+                return false;
+            }
+            if (!data.isEmpty()) {
+                data.append('\n');
+            }
+            data.append(value);
+            bytes += extraBytes;
+            return true;
+        }
+
+        boolean isEmpty() {
+            return data.isEmpty();
+        }
+
+        String payload() {
+            return data.toString();
+        }
+
+        void clear() {
+            data.setLength(0);
+            bytes = 0L;
         }
     }
 }

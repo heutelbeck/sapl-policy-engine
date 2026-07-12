@@ -29,7 +29,7 @@ import java.util.List;
  *
  * @param operands list of operands (at least 3)
  * @param isEager if true, walks every operand against the snapshot to
- * accumulate all dependencies; if false, short-circuits on the first FALSE
+ * accumulate all dependencies. If false, short-circuits on the first FALSE
  * and skips remaining operands
  * @param location source location spanning all operands
  */

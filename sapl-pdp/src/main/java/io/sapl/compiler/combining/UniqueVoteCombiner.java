@@ -162,7 +162,7 @@ public class UniqueVoteCombiner {
                     accumulatorVote.outcome());
         }
 
-        // Both applicable - collision. INDETERMINATE result; the multi-bit
+        // Both applicable - collision. INDETERMINATE result. The multi-bit
         // outcome captures both effects as the would-have-been set.
         val collisionError = Value.error(ERROR_MULTIPLE_APPLICABLE);
         val outcome        = combine(decisionToOutcome(accDec), decisionToOutcome(newDec));

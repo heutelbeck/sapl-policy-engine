@@ -28,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,12 +49,11 @@ import tools.jackson.databind.ObjectMapper;
  * surfaced through the response context for SAPL-aware clients.
  */
 @Slf4j
-@Profile("!cli")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/access/v1")
 @Tag(name = "OpenID Authorization API", description = "OpenID Authorization API 1.0 binding for the SAPL PDP. Returns a single boolean decision per request.")
-@ConditionalOnProperty(name = "io.sapl.server.openid-authz-api.enabled", matchIfMissing = true)
+@ConditionalOnProperty(name = "io.sapl.node.openid-authz-api.enabled", matchIfMissing = true)
 public class OpenIdAuthorizationApiController {
 
     private static final String X_REQUEST_ID = "X-Request-ID";

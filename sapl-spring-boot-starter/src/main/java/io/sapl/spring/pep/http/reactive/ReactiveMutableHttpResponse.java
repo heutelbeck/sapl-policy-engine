@@ -57,7 +57,7 @@ import reactor.core.publisher.Mono;
  * commit. This is fine for typical HTTP
  * responses but is unsuitable for unbounded streaming bodies. Callers that do
  * not need response-level mutation should
- * not wrap at all; the SAPL HTTP PEP web filter installs this wrapper only when
+ * not wrap at all. The SAPL HTTP PEP web filter installs this wrapper only when
  * the active enforcement plan schedules
  * at least one handler at the response signal.
  */
@@ -141,18 +141,17 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
 
     @Override
     public @NonNull Mono<Void> writeWith(@NonNull Publisher<? extends DataBuffer> body) {
-        return Flux.from(body).collectList().doOnNext(buffers -> {
-            val total = buffers.stream().mapToInt(DataBuffer::readableByteCount).sum();
-            val all   = new byte[total];
-            var i     = 0;
-            for (val buf : buffers) {
-                val len = buf.readableByteCount();
-                buf.read(all, i, len);
-                DataBufferUtils.release(buf);
-                i += len;
+        // join releases accumulated buffers on error/cancel. We release the joined
+        // buffer on success.
+        return DataBufferUtils.join(Flux.from(body)).map(joined -> {
+            try {
+                val all = new byte[joined.readableByteCount()];
+                joined.read(all);
+                return all;
+            } finally {
+                DataBufferUtils.release(joined);
             }
-            capturedBody = all;
-        }).then();
+        }).doOnNext(all -> capturedBody = all).then();
     }
 
     @Override
@@ -162,7 +161,7 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
 
     @Override
     public @NonNull Mono<Void> setComplete() {
-        // Captured by the wrapper; the surrounding PEP filter calls commit() to
+        // Captured by the wrapper. The surrounding PEP filter calls commit() to
         // flush. Forwarding to the delegate here would commit the underlying
         // response prematurely and cause subsequent writes from commit() to
         // fail with UnsupportedOperationException.
@@ -188,6 +187,8 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
             if (capturedBody.length == 0) {
                 return delegate.setComplete();
             }
+            // Sync Content-Length with the written bytes in case the body was rewritten.
+            delegate.getHeaders().setContentLength(capturedBody.length);
             val buffer = delegate.bufferFactory().wrap(capturedBody);
             return delegate.writeWith(Mono.just(buffer));
         });

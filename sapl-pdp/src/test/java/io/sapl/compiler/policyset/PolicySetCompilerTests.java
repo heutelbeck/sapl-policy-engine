@@ -120,4 +120,37 @@ class PolicySetCompilerTests {
             assertThat(compiled.metadata().outcome()).isEqualTo(expected);
         }
     }
+
+    @Nested
+    @DisplayName("Target relative-accessor guard")
+    class TargetRelativeAccessorGuard {
+
+        @Test
+        @DisplayName("a top-level relative accessor combined with a subscription reference is rejected")
+        void whenTargetCombinesRelativeAccessorWithSubscriptionReferenceThenRejected() {
+            assertThatThrownBy(() -> compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+                    for @ == subject
+
+                    policy "p"
+                    permit
+                    """)).isInstanceOf(SaplCompilerException.class).hasMessageContaining("@ or #");
+        }
+
+        @Test
+        @DisplayName("a relative accessor bound inside a condition step is allowed")
+        void whenTargetHasRelativeAccessorBoundInConditionStepThenCompiles() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+                    for subject.items[?(@ > 1)] != []
+
+                    policy "p"
+                    permit
+                    """);
+
+            assertThat(compiled).isNotNull();
+        }
+    }
 }

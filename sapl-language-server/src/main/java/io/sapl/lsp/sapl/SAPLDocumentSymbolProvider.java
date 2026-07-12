@@ -120,8 +120,20 @@ class SAPLDocumentSymbolProvider {
         }
         val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
         val stop  = ctx.getStop();
-        val end   = new Position(stop.getLine() - 1, stop.getCharPositionInLine() + stop.getText().length());
-        return new Range(start, end);
+        return new Range(start, endPositionOf(stop));
+    }
+
+    private static Position endPositionOf(Token token) {
+        val text        = token.getText();
+        val startLine   = token.getLine() - 1;
+        val startColumn = token.getCharPositionInLine();
+        val lastNewline = text.lastIndexOf('\n');
+        if (lastNewline < 0) {
+            return new Position(startLine, startColumn + text.length());
+        }
+        val newlineCount  = (int) text.chars().filter(c -> c == '\n').count();
+        val trailingChars = text.length() - lastNewline - 1;
+        return new Position(startLine + newlineCount, trailingChars);
     }
 
     private static Range rangeOfToken(Token token) {

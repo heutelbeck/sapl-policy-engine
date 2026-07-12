@@ -29,15 +29,31 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * WebSocket endpoint that bridges the browser to an embedded SAPL Language
  * Server.
  * Each WebSocket connection gets its own LSP server instance.
+ *
+ * <p>
+ * Resource use is bounded. The number of concurrent sessions is capped, the
+ * worker pool is sized to that cap, and incoming messages are buffered in a
+ * bounded per-session queue drained by the LSP thread. A stalled or slow LSP
+ * server therefore cannot block the container thread that delivers messages and
+ * cannot allocate unbounded threads or memory.
  */
 @Slf4j
 public class LspWebSocketEndpoint extends TextWebSocketHandler implements DisposableBean {
@@ -46,10 +62,16 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
     private static final String LSP_HEADER_SEPARATOR      = "\r\n\r\n";
     private static final String LSP_LINE_SEPARATOR        = "\r\n";
 
-    private static final String SESSION_KEY_CLIENT_TO_SERVER = "clientToServer";
-    private static final String SESSION_KEY_SERVER_INPUT     = "serverInput";
+    private static final String SESSION_KEY_SERVER_INPUT = "serverInput";
 
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final LspWebSocketProperties properties;
+    private final ExecutorService        executor;
+    private final AtomicInteger          activeSessions = new AtomicInteger();
+
+    public LspWebSocketEndpoint(LspWebSocketProperties properties) {
+        this.properties = properties;
+        this.executor   = Executors.newFixedThreadPool(Math.max(1, properties.getMaxConcurrentSessions()));
+    }
 
     @Override
     public void destroy() {
@@ -68,34 +90,40 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        if (activeSessions.incrementAndGet() > properties.getMaxConcurrentSessions()) {
+            activeSessions.decrementAndGet();
+            log.warn("Rejecting LSP WebSocket connection {}: concurrent session cap of {} reached", session.getId(),
+                    properties.getMaxConcurrentSessions());
+            session.close(CloseStatus.SERVICE_OVERLOAD);
+            return;
+        }
+
         log.info("LSP WebSocket connection established: {}", session.getId());
 
-        PipedOutputStream clientToServer = null;
-        PipedInputStream  serverInput    = null;
+        QueueBackedInputStream serverInput = null;
         try {
-            // Create pipes for LSP communication
-            clientToServer = new PipedOutputStream();
-            serverInput    = new PipedInputStream(clientToServer);
+            serverInput = new QueueBackedInputStream(properties.getMessageQueueCapacity(),
+                    properties.getOfferTimeoutMillis());
             var serverToClient = new WebSocketOutputStream(session);
 
-            // Store streams in session for cleanup
-            session.getAttributes().put(SESSION_KEY_CLIENT_TO_SERVER, clientToServer);
             session.getAttributes().put(SESSION_KEY_SERVER_INPUT, serverInput);
 
-            // Create and start LSP server in background
             var finalServerInput = serverInput;
-            executor.submit(() -> startLspServer(session, finalServerInput, serverToClient));
+            executor.submit(() -> launchLanguageServer(session, finalServerInput, serverToClient));
         } catch (Exception e) {
+            // Remove the stored input so afterConnectionClosed (which Spring still
+            // calls) does not decrement the session counter a second time.
             closeQuietly(serverInput);
-            closeQuietly(clientToServer);
+            session.getAttributes().remove(SESSION_KEY_SERVER_INPUT);
+            activeSessions.decrementAndGet();
             throw e;
         }
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, @NonNull TextMessage message) throws Exception {
-        var clientToServer = (PipedOutputStream) session.getAttributes().get(SESSION_KEY_CLIENT_TO_SERVER);
-        if (clientToServer == null) {
+        var serverInput = (QueueBackedInputStream) session.getAttributes().get(SESSION_KEY_SERVER_INPUT);
+        if (serverInput == null) {
             log.warn("No LSP connection for session {}", session.getId());
             return;
         }
@@ -105,10 +133,15 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
         var lspMessage = formatLspMessage(payload);
 
         try {
-            clientToServer.write(lspMessage);
-            clientToServer.flush();
-        } catch (IOException e) {
-            log.error("Failed to send message to LSP server", e);
+            if (!serverInput.offer(lspMessage)) {
+                // The LSP server is not draining its input. Dropping a message would
+                // desynchronise the document model, so the session is closed instead.
+                log.warn("LSP server input queue saturated for session {}, closing", session.getId());
+                session.close(CloseStatus.SERVICE_OVERLOAD);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.debug("Interrupted while delivering message to LSP server for session {}", session.getId());
         }
     }
 
@@ -116,37 +149,23 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
     public void afterConnectionClosed(WebSocketSession session, @NonNull CloseStatus status) throws Exception {
         log.info("LSP WebSocket connection closed: {} ({})", session.getId(), status);
 
-        // Close pipes to shut down LSP server
-        try {
-            var clientToServer = (PipedOutputStream) session.getAttributes().get(SESSION_KEY_CLIENT_TO_SERVER);
-            if (clientToServer != null) {
-                clientToServer.close();
-            }
-        } catch (IOException e) {
-            log.debug("Error closing client-to-server pipe", e);
-        }
-
-        try {
-            var serverInput = (PipedInputStream) session.getAttributes().get(SESSION_KEY_SERVER_INPUT);
-            if (serverInput != null) {
-                serverInput.close();
-            }
-        } catch (IOException e) {
-            log.debug("Error closing server input pipe", e);
+        var serverInput = (QueueBackedInputStream) session.getAttributes().get(SESSION_KEY_SERVER_INPUT);
+        if (serverInput != null) {
+            serverInput.close();
+            activeSessions.decrementAndGet();
         }
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, @NonNull Throwable exception) throws Exception {
-        if (exception instanceof IOException
-                && exception.getCause() instanceof java.nio.channels.ClosedChannelException) {
+        if (exception instanceof IOException && exception.getCause() instanceof ClosedChannelException) {
             log.debug("LSP WebSocket closed for session {} (channel closed)", session.getId());
         } else {
             log.error("LSP WebSocket transport error for session {}", session.getId(), exception);
         }
     }
 
-    private void startLspServer(WebSocketSession session, InputStream input, OutputStream output) {
+    void launchLanguageServer(WebSocketSession session, InputStream input, OutputStream output) {
         try {
             log.info("Starting embedded LSP server for session {}", session.getId());
 
@@ -181,6 +200,87 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
         System.arraycopy(headerBytes, 0, result, 0, headerBytes.length);
         System.arraycopy(contentBytes, 0, result, headerBytes.length, contentBytes.length);
         return result;
+    }
+
+    /**
+     * Input stream backed by a bounded blocking queue of message chunks. The
+     * container thread offers chunks with a timeout (never blocking
+     * indefinitely), while the LSP reader thread blocks on take when idle. A
+     * closed stream drains to end-of-stream so the reader terminates.
+     */
+    static final class QueueBackedInputStream extends InputStream {
+
+        private static final byte[] END_OF_STREAM = new byte[0];
+
+        private final BlockingQueue<byte[]> queue;
+        private final long                  offerTimeoutMillis;
+
+        private byte[]  current      = END_OF_STREAM;
+        private int     currentIndex = 0;
+        private boolean closed       = false;
+
+        QueueBackedInputStream(int capacity, long offerTimeoutMillis) {
+            this.queue              = new ArrayBlockingQueue<>(Math.max(1, capacity));
+            this.offerTimeoutMillis = offerTimeoutMillis;
+        }
+
+        boolean offer(byte[] chunk) throws InterruptedException {
+            return queue.offer(chunk, offerTimeoutMillis, TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (!ensureCurrent()) {
+                return -1;
+            }
+            return current[currentIndex++] & 0xFF;
+        }
+
+        @Override
+        public int read(byte @NonNull [] destination, int offset, int length) throws IOException {
+            if (length == 0) {
+                return 0;
+            }
+            if (!ensureCurrent()) {
+                return -1;
+            }
+            var available = Math.min(length, current.length - currentIndex);
+            System.arraycopy(current, currentIndex, destination, offset, available);
+            currentIndex += available;
+            return available;
+        }
+
+        private boolean ensureCurrent() throws IOException {
+            while (currentIndex >= current.length) {
+                if (closed) {
+                    return false;
+                }
+                try {
+                    var next = queue.take();
+                    if (next == END_OF_STREAM) {
+                        closed = true;
+                        return false;
+                    }
+                    current      = next;
+                    currentIndex = 0;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted while reading LSP input", e);
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public void close() {
+            // Signal end-of-stream to the reader. Clear to make room, then offer the
+            // sentinel. If a concurrent producer refilled the queue, drop a chunk and
+            // retry so the end-of-stream sentinel is never lost.
+            queue.clear();
+            while (!queue.offer(END_OF_STREAM)) {
+                queue.poll();
+            }
+        }
     }
 
     /**

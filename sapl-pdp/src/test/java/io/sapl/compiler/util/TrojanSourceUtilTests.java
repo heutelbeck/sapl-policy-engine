@@ -35,10 +35,15 @@ import static org.assertj.core.api.Assertions.*;
 @DisplayName("TrojanSourceUtil")
 class TrojanSourceUtilTests {
 
+    private static final char LRE = '\u202A';
+    private static final char RLE = '\u202B';
+    private static final char PDF = '\u202C';
+    private static final char LRO = '\u202D';
+    private static final char RLO = '\u202E';
     private static final char LRI = '\u2066';
     private static final char RLI = '\u2067';
+    private static final char FSI = '\u2068';
     private static final char PDI = '\u2069';
-    private static final char RLO = '\u202E';
 
     @Nested
     @DisplayName("assertNoTrojanSourceCharacters")
@@ -58,7 +63,7 @@ class TrojanSourceUtilTests {
         }
 
         @ParameterizedTest(name = "rejects input containing {0}")
-        @ValueSource(chars = { LRI, RLI, PDI, RLO })
+        @ValueSource(chars = { LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI })
         @DisplayName("rejects input containing trojan source characters")
         void whenTrojanCharacterThenThrows(char trojanChar) {
             val malicious = "policy \"te" + trojanChar + "st\" permit";
@@ -82,7 +87,7 @@ class TrojanSourceUtilTests {
         }
 
         @ParameterizedTest(name = "detects {0} in stream")
-        @ValueSource(chars = { LRI, RLI, PDI, RLO })
+        @ValueSource(chars = { LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI })
         @DisplayName("detects trojan source characters in stream")
         void whenTrojanCharacterInStreamThenThrows(char trojanChar) {
             val malicious = "policy \"te" + trojanChar + "st\" permit";

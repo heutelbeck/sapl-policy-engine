@@ -30,7 +30,7 @@ import io.sapl.api.SaplVersion;
 /**
  * Authentication token carrying a SaplUser principal.
  */
-public class SaplAuthenticationToken extends AbstractAuthenticationToken {
+public final class SaplAuthenticationToken extends AbstractAuthenticationToken {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;

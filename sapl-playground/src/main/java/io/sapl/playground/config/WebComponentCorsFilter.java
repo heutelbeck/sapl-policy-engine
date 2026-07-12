@@ -55,6 +55,9 @@ class WebComponentCorsFilter extends OncePerRequestFilter {
         if (matchedOrigin != null) {
             response.setHeader("Access-Control-Allow-Origin", matchedOrigin);
             response.setHeader("Access-Control-Allow-Credentials", "true");
+            // The reflected allow-origin varies by request Origin. Without this a
+            // shared cache could serve one allowed origin's headers to another.
+            response.addHeader("Vary", "Origin");
             if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
                 response.setHeader("Access-Control-Allow-Methods", "GET, POST");
                 response.setHeader("Access-Control-Allow-Headers", ALLOWED_HEADERS);

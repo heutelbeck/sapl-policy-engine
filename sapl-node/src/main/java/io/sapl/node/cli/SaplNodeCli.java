@@ -134,6 +134,13 @@ public class SaplNodeCli implements Callable<Integer> {
         }
     }
 
+    /**
+     * @return {@code true} when {@code -v}/{@code --verbose} was supplied
+     */
+    public boolean isVerbose() {
+        return verbosity != null && verbosity.verbose;
+    }
+
     @Override
     public Integer call() {
         return 0;

@@ -120,9 +120,8 @@ class ResourcesPDPConfigurationSourceTests {
 
         val configs = captureConfigurations(source);
         assertThat(configs).hasSize(1);
-        // Auto-generated format: res:<path>@sha256:<hash>
-        assertThat(configs.getFirst().configurationId()).startsWith("res:");
-        assertThat(configs.getFirst().configurationId()).contains("@sha256:");
+        // Auto-generated format: res:<path>
+        assertThat(configs.getFirst().configurationId()).startsWith("res:").doesNotContain("sha256");
 
         source.close();
     }

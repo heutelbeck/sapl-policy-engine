@@ -5,7 +5,13 @@ We appreciate your efforts to responsibly disclose your findings and will ensure
 
 ## Supported Versions
 
-We do not support old versions, all bug/feature/security updates will be released in the next planned release.
+SAPL currently supports the latest released version only. Bug fixes, feature updates,
+and security fixes are released in the next planned release unless a vulnerability
+requires a coordinated security release.
+
+Backports for older versions are not part of the default maintenance policy. If an
+affected production deployment cannot upgrade directly, contact us privately so we can
+discuss the specific risk, timeline, and feasible remediation path.
 
 | Version     | Supported          |
 |-------------|--------------------|
@@ -17,6 +23,6 @@ We do not support old versions, all bug/feature/security updates will be release
 
 Instead, please use the [advisory feature](https://github.com/heutelbeck/sapl-policy-engine/security/advisories) to report security vulnerabilities. This enables us to triage and resolve critical vulnerabilities before disclosing them to the public.
 
-If you're unable to use this feature you can send a mail to <dominic@heutelbeck.com>.
+If you are unable to use this feature, you can send a mail to <dominic@heutelbeck.com>.
 
 We strive to acknowledge each report in less than 5 business days. The time it takes to resolve a report depends on the specifics of the vulnerability.

@@ -17,7 +17,7 @@
  */
 package io.sapl.reactive.api.tenant;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import reactor.core.publisher.Mono;
 
 /**
@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
  * Implementations may read the id from a Reactor Context populated
  * upstream by an HTTP filter, from request headers, from a JWT claim,
  * or from any other source. A missing tenant must resolve to
- * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}.
+ * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
  */
 @FunctionalInterface
 public interface ReactiveTenantResolver {

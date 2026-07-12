@@ -950,28 +950,41 @@ public class SaplTestFixture {
     }
 
     private String extractPolicyName(String policySource) {
-        // Simple regex-free extraction of policy/set name
-        val trimmed    = policySource.trim();
-        var startIndex = -1;
-        if (trimmed.startsWith("policy")) {
-            startIndex = 6;
-        } else if (trimmed.startsWith("set")) {
-            startIndex = 3;
+        // Scan lines for the policy/set declaration, since imports and schemas may
+        // precede it.
+        for (val line : policySource.split("\n", -1)) {
+            val trimmedLine = line.trim();
+            var startIndex  = -1;
+            if (trimmedLine.startsWith("policy") && isKeywordBoundary(trimmedLine, 6)) {
+                startIndex = 6;
+            } else if (trimmedLine.startsWith("set") && isKeywordBoundary(trimmedLine, 3)) {
+                startIndex = 3;
+            }
+            if (startIndex < 0) {
+                continue;
+            }
+            val name = extractQuotedName(trimmedLine, startIndex);
+            if (name != null) {
+                return name;
+            }
         }
-        if (startIndex < 0) {
-            return null;
-        }
+        return null;
+    }
 
-        // Find the quoted name
-        val quoteStart = trimmed.indexOf('"', startIndex);
+    private boolean isKeywordBoundary(String line, int keywordLength) {
+        return line.length() == keywordLength || !Character.isJavaIdentifierPart(line.charAt(keywordLength));
+    }
+
+    private String extractQuotedName(String declarationLine, int fromIndex) {
+        val quoteStart = declarationLine.indexOf('"', fromIndex);
         if (quoteStart < 0) {
             return null;
         }
-        val quoteEnd = trimmed.indexOf('"', quoteStart + 1);
+        val quoteEnd = declarationLine.indexOf('"', quoteStart + 1);
         if (quoteEnd < 0) {
             return null;
         }
-        return trimmed.substring(quoteStart + 1, quoteEnd);
+        return declarationLine.substring(quoteStart + 1, quoteEnd);
     }
 
     private void validatePolicyAddition() {
@@ -1136,7 +1149,7 @@ public class SaplTestFixture {
     /**
      * Result of a policy decision providing step-by-step verification.
      * <p>
-     * Each expect/then method adds an action to a queue; terminal
+     * Each expect/then method adds an action to a queue. Terminal
      * {@link #verify()} drives the underlying {@link Stream} of
      * coverage-instrumented decisions, executing each action in order
      * against the next emission or against the mock attribute broker.
@@ -1149,6 +1162,8 @@ public class SaplTestFixture {
      * to disk when {@link #verify()} completes.
      */
     public static class DecisionResult {
+
+        private static final String ERROR_TIMEOUT_AWAITING_DECISION = "Timed out awaiting the expected decision; the decision stream stayed open but never emitted within the timeout.";
 
         private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
@@ -1271,6 +1286,19 @@ public class SaplTestFixture {
 
         /**
          * Executes verification with the given total timeout.
+         * <p>
+         * An expectation that is never satisfied within the timeout (the
+         * decision stream stays open but does not emit the expected decision)
+         * fails the test loudly by throwing an {@link AssertionError}, just
+         * like a mismatched decision. Fluent callers that discard the returned
+         * {@link TestResult} therefore still fail on a timeout. Only truly
+         * unexpected internal exceptions are reported through a returned
+         * {@link TestResult#failure}.
+         *
+         * @param timeout the total time budget for all queued expectations
+         * @return a successful {@link TestResult} if all expectations passed
+         * @throws AssertionError if an expectation fails or the expected
+         * decision never arrives within the timeout
          */
         public TestResult verify(@NonNull Duration timeout) {
             val coverageRecord = coverageAccumulator != null ? coverageAccumulator.getRecord() : null;
@@ -1284,6 +1312,14 @@ public class SaplTestFixture {
             } catch (AssertionError e) {
                 writeCoverage();
                 throw enhanceWithVoteTrace(e);
+            } catch (TimeoutException e) {
+                writeCoverage();
+                throw enhanceWithVoteTrace(new AssertionError(ERROR_TIMEOUT_AWAITING_DECISION, e));
+            } catch (IllegalStateException | IllegalArgumentException e) {
+                // Usage errors (e.g. emit on an unknown mockId) must fail loudly, not be
+                // folded into a discarded TestResult that leaves the test silently green.
+                writeCoverage();
+                throw enhanceWithVoteTrace(new AssertionError(e.getMessage(), e));
             } catch (Exception e) {
                 writeCoverage();
                 return TestResult.failure(e, coverageRecord);

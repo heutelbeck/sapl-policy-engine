@@ -27,6 +27,7 @@ import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
 import io.sapl.test.lang.SaplTestParser;
 import io.sapl.test.plain.*;
+import lombok.val;
 import org.junit.jupiter.api.*;
 import org.opentest4j.AssertionFailedError;
 
@@ -37,6 +38,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
@@ -146,28 +148,29 @@ public class JUnitTestAdapter {
     /**
      * Creates the test configuration with discovered policies.
      */
-    private TestConfiguration createConfiguration() {
-        var builder = TestConfiguration.builder().withSaplDocuments(policies)
+    TestConfiguration createConfiguration() {
+        var documents = policies == null ? List.<SaplDocument>of() : policies;
+        var builder   = TestConfiguration.builder().withSaplDocuments(documents)
                 .withDefaultAlgorithm(getDefaultCombiningAlgorithm());
 
-        // Add function libraries from registrations
-        var registrations     = getFixtureRegistrations();
-        var functionLibraries = registrations.get(ImportType.STATIC_FUNCTION_LIBRARY);
-        if (functionLibraries != null) {
-            for (var entry : functionLibraries.entrySet()) {
-                builder.withFunctionLibrary(entry.getValue());
-            }
-        }
+        // Register function libraries.
+        var registrations = getFixtureRegistrations();
+        registerAll(registrations.get(ImportType.FUNCTION_LIBRARY), builder::withFunctionLibrary);
+        registerAll(registrations.get(ImportType.STATIC_FUNCTION_LIBRARY), builder::withFunctionLibrary);
 
-        // Add PIPs from registrations
-        var pips = registrations.get(ImportType.PIP);
-        if (pips != null) {
-            for (var entry : pips.entrySet()) {
-                builder.withPolicyInformationPoint(entry.getValue());
-            }
-        }
+        // Register PIPs.
+        registerAll(registrations.get(ImportType.PIP), builder::withPolicyInformationPoint);
+        registerAll(registrations.get(ImportType.STATIC_PIP), builder::withPolicyInformationPoint);
 
         return builder.build();
+    }
+
+    private static void registerAll(Map<String, Object> imports, Consumer<Object> register) {
+        if (imports != null) {
+            for (var entry : imports.entrySet()) {
+                register.accept(entry.getValue());
+            }
+        }
     }
 
     private DynamicContainer createTestContainer(String relativePath) {
@@ -221,9 +224,9 @@ public class JUnitTestAdapter {
         if (result.status() == TestStatus.FAILED) {
             throw new AssertionFailedError(result.failureMessage());
         } else if (result.status() == TestStatus.ERROR) {
-            if (result.failureCause() != null) {
-                throw new AssertionFailedError("Test execution error: " + result.failureCause().getMessage(),
-                        result.failureCause());
+            val cause = result.failureCause();
+            if (cause != null) {
+                throw new AssertionFailedError("Test execution error: " + cause.getMessage(), cause);
             } else {
                 throw new AssertionFailedError("Test execution error: " + result.failureMessage());
             }

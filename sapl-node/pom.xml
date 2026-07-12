@@ -25,7 +25,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.1.0-SNAPSHOT</version>
+		<version>4.2.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>sapl-node</artifactId>
@@ -41,9 +41,7 @@
 
 	<properties>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
-		<main.basedir>${project.basedir}/../</main.basedir>
-		<native-maven-plugin.version>0.10.6</native-maven-plugin.version>
-	</properties>
+		<main.basedir>${project.basedir}/../</main.basedir>	</properties>
 	
 	<dependencies>
 		<dependency>
@@ -104,6 +102,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-rsocket</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-codec-native-quic</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
@@ -138,7 +142,7 @@
 		<dependency>
 			<groupId>org.passay</groupId>
 			<artifactId>passay</artifactId>
-			<version>1.6.6</version>
+			<version>2.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>info.picocli</groupId>
@@ -162,7 +166,7 @@
 		<dependency>
 			<groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
 			<artifactId>bucket4j-spring-boot-starter</artifactId>
-			<version>0.12.8</version>
+			<version>0.14.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>javax.cache</groupId>
@@ -182,6 +186,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
+			<scope>provided</scope>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -248,7 +253,7 @@
 		<dependency>
 			<groupId>com.github.dasniko</groupId>
 			<artifactId>testcontainers-keycloak</artifactId>
-			<version>3.5.1</version>
+			<version>4.2.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -272,20 +277,8 @@
 					<configuration>
 						<imageName>sapl</imageName>
 						<quickBuild>false</quickBuild>
-						<!-- The graalvm-reachability-metadata repo only covers Caffeine
-						     up to 3.1.2; without this override the 3.2.x classpath
-						     skips Caffeine metadata entirely and dynamic cache classes
-						     such as 'com.github.benmanes.caffeine.cache.SSA' are
-						     missing reflection registrations at runtime. -->
 						<metadataRepository>
 							<enabled>true</enabled>
-							<dependencies>
-								<dependency>
-									<groupId>com.github.ben-manes.caffeine</groupId>
-									<artifactId>caffeine</artifactId>
-									<version>3.1.2</version>
-								</dependency>
-							</dependencies>
 						</metadataRepository>
 						<buildArgs>
 							<buildArg>--no-fallback</buildArg>
@@ -356,7 +349,7 @@
 						</exclude>
 					</excludes>
 					<image>
-						<builder>paketobuildpacks/builder-jammy-tiny</builder>
+						<builder>paketobuildpacks/builder-jammy-tiny:latest@sha256:13e4dcca1d17a5e13eb0966cba03dea94c225436d3c15ff566cbef3b7eacd250</builder>
 						<buildpacks>
 							<buildpack>urn:cnb:builder:paketo-buildpacks/java</buildpack>
 						</buildpacks>
@@ -387,7 +380,7 @@
 							<BPE_LOADER_PATH>file:/pdp/data/lib/</BPE_LOADER_PATH>
 							<BPE_JAVA_SECURITY_EGD>file:/dev/./urandom/</BPE_JAVA_SECURITY_EGD>
 							<BPE_DELIM_JAVA_TOOL_OPTIONS xml:space="preserve"> </BPE_DELIM_JAVA_TOOL_OPTIONS>
-							<BPE_APPEND_JAVA_TOOL_OPTIONS>--enable-native-access=ALL-UNNAMED</BPE_APPEND_JAVA_TOOL_OPTIONS>
+							<BPE_APPEND_JAVA_TOOL_OPTIONS>--enable-native-access=ALL-UNNAMED -XX:+UseZGC</BPE_APPEND_JAVA_TOOL_OPTIONS>
 						</env>
 					</image>
 				</configuration>
@@ -420,6 +413,7 @@
 				</executions>
 				<configuration>
 					<projectType>application</projectType>
+					<includeProvidedScope>false</includeProvidedScope>
 					<outputDirectory>${project.build.outputDirectory}/META-INF/sbom</outputDirectory>
 					<outputName>application.cdx</outputName>
 					<outputFormat>json</outputFormat>
@@ -502,7 +496,7 @@
 			<plugin>
 				<groupId>org.asciidoctor</groupId>
 				<artifactId>asciidoctor-maven-plugin</artifactId>
-				<version>3.1.1</version>
+				<version>3.2.0</version>
 				<executions>
 					<execution>
 						<id>generate-manpages</id>
@@ -529,7 +523,6 @@
 		          <plugin>
 		            <groupId>org.apache.maven.plugins</groupId>
 		            <artifactId>maven-gpg-plugin</artifactId>
-		            <version>3.2.7</version>
 		            <executions>
 		              <execution>
 		                <id>sign-artifacts</id>

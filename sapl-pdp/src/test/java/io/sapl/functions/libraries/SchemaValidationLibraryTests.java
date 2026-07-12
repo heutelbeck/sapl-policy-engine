@@ -64,6 +64,16 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
+    @DisplayName("an unresolvable $ref makes the schema un-compilable and yields an ErrorValue, not a false validation result")
+    void whenSchemaHasUnresolvableRefThenErrorValue() {
+        val brokenSchema = ObjectValue.builder().put("$ref", Value.of("#/$defs/missing")).build();
+
+        val result = validateWithExternalSchemas(Value.of("x"), brokenSchema, Value.EMPTY_ARRAY);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
     void whenValidatingCompliantValueThenReturnsTrue() {
         val schema = ObjectValue.builder().put("type", Value.of("boolean")).build();
 
@@ -187,6 +197,33 @@ class SchemaValidationLibraryTests {
         val result = isCompliantWithExternalSchemas(validTriangle, triangleSchema, externals);
 
         assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    @Timeout(30)
+    @DisplayName("when many array elements each match a backtracking pattern then the aggregate validation is bounded and aborts")
+    void whenManyElementsMatchBacktrackingPatternThenAggregateIsBounded() {
+        // A schema "pattern" keyword is matched once per array element. Each individual
+        // element match stays under the single-match budget, while the aggregate of all
+        // element matches would run far past it. The bound must be per validate() call
+        // so
+        // the whole validation aborts once the shared budget is exhausted, rather than
+        // letting eval-thread CPU scale linearly with the element count.
+        val itemSchema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
+                .build();
+        val arraySchema = ObjectValue.builder().put("type", Value.of("array")).put("items", itemSchema).build();
+
+        val hostileElement = Value.of("a".repeat(24));
+        val arrayBuilder   = ArrayValue.builder();
+        for (int i = 0; i < 9; i++) {
+            arrayBuilder.add(hostileElement);
+        }
+        val hostileArray = arrayBuilder.build();
+
+        val result = isCompliant(hostileArray, arraySchema);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
     }
 
     @Test

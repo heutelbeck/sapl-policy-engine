@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * refcount-zero grace window, the path on which {@code migrate} promotes a
  * replacement with no inherited subscribers and {@code reclaimIfOrphaned} must
  * reclaim it. This is a regression guard for the swap-during-grace path and the
- * opens/closes balance invariant; it does not by itself isolate the underlying
+ * opens/closes balance invariant. It does not by itself isolate the underlying
  * race (the leak it guards against was confirmed by code inspection, and the
  * reclaim is applied defensively).
  */
@@ -65,7 +65,7 @@ class MigrateGraceWindowReclaimTests {
     }
 
     private static SubscriptionKey envKey(String fqn) {
-        val invocation = new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1),
+        val invocation = new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         return new SubscriptionKey(invocation, false);

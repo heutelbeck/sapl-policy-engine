@@ -185,8 +185,11 @@ public class RSocketLoadGenerator {
 
     private static void runPacedPhase(LoadResources res, int totalConcurrency, int seconds, int targetRate,
             AtomicLong ops, AtomicLong failures, LatencyCollector latency) {
-        val workerCount      = res.sockets().size();
-        val ratePerWorker    = Math.max(1, targetRate / workerCount);
+        val workerCount = res.sockets().size();
+        // Round up so the aggregate rate covers the target. Plain integer division
+        // silently caps below the requested rate (e.g. target=100 / 8 workers => 12
+        // each => 96 total).
+        val ratePerWorker    = Math.max(1, Math.ceilDiv(targetRate, workerCount));
         val workerIntervalNs = 1_000_000_000L / ratePerWorker;
         val ticksPerWorker   = (long) ratePerWorker * seconds;
         val concPerWorker    = Math.max(1, totalConcurrency / workerCount);

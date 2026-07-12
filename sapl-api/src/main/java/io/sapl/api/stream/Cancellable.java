@@ -19,7 +19,7 @@ package io.sapl.api.stream;
 
 /**
  * Handle for a scheduled task. Calling {@link #cancel()} prevents the
- * task from running if it has not started; otherwise has no effect.
+ * task from running if it has not started. Otherwise has no effect.
  * Idempotent.
  */
 @FunctionalInterface

@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,15 +54,14 @@ class RequestBodySizeLimitFilterTests {
     }
 
     @Test
-    @DisplayName("a chunked body exceeding the limit aborts reading with a too-large error")
-    void whenChunkedBodyExceedsLimitThenReadingIsAbortedWithError() {
+    @DisplayName("a chunked body exceeding the limit aborts reading with a RequestBodyTooLargeException so the bypass servlets can map it to 413")
+    void whenChunkedBodyExceedsLimitThenReadingIsAbortedWithTooLargeIoException() {
         val filter       = new RequestBodySizeLimitFilter(LIMIT);
         val request      = chunkedRequest((int) LIMIT * 4);
         val response     = new MockHttpServletResponse();
         val invokeFilter = (ThrowingCallable) () -> filter.doFilter(request, response, DRAINING_CHAIN);
 
-        assertThatThrownBy(invokeFilter).isInstanceOfSatisfying(ResponseStatusException.class,
-                e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONTENT_TOO_LARGE));
+        assertThatThrownBy(invokeFilter).isInstanceOf(RequestBodyTooLargeException.class);
     }
 
     @Test

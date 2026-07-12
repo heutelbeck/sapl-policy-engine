@@ -21,8 +21,8 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import io.sapl.spring.pdp.embedded.PdpObjectMapperAutoConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +54,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DisplayName("OpenID Authorization API controller")
 @WebMvcTest(controllers = OpenIdAuthorizationApiController.class)
-@ContextConfiguration(classes = { OpenIdAuthorizationApiController.class, PdpObjectMapperAutoConfiguration.class })
+@ContextConfiguration(classes = { OpenIdAuthorizationApiController.class, OpenIdAuthorizationApiExceptionHandler.class,
+        PdpObjectMapperAutoConfiguration.class })
 class OpenIdAuthorizationApiControllerTests {
 
     private static final String EVALUATION_PATH = "/access/v1/evaluation";
@@ -78,7 +79,7 @@ class OpenIdAuthorizationApiControllerTests {
 
     @BeforeEach
     void setUp() {
-        when(tenantResolver.resolve()).thenReturn(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
+        when(tenantResolver.resolve()).thenReturn(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Nested
@@ -199,7 +200,7 @@ class OpenIdAuthorizationApiControllerTests {
 
         @Test
         void pdpErrorReturnsIndeterminate() throws Exception {
-            when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)))
+            when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)))
                     .thenThrow(new RuntimeException("boom"));
             postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
                     .andExpect(jsonPath("$.context.reason_admin.en").exists());
@@ -207,7 +208,7 @@ class OpenIdAuthorizationApiControllerTests {
     }
 
     private void stubPdp(AuthorizationDecision decision) {
-        when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)))
+        when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(decision);
     }
 

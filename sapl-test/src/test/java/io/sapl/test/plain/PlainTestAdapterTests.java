@@ -17,7 +17,13 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.Value;
+import io.sapl.test.plain.TestEvent.ExecutionCompleted;
+import io.sapl.test.plain.TestEvent.ScenarioCompleted;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,7 +46,7 @@ class PlainTestAdapterTests {
 
     @Test
     @DisplayName("execute returns empty results when no test documents")
-    void whenNoTestDocuments_thenReturnsEmptyResults() {
+    void whenNoTestDocumentsThenReturnsEmptyResults() {
         val config  = TestConfiguration.builder().build();
         val results = ADAPTER.execute(config);
 
@@ -49,7 +56,7 @@ class PlainTestAdapterTests {
 
     @Test
     @DisplayName("execute handles parse error in test document")
-    void whenTestDocumentHasParseError_thenCreatesErrorResult() {
+    void whenTestDocumentHasParseErrorThenCreatesErrorResult() {
         val invalidTest = new SaplTestDocument("invalid", "invalid", "this is not valid SAPLTEST syntax");
         val config      = TestConfiguration.builder().withSaplTestDocument(invalidTest).build();
         val results     = ADAPTER.execute(config);
@@ -61,8 +68,21 @@ class PlainTestAdapterTests {
     }
 
     @Test
+    @DisplayName("execute isolates a runtime failure in one document as an error result")
+    void whenTestDocumentTriggersRuntimeExceptionThenCreatesErrorResultInsteadOfThrowing() {
+        val brokenDocument = new SaplTestDocument("broken", "broken", null);
+        val config         = TestConfiguration.builder().withSaplTestDocument(brokenDocument).build();
+        val results        = ADAPTER.execute(config);
+
+        assertThat(results.total()).isOne();
+        assertThat(results.errors()).isOne();
+        assertThat(results.allPassed()).isFalse();
+        assertThat(results.scenarioResults().getFirst().status()).isEqualTo(TestStatus.ERROR);
+    }
+
+    @Test
     @DisplayName("adapter instance can be reused")
-    void whenAdapterReused_thenWorksCorrectly() {
+    void whenAdapterReusedThenWorksCorrectly() {
         val config1  = TestConfiguration.builder().build();
         val config2  = TestConfiguration.builder().build();
         val results1 = ADAPTER.execute(config1);
@@ -74,7 +94,7 @@ class PlainTestAdapterTests {
 
     @Test
     @DisplayName("execute runs passing test scenario")
-    void whenValidTestScenario_thenReturnsPassedResult() {
+    void whenValidTestScenarioThenReturnsPassedResult() {
         val testCode = """
                 requirement "test" {
                     given
@@ -91,7 +111,7 @@ class PlainTestAdapterTests {
 
     @Test
     @DisplayName("execute runs failing test scenario")
-    void whenTestExpectationNotMet_thenReturnsFailedResult() {
+    void whenTestExpectationNotMetThenReturnsFailedResult() {
         val policy   = SaplDocument.of("deny-all", "policy \"deny-all\" deny");
         val testCode = """
                 requirement "test" {
@@ -112,8 +132,58 @@ class PlainTestAdapterTests {
     }
 
     @Test
+    @DisplayName("configured function libraries are available to plain test scenarios")
+    void whenFunctionLibraryRegisteredThenScenarioCanUseFunction() {
+        val policy   = SaplDocument.of("registered-function", """
+                policy "registered-function"
+                permit registered.allow();
+                """);
+        val testCode = """
+                requirement "registered function library" {
+                    given
+                        - document "registered-function"
+                    scenario "custom function permits"
+                        when "alice" attempts "read" on "data"
+                        expect decision is permit;
+                }
+                """;
+        val testDoc  = new SaplTestDocument("test", "test", testCode);
+        val config   = TestConfiguration.builder().withSaplDocument(policy).withSaplTestDocument(testDoc)
+                .withFunctionLibrary(new RegisteredFunctionLibrary()).build();
+
+        val results = ADAPTER.execute(config);
+
+        assertSinglePassedTest(results);
+    }
+
+    @Test
+    @DisplayName("configured policy information points are available to plain test scenarios")
+    void whenPolicyInformationPointRegisteredThenScenarioCanUseAttribute() {
+        val policy   = SaplDocument.of("registered-pip", """
+                policy "registered-pip"
+                permit <registered.allowed>;
+                """);
+        val testCode = """
+                requirement "registered policy information point" {
+                    given
+                        - document "registered-pip"
+                    scenario "custom attribute permits"
+                        when "alice" attempts "read" on "data"
+                        expect decision is permit;
+                }
+                """;
+        val testDoc  = new SaplTestDocument("test", "test", testCode);
+        val config   = TestConfiguration.builder().withSaplDocument(policy).withSaplTestDocument(testDoc)
+                .withPolicyInformationPoint(new RegisteredPolicyInformationPoint()).build();
+
+        val results = ADAPTER.execute(config);
+
+        assertSinglePassedTest(results);
+    }
+
+    @Test
     @DisplayName("execute runs multiple scenarios in one requirement")
-    void whenMultipleScenariosInRequirement_thenAllAreExecuted() {
+    void whenMultipleScenariosInRequirementThenAllAreExecuted() {
         val policy   = SaplDocument.of("permit-read", """
                 policy "permit-read" permit action == "read";
                 """);
@@ -140,7 +210,7 @@ class PlainTestAdapterTests {
 
     @Test
     @DisplayName("execute reports correct counts with mixed results")
-    void whenMixedPassFail_thenCountsAreCorrect() {
+    void whenMixedPassFailThenCountsAreCorrect() {
         val testCode = """
                 requirement "mixed" {
                     given
@@ -194,13 +264,41 @@ class PlainTestAdapterTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("secretsTestCases")
     @DisplayName("execute handles secrets correctly")
-    void whenSecretsProvided_thenScenarioExecutesSuccessfully(String description, String testCode) {
+    void whenSecretsProvidedThenScenarioExecutesSuccessfully(String description, String testCode) {
         val testDoc = new SaplTestDocument("test", "test", testCode);
         val config  = TestConfiguration.builder().withSaplDocument(PERMIT_ALL_POLICY).withSaplTestDocument(testDoc)
                 .withSecret("configSecret", Value.of("configValue")).build();
         val results = ADAPTER.execute(config);
 
         assertSinglePassedTest(results);
+    }
+
+    @Test
+    @DisplayName("executeStreaming streams per-scenario events then a final ExecutionCompleted")
+    void whenExecuteStreamingThenStreamsProgressAndFinalResults() throws InterruptedException {
+        val testCode = """
+                requirement "test" {
+                    scenario "simple permit test"
+                        when "alice" attempts "read" on "data"
+                        expect decision is permit;
+                }
+                """;
+        val testDoc  = new SaplTestDocument("test", "test", testCode);
+        val config   = TestConfiguration.builder().withSaplDocument(PERMIT_ALL_POLICY).withSaplTestDocument(testDoc)
+                .build();
+
+        val events = new ArrayList<TestEvent>();
+        try (val stream = ADAPTER.executeStreaming(config)) {
+            TestEvent event;
+            while ((event = stream.awaitNext()) != null) {
+                events.add(event);
+            }
+        }
+
+        assertThat(events).hasAtLeastOneElementOfType(ScenarioCompleted.class).last()
+                .isInstanceOf(ExecutionCompleted.class);
+        assertThat(((ExecutionCompleted) events.getLast()).results()).satisfies(r -> assertThat(r.total()).isOne(),
+                r -> assertThat(r.passed()).isOne());
     }
 
     private static PlainTestResults executeWithPermitAllPolicy(String testCode) {
@@ -214,5 +312,21 @@ class PlainTestAdapterTests {
         assertThat(results.total()).isOne();
         assertThat(results.passed()).isOne();
         assertThat(results.allPassed()).isTrue();
+    }
+
+    @FunctionLibrary(name = "registered")
+    public static class RegisteredFunctionLibrary {
+        @Function(docs = "Allows the plain test scenario.")
+        public static Value allow() {
+            return Value.TRUE;
+        }
+    }
+
+    @PolicyInformationPoint(name = "registered")
+    public static class RegisteredPolicyInformationPoint {
+        @EnvironmentAttribute(docs = "Allows the plain test scenario.")
+        public static Value allowed() {
+            return Value.TRUE;
+        }
     }
 }

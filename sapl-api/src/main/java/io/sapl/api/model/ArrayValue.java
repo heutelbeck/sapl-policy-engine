@@ -26,7 +26,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -71,8 +70,11 @@ public final class ArrayValue implements Value, List<Value> {
     @Delegate(excludes = ExcludedMethods.class)
     private final List<Value> value;
 
+    // Lazily cached hashCode. Safe because the backing list is immutable; mirrors String's cache pattern.
+    private int hash;
+
     public ArrayValue(@NonNull List<Value> elements) {
-        this.value = Collections.unmodifiableList(elements);
+        this.value = List.copyOf(elements);
     }
 
     public ArrayValue(@NonNull Value[] elements) {
@@ -160,12 +162,8 @@ public final class ArrayValue implements Value, List<Value> {
         }
 
         /**
-         * Builds the immutable ArrayValue. Returns singleton for empty non-secret
-         * arrays.
-         * <p>
-         * At build time, the aggregated metadata is propagated to all elements for
-         * consistent access. After calling
-         * this method, the builder cannot be reused.
+         * Builds the immutable ArrayValue. Returns the singleton for empty arrays.
+         * After calling this method, the builder cannot be reused.
          *
          * @return the constructed ArrayValue
          *
@@ -202,7 +200,12 @@ public final class ArrayValue implements Value, List<Value> {
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        int h = hash;
+        if (h == 0) {
+            h    = value.hashCode();
+            hash = h;
+        }
+        return h;
     }
 
     /**
@@ -210,7 +213,7 @@ public final class ArrayValue implements Value, List<Value> {
      * <p>
      * Returns ErrorValue for invalid indices instead of throwing
      * IndexOutOfBoundsException, consistent with SAPL's
-     * error-as-value model. Elements already have the container's metadata applied.
+     * error-as-value model.
      *
      * @param index
      * index of the element
@@ -230,7 +233,7 @@ public final class ArrayValue implements Value, List<Value> {
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
      * NoSuchElementException, consistent with SAPL's
-     * error-as-value model. Elements already have the container's metadata applied.
+     * error-as-value model.
      *
      * @return the first element, or ErrorValue if array is empty
      */
@@ -247,7 +250,7 @@ public final class ArrayValue implements Value, List<Value> {
      * <p>
      * Returns ErrorValue if the array is empty instead of throwing
      * NoSuchElementException, consistent with SAPL's
-     * error-as-value model. Elements already have the container's metadata applied.
+     * error-as-value model.
      *
      * @return the last element, or ErrorValue if array is empty
      */
@@ -260,16 +263,14 @@ public final class ArrayValue implements Value, List<Value> {
     }
 
     /**
-     * Returns a view of the portion between the specified indices. The returned
-     * sublist preserves the container's
-     * metadata.
+     * Returns the portion between the specified indices as a new ArrayValue.
      *
      * @param fromIndex
      * low endpoint (inclusive)
      * @param toIndex
      * high endpoint (exclusive)
      *
-     * @return a sublist as ArrayValue with metadata propagated
+     * @return a sublist as ArrayValue
      */
     @Override
     public @NotNull List<Value> subList(int fromIndex, int toIndex) {

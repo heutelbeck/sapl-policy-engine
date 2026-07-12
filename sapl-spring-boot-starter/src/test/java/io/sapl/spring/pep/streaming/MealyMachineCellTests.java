@@ -17,8 +17,13 @@
  */
 package io.sapl.spring.pep.streaming;
 
+import static io.sapl.spring.pep.streaming.MealyMachine.DENIED_BY_POLICY;
+import static io.sapl.spring.pep.streaming.MealyMachine.DENIED_INDETERMINATE;
+import static io.sapl.spring.pep.streaming.MealyMachine.DENIED_NO_POLICY_APPLICABLE;
+import static io.sapl.spring.pep.streaming.MealyMachine.DENIED_PERMIT_NOT_ENFORCEABLE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.BufferedReader;
@@ -28,10 +33,18 @@ import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.security.access.AccessDeniedException;
 
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
+import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitError;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpDeny;
+import io.sapl.spring.pep.streaming.MealyMachine.State.Pending;
 import io.sapl.spring.pep.streaming.MealyMachine.Step;
 
 /**
@@ -40,8 +53,8 @@ import io.sapl.spring.pep.streaming.MealyMachine.Step;
  * Each row of {@code /mealy-table.csv} is one cell of the transition function:
  * a
  * {@code (source, event, outcome) -> (next, emissions)} record. This class is
- * one parameterised test over the table;
- * the CSV is the executable spec, the test is the witness that the
+ * one parameterised test over the table.
+ * The CSV is the executable spec, the test is the witness that the
  * implementation renders the spec faithfully.
  * <p>
  * This file performs content checks only. Semantic-subset claims (Lean theorems
@@ -93,5 +106,41 @@ class MealyMachineCellTests {
             return List.of();
         }
         return List.of(raw.split("\\|"));
+    }
+
+    /**
+     * The {@link MealyMachine.Emission.EmitError} kind alone does not tell an
+     * operator why access was denied. Each {@link DenyKind} must surface a
+     * distinct,
+     * correct {@link AccessDeniedException} message so audit logs and clients can
+     * tell an explicit policy DENY apart from an indeterminate evaluation, a
+     * missing
+     * applicable policy, or an unenforceable permit. The CSV cell test only checks
+     * the emission kind, so a swapped or wrong message would otherwise pass
+     * silently.
+     */
+    @Nested
+    @DisplayName("Denial message mapping")
+    class DenialMessageMapping {
+
+        @ParameterizedTest(name = "PdpDeny({0}) terminates with message \"{1}\"")
+        @MethodSource("io.sapl.spring.pep.streaming.MealyMachineCellTests#denyKindMessages")
+        @DisplayName("denial emits an AccessDeniedException carrying the message for its DenyKind")
+        void whenDeniedThenErrorMessageMatchesDenyKind(DenyKind kind, String expectedMessage) {
+            var deny = new PdpDeny(AuthorizationDecision.DENY, MealyTestSupport.PLAN, kind);
+
+            Step step = MealyMachine.step(Pending.INSTANCE, deny);
+
+            assertThat(step.emissions()).singleElement().asInstanceOf(type(EmitError.class))
+                    .extracting(EmitError::throwable).asInstanceOf(type(AccessDeniedException.class))
+                    .extracting(Throwable::getMessage).isEqualTo(expectedMessage);
+        }
+    }
+
+    static Stream<Arguments> denyKindMessages() {
+        return Stream.of(arguments(DenyKind.INDETERMINATE, DENIED_INDETERMINATE),
+                arguments(DenyKind.NO_POLICY_APPLICABLE, DENIED_NO_POLICY_APPLICABLE),
+                arguments(DenyKind.PERMIT_NOT_ENFORCEABLE, DENIED_PERMIT_NOT_ENFORCEABLE),
+                arguments(DenyKind.POLICY_DENIED, DENIED_BY_POLICY));
     }
 }

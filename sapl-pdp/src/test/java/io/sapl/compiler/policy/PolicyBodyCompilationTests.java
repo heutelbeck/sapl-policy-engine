@@ -363,7 +363,7 @@ class PolicyBodyCompilationTests {
             val streamSection = PolicyCompiler.compileStreamingSectionOfBodyExpression(conditions, body);
             val pureSection   = PolicyCompiler.compilePureSectionOfBodyExpression(conditions, body);
 
-            // No pure conditions in these tests; streaming section must be a StreamOperator
+            // No pure conditions in these tests. Streaming section must be a StreamOperator
             assertThat(pureSection).isEqualTo(Value.TRUE);
             assertThat(streamSection).isInstanceOf(StreamOperator.class);
 

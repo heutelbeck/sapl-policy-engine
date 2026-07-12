@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.NonNull;
@@ -41,8 +43,15 @@ import java.util.function.Consumer;
  * The source monitors a directory for .sapl policy files and a required
  * pdp.json configuration file. The first {@link #subscribe(Consumer)}
  * loads the initial configuration and starts file monitoring. Subsequent
- * file changes emit a fresh {@link ConfigurationEvent.Load} to all
+ * file changes emit a fresh {@link ConfigurationEvent.NewConfiguration} to all
  * subscribers.
+ * </p>
+ * <p>
+ * This filesystem source is a convenience for development and experimentation. It
+ * hot-reloads plain, unsigned policy files with no integrity or atomicity
+ * guarantees, so an editor writing a file in place can be observed mid-write.
+ * Enterprise and production deployments should use signed bundles instead, via
+ * {@link BundlePDPConfigurationSource} or {@link RemoteBundlePDPConfigurationSource}.
  * </p>
  * <h2>Directory Layout</h2>
  *
@@ -59,7 +68,7 @@ import java.util.function.Consumer;
  * decisions with the exact policy set. If
  * pdp.json contains a {@code configurationId} field, that value is used.
  * Otherwise, an ID is auto-generated in the
- * format: {@code dir:<path>@<timestamp>@sha256:<hash>}
+ * format: {@code dir:<path>@<timestamp>}
  * </p>
  * <h2>Thread Safety</h2>
  * <p>
@@ -84,6 +93,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     private static final String ERROR_FAILED_TO_LOAD_INITIAL_CONFIGURATION = "The configuration for PDP '{}' could not be loaded: {}. Every decision is INDETERMINATE until a valid configuration is in place. Decisions resume automatically once it is corrected.";
     private static final String ERROR_FAILED_TO_START_FILE_MONITOR         = "Failed to start file monitor for configuration directory: '%s'.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY                = "Configuration path is not a directory: '%s'.";
+    private static final String WARN_SUBSCRIBER_THREW                      = "Configuration subscriber for PDP '{}' threw and was isolated; other subscribers and hot-reload are unaffected: {}";
 
     private final Path                              directoryPath;
     private final String                            pdpId;
@@ -94,6 +104,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     private final AtomicBoolean                     activated        = new AtomicBoolean(false);
     private final AtomicBoolean                     closed           = new AtomicBoolean(false);
     private final AtomicBoolean                     directoryPresent = new AtomicBoolean(true);
+    private final AtomicBoolean                     monitorStarted   = new AtomicBoolean(false);
 
     /**
      * Creates a source for the specified directory with default PDP ID.
@@ -101,7 +112,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
      * @param directoryPath the filesystem directory containing policy files
      */
     public DirectoryPDPConfigurationSource(@NonNull Path directoryPath) {
-        this(directoryPath, PdpIdValidator.DEFAULT_PDP_ID);
+        this(directoryPath, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**
@@ -188,15 +199,21 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
         } catch (Exception e) {
             // Intentionally not rethrowing: the file monitor started below will
             // detect corrected files and automatically reload a valid configuration.
+            // The current content is definitively broken, so report it in the meantime.
             log.error(ERROR_FAILED_TO_LOAD_INITIAL_CONFIGURATION, pdpId, e.getMessage(), e);
+            emit(new ConfigurationEvent.ConfigurationError(pdpId, reasonOf(e)));
         }
         startFileMonitor();
     }
 
     private void loadAndEmit() {
         val config = PDPConfigurationLoader.loadFromDirectory(directoryPath, pdpId);
-        emit(new ConfigurationEvent.Load(config, true));
+        emit(new ConfigurationEvent.NewConfiguration(config));
         log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
+    }
+
+    private static String reasonOf(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
     private void emit(ConfigurationEvent event) {
@@ -204,7 +221,13 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             return;
         }
         for (val subscriber : subscribers) {
-            subscriber.accept(event);
+            try {
+                subscriber.accept(event);
+            } catch (Exception e) {
+                // Isolate subscribers: a throwing one must not skip the others or
+                // escape onto the file-monitor thread.
+                log.warn(WARN_SUBSCRIBER_THREW, pdpId, e.getMessage());
+            }
         }
     }
 
@@ -216,6 +239,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             observer.addListener(new DirectoryChangeListener());
             monitor.addObserver(observer);
             monitor.start();
+            monitorStarted.set(true);
             log.debug("Started file monitoring on directory: {}.", directoryPath);
         } catch (Exception e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_START_FILE_MONITOR.formatted(directoryPath), e);
@@ -227,10 +251,19 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             return false;
         }
         val name = file.getName();
-        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name);
+        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name)
+                || ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(name) || ExtensionFiles.SECRETS_FILE.equals(name)
+                || ExtensionFiles.SEALED_SECRETS_FILE.equals(name) || ExtensionFiles.isExtensionFile(name)
+                || ExtensionFiles.isExtensionSecretsFile(name) || ExtensionFiles.isSealedExtensionSecretsFile(name);
     }
 
     private void stopMonitorSafely() {
+        if (!monitorStarted.get()) {
+            // Startup failed before the monitor was started, so there is nothing to stop.
+            // Calling stop() on a never-started monitor throws, which would surface a
+            // misleading stack trace during an otherwise clean shutdown.
+            return;
+        }
         try {
             monitor.stop(MONITOR_STOP_TIMEOUT_MS);
         } catch (Exception e) {
@@ -267,7 +300,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
                 // watching so a recreation reloads the configuration.
                 if (directoryPresent.compareAndSet(true, false)) {
                     log.error(ERROR_DIRECTORY_MISSING, pdpId, directoryPath);
-                    emit(new ConfigurationEvent.Remove(pdpId));
+                    emit(new ConfigurationEvent.ConfigurationRemoved(pdpId));
                 }
                 return;
             }
@@ -305,6 +338,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
                 log.info("Reloaded PDP configuration '{}'.", pdpId);
             } catch (Exception e) {
                 log.error("Failed to reload configuration for PDP '{}': {}.", pdpId, e.getMessage(), e);
+                emit(new ConfigurationEvent.ConfigurationError(pdpId, reasonOf(e)));
             }
         }
     }

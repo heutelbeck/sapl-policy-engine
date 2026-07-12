@@ -58,14 +58,29 @@ class InMemoryAttributeRepositoryTests {
         repository.close();
     }
 
+    private static final String TEST_PDP_ID = "test-pdp";
+
     private static AttributeFinderInvocation invocation(String fqn) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1), Duration.ofMillis(100),
-                Duration.ofMillis(100), 0L, false,
+        return invocation(fqn, TEST_PDP_ID);
+    }
+
+    private static AttributeFinderInvocation invocation(String fqn, String pdpId) {
+        return new AttributeFinderInvocation(pdpId, "default", fqn, List.of(), Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
 
     private static RepositoryKey repoKey(String fqn) {
-        return new RepositoryKey(null, fqn, List.of());
+        return new RepositoryKey(null, fqn, List.of(), TEST_PDP_ID);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("the same attribute observed by two different pdpIds maps to distinct repository keys (tenant isolation)")
+    void whenSameAttributeDifferentPdpIdThenDistinctRepositoryKeys() {
+        val keyTenantA = RepositoryKey.fromInvocation(invocation("env.shared", "tenant-a"));
+        val keyTenantB = RepositoryKey.fromInvocation(invocation("env.shared", "tenant-b"));
+
+        assertThat(keyTenantA).isNotEqualTo(keyTenantB);
     }
 
     @Test
@@ -326,6 +341,7 @@ class InMemoryAttributeRepositoryTests {
     class WhenSlowObserverInFlight {
 
         @Test
+        @Timeout(5)
         @DisplayName("then a TTL expiry on an unrelated key fires its own observer concurrently "
                 + "rather than queuing behind the slow callback")
         void thenTtlExpiryOnUnrelatedKeyFiresWhileSlowConsumerStillRunning() throws Exception {
@@ -335,6 +351,14 @@ class InMemoryAttributeRepositoryTests {
             val slowObserver = new Consumer<Value>() {
                                  @Override
                                  public void accept(Value value) {
+                                     // The synchronous initial UNDEFINED delivery happens on the
+                                     // main thread inside observe(...). Blocking on it would park the
+                                     // main thread, so the concurrent scenario could never be set up.
+                                     // Only the real "trigger" value, delivered from the separate
+                                     // virtual thread below, parks the slow callback.
+                                     if (Value.UNDEFINED.equals(value)) {
+                                         return;
+                                     }
                                      slowEntered.countDown();
                                      try {
                                          unblockSlow.await(5, java.util.concurrent.TimeUnit.SECONDS);
@@ -343,11 +367,16 @@ class InMemoryAttributeRepositoryTests {
                                      }
                                  }
                              };
+            val ttlValueSeen = new java.util.concurrent.atomic.AtomicBoolean(false);
             val fastObserver = new Consumer<Value>() {
                                  @Override
                                  public void accept(Value value) {
-                                     if (Value.UNDEFINED.equals(value)) {
-                                         // TTL expiry path delivers UNDEFINED to the observer.
+                                     if (!Value.UNDEFINED.equals(value)) {
+                                         // The published value precedes the expiry UNDEFINED.
+                                         ttlValueSeen.set(true);
+                                     } else if (ttlValueSeen.get()) {
+                                         // Only the expiry UNDEFINED (after the published value)
+                                         // counts, not the initial registration UNDEFINED.
                                          ttlObserved.countDown();
                                      }
                                  }
@@ -364,7 +393,7 @@ class InMemoryAttributeRepositoryTests {
                         .as("slow observer must be entered before we test TTL on unrelated key").isTrue();
 
                 // Publish to the unrelated key with a short TTL. Expiry fires
-                // on the scheduler thread; the slow observer is still parked
+                // on the scheduler thread. The slow observer is still parked
                 // in its accept(...) call right now.
                 repository.publish(repoKey("env.ttl"), Value.of("with-ttl"), Duration.ofMillis(50));
 

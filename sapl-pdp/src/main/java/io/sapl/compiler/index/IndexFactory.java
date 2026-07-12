@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Creates a {@link PolicyIndex} based on the indexing strategy name
@@ -62,8 +63,10 @@ public class IndexFactory {
         val strategy = parseStrategy(ctx.indexing());
         return switch (strategy) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
-        case CANONICAL -> CanonicalPolicyIndex.create(documents);
-        case SMTDD     -> SmtddPolicyIndex.create(documents, ctx.maxIndexNodes());
+        case CANONICAL -> explicitWithNaiveFallback(() -> CanonicalPolicyIndex.create(documents, ctx.maxDnfClauses()),
+                "canonical", documents);
+        case SMTDD     -> explicitWithNaiveFallback(() -> SmtddPolicyIndex.create(documents, ctx.maxIndexNodes()),
+                "SMTDD", documents);
         case AUTO      -> autoSelect(documents, ctx);
         };
     }
@@ -76,6 +79,25 @@ public class IndexFactory {
         }
     }
 
+    /**
+     * Builds an explicitly-selected index, degrading to the naive index if it
+     * exceeds its configured size limit. The degrade is logged at WARN because the
+     * operator asked for this strategy specifically. The naive index always
+     * produces correct (if unindexed) matches, so the PDP stays available.
+     */
+    private static PolicyIndex explicitWithNaiveFallback(Supplier<PolicyIndex> build, String name,
+            List<CompiledDocument> documents) {
+        try {
+            return build.get();
+        } catch (IndexSizeLimitExceededException e) {
+            log.warn(
+                    "The {} index exceeded its size limit ({}); falling back to the naive index. "
+                            + "Simplify the policy applicability, raise the limit, or use AUTO indexing.",
+                    name, e.getMessage());
+            return NaivePolicyIndex.create(documents);
+        }
+    }
+
     private static PolicyIndex autoSelect(List<CompiledDocument> documents, CompilationContext ctx) {
         if (documents.size() < ctx.minPoliciesForIndexing()) {
             return NaivePolicyIndex.create(documents);
@@ -83,9 +105,14 @@ public class IndexFactory {
         try {
             return SmtddPolicyIndex.create(documents, ctx.maxIndexNodes());
         } catch (IndexSizeLimitExceededException e) {
-            log.warn("SMTDD index exceeded node limit ({}), falling back to canonical index", e.getMessage());
+            log.info("SMTDD index exceeded its node limit ({}); falling back to the canonical index", e.getMessage());
         }
-        return CanonicalPolicyIndex.create(documents);
+        try {
+            return CanonicalPolicyIndex.create(documents, ctx.maxDnfClauses());
+        } catch (IndexSizeLimitExceededException e) {
+            log.info("Canonical index exceeded its clause limit ({}); falling back to the naive index", e.getMessage());
+        }
+        return NaivePolicyIndex.create(documents);
     }
 
 }

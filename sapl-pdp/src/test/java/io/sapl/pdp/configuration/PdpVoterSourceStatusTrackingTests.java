@@ -21,6 +21,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import io.sapl.pdp.plugins.MutablePluginsSource;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.StaticPluginsSource;
@@ -36,7 +37,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PdpVoterSource status tracking")
 class PdpVoterSourceStatusTrackingTests {
@@ -97,7 +97,7 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then state is LOADED with metadata")
         void thenStateIsLoadedWithMetadata() {
             val source = createSource();
-            source.loadConfiguration(validConfig("default", "config-1"), false);
+            source.loadConfiguration(validConfig("default", "config-1"));
 
             val status = source.getPdpStatus("default");
             assertThat(status).isPresent().hasValueSatisfying(s -> {
@@ -115,7 +115,7 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then status appears in all statuses map")
         void thenStatusAppearsInAllStatusesMap() {
             val source = createSource();
-            source.loadConfiguration(validConfig("default", "config-1"), false);
+            source.loadConfiguration(validConfig("default", "config-1"));
 
             val statuses = source.getAllPdpStatuses();
             assertThat(statuses).containsKey("default").hasSize(1);
@@ -124,37 +124,20 @@ class PdpVoterSourceStatusTrackingTests {
     }
 
     @Nested
-    @DisplayName("when load fails without keepOldConfigOnError")
-    class WhenLoadFailsWithoutKeepOld {
+    @DisplayName("when a configuration fails to compile")
+    class WhenLoadFails {
 
         @Test
-        @DisplayName("then loadConfiguration throws PDPConfigurationException")
-        void thenLoadConfigurationThrows() {
+        @DisplayName("then a broken first load serves an error voter in ERROR state")
+        void thenBrokenFirstLoadServesErrorVoter() {
             val source = createSource();
-            val broken = brokenConfig("default");
 
-            assertThatThrownBy(() -> source.loadConfiguration(broken, false))
-                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("SAPL Compilation Error");
+            source.loadConfiguration(brokenConfig("default"));
+
+            assertThat(source.getPdpStatus("default"))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+            assertThat(source.getCurrentConfiguration("default")).isPresent();
         }
-
-        @Test
-        @DisplayName("then PDP status remains uninitialised")
-        void thenPdpStatusRemainsUninitialised() {
-            val source = createSource();
-            val broken = brokenConfig("default");
-
-            assertThatThrownBy(() -> source.loadConfiguration(broken, false))
-                    .isInstanceOf(PDPConfigurationException.class);
-
-            assertThat(source.getPdpStatus("default")).isEmpty();
-            assertThat(source.getCurrentConfiguration("default")).isEmpty();
-        }
-
-    }
-
-    @Nested
-    @DisplayName("when load fails with keepOldConfigOnError")
-    class WhenLoadFailsWithKeepOld {
 
         @Test
         @DisplayName("then LOADED becomes STALE preserving old metadata")
@@ -162,8 +145,8 @@ class PdpVoterSourceStatusTrackingTests {
             val loadTime = Instant.parse("2026-02-13T11:00:00Z");
             val source   = createSource(Clock.fixed(loadTime, ZoneOffset.UTC));
 
-            source.loadConfiguration(validConfig("default", "config-1"), false);
-            source.loadConfiguration(brokenConfig("default"), true);
+            source.loadConfiguration(validConfig("default", "config-1"));
+            source.loadConfiguration(brokenConfig("default"));
 
             val status = source.getPdpStatus("default");
             assertThat(status).isPresent().hasValueSatisfying(s -> {
@@ -181,7 +164,7 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then ERROR stays ERROR when no previous valid config")
         void thenErrorStaysErrorWhenNoPreviousConfig() {
             val source = createSource();
-            source.loadConfiguration(brokenConfig("default"), true);
+            source.loadConfiguration(brokenConfig("default"));
 
             val status = source.getPdpStatus("default");
             assertThat(status).isPresent().hasValueSatisfying(s -> {
@@ -197,13 +180,13 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then STALE stays STALE on repeated failures")
         void thenStaleStaysStaleOnRepeatedFailures() {
             val source = createSource();
-            source.loadConfiguration(validConfig("default", "config-1"), false);
-            source.loadConfiguration(brokenConfig("default"), true);
+            source.loadConfiguration(validConfig("default", "config-1"));
+            source.loadConfiguration(brokenConfig("default"));
 
             assertThat(source.getPdpStatus("default"))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
 
-            source.loadConfiguration(brokenConfig("default"), true);
+            source.loadConfiguration(brokenConfig("default"));
 
             assertThat(source.getPdpStatus("default"))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
@@ -219,7 +202,7 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then status entry is removed")
         void thenStatusEntryIsRemoved() {
             val source = createSource();
-            source.loadConfiguration(validConfig("default", "config-1"), false);
+            source.loadConfiguration(validConfig("default", "config-1"));
             source.removeConfigurationForPdp("default");
 
             assertThat(source.getPdpStatus("default")).isEmpty();
@@ -236,8 +219,8 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then each PDP has independent status")
         void thenEachPdpHasIndependentStatus() {
             val source = createSource();
-            source.loadConfiguration(validConfig("pdp-1", "config-1"), false);
-            source.loadConfiguration(validConfig("pdp-2", "config-2"), false);
+            source.loadConfiguration(validConfig("pdp-1", "config-1"));
+            source.loadConfiguration(validConfig("pdp-2", "config-2"));
 
             val statuses = source.getAllPdpStatuses();
             assertThat(statuses).hasSize(2).containsKey("pdp-1").containsKey("pdp-2");
@@ -256,13 +239,13 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then state returns to LOADED")
         void thenStateReturnsToLoaded() {
             val source = createSource();
-            source.loadConfiguration(validConfig("default", "config-1"), false);
-            source.loadConfiguration(brokenConfig("default"), true);
+            source.loadConfiguration(validConfig("default", "config-1"));
+            source.loadConfiguration(brokenConfig("default"));
 
             assertThat(source.getPdpStatus("default"))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
 
-            source.loadConfiguration(validConfig("default", "config-2"), false);
+            source.loadConfiguration(validConfig("default", "config-2"));
 
             val status = source.getPdpStatus("default");
             assertThat(status).isPresent().hasValueSatisfying(s -> {
@@ -283,17 +266,76 @@ class PdpVoterSourceStatusTrackingTests {
         @DisplayName("then state returns to LOADED")
         void thenStateReturnsToLoaded() {
             val source = createSource();
-            source.loadConfiguration(brokenConfig("default"), true);
+            source.loadConfiguration(brokenConfig("default"));
             assertThat(source.getPdpStatus("default"))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
 
-            source.loadConfiguration(validConfig("default", "config-1"), false);
+            source.loadConfiguration(validConfig("default", "config-1"));
 
             assertThat(source.getPdpStatus("default")).isPresent().hasValueSatisfying(s -> {
                 assertThat(s.state()).isEqualTo(PdpState.LOADED);
                 assertThat(s.configurationId()).isEqualTo("config-1");
                 assertThat(s.lastSuccessfulLoad()).isEqualTo(FIXED_TIME);
             });
+        }
+
+    }
+
+    @Nested
+    @DisplayName("when a configuration expires (fails closed on staleness)")
+    class WhenConfigurationExpired {
+
+        @Test
+        @DisplayName("then the served voter is dropped and state is ERROR while staying visible")
+        void thenServedVoterDroppedAndErrorVisible() {
+            val source = createSource();
+            source.loadConfiguration(validConfig("default", "config-1"));
+            assertThat(source.getCurrentConfiguration("default")).isPresent();
+
+            source.handle(new ConfigurationEvent.ConfigurationExpired("default", "no contact"));
+
+            assertThat(source.getCurrentConfiguration("default")).isEmpty();
+            assertThat(source.getPdpStatus("default")).isPresent().hasValueSatisfying(s -> {
+                assertThat(s.state()).isEqualTo(PdpState.ERROR);
+                assertThat(s.configurationId()).isNull();
+                assertThat(s.lastError()).isNotBlank();
+            });
+            assertThat(source.getAllPdpStatuses()).containsKey("default");
+        }
+
+        @Test
+        @DisplayName("then a later valid configuration returns to LOADED")
+        void thenLaterValidConfigurationReturnsToLoaded() {
+            val source = createSource();
+            source.loadConfiguration(validConfig("default", "config-1"));
+            source.handle(new ConfigurationEvent.ConfigurationExpired("default", "no contact"));
+            assertThat(source.getPdpStatus("default"))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+
+            source.loadConfiguration(validConfig("default", "config-2"));
+
+            assertThat(source.getCurrentConfiguration("default")).isPresent();
+            assertThat(source.getPdpStatus("default")).isPresent().hasValueSatisfying(s -> {
+                assertThat(s.state()).isEqualTo(PdpState.LOADED);
+                assertThat(s.configurationId()).isEqualTo("config-2");
+            });
+        }
+
+        @Test
+        @DisplayName("then a later plugins snapshot does not resurrect the expired configuration")
+        void thenLaterPluginsSnapshotDoesNotResurrectExpiredConfiguration() {
+            val pluginsSource = new MutablePluginsSource();
+            try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
+                pluginsSource.publish(pluginsBundle());
+                source.loadConfiguration(validConfig("default", "config-1"));
+                source.handle(new ConfigurationEvent.ConfigurationExpired("default", "no contact"));
+
+                pluginsSource.publish(pluginsBundle());
+
+                assertThat(source.getCurrentConfiguration("default")).isEmpty();
+                assertThat(source.getPdpStatus("default"))
+                        .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+            }
         }
 
     }
@@ -307,7 +349,7 @@ class PdpVoterSourceStatusTrackingTests {
         void thenStateIsAwaitingPluginsExposingRetainedMetadata() {
             val pluginsSource = new MutablePluginsSource();
             try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
-                source.loadConfiguration(validConfig("default", "config-1"), false);
+                source.loadConfiguration(validConfig("default", "config-1"));
 
                 assertThat(source.getCurrentConfiguration("default")).isEmpty();
                 assertThat(source.getPdpStatus("default")).isPresent().hasValueSatisfying(s -> {
@@ -327,7 +369,7 @@ class PdpVoterSourceStatusTrackingTests {
         void thenDeferredStatusAppearsInAllStatusesMap() {
             val pluginsSource = new MutablePluginsSource();
             try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
-                source.loadConfiguration(validConfig("default", "config-1"), false);
+                source.loadConfiguration(validConfig("default", "config-1"));
 
                 assertThat(source.getAllPdpStatuses()).hasSize(1).containsKey("default").extractingByKey("default")
                         .satisfies(s -> assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS));
@@ -339,8 +381,8 @@ class PdpVoterSourceStatusTrackingTests {
         void thenSecondLoadReplacesRetainedConfigurationMetadata() {
             val pluginsSource = new MutablePluginsSource();
             try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
-                source.loadConfiguration(validConfig("default", "config-1"), false);
-                source.loadConfiguration(validConfig("default", "config-2"), false);
+                source.loadConfiguration(validConfig("default", "config-1"));
+                source.loadConfiguration(validConfig("default", "config-2"));
 
                 assertThat(source.getPdpStatus("default")).hasValueSatisfying(s -> {
                     assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS);
@@ -361,7 +403,7 @@ class PdpVoterSourceStatusTrackingTests {
         void thenRemoveDropsTheDeferredStatusEntry() {
             val pluginsSource = new MutablePluginsSource();
             try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
-                source.loadConfiguration(validConfig("default", "config-1"), false);
+                source.loadConfiguration(validConfig("default", "config-1"));
                 source.removeConfigurationForPdp("default");
 
                 assertThat(source.getPdpStatus("default")).isEmpty();
@@ -379,7 +421,7 @@ class PdpVoterSourceStatusTrackingTests {
         void thenBrokenPolicyOnPluginsArrivalTransitionsToError() {
             val pluginsSource = new MutablePluginsSource();
             try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
-                source.loadConfiguration(brokenConfig("default"), false);
+                source.loadConfiguration(brokenConfig("default"));
                 assertThat(source.getPdpStatus("default"))
                         .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS));
 
@@ -398,8 +440,8 @@ class PdpVoterSourceStatusTrackingTests {
         void thenMultipleDeferredPdpsAllCompileWhenPluginsArrive() {
             val pluginsSource = new MutablePluginsSource();
             try (val source = new PdpVoterSource(pluginsSource, FIXED_CLOCK)) {
-                source.loadConfiguration(validConfig("pdp-1", "config-1"), false);
-                source.loadConfiguration(validConfig("pdp-2", "config-2"), false);
+                source.loadConfiguration(validConfig("pdp-1", "config-1"));
+                source.loadConfiguration(validConfig("pdp-2", "config-2"));
 
                 assertThat(source.getAllPdpStatuses()).hasSize(2)
                         .allSatisfy((id, s) -> assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS));

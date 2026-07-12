@@ -20,17 +20,27 @@ package io.sapl.functions.libraries;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.math.BigDecimal;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 @DisplayName("StringFunctionLibrary")
 class StringFunctionLibraryTests {
+
+    private static NumberValue number(String value) {
+        return (NumberValue) Value.of(new BigDecimal(value));
+    }
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
@@ -224,6 +234,18 @@ class StringFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void substringWhenStartIndexExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.substring((TextValue) Value.of("text"), number("4294967296"));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void substringWhenStartIndexIsFractionalThenReturnsError() {
+        val result = StringFunctionLibrary.substring((TextValue) Value.of("text"), number("1.5"));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
     @ParameterizedTest(name = "substringRange({0}, {1}, {2}) -> {3}")
     @CsvSource(delimiter = '|', textBlock = """
             'summoning ritual'  | 10 | 16 | ritual
@@ -247,6 +269,13 @@ class StringFunctionLibraryTests {
             """)
     void substringRangeReturnsErrorForInvalidIndices(String text, int start, int end) {
         Value result = StringFunctionLibrary.substringRange((TextValue) Value.of(text), Value.of(start), Value.of(end));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void substringRangeWhenEndIndexExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.substringRange((TextValue) Value.of("text"), Value.of(0),
+                number("4294967296"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
@@ -382,6 +411,13 @@ class StringFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void replaceFirstWhenReplacementContainsGroupSyntaxThenTreatsReplacementAsLiteral() {
+        val result = (TextValue) StringFunctionLibrary.replaceFirst((TextValue) Value.of("cat cat"),
+                (TextValue) Value.of("cat"), (TextValue) Value.of("$1"));
+        assertThat(result.value()).isEqualTo("$1 cat");
+    }
+
     @ParameterizedTest(name = "leftPad({0}, {1}, {2}) -> {3}")
     @CsvSource(delimiter = '|', textBlock = """
             '13' | 5 | '0' | '00013'
@@ -403,6 +439,13 @@ class StringFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void leftPadWhenTargetLengthExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.leftPad((TextValue) Value.of("text"), number("4294967296"),
+                (TextValue) Value.of("0"));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
     @ParameterizedTest(name = "rightPad({0}, {1}, {2}) -> {3}")
     @CsvSource(delimiter = '|', textBlock = """
             cult | 10 | '-' | 'cult------'
@@ -419,8 +462,15 @@ class StringFunctionLibraryTests {
     @ParameterizedTest(name = "rightPad with multi-char pad returns error")
     @ValueSource(strings = { "ab", "xyz", "--" })
     void rightPadReturnsErrorForMultiCharacterPad(String padChar) {
-        var result = StringFunctionLibrary.rightPad((TextValue) Value.of("text"), Value.of(10),
+        val result = StringFunctionLibrary.rightPad((TextValue) Value.of("text"), Value.of(10),
                 (TextValue) Value.of(padChar));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void rightPadWhenTargetLengthIsFractionalThenReturnsError() {
+        val result = StringFunctionLibrary.rightPad((TextValue) Value.of("text"), number("5.5"),
+                (TextValue) Value.of("0"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
@@ -440,7 +490,13 @@ class StringFunctionLibraryTests {
     @ParameterizedTest(name = "repeat with count {0} returns error")
     @ValueSource(ints = { -1, -10, 10_001, 20_000 })
     void repeatReturnsErrorForInvalidCount(int count) {
-        var result = StringFunctionLibrary.repeat((TextValue) Value.of("x"), Value.of(count));
+        val result = StringFunctionLibrary.repeat((TextValue) Value.of("x"), Value.of(count));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void repeatWhenCountExceedsIntegerRangeThenReturnsError() {
+        val result = StringFunctionLibrary.repeat((TextValue) Value.of("x"), number("4294967296"));
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
@@ -482,5 +538,92 @@ class StringFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("exceeds maximum");
+    }
+
+    @Nested
+    @DisplayName("locale-independent case normalization")
+    class LocaleIndependence {
+
+        private Locale originalDefault;
+
+        @BeforeEach
+        void pinTurkishLocale() {
+            originalDefault = Locale.getDefault();
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        }
+
+        @AfterEach
+        void restoreLocale() {
+            Locale.setDefault(originalDefault);
+        }
+
+        @Test
+        @DisplayName("toLowerCase folds ASCII identifiers regardless of the JVM default locale")
+        void toLowerCaseUnderTurkishLocaleStillFoldsAsciiIToAsciiI() {
+            val result = (TextValue) StringFunctionLibrary.toLowerCase((TextValue) Value.of("ADMIN"));
+            assertThat(result.value()).isEqualTo("admin").doesNotContain("ı");
+        }
+
+        @Test
+        @DisplayName("toUpperCase folds ASCII identifiers regardless of the JVM default locale")
+        void toUpperCaseUnderTurkishLocaleStillFoldsAsciiIToAsciiI() {
+            val result = (TextValue) StringFunctionLibrary.toUpperCase((TextValue) Value.of("admin"));
+            assertThat(result.value()).isEqualTo("ADMIN").doesNotContain("İ");
+        }
+    }
+
+    @Nested
+    @DisplayName("output size limit")
+    class OutputSizeLimit {
+
+        @Test
+        @DisplayName("repeat returns error when input length times count would exceed the output limit")
+        void whenRepeatOutputExceedsLimitThenReturnsError() {
+            val unit   = (TextValue) Value.of("x".repeat(1_100));
+            val result = StringFunctionLibrary.repeat(unit, Value.of(10_000));
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("replace returns error when expanding replacement would exceed the output limit")
+        void whenReplaceOutputExceedsLimitThenReturnsError() {
+            val text        = (TextValue) Value.of("a".repeat(1_000_000));
+            val target      = (TextValue) Value.of("a");
+            val replacement = (TextValue) Value.of("x".repeat(11));
+            val result      = StringFunctionLibrary.replace(text, target, replacement);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("concat returns error when the combined length would exceed the output limit")
+        void whenConcatOutputExceedsLimitThenReturnsError() {
+            val part  = (TextValue) Value.of("x".repeat(1_000_000));
+            val parts = new TextValue[11];
+            for (int i = 0; i < parts.length; i++) {
+                parts[i] = part;
+            }
+            val result = StringFunctionLibrary.concat(parts);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("join returns error when the combined length would exceed the output limit")
+        void whenJoinOutputExceedsLimitThenReturnsError() {
+            val builder = ArrayValue.builder();
+            for (int i = 0; i < 11; i++) {
+                builder.add(Value.of("x".repeat(1_000_000)));
+            }
+            val result = StringFunctionLibrary.join(builder.build(), (TextValue) Value.of(","));
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        @Test
+        @DisplayName("repeat still succeeds for output just within the limit")
+        void whenRepeatOutputWithinLimitThenSucceeds() {
+            val unit   = (TextValue) Value.of("x".repeat(1_000));
+            val result = StringFunctionLibrary.repeat(unit, Value.of(9_000));
+            assertThat(result).isInstanceOf(TextValue.class);
+            assertThat(((TextValue) result).value()).hasSize(9_000_000);
+        }
     }
 }

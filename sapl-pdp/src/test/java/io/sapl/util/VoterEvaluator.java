@@ -32,13 +32,14 @@ import lombok.val;
 import java.util.UUID;
 
 /**
- * Evaluates a {@link Voter} against an {@link AttributeBroker} and
- * exposes per-round votes as a {@link Stream}. A {@link Vote}
- * terminal voter or a {@link PureVoter} delivers one vote and
- * completes. A {@link StreamVoter} opens a subscription on the broker,
- * re-evaluates on every callback, and pushes the resulting vote into
- * the slot when the result is non-null. Incomplete rounds (vote ==
- * null because some dep was not yet bound) are skipped.
+ * Evaluates a {@link Voter} against an {@link AttributeBroker} and exposes
+ * per-round votes as a {@link Stream}. A
+ * {@link Vote} terminal voter or a {@link PureVoter} delivers one vote and
+ * completes. A {@link StreamVoter} opens a
+ * subscription on the broker, re-evaluates on every callback, and pushes the
+ * resulting vote into the slot when the
+ * result is non-null. Incomplete rounds (vote == null because some dep was not
+ * yet bound) are skipped.
  */
 @UtilityClass
 public class VoterEvaluator {
@@ -78,7 +79,7 @@ public class VoterEvaluator {
                     if (r.vote() != null) {
                         stream.put(r.vote());
                     }
-                }, r -> r.dependencies().keySet());
+                }, r -> r.dependencies().keySet(), e -> stream.complete());
         stream.onClose(sub::close);
         return stream;
     }

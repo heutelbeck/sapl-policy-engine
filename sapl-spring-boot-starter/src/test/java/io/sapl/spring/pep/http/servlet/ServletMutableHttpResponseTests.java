@@ -158,10 +158,17 @@ class ServletMutableHttpResponseTests {
         void typedHeaderHelpers() {
             mutable.setIntHeader("X-Count", 7);
             mutable.addIntHeader("X-Count", 8);
-            mutable.setDateHeader("X-When", 1700000000000L);
+            assertThat(mutable.getHeaders("X-Count")).containsExactly("7", "8");
+        }
+
+        @Test
+        @DisplayName("setDateHeader and addDateHeader emit RFC-1123 HTTP-date strings, not raw epoch millis")
+        void dateHeadersAreRfc1123() {
+            mutable.setDateHeader("Last-Modified", 1700000000000L);
+            mutable.addDateHeader("Expires", 1700000000000L);
             assertThat(mutable).satisfies(m -> {
-                assertThat(m.getHeaders("X-Count")).containsExactly("7", "8");
-                assertThat(m.getHeader("X-When")).isEqualTo("1700000000000");
+                assertThat(m.getHeader("Last-Modified")).isEqualTo("Tue, 14 Nov 2023 22:13:20 GMT");
+                assertThat(m.getHeaders("Expires")).containsExactly("Tue, 14 Nov 2023 22:13:20 GMT");
             });
         }
 
@@ -171,6 +178,14 @@ class ServletMutableHttpResponseTests {
             mutable.setHeader("X-A", "1");
             mutable.headers().add("X-A", "2");
             assertThat(mutable.getHeaders("X-A")).containsExactly("1", "2");
+        }
+
+        @Test
+        @DisplayName("headers() mutations mark the response as modified")
+        void whenHeadersViewMutatesThenResponseIsModified() {
+            mutable.headers().set("Retry-After", "120");
+
+            assertThat(mutable.isModified()).isTrue();
         }
     }
 
@@ -198,6 +213,42 @@ class ServletMutableHttpResponseTests {
         void contentLengthIsBuffered() {
             mutable.setContentLength(123);
             assertThat(mutable.getHeader("Content-Length")).isEqualTo("123");
+        }
+
+        @Test
+        @DisplayName("commit reconciles a stale Content-Length with a replaced shorter body")
+        void commitReconcilesContentLengthAfterSetBody() throws Exception {
+            mutable.setContentLength(20);
+            mutable.setBody("hi");
+            mutable.commit();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getContentAsString()).isEqualTo("hi");
+                assertThat(d.getHeader("Content-Length")).isEqualTo("2");
+            });
+        }
+
+        @Test
+        @DisplayName("commit reconciles a stale Content-Length with a body replaced via writeBody")
+        void commitReconcilesContentLengthAfterWriteBody() throws Exception {
+            mutable.setContentLength(99);
+            mutable.writeBody("text/plain", "abcd");
+            mutable.commit();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getContentAsString()).isEqualTo("abcd");
+                assertThat(d.getHeader("Content-Length")).isEqualTo("4");
+            });
+        }
+
+        @Test
+        @DisplayName("commit reconciles a stale Content-Length with an error body")
+        void commitReconcilesContentLengthAfterSendError() throws Exception {
+            mutable.setContentLength(1000);
+            mutable.sendError(503, "service down");
+            mutable.commit();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getContentAsString()).isEqualTo("service down");
+                assertThat(d.getHeader("Content-Length")).isEqualTo("12");
+            });
         }
     }
 

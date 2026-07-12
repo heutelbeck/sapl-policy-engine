@@ -34,12 +34,8 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
-import com.github.valfirst.slf4jtest.LoggingEvent;
-import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import lombok.val;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
@@ -64,66 +60,31 @@ import static org.assertj.core.api.Assertions.assertThat;
  * publishing a transient ErrorValue, and finally unloads.
  * <p>
  * Use this file as the canonical entry point when explaining the
- * broker to someone new; the focused
+ * broker to someone new. The focused
  * {@code PolicyInformationPointAttributeBrokerTests}
  * unit suite covers the edge cases.
  */
 @DisplayName("AttributeBroker end-to-end demo")
 class AttributeBrokerDemoTests {
 
-    private static final boolean PRINT_OUTPUT = false;
-    private static final Clock   CLOCK        = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
-
-    @BeforeEach
-    void clearCapturedLogs() {
-        TestLoggerFactory.clear();
-    }
-
-    @AfterEach
-    void dumpCapturedLogs() {
-        if (!PRINT_OUTPUT) {
-            return;
-        }
-        // The broker emits DEBUG/TRACE around load/swap/unload (cold-path
-        // events). slf4j-test captures them silently; surface them here so the
-        // demo trace is actually visible when this test runs. Filter to events
-        // from io.sapl.attributes.broker so the noise from unrelated loggers
-        // does not bury the narrative.
-        val events = TestLoggerFactory.getLoggingEvents().stream()
-                .filter(e -> e.getCreatingLogger().getName().startsWith("io.sapl.attributes.broker")).toList();
-        if (events.isEmpty()) {
-            return;
-        }
-        System.out.println();
-        System.out.println("---- Captured broker events (" + events.size() + ") ----");
-        for (LoggingEvent e : events) {
-            System.out.printf("  [%-5s] %-30s %s%n", e.getLevel(), shortenLoggerName(e.getCreatingLogger().getName()),
-                    e.getFormattedMessage());
-        }
-        System.out.println("------------------------------------------------------");
-    }
-
-    private static String shortenLoggerName(String fqn) {
-        val lastDot = fqn.lastIndexOf('.');
-        return lastDot < 0 ? fqn : fqn.substring(lastDot + 1);
-    }
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
 
     @Test
     @DisplayName("load a PIP, observe a value, hot-swap to a new version, observe the new value, unload")
     void endToEndDemo() {
         // Construct the broker. The broker is also the catalog: plug-in engines
-        // call load/swap/unload on this object; evaluators call open/close.
+        // call load/swap/unload on this object. Evaluators call open/close.
         try (val broker = new PolicyInformationPointAttributeBroker()) {
             // Load the v1 PIP. The broker extracts every annotated method into
             // a StreamAttributeFinderSpecification, checks for collisions, and
-            // registers them; returns a handle for later swap/unload.
+            // registers them. Returns a handle for later swap/unload.
             val v1Handle = broker.load(new GreetingPipV1());
             assertThat(v1Handle.pipName()).isEqualTo("greeting");
             assertThat(v1Handle.isLoaded()).isTrue();
             assertThat(broker.catalog()).containsExactly(v1Handle);
 
             // Open a consumer subscription. The consumer hands the broker a
-            // Set<SubscriptionKey> and a callback; the broker wires backing
+            // Set<SubscriptionKey> and a callback. The broker wires backing
             // subscriptions and fires the callback once every dep has a value.
             val helloKey  = key("greeting.hello");
             val snapshots = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
@@ -161,7 +122,7 @@ class AttributeBrokerDemoTests {
             // Unload the PIP. Active backings publish UNDEFINED (absence at
             // this layer) and tear down their source. Under a layered broker
             // composing this with a repository, the consumer would see the
-            // repository value; standalone, UNDEFINED.
+            // repository value. Standalone, UNDEFINED.
             v2Handle.unload();
             assertThat(v2Handle.isLoaded()).isFalse();
             assertThat(broker.catalog()).isEmpty();
@@ -178,7 +139,7 @@ class AttributeBrokerDemoTests {
     }
 
     private static SubscriptionKey key(String fqn) {
-        val invocation = new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1),
+        val invocation = new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         return new SubscriptionKey(invocation, false);
@@ -189,7 +150,7 @@ class AttributeBrokerDemoTests {
     void loadsAllRealSaplPdpPips() {
         // Wire the minimal infrastructure each PIP needs: a clock, a virtual-time
         // scheduler, a JSON mapper, and a blocking HTTP client. None of these
-        // PIPs is exercised through subscriptions here; the test asserts only
+        // PIPs is exercised through subscriptions here. The test asserts only
         // that every real PIP shipped in sapl-pdp registers cleanly under its
         // declared namespace.
         val mapper      = JsonMapper.builder().build();
@@ -216,12 +177,12 @@ class AttributeBrokerDemoTests {
             assertThat(jwtHandle.isLoaded()).isTrue();
 
             // Sanity: an environment attribute on the time PIP resolves.
-            val timeNow = new AttributeFinderInvocation("default", "time.now", List.of(), Duration.ofSeconds(1),
-                    Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
+            val timeNow = new AttributeFinderInvocation("test-pdp", "default", "time.now", List.of(),
+                    Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                     new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
             assertThat(broker.resolve(timeNow)).isPresent();
 
-            // Unload them all; catalog ends empty and every handle reports unloaded.
+            // Unload them all. Catalog ends empty and every handle reports unloaded.
             timeHandle.unload();
             x509Handle.unload();
             httpHandle.unload();
@@ -232,6 +193,57 @@ class AttributeBrokerDemoTests {
             assertThat(x509Handle.isLoaded()).isFalse();
             assertThat(httpHandle.isLoaded()).isFalse();
             assertThat(jwtHandle.isLoaded()).isFalse();
+        }
+    }
+
+    @Test
+    @DisplayName("swap promotes an existing terminal invocation to a spec the replacement newly provides")
+    void whenSwapAddsSpecThenExistingUnmatchedInvocationIsPromoted() {
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
+            val handle    = broker.load(new ProvPipX());
+            val yKey      = key("prov.y");
+            val snapshots = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+
+            // prov.y is not provided by ProvPipX, so with no fallback the invocation is
+            // terminal UNDEFINED.
+            val sub = broker.open("s1", Set.of(yKey), snapshot -> {
+                snapshots.add(snapshot);
+                return Set.of(yKey);
+            });
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(snapshots)
+                    .anySatisfy(s -> assertThat(s.get(yKey).value()).isEqualTo(Value.UNDEFINED)));
+
+            // The replacement adds prov.y. The existing terminal invocation must be
+            // promoted
+            // to the new PIP, exactly as load() promotes a newly matching invocation.
+            broker.swap(handle, new ProvPipXY());
+
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(snapshots)
+                    .anySatisfy(s -> assertThat(s.get(yKey).value()).isEqualTo(Value.of("y"))));
+            sub.close();
+        }
+    }
+
+    @PolicyInformationPoint(name = "prov")
+    static class ProvPipX {
+
+        @EnvironmentAttribute
+        public static Value x() {
+            return Value.of("x");
+        }
+    }
+
+    @PolicyInformationPoint(name = "prov")
+    static class ProvPipXY {
+
+        @EnvironmentAttribute
+        public static Value x() {
+            return Value.of("x");
+        }
+
+        @EnvironmentAttribute
+        public static Value y() {
+            return Value.of("y");
         }
     }
 

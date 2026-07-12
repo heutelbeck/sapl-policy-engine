@@ -317,7 +317,7 @@ public class UnitsFunctionLibrary {
         val normalizedUnit = isByteContext ? normalizeByteUnit(unitPart) : normalizeUnit(unitPart);
 
         if (normalizedUnit.isEmpty() && !isByteContext) {
-            return Value.of(numericValue.doubleValue());
+            return Value.of(numericValue);
         }
 
         val multiplier = MULTIPLIERS.get(normalizedUnit);
@@ -328,7 +328,7 @@ public class UnitsFunctionLibrary {
         }
 
         val result = numericValue.multiply(multiplier);
-        return Value.of(result.doubleValue());
+        return Value.of(result);
     }
 
     /**

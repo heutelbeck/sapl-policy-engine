@@ -26,6 +26,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import lombok.val;
@@ -52,7 +53,7 @@ class SchemaRemoteRefSecurityTests {
                                  connected.set(true);
                                  socket.close();
                              } catch (Exception ignored) {
-                                 // the test asserts on 'connected'; a failed accept is a non-connection
+                                 // the test asserts on 'connected'. A failed accept is a non-connection
                              }
                          });
             acceptor.setDaemon(true);
@@ -72,8 +73,8 @@ class SchemaRemoteRefSecurityTests {
 
             assertThat(connected.get()).as("validating a schema with a remote $ref must not open a network connection")
                     .isFalse();
-            assertThat(resultDefault).isInstanceOf(ObjectValue.class);
-            assertThat(resultExternal).isInstanceOf(ObjectValue.class);
+            assertThat(resultDefault).isInstanceOf(ErrorValue.class);
+            assertThat(resultExternal).isInstanceOf(ErrorValue.class);
         }
     }
 }

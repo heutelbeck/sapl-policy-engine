@@ -17,6 +17,8 @@
  */
 package io.sapl.node.auth;
 
+import static io.sapl.node.auth.JwtClaimPaths.resolveStringClaim;
+
 import java.nio.charset.StandardCharsets;
 
 import org.jspecify.annotations.Nullable;
@@ -69,6 +71,9 @@ public class RSocketSecurityConfiguration {
     private static final String ERROR_INVALID_BEARER    = "Invalid bearer token.";
     private static final String ERROR_MISSING_PDP_CLAIM = "JWT missing required claim: %s.";
     private static final String ERROR_NO_CREDENTIALS    = "No authentication credentials in setup frame.";
+
+    private static final String WARN_JWT_NO_EXPIRY_ACCEPTED = "Accepting a JWT without an 'exp' claim because io.sapl.node.oauth.allow-jwt-without-expiry=true. This grants a non-expiring connection to the PDP.";
+    private static final String WARN_JWT_NO_EXPIRY_REJECTED = "Rejected a JWT without an 'exp' claim. It would grant a non-expiring connection; set io.sapl.node.oauth.allow-jwt-without-expiry=true to accept (insecure).";
 
     private final SaplNodeProperties   properties;
     private final UserLookupService    userLookupService;
@@ -143,19 +148,27 @@ public class RSocketSecurityConfiguration {
     }
 
     private Mono<AuthenticationResult> extractPdpIdFromJwt(Jwt jwt) {
+        val expiresAt = jwt.getExpiresAt();
+        if (expiresAt == null) {
+            if (!properties.getOauth().isAllowJwtWithoutExpiry()) {
+                log.warn(WARN_JWT_NO_EXPIRY_REJECTED);
+                return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
+            }
+            log.warn(WARN_JWT_NO_EXPIRY_ACCEPTED);
+        }
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();
-        val pdpIdValue = jwt.getClaimAsString(pdpIdClaim);
+        val pdpIdValue = resolveStringClaim(jwt, pdpIdClaim);
 
         if (pdpIdValue == null || pdpIdValue.isBlank()) {
             if (properties.isRejectOnMissingPdpId()) {
                 return Mono.error(new BadCredentialsException(ERROR_MISSING_PDP_CLAIM.formatted(pdpIdClaim)));
             }
             log.debug("RSocket JWT auth: no {} claim, using default pdpId", pdpIdClaim);
-            return Mono.just(new AuthenticationResult(properties.getDefaultPdpId(), jwt.getExpiresAt()));
+            return Mono.just(new AuthenticationResult(properties.getDefaultPdpId(), expiresAt));
         }
 
-        log.debug("RSocket JWT auth: pdpId={}, expires={}", pdpIdValue, jwt.getExpiresAt());
-        return Mono.just(new AuthenticationResult(pdpIdValue, jwt.getExpiresAt()));
+        log.debug("RSocket JWT auth: pdpId={}, expires={}", pdpIdValue, expiresAt);
+        return Mono.just(new AuthenticationResult(pdpIdValue, expiresAt));
     }
 
     private Mono<AuthenticationResult> authenticateApiKey(String token) {

@@ -183,14 +183,18 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNoPdpJsonInBundleThenBundleIsSkipped() throws IOException {
+    @DisplayName("a bundle without pdp.json is reported as a configuration error, not a configuration")
+    void whenNoPdpJsonInBundleThenConfigurationErrorEmitted() throws IOException {
         createBundleWithoutPdpJson(tempDir.resolve("miskatonic.saplbundle"), "policy.sapl",
                 "policy \"test\" permit true;");
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
 
-        // Bundles without pdp.json are now skipped (they're invalid)
-        assertThat(captureConfigurations(source)).isEmpty();
+        assertThat(capture.configs()).isEmpty();
+        assertThat(capture.errors()).singleElement()
+                .satisfies(error -> assertThat(error.pdpId()).isEqualTo("miskatonic"));
     }
 
     @Test
@@ -416,6 +420,32 @@ class BundlePDPConfigurationSourceTests {
         // Wait for file watcher to detect deletion and verify configuration is removed
         await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600))
                 .untilAsserted(() -> assertThat(capture.removedPdpIds()).contains("deletable"));
+    }
+
+    @Test
+    void whenStemlessBundleIsDeletedThenNoEmptyRemovalIsEmitted() throws IOException {
+        val bundlePath = tempDir.resolve(".saplbundle");
+        createBundle(bundlePath,
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "stemless-v1" }
+                        """,
+                "policy.sapl", "policy \"stemless\" permit true;");
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+
+        // The stemless name derives an empty pdpId, which the load path rejects,
+        // so no configuration was ever loaded for it.
+        assertThat(capture.configs()).isEmpty();
+
+        Files.delete(bundlePath);
+
+        // Deleting it must not emit a spurious Remove("") for a configuration that
+        // was never loaded.
+        await().during(Duration.ofMillis(800)).atMost(Duration.ofSeconds(2))
+                .untilAsserted(() -> assertThat(capture.removedPdpIds()).doesNotContain(""));
     }
 
     @Test

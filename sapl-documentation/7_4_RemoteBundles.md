@@ -45,14 +45,17 @@ All properties live under `io.sapl.pdp.embedded.remote-bundles`:
 | `base-url`             | `String`                 | _(required)_ | Base URL of the bundle server.           |
 | `pdp-ids`              | `List<String>`           | _(required)_ | PDP identifiers to fetch bundles for.    |
 | `mode`                 | `POLLING` or `LONG_POLL` | `POLLING`    | Change detection mode.                   |
-| `poll-interval`        | `Duration`               | `30s`        | Interval between polls (POLLING mode).   |
+| `poll-interval`        | `Duration`               | `5s`         | Interval between polls (POLLING mode).   |
 | `long-poll-timeout`    | `Duration`               | `30s`        | Server hold time (LONG_POLL mode).       |
 | `auth-header-name`     | `String`                 | _(none)_     | HTTP header name for authentication.     |
 | `auth-header-value`    | `String`                 | _(none)_     | HTTP header value for authentication.    |
+| `allow-insecure-http`  | `boolean`                | `false`      | Permit auth credentials over plaintext HTTP. |
 | `follow-redirects`     | `boolean`                | `true`       | Follow HTTP 3xx redirects.               |
 | `pdp-id-poll-intervals`| `Map<String, Duration>`  | _(empty)_    | Per-pdpId poll interval overrides.       |
 | `first-backoff`        | `Duration`               | `500ms`      | Initial backoff after a fetch failure.   |
 | `max-backoff`          | `Duration`               | `5s`         | Maximum backoff after repeated failures. |
+| `stale-after-no-contact`     | `Duration`         | _(derived)_  | No-contact duration after which a pdpId is marked stale. |
+| `fail-closed-after-no-contact` | `Duration`       | _(off)_      | No-contact duration after which a pdpId fails closed.    |
 
 ### Change Detection
 
@@ -66,7 +69,7 @@ requests (`If-None-Match` with ETag) avoid redundant downloads. The server respo
 io.sapl.pdp.embedded:
   remote-bundles:
     mode: POLLING
-    poll-interval: 30s
+    poll-interval: 5s
 ```
 
 #### Long-Poll (requires server support)
@@ -99,6 +102,10 @@ io.sapl.pdp.embedded:
 
 This covers OAuth2 bearer tokens, static API keys, and custom authentication headers.
 Both `auth-header-name` and `auth-header-value` must be provided together or both omitted.
+When an authentication header is configured, the bundle URL must use `https` by default.
+For trusted local or TLS-terminating deployments that intentionally use plaintext HTTP,
+set `allow-insecure-http: true`. The node logs a warning because the credential is sent
+in cleartext on that hop.
 
 ### Bundle Security
 
@@ -172,13 +179,32 @@ node continues serving the last-known bundle in DEGRADED state.
 
 ### Size Limit
 
-Remote bundle responses are limited to 16 MB. Bundles exceeding this limit are rejected. This limit is enforced by the client and cannot be configured.
+Remote bundle responses are limited to 256 MiB. Bundles exceeding this limit are rejected. This limit is enforced by the client and cannot be configured.
 
 ### Retry Behavior
 
 On fetch failure, the node retries with exponential backoff (with jitter). The backoff
 starts at `first-backoff` and caps at `max-backoff`. After recovery, the backoff resets
 to the initial value.
+
+### Transport Freshness
+
+Retries never stop, but a bundle server that stays unreachable means a pdpId keeps
+serving an ever more out-of-date configuration without any signal. The node tracks the
+wall-clock time since the last successful contact per pdpId, where a successful contact
+is a `200` or a `304`. Failures, timeouts, and `4xx` or `5xx` responses do not reset it.
+
+When that time exceeds `stale-after-no-contact`, the pdpId is marked `STALE` and reported
+in the health endpoint while its last-good configuration keeps serving decisions. When it
+is left unset, a threshold of `max(5 x effective poll cadence, 60s)` is derived from the
+poll or long-poll cadence. The next successful contact clears the stale mark automatically.
+
+`fail-closed-after-no-contact` is off by default. When set, it must be greater than
+`stale-after-no-contact`. Once the no-contact time exceeds it, the pdpId drops its
+last-good configuration and transitions to `ERROR`, so decisions fail closed and deny
+while the pdpId stays visible in the health endpoint. The next successful contact loads a
+fresh configuration and restores service. This trades availability for a hard freshness
+bound and should only be enabled where a stale policy is worse than no policy.
 
 ### Graceful Shutdown
 
@@ -199,7 +225,7 @@ var config = new RemoteBundleSourceConfig(
     Duration.ofSeconds(30),
     Duration.ofSeconds(30),
     "Authorization", "Bearer token",
-    true, securityPolicy,
+    false, true, securityPolicy,
     Map.of(),
     Duration.ofMillis(500),
     Duration.ofSeconds(5));

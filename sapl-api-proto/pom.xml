@@ -25,7 +25,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.1.0-SNAPSHOT</version>
+		<version>4.2.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>sapl-api-proto</artifactId>
 	<name>SAPL API Protobuf</name>
@@ -35,8 +35,6 @@
 
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
-		<flatbuffers.version>25.2.10</flatbuffers.version>
-		<protobuf.version>4.34.1</protobuf.version>
 	</properties>
 
 	<dependencies>
@@ -51,14 +49,12 @@
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java</artifactId>
-			<version>${protobuf.version}</version>
 		</dependency>
 
 		<!-- FlatBuffers wire format -->
 		<dependency>
 			<groupId>com.google.flatbuffers</groupId>
 			<artifactId>flatbuffers-java</artifactId>
-			<version>${flatbuffers.version}</version>
 		</dependency>
 
 		<!-- Annotations -->

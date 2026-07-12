@@ -48,7 +48,7 @@ public interface BinaryOperation {
      * Eager binary evaluation: walks both children to accumulate the
      * maximum subscription set, holds the first {@link ErrorValue},
      * returns it after the full walk. {@code null} from a child sets the
-     * incomplete flag; on a clean walk with no error, applies the op.
+     * incomplete flag. On a clean walk with no error, applies the op.
      * Precedence at the end: error &gt; null &gt; applied result.
      *
      * @param left the left operand expression

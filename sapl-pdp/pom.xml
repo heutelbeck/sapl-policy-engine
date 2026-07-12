@@ -25,7 +25,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.1.0-SNAPSHOT</version>
+		<version>4.2.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>sapl-pdp</artifactId>
@@ -58,6 +58,11 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>sapl-attribute-utils</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-secrets</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -222,7 +227,7 @@
             <plugin>
                 <groupId>io.github.git-commit-id</groupId>
                 <artifactId>git-commit-id-maven-plugin</artifactId>
-                <version>9.0.2</version>
+                <version>10.0.0</version>
                 <executions>
                     <execution>
                         <goals>

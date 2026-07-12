@@ -22,6 +22,7 @@ import lombok.val;
 
 import java.io.ByteArrayInputStream;
 import java.security.cert.*;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
@@ -91,8 +92,14 @@ public class CertificateUtils {
     }
 
     private static SubjectAlternativeName toSubjectAlternativeName(List<?> rawSan) {
-        val type  = (Integer) rawSan.getFirst();
-        val value = rawSan.get(1).toString();
+        val type     = (Integer) rawSan.getFirst();
+        val rawValue = rawSan.get(1);
+        val value    = switch (rawValue) {
+                     case String text -> text;
+                     case byte[] der  -> Base64.getEncoder().encodeToString(der);
+                     case null        -> "";
+                     default          -> rawValue.toString();
+                     };
         return new SubjectAlternativeName(type, value);
     }
 

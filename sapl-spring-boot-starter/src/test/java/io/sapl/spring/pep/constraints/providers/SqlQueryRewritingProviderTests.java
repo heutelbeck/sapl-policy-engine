@@ -147,6 +147,18 @@ class SqlQueryRewritingProviderTests {
         }
 
         @Test
+        @DisplayName("OR in the first obligation condition is parenthesized so a later AND cannot leak rows")
+        void givenFirstConditionContainsOrThenItIsParenthesizedAsSingleAndOperand() {
+            val mapper    = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "conditions": ["a = 1 OR b = 2", "tenant_id = 7"]}
+                    """);
+            val rewritten = mapper.apply("SELECT * FROM users");
+            assertThat(rewritten).contains("(a = 1 OR b = 2)").contains("tenant_id = 7").contains("AND")
+                    .doesNotContain("b = 2 AND");
+        }
+
+        @Test
         @DisplayName("String literals containing the word 'where' do not confuse the rewriter")
         void givenWhereInsideStringLiteralThenRewriteIsCorrect() {
             val mapper    = mapperFor("""
@@ -214,6 +226,17 @@ class SqlQueryRewritingProviderTests {
                     """);
             assertThatThrownBy(() -> mapper.apply("SELECT * FROM users")).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Cannot parse obligation condition");
+        }
+
+        @Test
+        @DisplayName("A non-text element in a string-array field is rejected at resolution, not silently dropped")
+        void whenNonTextElementInConditionsThenThrows() {
+            val constraintJson = """
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7", {"not": "text"}]}
+                    """;
+
+            assertThatThrownBy(() -> mapperFor(constraintJson)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("must contain only text");
         }
     }
 
@@ -307,6 +330,18 @@ class SqlQueryRewritingProviderTests {
         }
 
         @Test
+        @DisplayName("A non-object criterion is rejected fail-closed at handler resolution, not silently dropped (which would broaden the query)")
+        void whenNonObjectCriterionThenAccessDenied() {
+            val constraintJson = """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}, "deleted_at IS NULL"]}
+                    """;
+
+            assertThatThrownBy(() -> mapperFor(constraintJson)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Typed criterion must be an object");
+        }
+
+        @Test
         @DisplayName("Text value is single-quoted and embedded single quotes are doubled")
         void whenTextValueThenSingleQuotedAndEscaped() {
             val mapper = mapperFor("""
@@ -317,6 +352,36 @@ class SqlQueryRewritingProviderTests {
             val rewritten = mapper.apply("SELECT * FROM users");
 
             assertThat(rewritten).contains("name = 'O''Brien'");
+        }
+
+        @Test
+        @DisplayName("Trailing backslash is escaped so it cannot break out of the quoted literal on backslash-honoring databases")
+        void whenTextValueEndsWithBackslashThenBackslashIsEscaped() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "name", "op": "=", "value": "evil\\\\"},
+                                  {"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            // A doubled backslash keeps the closing quote literal. Tenant_id must stay
+            // inside the AND chain.
+            assertThat(rewritten).contains("name = 'evil\\\\'").contains("tenant_id = 7");
+        }
+
+        @Test
+        @DisplayName("Backslash inside a LIKE pattern is escaped so the literal cannot be broken out of")
+        void whenLikeValueContainsBackslashThenBackslashIsEscaped() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "path", "op": "like", "value": "a\\\\"},
+                                  {"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM files");
+
+            assertThat(rewritten).contains("path LIKE 'a\\\\'").contains("tenant_id = 7");
         }
 
         @Test
@@ -413,7 +478,8 @@ class SqlQueryRewritingProviderTests {
 
             val rewritten = mapper.apply("SELECT * FROM resources");
 
-            assertThat(rewritten).contains("owner_id = 'alice'").contains("is_public = true").contains("OR");
+            assertThat(rewritten).contains("owner_id = 'alice'").contains("is_public = true")
+                    .containsPattern("\\([^()]*OR[^()]*\\)");
         }
 
         @Test
@@ -454,6 +520,115 @@ class SqlQueryRewritingProviderTests {
             val rewritten = mapper.apply("SELECT * FROM users");
 
             assertThat(rewritten).contains("tenant_id = 7");
+        }
+    }
+
+    @Nested
+    @DisplayName("Empty IN-list narrows to zero rows with valid SQL")
+    class EmptyInList {
+
+        @Test
+        @DisplayName("In operator with empty array renders a never-true predicate, not the invalid IN ()")
+        void whenInOperatorWithEmptyArrayThenRendersNeverTruePredicate() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "role", "op": "in", "value": []}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("role IN (NULL)").doesNotContain("IN ()");
+        }
+    }
+
+    @Nested
+    @DisplayName("Empty projection intersection fails closed")
+    class EmptyProjectionIntersection {
+
+        @Test
+        @DisplayName("Disjoint obligation columns on a non-star SELECT throws instead of emitting SELECT  FROM")
+        void whenObligationColumnsDisjointFromSelectListThenThrows() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting", "columns": ["ssn"]}
+                    """);
+
+            assertThatThrownBy(() -> mapper.apply("SELECT id, name FROM users"))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("no admissible columns");
+        }
+    }
+
+    @Nested
+    @DisplayName("Columns obligation on non-PlainSelect fails closed (no projection leak)")
+    class ColumnsOnNonPlainSelect {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("nonPlainSelects")
+        @DisplayName("A columns projection obligation on a non-PlainSelect SELECT throws instead of leaking columns")
+        void whenColumnsObligationOnNonPlainSelectThenThrows(String description, String inputSql) {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting", "columns": ["id"]}
+                    """);
+
+            assertThatThrownBy(() -> mapper.apply(inputSql)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("does not support column projection");
+        }
+
+        static Stream<Arguments> nonPlainSelects() {
+            return Stream.of(arguments("UNION set operation", "SELECT id, ssn FROM a UNION SELECT id, ssn FROM b"),
+                    arguments("parenthesized select", "(SELECT id, ssn FROM users)"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Column identifier injection is rejected (typed path is injection-safe)")
+    class ColumnIdentifierInjection {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("maliciousColumns")
+        @DisplayName("A criterion column that is not a strict identifier fails closed at planning time")
+        void whenCriterionColumnIsNotStrictIdentifierThenThrows(String description, String constraintJson) {
+            val constraint = v(constraintJson);
+            val supported  = Set.of(SQL_SIGNAL);
+
+            assertThatThrownBy(() -> provider.getConstraintHandlers(constraint, supported))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Invalid column identifier");
+        }
+
+        static Stream<Arguments> maliciousColumns() {
+            return Stream.of(arguments("tautology via OR in column", """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "1=1 OR tenant_id", "op": "=", "value": 0}]}
+                    """), arguments("operator smuggled into column", """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "tenant_id = 7 OR public", "op": "=", "value": 0}]}
+                    """), arguments("isNull leaf with injecting column", """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "x) OR (1=1", "op": "isNull"}]}
+                    """));
+        }
+
+        @Test
+        @DisplayName("A projection column that is not a strict identifier fails closed")
+        void whenProjectionColumnIsNotStrictIdentifierThenThrows() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting", "columns": ["id, password"]}
+                    """);
+
+            assertThatThrownBy(() -> mapper.apply("SELECT * FROM users")).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Invalid column identifier");
+        }
+
+        @Test
+        @DisplayName("A legitimate schema-qualified column is accepted")
+        void whenQualifiedIdentifierThenAccepted() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "public.users.tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("public.users.tenant_id = 7");
         }
     }
 }

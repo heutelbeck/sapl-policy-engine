@@ -52,12 +52,14 @@ import java.util.Set;
 public class CompilationContext {
     public static final String OPTION_INDEXING                  = "indexing";
     public static final String OPTION_LOW_LATENCY_MODE          = "lowLatencyMode";
+    public static final String OPTION_MAX_DNF_CLAUSES           = "maxDnfClauses";
     public static final String OPTION_MAX_INDEX_NODES           = "maxIndexNodes";
     public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
     public static final String OPTION_MIN_POLICIES_FOR_INDEXING = "minPoliciesForIndexing";
     public static final String OPTION_UNROLL_IN_OPERATOR        = "unrollInOperator";
 
     public static final String DEFAULT_INDEXING                  = "AUTO";
+    public static final int    DEFAULT_MAX_DNF_CLAUSES           = 10_000;
     public static final int    DEFAULT_MAX_INDEX_NODES           = 500_000;
     public static final int    DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
     public static final int    DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
@@ -72,7 +74,7 @@ public class CompilationContext {
     private Set<String>                     localVariableNames       = new HashSet<>();
     private final Map<Value, Value>         valueDedup               = new HashMap<>();
     private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
-    private Map<Long, Value>                foldingCache             = new HashMap<>();
+    private Map<IndexPredicate, Value>      foldingCache             = new HashMap<>();
 
     public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;
@@ -180,22 +182,26 @@ public class CompilationContext {
 
     /**
      * Evaluates a foldable PureOperator at compile time, caching the result
-     * by semantic hash. Subsequent calls with the same semantic hash return
-     * the cached result without re-evaluation.
+     * keyed by an {@link IndexPredicate}. The key uses the semantic hash as a
+     * fast pre-filter and {@link PureOperator#semanticEquals(PureOperator)} as
+     * the exact identity check, so a hash collision between two semantically
+     * distinct operators can never substitute one operator's folded constant
+     * for the other's. Subsequent calls with a semantically equal operator
+     * return the cached result without re-evaluation.
      *
      * @param po the pure operator to fold (must not depend on subscription
      * or relative context)
      * @return the folded Value
      */
     private Value cacheOrFold(PureOperator po) {
-        val hash     = po.semanticHash();
-        val cacheHit = foldingCache.get(hash);
+        val key      = new IndexPredicate(po.semanticHash(), po);
+        val cacheHit = foldingCache.get(key);
         if (cacheHit != null) {
             return cacheHit;
         }
         val foldingContext = DummyEvaluationContextFactory.dummyContext(this);
         val result         = dedupeValue(po.evaluate(foldingContext));
-        foldingCache.put(hash, result);
+        foldingCache.put(key, result);
         return result;
     }
 
@@ -299,11 +305,11 @@ public class CompilationContext {
      * When {@code false}: operators emit lazy variants. Per evaluation pass
      * they short-circuit on the first {@code null} (incomplete) or
      * {@link io.sapl.api.model.ErrorValue} child without subscribing later
-     * children. Smaller subscription set per round; convergence may take
+     * children. Smaller subscription set per round. Convergence may take
      * multiple rounds for independent missing dependencies but never
      * subscribes to children whose values turn out to be unneeded.
      * <p>
-     * Observable result is identical across both modes; the difference is
+     * Observable result is identical across both modes. The difference is
      * the per-pass subscription set size and the number of trigger-loop
      * rounds to reach a stable answer.
      *
@@ -345,7 +351,19 @@ public class CompilationContext {
     }
 
     /**
-     * Maximum SMTDD index-node budget; exceeding this triggers fallback to the
+     * Maximum number of DNF conjunctive clauses permitted while normalizing a
+     * policy applicability for the canonical index; exceeding this triggers
+     * fallback to the naive index (AUTO) or a logged degrade (explicit CANONICAL).
+     * Bounds the exponential AND-of-ORs blow-up.
+     *
+     * @return the DNF clause budget
+     */
+    public int maxDnfClauses() {
+        return intCompilerOption(OPTION_MAX_DNF_CLAUSES, DEFAULT_MAX_DNF_CLAUSES);
+    }
+
+    /**
+     * Maximum SMTDD index-node budget. Exceeding this triggers fallback to the
      * canonical index.
      *
      * @return the SMTDD node budget

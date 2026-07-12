@@ -151,11 +151,11 @@ public record BenchmarkResult(
         for (val r : results) {
             out.println(String.format(Locale.US, "%-30s %10d %13.1f ops/s +/- %10.1f ops/s", r.method(), r.threads(),
                     r.mean(), r.ci95()));
-            if (r.latency() != null) {
+            val latency = r.latency();
+            if (latency != null) {
                 out.println(String.format(Locale.US,
-                        "  Latency: p50=%.0f ns  p90=%.0f ns  p99=%.0f ns  p99.9=%.0f ns  max=%.0f ns",
-                        r.latency().p50(), r.latency().p90(), r.latency().p99(), r.latency().p999(),
-                        r.latency().max()));
+                        "  Latency: p50=%.0f ns  p90=%.0f ns  p99=%.0f ns  p99.9=%.0f ns  max=%.0f ns", latency.p50(),
+                        latency.p90(), latency.p99(), latency.p999(), latency.max()));
             }
         }
         out.flush();

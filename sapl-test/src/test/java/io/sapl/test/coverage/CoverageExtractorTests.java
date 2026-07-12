@@ -142,8 +142,14 @@ class CoverageExtractorTests {
 
         val coverages = CoverageExtractor.extractCoverage(voteWithCoverage, Map.of());
 
-        // Error conditions are skipped, only policy outcome recorded
+        // Error conditions are skipped, only the policy outcome is recorded.
         assertThat(coverages).hasSize(1);
+        val coverage = coverages.getFirst();
+        assertThat(coverage.getConditionCount()).isEqualTo(1);
+        assertThat(coverage.getBranchHits()).singleElement().satisfies(hit -> {
+            assertThat(hit.isPolicyOutcome()).isTrue();
+            assertThat(hit.startLine()).isEqualTo(1);
+        });
     }
 
     @Test

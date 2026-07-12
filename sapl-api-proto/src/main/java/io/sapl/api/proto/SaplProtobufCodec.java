@@ -19,6 +19,8 @@ package io.sapl.api.proto;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
 import static com.google.protobuf.WireFormat.getTagFieldNumber;
@@ -31,6 +33,7 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NullValue;
 import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
@@ -76,13 +79,18 @@ public class SaplProtobufCodec {
     private static final int MAP_ENTRY_VALUE = 2;
 
     // ErrorValue field numbers
-    private static final int ERROR_MESSAGE   = 1;
-    private static final int ERROR_ARGUMENTS = 2;
+    private static final int ERROR_MESSAGE = 1;
 
     // Bounds decode nesting so a deep payload fails closed instead of overflowing
     // the stack. Matches the JSON parser's limit.
     private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
+
+    private static final String ERROR_DUPLICATE_DECISION_ID             = "Duplicate subscription id in multi-decision payload: %s.";
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID         = "Duplicate subscription id in multi-subscription payload.";
+    private static final String ERROR_INVALID_NUMBER                    = "Malformed or out-of-bounds number value in protobuf payload.";
+    private static final String ERROR_MAX_MULTI_SUBSCRIPTION_COUNT      = "Maximum multi-subscription count must be positive.";
+    private static final String ERROR_MULTI_SUBSCRIPTION_COUNT_EXCEEDED = "Multi-subscription exceeds the maximum of %d entries.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -166,7 +174,7 @@ public class SaplProtobufCodec {
                 yield Value.NULL;
             }
             case VALUE_BOOL      -> Value.of(input.readBool());
-            case VALUE_NUMBER    -> new NumberValue(new BigDecimal(input.readString()));
+            case VALUE_NUMBER    -> readNumberValue(input.readString());
             case VALUE_TEXT      -> Value.of(input.readString());
             case VALUE_ARRAY     -> readArrayValue(input, depth);
             case VALUE_OBJECT    -> readObjectValue(input, depth);
@@ -182,6 +190,14 @@ public class SaplProtobufCodec {
             };
         }
         return result;
+    }
+
+    private static NumberValue readNumberValue(String literal) throws IOException {
+        // Bounds length and scale before the BigDecimal is constructed.
+        if (NumberValueLimits.parseBoundedNumber(literal) instanceof NumberValue numberValue) {
+            return numberValue;
+        }
+        throw new IOException(ERROR_INVALID_NUMBER);
     }
 
     private static ArrayValue readArrayValue(CodedInputStream input, int depth) throws IOException {
@@ -238,10 +254,10 @@ public class SaplProtobufCodec {
         while (!input.isAtEnd()) {
             val tag         = input.readTag();
             val fieldNumber = getTagFieldNumber(tag);
-            switch (fieldNumber) {
-            case ERROR_MESSAGE   -> message = input.readString();
-            case ERROR_ARGUMENTS -> input.readString(); // ErrorValue only uses message
-            default              -> input.skipField(tag);
+            if (fieldNumber == ERROR_MESSAGE) {
+                message = input.readString();
+            } else {
+                input.skipField(tag);
             }
         }
         input.popLimit(limit);
@@ -549,13 +565,42 @@ public class SaplProtobufCodec {
      * @throws IOException if deserialization fails
      */
     public static MultiAuthorizationSubscription readMultiAuthorizationSubscription(byte[] bytes) throws IOException {
+        return readMultiAuthorizationSubscription(bytes, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Deserializes a MultiAuthorizationSubscription from protobuf bytes with a
+     * configured entry limit.
+     *
+     * @param bytes protobuf-encoded bytes
+     * @param maxSubscriptions maximum number of subscriptions accepted
+     * @return the deserialized MultiAuthorizationSubscription
+     * @throws IOException if deserialization fails or the entry limit is exceeded
+     * @throws IllegalArgumentException if the maximum is not positive
+     */
+    public static MultiAuthorizationSubscription readMultiAuthorizationSubscription(byte[] bytes, int maxSubscriptions)
+            throws IOException {
+        if (maxSubscriptions <= 0) {
+            throw new IllegalArgumentException(ERROR_MAX_MULTI_SUBSCRIPTION_COUNT);
+        }
         val input  = CodedInputStream.newInstance(bytes);
         val result = new MultiAuthorizationSubscription();
+        var count  = 0;
         while (!input.isAtEnd()) {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == MULTI_SUB_SUBSCRIPTIONS) {
+                count++;
+                if (count > maxSubscriptions) {
+                    throw new IOException(ERROR_MULTI_SUBSCRIPTION_COUNT_EXCEEDED.formatted(maxSubscriptions));
+                }
                 val idSub = readIdentifiableSubscription(input);
-                result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                try {
+                    result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                } catch (IllegalArgumentException e) {
+                    // Duplicate id on the wire. Surface as IOException so the
+                    // transport's fail-closed decode handler applies.
+                    throw new IOException(ERROR_DUPLICATE_SUBSCRIPTION_ID, e);
+                }
             } else {
                 input.skipField(tag);
             }
@@ -647,12 +692,13 @@ public class SaplProtobufCodec {
      * @throws IOException if deserialization fails
      */
     public static MultiAuthorizationDecision readMultiAuthorizationDecision(byte[] bytes) throws IOException {
-        val input  = CodedInputStream.newInstance(bytes);
-        val result = new MultiAuthorizationDecision();
+        val input   = CodedInputStream.newInstance(bytes);
+        val result  = new MultiAuthorizationDecision();
+        val seenIds = new HashSet<String>();
         while (!input.isAtEnd()) {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == MULTI_DEC_DECISIONS) {
-                readDecisionMapEntry(input, result);
+                readDecisionMapEntry(input, result, seenIds);
             } else {
                 input.skipField(tag);
             }
@@ -660,11 +706,14 @@ public class SaplProtobufCodec {
         return result;
     }
 
-    private static void readDecisionMapEntry(CodedInputStream input, MultiAuthorizationDecision result)
-            throws IOException {
+    private static void readDecisionMapEntry(CodedInputStream input, MultiAuthorizationDecision result,
+            Set<String> seenIds) throws IOException {
         val limit = input.pushLimit(input.readRawVarint32());
         val idDec = readIdAndDecisionFields(input);
         input.popLimit(limit);
+        if (!seenIds.add(idDec.subscriptionId())) {
+            throw new IOException(ERROR_DUPLICATE_DECISION_ID.formatted(idDec.subscriptionId()));
+        }
         result.setDecision(idDec.subscriptionId(), idDec.decision());
     }
 

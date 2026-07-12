@@ -45,8 +45,10 @@ import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.mock.web.MockHttpServletRequest;
+import com.fasterxml.jackson.annotation.JsonValue;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
@@ -54,6 +56,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.util.MethodInvocationUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -149,7 +154,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void when_expressionHandlerProvided_then_FactoryThrows() {
+    void when_noExpressionHandlerProvided_then_usesGrantedAuthorityDefaults() {
         val mockContext        = mock(ApplicationContext.class);
         val mockMapperProvider = mock(ObjectProvider.class);
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
@@ -162,6 +167,19 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
                 "'an environment'");
         webBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation, attribute);
         verify(defaults, times(1)).getRolePrefix();
+    }
+
+    @Test
+    void when_argRaisesJacksonException_then_argDroppedAndSubscriptionBuilt() {
+        val throwingArgInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                "publicVoidThrowingArg", new Class<?>[] { ThrowsOnSerialize.class },
+                new Object[] { new ThrowsOnSerialize() });
+        val subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                throwingArgInvocation, attribute(null, null, null, null));
+
+        val action = toJson(subscription.action());
+        assertThat(action.get("java").has("arguments")).isFalse();
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoidThrowingArg");
     }
 
     @Test
@@ -280,6 +298,21 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     }
 
     @Test
+    @DisplayName("when a method argument carries a nested credential field, then it is stripped from the action arguments")
+    void whenArgumentCarriesNestedCredentialThenItIsStrippedFromActionArguments() {
+        val attribute          = attribute(null, null, null, null);
+        val secretBearingArg   = new CustomPrincipal("tenant-1", new NestedCredentials("super-secret-token"));
+        val invocationWithArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                "publicVoidCredentialArg", new Class<?>[] { CustomPrincipal.class }, new Object[] { secretBearingArg });
+        val subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                invocationWithArgs, attribute);
+
+        val argument = toJson(subscription.action()).get("java").get("arguments").get(0);
+        assertThat(argument.get("tenantId").asString()).isEqualTo("tenant-1");
+        assertThat(argument.get("nested").has("accessToken")).isFalse();
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void when_nullParametersInvocationHasArgumentsThatCannotBeMappedToJson_then_FactoryConstructsFromContextExcludingProblematicArguments() {
         val failMapper = spy(ObjectMapper.class);
@@ -383,6 +416,60 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
             assertThat(subject.get("principal").has("tokenValue")).isFalse();
         }
 
+        @Test
+        @DisplayName("when OIDC login principal, then the raw principal.idToken.tokenValue never reaches the subject")
+        void whenOidcLoginThenNestedIdTokenValueStrippedFromSubject() {
+            val idToken       = new OidcIdToken("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", REFERENCE,
+                    REFERENCE.plusSeconds(3600), java.util.Map.of("sub", "user"));
+            val oidcUser      = new DefaultOidcUser(AuthorityUtils.createAuthorityList("ROLE_USER"), idToken);
+            val oidcAuth      = new OAuth2AuthenticationToken(oidcUser, AuthorityUtils.createAuthorityList("ROLE_USER"),
+                    "client-registration");
+            val attribute     = attribute(null, null, null, null);
+            val subscription  = defaultWebBuilderUnderTest.constructAuthorizationSubscription(oidcAuth, invocation,
+                    attribute);
+            val subject       = toJson(subscription.subject());
+            val principalNode = subject.get("principal");
+
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(principalNode.has("idToken")).isFalse();
+            assertThat(subject.toString()).doesNotContain("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig");
+        }
+
+        @Test
+        @DisplayName("when principal carries a nested accessToken, then it is stripped while a benign domain field is retained")
+        void whenPrincipalHasNestedAccessTokenThenStrippedButBenignFieldRetained() {
+            val principal     = new CustomPrincipal("tenant-42", new NestedCredentials("raw-access-token"));
+            val auth          = new UsernamePasswordAuthenticationToken(principal, "the credentials");
+            val attribute     = attribute(null, null, null, null);
+            val subscription  = defaultWebBuilderUnderTest.constructAuthorizationSubscription(auth, invocation,
+                    attribute);
+            val subject       = toJson(subscription.subject());
+            val principalNode = subject.get("principal");
+
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(principalNode.get("tenantId").asString()).isEqualTo("tenant-42");
+            assertThat(principalNode.get("nested").has("accessToken")).isFalse();
+        }
+
+    }
+
+    @Nested
+    @DisplayName("Default subject projection for non-object authentications")
+    class NonObjectAuthenticationSubjectTests {
+
+        @Test
+        @DisplayName("when authentication serializes to a JSON string, then the subject is that string rather than a ClassCastException")
+        void whenAuthenticationSerializesToStringThenSubjectIsThatString() {
+            val auth         = new StringSerializingAuthentication("opaque-principal");
+            val attribute    = attribute(null, null, null, null);
+            val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(auth, invocation,
+                    attribute);
+            val subject      = toJson(subscription.subject());
+
+            assertThat(subject.isString()).isTrue();
+            assertThat(subject.asString()).isEqualTo("opaque-principal");
+        }
+
     }
 
     @Nested
@@ -467,12 +554,64 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
             /* NOOP */
         }
 
+        public void publicVoidCredentialArg(CustomPrincipal param) {
+            /* NOOP */
+        }
+
+        public void publicVoidThrowingArg(ThrowsOnSerialize param) {
+            /* NOOP */
+        }
+
+    }
+
+    public static class ThrowsOnSerialize {
+
+        @SuppressWarnings("unused") // invoked by Jackson during serialization
+        public String getValue() {
+            throw new IllegalStateException("serialization boom");
+        }
+
     }
 
     public static class BadForJackson {
 
         @SuppressWarnings("unused") // for test
         private String bad;
+
+    }
+
+    public record CustomPrincipal(String tenantId, NestedCredentials nested) {}
+
+    public record NestedCredentials(String accessToken) {}
+
+    /**
+     * An {@link Authentication} that Jackson serializes to a JSON string rather
+     * than a JSON object, exercising the default subject projection against a
+     * non-object serialization.
+     */
+    public static class StringSerializingAuthentication extends AbstractAuthenticationToken {
+
+        @Serial
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+        private final String principal;
+
+        StringSerializingAuthentication(String principal) {
+            super(AuthorityUtils.createAuthorityList("ROLE_USER"));
+            this.principal = principal;
+            setAuthenticated(true);
+        }
+
+        @JsonValue
+        @Override
+        public Object getPrincipal() {
+            return principal;
+        }
+
+        @Override
+        public Object getCredentials() {
+            return "the credentials";
+        }
 
     }
 

@@ -165,9 +165,11 @@ curl -N -X POST http://localhost:8080/api/pdp/decide \
 **Example with the SAPL CLI** (streams decisions as NDJSON):
 
 ```shell
-sapl decide --remote --url http://localhost:8080 --token sapl_... \
+sapl decide --remote --insecure --url http://localhost:8080 --token sapl_... \
   -s '"alice"' -a '"read"' -r '"document"'
 ```
+
+Sending credentials over a plaintext `http://` connection is refused by default. The `--insecure` flag accepts that risk for local development. Drop it and use an `https://` URL in production.
 
 #### Decide Once (One-Shot)
 
@@ -206,14 +208,14 @@ Returns a single authorization decision and closes the connection. Use this for 
 **Example with the SAPL CLI:**
 
 ```shell
-sapl decide-once --remote --url http://localhost:8080 --token sapl_... \
+sapl decide-once --remote --insecure --url http://localhost:8080 --token sapl_... \
   -s '{"username":"alice","role":"doctor"}' -a '"read"' -r '{"type":"patient_record","patientId":123}'
 ```
 
 The `sapl check` command returns an exit code instead of JSON output, making it suitable for shell scripts and CI/CD pipelines:
 
 ```shell
-sapl check --remote --url http://localhost:8080 --token sapl_... \
+sapl check --remote --insecure --url http://localhost:8080 --token sapl_... \
   -s '"alice"' -a '"read"' -r '"document"' && echo "PERMIT"
 ```
 

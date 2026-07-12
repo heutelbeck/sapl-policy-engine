@@ -18,8 +18,8 @@
 package io.sapl.node.http.pdp;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,6 +32,7 @@ import org.jspecify.annotations.Nullable;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthenticationException;
+import io.sapl.node.http.RequestBodyTooLargeException;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -121,12 +122,27 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      */
     protected abstract D indeterminate();
 
+    /**
+     * Validates the parsed subscription before the SSE response is opened.
+     *
+     * @param subscription the parsed subscription
+     * @param response the HTTP response
+     * @return true if stream setup may continue
+     * @throws IOException if writing an error response fails
+     */
+    protected boolean acceptSubscription(S subscription, HttpServletResponse response) throws IOException {
+        return true;
+    }
+
     @Override
     protected void handlePost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
             throws ServletException, IOException {
-        String pdpId;
+        String  pdpId;
+        Instant tokenExpiresAt;
         try {
-            pdpId = authHandler.authenticate(request).pdpId();
+            val authResult = authHandler.authenticate(request);
+            pdpId          = authResult.pdpId();
+            tokenExpiresAt = authResult.expiresAt();
         } catch (HttpAuthenticationException e) {
             log.debug("HTTP authentication failed: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed.");
@@ -137,8 +153,22 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
         try (val in = request.getInputStream()) {
             subscription = mapper.readValue(in, subscriptionType());
         } catch (IOException | JacksonException e) {
+            if (RequestBodyTooLargeException.isCausedBy(e)) {
+                log.debug("Rejected oversized subscription: {}", e.getMessage());
+                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                        "Request body exceeds the configured limit.");
+                return;
+            }
             log.debug("Failed to parse subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed subscription.");
+            return;
+        }
+        if (subscription == null) {
+            log.debug("Rejected null subscription.");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed subscription.");
+            return;
+        }
+        if (!acceptSubscription(subscription, response)) {
             return;
         }
 
@@ -149,15 +179,56 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
 
         val asyncContext = request.startAsync();
         asyncContext.setTimeout(0);
-        connectionRegistry.register(asyncContext);
+        // The connection owns the monitor that serializes every write to the
+        // response. The pump, the keep-alive frame, and the registry's shutdown
+        // frame all write through it, so the shutdown write cannot interleave with a
+        // pump or keep-alive write on the same non-thread-safe PrintWriter.
+        val connection = new SseConnection(asyncContext);
+        connectionRegistry.register(connection);
+        scheduleConnectionExpiry(connection, tokenExpiresAt);
 
         try {
-            pumpExecutor.submit(() -> pump(asyncContext, subscription, pdpId));
+            pumpExecutor.submit(() -> pump(connection, subscription, pdpId));
         } catch (RejectedExecutionException e) {
             log.warn("SSE pump rejected by executor for pdpId={}: {}", pdpId, e.getMessage());
-            connectionRegistry.unregister(asyncContext);
-            asyncContext.complete();
+            connectionRegistry.unregister(connection);
+            connection.complete();
         }
+    }
+
+    /**
+     * Closes the stream when the authenticating credential expires. A JWT
+     * authenticates the connection only once, but the stream is long-lived, so
+     * without this the connection would keep delivering decisions past the
+     * token's expiry. Mirrors the RSocket transport, which disposes the
+     * connection at the same instant. Does nothing for credentials that do not
+     * expire (basic auth, api key) or when the expiry is already past at setup.
+     *
+     * @param connection the SSE connection to close at expiry
+     * @param expiresAt the credential expiry instant, or null when none
+     */
+    private void scheduleConnectionExpiry(SseConnection connection, @Nullable Instant expiresAt) {
+        if (expiresAt == null || keepAliveScheduler == null) {
+            return;
+        }
+        val delayMillis = Math.max(0L, Duration.between(Instant.now(), expiresAt).toMillis());
+        try {
+            val expiryTask = keepAliveScheduler.schedule(() -> closeExpired(connection), delayMillis,
+                    TimeUnit.MILLISECONDS);
+            connection.setExpiryTask(expiryTask);
+        } catch (RejectedExecutionException e) {
+            log.warn("SSE token-expiry scheduling rejected, closing connection now: {}", e.getMessage());
+            closeExpired(connection);
+        }
+    }
+
+    private void closeExpired(SseConnection connection) {
+        connectionRegistry.unregister(connection);
+        // Close the upstream stream so the parked pump wakes and releases the PDP
+        // subscription, then complete the response. Mirrors the RSocket transport's
+        // hard dispose at token expiry rather than waiting for the next keep-alive.
+        connection.closeStream();
+        connection.complete();
     }
 
     /**
@@ -168,39 +239,44 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      * when the consumer lags. {@code awaitNext} therefore reads only the
      * most recent decision, and a slow client throttles the pump by
      * blocking on socket flush via TCP flow control. Old decisions are
-     * dropped at the source slot rather than queued; the response buffer
+     * dropped at the source slot rather than queued. The response buffer
      * is bounded by the container's configured response buffer plus the
      * kernel socket send buffer.
      */
-    private void pump(AsyncContext asyncContext, S subscription, String pdpId) {
-        val                response      = (HttpServletResponse) asyncContext.getResponse();
-        val                writerLock    = new Object();
+    private void pump(SseConnection connection, S subscription, String pdpId) {
         ScheduledFuture<?> keepAliveTask = null;
-        try (PrintWriter writer = response.getWriter(); Stream<D> stream = openStream(subscription, pdpId)) {
-            keepAliveTask = scheduleKeepAlive(writer, writerLock, stream);
+        try (Stream<D> stream = openStream(subscription, pdpId)) {
+            connection.bindStream(stream);
+            keepAliveTask = scheduleKeepAlive(connection, stream);
             try {
-                while (!Thread.currentThread().isInterrupted() && processNextEvent(stream, writer, writerLock, pdpId)) {
-                    // loop body intentionally empty; processNextEvent drives one iteration
+                while (!Thread.currentThread().isInterrupted() && processNextEvent(stream, connection, pdpId)) {
+                    // loop body intentionally empty. ProcessNextEvent drives one iteration
                 }
             } catch (Exception e) {
                 log.debug("SSE stream terminated for pdpId={}: {}", pdpId, e.getMessage());
-                if (keepAliveTask != null) {
-                    keepAliveTask.cancel(false);
-                    keepAliveTask = null;
-                }
-                if (!writer.checkError()) {
-                    writeEvent(writer, indeterminate(), writerLock);
+                val frame = eventFrame(indeterminate());
+                if (frame != null) {
+                    connection.write(frame);
                 }
             }
         } catch (Exception e) {
             log.debug("SSE stream setup failed for pdpId={}: {}", pdpId, e.getMessage());
         } finally {
+            // Cancel before teardown closes the response writer.
             if (keepAliveTask != null) {
                 keepAliveTask.cancel(false);
             }
-            connectionRegistry.unregister(asyncContext);
-            asyncContext.complete();
+            teardown(connection);
         }
+    }
+
+    private void teardown(SseConnection connection) {
+        connection.close();
+        // Release the bound-stream reference. The stream is already closed by the
+        // pump's try-with-resources, so this only clears the field for GC.
+        connection.closeStream();
+        connectionRegistry.unregister(connection);
+        connection.complete();
     }
 
     /**
@@ -208,7 +284,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      * continue, false when the stream has ended, the client has disconnected,
      * the pump was interrupted, or serialisation failed irrecoverably.
      */
-    private boolean processNextEvent(Stream<D> stream, PrintWriter writer, Object writerLock, String pdpId) {
+    private boolean processNextEvent(Stream<D> stream, SseConnection connection, String pdpId) {
         D decision;
         try {
             decision = stream.awaitNext();
@@ -219,10 +295,11 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
         if (decision == null) {
             return false;
         }
-        if (!writeEvent(writer, decision, writerLock)) {
+        val frame = eventFrame(decision);
+        if (frame == null) {
             return false;
         }
-        if (writer.checkError()) {
+        if (!connection.write(frame)) {
             log.debug("SSE stream client disconnected for pdpId={}", pdpId);
             return false;
         }
@@ -230,26 +307,47 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     }
 
     @Nullable
-    private ScheduledFuture<?> scheduleKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream) {
+    private ScheduledFuture<?> scheduleKeepAlive(SseConnection connection, Stream<D> stream) {
         if (keepAliveScheduler == null) {
             return null;
         }
         val periodMillis = keepAliveInterval.toMillis();
-        return keepAliveScheduler.scheduleAtFixedRate(() -> {
-            boolean clientGone;
-            synchronized (writerLock) {
-                writer.write(KEEP_ALIVE_FRAME);
-                writer.flush();
-                // PrintWriter swallows a broken-pipe write but sets the error flag, the only
-                // signal of a dead idle client.
-                clientGone = writer.checkError();
-            }
-            if (clientGone) {
-                // Unblocks the pump parked in awaitNext, whose finally block then tears down
-                // this task.
-                closeQuietly(stream);
-            }
-        }, periodMillis, periodMillis, TimeUnit.MILLISECONDS);
+        // The scheduler thread only dispatches. The blocking write+flush runs on the
+        // per-connection virtual-thread pump. A slow client that stalls the flush via
+        // TCP flow control therefore parks a cheap virtual thread, never a thread of
+        // the bounded keep-alive scheduler pool.
+        return keepAliveScheduler.scheduleAtFixedRate(() -> dispatchKeepAlive(connection, stream), periodMillis,
+                periodMillis, TimeUnit.MILLISECONDS);
+    }
+
+    private void dispatchKeepAlive(SseConnection connection, Stream<D> stream) {
+        // Skip the tick while a prior keep-alive is still parked in a slow flush, so a
+        // stalled client cannot pile up
+        // virtual threads on the write monitor.
+        if (!connection.tryBeginKeepAlive()) {
+            return;
+        }
+        try {
+            pumpExecutor.execute(() -> {
+                try {
+                    sendKeepAlive(connection, stream);
+                } finally {
+                    connection.endKeepAlive();
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            connection.endKeepAlive();
+            log.debug("Keep-alive dispatch rejected; pump executor is shutting down: {}", e.getMessage());
+        }
+    }
+
+    private void sendKeepAlive(SseConnection connection, Stream<D> stream) {
+        // A failed keep-alive means the connection is closed or the idle client is
+        // gone. Close the stream to unblock the pump parked in awaitNext, whose
+        // finally block then tears down this task.
+        if (!connection.write(KEEP_ALIVE_FRAME)) {
+            closeQuietly(stream);
+        }
     }
 
     private void closeQuietly(Stream<D> stream) {
@@ -261,23 +359,17 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     }
 
     /**
-     * Returns true on success, false on persistent failure (Jackson serialization
-     * error). The pump uses the return value to break out of the loop instead of
-     * re-attempting to write subsequent events to a doomed stream.
+     * Serialises a decision into an SSE {@code data:} frame, or returns null on a
+     * Jackson serialization error so the pump can stop instead of re-attempting to
+     * write subsequent events to a doomed stream.
      */
-    private boolean writeEvent(PrintWriter writer, D value, Object writerLock) {
+    @Nullable
+    private String eventFrame(D value) {
         try {
-            val json = mapper.writeValueAsString(value);
-            synchronized (writerLock) {
-                writer.write("data:");
-                writer.write(json);
-                writer.write("\n\n");
-                writer.flush();
-            }
-            return true;
+            return "data:" + mapper.writeValueAsString(value) + "\n\n";
         } catch (JacksonException e) {
             log.debug("Failed to serialize SSE event: {}", e.getMessage());
-            return false;
+            return null;
         }
     }
 }

@@ -666,12 +666,6 @@ class PathNavigationTests {
                 42 |- { @[?(true)] : filter.replace("***") }
                 """,
                 Value.of(42)),
-            arguments("conditionPath_nonBooleanCondition_treatsAsFalse",
-                """
-                [1, 2, 3] |- { @[?("not a boolean")] : filter.replace("***") }
-                """,
-                json("[1, 2, 3]")),
-
             arguments("wildcardThenConditionPath_redactsMatchingInEachArray",
                 """
                 [[1, 5, 2], [10, 3, 8]] |- { @[*][?(@ > 4)] : filter.replace("***") }

@@ -28,6 +28,7 @@ import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -182,8 +183,8 @@ public class PatternsFunctionLibrary {
      * ensure safe detection.
      */
     private static final Pattern NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
-    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*\\|[^)]*\\)[*+]");
-    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)]*\\*[^)]*\\)[^)]*\\*");
+    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)|]*\\|[^)]*\\)[*+]");
+    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)*]*\\*[^)]*\\)[^)*]*\\*");
     private static final Pattern NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
 
     @Function(docs = """
@@ -397,7 +398,7 @@ public class PatternsFunctionLibrary {
         if (limitError != null)
             return limitError;
 
-        val cappedLimit = Math.min(limit.value().intValue(), MAX_MATCHES);
+        val cappedLimit = limit.value().min(BigDecimal.valueOf(MAX_MATCHES)).intValueExact();
         return findMatchesWithLimit(pattern, value, cappedLimit);
     }
 
@@ -446,7 +447,7 @@ public class PatternsFunctionLibrary {
         if (limitError != null)
             return limitError;
 
-        val cappedLimit = Math.min(limit.value().intValue(), MAX_MATCHES);
+        val cappedLimit = limit.value().min(BigDecimal.valueOf(MAX_MATCHES)).intValueExact();
         return findAllSubmatchWithLimit(pattern, value, cappedLimit);
     }
 
@@ -498,6 +499,9 @@ public class PatternsFunctionLibrary {
                 }
             }
             matcher.appendTail(result);
+            if (result.length() > MAX_OUTPUT_LENGTH) {
+                return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
+            }
             return Value.of(result.toString());
         } catch (Exception e) {
             return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));
@@ -697,7 +701,7 @@ public class PatternsFunctionLibrary {
      * Validates limit parameter is a non-negative number.
      */
     private static Value validateLimit(NumberValue limit) {
-        if (limit.value().intValue() < 0) {
+        if (limit.value().signum() < 0) {
             return Value.error(ERROR_LIMIT_NEGATIVE);
         }
 

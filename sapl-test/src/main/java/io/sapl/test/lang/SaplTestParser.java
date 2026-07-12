@@ -82,6 +82,8 @@ public class SaplTestParser {
 
         // Collect syntax errors
         var errorListener = new SaplTestErrorListener();
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(errorListener);
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
 

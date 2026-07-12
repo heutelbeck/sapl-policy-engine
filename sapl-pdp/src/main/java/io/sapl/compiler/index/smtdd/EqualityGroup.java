@@ -99,14 +99,18 @@ public class EqualityGroup {
             if (excludedHere != null) {
                 members.andNot(excludedHere);
             }
-            if (!members.isEmpty()) {
+            // An exclusion-key value must own a branch even when empty, so the operand
+            // routes there instead of falling through to default where its != formula
+            // would wrongly count as matching.
+            if (!members.isEmpty() || excludeInBucket.containsKey(value)) {
                 branchFormulas.put(value, members);
             }
         }
 
-        // Default branch: only equality-unconstrained formulas can match; their
+        // Default branch: only equality-unconstrained formulas can match. Their
         // exclusions are trivially satisfied by a value that is no named constant.
-        val defaultFormulas = (BitSet) equalityUnconstrained.clone();
+        // equalityUnconstrained is not read after this point, so reuse it directly.
+        val defaultFormulas = equalityUnconstrained;
 
         // doesNotSplit treats a formula as unconstrained only when this operand
         // neither equals nor excludes anything for it.
@@ -115,8 +119,9 @@ public class EqualityGroup {
         unconstrainedFormulas.andNot(excludeConstrained);
 
         // Every formula referencing this operand errors when the operand errors.
-        val affectedFormulas = (BitSet) equalityConstrained.clone();
-        affectedFormulas.or(excludeConstrained);
+        // equalityConstrained is not read after this point, so consume it in place.
+        equalityConstrained.or(excludeConstrained);
+        val affectedFormulas = equalityConstrained;
 
         return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, affectedFormulas);
     }

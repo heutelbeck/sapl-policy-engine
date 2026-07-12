@@ -25,13 +25,20 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+import static io.sapl.api.pdp.StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
 import static io.sapl.api.shared.NameValidator.requireValidName;
 
 /**
- * Writer-side key for an {@link AttributeRepository}. The triple
- * {@code (entity, name, arguments)} uniquely identifies a published
- * value. A {@code null} {@code entity} denotes a global (environment)
- * attribute. Arguments are defensively copied at construction.
+ * Writer-side key for an {@link AttributeRepository}. Within a tenant
+ * ({@code pdpId}) the triple {@code (entity, name, arguments)} uniquely
+ * identifies a published value. A {@code null} {@code entity} denotes a
+ * global (environment) attribute. Arguments are defensively copied at
+ * construction.
+ * <p>
+ * The {@code pdpId} partitions values by tenant so a value published for
+ * one tenant is never observed by another. Publishers that do not
+ * partition by tenant may use the {@code (entity, name, arguments)}
+ * constructor, which targets the default tenant.
  * <p>
  * Structurally aligned with {@link AttributeFinderInvocation} so a
  * subscription's invocation can be projected onto a repository key
@@ -43,10 +50,15 @@ import static io.sapl.api.shared.NameValidator.requireValidName;
  * @param entity entity context, or {@code null} for global attributes
  * @param name fully qualified attribute name
  * @param arguments attribute arguments (defensively copied)
+ * @param pdpId tenant the value belongs to
  *
  * @since 4.1.0
  */
-public record RepositoryKey(@Nullable Value entity, @NonNull String name, @NonNull List<Value> arguments) {
+public record RepositoryKey(
+        @Nullable Value entity,
+        @NonNull String name,
+        @NonNull List<Value> arguments,
+        @NonNull String pdpId) {
 
     public RepositoryKey {
         requireValidName(name);
@@ -54,13 +66,26 @@ public record RepositoryKey(@Nullable Value entity, @NonNull String name, @NonNu
     }
 
     /**
+     * Convenience for single-tenant publishers: targets the default tenant.
+     *
+     * @param entity entity context, or {@code null} for global attributes
+     * @param name fully qualified attribute name
+     * @param arguments attribute arguments (defensively copied)
+     */
+    public RepositoryKey(@Nullable Value entity, @NonNull String name, @NonNull List<Value> arguments) {
+        this(entity, name, arguments, DEFAULT_PDP_ID);
+    }
+
+    /**
      * Projects an {@link AttributeFinderInvocation} onto a repository
-     * key by dropping the per-invocation timing fields.
+     * key by dropping the per-invocation timing fields, preserving the
+     * invocation's tenant ({@code pdpId}).
      *
      * @param invocation the invocation to project
      * @return the corresponding repository key
      */
     public static RepositoryKey fromInvocation(@NonNull AttributeFinderInvocation invocation) {
-        return new RepositoryKey(invocation.entity(), invocation.attributeName(), invocation.arguments());
+        return new RepositoryKey(invocation.entity(), invocation.attributeName(), invocation.arguments(),
+                invocation.pdpId());
     }
 }

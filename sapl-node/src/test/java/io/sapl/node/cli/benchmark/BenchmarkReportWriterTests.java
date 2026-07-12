@@ -158,6 +158,38 @@ class BenchmarkReportWriterTests {
             assertThat(csv).contains("mean_ns_op").contains("1000.00");
         }
 
+        @Test
+        @DisplayName("derives per-request latency using thread count (Little's Law)")
+        void whenMultiThreadedThenCsvMeanNsPerOpIncludesThreadFactor() {
+            val results = List.of(BenchmarkResult.fromIterations("test", 4, List.of(1000000.0)));
+            val csv     = BenchmarkReportWriter.buildCsv(results);
+            // Little's Law: latency = threads / throughput = 4 / 1e6 ops/s = 4000 ns.
+            // Without the thread factor this would render the wrong 1000.00 ns.
+            assertThat(csv).contains(",4000.00,").doesNotContain(",1000.00,");
+        }
+
+        @Test
+        @DisplayName("CSV mean_ns_op agrees with Markdown Little's Law derived latency")
+        void whenMultiThreadedThenCsvAndMarkdownDerivedLatencyAgree() {
+            val results = List.of(BenchmarkResult.fromIterations("test", 4, List.of(1000000.0)));
+            val ctx     = new BenchmarkContext("{}", null, "/tmp", "DIRECTORY");
+            val cfg     = new BenchmarkRunConfig(3, 1, 5, 3, List.of(4), null, true, false, null, null,
+                    "20260323-120000");
+            val csv     = BenchmarkReportWriter.buildCsv(results);
+            val md      = BenchmarkReportWriter.buildMarkdown(results, ctx, cfg, "timing loop");
+            assertThat(csv).contains(",4000.00,");
+            assertThat(md).contains("4000");
+        }
+
+        @Test
+        @DisplayName("load test CSV derives per-request latency using thread count")
+        void whenMultiThreadedThenLoadtestCsvMeanNsPerOpIncludesThreadFactor() {
+            val results = List.of(BenchmarkResult.fromIterations("test", 4, List.of(1000000.0)));
+            val ctx     = LoadtestContext.http("http://localhost", 4, 1, 5, "20260323-120000", null);
+            val csv     = BenchmarkReportWriter.buildLoadtestCsv(results, ctx);
+            assertThat(csv).contains(",4000.00,").doesNotContain(",1000.00,");
+        }
+
     }
 
 }

@@ -229,8 +229,9 @@ public class TinytodoScenarioGenerator {
 
         val requestRng    = new Random(seed + OopslaConstants.REQUEST_RNG_SEED_OFFSET);
         val subscriptions = new ArrayList<AuthorizationSubscription>(OopslaConstants.REQUESTS_PER_GRAPH);
-        // First subscription: guaranteed DENY (DeleteList is not in any policy)
-        subscriptions.add(AuthorizationSubscription.of(OopslaConstants.PREFIX_USER + "0", "DeleteList",
+        // First subscription is a guaranteed DENY. User n is outside the generated
+        // 0..n-1 range, and DeleteList appears in no policy.
+        subscriptions.add(AuthorizationSubscription.of(OopslaConstants.PREFIX_USER + n, "DeleteList",
                 OopslaConstants.PREFIX_LIST + "0"));
         for (int i = 1; i < OopslaConstants.REQUESTS_PER_GRAPH; i++) {
             subscriptions.add(buildRequest(n, requestRng));

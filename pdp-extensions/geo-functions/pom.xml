@@ -26,7 +26,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.1.0-SNAPSHOT</version>
+		<version>4.2.0-SNAPSHOT</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	
@@ -37,7 +37,7 @@
 
 	<properties>
 		<jts.version>1.20.0</jts.version>
-		<geotools.version>34.2</geotools.version>
+		<geotools.version>35.0</geotools.version>
 		<spatial4j.version>0.8</spatial4j.version>
 		<main.basedir>${project.basedir}/../../</main.basedir>
 	</properties>
@@ -79,11 +79,6 @@
 			<version>${jts.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>org.geotools</groupId>
-			<artifactId>gt-geojson</artifactId>
-			<version>${geotools.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>org.geotools.xsd</groupId>
 			<artifactId>gt-xsd-kml</artifactId>
 			<version>${geotools.version}</version>
@@ -95,19 +90,18 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-		    <!-- replaces the xml-commons-resolver excluded above -->
-    			<groupId>org.xmlresolver</groupId>
-    			<artifactId>xmlresolver</artifactId>
-    			<version>6.0.19</version>
+			<groupId>org.geotools.xsd</groupId>
+			<artifactId>gt-xsd-gml2</artifactId>
+			<version>${geotools.version}</version>
 		</dependency>
- 		<dependency>
-        		<groupId>org.geotools.xsd</groupId>
-        		<artifactId>gt-xsd-wfs</artifactId>
-        		<version>${geotools.version}</version>
-    		</dependency>
+		<dependency>
+			<groupId>org.geotools.xsd</groupId>
+			<artifactId>gt-xsd-gml3</artifactId>
+			<version>${geotools.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
-			<artifactId>gt-epsg-hsql</artifactId>
+			<artifactId>gt-epsg-wkt</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
 		<dependency>

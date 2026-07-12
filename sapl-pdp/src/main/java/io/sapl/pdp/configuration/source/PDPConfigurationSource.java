@@ -44,7 +44,7 @@ public interface PDPConfigurationSource extends AutoCloseable {
 
     /**
      * Adds a listener that receives configuration events from this
-     * source. The first subscribe activates the source; subsequent
+     * source. The first subscribe activates the source. Subsequent
      * subscribes join the live stream.
      *
      * @param listener the listener to add
@@ -77,13 +77,8 @@ public interface PDPConfigurationSource extends AutoCloseable {
          * A configuration was loaded or reloaded.
          *
          * @param configuration the new configuration
-         * @param keepOldOnError if {@code true}, the consumer should
-         * retain the previous configuration if the new one fails to
-         * compile; if {@code false}, the consumer should replace the
-         * previous configuration with an error voter on compile
-         * failure
          */
-        record Load(PDPConfiguration configuration, boolean keepOldOnError) implements ConfigurationEvent {}
+        record NewConfiguration(PDPConfiguration configuration) implements ConfigurationEvent {}
 
         /**
          * A previously-loaded configuration was removed (e.g., its
@@ -91,6 +86,33 @@ public interface PDPConfigurationSource extends AutoCloseable {
          *
          * @param pdpId the identifier of the removed configuration
          */
-        record Remove(String pdpId) implements ConfigurationEvent {}
+        record ConfigurationRemoved(String pdpId) implements ConfigurationEvent {}
+
+        /**
+         * A source has a present configuration for a pdpId that is
+         * definitively broken and cannot be turned into a usable
+         * configuration (for example a bad signature, unsealable secrets,
+         * or a malformed document). Transient, retryable failures are
+         * handled inside the source and do not produce this event.
+         *
+         * @param pdpId the identifier of the affected configuration
+         * @param reason a human-readable cause that never contains secret
+         * material
+         */
+        record ConfigurationError(String pdpId, String reason) implements ConfigurationEvent {}
+
+        /**
+         * A previously-loaded configuration for a pdpId has become too stale
+         * to keep serving and must fail closed. Unlike {@link ConfigurationError},
+         * which keeps the last-good configuration in service while flagging it,
+         * this event drops the served configuration so the pdpId denies until a
+         * fresh configuration arrives. Only remote sources that track transport
+         * freshness emit this event.
+         *
+         * @param pdpId the identifier of the affected configuration
+         * @param reason a human-readable cause that never contains secret
+         * material
+         */
+        record ConfigurationExpired(String pdpId, String reason) implements ConfigurationEvent {}
     }
 }

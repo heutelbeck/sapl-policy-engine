@@ -111,7 +111,7 @@ class FilterNatureInferenceTests {
 
         private static Stratum computeExpectedStratum(Stratum base, Stratum pathExpr, Stratum funcArg) {
             if (funcArg == Stratum.STREAM) {
-                // Stream operators not allowed as filter function arguments;
+                // Stream operators not allowed as filter function arguments.
                 // ExtendedFilterCompiler compiles to ErrorValue directly.
                 return Stratum.VALUE;
             }

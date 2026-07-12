@@ -40,7 +40,7 @@ public sealed interface PdpUpdateEvent {
      *
      * @param pdpId the PDP identifier
      * @param voter the newly compiled voter (which may be an error voter
-     * created from a failing compilation when keepOldConfigOnError was set)
+     * created from a failing compilation)
      */
     record Voter(String pdpId, CompiledPdp voter) implements PdpUpdateEvent {}
 

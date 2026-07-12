@@ -150,14 +150,14 @@ class StratifiedBooleanOperationCompilerTests {
             // Round 1: discover left.
             driver.step();
 
-            // Round 2: left=FALSE. Lazy short-circuits; right never inspected.
+            // Round 2: left=FALSE. Lazy short-circuits. Right never inspected.
             driver.with("test.left", Value.FALSE);
             var r2 = driver.step();
             assertThat(r2.result()).isEqualTo(Value.FALSE);
             assertThat(r2.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
                     .containsExactly("test.left");
 
-            // Round 3: left=TRUE. Right discovered; not yet bound.
+            // Round 3: left=TRUE. Right discovered. Not yet bound.
             driver.with("test.left", Value.TRUE);
             var r3 = driver.step();
             assertThat(r3.result()).isNull();

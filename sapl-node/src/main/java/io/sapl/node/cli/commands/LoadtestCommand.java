@@ -180,8 +180,8 @@ public class LoadtestCommand implements Callable<Integer> {
 
                 if (rsocket) {
                     val protoPayload = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
-                    ctx = LoadtestContext.rsocket(rsocketHost, rsocketPort, connections, vtPerConnection, warmupSeconds,
-                            measureSeconds, timestamp, label);
+                    ctx = rsocketContext(rsocketHost, rsocketPort, socketPath, connections, vtPerConnection,
+                            warmupSeconds, measureSeconds, timestamp, label);
                     if (!machineReadable) {
                         if (socketPath != null) {
                             out.println("RSocket load test: unix://%s".formatted(socketPath));
@@ -231,6 +231,18 @@ public class LoadtestCommand implements Callable<Integer> {
             err.println(ERROR_OUTPUT_DIR_CREATION.formatted(e.getMessage()));
             return 1;
         }
+    }
+
+    static LoadtestContext rsocketContext(String host, int port, String socketPath, int connections,
+            int vtPerConnection, int warmupSeconds, int measureSeconds, String timestamp, String label) {
+        val byHostPort = LoadtestContext.rsocket(host, port, connections, vtPerConnection, warmupSeconds,
+                measureSeconds, timestamp, label);
+        if (socketPath == null) {
+            return byHostPort;
+        }
+        return new LoadtestContext(byHostPort.protocol(), "unix://" + socketPath, byHostPort.concurrency(),
+                byHostPort.connections(), byHostPort.vtPerConnection(), byHostPort.warmupSeconds(),
+                byHostPort.measureSeconds(), byHostPort.timestamp(), byHostPort.label());
     }
 
     private static void printMachineReadable(BenchmarkResult result, PrintWriter out) {

@@ -73,6 +73,16 @@ class SanitizationFunctionLibraryTests {
         assertThat(result).isEqualTo(inputVal);
     }
 
+    @Test
+    void assertNoSqlInjectionWhenInputExceedsTextLimitThenReturnsError() {
+        val inputVal = Value.of("A".repeat(TextParseLimits.MAX_INPUT_CHARS + 1));
+
+        val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("maximum length");
+    }
+
     @ParameterizedTest(name = "[{index}] {1}: {0}")
     @MethodSource("strictModeValidIdentifiers")
     void assertNoSqlInjectionStrictWhenCleanIdentifierThenReturnsInputUnchanged(String input, String description) {
@@ -101,6 +111,16 @@ class SanitizationFunctionLibraryTests {
         val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
 
         assertThat(result).isEqualTo(inputVal);
+    }
+
+    @Test
+    void assertNoSqlInjectionStrictWhenInputExceedsTextLimitThenReturnsError() {
+        val inputVal = Value.of("A".repeat(TextParseLimits.MAX_INPUT_CHARS + 1));
+
+        val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("maximum length");
     }
 
     @ParameterizedTest(name = "[{index}] {3}: {0}")
@@ -243,7 +263,41 @@ class SanitizationFunctionLibraryTests {
                 arguments("sElEcT * FrOm users", true, "Mixed case complete SQL query"),
                 arguments("' or '1'='1", true, "Lowercase injection"),
                 arguments("test' AND (SELECT 1)='1", true, "Nested subquery injection"),
-                arguments("user'; DROP TABLE x;--", true, "Multiple vectors combined"),
-                arguments("admin​' OR '1'='1", true, "Zero-width space obfuscation"));
+                arguments("user'; DROP TABLE x;--", true, "Multiple vectors combined"));
+    }
+
+    @ParameterizedTest(name = "[{index}] {1}")
+    @MethodSource("zeroWidthObfuscatedKeywords")
+    void assertNoSqlInjectionStrictWhenZeroWidthCharInsideKeywordThenReturnsError(String input, String description) {
+        val inputVal = Value.of(input);
+
+        val result = SanitizationFunctionLibrary.assertNoSqlInjectionStrict(inputVal);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).isEqualTo(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
+    }
+
+    private static Stream<Arguments> zeroWidthObfuscatedKeywords() {
+        return Stream.of(arguments("SE\u200bLECT name", "Zero-width space (U+200B) inside SELECT keyword"),
+                arguments("SE\u200cLECT name", "Zero-width non-joiner (U+200C) inside SELECT keyword"),
+                arguments("SE\u200dLECT name", "Zero-width joiner (U+200D) inside SELECT keyword"),
+                arguments("SE\ufeffLECT name", "Byte order mark (U+FEFF) inside SELECT keyword"),
+                arguments("DR\u200bOP TABLE necronomicon", "Zero-width space (U+200B) inside DROP keyword"));
+    }
+
+    @ParameterizedTest(name = "[{index}] {1}")
+    @MethodSource("zeroWidthObfuscatedInjections")
+    void assertNoSqlInjectionWhenZeroWidthCharInsideKeywordThenReturnsError(String input, String description) {
+        val inputVal = Value.of(input);
+
+        val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).isEqualTo(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
+    }
+
+    private static Stream<Arguments> zeroWidthObfuscatedInjections() {
+        return Stream.of(arguments("1; DR\u200bOP TABLE users", "Zero-width space (U+200B) inside DROP TABLE"),
+                arguments("1; DR\ufeffOP TABLE users", "Byte order mark (U+FEFF) inside DROP TABLE"));
     }
 }

@@ -30,12 +30,15 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
 import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
@@ -46,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * Locks the live-subscription contract for both
  * {@link DelegatingReactivePolicyDecisionPoint} and
  * {@link BlockingPolicyDecisionPoint}: a {@code decide(...)} stream
- * never closes from the server side. The consumer terminates it; in
+ * never closes from the server side. The consumer terminates it. In
  * the meantime, every {@link io.sapl.pdp.configuration.PdpVoterSource}
  * configuration change for the bound pdpId triggers a fresh
  * evaluation that publishes onto the same stream. Voter type may flip
@@ -56,10 +59,11 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * <p>
  * These properties were absent from the suite before the regression
  * surfaced via the directory and remote-bundle hot-reload integration
- * tests; they are now locked here so any future regression in the
+ * tests. They are now locked here so any future regression in the
  * {@code switchOnConfig}-style wiring fails an in-engine unit test.
  */
 @DisplayName("decide() stays alive across configuration changes")
+@Timeout(value = 20, unit = TimeUnit.SECONDS)
 class PdpHotReloadSemanticsTests {
 
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT = new CombiningAlgorithm(
@@ -89,7 +93,7 @@ class PdpHotReloadSemanticsTests {
     }
 
     private static void load(PDPComponents components, String... policies) {
-        components.pdpVoterSource().loadConfiguration(configuration(DENY_UNLESS_PERMIT, policies), false);
+        components.pdpVoterSource().loadConfiguration(configuration(DENY_UNLESS_PERMIT, policies));
     }
 
     private static MultiAuthorizationSubscription twoSubs() {
@@ -338,25 +342,38 @@ class PdpHotReloadSemanticsTests {
     @PolicyInformationPoint(name = "flag")
     public static class FlagPip {
 
-        private volatile Value                      current     = null;
+        private final ReentrantLock                 lock        = new ReentrantLock();
+        private Value                               current     = null;
         private final List<LatestSlotStream<Value>> openStreams = new CopyOnWriteArrayList<>();
 
         @EnvironmentAttribute
         public Stream<Value> value() {
             val stream = new LatestSlotStream<Value>();
-            val seed   = current;
-            if (seed != null) {
-                stream.put(seed);
+            // Seed and register under the publish lock so a concurrent publish is never
+            // lost across the register window.
+            lock.lock();
+            try {
+                val seed = current;
+                if (seed != null) {
+                    stream.put(seed);
+                }
+                openStreams.add(stream);
+            } finally {
+                lock.unlock();
             }
-            openStreams.add(stream);
             stream.onClose(() -> openStreams.remove(stream));
             return stream;
         }
 
         public void publish(Value v) {
-            current = v;
-            for (val s : openStreams) {
-                s.put(v);
+            lock.lock();
+            try {
+                current = v;
+                for (val s : openStreams) {
+                    s.put(v);
+                }
+            } finally {
+                lock.unlock();
             }
         }
     }

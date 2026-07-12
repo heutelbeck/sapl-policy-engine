@@ -74,12 +74,12 @@ import java.util.Set;
  * transaction proxy, so that an access-denied
  * decision after a transactional write rolls back the transaction. The setup
  * deliberately uses no SAPL autoconfig
- * overrides; only the default ordering applied by
+ * overrides. Only the default ordering applied by
  * {@code SaplTransactionManagementConfiguration} is in effect.
  * <p>
  * Scenario: the Miskatonic Library keeps a JDBC-backed loan ledger. Each loan
- * is recorded in a transactional method;
- * the librarian (PEP) decides whether the loan stands. A DENY after the row has
+ * is recorded in a transactional method.
+ * The librarian (PEP) decides whether the loan stands. A DENY after the row has
  * been inserted must roll back the
  * insert.
  */

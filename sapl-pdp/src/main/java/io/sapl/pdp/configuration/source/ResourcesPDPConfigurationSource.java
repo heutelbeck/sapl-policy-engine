@@ -19,6 +19,7 @@ package io.sapl.pdp.configuration.source;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
@@ -65,7 +66,7 @@ import java.util.function.Consumer;
  *
  * <p>
  * Since resources are static, this source loads configurations once on first
- * subscribe and emits a {@link ConfigurationEvent.Load} per discovered PDP.
+ * subscribe and emits a {@link ConfigurationEvent.NewConfiguration} per discovered PDP.
  * There is no hot-reloading from classpath resources.
  * </p>
  * <h2>Thread Safety</h2>
@@ -150,9 +151,9 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
     }
 
     private void emit(PDPConfiguration configuration) {
-        // keepOldOnError=false: resources are static, no reload to recover.
-        // Compile errors propagate as exceptions through the subscriber call.
-        val event = new ConfigurationEvent.Load(configuration, false);
+        // Resources are static, so a compile error propagates as an exception
+        // through the subscriber call rather than being retained for reload.
+        val event = new ConfigurationEvent.NewConfiguration(configuration);
         for (val subscriber : subscribers) {
             subscriber.accept(event);
         }
@@ -202,7 +203,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
 
         val sourcePath    = "/" + normalizedPath;
         val defaultConfig = PDPConfigurationLoader.loadFromContent(data.rootPdpJson(), data.rootSaplFiles(),
-                PdpIdValidator.DEFAULT_PDP_ID, sourcePath);
+                StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, sourcePath);
         emit(defaultConfig);
         log.debug("Loaded default PDP configuration with {} SAPL documents.", data.rootSaplFiles().size());
         return 1;

@@ -562,7 +562,7 @@ class PreEnforcePolicyEnforcementPointTests {
 
         @PreEnforce
         public void escortDrumknottHome() {
-            // observable side effect: Drumknott is escorted; nothing returned
+            // observable side effect: Drumknott is escorted. Nothing returned
         }
 
         @PreEnforce

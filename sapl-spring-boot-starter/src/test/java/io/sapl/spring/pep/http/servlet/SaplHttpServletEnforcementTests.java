@@ -23,14 +23,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.config.Customizer.withDefaults;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -54,6 +57,7 @@ import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfig
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
@@ -245,6 +249,45 @@ class SaplHttpServletEnforcementTests {
         }
     }
 
+    @Nested
+    @DisplayName("Async dispatch")
+    class AsyncDispatch {
+
+        @Test
+        @DisplayName("Response header obligation reaches the client when the controller returns a Callable")
+        @WithMockUser
+        void givenAsyncEndpointAndResponseHeaderObligationThenClientReceivesHeaderAndAsyncBody() throws Exception {
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(SET_HEADER));
+
+            val started = mockMvc.perform(get("/async-hello")).andExpect(request().asyncStarted()).andReturn();
+
+            mockMvc.perform(asyncDispatch(started)).andExpect(status().isOk())
+                    .andExpect(header().string("X-Trace-Id", "abc-123")).andExpect(content().string("async-hello"));
+        }
+
+        @Test
+        @DisplayName("Response body rewrite obligation reaches the client when the controller returns a Callable")
+        @WithMockUser
+        void givenAsyncEndpointAndBodyRewriteObligationThenClientReceivesRewrittenBody() throws Exception {
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(REWRITE_BODY));
+
+            val started = mockMvc.perform(get("/async-hello")).andExpect(request().asyncStarted()).andReturn();
+
+            mockMvc.perform(asyncDispatch(started)).andExpect(status().isOk()).andExpect(content().string("REWRITTEN"));
+        }
+
+        @Test
+        @DisplayName("Request mutation obligation is visible to a controller that returns a Callable")
+        @WithMockUser
+        void givenAsyncEndpointAndRequestHeaderInjectionObligationThenControllerSeesHeader() throws Exception {
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(INJECT_HEADER));
+
+            val started = mockMvc.perform(get("/async-echo-tenant")).andExpect(request().asyncStarted()).andReturn();
+
+            mockMvc.perform(asyncDispatch(started)).andExpect(status().isOk()).andExpect(content().string("krynn"));
+        }
+    }
+
     private static AuthorizationDecision permitWith(String obligationType) {
         val obligation = Value.ofObject(Map.of("type", Value.of(obligationType)));
         return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
@@ -297,6 +340,16 @@ class SaplHttpServletEnforcementTests {
         @GetMapping("/echo-tenant")
         String echoTenant(@RequestHeader(name = "X-Tenant", required = false) String tenant) {
             return tenant == null ? "no-tenant" : tenant;
+        }
+
+        @GetMapping("/async-hello")
+        Callable<String> asyncHello() {
+            return () -> "async-hello";
+        }
+
+        @GetMapping("/async-echo-tenant")
+        Callable<String> asyncEchoTenant(@RequestHeader(name = "X-Tenant", required = false) String tenant) {
+            return () -> tenant == null ? "no-tenant" : tenant;
         }
     }
 

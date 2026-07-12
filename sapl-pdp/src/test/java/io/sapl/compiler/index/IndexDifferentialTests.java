@@ -38,6 +38,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.index.PolicyIndex;
+import io.sapl.compiler.index.PolicyMatches;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
@@ -45,8 +47,8 @@ import lombok.val;
 
 /**
  * The canonical and SMTDD indexes are optimizations of the naive linear scan,
- * so for every subscription they must report exactly the same matched documents
- * and error votes as naive. This is the fast, index-level companion to the
+ * so for every subscription they must report exactly the same true matches
+ * and error matches as naive. This is the fast, index-level companion to the
  * benchmark's end-to-end decision-agreement test: it builds policies through
  * the
  * real compiler (so conditions decompose and equality predicates group exactly
@@ -66,7 +68,7 @@ import lombok.val;
 @DisplayName("Index backends agree with naive over a decomposed, equality-grouped corpus")
 class IndexDifferentialTests {
 
-    // Quick smoke size by default; full corpus under the it profile
+    // Quick smoke size by default. Full corpus under the it profile
     // (-Dsapl.fullTests=true).
     private static final boolean FULL_TESTS         = Boolean.getBoolean("sapl.fullTests");
     private static final int     POLICY_COUNT       = FULL_TESTS ? 80 : 12;
@@ -84,16 +86,59 @@ class IndexDifferentialTests {
 
     @ParameterizedTest(name = "subscription {0}")
     @MethodSource("subscriptions")
-    @DisplayName("canonical and SMTDD match naive on every subscription")
-    void backendsAgreeWithNaive(int index, String subjectJson) {
+    @DisplayName("canonical matches naive on every subscription (Kleene contract)")
+    void canonicalMatchesNaiveOnKleeneContract(int index, String subjectJson) {
         val ctx   = subscriptionContext(wrap(subjectJson));
-        val naive = NAIVE.match(ctx);
-        val canon = CANON.match(ctx);
-        val smtdd = SMTDD.match(ctx);
-        assertThat(matched(canon)).as("canonical matched | subscription %d", index).isEqualTo(matched(naive));
-        assertThat(errored(canon)).as("canonical errored | subscription %d", index).isEqualTo(errored(naive));
-        assertThat(matched(smtdd)).as("smtdd matched | subscription %d", index).isEqualTo(matched(naive));
-        assertThat(errored(smtdd)).as("smtdd errored | subscription %d", index).isEqualTo(errored(naive));
+        val naive = NAIVE.matchKleene(ctx);
+        val canon = CANON.matchKleene(ctx);
+        assertThat(matchedKleene(canon)).as("canonical true matches | subscription %d", index)
+                .isEqualTo(matchedKleene(naive));
+        assertThat(erroredKleene(canon)).as("canonical error matches | subscription %d", index)
+                .isEqualTo(erroredKleene(naive));
+    }
+
+    @ParameterizedTest(name = "subscription {0}")
+    @MethodSource("subscriptions")
+    @DisplayName("SMTDD matches naive on every subscription (Kleene contract)")
+    void smtddMatchesNaiveOnKleeneContract(int index, String subjectJson) {
+        val ctx   = subscriptionContext(wrap(subjectJson));
+        val naive = NAIVE.matchKleene(ctx);
+        val smtdd = SMTDD.matchKleene(ctx);
+        assertThat(matchedKleene(smtdd)).as("smtdd true matches | subscription %d", index)
+                .isEqualTo(matchedKleene(naive));
+        assertThat(erroredKleene(smtdd)).as("smtdd error matches | subscription %d", index)
+                .isEqualTo(erroredKleene(naive));
+    }
+
+    @ParameterizedTest(name = "subscription {0}")
+    @MethodSource("subscriptions")
+    @DisplayName("matchKleeneWhile yields the same matches as matchKleene for every backend")
+    void matchKleeneWhileAgreesWithMatchKleene(int index, String subjectJson) {
+        val ctx = subscriptionContext(wrap(subjectJson));
+        assertWhileAgreesWithMatchKleene(NAIVE, ctx, "naive", index);
+        assertWhileAgreesWithMatchKleene(CANON, ctx, "canonical", index);
+        assertWhileAgreesWithMatchKleene(SMTDD, ctx, "smtdd", index);
+    }
+
+    private static void assertWhileAgreesWithMatchKleene(PolicyIndex index, EvaluationContext ctx, String label,
+            int subscription) {
+        val direct    = index.matchKleene(ctx);
+        val collected = collectKleeneWhile(index, ctx);
+        assertThat(matchedKleene(collected)).as("%s while true matches | subscription %d", label, subscription)
+                .isEqualTo(matchedKleene(direct));
+        assertThat(erroredKleene(collected)).as("%s while error matches | subscription %d", label, subscription)
+                .isEqualTo(erroredKleene(direct));
+    }
+
+    private static PolicyMatches collectKleeneWhile(PolicyIndex index, EvaluationContext ctx) {
+        val trueMatches  = new ArrayList<CompiledDocument>();
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        index.matchKleeneWhile(ctx, step -> {
+            trueMatches.addAll(step.trueMatches());
+            errorMatches.addAll(step.errorMatches());
+            return true;
+        });
+        return new PolicyMatches(trueMatches, errorMatches);
     }
 
     private static Stream<Arguments> subscriptions() {
@@ -106,18 +151,17 @@ class IndexDifferentialTests {
     }
 
     @Nested
-    @DisplayName("equality grouping")
-    class EqualityGrouping {
+    @DisplayName("Kleene contract: backends agree on true and error matches")
+    class KleeneContract {
 
         @Test
         @DisplayName("an undefined operand makes every equality on it false, not an error")
         void whenOperandUndefinedThenAllEqualitiesFalse() {
             val documents = policies("policy \"a\" permit subject.r1 == \"v\"",
                     "policy \"b\" permit subject.r1 == \"w\"", "policy \"c\" permit subject.r1 != \"v\"");
-            val ctx       = subscriptionContext(wrap("{}")); // r1 missing -> undefined
-            assertAgreesWithNaive("undefined operand", documents, ctx);
-            // undefined == X is false; undefined != X is true.
-            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("c");
+            val ctx       = subscriptionContext(wrap("{}"));
+            assertThat(matchedKleene(NaivePolicyIndex.create(documents).matchKleene(ctx))).containsExactly("c");
+            assertAgreesWithNaiveKleene("undefined operand", documents, ctx);
         }
 
         @Test
@@ -126,57 +170,71 @@ class IndexDifferentialTests {
             val documents = policies("policy \"a\" permit subject.r1 == \"v\"",
                     "policy \"b\" permit subject.r1 == \"w\"", "policy \"c\" permit subject.r1 in [\"w\", \"x\"]");
             val ctx       = subscriptionContext(wrap("{\"r1\": \"w\"}"));
-            assertAgreesWithNaive("matching value", documents, ctx);
-            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactlyInAnyOrder("b", "c");
+            assertThat(matchedKleene(NaivePolicyIndex.create(documents).matchKleene(ctx)))
+                    .containsExactlyInAnyOrder("b", "c");
+            assertAgreesWithNaiveKleene("matching value", documents, ctx);
         }
-    }
-
-    @Nested
-    @DisplayName("decomposed boolean structure")
-    class DecomposedStructure {
 
         @Test
         @DisplayName("a true equality dominates an erroring division in a decomposed OR")
         void whenOrHasTrueEqualityAndErrorThenMatches() {
             val documents = policies("policy \"p\" permit (10 / subject.n1 > 0) || subject.r1 == \"v\"");
-            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"v\"}")); // division errors, equality true
-            assertAgreesWithNaive("true dominates error in OR", documents, ctx);
-            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
+            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"v\"}"));
+            assertThat(matchedKleene(NaivePolicyIndex.create(documents).matchKleene(ctx))).containsExactly("p");
+            assertAgreesWithNaiveKleene("true dominates error in OR", documents, ctx);
         }
 
         @Test
-        @DisplayName("an erroring division with no dominating sibling makes the policy indeterminate")
-        void whenOrHasErrorAndNoDominatorThenErrors() {
+        @DisplayName("an erroring division with no dominating sibling makes the policy an error match")
+        void whenOrHasErrorAndNoDominatorThenErrorMatch() {
             val documents = policies("policy \"p\" permit (10 / subject.n1 > 0) || subject.r1 == \"v\"");
-            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"other\"}")); // error, equality false
-            assertAgreesWithNaive("error with no dominator in OR", documents, ctx);
-            assertThat(errored(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
+            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"other\"}"));
+            assertThat(erroredKleene(NaivePolicyIndex.create(documents).matchKleene(ctx))).containsExactly("p");
+            assertAgreesWithNaiveKleene("error with no dominator in OR", documents, ctx);
         }
-    }
-
-    @Nested
-    @DisplayName("non-boolean and shared-error corners")
-    class NonBooleanAndSharedError {
 
         @Test
-        @DisplayName("a non-boolean bare field condition makes the policy indeterminate")
-        void whenBareFieldNonBooleanThenErrors() {
+        @DisplayName("a non-boolean bare field condition makes the policy an error match")
+        void whenBareFieldNonBooleanThenErrorMatch() {
             val documents = policies("policy \"p\" permit subject.b1");
             val ctx       = subscriptionContext(wrap("{\"b1\": \"not a boolean\"}"));
-            assertAgreesWithNaive("non-boolean bare field", documents, ctx);
-            assertThat(errored(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
+            assertThat(erroredKleene(NaivePolicyIndex.create(documents).matchKleene(ctx))).containsExactly("p");
+            assertAgreesWithNaiveKleene("non-boolean bare field", documents, ctx);
         }
 
         @Test
-        @DisplayName("a shared erroring division drops one policy and errors another in the same evaluation")
+        @DisplayName("a shared erroring division drops one policy and error-matches another in one evaluation")
         void whenSharedErrorThenEachSiblingResolvesIndependently() {
             val documents = policies("policy \"drops\" permit (10 / subject.n1 > 0); subject.r1 == \"v\"",
                     "policy \"errors\" permit (10 / subject.n1 > 0); subject.r2 == \"w\"");
             val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"other\", \"r2\": \"w\"}"));
-            assertAgreesWithNaive("shared error", documents, ctx);
-            val naive = NaivePolicyIndex.create(documents).match(ctx);
-            assertThat(matched(naive)).isEmpty();
-            assertThat(errored(naive)).containsExactly("errors");
+            val naive     = NaivePolicyIndex.create(documents).matchKleene(ctx);
+            assertThat(matchedKleene(naive)).isEmpty();
+            assertThat(erroredKleene(naive)).containsExactly("errors");
+            assertAgreesWithNaiveKleene("shared error", documents, ctx);
+        }
+
+        @Test
+        @DisplayName("an erroring predicate spanning two clauses of one policy does not silently drop a sibling sharing a conjunction")
+        void whenErrorPredicateSpansTwoClausesThenSharedSiblingNotDropped() {
+            val sources = new ArrayList<String>();
+            sources.add("policy \"f\" permit (10 / subject.n1 > 0 && subject.r2 == \"w\") "
+                    + "|| (10 / subject.n1 > 0 && subject.r3 == \"z\") || subject.r1 == \"v\"");
+            sources.add("policy \"k\" permit subject.r1 == \"v\"");
+            sources.add("policy \"h\" permit subject.r2 == \"w\" || subject.r1 == \"v\"");
+            // Distinct fillers force the predicate order error < r2 < shared, so the
+            // shared conjunction is orphaned before it is evaluated.
+            for (var j = 0; j < 6; j++) {
+                sources.add("policy \"ew%d\" permit 10 / subject.n1 > 0 && subject.w%d == \"q\"".formatted(j, j));
+            }
+            for (var j = 0; j < 3; j++) {
+                sources.add("policy \"xv%d\" permit subject.r2 == \"w\" && subject.v%d == \"q\"".formatted(j, j));
+            }
+            val documents = policies(sources.toArray(String[]::new));
+            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"v\", \"r2\": \"w\", \"r3\": \"other\"}"));
+            assertThat(matchedKleene(NaivePolicyIndex.create(documents).matchKleene(ctx)))
+                    .containsExactlyInAnyOrder("f", "h", "k");
+            assertAgreesWithNaiveKleene("error predicate spanning two clauses", documents, ctx);
         }
     }
 
@@ -262,23 +320,24 @@ class IndexDifferentialTests {
         return documents;
     }
 
-    private static void assertAgreesWithNaive(String label, List<CompiledDocument> documents, EvaluationContext ctx) {
-        val naive = NaivePolicyIndex.create(documents).match(ctx);
-        val canon = CanonicalPolicyIndex.create(documents).match(ctx);
-        val smtdd = SmtddPolicyIndex.create(documents, 0).match(ctx);
-        assertThat(matched(canon)).as("canonical matched | %s", label).isEqualTo(matched(naive));
-        assertThat(errored(canon)).as("canonical errored | %s", label).isEqualTo(errored(naive));
-        assertThat(matched(smtdd)).as("smtdd matched | %s", label).isEqualTo(matched(naive));
-        assertThat(errored(smtdd)).as("smtdd errored | %s", label).isEqualTo(errored(naive));
+    private static void assertAgreesWithNaiveKleene(String label, List<CompiledDocument> documents,
+            EvaluationContext ctx) {
+        val naive = NaivePolicyIndex.create(documents).matchKleene(ctx);
+        val canon = CanonicalPolicyIndex.create(documents).matchKleene(ctx);
+        assertThat(matchedKleene(canon)).as("canonical true matches | %s", label).isEqualTo(matchedKleene(naive));
+        assertThat(erroredKleene(canon)).as("canonical error matches | %s", label).isEqualTo(erroredKleene(naive));
+        val smtdd = SmtddPolicyIndex.create(documents, 0).matchKleene(ctx);
+        assertThat(matchedKleene(smtdd)).as("smtdd true matches | %s", label).isEqualTo(matchedKleene(naive));
+        assertThat(erroredKleene(smtdd)).as("smtdd error matches | %s", label).isEqualTo(erroredKleene(naive));
     }
 
-    private static Set<String> matched(PolicyIndexResult result) {
-        return result.matchingDocuments().stream().map(document -> document.metadata().name())
+    private static Set<String> matchedKleene(PolicyMatches matches) {
+        return matches.trueMatches().stream().map(document -> document.metadata().name()).collect(Collectors.toSet());
+    }
+
+    private static Set<String> erroredKleene(PolicyMatches matches) {
+        return matches.errorMatches().stream().map(errorMatch -> errorMatch.document().metadata().name())
                 .collect(Collectors.toSet());
-    }
-
-    private static Set<String> errored(PolicyIndexResult result) {
-        return result.errorVotes().stream().map(vote -> vote.voter().name()).collect(Collectors.toSet());
     }
 
     private static String wrap(String subjectJson) {

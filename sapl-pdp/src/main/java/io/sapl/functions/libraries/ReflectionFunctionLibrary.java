@@ -388,9 +388,6 @@ public class ReflectionFunctionLibrary {
         return switch (value) {
         case ArrayValue array   -> Value.of(array.isEmpty());
         case ObjectValue object -> Value.of(object.isEmpty());
-        case TextValue text     -> Value.of(text.value().isEmpty());
-        case NullValue ignored  -> Value.TRUE;
-        case NumberValue number -> Value.of(number.equals(Value.ZERO));
         default                 -> Value.FALSE;
         };
     }

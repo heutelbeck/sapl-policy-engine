@@ -183,6 +183,9 @@ public class PlaygroundValidator implements Serializable {
      * error result.
      */
     private JsonNodeOrError parseAndValidateJsonObject(String jsonContent, String errorMessage) {
+        if (jsonContent == null) {
+            return new JsonNodeOrError(ValidationResult.error(errorMessage));
+        }
         try {
             val jsonNode = mapper.readTree(jsonContent);
 

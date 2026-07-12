@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
@@ -48,6 +49,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.update.Update;
 
@@ -105,6 +107,9 @@ import net.sf.jsqlparser.statement.update.Update;
  * {@code INSERT VALUES}, DDL)</li>
  * <li>SELECT is a {@code SetOperationList} (UNION/INTERSECT/EXCEPT) and
  * conditions are present</li>
+ * <li>A {@code columns} projection is present and the SELECT is not a
+ * {@code PlainSelect} (e.g. UNION/INTERSECT/EXCEPT or a parenthesized select);
+ * the projection cannot be narrowed safely, so it is not silently leaked</li>
  * </ul>
  */
 public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
@@ -122,12 +127,19 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     private static final String FIELD_VALUE      = "value";
     private static final int    DEFAULT_PRIORITY = 30;
 
+    private static final String ERROR_ARRAY_ELEMENT_NOT_TEXT     = "Field '%s' must contain only text elements: %s";
+    private static final String ERROR_CRITERION_NOT_OBJECT       = "Typed criterion must be an object: %s";
+    private static final String ERROR_EMPTY_PROJECTION           = "Obligation columns leave no admissible columns for SQL: %s";
+    private static final String ERROR_INVALID_COLUMN_IDENTIFIER  = "Invalid column identifier: %s";
     private static final String ERROR_PARSE_OBLIGATION_CONDITION = "Cannot parse obligation condition '%s': %s";
     private static final String ERROR_PARSE_SQL                  = "Cannot parse SQL '%s': %s";
-    private static final String ERROR_UNSUPPORTED_STATEMENT      = "Statement type %s does not support WHERE injection: %s";
     private static final String ERROR_UNSUPPORTED_OPERATOR       = "Unsupported operator in typed criterion: %s";
-    private static final String ERROR_VALUE_REQUIRED             = "Value required for operator %s";
+    private static final String ERROR_UNSUPPORTED_PROJECTION     = "Statement type %s does not support column projection: %s";
+    private static final String ERROR_UNSUPPORTED_STATEMENT      = "Statement type %s does not support WHERE injection: %s";
     private static final String ERROR_VALUE_KIND_FOR_OPERATOR    = "Value kind %s incompatible with operator %s";
+    private static final String ERROR_VALUE_REQUIRED             = "Value required for operator %s";
+
+    private static final Pattern COLUMN_IDENTIFIER = Pattern.compile("[A-Za-z_]\\w*+(?:\\.[A-Za-z_]\\w*+)*+");
 
     @Override
     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
@@ -159,7 +171,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         val statement = parse(sql);
         val injection = combineConditions(conditions);
         applyConditions(statement, injection, sql);
-        applyColumns(statement, columns);
+        applyColumns(statement, columns, sql);
         return statement.toString();
     }
 
@@ -177,9 +189,9 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         }
         Expression combined = null;
         for (val condition : conditions) {
-            val parsed = parseCondition(condition);
-            combined = (combined == null) ? parsed
-                    : new AndExpression(combined, new ParenthesedExpressionList<>(parsed));
+            val parsed  = parseCondition(condition);
+            val wrapped = new ParenthesedExpressionList<>(parsed);
+            combined = (combined == null) ? wrapped : new AndExpression(combined, wrapped);
         }
         return combined;
     }
@@ -217,12 +229,19 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         return (existing == null) ? injection : new AndExpression(new ParenthesedExpressionList<>(existing), injection);
     }
 
-    private static void applyColumns(Statement statement, List<String> columns) {
+    private static void applyColumns(Statement statement, List<String> columns, String originalSql) {
         if (columns.isEmpty()) {
             return;
         }
-        if (!(statement instanceof PlainSelect plainSelect)) {
+        // UPDATE/DELETE return no columns, so a projection is silently ignored.
+        if (!(statement instanceof Select)) {
             return;
+        }
+        // A SELECT that is not a PlainSelect (UNION/INTERSECT/EXCEPT, parenthesized)
+        // cannot be narrowed here. Fail closed so the projection is never leaked.
+        if (!(statement instanceof PlainSelect plainSelect)) {
+            throw new AccessDeniedException(
+                    ERROR_UNSUPPORTED_PROJECTION.formatted(statement.getClass().getSimpleName(), originalSql));
         }
         val originalItems = plainSelect.getSelectItems();
         if (isSelectStar(originalItems)) {
@@ -232,6 +251,9 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         val obligationSet = new LinkedHashSet<>(columns);
         val intersected   = originalItems.stream().filter(item -> matchesObligationColumn(item, obligationSet))
                 .toList();
+        if (intersected.isEmpty()) {
+            throw new AccessDeniedException(ERROR_EMPTY_PROJECTION.formatted(plainSelect.toString()));
+        }
         plainSelect.setSelectItems(intersected);
     }
 
@@ -244,7 +266,14 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     }
 
     private static SelectItem<?> columnSelectItem(String columnName) {
-        return new SelectItem<>(new Column(columnName));
+        return new SelectItem<>(new Column(requireValidColumnIdentifier(columnName)));
+    }
+
+    private static String requireValidColumnIdentifier(String column) {
+        if (!COLUMN_IDENTIFIER.matcher(column).matches()) {
+            throw new AccessDeniedException(ERROR_INVALID_COLUMN_IDENTIFIER.formatted(column));
+        }
+        return column;
     }
 
     private static List<String> extractStringArray(Value constraint, String fieldName) {
@@ -256,9 +285,10 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         }
         val result = new ArrayList<String>(array.size());
         for (val element : array) {
-            if (element instanceof TextValue(String text)) {
-                result.add(text);
+            if (!(element instanceof TextValue(String text))) {
+                throw new AccessDeniedException(ERROR_ARRAY_ELEMENT_NOT_TEXT.formatted(fieldName, element));
             }
+            result.add(text);
         }
         return List.copyOf(result);
     }
@@ -279,7 +309,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
 
     private static Optional<String> renderCriterionNode(Value entry) {
         if (!(entry instanceof ObjectValue object)) {
-            return Optional.empty();
+            throw new AccessDeniedException(ERROR_CRITERION_NOT_OBJECT.formatted(entry));
         }
         if (object.get(FIELD_OR) instanceof ArrayValue orChildren) {
             return renderGroup(orChildren, " OR ");
@@ -302,9 +332,10 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     }
 
     private static String renderLeaf(ObjectValue object) {
-        if (!(object.get(FIELD_COLUMN) instanceof TextValue(String column))) {
+        if (!(object.get(FIELD_COLUMN) instanceof TextValue(String rawColumn))) {
             throw new AccessDeniedException(ERROR_UNSUPPORTED_OPERATOR.formatted("missing 'column'"));
         }
+        val column = requireValidColumnIdentifier(rawColumn);
         if (!(object.get(FIELD_OP) instanceof TextValue(String op))) {
             throw new AccessDeniedException(ERROR_UNSUPPORTED_OPERATOR.formatted("missing 'op'"));
         }
@@ -338,7 +369,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
 
     private static String renderValue(Value value, String op) {
         return switch (value) {
-        case TextValue(String text)              -> "'" + text.replace("'", "''") + "'";
+        case TextValue(String text)              -> quote(text);
         case NumberValue(java.math.BigDecimal n) -> n.toPlainString();
         case BooleanValue(boolean b)             -> b ? "TRUE" : "FALSE";
         case NullValue ignored                   -> "NULL";
@@ -356,6 +387,9 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         for (val element : array) {
             parts.add(renderValue(element, op));
         }
+        if (parts.isEmpty()) {
+            return "(NULL)";
+        }
         return "(" + String.join(", ", parts) + ")";
     }
 
@@ -364,6 +398,12 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
             throw new AccessDeniedException(
                     ERROR_VALUE_KIND_FOR_OPERATOR.formatted(value.getClass().getSimpleName(), op));
         }
-        return "'" + text.replace("'", "''") + "'";
+        return quote(text);
+    }
+
+    // Escape backslash before the quote so a trailing backslash cannot break out of
+    // the literal on backslash-honoring databases.
+    private static String quote(String text) {
+        return "'" + text.replace("\\", "\\\\").replace("'", "''") + "'";
     }
 }

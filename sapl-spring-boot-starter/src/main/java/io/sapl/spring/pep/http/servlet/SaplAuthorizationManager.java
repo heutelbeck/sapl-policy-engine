@@ -20,6 +20,7 @@ package io.sapl.spring.pep.http.servlet;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -97,9 +98,9 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         val rawAuth        = authenticationSupplier.get();
         val authentication = rawAuth != null ? rawAuth : ANONYMOUS;
         val subscription   = subscriptionFactory.build(authentication, servletRequest);
-        log.trace("HTTP PEP subscription: {}", subscription);
+        log.trace("HTTP PEP subscription: {}", logSafe(subscription));
         val authzDecision = pdp.decideOnce(subscription, tenantResolver.resolve());
-        log.debug("HTTP PEP decision: {}", authzDecision);
+        log.debug("HTTP PEP decision received.");
 
         val plan = enforcementPlanner.plan(authzDecision, SUPPORTED_SIGNALS);
         servletRequest.setAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);
@@ -112,5 +113,9 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
             return new AuthorizationDecision(false);
         }
         return new AuthorizationDecision(authzDecision.decision() == Decision.PERMIT);
+    }
+
+    private static String logSafe(AuthorizationSubscription subscription) {
+        return subscription.toString().replace("\r", "\\r").replace("\n", "\\n");
     }
 }

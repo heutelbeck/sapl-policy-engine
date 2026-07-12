@@ -45,8 +45,7 @@ class SAPLSemanticTokensProvider {
         for (var token : tokens) {
             var tokenType = mapTokenType(token);
             if (tokenType >= 0) {
-                semanticInfos.add(new SemanticTokenInfo(token.getLine() - 1, // Convert to 0-based
-                        token.getCharPositionInLine(), token.getText().length(), tokenType, 0));
+                addTokenInfos(semanticInfos, token, tokenType);
             }
         }
 
@@ -57,6 +56,28 @@ class SAPLSemanticTokensProvider {
         // Encode as LSP semantic tokens data array
         var data = encodeTokens(semanticInfos);
         return new SemanticTokens(data);
+    }
+
+    /**
+     * Adds one {@link SemanticTokenInfo} per line the token spans. The LSP
+     * semantic-tokens protocol forbids a token from crossing a line boundary, so a
+     * multi-line token (a block comment or a string with embedded newlines) is
+     * split into one token per line. Continuation lines start at column 0.
+     *
+     * @param semanticInfos the accumulator to add to
+     * @param token the ANTLR token
+     * @param tokenType the mapped semantic token type index
+     */
+    private void addTokenInfos(List<SemanticTokenInfo> semanticInfos, Token token, int tokenType) {
+        var startLine = token.getLine() - 1; // Convert to 0-based
+        var lines     = token.getText().split("\n", -1);
+        for (var i = 0; i < lines.length; i++) {
+            var column = i == 0 ? token.getCharPositionInLine() : 0;
+            var length = lines[i].endsWith("\r") ? lines[i].length() - 1 : lines[i].length();
+            if (length > 0) {
+                semanticInfos.add(new SemanticTokenInfo(startLine + i, column, length, tokenType, 0));
+            }
+        }
     }
 
     /**

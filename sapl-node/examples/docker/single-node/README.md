@@ -50,7 +50,7 @@ This example uses HTTP Basic Authentication. The demo user credentials are:
 
 **IMPORTANT:** For production, generate your own credentials using the SAPL Node CLI:
 ```bash
-docker run --rm ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT generate basic
+docker run --rm ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT generate basic
 ```
 
 ### Policies
@@ -93,4 +93,4 @@ Check logs: `docker compose logs sapl-node`
 Verify the password hash matches the plaintext password. Use the `generate basic` CLI command.
 
 ### Policies not loading
-Ensure the `policies` directory contains valid `.sapl` files and a `pdp.json`.
+Ensure the `policies` directory contains valid `.sapl` files and a `pdp.json`. A definitively broken configuration is not dropped silently. It drives the PDP to the `ERROR` state and it fails closed, returning `INDETERMINATE`. Check `GET /actuator/health` for the per-PDP `state` and `lastError` reason.

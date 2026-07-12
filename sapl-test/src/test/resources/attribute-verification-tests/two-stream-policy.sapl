@@ -1,0 +1,5 @@
+policy "two-stream-policy"
+permit
+    action == "bypass";
+    <first.attr>.ok == false;
+    <second.attr>.ok == true;

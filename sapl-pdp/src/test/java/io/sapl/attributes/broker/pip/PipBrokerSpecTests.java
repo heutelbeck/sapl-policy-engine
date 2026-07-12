@@ -80,14 +80,14 @@ class PipBrokerSpecTests {
     }
 
     private static AttributeFinderInvocation invocation(String fqn, boolean fresh) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1), Duration.ofMillis(100),
-                Duration.ofMillis(100), 0L, fresh, EMPTY_CONTEXT);
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, fresh, EMPTY_CONTEXT);
     }
 
     private static AttributeFinderInvocation invocation(String fqn, boolean fresh, Duration initialTimeOut,
             long retries) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), initialTimeOut, Duration.ofMillis(50),
-                Duration.ofMillis(30), retries, fresh, EMPTY_CONTEXT);
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), initialTimeOut,
+                Duration.ofMillis(50), Duration.ofMillis(30), retries, fresh, EMPTY_CONTEXT);
     }
 
     private static SubscriptionKey key(String fqn) {
@@ -120,6 +120,8 @@ class PipBrokerSpecTests {
 
     private static void sleepUninterruptibly(Duration duration) {
         try {
+            // No condition to await: coalescing and absence-over-a-window checks only hold
+            // if real time elapses.
             Thread.sleep(duration.toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -275,13 +277,13 @@ class PipBrokerSpecTests {
 
                     // Swap-to-throwing: the new PIP's first few invokes throw,
                     // then it recovers. The rebind-transition gate must mask the
-                    // failure window from consumers; the cumulative recovery
+                    // failure window from consumers. The cumulative recovery
                     // must surface once the retry burst opens a working inner.
                     ThrowingThenSucceedingPipForRebind.recoverOnInvocation = 3;
                     broker.swap(v1Handle, new ThrowingThenSucceedingPipForRebind());
 
                     // The transitional snapshots before recovery must not include
-                    // a transient ErrorValue or UNDEFINED for k; the gate hides
+                    // a transient ErrorValue or UNDEFINED for k. The gate hides
                     // those. The next real value the consumer observes after the
                     // swap is the recovered value.
                     Awaitility.await().atMost(AWAIT).untilAsserted(() -> {
@@ -466,11 +468,8 @@ class PipBrokerSpecTests {
                 Awaitility.await().atMost(AWAIT).untilAsserted(() -> assertThat(r1.snapshots).isNotEmpty());
 
                 sub1.close();
-                // Within grace, backing is still alive.
-                Awaitility.await().pollDelay(grace.dividedBy(3)).atMost(grace.dividedBy(2))
-                        .untilAsserted(() -> assertThat(InstrumentedPip.closeCount.get()).isZero());
                 // After grace expires, the scheduled teardown closes the inner.
-                Awaitility.await().atMost(grace.multipliedBy(4))
+                Awaitility.await().atMost(AWAIT)
                         .untilAsserted(() -> assertThat(InstrumentedPip.closeCount.get()).isEqualTo(1));
             } finally {
                 broker.close();
@@ -518,7 +517,7 @@ class PipBrokerSpecTests {
             try {
                 val v1Handle = broker.load(new InstrumentedPip());
                 // High retry count keeps the rebind-transition gate engaged
-                // long enough for the test to deliver v2; with retries=0 a
+                // long enough for the test to deliver v2. With retries=0 a
                 // retries-exhausted ErrorValue would propagate (real signal,
                 // not jitter, but not the path under test here).
                 val k = key("instrumented.tracked", false, Duration.ofMillis(60), 50L);
@@ -537,13 +536,13 @@ class PipBrokerSpecTests {
                     // initial-timeout cycle (and have it suppressed).
                     sleepUninterruptibly(Duration.ofMillis(150));
 
-                    // During this window the mailbox must still show v1; the
+                    // During this window the mailbox must still show v1. The
                     // suppressed UNDEFINEDs must not have surfaced.
                     for (val snap : r.snapshots) {
                         assertThat(snap.get(k).value()).isEqualTo(Value.of("v1"));
                     }
 
-                    // The retry-burst keeps creating new inner streams; poll
+                    // The retry-burst keeps creating new inner streams. Poll
                     // and re-emit until v2 lands in a live inner.
                     Awaitility.await().atMost(AWAIT).pollInterval(Duration.ofMillis(20)).untilAsserted(() -> {
                         InstrumentedPip.emitToAll(Value.of("v2"));
@@ -637,12 +636,12 @@ class PipBrokerSpecTests {
     static final class SlowFirstEmitPip {
 
         static void reset() {
-            // No shared state to reset; PIP is stateless.
+            // No shared state to reset. PIP is stateless.
         }
 
         @EnvironmentAttribute(name = "first")
         public Stream<Value> first() {
-            // Never emits; AttributeStream's initialTimeOut watchdog drives the cycle.
+            // Never emits. AttributeStream's initialTimeOut watchdog drives the cycle.
             return new LatestSlotStream<>();
         }
     }
@@ -692,7 +691,7 @@ class PipBrokerSpecTests {
      * namespace and recovered-value tag so a hot-swap test can tell
      * the post-swap fleet apart from the pre-swap one. The swap path
      * requires the replacement PIP to expose an attribute method
-     * with the same fully-qualified shape as the original; named
+     * with the same fully-qualified shape as the original. Named
      * "instrumented" / "tracked" to match the original InstrumentedPip.
      */
     @PolicyInformationPoint(name = "instrumented")

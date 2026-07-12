@@ -110,6 +110,10 @@ io.sapl.node:
   allow-oauth2-auth: true
   oauth:
     pdp-id-claim: "sapl_pdp_id"
+    audiences:
+      - sapl-pdp
+    required-scopes:
+      - sapl:pdp
 
 spring.security.oauth2:
   resourceserver:
@@ -117,7 +121,9 @@ spring.security.oauth2:
       issuer-uri: https://auth.example.com/realm
 ```
 
-The node fetches the JWKS endpoint from the issuer URI and validates token signatures automatically. The `pdp-id-claim` property specifies which JWT claim contains the PDP identifier for tenant routing. If the claim is absent, the `default-pdp-id` is used.
+The node fetches the JWKS endpoint from the issuer URI and validates token signatures automatically. The `pdp-id-claim` property specifies which JWT claim contains the PDP identifier for tenant routing. It accepts a plain claim name or a dot-separated path into nested claims, for example `resource_access.sapl.tenant`, and an exact top-level claim always wins over path interpretation. If the claim is absent, the `default-pdp-id` is used.
+
+Signature, issuer, and expiry validation authenticate the bearer but do not authorize it. Without further configuration, every workload that can obtain any token from the issuer gets full PDP access, which is rarely intended on a shared corporate IdP. Two opt-in gates close this, enforced identically on the HTTP and RSocket transports. `audiences` requires the token's `aud` claim to contain one of the listed values, the standard resource server posture (RFC 9068). `required-scopes` requires at least one of the listed scopes, read from the space-delimited `scope` claim or the `scp` array, and is the practical alternative on IdPs where per-service audiences are cumbersome, such as a Keycloak client scope. Configure at least one of the two for any deployment on a shared issuer. Tokens failing a gate are rejected as invalid, never routed to a policy decision.
 
 ### CSRF Posture
 

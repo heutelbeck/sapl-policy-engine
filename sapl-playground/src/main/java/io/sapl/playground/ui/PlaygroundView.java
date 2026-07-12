@@ -75,6 +75,7 @@ import io.sapl.compiler.document.Document;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
+import io.sapl.pdp.SaplBuildInfo;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
@@ -122,7 +123,7 @@ import java.util.stream.Collectors;
 @PageTitle("SAPL Playground")
 @JsModule("./copytoclipboard.js")
 @JavaScript("./fragment-reader.js")
-public class PlaygroundView extends Composite<VerticalLayout> {
+public final class PlaygroundView extends Composite<VerticalLayout> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
@@ -206,6 +207,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String FRAGMENT_PREFIX_EXAMPLE   = "example/";
     private static final String FRAGMENT_PREFIX_PERMALINK = "permalink/";
 
+    private static final String ERROR_SUBSCRIPTION = "Subscription error: ";
+
     private static final String JS_COPY_TO_CLIPBOARD     = "window.copyToClipboard($0)";
     private static final String JS_GET_URL_FRAGMENT      = "return window.getUrlFragment()";
     private static final String JS_REFRESH_CODEMIRROR    = "if (this.editor && this.editor.refresh) { this.editor.refresh(); }";
@@ -288,7 +291,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String MESSAGE_REACHED_SUFFIX            = ") reached";
     private static final String MESSAGE_SHARE_EXPLANATION         = "Share this link to preserve and share the current playground state including all policies, subscription, variables, and combining algorithm.";
     private static final String MESSAGE_STATE_TOO_MANY_POLICIES   = "State has too many policies. Maximum: ";
-    private static final String MESSAGE_SUBSCRIPTION_ERROR        = "Subscription error: ";
     private static final String MESSAGE_SUFFIX_KB                 = "KB";
 
     private static final String POLICY_NAME_PREFIX  = "Policy ";
@@ -963,7 +965,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         log.error("Error in PDP subscription", error);
         getUI().ifPresent(userInterface -> userInterface.access(() -> {
             stopSubscription();
-            showNotification(MESSAGE_SUBSCRIPTION_ERROR + error.getMessage());
+            showNotification(ERROR_SUBSCRIPTION + error.getMessage());
         }));
     }
 
@@ -973,7 +975,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void handleSubscriptionComplete() {
         log.debug("PDP subscription completed");
-        activeSubscription = null;
+        getUI().ifPresent(userInterface -> userInterface.access(() -> activeSubscription = null));
     }
 
     /*
@@ -1569,6 +1571,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Button createTabCloseButton() {
         val button = new Button(VaadinIcon.CLOSE_SMALL.create());
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
+        button.addClassName("tab-close");
         button.getStyle().set(CSS_MARGIN_LEFT, CSS_VALUE_SIZE_0_25EM);
         return button;
     }
@@ -1797,10 +1800,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         logoTitle.getStyle().set(CSS_FONT_SIZE, "1.1rem").set(CSS_FONT_WEIGHT, "800").set("letter-spacing", "-0.03em")
                 .set("line-height", "1");
 
-        val logoSubtitle = new Span("Playground");
+        val logoSubtitle = new Span("Playground " + SaplBuildInfo.version().replace("-SNAPSHOT", ""));
         logoSubtitle.getStyle().set(CSS_FONT_SIZE, "0.55rem").set(CSS_FONT_WEIGHT, "500")
                 .set(CSS_COLOR, "var(--vaadin-text-color-secondary)").set("letter-spacing", "0.04em")
-                .set(CSS_MARGIN_TOP, "-2px");
+                .set(CSS_MARGIN_TOP, "-2px").set(CSS_WHITE_SPACE, "nowrap");
 
         val logoText = new Div(logoTitle, logoSubtitle);
         logoText.getStyle().set("display", "flex").set("flex-direction", "column").set(CSS_GAP, "0");

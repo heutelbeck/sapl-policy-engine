@@ -27,6 +27,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthenticationException;
+import io.sapl.node.http.RequestBodyTooLargeException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -68,6 +69,12 @@ public class DecideOnceServlet extends AbstractBypassServlet {
         try (val in = request.getInputStream()) {
             subscription = mapper.readValue(in, AuthorizationSubscription.class);
         } catch (IOException | JacksonException e) {
+            if (RequestBodyTooLargeException.isCausedBy(e)) {
+                log.debug("Rejected oversized authorization subscription: {}", e.getMessage());
+                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                        "Request body exceeds the configured limit.");
+                return;
+            }
             log.debug("Failed to parse authorization subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed authorization subscription.");
             return;
@@ -77,7 +84,7 @@ public class DecideOnceServlet extends AbstractBypassServlet {
         try {
             decision = pdp.decideOnce(subscription, pdpId);
         } catch (Exception e) {
-            // Fail closed: no raw 500 (stack leak); return INDETERMINATE like the streaming
+            // Fail closed: no raw 500 (stack leak). Return INDETERMINATE like the streaming
             // servlet.
             log.error("Decision evaluation failed for decide-once; returning INDETERMINATE.", e);
             decision = AuthorizationDecision.INDETERMINATE;

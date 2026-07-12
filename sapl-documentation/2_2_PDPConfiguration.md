@@ -33,6 +33,19 @@ Secrets are optional PDP-level credentials available to PIPs during evaluation. 
 
 PDP-level secrets are configured once and automatically available to all PIPs via the `AttributeAccessContext`.
 
+Secrets never live inside `pdp.json`. They are carried in a dedicated file next to it, and the file name states whether the content is sealed:
+
+- **`secrets.json`**: cleartext secrets, for development setups only.
+- **`secrets.sealed.json`**: sealed secrets. Every scalar leaf is replaced by an `ENC[...]` token encrypted to an X25519 recipient key, while the structure and key names stay readable. The recipient (the PDP, or the cluster sharing the key) restores the values at load time.
+
+```json
+{
+  "externalApiKey": "ENC[eyJhbGciOiJFQ0RILUVTIi...]"
+}
+```
+
+A directory or bundle never mixes cleartext and sealed secrets files. Either every secrets file is sealed or none is. A `pdp.json` containing an inline `secrets` section is rejected with an error pointing to the dedicated file. Use `sapl bundle seal` to seal a policy directory and `sapl bundle keygen-secrets` to generate the recipient keypair (see [SAPL Node](../7_0_SaplNode/)).
+
 ### The `pdp.json` Format
 
 In SAPL Node and bundle-based deployments, the PDP configuration is stored as a `pdp.json` file alongside policy documents:
@@ -60,14 +73,11 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
       "initialTimeOutMs": 5000,
       "retries": 3
     }
-  },
-  "secrets": {
-    "externalApiKey": "sk-..."
   }
 }
 ```
 
-The `algorithm` object is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY`, `DENY`, `PROPAGATE`). The `variables` and `secrets` sections are also optional.
+The `algorithm` object is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY`, `DENY`, `PROPAGATE`). The `variables` section is also optional. Secrets are not part of `pdp.json` (see [Secrets](#secrets) above).
 
 The `compilerFlags` object is optional. All fields within it are optional and default to the values shown above:
 

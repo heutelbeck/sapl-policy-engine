@@ -76,9 +76,10 @@ public class BundleSigner {
     private static final String ERROR_PUBLIC_KEY_MUST_BE_ED25519      = "Public key must be Ed25519, got: %s.";
     private static final String ERROR_PUBLIC_KEY_NULL                 = "Public key must not be null.";
     private static final String ERROR_SIGNATURE_DOES_NOT_MATCH        = "Signature verification failed: signature does not match manifest.";
-    private static final String ERROR_SIGNATURE_VERIFICATION_ERROR    = "Signature verification error: %s";
+    private static final String ERROR_SIGNATURE_VERIFICATION          = "Signature verification error: %s";
     private static final String ERROR_SIGNING_FAILED                  = "Signing failed: %s";
     private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE       = "Unexpected file in bundle not covered by signature: %s.";
+    private static final String ERROR_UNSUPPORTED_HASH_ALGORITHM      = "Unsupported hash algorithm: %s.";
     private static final String ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM = "Unsupported signature algorithm: %s.";
 
     /**
@@ -196,6 +197,9 @@ public class BundleSigner {
             throw new BundleSignatureException(
                     ERROR_UNSUPPORTED_SIGNATURE_ALGORITHM.formatted(manifest.signature().algorithm()));
         }
+        if (!BundleManifest.HASH_ALGORITHM.equals(manifest.hashAlgorithm())) {
+            throw new BundleSignatureException(ERROR_UNSUPPORTED_HASH_ALGORITHM.formatted(manifest.hashAlgorithm()));
+        }
         if (manifest.files() == null || manifest.files().isEmpty()) {
             throw new BundleSignatureException(ERROR_MANIFEST_NO_FILE_ENTRIES);
         }
@@ -276,7 +280,7 @@ public class BundleSigner {
         } catch (InvalidKeyException e) {
             throw new BundleSignatureException(ERROR_INVALID_PUBLIC_KEY.formatted(e.getMessage()), e);
         } catch (SignatureException e) {
-            throw new BundleSignatureException(ERROR_SIGNATURE_VERIFICATION_ERROR.formatted(e.getMessage()), e);
+            throw new BundleSignatureException(ERROR_SIGNATURE_VERIFICATION.formatted(e.getMessage()), e);
         }
     }
 }

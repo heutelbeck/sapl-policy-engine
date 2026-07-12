@@ -22,7 +22,8 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.val;
 
-import java.math.BigDecimal;
+import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -42,12 +43,10 @@ public class StringFunctionLibrary {
     private static final String ERROR_COUNT_EXCEEDS_MAXIMUM           = "Count exceeds maximum allowed value of %d.";
     private static final String ERROR_END_INDEX_OUT_OF_BOUNDS         = "End index out of bounds: %d.";
     private static final String ERROR_NUMBER_VALUE_OUT_OF_RANGE       = "NumberValue out of range.";
+    private static final String ERROR_OUTPUT_EXCEEDS_MAXIMUM          = "Output exceeds the maximum length of %d characters.";
     private static final String ERROR_PADDING_MUST_BE_ONE_CHARACTER   = "Padding must be exactly one character.";
     private static final String ERROR_START_INDEX_OUT_OF_BOUNDS       = "Start index out of bounds: %d.";
     private static final String ERROR_TARGET_STRING_CANNOT_BE_EMPTY   = "Target string cannot be empty.";
-
-    private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
-    private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
 
     public static final String NAME          = "string";
     public static final String DESCRIPTION   = "Functions for string manipulation in authorization policies.";
@@ -101,6 +100,7 @@ public class StringFunctionLibrary {
 
             - `repeat` rejects a count above 10,000, returning an error.
             - `leftPad` and `rightPad` reject a target length above 10,000, returning an error.
+            - `join`, `concat`, `replace`, and `repeat` reject output longer than 10,000,000 characters, returning an error.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -126,7 +126,7 @@ public class StringFunctionLibrary {
             """;
 
     @Function(docs = """
-            ```toLowerCase(TEXT str)```: Converts all characters to lowercase using the default locale.
+            ```toLowerCase(TEXT str)```: Converts all characters to lowercase using locale-independent case folding.
 
             Useful for normalizing identifiers, roles, or resource names to enable case-insensitive
             comparisons in authorization policies.
@@ -146,11 +146,11 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_STRING)
     public static Value toLowerCase(TextValue str) {
-        return Value.of(str.value().toLowerCase());
+        return Value.of(str.value().toLowerCase(Locale.ROOT));
     }
 
     @Function(docs = """
-            ```toUpperCase(TEXT str)```: Converts all characters to uppercase using the default locale.
+            ```toUpperCase(TEXT str)```: Converts all characters to uppercase using locale-independent case folding.
 
             Useful for normalizing identifiers or ensuring consistent comparison format in
             authorization policies.
@@ -170,7 +170,7 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_STRING)
     public static Value toUpperCase(TextValue str) {
-        return Value.of(str.value().toUpperCase());
+        return Value.of(str.value().toUpperCase(Locale.ROOT));
     }
 
     @Function(docs = """
@@ -418,13 +418,12 @@ public class StringFunctionLibrary {
     public static Value substring(TextValue str, NumberValue start) {
         val text = str.value();
 
-        if (start.value().compareTo(MIN_LONG) < 0 || start.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val startIndex = exactInt(start);
+            return extractSubstring(text, startIndex, text.length());
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        val startIndex = start.value().intValue();
-
-        return extractSubstring(text, startIndex, text.length());
     }
 
     @Function(docs = """
@@ -451,19 +450,13 @@ public class StringFunctionLibrary {
     public static Value substringRange(TextValue str, NumberValue start, NumberValue end) {
         val text = str.value();
 
-        if (start.value().compareTo(MIN_LONG) < 0 || start.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val startIndex = exactInt(start);
+            val endIndex   = exactInt(end);
+            return extractSubstring(text, startIndex, endIndex);
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        val startIndex = start.value().intValue();
-
-        if (end.value().compareTo(MIN_LONG) < 0 || end.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
-        }
-
-        val endIndex = end.value().intValue();
-
-        return extractSubstring(text, startIndex, endIndex);
     }
 
     @Function(docs = """
@@ -552,15 +545,17 @@ public class StringFunctionLibrary {
 
         while (iterator.hasNext()) {
             val element = iterator.next();
-            if (!(element instanceof TextValue)) {
+            if (!(element instanceof TextValue text)) {
                 return Value.error(ERROR_ALL_ARRAY_ELEMENTS_MUST_BE_TEXT);
             }
 
             if (!result.isEmpty()) {
                 result.append(delimiterText);
             }
-            val text = (TextValue) element;
             result.append(text.value());
+            if (result.length() > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
         }
 
         return Value.of(result.toString());
@@ -591,6 +586,9 @@ public class StringFunctionLibrary {
         val result = new StringBuilder();
         for (val str : strings) {
             result.append(str.value());
+            if (result.length() > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
         }
         return Value.of(result.toString());
     }
@@ -625,7 +623,25 @@ public class StringFunctionLibrary {
             return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
+        if (replacementText.length() > targetText.length()) {
+            val growth    = (long) (replacementText.length() - targetText.length());
+            val predicted = (long) text.length() + countOccurrences(text, targetText) * growth;
+            if (predicted > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
+        }
+
         return Value.of(text.replace(targetText, replacementText));
+    }
+
+    private static long countOccurrences(String text, String target) {
+        long count = 0;
+        int  index = text.indexOf(target);
+        while (index >= 0) {
+            count++;
+            index = text.indexOf(target, index + target.length());
+        }
+        return count;
     }
 
     @Function(docs = """
@@ -658,7 +674,7 @@ public class StringFunctionLibrary {
             return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
-        return Value.of(text.replaceFirst(Pattern.quote(targetText), replacementText));
+        return Value.of(text.replaceFirst(Pattern.quote(targetText), Matcher.quoteReplacement(replacementText)));
     }
 
     @Function(docs = """
@@ -687,11 +703,12 @@ public class StringFunctionLibrary {
         val text      = str.value();
         val padString = padChar.value();
 
-        if (length.value().compareTo(MIN_LONG) < 0 || length.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val targetLength = exactInt(length);
+            return padString(text, targetLength, padString, true);
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        return padString(text, length.value().intValue(), padString, true);
     }
 
     @Function(docs = """
@@ -720,11 +737,12 @@ public class StringFunctionLibrary {
         val text      = str.value();
         val padString = padChar.value();
 
-        if (length.value().compareTo(MIN_LONG) < 0 || length.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val targetLength = exactInt(length);
+            return padString(text, targetLength, padString, false);
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        return padString(text, length.value().intValue(), padString, false);
     }
 
     @Function(docs = """
@@ -751,21 +769,24 @@ public class StringFunctionLibrary {
     public static Value repeat(TextValue str, NumberValue count) {
         val text = str.value();
 
-        if (count.value().compareTo(MIN_LONG) < 0 || count.value().compareTo(MAX_LONG) > 0) {
-            return new ErrorValue(ERROR_NUMBER_VALUE_OUT_OF_RANGE);
+        try {
+            val countValue = exactInt(count);
+            if (countValue < 0) {
+                return Value.error(ERROR_COUNT_CANNOT_BE_NEGATIVE);
+            }
+
+            if (countValue > MAX_REPEAT_COUNT) {
+                return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
+            }
+
+            if ((long) text.length() * countValue > TextOutputLimits.MAX_OUTPUT_CHARS) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
+
+            return Value.of(text.repeat(countValue));
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
-
-        val countValue = count.value().intValue();
-
-        if (countValue < 0) {
-            return Value.error(ERROR_COUNT_CANNOT_BE_NEGATIVE);
-        }
-
-        if (countValue > MAX_REPEAT_COUNT) {
-            return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
-        }
-
-        return Value.of(text.repeat(countValue));
     }
 
     @Function(docs = """
@@ -791,9 +812,10 @@ public class StringFunctionLibrary {
         return Value.of(new StringBuilder(str.value()).reverse().toString());
     }
 
-    /**
-     * Extracts substring from text using start and end indices.
-     */
+    private static int exactInt(NumberValue number) {
+        return number.value().intValueExact();
+    }
+
     private static Value extractSubstring(String text, int start, int end) {
         if (start < 0 || start > text.length()) {
             return Value.error(ERROR_START_INDEX_OUT_OF_BOUNDS, start);
@@ -806,9 +828,6 @@ public class StringFunctionLibrary {
         return Value.of(text.substring(start, end));
     }
 
-    /**
-     * Pads string to specified length with padding character.
-     */
     private static Value padString(String text, int targetLength, String padString, boolean padLeft) {
         if (padString.length() != 1) {
             return Value.error(ERROR_PADDING_MUST_BE_ONE_CHARACTER);

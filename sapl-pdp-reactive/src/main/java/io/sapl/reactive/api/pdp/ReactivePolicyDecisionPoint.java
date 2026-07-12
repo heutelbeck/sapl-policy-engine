@@ -22,6 +22,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,18 +33,13 @@ import reactor.core.publisher.Mono;
  * <p>
  * Every method takes an explicit {@code pdpId} for tenant routing. The
  * no-argument overloads delegate to the parameterised form with
- * {@link #DEFAULT_PDP_ID}; tenant resolution (extracting the tenant
+ * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}; tenant resolution
+ * (extracting the tenant
  * identifier from authentication, request headers, or any other transport
  * context) is the caller's responsibility and lives in application
  * infrastructure, not here.
  */
 public interface ReactivePolicyDecisionPoint {
-
-    /**
-     * Default PDP identifier for single-tenant deployments and for callers
-     * that do not perform tenant routing.
-     */
-    String DEFAULT_PDP_ID = "default";
 
     /**
      * Evaluates an authorization subscription against the tenant's policies
@@ -91,36 +87,36 @@ public interface ReactivePolicyDecisionPoint {
     /**
      * Convenience overload for single-tenant or context-free callers.
      * Delegates to {@link #decide(AuthorizationSubscription, String)} with
-     * {@link #DEFAULT_PDP_ID}.
+     * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
      */
     default Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
-        return decide(authorizationSubscription, DEFAULT_PDP_ID);
+        return decide(authorizationSubscription, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**
      * Convenience overload for single-tenant or context-free callers.
      * Delegates to {@link #decideOnce(AuthorizationSubscription, String)}
-     * with {@link #DEFAULT_PDP_ID}.
+     * with {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
      */
     default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
-        return decideOnce(authorizationSubscription, DEFAULT_PDP_ID);
+        return decideOnce(authorizationSubscription, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**
      * Convenience overload for single-tenant or context-free callers.
      * Delegates to {@link #decide(MultiAuthorizationSubscription, String)}
-     * with {@link #DEFAULT_PDP_ID}.
+     * with {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
      */
     default Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription) {
-        return decide(multiSubscription, DEFAULT_PDP_ID);
+        return decide(multiSubscription, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**
      * Convenience overload for single-tenant or context-free callers.
      * Delegates to {@link #decideAll(MultiAuthorizationSubscription, String)}
-     * with {@link #DEFAULT_PDP_ID}.
+     * with {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
      */
     default Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription) {
-        return decideAll(multiSubscription, DEFAULT_PDP_ID);
+        return decideAll(multiSubscription, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 }

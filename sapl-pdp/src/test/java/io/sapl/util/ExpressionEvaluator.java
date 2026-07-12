@@ -35,16 +35,16 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Compiles an expression string and exposes its evaluation as a
- * {@link Stream} of {@link Value} backed by an {@link AttributeBroker}.
- * Pure expressions deliver one value then complete. Streaming
- * expressions deliver the latest value per fulfilled trigger; the
- * consumer blocks on {@link Stream#awaitNext()} until the next value
- * or completion.
+ * Compiles an expression string and exposes its evaluation as a {@link Stream}
+ * of {@link Value} backed by an
+ * {@link AttributeBroker}. Pure expressions deliver one value then complete.
+ * Streaming expressions deliver the latest
+ * value per fulfilled trigger. The consumer blocks on
+ * {@link Stream#awaitNext()} until the next value or completion.
  * <p>
- * Single-slot mailbox semantic: if the producer fires multiple times
- * before the consumer reads, the consumer observes only the latest
- * value. Intermediate values are dropped.
+ * Single-slot mailbox semantic: if the producer fires multiple times before the
+ * consumer reads, the consumer observes
+ * only the latest value. Intermediate values are dropped.
  */
 @UtilityClass
 public class ExpressionEvaluator {
@@ -89,7 +89,7 @@ public class ExpressionEvaluator {
                     if (r.result() != null) {
                         stream.put(r.result());
                     }
-                }, r -> r.dependencies().keySet());
+                }, r -> r.dependencies().keySet(), e -> stream.complete());
         stream.onClose(sub::close);
         return stream;
     }

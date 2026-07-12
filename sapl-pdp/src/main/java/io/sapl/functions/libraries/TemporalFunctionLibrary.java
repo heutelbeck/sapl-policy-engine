@@ -24,12 +24,14 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.val;
 
+import java.math.BigDecimal;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Locale;
@@ -89,6 +91,7 @@ public class TemporalFunctionLibrary {
 
     // Error messages (sorted alphabetically by constant name)
     private static final String ERROR_CHRONO_UNIT_BLANK            = "ChronoUnit parameter cannot be blank.";
+    private static final String ERROR_DURATION_OVERFLOW            = "Duration calculation overflowed for amount: %s.";
     private static final String ERROR_INVALID_AMPM_TIME            = "Invalid AM/PM time (expected hh:mm:ss AM/PM): %s.";
     private static final String ERROR_INVALID_CHRONO_UNIT          = "Invalid timestamps or chrono unit: %s, %s, %s.";
     private static final String ERROR_INVALID_CHRONO_UNIT_VALUE    = """
@@ -129,7 +132,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.durationOfSeconds(20.5)``` returns ```20500```.
             """)
     public static Value durationOfSeconds(NumberValue seconds) {
-        return Value.of(seconds.value().longValue() * 1000);
+        return durationMillisOf(seconds, 1000L);
     }
 
     @Function(docs = """
@@ -141,7 +144,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfMinutes(2.5)``` returns ```150000```.""")
     public static Value durationOfMinutes(NumberValue minutes) {
-        return Value.of(minutes.value().longValue() * 60 * 1000);
+        return durationMillisOf(minutes, 60L * 1000);
     }
 
     @Function(docs = """
@@ -153,7 +156,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfHours(4.5)``` returns ```16200000```.""")
     public static Value durationOfHours(NumberValue hours) {
-        return Value.of(hours.value().longValue() * 60 * 60 * 1000);
+        return durationMillisOf(hours, 60L * 60 * 1000);
     }
 
     @Function(docs = """
@@ -165,7 +168,20 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfDays(365)``` returns ```31536000000```.""")
     public static Value durationOfDays(NumberValue days) {
-        return Value.of(days.value().longValue() * 24 * 60 * 60 * 1000);
+        return durationMillisOf(days, 24L * 60 * 60 * 1000);
+    }
+
+    private static Value durationMillisOf(NumberValue amount, long millisPerUnit) {
+        try {
+            val milliseconds = amount.value().multiply(BigDecimal.valueOf(millisPerUnit));
+            return Value.of(milliseconds.longValueExact());
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_DURATION_OVERFLOW.formatted(amount), e);
+        }
+    }
+
+    private static long exactLong(NumberValue number) {
+        return number.value().longValueExact();
     }
 
     @Function(docs = """
@@ -284,8 +300,9 @@ public class TemporalFunctionLibrary {
     public static Value plusDays(TextValue startTime, NumberValue days) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, days.value().longValue(), ChronoUnit.DAYS, true);
-            return Value.of(instant.plus(days.value().longValue(), ChronoUnit.DAYS).toString());
+            val amount  = exactLong(days);
+            validateTemporalBounds(instant, amount, ChronoUnit.DAYS, true);
+            return Value.of(instant.plus(amount, ChronoUnit.DAYS).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, days), e);
         }
@@ -305,7 +322,7 @@ public class TemporalFunctionLibrary {
         try {
             val instant = instantOf(startTime);
             val zdt     = instant.atZone(ZoneOffset.UTC);
-            return Value.of(zdt.plusMonths(months.value().longValue()).toInstant().toString());
+            return Value.of(zdt.plusMonths(exactLong(months)).toInstant().toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, months), e);
         }
@@ -325,7 +342,7 @@ public class TemporalFunctionLibrary {
         try {
             val instant = instantOf(startTime);
             val zdt     = instant.atZone(ZoneOffset.UTC);
-            return Value.of(zdt.plusYears(years.value().longValue()).toInstant().toString());
+            return Value.of(zdt.plusYears(exactLong(years)).toInstant().toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, years), e);
         }
@@ -343,8 +360,9 @@ public class TemporalFunctionLibrary {
     public static Value minusDays(TextValue startTime, NumberValue days) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, days.value().longValue(), ChronoUnit.DAYS, false);
-            return Value.of(instant.minus(days.value().longValue(), ChronoUnit.DAYS).toString());
+            val amount  = exactLong(days);
+            validateTemporalBounds(instant, amount, ChronoUnit.DAYS, false);
+            return Value.of(instant.minus(amount, ChronoUnit.DAYS).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, days), e);
         }
@@ -364,7 +382,7 @@ public class TemporalFunctionLibrary {
         try {
             val instant = instantOf(startTime);
             val zdt     = instant.atZone(ZoneOffset.UTC);
-            return Value.of(zdt.minusMonths(months.value().longValue()).toInstant().toString());
+            return Value.of(zdt.minusMonths(exactLong(months)).toInstant().toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, months), e);
         }
@@ -384,7 +402,7 @@ public class TemporalFunctionLibrary {
         try {
             val instant = instantOf(startTime);
             val zdt     = instant.atZone(ZoneOffset.UTC);
-            return Value.of(zdt.minusYears(years.value().longValue()).toInstant().toString());
+            return Value.of(zdt.minusYears(exactLong(years)).toInstant().toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, years), e);
         }
@@ -402,8 +420,9 @@ public class TemporalFunctionLibrary {
     public static Value plusNanos(TextValue startTime, NumberValue nanos) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, nanos.value().longValue(), ChronoUnit.NANOS, true);
-            return Value.of(instant.plusNanos(nanos.value().longValue()).toString());
+            val amount  = exactLong(nanos);
+            validateTemporalBounds(instant, amount, ChronoUnit.NANOS, true);
+            return Value.of(instant.plusNanos(amount).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, nanos), e);
         }
@@ -421,8 +440,9 @@ public class TemporalFunctionLibrary {
     public static Value plusMillis(TextValue startTime, NumberValue millis) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, millis.value().longValue(), ChronoUnit.MILLIS, true);
-            return Value.of(instant.plusMillis(millis.value().longValue()).toString());
+            val amount  = exactLong(millis);
+            validateTemporalBounds(instant, amount, ChronoUnit.MILLIS, true);
+            return Value.of(instant.plusMillis(amount).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, millis), e);
         }
@@ -440,8 +460,9 @@ public class TemporalFunctionLibrary {
     public static Value plusSeconds(TextValue startTime, NumberValue seconds) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, seconds.value().longValue(), ChronoUnit.SECONDS, true);
-            return Value.of(instant.plusSeconds(seconds.value().longValue()).toString());
+            val amount  = exactLong(seconds);
+            validateTemporalBounds(instant, amount, ChronoUnit.SECONDS, true);
+            return Value.of(instant.plusSeconds(amount).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, seconds), e);
         }
@@ -459,8 +480,9 @@ public class TemporalFunctionLibrary {
     public static Value minusNanos(TextValue startTime, NumberValue nanos) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, nanos.value().longValue(), ChronoUnit.NANOS, false);
-            return Value.of(instant.minusNanos(nanos.value().longValue()).toString());
+            val amount  = exactLong(nanos);
+            validateTemporalBounds(instant, amount, ChronoUnit.NANOS, false);
+            return Value.of(instant.minusNanos(amount).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, nanos), e);
         }
@@ -478,8 +500,9 @@ public class TemporalFunctionLibrary {
     public static Value minusMillis(TextValue startTime, NumberValue millis) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, millis.value().longValue(), ChronoUnit.MILLIS, false);
-            return Value.of(instant.minusMillis(millis.value().longValue()).toString());
+            val amount  = exactLong(millis);
+            validateTemporalBounds(instant, amount, ChronoUnit.MILLIS, false);
+            return Value.of(instant.minusMillis(amount).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, millis), e);
         }
@@ -497,8 +520,9 @@ public class TemporalFunctionLibrary {
     public static Value minusSeconds(TextValue startTime, NumberValue seconds) {
         try {
             val instant = instantOf(startTime);
-            validateTemporalBounds(instant, seconds.value().longValue(), ChronoUnit.SECONDS, false);
-            return Value.of(instant.minusSeconds(seconds.value().longValue()).toString());
+            val amount  = exactLong(seconds);
+            validateTemporalBounds(instant, amount, ChronoUnit.SECONDS, false);
+            return Value.of(instant.minusSeconds(amount).toString());
         } catch (Exception e) {
             return Value.error(ERROR_TEMPORAL_ARITHMETIC.formatted(startTime, seconds), e);
         }
@@ -542,7 +566,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.ofEpochSecond(1636376400)``` returns ```"2021-11-08T13:00:00Z"```.""")
     public static Value ofEpochSecond(NumberValue epochSeconds) {
         try {
-            return Value.of(Instant.ofEpochSecond(epochSeconds.value().longValue()).toString());
+            return Value.of(Instant.ofEpochSecond(exactLong(epochSeconds)).toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_EPOCH_SECONDS.formatted(epochSeconds), e);
         }
@@ -556,16 +580,17 @@ public class TemporalFunctionLibrary {
             The expression ```time.ofEpochMilli(1636376400000)``` returns ```"2021-11-08T13:00:00Z"```.""")
     public static Value ofEpochMilli(NumberValue epochMillis) {
         try {
-            return Value.of(Instant.ofEpochMilli(epochMillis.value().longValue()).toString());
+            return Value.of(Instant.ofEpochMilli(exactLong(epochMillis)).toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_EPOCH_MILLIS.formatted(epochMillis), e);
         }
     }
 
     @Function(docs = """
-            ```weekOfYear(TEXT utcDateTime)```: Returns the calendar week number (1-52) for the given date.
+            ```weekOfYear(TEXT utcDateTime)```: Returns the ISO 8601 / DIN 1355 calendar week number (1-53) for the given date.
 
-            utcDateTime must be an ISO 8601 string at UTC.
+            utcDateTime must be an ISO 8601 string at UTC. Weeks near a year boundary may belong to the
+            adjacent year per ISO 8601 (e.g. 2021-01-01 is week 53 of 2020).
 
             **Example:**
 
@@ -573,7 +598,7 @@ public class TemporalFunctionLibrary {
     public static Value weekOfYear(TextValue isoDateTime) {
         try {
             return Value.of(
-                    DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(ChronoField.ALIGNED_WEEK_OF_YEAR));
+                    DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }
@@ -1160,7 +1185,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.durationToISOCompact(90061000)``` returns ```"P1DT1H1M1S"```.""")
     public static Value durationToISOCompact(NumberValue milliseconds) {
         try {
-            val duration = Duration.ofMillis(milliseconds.value().longValue());
+            val duration = Duration.ofMillis(exactLong(milliseconds));
             return Value.of(duration.toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_DURATION_MILLIS.formatted(milliseconds), e);
@@ -1179,7 +1204,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.durationToISOVerbose(86400000)``` returns ```"P1D"```.""")
     public static Value durationToISOVerbose(NumberValue milliseconds) {
         try {
-            var remainingMillis = milliseconds.value().longValue();
+            var remainingMillis = exactLong(milliseconds);
 
             val millisPerYear  = (long) (365.2425 * 24 * 60 * 60 * 1000);
             val millisPerMonth = (long) (30.436875 * 24 * 60 * 60 * 1000);

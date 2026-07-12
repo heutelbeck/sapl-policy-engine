@@ -46,7 +46,7 @@ import java.util.function.Function;
  * declared key has a value in its mailbox (the all-deps-fulfilled
  * gate). The consumer never observes a partial snapshot. After the gate
  * first opens it stays open for the dep set, firing on each subsequent
- * value change; a callback whose return value adds a key with an empty
+ * value change. A callback whose return value adds a key with an empty
  * mailbox re-closes the gate until that key fills.
  * <p>
  * {@link io.sapl.api.model.ErrorValue} counts as a fulfilled value: a
@@ -64,7 +64,7 @@ public interface AttributeBroker extends AutoCloseable {
      * races a not-yet-installed callback. If every key in
      * {@code initialDependencies} already has a value in its mailbox at
      * this point, the callback fires synchronously before this method
-     * returns; otherwise the callback fires later, when the last
+     * returns. Otherwise the callback fires later, when the last
      * unfulfilled key receives its first value.
      * <p>
      * The {@code subscriptionId} is caller-supplied and must uniquely
@@ -83,17 +83,17 @@ public interface AttributeBroker extends AutoCloseable {
      * set is illegal. Consumers who want to stop must call
      * {@link Subscription#close()} externally.
      *
-     * @param subscriptionId non-blank identifier; must not collide with
+     * @param subscriptionId non-blank identifier. Must not collide with
      * any open subscription on this broker
      * @param initialDependencies the SubscriptionKeys the consumer's
-     * first evaluation pass will read; must be non-empty (consumers
+     * first evaluation pass will read. Must be non-empty (consumers
      * with no streaming dependencies do not interact with the broker at
      * all)
-     * @param onUpdate fired when a fulfilled snapshot is available;
-     * receives the snapshot, returns the next dep set;
-     * per-subscription serialized (never invoked concurrently with
-     * itself for the same {@code subscriptionId}); fires outside any
-     * internal broker lock; an empty returned set or a {@code null}
+     * @param onUpdate fired when a fulfilled snapshot is available.
+     * Receives the snapshot, returns the next dep set.
+     * Per-subscription serialized (never invoked concurrently with
+     * itself for the same {@code subscriptionId}). Fires outside any
+     * internal broker lock. An empty returned set or a {@code null}
      * returned set causes the broker to fail the subscription with an
      * {@link IllegalStateException} on the firing thread
      * @return per-consumer lifecycle handle for releasing the
@@ -116,7 +116,7 @@ public interface AttributeBroker extends AutoCloseable {
      * Per-consumer lifecycle handle. The subscription's behaviour
      * (snapshot reads, dependency updates) lives entirely in the
      * callback wired at {@link AttributeBroker#open(String, Set, Function)}
-     * time; this handle is solely for releasing the subscription when
+     * time. This handle is solely for releasing the subscription when
      * the consumer is done.
      *
      * @since 4.1.0
@@ -125,7 +125,7 @@ public interface AttributeBroker extends AutoCloseable {
 
         /**
          * Releases this consumer's dependencies and unregisters the
-         * trigger callback. Idempotent; safe to call from any thread.
+         * trigger callback. Idempotent. Safe to call from any thread.
          * After {@code close()} returns the broker will not invoke the
          * callback again. Active invocations whose refcount falls to
          * zero are released by the broker.

@@ -20,48 +20,49 @@ package io.sapl.node.cli.support;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import io.sapl.pdp.remote.DelegatingBlockingPolicyDecisionPoint;
 import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
-import io.sapl.node.SaplNodeApplication;
 import io.sapl.node.cli.options.PdpOptions;
 import io.sapl.node.cli.options.RemoteConnectionOptions;
+import io.sapl.node.cli.support.PolicySourceResolver.ResolvedPolicy;
 import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
-import org.springframework.boot.Banner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.context.ConfigurableApplicationContext;
 import tools.jackson.databind.json.JsonMapper;
 
 import javax.net.ssl.SSLException;
 import java.io.PrintWriter;
-import java.util.Map;
 
 /**
  * Sets up the PDP and a {@link JsonMapper} for CLI commands. Carries
  * both shapes (blocking and reactive) so each consumer picks whichever
  * fits the use case: blocking for one-shot CLI commands, reactive for
- * stream-shaped consumers. Handles both local (Spring-based) and
- * remote (HTTP / RSocket client) modes. For remote modes, the reactive
- * PDP is built natively and the blocking surface is provided through a
- * {@link DelegatingBlockingPolicyDecisionPoint} wrap of the same
- * underlying instance. Call {@link #shutdown()} when done.
+ * stream-shaped consumers. Both local and remote modes build the PDP
+ * directly through the engine, with no Spring context. For remote modes
+ * the blocking surface wraps the reactive client via a
+ * {@link DelegatingBlockingPolicyDecisionPoint}. Call {@link #shutdown()}
+ * when done to release the held resources.
  *
  * @param blocking the blocking-shaped PDP
  * @param reactive the reactive-shaped PDP
  * @param mapper a Jackson mapper configured for SAPL types
- * @param context the Spring context (null for remote mode)
+ * @param closeable the resources to release on shutdown (null for remote mode)
  */
 public record PdpSetup(
         StreamingPolicyDecisionPoint blocking,
         ReactivePolicyDecisionPoint reactive,
         JsonMapper mapper,
-        ConfigurableApplicationContext context) {
+        @Nullable AutoCloseable closeable) {
+
+    static final String DEFAULT_HTTP_URL = "http://localhost:8080";
 
     public static final String ERROR_BASIC_AUTH_FORMAT = "Error: --basic-auth must be in format 'user:password'.";
+    static final String ERROR_BUNDLE_VERIFICATION_NOT_CONFIGURED = "Refusing to load bundles with signature verification disabled without an explicit opt-in.";
     public static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
     public static final String ERROR_REMOTE_CONNECTION = "Error: Failed to connect to remote PDP: %s.";
     public static final String ERROR_REMOTE_WITH_LOCAL = "Error: --remote cannot be used with --dir or --bundle.";
@@ -90,8 +91,12 @@ public record PdpSetup(
     }
 
     public void shutdown() {
-        if (context != null) {
-            SpringApplication.exit(context);
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                // The held resources log their own teardown failures. Nothing actionable here.
+            }
         }
     }
 
@@ -103,10 +108,12 @@ public record PdpSetup(
     }
 
     private static PdpSetup openHttp(RemoteConnectionOptions remote) throws SSLException {
-        val url     = resolveWithEnv(remote.url, "SAPL_URL", "http://localhost:8080");
+        val url     = resolveUrl(remote.url, System.getenv("SAPL_URL"), DEFAULT_HTTP_URL);
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(url);
         if (remote.insecure) {
-            builder.withUnsecureSSL();
+            // --insecure trusts any TLS cert and accepts credentials over a plaintext http
+            // connection.
+            builder.withUnsecureSSL().allowInsecureTransport();
         }
         configureAuth(builder, remote.auth);
         val reactive = builder.build();
@@ -123,6 +130,11 @@ public record PdpSetup(
         } else if (remote.rsocketTls) {
             builder.secure();
         }
+        if (remote.insecure) {
+            // --insecure also accepts sending credentials over a plaintext rsocket
+            // connection.
+            builder.allowInsecureTransport();
+        }
         configureRsocketAuth(builder, remote.auth);
         val reactive = builder.build();
         val blocking = new DelegatingBlockingPolicyDecisionPoint(reactive);
@@ -136,15 +148,34 @@ public record PdpSetup(
         if (resolved == null) {
             return null;
         }
-        val springArgs = SpringArgsBuilder.build(resolved, options.trace, options.jsonReport, options.textReport);
-        val app        = new SpringApplication(SaplNodeApplication.class);
-        app.setWebApplicationType(WebApplicationType.NONE);
-        app.setBannerMode(Banner.Mode.OFF);
-        app.setAdditionalProfiles("cli");
-        app.setDefaultProperties(Map.of("org.springframework.boot.logging.LoggingSystem", "none"));
-        val context = app.run(springArgs);
-        return new PdpSetup(context.getBean(BlockingPolicyDecisionPoint.class),
-                context.getBean(ReactivePolicyDecisionPoint.class), context.getBean(JsonMapper.class), context);
+        val mapper  = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+        val builder = PolicyDecisionPointBuilder.withDefaults(mapper);
+        switch (resolved.kind()) {
+        case DIRECTORY        -> builder.withDirectorySource(resolved.path());
+        case SINGLE_BUNDLE    -> builder.withBundle(resolved.path(), StreamingPolicyDecisionPoint.DEFAULT_PDP_ID,
+                bundleSecurityPolicy(resolved));
+        case BUNDLE_DIRECTORY -> builder.withBundleDirectorySource(resolved.path(), bundleSecurityPolicy(resolved));
+        }
+        if (options.trace || options.jsonReport || options.textReport) {
+            builder.withDecisionInterceptor(new ReportingDecisionInterceptor(true, options.trace, options.jsonReport,
+                    options.textReport, false, false));
+        }
+        val components = builder.build();
+        val reactive   = new DelegatingReactivePolicyDecisionPoint(components.pdp());
+        return new PdpSetup(components.pdp(), reactive, mapper, components);
+    }
+
+    private static BundleSecurityPolicy bundleSecurityPolicy(ResolvedPolicy resolved) {
+        if (resolved.publicKey() != null) {
+            return BundleSecurityPolicy.builder(resolved.publicKey()).build();
+        }
+        if (resolved.allowUnsigned()) {
+            return BundleSecurityPolicy.builder().disableSignatureVerification().build();
+        }
+        // Unreachable for a policy from PolicySourceResolver, which already fails closed
+        // when neither a key nor an explicit opt-in is present. Guard so a future caller
+        // cannot silently load unverified bundles.
+        throw new IllegalStateException(ERROR_BUNDLE_VERIFICATION_NOT_CONFIGURED);
     }
 
     private static void configureRsocketAuth(ProtobufRemoteReactivePolicyDecisionPoint.Builder builder,
@@ -215,11 +246,25 @@ public record PdpSetup(
                 credentials.substring(separatorIndex + 1));
     }
 
-    private static String resolveWithEnv(String flagValue, String envVar, String defaultValue) {
-        if (!defaultValue.equals(flagValue)) {
+    /**
+     * Resolves the remote PDP URL with the documented precedence: an
+     * explicitly supplied flag value wins over the environment variable,
+     * which in turn wins over the built-in default. The flag is treated as
+     * explicitly supplied whenever it is non-null. Because absence is
+     * detected by null (the {@code --url} option carries no picocli default)
+     * rather than by comparing against the default string, an operator who
+     * types the literal default value still overrides the environment.
+     *
+     * @param flagValue the parsed {@code --url} value, or null if the flag was
+     * absent
+     * @param envValue the {@code SAPL_URL} environment value, or null if unset
+     * @param defaultValue the built-in default URL
+     * @return the resolved URL
+     */
+    static String resolveUrl(@Nullable String flagValue, @Nullable String envValue, String defaultValue) {
+        if (flagValue != null) {
             return flagValue;
         }
-        val envValue = System.getenv(envVar);
         return envValue != null ? envValue : defaultValue;
     }
 

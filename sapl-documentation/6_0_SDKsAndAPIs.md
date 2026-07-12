@@ -13,7 +13,7 @@ SAPL provides multiple ways to connect applications to a Policy Decision Point (
 ### APIs
 
 - **[HTTP and RSocket API](../6_1_HTTPApi/):** Network APIs for any programming language. HTTP uses JSON over REST. RSocket uses protobuf over persistent TCP or Unix domain sockets for high-throughput workloads. Both offer the same five operations.
-- **[Java API](../6_2_JavaApi/):** A reactive API based on Project Reactor for embedding a PDP directly in Java applications or connecting to a remote PDP server via HTTP or RSocket.
+- **[Java API](../6_2_JavaApi/):** Java APIs for embedded PDP evaluation and remote PDP access. Embedded evaluation is Reactor-free, while remote HTTP and RSocket clients expose Project Reactor types.
 
 ### Framework SDKs
 

@@ -21,6 +21,7 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.test.stream.StreamAssertions;
@@ -46,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * End-to-end test that the MQTT PIP connects to a broker over TLS, verifying
  * the broker certificate against the configured trust store. The broker runs a
  * TLS listener (8883) for the PIP and a plaintext listener (1883) for the test
- * publisher; a message published on the plaintext listener must reach the
+ * publisher. A message published on the plaintext listener must reach the
  * TLS-subscribed PIP, proving the encrypted subscription works.
  */
 @DisplayName("MQTT Policy Information Point over TLS")
@@ -100,7 +101,7 @@ class MqttPolicyInformationPointTlsIT {
                 }
                 """.formatted(brokerHost, tlsPort, "sapl-tls-" + CLIENT_SEQ.incrementAndGet(), TRUST_STORE,
                 TRUST_STORE_PW));
-        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
         return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
@@ -115,8 +116,12 @@ class MqttPolicyInformationPointTlsIT {
         publisher.publish(message);
 
         try (val stream = pip.messages(Value.of(topic), tlsCtx())) {
-            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(15))
-                    .awaitsNext(v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("secure-hello")));
+            // Skip the leading timer-driven UNDEFINED the PIP emits before the
+            // retained message arrives over the slower TLS handshake, then assert
+            // the first real value is the message.
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(20)).awaitsNextMatching(
+                    v -> !(v instanceof UndefinedValue),
+                    v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("secure-hello")));
         }
     }
 }

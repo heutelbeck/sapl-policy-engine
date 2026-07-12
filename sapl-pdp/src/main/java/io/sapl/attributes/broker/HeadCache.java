@@ -45,7 +45,7 @@ import java.util.Set;
  * head values override the broker's delivery for the same key.</li>
  * <li>(evaluate the policy)</li>
  * <li>{@link #captureFrom}: putIfAbsent for any head key the broker
- * just delivered. First observation wins; nothing overwrites.</li>
+ * just delivered. First observation wins. Nothing overwrites.</li>
  * <li>{@link #retainOnly}: drop cache entries the policy no longer
  * references. If a head dep re-enters later, it captures a fresh
  * value at that point (not the original one).</li>
@@ -73,8 +73,8 @@ public final class HeadCache {
      * value the broker may have delivered for that key.
      *
      * @param brokerSnapshot the snapshot the broker fired with
-     * @return a merged snapshot suitable for the policy evaluator;
-     * returns the broker snapshot unchanged when the cache is empty
+     * @return a merged snapshot suitable for the policy evaluator.
+     * Returns the broker snapshot unchanged when the cache is empty
      */
     public @NonNull Map<SubscriptionKey, AttributeSnapshot> merge(
             @NonNull Map<SubscriptionKey, AttributeSnapshot> brokerSnapshot) {
@@ -93,8 +93,8 @@ public final class HeadCache {
      * the policy evaluation has returned so the cache stays pristine
      * if evaluation throws.
      *
-     * @param brokerSnapshot the snapshot the broker fired with;
-     * head-keyed entries that are not yet in the cache are captured
+     * @param brokerSnapshot the snapshot the broker fired with.
+     * Head-keyed entries that are not yet in the cache are captured
      */
     public void captureFrom(@NonNull Map<SubscriptionKey, AttributeSnapshot> brokerSnapshot) {
         for (val entry : brokerSnapshot.entrySet()) {

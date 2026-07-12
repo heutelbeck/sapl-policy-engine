@@ -38,7 +38,7 @@ import lombok.val;
  * and produces a {@link SaplAuthenticationToken}. The manager runs
  * downstream and is the component Spring Security consults to mark the
  * authentication as trusted. The contract is therefore: only tokens of
- * the SAPL type the converter produces should be authenticated; any
+ * the SAPL type the converter produces should be authenticated. Any
  * other Authentication shape reaching this manager indicates a misrouted
  * filter chain and must not be granted authenticated status.
  */
@@ -55,6 +55,9 @@ class ApiKeyAuthenticationManagerTests {
         @DisplayName("a SaplAuthenticationToken is returned authenticated")
         void whenSaplAuthenticationTokenThenAuthenticated() {
             val token = new SaplAuthenticationToken(new SaplUser("alice", "tenant-a"), "raw-api-key");
+            // Start unauthenticated so the assertion proves authenticate() did the work
+            // rather than echoing the constructor's already-authenticated state.
+            token.setAuthenticated(false);
 
             val result = manager.authenticate(token);
 

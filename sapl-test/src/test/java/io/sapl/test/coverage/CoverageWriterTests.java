@@ -24,6 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -337,6 +341,38 @@ class CoverageWriterTests {
         val policy = json.get("policies").get(0);
 
         assertThat(policy.has("filePath")).isFalse();
+    }
+
+    @Test
+    @DisplayName("concurrent writers never interleave bytes within the shared NDJSON file")
+    void whenManyWritersAppendConcurrently_thenEveryLineIsAnIntactRecord() throws Exception {
+        val writerCount      = 16;
+        val recordsPerWriter = 50;
+        val executor         = Executors.newFixedThreadPool(writerCount);
+        try {
+            val errors = new AtomicInteger();
+            for (int w = 0; w < writerCount; w++) {
+                final int writerId = w;
+                executor.submit(() -> {
+                    val writer = new CoverageWriter(tempDir);
+                    for (int r = 0; r < recordsPerWriter; r++) {
+                        if (!writer.writeSilently(createSimpleRecord("writer-" + writerId + "-record-" + r))) {
+                            errors.incrementAndGet();
+                        }
+                    }
+                });
+            }
+            executor.shutdown();
+            assertThat(executor.awaitTermination(60, TimeUnit.SECONDS)).isTrue();
+            assertThat(errors).hasValue(0);
+
+            val lines = Files.readAllLines(new CoverageWriter(tempDir).getCoverageFilePath());
+            assertThat(lines).hasSize(writerCount * recordsPerWriter)
+                    .allSatisfy(line -> assertThat(MAPPER.readTree(line).get("testIdentifier").asString())
+                            .matches("writer-\\d+-record-\\d+"));
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private TestCoverageRecord createSimpleRecord(String testIdentifier) {

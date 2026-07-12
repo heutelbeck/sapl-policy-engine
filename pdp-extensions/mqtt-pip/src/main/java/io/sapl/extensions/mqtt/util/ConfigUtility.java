@@ -23,15 +23,12 @@ import com.hivemq.client.mqtt.datatypes.MqttClientIdentifier;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -56,9 +53,7 @@ public class ConfigUtility {
      * The reference for the broker configuration settings in configurations.
      */
     public static final String  ENVIRONMENT_BROKER_CONFIG              = "brokerConfig";
-    private static final String ENVIRONMENT_PASSWORD                   = "password";
     private static final String DEFAULT_BROKER_CONFIG_NAME             = "default";
-    private static final String DEFAULT_PASSWORD                       = "";
 
     private static final String ERROR_INVALID_QOS              = "The mqtt quality of service level must be a number.";
     private static final String ERROR_NO_VALID_MQTT_PIP_CONFIG = "No valid configuration for mqtt pip client connection provided.";
@@ -195,25 +190,21 @@ public class ConfigUtility {
     }
 
     /**
-     * Evaluates the provided configuration for the mqtt broker configuration.
+     * Resolves the mqtt broker configuration to use. The policy-supplied attribute
+     * finder parameter may only select a broker by name (a
+     * {@link io.sapl.api.model.TextValue}) or be absent for the default. Inline
+     * broker configuration objects from a policy are rejected earlier, at the
+     * attribute boundary, so they never reach this method.
      *
-     * @param pipMqttClientConfig the pdp configuration
-     * @param pipMqttClientConfigVal {@link Value} of the configuration in the
-     * attribute finder
-     * @return Returns a json object containing the mqtt broker security. If no
-     * valid
-     * configuration was provided in the configurations than a
-     * {@link NoSuchElementException} will be thrown.
+     * @param pipMqttClientConfig the operator pdp configuration
+     * @param pipMqttClientConfigVal the policy-supplied broker selector
+     * @return the resolved broker configuration object
+     * @throws NoSuchElementException if no matching broker configuration is found
      */
     public static ObjectNode getMqttBrokerConfig(JsonNode pipMqttClientConfig, Value pipMqttClientConfigVal) {
-        ObjectNode mqttPipBrokerConfig = null;
-
-        if (pipMqttClientConfigVal instanceof ObjectValue objectConfig) {
-            mqttPipBrokerConfig = (ObjectNode) ValueJsonMarshaller.toJsonNode(objectConfig);
-        } else {
-            mqttPipBrokerConfig = getBrokerConfigFromPdpConfig(pipMqttClientConfig, mqttPipBrokerConfig,
-                    pipMqttClientConfigVal);
-        }
+        // Inline broker objects are rejected at the attribute boundary. Only
+        // name/default reach here.
+        val mqttPipBrokerConfig = getBrokerConfigFromPdpConfig(pipMqttClientConfig, null, pipMqttClientConfigVal);
 
         if (mqttPipBrokerConfig == null) {
             throw new NoSuchElementException(ERROR_NO_VALID_MQTT_PIP_CONFIG);
@@ -312,19 +303,9 @@ public class ConfigUtility {
      */
     public static MqttQos getQos(Value qosVal) {
         if (qosVal instanceof NumberValue number) {
-            return MqttQos.fromCode(number.value().intValue());
+            return MqttQos.fromCode(number.value().intValueExact());
         }
         throw new IllegalArgumentException(ERROR_INVALID_QOS);
     }
 
-    /**
-     * Looks up the password.
-     *
-     * @param config the provided configuration containing the password
-     * @return returns the looked up password
-     */
-    public static byte[] getPassword(JsonNode config) {
-        String password = getConfigValueOrDefault(config, ENVIRONMENT_PASSWORD, DEFAULT_PASSWORD);
-        return password.getBytes(StandardCharsets.UTF_8);
-    }
 }

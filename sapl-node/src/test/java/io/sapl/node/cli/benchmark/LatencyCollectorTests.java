@@ -167,24 +167,57 @@ class LatencyCollectorTests {
     class ThreadSafetyTests {
 
         @Test
-        @DisplayName("concurrent writers do not lose samples")
+        @DisplayName("concurrent writers do not lose samples to slot collisions")
         void whenConcurrentWritersThenAllSamplesRecorded() throws InterruptedException {
-            val collector = new LatencyCollector(100_000);
             val threads   = 8;
             val perThread = 1000;
+            val total     = threads * perThread;
+            // Capacity equals the total sample count, so no wrapping occurs and
+            // every written value must occupy its own distinct slot.
+            val collector = new LatencyCollector(total);
             val latch     = new CountDownLatch(threads);
 
+            // Each thread writes a unique, strictly positive range of values so
+            // that a lost or clobbered write is observable: a colliding write
+            // would leave a slot at its default 0, dropping the minimum to 0 and
+            // perturbing the sum, while a duplicated value would change the sum.
             for (int t = 0; t < threads; t++) {
+                val base = (long) (t + 1) * perThread;
                 Thread.ofVirtual().start(() -> {
                     for (int i = 0; i < perThread; i++) {
-                        collector.addSample(100);
+                        collector.addSample(base + i);
                     }
                     latch.countDown();
                 });
             }
 
             assertThat(latch.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
-            assertThat(collector.count()).isEqualTo(threads * perThread);
+
+            // Expected aggregate over all distinct written values. Any dropped
+            // sample (slot left at 0) or clobbered slot would break these.
+            var expectedSum = 0L;
+            var expectedMin = Long.MAX_VALUE;
+            var expectedMax = Long.MIN_VALUE;
+            for (int t = 0; t < threads; t++) {
+                val base = (long) (t + 1) * perThread;
+                for (int i = 0; i < perThread; i++) {
+                    val value = base + i;
+                    expectedSum += value;
+                    expectedMin  = Math.min(expectedMin, value);
+                    expectedMax  = Math.max(expectedMax, value);
+                }
+            }
+            val expectedMean = (double) expectedSum / total;
+            val expectedLow  = (double) expectedMin;
+            val expectedHigh = (double) expectedMax;
+
+            val latency = collector.toLatency();
+            assertThat(collector.count()).isEqualTo(total);
+            assertThat(latency).satisfies(l -> {
+                assertThat(l.min()).isCloseTo(expectedLow, within(0.1));
+                assertThat(l.max()).isCloseTo(expectedHigh, within(0.1));
+                assertThat(l.mean()).isCloseTo(expectedMean, within(0.5));
+            });
         }
     }
 

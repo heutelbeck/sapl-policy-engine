@@ -361,10 +361,11 @@ class MethodSignatureProcessorTests {
         public static Value inscribeRune(ObjectValue rune) {
             val symbol = rune.get("symbol");
             val power  = rune.get("power");
-            assert power != null;
-            assert symbol != null;
-            return Value.of("Rune %s inscribed with power %s".formatted(((TextValue) symbol).value(),
-                    ((NumberValue) power).value()));
+            assertThat(symbol).isInstanceOf(TextValue.class);
+            assertThat(power).isInstanceOf(NumberValue.class);
+            val textSymbol  = (TextValue) symbol;
+            val numberPower = (NumberValue) power;
+            return Value.of("Rune %s inscribed with power %s".formatted(textSymbol.value(), numberPower.value()));
         }
     }
 

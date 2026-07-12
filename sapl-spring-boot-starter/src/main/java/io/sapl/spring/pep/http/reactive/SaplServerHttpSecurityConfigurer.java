@@ -27,6 +27,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec;
 import org.springframework.security.config.web.server.ServerHttpSecurity.ExceptionHandlingSpec;
 
+import io.sapl.spring.config.PdpIdWebFilter;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.val;
@@ -121,6 +122,14 @@ public final class SaplServerHttpSecurityConfigurer {
         val webFilter     = context.getBean(SaplHttpPepWebFilter.class);
         http.authorizeExchange((AuthorizeExchangeSpec authorize) -> authorize.anyExchange().access(manager));
         http.exceptionHandling((ExceptionHandlingSpec exceptions) -> exceptions.accessDeniedHandler(deniedHandler));
+        // Tenant PDP id must enter the Reactor Context after authentication but before
+        // authorization, so the
+        // authorization manager's tenant resolver sees it. A global WebFilter cannot
+        // sit inside the security chain,
+        // so add it here just before AUTHORIZATION. Absent for single-tenant setups (no
+        // PdpIdAuthenticationExtractor).
+        context.getBeanProvider(PdpIdWebFilter.class).ifAvailable(
+                pdpIdWebFilter -> http.addFilterBefore(pdpIdWebFilter, SecurityWebFiltersOrder.AUTHORIZATION));
         http.addFilterAt(webFilter, SecurityWebFiltersOrder.AUTHORIZATION);
         return http;
     }

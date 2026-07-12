@@ -47,14 +47,14 @@ import reactor.test.StepVerifier;
  */
 class TransitionSignalsTests {
 
+    private static final String ERROR_OTHER     = "Other error";
     private static final String SUSPEND_MESSAGE = "Stream suspended";
-    private static final String OTHER_ERROR     = "Other error";
 
     private static Flux<String> pepLikeFlux(String... pattern) {
         return Flux.fromArray(pattern).flatMap(item -> switch (item) {
         case "SUSPEND" -> Mono.error(new AccessDeniedException(SUSPEND_MESSAGE));
         case "GRANT"   -> Mono.<String>error(new AccessGrantedException(AuthorizationDecision.PERMIT));
-        case "ERROR"   -> Mono.<String>error(new RuntimeException(OTHER_ERROR));
+        case "ERROR"   -> Mono.<String>error(new RuntimeException(ERROR_OTHER));
         default        -> Mono.just(item);
         });
     }
@@ -270,6 +270,23 @@ class TransitionSignalsTests {
         void completesWhenSourceIsEmpty() {
             StepVerifier.create(TransitionSignals.onTransitions(Flux.<String>empty(), s -> {}, g -> {}))
                     .verifyComplete();
+        }
+    }
+
+    @Nested
+    @DisplayName("substitution path ordering under load")
+    class SubstitutionPathOrderingUnderLoad {
+
+        @Test
+        @DisplayName("items and boundary substitutes stay in strict source order under a demand-limited subscriber")
+        void preservesOrderingUnderBoundedDownstreamDemand() {
+            var source = pepLikeFlux("A", "SUSPEND", "B", "SUSPEND", "C");
+
+            // Drawing one item at a time must never let a boundary substitute overtake the
+            // data item it marks. Ordering is a correctness invariant, not a convenience.
+            StepVerifier.create(TransitionSignals.onSuspend(source, e -> {}, () -> "SUB"), 1L).expectNext("A")
+                    .thenRequest(1).expectNext("SUB").thenRequest(1).expectNext("B").thenRequest(1).expectNext("SUB")
+                    .thenRequest(1).expectNext("C").verifyComplete();
         }
     }
 

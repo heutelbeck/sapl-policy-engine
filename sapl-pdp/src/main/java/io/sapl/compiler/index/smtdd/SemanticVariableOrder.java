@@ -198,6 +198,9 @@ public class SemanticVariableOrder {
             IndexPredicate predicate, int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
         val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                 k -> new EqualityGroup(pureOperand));
+        if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+            return false;
+        }
         if (negated) {
             group.addExclude(constant, formulaIndex, predicate);
         } else {
@@ -208,13 +211,16 @@ public class SemanticVariableOrder {
 
     private static boolean addHasConstants(PureOperator pureOperand, Value container, IndexPredicate predicate,
             int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
-        if (!(container instanceof ObjectValue object)) {
+        if (!(container instanceof ObjectValue object) || object.keySet().isEmpty()) {
             return false;
         }
         // CONST has PureOp: the operator evaluates to a key, check against constant's
         // keys
         val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                 k -> new EqualityGroup(pureOperand));
+        if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+            return false;
+        }
         for (val key : object.keySet()) {
             group.addEquals(Value.of(key), formulaIndex, predicate);
         }
@@ -224,16 +230,28 @@ public class SemanticVariableOrder {
     private static boolean addInConstants(PureOperator pureOperand, Value collection, IndexPredicate predicate,
             int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
         if (collection instanceof ArrayValue array) {
+            if (array.isEmpty()) {
+                return false;
+            }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
+            if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+                return false;
+            }
             for (var i = 0; i < array.size(); i++) {
                 group.addEquals(array.get(i), formulaIndex, predicate);
             }
             return true;
         }
         if (collection instanceof ObjectValue object) {
+            if (object.values().isEmpty()) {
+                return false;
+            }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
+            if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+                return false;
+            }
             for (val value : object.values()) {
                 group.addEquals(value, formulaIndex, predicate);
             }

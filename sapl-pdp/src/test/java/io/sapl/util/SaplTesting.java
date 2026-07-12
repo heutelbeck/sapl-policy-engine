@@ -467,7 +467,7 @@ public class SaplTesting {
      * Drives the production voter ({@code applicabilityAndVote}) and the
      * coverage voter through the same {@link TestAttributeBroker}, asserting
      * that both produce equivalent emissions per round. Round 0 fires when
-     * the gate opens with primed values; subsequent rounds publish the
+     * the gate opens with primed values. Subsequent rounds publish the
      * next value for each attribute (sequences are consumed in order).
      */
     public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource,
@@ -475,7 +475,9 @@ public class SaplTesting {
         val compiled     = compilePolicyFull(policySource);
         val subscription = parseSubscription(subscriptionJson);
         val baseCtx      = evaluationContext(subscription);
-        val rounds       = attributeSequences.values().stream().mapToInt(List::size).max().orElse(1);
+        // At least one round so the initial decision is always compared, even when
+        // every supplied sequence is empty (max()==0 would otherwise bypass orElse).
+        val rounds = Math.max(1, attributeSequences.values().stream().mapToInt(List::size).max().orElse(1));
 
         try (val broker = new TestAttributeBroker()) {
             for (val entry : attributeSequences.entrySet()) {

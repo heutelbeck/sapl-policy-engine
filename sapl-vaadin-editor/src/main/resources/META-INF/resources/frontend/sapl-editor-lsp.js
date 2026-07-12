@@ -14,7 +14,7 @@ import { indentWithTab, defaultKeymap, history, historyKeymap } from '@codemirro
 import { oneDark } from '@codemirror/theme-one-dark';
 import { StreamLanguage, bracketMatching, foldService, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, defaultHighlightStyle, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { linter, Diagnostic, lintKeymap } from '@codemirror/lint';
+import { linter, lintKeymap } from '@codemirror/lint';
 import { autocompletion, CompletionContext, closeBrackets, closeBracketsKeymap, completionKeymap, snippet } from '@codemirror/autocomplete';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { MergeView } from '@codemirror/merge';

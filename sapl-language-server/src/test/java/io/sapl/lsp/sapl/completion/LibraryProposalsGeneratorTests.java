@@ -153,6 +153,14 @@ class LibraryProposalsGeneratorTests {
         assertThat(aliases).containsExactly("time.now");
     }
 
+    @Test
+    void whenSingleFunctionImported_thenOtherFunctionInSameLibraryNotAliased() {
+        var sapl    = parse("import time.now policy \"test\" permit");
+        var aliases = LibraryProposalsGenerator.aliasNamesForFunction("time.plusSeconds", sapl);
+
+        assertThat(aliases).containsExactly("time.plusSeconds");
+    }
+
     private static LSPConfiguration configWithFunction(String library, String name, String schema) {
         var entry   = new EntryDocumentation(EntryType.FUNCTION, name, "Documentation", schema, List.of());
         var lib     = new LibraryDocumentation(LibraryType.FUNCTION_LIBRARY, library, "Library", "Docs",

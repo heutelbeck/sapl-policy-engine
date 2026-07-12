@@ -19,7 +19,9 @@ name: Build Native Language Server
 
 on:
   workflow_call:
-  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-native:
@@ -51,30 +53,31 @@ jobs:
     steps:
       - name: Harden Runner
         if: runner.os == 'Linux'
-        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Install Native Build Tools (Linux)
         if: runner.os == 'Linux'
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential musl-dev musl-tools
+          sudo apt-get -o DPkg::Lock::Timeout=120 update
+          sudo apt-get -o DPkg::Lock::Timeout=120 install -y build-essential musl-dev musl-tools
           # GraalVM hardcodes x86_64-linux-musl-gcc in HostedMuslLibC regardless of arch
           sudo ln -sf /usr/bin/musl-gcc /usr/local/bin/x86_64-linux-musl-gcc
           # Get musl-compiled static zlib from Alpine's package manager
-          docker run --rm -v /tmp/alpine-zlib:/out alpine:latest sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
-          sudo cp /tmp/alpine-zlib/libz.a /usr/lib/$(uname -m)-linux-musl/
+          docker run --rm -v /tmp/alpine-zlib:/out alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
+          sudo cp /tmp/alpine-zlib/libz.a "/usr/lib/$(uname -m)-linux-musl/"
 
       - name: Setup Visual Studio Build Tools (Windows)
         if: matrix.os == 'windows-latest'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@54b4f5a65c1a84b2fdfdc2078fe43df32819e4b1 # v1.4.5
+        uses: graalvm/setup-graalvm@186d0493a2df5eb62df5ecc498883d18fd58c303 # v1.6.2
         with:
           java-version: '25'
           distribution: 'graalvm'
@@ -82,7 +85,7 @@ jobs:
           native-image-job-reports: 'true'
 
       - name: Cache Maven packages
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-native-${{ hashFiles('**/pom.xml') }}
@@ -99,10 +102,12 @@ jobs:
         run: mvn -B package -pl sapl-language-server -P${{ matrix.profile }} -Dmaven.test.skip=true
 
       - name: Upload Native Executable
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ matrix.artifact-name }}
-          path: sapl-language-server/target/${{ matrix.executable }}
+          path: |
+            sapl-language-server/target/${{ matrix.executable }}
+            sapl-language-server/target/classes/META-INF/sbom/bom.json
           if-no-files-found: error
           retention-days: 7
 

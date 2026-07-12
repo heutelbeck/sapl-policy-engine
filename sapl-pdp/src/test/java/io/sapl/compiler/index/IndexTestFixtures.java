@@ -17,7 +17,9 @@
  */
 package io.sapl.compiler.index;
 
+import io.sapl.api.model.BooleanExpression.And;
 import io.sapl.api.model.BooleanExpression.Atom;
+import io.sapl.api.model.BooleanExpression.Or;
 import io.sapl.api.model.*;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
@@ -29,6 +31,7 @@ import io.sapl.compiler.policy.CoverageVoter;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +76,51 @@ public class IndexTestFixtures {
 
     public static CompiledDocument stubDocumentWithConstantApplicability(String name, Value isApplicable) {
         return stubCompiledPolicy(name, isApplicable);
+    }
+
+    /**
+     * Builds {@code (a OR b) AND (c OR d) AND ...} over {@code conjunctions}
+     * disjunctions of fresh atoms, whose DNF expands to 2^conjunctions clauses.
+     */
+    public static BooleanExpression andOfOrs(int conjunctions) {
+        val groups = new ArrayList<BooleanExpression>(conjunctions);
+        for (int i = 0; i < conjunctions; i++) {
+            groups.add(new Or(atom(2L * i + 1), atom(2L * i + 2)));
+        }
+        return new And(groups);
+    }
+
+    public static CompiledDocument documentWithApplicability(String name, BooleanExpression expression) {
+        return stubDocumentWithApplicability(name, operatorReturning(expression));
+    }
+
+    private static PureOperator operatorReturning(BooleanExpression expression) {
+        return new PureOperator() {
+            @Override
+            public Value evaluate(EvaluationContext ctx) {
+                return Value.TRUE;
+            }
+
+            @Override
+            public SourceLocation location() {
+                return TEST_LOCATION;
+            }
+
+            @Override
+            public boolean isDependingOnSubscription() {
+                return true;
+            }
+
+            @Override
+            public long semanticHash() {
+                return expression.hashCode();
+            }
+
+            @Override
+            public BooleanExpression booleanExpression() {
+                return expression;
+            }
+        };
     }
 
     private static CompiledPolicy stubCompiledPolicy(String name, CompiledExpression isApplicable) {

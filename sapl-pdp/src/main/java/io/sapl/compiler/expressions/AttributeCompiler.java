@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
+import static io.sapl.api.shared.NameValidator.requireValidName;
 
 @UtilityClass
 public class AttributeCompiler {
@@ -60,6 +61,7 @@ public class AttributeCompiler {
     private static final String ERROR_OPTION_MUST_BE_NON_NEGATIVE             = "Attribute option '%s' must be non-negative, but was: %s.";
     private static final String ERROR_OPTION_MUST_BE_NUMBER                   = "Attribute option '%s' must be a number, but was: %s.";
     private static final String ERROR_OPTION_MUST_BE_POSITIVE                 = "Attribute option '%s' must be positive, but was: %s.";
+    private static final String ERROR_OPTION_MUST_BE_WHOLE_NUMBER             = "Attribute option '%s' must be a whole number within long range, but was: %s.";
     private static final String ERROR_OPTIONS_MUST_BE_OBJECT                  = "Attribute options must be an object, but was: %s.";
     private static final String ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION = "Attribute options must not depend on any element of the authorization subscription";
     private static final String ERROR_PDP_DEFAULTS_MUST_BE_OBJECT             = "If defined, PDP wide defaults (%s) for attribute options must be an object, but was: %s.";
@@ -84,6 +86,13 @@ public class AttributeCompiler {
     private static CompiledExpression compileAttribute(Expression entityExpr, String attributeName,
             @NonNull List<Expression> arguments, Expression optionsExpr, boolean head, @NonNull SourceLocation location,
             CompilationContext ctx) {
+
+        // Reject identifiers that are not valid attribute names.
+        try {
+            requireValidName(attributeName);
+        } catch (IllegalArgumentException e) {
+            return Value.errorAt(location, "%s", e.getMessage());
+        }
 
         val options = compileOptions(optionsExpr, ctx);
 
@@ -201,6 +210,13 @@ public class AttributeCompiler {
     private static BigDecimal requireNumber(ObjectValue settings, String key, @Nullable SourceLocation location) {
         val value = settings.get(key);
         if (value instanceof NumberValue(BigDecimal n)) {
+            // Every numeric option is consumed as a long. Reject fractional or
+            // out-of-long-range values instead of silently truncating them.
+            try {
+                n.longValueExact();
+            } catch (ArithmeticException e) {
+                throw new SaplCompilerException(ERROR_OPTION_MUST_BE_WHOLE_NUMBER.formatted(key, n), e, location);
+            }
             return n;
         }
         throw new SaplCompilerException(ERROR_OPTION_MUST_BE_NUMBER.formatted(key, value), location);
@@ -220,7 +236,7 @@ public class AttributeCompiler {
      * {@link StreamOperator#evalChild}, accumulating dependencies even past
      * any encountered {@link ErrorValue}. Holds the first error and returns
      * it after the full walk completes. {@code null} from a child sets the
-     * incomplete flag; on a clean walk with no error the attribute
+     * incomplete flag. On a clean walk with no error the attribute
      * invocation is built and looked up against the snapshot. Precedence at
      * the end: error &gt; null &gt; lookup result.
      */
@@ -307,8 +323,8 @@ public class AttributeCompiler {
             val fresh        = freshOption();
             val accessCtx    = new AttributeAccessContext(pdpData.variables(), pdpData.secrets(),
                     ctx.authorizationSubscription().secrets());
-            return new AttributeFinderInvocation(ctx.configurationId(), attributeName, entityValue, argValues, timeout,
-                    pollInterval, backoff, retries, fresh, accessCtx);
+            return new AttributeFinderInvocation(ctx.pdpId(), ctx.configurationId(), attributeName, entityValue,
+                    argValues, timeout, pollInterval, backoff, retries, fresh, accessCtx);
         }
 
         private long longOption(String key, long defaultValue) {

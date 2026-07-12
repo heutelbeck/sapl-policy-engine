@@ -25,6 +25,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -78,5 +80,23 @@ class JWTKeyProviderTests {
 
         assertThat(key).isEmpty();
         verify(httpClient).send(any(HttpRequest.class), any());
+    }
+
+    @SuppressWarnings("unchecked")
+    @org.junit.jupiter.api.Test
+    @DisplayName("an oversized key-server response is rejected without buffering the whole body")
+    void whenKeyServerResponseExceedsLimitThenRejectedAndNotFullyRead() throws Exception {
+        val httpClient = mock(HttpClient.class);
+        val response   = (HttpResponse<InputStream>) mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
+        val body = new ByteArrayInputStream(new byte[512 * 1024]);
+        when(response.body()).thenReturn(body);
+        doReturn(response).when(httpClient).send(any(HttpRequest.class), any());
+        val provider = new JWTKeyProvider(httpClient, FIXED_CLOCK);
+
+        val key = provider.provide("abc-123_XY.Z", MAPPER.readTree(KEY_SERVER_CONFIG));
+
+        assertThat(key).isEmpty();
+        assertThat(body.available()).isGreaterThan(0);
     }
 }

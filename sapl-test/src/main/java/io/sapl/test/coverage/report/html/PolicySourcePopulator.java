@@ -77,10 +77,18 @@ public class PolicySourcePopulator {
 
     private static String tryReadSource(List<Path> candidateDirs, String relativePath) {
         for (val dir : candidateDirs) {
-            val path = dir.resolve(relativePath);
+            val base = dir.toAbsolutePath().normalize();
+            val path = base.resolve(relativePath).normalize();
+            if (!path.startsWith(base)) {
+                continue;
+            }
             if (Files.exists(path)) {
                 try {
-                    return Files.readString(path);
+                    val realBase = base.toRealPath();
+                    val realPath = path.toRealPath();
+                    if (realPath.startsWith(realBase)) {
+                        return Files.readString(realPath);
+                    }
                 } catch (IOException e) {
                     log.debug("Could not read: {} - {}", path, e.getMessage());
                 }

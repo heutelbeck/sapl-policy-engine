@@ -33,8 +33,8 @@ import lombok.extern.slf4j.Slf4j;
  * This enables multi-tenant PDP routing for Spring WebFlux applications using
  * an embedded
  * {@link ReactivePolicyDecisionPoint}. The filter writes the extracted PDP id
- * to the Reactor Context on every request;
- * downstream consumers (the reactive tenant resolver) read it from there.
+ * to the Reactor Context on every request.
+ * Downstream consumers (the reactive tenant resolver) read it from there.
  */
 @Slf4j
 @AutoConfiguration

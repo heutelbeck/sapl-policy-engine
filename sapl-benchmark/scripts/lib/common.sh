@@ -65,7 +65,24 @@ load_experiment() {
         exit 1
     fi
     source "$file"
+    [ "${MINIMAL:-false}" = true ] && minimize_sweeps
     echo "Experiment: $experiment"
+}
+
+# Truncate every parameter sweep to its first value so an experiment runs a
+# single combination. The test quality profile sets MINIMAL for CI validation.
+minimize_sweeps() {
+    local name
+    for name in SCENARIOS METHODS THREAD_SWEEP INDEXING_SWEEP SCALING_FACTORS \
+        APPS GC_SWEEP UNROLL_SWEEP CORE_SWEEP CONN_SWEEP TRANSPORT_SWEEP \
+        SERVER_PCORES_SWEEP SCENARIOS_QUICK SCENARIOS_FULL LOAD_PCTS_QUICK LOAD_PCTS_FULL; do
+        if declare -p "$name" &>/dev/null; then
+            local -n ref="$name"
+            [ "${#ref[@]}" -gt 1 ] && ref=("${ref[0]}")
+            unset -n ref
+        fi
+    done
+    SEEDS=1
 }
 
 # ---------------------------------------------------------------------------
@@ -169,6 +186,29 @@ server_cpus() {
 client_cpus() {
     # Always E-cores only (validated: no throughput difference vs all remaining)
     echo "16-31"
+}
+
+# Number of logical CPUs in a taskset spec like "16-31", "0,2,4", or "16-31,40".
+count_cpus() {
+    local spec=$1 total=0 part lo hi
+    local IFS=','
+    for part in $spec; do
+        if [[ "$part" == *-* ]]; then
+            lo=${part%%-*}
+            hi=${part##*-}
+            total=$((total + hi - lo + 1))
+        else
+            total=$((total + 1))
+        fi
+    done
+    echo "$total"
+}
+
+# wrk2 generator threads: one per client CPU. Two threads (the former default)
+# under-drive a fast HTTP server and undercount throughput; the client must be
+# able to saturate the server for the throughput number to be the server's.
+client_threads() {
+    count_cpus "$(client_cpus)"
 }
 
 run_pinned() {
@@ -298,7 +338,7 @@ converge_wrk() {
     local samples=()
 
     for i in $(seq 1 $MAX_WARMUP_ITERS); do
-        local rps=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t2 -c"$connections" -d${WRK_WARMUP_TIME}s -R 10000000 -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
+        local rps=$(SUBSCRIPTION_FILE="$sub_file" run_pinned "$client_cpu" wrk2 -t"$WRK_THREADS" -c"$connections" -d${WRK_WARMUP_TIME}s -R 10000000 -s "$lua_script" "$url" 2>&1 | grep "Requests/sec" | awk '{printf "%.0f", $2}')
         samples+=("$rps")
         local n=${#samples[@]}
         if [ "$n" -ge 3 ]; then
@@ -340,6 +380,36 @@ parse_wrk_latency() {
     echo "$p50_ns:$p90_ns:$p99_ns"
 }
 
+# Extract p50:p90:p99:p999:max latency (ns) from a wrk2 --latency "Latency Distribution"
+# block. Used for HTTP latency-at-load, where the rate is held below saturation so the
+# coordinated-omission-corrected percentiles are meaningful.
+parse_wrk_latency5() {
+    local output="$1"
+    local p50=$(echo  "$output" | awk '/Latency Distribution/{f=1} f && /^ *50\.000%/{print $2; exit}')
+    local p90=$(echo  "$output" | awk '/Latency Distribution/{f=1} f && /^ *90\.000%/{print $2; exit}')
+    local p99=$(echo  "$output" | awk '/Latency Distribution/{f=1} f && /^ *99\.000%/{print $2; exit}')
+    local p999=$(echo "$output" | awk '/Latency Distribution/{f=1} f && /^ *99\.900%/{print $2; exit}')
+    local pmax=$(echo "$output" | awk '/Latency Distribution/{f=1} f && /^ *100\.000%/{print $2; exit}')
+    echo "$(wrk_latency_to_ns "$p50"):$(wrk_latency_to_ns "$p90"):$(wrk_latency_to_ns "$p99"):$(wrk_latency_to_ns "$p999"):$(wrk_latency_to_ns "$pmax")"
+}
+
+# Write a loadtest-format CSV (as consumed by bench.py summarize_json) from externally
+# measured wrk2 values, so HTTP latency-at-load lands in the same chart series as RSocket.
+# Args: outfile label protocol threads connections measurement_s mean_ops_s p50ns p90ns p99ns p999ns maxns
+write_loadtest_csv() {
+    local outfile=$1 label=$2 protocol=$3 threads=$4 connections=$5 measurement=$6
+    local mean_ops=$7 p50=$8 p90=$9 p99=${10} p999=${11} pmax=${12}
+    {
+        echo "# Label: $label"
+        echo "# Protocol: $protocol"
+        echo "# Connections: $connections"
+        echo "# Concurrency: $connections"
+        echo "# Measurement: ${measurement}s"
+        echo "method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,mean_ns_op,latency_p50_ns,latency_p90_ns,latency_p99_ns,latency_p999_ns,latency_max_ns"
+        echo "$label,$threads,$mean_ops,0,0,0,0,0,0,0,0,0,$p50,$p90,$p99,$p999,$pmax"
+    } > "$outfile"
+}
+
 # ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
@@ -352,6 +422,7 @@ log_env() {
     echo "  OS:      $(uname -sr)"
     echo "  Pinning: $($PINNING_AVAILABLE && echo "available" || echo "NOT available")"
     echo "  wrk2:    $($HAS_WRK && wrk2 --version 2>&1 | head -1 || echo "not found")"
+    echo "  wrk2 -t: $WRK_THREADS generator threads (client cores: $(client_cpus); override via WRK_THREADS)"
     echo "  Native:  $($HAS_NATIVE && echo "$SAPL_NATIVE" || echo "not found")"
     echo "  Temp:    $(pkg_temp)C"
     echo ""
@@ -368,3 +439,8 @@ timestamp() {
 detect_cpu_topology
 detect_temp_sensor
 check_tools
+
+# wrk2 generator thread count. Explicit and recorded (see log_env) for
+# reproducibility. Default: one thread per pinned client core; override by
+# exporting WRK_THREADS before running, or setting it in a profile.
+WRK_THREADS="${WRK_THREADS:-$(client_threads)}"

@@ -21,6 +21,8 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.val;
 
 /**
@@ -47,6 +49,8 @@ public class MathFunctionLibrary {
     private static final String ERROR_MIN_GREATER_THAN_MAX  = "Minimum must be less than or equal to maximum.";
     private static final String ERROR_POWER_RESULTED_IN_NAN = "Power operation resulted in NaN (e.g., negative base with fractional exponent).";
     private static final String ERROR_SQRT_NEGATIVE         = "Cannot calculate square root of a negative number.";
+
+    private static final BigDecimal ONE_HALF = new BigDecimal("0.5");
 
     private static final String SCHEMA_RETURNS_NUMBER = """
             {
@@ -77,7 +81,7 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value min(NumberValue a, NumberValue b) {
-        return Value.of(Math.min(a.value().doubleValue(), b.value().doubleValue()));
+        return Value.of(a.value().min(b.value()));
     }
 
     /**
@@ -103,7 +107,7 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value max(NumberValue a, NumberValue b) {
-        return Value.of(Math.max(a.value().doubleValue(), b.value().doubleValue()));
+        return Value.of(a.value().max(b.value()));
     }
 
     /**
@@ -127,7 +131,7 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value abs(NumberValue value) {
-        return Value.of(Math.abs(value.value().doubleValue()));
+        return Value.of(value.value().abs());
     }
 
     /**
@@ -152,7 +156,7 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value ceil(NumberValue value) {
-        return Value.of(Math.ceil(value.value().doubleValue()));
+        return Value.of(value.value().setScale(0, RoundingMode.CEILING));
     }
 
     /**
@@ -177,7 +181,7 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value floor(NumberValue value) {
-        return Value.of(Math.floor(value.value().doubleValue()));
+        return Value.of(value.value().setScale(0, RoundingMode.FLOOR));
     }
 
     /**
@@ -203,7 +207,7 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value round(NumberValue value) {
-        return Value.of((double) Math.round(value.value().doubleValue()));
+        return Value.of(value.value().add(ONE_HALF).setScale(0, RoundingMode.FLOOR));
     }
 
     /**
@@ -287,7 +291,7 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value sign(NumberValue value) {
-        return Value.of(Math.signum(value.value().doubleValue()));
+        return Value.of(BigDecimal.valueOf(value.value().signum()));
     }
 
     /**

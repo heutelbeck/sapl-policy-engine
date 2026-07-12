@@ -79,7 +79,7 @@ public final class CoarseClock implements InstantSource, AutoCloseable {
      * Creates a clock with a custom update interval.
      *
      * @param updateIntervalMilliseconds
-     * the interval between timestamp updates in milliseconds; lower values increase
+     * the interval between timestamp updates in milliseconds. Lower values increase
      * precision but add CPU
      * overhead
      */

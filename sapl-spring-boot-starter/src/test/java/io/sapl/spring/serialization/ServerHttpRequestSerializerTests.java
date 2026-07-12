@@ -104,6 +104,22 @@ class ServerHttpRequestSerializerTests {
     }
 
     @Nested
+    class MalformedHeaders {
+
+        @Test
+        void malformedContentTypeIsOmittedRatherThanThrowing() {
+            val request = MockServerHttpRequest.post("/x").header("Content-Type", "///").build();
+            assertThat(serialize(request).get("contentType")).isNull();
+        }
+
+        @Test
+        void malformedContentLengthIsOmittedRatherThanThrowing() {
+            val request = MockServerHttpRequest.post("/x").header("Content-Length", "abc").build();
+            assertThat(serialize(request).get("contentLength")).isNull();
+        }
+    }
+
+    @Nested
     class PathSubdivision {
 
         @Test

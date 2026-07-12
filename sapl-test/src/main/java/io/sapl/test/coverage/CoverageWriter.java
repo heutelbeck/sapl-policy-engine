@@ -25,6 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -45,6 +48,10 @@ public class CoverageWriter {
     private static final String     COVERAGE_FILENAME             = "coverage.ndjson";
     private static final JsonMapper MAPPER                        = createJsonMapper();
     private static final String     WARN_FAILED_TO_WRITE_COVERAGE = "Failed to write coverage data: {}";
+
+    // FileChannel.lock is per-JVM, so an in-JVM monitor serializes threads before
+    // the OS lock guards cross-fork writers.
+    private static final Object IN_PROCESS_WRITE_LOCK = new Object();
 
     private final Path outputDirectory;
 
@@ -70,10 +77,18 @@ public class CoverageWriter {
     public void write(TestCoverageRecord coverageRecord) throws IOException {
         Files.createDirectories(outputDirectory);
 
-        val json = MAPPER.writeValueAsString(toSerializableMap(coverageRecord));
-        val file = getCoverageFilePath();
+        val json  = MAPPER.writeValueAsString(toSerializableMap(coverageRecord));
+        val bytes = (json + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+        val file  = getCoverageFilePath();
 
-        Files.writeString(file, json + System.lineSeparator(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        // OS-level lock serializes the whole record across forks so appends never
+        // interleave.
+        synchronized (IN_PROCESS_WRITE_LOCK) {
+            try (val channel = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+                    StandardOpenOption.APPEND); val ignored = channel.lock()) {
+                channel.write(ByteBuffer.wrap(bytes));
+            }
+        }
     }
 
     /**

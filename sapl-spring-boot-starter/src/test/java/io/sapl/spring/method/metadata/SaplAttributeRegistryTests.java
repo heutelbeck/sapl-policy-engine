@@ -184,6 +184,36 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
+    void whenAnnotationOnClassAndInterfaceMethod_ThenReturnsOnClass() {
+
+        @PreEnforce(subject = "'onClass'")
+        class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectSubjectExpressionStringInAttribute(TestClass.class, "'onClass'");
+    }
+
+    @Test
+    void whenAnnotationOnClassAndUnoverriddenDefaultInterfaceMethod_ThenReturnsOnClass() {
+
+        @PreEnforce(subject = "'onClass'")
+        class TestClass implements DefaultPreEnforceMethodInterface {
+        }
+
+        // A real target is required so the concrete class is known. An unoverridden
+        // default method's declaring class is the interface, not the bean class.
+        final var sut        = new SaplAttributeRegistry();
+        final var mi         = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "doSomething",
+                null, null);
+        final var attributes = sut.getAllSaplAttributes(mi);
+        assertThat(attributes.values())
+                .anySatisfy(attr -> assertThat(attr.subjectExpression().getExpressionString()).isEqualTo("'onClass'"));
+    }
+
+    @Test
     void whenAnnotationOnMethod_ThenReturnsOnMethodForPost() {
 
         class TestClass {
@@ -198,6 +228,13 @@ class SaplAttributeRegistryTests {
 
     interface DefaultMethodInterface {
         @PostEnforce(subject = "'onDefaultInterfaceMethod'")
+        default void doSomething() {
+            // NOOP test dummy
+        }
+    }
+
+    interface DefaultPreEnforceMethodInterface {
+        @PreEnforce(subject = "'onDefaultInterfaceMethod'")
         default void doSomething() {
             // NOOP test dummy
         }

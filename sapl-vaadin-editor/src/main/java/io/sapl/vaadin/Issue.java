@@ -60,34 +60,34 @@ public class Issue implements Serializable {
      */
     public Issue(ObjectNode jsonObject) {
         if (jsonObject.has(DESCRIPTION_KEY)) {
-            description = jsonObject.get(DESCRIPTION_KEY).asString();
+            description = jsonObject.path(DESCRIPTION_KEY).asString(null);
         }
 
         if (jsonObject.has(SEVERITY_KEY)) {
-            var severityString = jsonObject.get(SEVERITY_KEY).asString();
+            var severityString = jsonObject.path(SEVERITY_KEY).asString(null);
             severity = parseSeverity(severityString);
         }
 
         // Support both 'line' and 'startLine' keys
         if (jsonObject.has(LINE_KEY)) {
-            line = jsonObject.get(LINE_KEY).asInt();
+            line = jsonObject.path(LINE_KEY).asInt(0);
         } else if (jsonObject.has(START_LINE_KEY)) {
-            line = jsonObject.get(START_LINE_KEY).asInt();
+            line = jsonObject.path(START_LINE_KEY).asInt(0);
         }
 
         // Support both 'column' and 'startColumn' keys
         if (jsonObject.has(COLUMN_KEY)) {
-            column = jsonObject.get(COLUMN_KEY).asInt();
+            column = jsonObject.path(COLUMN_KEY).asInt(0);
         } else if (jsonObject.has(START_COLUMN_KEY)) {
-            column = jsonObject.get(START_COLUMN_KEY).asInt();
+            column = jsonObject.path(START_COLUMN_KEY).asInt(0);
         }
 
         if (jsonObject.has(OFFSET_KEY)) {
-            offset = jsonObject.get(OFFSET_KEY).asInt();
+            offset = jsonObject.path(OFFSET_KEY).asInt(0);
         }
 
         if (jsonObject.has(LENGTH_KEY)) {
-            length = jsonObject.get(LENGTH_KEY).asInt();
+            length = jsonObject.path(LENGTH_KEY).asInt(0);
         }
     }
 

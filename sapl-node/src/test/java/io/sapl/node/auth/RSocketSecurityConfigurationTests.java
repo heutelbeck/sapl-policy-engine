@@ -32,8 +32,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.oauth2.jwt.Jwt;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -165,6 +169,47 @@ class RSocketSecurityConfigurationTests {
             val result = authenticatorFor(properties).authenticate(setupWith(metadata));
 
             StepVerifier.create(result).expectError(BadCredentialsException.class).verify();
+        }
+    }
+
+    @Nested
+    @DisplayName("JWT expiry (exp claim)")
+    class JwtExpiry {
+
+        private static final Instant ISSUED_AT = Instant.parse("2026-02-13T00:00:00Z");
+
+        @SuppressWarnings("unchecked")
+        private Mono<RSocketConnectionAuthenticator.AuthenticationResult> extract(SaplNodeProperties properties,
+                Jwt jwt) throws Exception {
+            val          config = new RSocketSecurityConfiguration(properties, userLookupService, null);
+            final Method method = RSocketSecurityConfiguration.class.getDeclaredMethod("extractPdpIdFromJwt",
+                    Jwt.class);
+            method.setAccessible(true);
+            return (Mono<RSocketConnectionAuthenticator.AuthenticationResult>) method.invoke(config, jwt);
+        }
+
+        private static Jwt jwtWithoutExpiry() {
+            return Jwt.withTokenValue("t").header("alg", "RS256").claim("sapl_pdp_id", "tenant").issuedAt(ISSUED_AT)
+                    .build();
+        }
+
+        @Test
+        @DisplayName("a JWT without an exp claim is rejected by default (would grant a non-expiring connection)")
+        void whenJwtWithoutExpiryAndNotAllowedThenRejected() throws Exception {
+            val result = extract(new SaplNodeProperties(), jwtWithoutExpiry());
+
+            StepVerifier.create(result).expectError(BadCredentialsException.class).verify();
+        }
+
+        @Test
+        @DisplayName("a JWT without an exp claim is accepted when allow-jwt-without-expiry=true")
+        void whenJwtWithoutExpiryAndAllowedThenAccepted() throws Exception {
+            val properties = new SaplNodeProperties();
+            properties.getOauth().setAllowJwtWithoutExpiry(true);
+
+            val result = extract(properties, jwtWithoutExpiry());
+
+            StepVerifier.create(result).expectNextMatches(r -> "tenant".equals(r.pdpId())).verifyComplete();
         }
     }
 }

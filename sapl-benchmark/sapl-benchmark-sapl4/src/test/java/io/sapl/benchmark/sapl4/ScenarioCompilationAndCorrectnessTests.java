@@ -45,7 +45,7 @@ class ScenarioCompilationAndCorrectnessTests {
 
     private static final long[] SEEDS = { 0, 42, 123 };
 
-    // Smoke runs keep only static + small scaled scenarios (scale <= this); the
+    // Smoke runs keep only static + small scaled scenarios (scale <= this). The
     // full
     // scaled range runs under the it profile (-Dsapl.fullTests=true).
     private static final int SMOKE_MAX_SCALE = 10;

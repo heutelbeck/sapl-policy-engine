@@ -20,11 +20,15 @@ package io.sapl.node.rsocket.pdp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
 
+import io.netty.buffer.Unpooled;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.AfterAll;
@@ -35,7 +39,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.test.util.TestSocketUtils;
 
+import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
+import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -44,6 +50,7 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.proto.SaplProtobufCodec;
 import io.sapl.node.rsocket.pdp.ProtobufRSocketAcceptor;
 import io.sapl.node.rsocket.pdp.RSocketConnectionAuthenticator.AuthenticationResult;
@@ -131,6 +138,64 @@ class ProtobufRSocketAcceptorTests {
 
             rsocket.dispose();
         }
+    }
+
+    @Test
+    @DisplayName("setup authentication runs on a virtual thread, not the calling/event-loop thread")
+    void whenAuthenticatingThenRunsOffTheTransportThread() {
+        val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+        val pdp         = mock(ReactivePolicyDecisionPoint.class);
+        val authThread  = new AtomicReference<Thread>();
+        val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp, setup -> Mono.fromCallable(() -> {
+                            authThread.set(Thread.currentThread());
+                            return new AuthenticationResult("tenant-1", null);
+                        }));
+
+        acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+
+        assertThat(authThread.get()).isNotNull();
+        assertThat(authThread.get().isVirtual()).isTrue();
+    }
+
+    @Test
+    @DisplayName("an unknown request-response route is rejected before payload data is read")
+    void whenRequestResponseRouteUnknownThenPayloadDataIsNotRead() {
+        val rsocket = rsocketWithoutAuthenticator();
+        val payload = unknownRoutePayload();
+
+        val result = rsocket.requestResponse(payload);
+
+        StepVerifier.create(result).expectError().verify();
+        verify(payload, never()).data();
+        verify(payload).release();
+    }
+
+    @Test
+    @DisplayName("an unknown request-stream route is rejected before payload data is read")
+    void whenRequestStreamRouteUnknownThenPayloadDataIsNotRead() {
+        val rsocket = rsocketWithoutAuthenticator();
+        val payload = unknownRoutePayload();
+
+        val result = rsocket.requestStream(payload);
+
+        StepVerifier.create(result).expectError().verify();
+        verify(payload, never()).data();
+        verify(payload).release();
+    }
+
+    @Test
+    @DisplayName("a request-stream multi-subscription above the configured entry limit is rejected before the PDP is called")
+    void whenRequestStreamMultiSubscriptionCountExceedsLimitThenInvalidErrorAndPdpNotCalled() throws IOException {
+        val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+        val pdp         = mock(ReactivePolicyDecisionPoint.class);
+        val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp, null, 1);
+        val rsocket     = acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+        val payload     = createMultiDecidePayload();
+
+        val result = rsocket.requestStream(payload);
+
+        StepVerifier.create(result).expectError().verify();
+        verify(pdp, never()).decide(any(MultiAuthorizationSubscription.class), any());
     }
 
     @Nested
@@ -233,6 +298,20 @@ class ProtobufRSocketAcceptorTests {
         }
     }
 
+    private static RSocket rsocketWithoutAuthenticator() {
+        val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+        val pdp         = mock(ReactivePolicyDecisionPoint.class);
+        val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp);
+        return acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+    }
+
+    private static Payload unknownRoutePayload() {
+        val payload = mock(Payload.class);
+        when(payload.metadata()).thenReturn(Unpooled.wrappedBuffer("unknown-route".getBytes(StandardCharsets.UTF_8)));
+        when(payload.data()).thenReturn(Unpooled.wrappedBuffer("unused".getBytes(StandardCharsets.UTF_8)));
+        return payload;
+    }
+
     private static Payload createDecideOncePayload(AuthorizationSubscription sub) throws IOException {
         val data = SaplProtobufCodec.writeAuthorizationSubscription(sub);
         return DefaultPayload.create(data, "decide-once".getBytes(StandardCharsets.UTF_8));
@@ -241,6 +320,14 @@ class ProtobufRSocketAcceptorTests {
     private static Payload createDecidePayload(AuthorizationSubscription sub) throws IOException {
         val data = SaplProtobufCodec.writeAuthorizationSubscription(sub);
         return DefaultPayload.create(data, "decide".getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Payload createMultiDecidePayload() throws IOException {
+        val multi = new MultiAuthorizationSubscription();
+        multi.addAuthorizationSubscription("sub1", "alice", "read", "doc1");
+        multi.addAuthorizationSubscription("sub2", "bob", "write", "doc2");
+        val data = SaplProtobufCodec.writeMultiAuthorizationSubscription(multi);
+        return DefaultPayload.create(data, "multi-decide".getBytes(StandardCharsets.UTF_8));
     }
 
 }

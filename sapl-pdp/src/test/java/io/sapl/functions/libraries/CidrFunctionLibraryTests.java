@@ -21,6 +21,7 @@ import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,6 +29,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
@@ -147,6 +149,28 @@ class CidrFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void containsMatchesWhenComparisonProductExceedsMaximumThenErrorBeforeParsing() {
+        val cidrs = repeatedStringArray("not-parsed", 1001);
+        val ips   = repeatedStringArray("also-not-parsed", 1000);
+
+        val result = CidrFunctionLibrary.containsMatches(cidrs, ips);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("comparison count").contains("1000000");
+    }
+
+    @Test
+    void containsMatchesWhenMatchOutputExceedsMaximumThenError() {
+        val cidrs = repeatedStringArray("0.0.0.0/0", 257);
+        val ips   = repeatedStringArray("10.0.0.1", 256);
+
+        val result = CidrFunctionLibrary.containsMatches(cidrs, ips);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("match output").contains("65535");
+    }
+
     @ParameterizedTest(name = "Expand {0} into expected addresses")
     @MethodSource("expandTestCases")
     void expandWhenValidCidrThenReturnsExpectedAddresses(String cidr, String[] expectedAddresses) {
@@ -241,6 +265,14 @@ class CidrFunctionLibraryTests {
         }
 
         assertThat(mergedCidrs).containsExactlyInAnyOrder(expectedCidrs);
+    }
+
+    @Test
+    void mergeWhenAddressCountExceedsMaximumThenError() {
+        val result = CidrFunctionLibrary.merge(repeatedStringArray("192.168.1.0/24", 1001));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Address array size").contains("1000");
     }
 
     static Stream<Arguments> mergeTestCases() {
@@ -430,6 +462,8 @@ class CidrFunctionLibraryTests {
             2001:1::1          | true
             2001:db8::1        | true
             2001:db8:ffff::    | true
+            fc00::1            | true
+            fd00::1            | true
             # Not Reserved
             239.255.255.255    | false
             192.168.1.1        | false
@@ -478,6 +512,8 @@ class CidrFunctionLibraryTests {
             ::1                | false
             fe80::1            | false
             2001:db8::1        | false
+            fc00::1            | false
+            fd00::1            | false
             """)
     void isPublicRoutableWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isPublicRoutable(Value.of(ipAddress));
@@ -692,6 +728,79 @@ class CidrFunctionLibraryTests {
         assertThat(((ErrorValue) result).message()).contains("out of range");
     }
 
+    @Nested
+    @DisplayName("prefix length validation rejects malformed prefixes instead of silently wrapping")
+    class PrefixLengthValidation {
+
+        // 2^32 + 24: narrowing this to int via BigDecimal.intValue() wraps to 24, which
+        // would otherwise be silently accepted and produce a /24 anonymization instead
+        // of
+        // an error. An operator anonymizing for GDPR must never get a wrong
+        // granularity.
+        private static final BigDecimal WRAPPING_PREFIX   = BigDecimal.valueOf(4294967320L);
+        private static final BigDecimal FRACTIONAL_PREFIX = new BigDecimal("24.7");
+
+        @Test
+        @DisplayName("anonymizeIp rejects a huge prefix that would wrap to an in-range int")
+        void anonymizeIpWhenPrefixWrapsToInRangeIntThenReturnsError() {
+            val result = CidrFunctionLibrary.anonymizeIp(Value.of("192.168.1.123"),
+                    (NumberValue) Value.of(WRAPPING_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("out of range");
+        }
+
+        @Test
+        @DisplayName("anonymizeIp rejects a fractional prefix instead of truncating")
+        void anonymizeIpWhenPrefixIsFractionalThenReturnsError() {
+            val result = CidrFunctionLibrary.anonymizeIp(Value.of("192.168.1.123"),
+                    (NumberValue) Value.of(FRACTIONAL_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("integer");
+        }
+
+        @Test
+        @DisplayName("sameSubnet rejects a huge prefix that would wrap to an in-range int")
+        void sameSubnetWhenPrefixWrapsToInRangeIntThenReturnsError() {
+            val result = CidrFunctionLibrary.sameSubnet(Value.of("192.168.1.1"), Value.of("192.168.1.2"),
+                    (NumberValue) Value.of(WRAPPING_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("out of range");
+        }
+
+        @Test
+        @DisplayName("sameSubnet rejects a fractional prefix instead of truncating")
+        void sameSubnetWhenPrefixIsFractionalThenReturnsError() {
+            val result = CidrFunctionLibrary.sameSubnet(Value.of("192.168.1.1"), Value.of("192.168.1.2"),
+                    (NumberValue) Value.of(FRACTIONAL_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("integer");
+        }
+
+        @Test
+        @DisplayName("canSubdivide rejects a huge prefix that would wrap to an in-range int")
+        void canSubdivideWhenPrefixWrapsToInRangeIntThenReturnsError() {
+            val result = CidrFunctionLibrary.canSubdivide(Value.of("192.168.0.0/16"),
+                    (NumberValue) Value.of(WRAPPING_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("out of range");
+        }
+
+        @Test
+        @DisplayName("canSubdivide rejects a fractional prefix instead of truncating")
+        void canSubdivideWhenPrefixIsFractionalThenReturnsError() {
+            val result = CidrFunctionLibrary.canSubdivide(Value.of("192.168.0.0/16"),
+                    (NumberValue) Value.of(FRACTIONAL_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("integer");
+        }
+    }
+
     @Test
     void isPublicRoutableWhenInvalidIpThenReturnsError() {
         val result = CidrFunctionLibrary.isPublicRoutable(Value.of("invalid-ip"));
@@ -716,5 +825,13 @@ class CidrFunctionLibraryTests {
 
     private static ArrayValue buildStringArray(String... values) {
         return Value.ofArray(Stream.of(values).map(Value::of).toArray(Value[]::new));
+    }
+
+    private static ArrayValue repeatedStringArray(String value, int count) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < count; i++) {
+            builder.add(Value.of(value));
+        }
+        return builder.build();
     }
 }

@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -83,6 +84,56 @@ class StreamsTests {
             val stream = Streams.empty();
 
             assertThat(stream.awaitNext()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("defer")
+    class Defer {
+
+        @Test
+        @DisplayName("does not invoke the factory until the stream is first read")
+        void whenNotReadThenFactoryNotInvoked() throws InterruptedException {
+            val invoked = new AtomicBoolean(false);
+            val stream  = Streams.defer(() -> {
+                            invoked.set(true);
+                            return Streams.just(Value.of("v"));
+                        });
+
+            assertThat(invoked).isFalse();
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("v"));
+            assertThat(invoked).isTrue();
+        }
+
+        @Test
+        @DisplayName("runs the factory off the calling thread, forwards its value, then completes")
+        void whenReadThenFactoryRunsOffThreadAndValueForwarded() throws InterruptedException {
+            val callingThread = Thread.currentThread();
+            val factoryThread = new AtomicReference<Thread>();
+            val stream        = Streams.defer(() -> {
+                                  factoryThread.set(Thread.currentThread());
+                                  return Streams.just(Value.of("a"));
+                              });
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("a"));
+            assertThat(stream.awaitNext()).isNull();
+            assertThat(factoryThread.get()).isNotNull().isNotSameAs(callingThread);
+        }
+
+        @Test
+        @DisplayName("invokes the factory exactly once, even after the stream completes (one-shot, unlike repeat)")
+        void whenStreamCompletesThenFactoryNotReinvoked() throws InterruptedException {
+            val count  = new AtomicInteger(0);
+            val stream = Streams.defer(() -> {
+                           count.incrementAndGet();
+                           return Streams.just(Value.of("once"));
+                       });
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("once"));
+            assertThat(stream.awaitNext()).isNull();
+            assertThat(stream.awaitNext()).isNull();
+            assertThat(count.get()).isEqualTo(1);
         }
     }
 
@@ -214,6 +265,39 @@ class StreamsTests {
 
             await().pollDelay(Duration.ofMillis(120)).atMost(Duration.ofMillis(220))
                     .untilAsserted(() -> assertThat(callCount.get()).isLessThanOrEqualTo(countAtClose + 1));
+        }
+    }
+
+    @Nested
+    @DisplayName("scheduledPoll")
+    class ScheduledPoll {
+
+        @Test
+        @DisplayName("a close racing the reschedule still cancels the freshly scheduled tick")
+        void whenCloseRacesRescheduleThenScheduledTickIsCancelled() {
+            val lastCancelled = new AtomicBoolean(false);
+            val streamRef     = new AtomicReference<Stream<Value>>();
+            val pendingTick   = new AtomicReference<Runnable>();
+            val scheduleCount = new AtomicInteger();
+            // On the reschedule from the manually fired tick, close runs after the tick has
+            // passed its stopped re-check but before it stores the returned handle. Without
+            // re-checking stopped afterwards, that freshly scheduled handle is leaked.
+            val racingScheduler = new TimeScheduler() {
+                @Override
+                public Cancellable scheduleAt(Instant when, Runnable task) {
+                    if (scheduleCount.incrementAndGet() == 1) {
+                        pendingTick.set(task);
+                        return Cancellable.NOOP;
+                    }
+                    streamRef.get().close();
+                    return () -> lastCancelled.set(true);
+                }
+            };
+
+            streamRef.set(Streams.scheduledPoll(Duration.ofMillis(10), () -> Value.of("tick"), CLOCK, racingScheduler));
+            pendingTick.get().run();
+
+            assertThat(lastCancelled).as("handle scheduled while a close was racing must be cancelled").isTrue();
         }
     }
 

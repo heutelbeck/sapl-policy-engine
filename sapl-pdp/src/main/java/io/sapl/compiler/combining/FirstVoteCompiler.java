@@ -69,7 +69,7 @@ import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
  * produces a snapshot-driven voter that walks the policies sequentially
  * per round, stopping at the first non-NOT_APPLICABLE result. Tail
  * policies are not subscribed when an earlier policy resolves
- * applicability; their deps only enter the dependency set if the
+ * applicability. Their deps only enter the dependency set if the
  * snapshot round actually reaches them.</li>
  * </ul>
  */
@@ -96,7 +96,8 @@ public class FirstVoteCompiler {
     private static CoverageVoter compileCoverageVoter(PolicySet policySet, CompiledExpression isApplicable,
             List<CompiledPolicy> compiledPolicies, VoterMetadata voterMetadata,
             CombiningAlgorithm.DefaultDecision defaultDecision, CombiningAlgorithm.ErrorHandling errorHandling) {
-        val targetLocation = policySet.target() != null ? policySet.target().location() : null;
+        val target         = policySet.target();
+        val targetLocation = target != null ? target.location() : null;
         return new FirstPolicySetCoverageVoter(isApplicable, targetLocation, compiledPolicies, voterMetadata,
                 defaultDecision, errorHandling);
     }
@@ -212,7 +213,7 @@ public class FirstVoteCompiler {
      * Stream vote maker for first evaluation with at least one streaming
      * policy. Walks the policies sequentially per snapshot round, stopping
      * at the first non-NOT_APPLICABLE child vote. Tail policies are not
-     * subscribed when an earlier policy resolves applicability; their deps
+     * subscribed when an earlier policy resolves applicability. Their deps
      * only enter the dependency set if the snapshot round actually reaches
      * them. The broker re-fires this voter when its current dep set changes.
      *
@@ -234,17 +235,17 @@ public class FirstVoteCompiler {
             val deps     = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(policies.size());
             val allVotes = new ArrayList<>(contributingVotes);
             for (var i = 0; i < policies.size(); i++) {
-                val sub = policies.get(i).applicabilityAndVote().evaluate(ctx);
+                val sub  = policies.get(i).applicabilityAndVote().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
-                allVotes.add(sub.vote());
-                if (sub.vote().authorizationDecision().decision() != NOT_APPLICABLE) {
-                    val outcome  = firstApplicableOutcome(sub.vote(), policies.subList(i + 1, policies.size()),
+                allVotes.add(vote);
+                if (vote.authorizationDecision().decision() != NOT_APPLICABLE) {
+                    val outcome  = firstApplicableOutcome(vote, policies.subList(i + 1, policies.size()),
                             defaultDecision);
-                    val combined = Vote.combinedVote(sub.vote().authorizationDecision(), voterMetadata, allVotes,
-                            outcome);
+                    val combined = Vote.combinedVote(vote.authorizationDecision(), voterMetadata, allVotes, outcome);
                     return new VoteResult(finalizeVote(combined, errorHandling, voterMetadata), deps);
                 }
             }
@@ -302,13 +303,14 @@ public class FirstVoteCompiler {
             val allVotes          = new ArrayList<Vote>();
             val perPolicyCoverage = new ArrayList<Coverage.DocumentCoverage>();
             for (var i = 0; i < policies.size(); i++) {
-                val sub = policies.get(i).coverageVoter().evaluate(ctx);
-                StreamOperator.mergeDependencies(deps, sub.voteResult().dependencies());
-                if (sub.voteResult().vote() == null) {
+                val sub        = policies.get(i).coverageVoter().evaluate(ctx);
+                val voteResult = sub.voteResult();
+                StreamOperator.mergeDependencies(deps, voteResult.dependencies());
+                val policyVote = voteResult.vote();
+                if (policyVote == null) {
                     val partial = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
                     return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
                 }
-                val policyVote = sub.voteResult().vote();
                 allVotes.add(policyVote);
                 perPolicyCoverage.add(sub.coverage());
                 if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {

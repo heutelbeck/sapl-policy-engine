@@ -37,6 +37,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assumptions.abort;
 
 @DisplayName("MultiDirectoryPDPConfigurationSource")
 class MultiDirectoryPDPConfigurationSourceTests {
@@ -64,6 +65,22 @@ class MultiDirectoryPDPConfigurationSourceTests {
         val capture = new CapturingSubscriber();
         src.subscribe(capture);
         return capture.configs();
+    }
+
+    @Test
+    @DisplayName("a stale child's deferred removal does not evict a live replacement re-registered under the same pdpId")
+    void whenStaleChildRemovalFiresThenLiveReplacementUnderSamePdpIdSurvives() throws IOException {
+        val staleDir = Files.createDirectories(tempDir.resolve("stale-instance"));
+        val liveDir  = Files.createDirectories(tempDir.resolve("live-instance"));
+        val stale    = new DirectoryPDPConfigurationSource(staleDir, "production", () -> {});
+        val live     = new DirectoryPDPConfigurationSource(liveDir, "production", () -> {});
+        source = new MultiDirectoryPDPConfigurationSource(tempDir);
+        source.childSources().put("production", live);
+
+        source.removeChildSourceIfCurrent("production", stale);
+
+        assertThat(source.childSources()).containsEntry("production", live);
+        stale.close();
     }
 
     @Test
@@ -231,6 +248,49 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    void whenOneSubscriberThrowsThenOthersStillReceiveReloads() throws IOException {
+        createSubdirectoryWithPolicy("initial", DENY_OVERRIDES, "policy.sapl", "policy \"initial\" permit true;");
+        source = new MultiDirectoryPDPConfigurationSource(tempDir);
+
+        val recorder = new CapturingSubscriber();
+        source.subscribe(recorder);
+        // A throwing subscriber must not starve the others.
+        source.subscribe(event -> {
+            throw new IllegalStateException("subscriber boom");
+        });
+
+        createSubdirectoryWithPolicy("added", PERMIT_OVERRIDES, "policy.sapl", "policy \"added\" deny true;");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            val pdpIds = recorder.configs().stream().map(PDPConfiguration::pdpId).toList();
+            assertThat(pdpIds).contains("added");
+        });
+    }
+
+    @Test
+    void whenChildIsAddedThenRemovedThenRemovalEventIsPropagated() throws IOException {
+        source = new MultiDirectoryPDPConfigurationSource(tempDir);
+
+        val recorder = new CapturingSubscriber();
+        source.subscribe(recorder);
+
+        val transientDir = tempDir.resolve("transient");
+        Files.createDirectory(transientDir);
+        writePdpJson(transientDir);
+        createFile(transientDir.resolve("policy.sapl"), "policy \"transient\" permit true;");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            val pdpIds = recorder.configs().stream().map(PDPConfiguration::pdpId).toList();
+            assertThat(pdpIds).contains("transient");
+        });
+
+        deleteDirectory(transientDir);
+
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(recorder.removedPdpIds()).contains("transient"));
+    }
+
+    @Test
     void whenFileInSubdirectoryChangesThenVoterSourceReceivesUpdatedConfig() throws IOException {
         val subdirPath = createSubdirectoryWithPolicy("mutable", DENY_OVERRIDES, "policy.sapl",
                 "policy \"original\" permit true;");
@@ -271,9 +331,8 @@ class MultiDirectoryPDPConfigurationSourceTests {
         val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
-        // Auto-generated format: dir:<path>@<timestamp>@sha256:<hash>
-        assertThat(configs.getFirst().configurationId()).startsWith("dir:");
-        assertThat(configs.getFirst().configurationId()).contains("@sha256:");
+        // Auto-generated format: dir:<path>@<timestamp>
+        assertThat(configs.getFirst().configurationId()).startsWith("dir:").doesNotContain("sha256");
     }
 
     @Test
@@ -317,8 +376,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         try {
             Files.createSymbolicLink(link, target);
         } catch (IOException | UnsupportedOperationException e) {
-            // Skip test on systems that don't support symlinks
-            return;
+            abort("Symlinks not supported on this platform: " + e.getMessage());
         }
         source = new MultiDirectoryPDPConfigurationSource(tempDir);
 
@@ -346,8 +404,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         try {
             Files.createSymbolicLink(linkDir, realDir);
         } catch (IOException | UnsupportedOperationException e) {
-            // Skip test on systems that don't support symlinks
-            return;
+            abort("Symlinks not supported on this platform: " + e.getMessage());
         }
         // Symlink directories are accepted for flexible deployment scenarios
         source = new MultiDirectoryPDPConfigurationSource(linkDir);
@@ -378,8 +435,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
         try {
             Files.createSymbolicLink(link, target);
         } catch (IOException | UnsupportedOperationException e) {
-            // Skip test on systems that don't support symlinks
-            return;
+            abort("Symlinks not supported on this platform: " + e.getMessage());
         }
 
         // Wait for file watcher to pick up the symlink - it should be loaded

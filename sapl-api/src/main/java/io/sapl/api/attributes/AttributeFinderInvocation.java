@@ -26,6 +26,7 @@ import io.sapl.api.model.Value;
 import lombok.NonNull;
 
 public record AttributeFinderInvocation(
+        @NonNull String pdpId,
         @NonNull String configurationId,
         @NonNull String attributeName,
         Value entity,
@@ -37,7 +38,8 @@ public record AttributeFinderInvocation(
         boolean fresh,
         @NonNull AttributeAccessContext ctx) {
 
-    public AttributeFinderInvocation(@NonNull String configurationId,
+    public AttributeFinderInvocation(@NonNull String pdpId,
+            @NonNull String configurationId,
             @NonNull String attributeName,
             @NonNull List<Value> arguments,
             @NonNull Duration initialTimeOut,
@@ -46,8 +48,8 @@ public record AttributeFinderInvocation(
             long retries,
             boolean fresh,
             @NonNull AttributeAccessContext ctx) {
-        this(configurationId, attributeName, null, arguments, initialTimeOut, pollInterval, backoff, retries, fresh,
-                ctx);
+        this(pdpId, configurationId, attributeName, null, arguments, initialTimeOut, pollInterval, backoff, retries,
+                fresh, ctx);
     }
 
     public AttributeFinderInvocation {

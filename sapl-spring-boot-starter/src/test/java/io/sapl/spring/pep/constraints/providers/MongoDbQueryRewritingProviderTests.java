@@ -30,8 +30,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.data.mongodb.core.query.Collation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.access.AccessDeniedException;
+
+import com.mongodb.ReadPreference;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -234,6 +238,21 @@ class MongoDbQueryRewritingProviderTests {
         }
 
         @Test
+        @DisplayName("the rewrite does not mutate the caller's Query (defensive copy), so a reused Query does not accumulate criteria")
+        void givenReusedQueryThenCallerQueryNotMutated() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": [{"column": "tenantId", "op": "=", "value": 7}]}
+                    """);
+            val original = new Query(Criteria.where("status").is("active"));
+            val before   = renderQueryDocument(original);
+
+            mapper.apply(original);
+
+            assertThat(renderQueryDocument(original)).isEqualTo(before);
+        }
+
+        @Test
         @DisplayName("Malformed JSON in a condition raises a parse exception that the planner treats as obligation failure")
         void givenMalformedJsonInConditionThenMapperThrows() {
             val mapper = mapperFor("""
@@ -242,6 +261,62 @@ class MongoDbQueryRewritingProviderTests {
                     """);
             val query  = new Query();
             assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Fail closed on unbuildable typed criteria")
+    class FailClosed {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("unbuildableCriteria")
+        @DisplayName("A present-but-unbuildable typed criterion denies the operation rather than being silently dropped")
+        void givenUnbuildableCriterionThenAccessDenied(String name, String criteriaJson) {
+            val mapper = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": %s}
+                    """.formatted(criteriaJson));
+            val query  = new Query();
+            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(AccessDeniedException.class);
+        }
+
+        static Stream<Arguments> unbuildableCriteria() {
+            return Stream.of(arguments("missing column", "[{\"op\": \"=\", \"value\": 7}]"),
+                    arguments("missing op", "[{\"column\": \"tenantId\", \"value\": 7}]"),
+                    arguments("missing value for binary op", "[{\"column\": \"tenantId\", \"op\": \"=\"}]"),
+                    arguments("unsupported op", "[{\"column\": \"tenantId\", \"op\": \"~~\", \"value\": 7}]"),
+                    arguments("in without a collection", "[{\"column\": \"tenantId\", \"op\": \"in\", \"value\": 7}]"),
+                    arguments("non-object entry", "[7]"), arguments("empty or group", "[{\"or\": []}]"),
+                    arguments("empty and group", "[{\"and\": []}]"),
+                    arguments("object value", "[{\"column\": \"role\", \"op\": \"!=\", \"value\": {\"marker\": 1}}]"),
+                    arguments("in with object element",
+                            "[{\"column\": \"role\", \"op\": \"in\", \"value\": [{\"marker\": 1}]}]"),
+                    arguments("unbuildable child inside or group",
+                            "[{\"or\": [{\"column\": \"a\", \"op\": \"=\", \"value\": 1}, {\"op\": \"=\", \"value\": 2}]}]"));
+        }
+
+        @Test
+        @DisplayName("A valid criterion sibling alongside an unbuildable one still denies the whole operation")
+        void givenOneValidAndOneUnbuildableCriterionThenAccessDenied() {
+            val mapper = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": [
+                       {"column": "tenantId", "op": "=", "value": 7},
+                       {"op": "=", "value": 99}
+                     ]}
+                    """);
+            val query  = new Query();
+            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(AccessDeniedException.class);
+        }
+
+        @Test
+        @DisplayName("An empty top-level criteria array declares no criteria and stays a no-op")
+        void givenEmptyCriteriaArrayThenNoHandlerRegistered() {
+            val result = provider.getConstraintHandlers(v("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": []}
+                    """), Set.of(MONGO_SIGNAL));
+            assertThat(result).isEmpty();
         }
     }
 
@@ -300,6 +375,63 @@ class MongoDbQueryRewritingProviderTests {
                 assertThat(r.getLimit()).isEqualTo(10);
                 assertThat(r.getSkip()).isEqualTo(20L);
             });
+        }
+    }
+
+    @Nested
+    @DisplayName("Query option preservation (collation, hint, read preference, meta)")
+    class QueryOptionPreservation {
+
+        @Test
+        @DisplayName("Collation is preserved when string conditions are merged into the BSON document")
+        void givenOriginalCollationWhenStringConditionsAppliedThenCollationPreserved() {
+            val mapper    = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val collation = Collation.of("en").strength(Collation.ComparisonLevel.secondary());
+            val original  = new Query().collation(collation);
+            val result    = mapper.apply(original);
+            assertThat(result.getCollation()).contains(collation);
+        }
+
+        @Test
+        @DisplayName("Hint is preserved when string conditions are merged into the BSON document")
+        void givenOriginalHintWhenStringConditionsAppliedThenHintPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val original = new Query().withHint("tenant_idx");
+            val result   = mapper.apply(original);
+            assertThat(result.getHint()).isEqualTo("tenant_idx");
+        }
+
+        @Test
+        @DisplayName("Read preference is preserved when string conditions are merged into the BSON document")
+        void givenOriginalReadPreferenceWhenStringConditionsAppliedThenReadPreferencePreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val original = new Query().withReadPreference(ReadPreference.secondaryPreferred());
+            val result   = mapper.apply(original);
+            assertThat(result.getReadPreference()).isEqualTo(ReadPreference.secondaryPreferred());
+        }
+
+        @Test
+        @DisplayName("Meta comment is preserved when string conditions are merged into the BSON document")
+        void givenOriginalMetaWhenStringConditionsAppliedThenMetaPreserved() {
+            val mapper = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val meta   = new org.springframework.data.mongodb.core.query.Meta();
+            meta.setComment("audit-trace");
+            val original = new Query();
+            original.setMeta(meta);
+            val result = mapper.apply(original);
+            assertThat(result.getMeta().getComment()).isEqualTo("audit-trace");
         }
     }
 }

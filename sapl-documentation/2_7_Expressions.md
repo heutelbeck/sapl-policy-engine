@@ -45,11 +45,11 @@ For example, `object.subject` uses `subject` as a key step, and `{priority: 5}` 
 
 #### Variable Names
 
-Variable names (after the `var` keyword) accept plain identifiers and the combining algorithm keywords listed above. All other keywords (including the subscription attribute keywords `subject`, `action`, `resource`, `environment` and hard keywords like `permit`, `true`, `in`) require the caret escape to be used as variable names (e.g., `var ^subject = ...`).
+Variable names (after the `var` keyword) accept plain identifiers, the subscription attribute keywords (`subject`, `action`, `resource`, `environment`), and the combining algorithm keywords listed above, all without escaping. Hard keywords (such as `permit`, `deny`, `var`, `in`, `true`) must use the backtick escape to be used as variable names (e.g., `` var `permit` = ... ``).
 
-#### Caret Escape
+#### Backtick Escape
 
-A caret `^` before an identifier forces it to be treated as a plain identifier, even if it would otherwise match a keyword. This is needed for keywords that are not [reserved identifiers](#reserved-identifiers): `as`, `advice`, `deny`, `each`, `enforced`, `for`, `import`, `in`, `obligation`, `permit`, `policy`, `schema`, `set`, `transform`, `true`, `false`, `null`, `undefined`, `var`. For reserved identifiers, the caret is unnecessary in expression contexts but required when using subscription attribute keywords as variable names (see [Variable Names](#variable-names)).
+A backtick-quoted identifier (e.g. `` `permit` ``) is treated as a plain identifier even when it spells a keyword. Use it for hard keywords that are not [reserved identifiers](#reserved-identifiers): `as`, `advice`, `deny`, `each`, `enforced`, `for`, `import`, `in`, `obligation`, `permit`, `policy`, `schema`, `set`, `transform`, `true`, `false`, `null`, `undefined`, `var`. The escape works for variable names, expression identifiers, and object keys (e.g. `` object.`in` `` or `` object[`in`] ``). Reserved identifiers never need escaping. The `^` character is exclusively the bitwise-XOR operator, so `a^b` parses as XOR with no whitespace required.
 
 ### Strings
 

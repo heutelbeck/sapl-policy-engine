@@ -245,9 +245,11 @@ class TestCommandTests {
             val err      = new StringWriter();
             val cmd      = newCommand(out, err);
             val exitCode = cmd.execute("--dir", tempDir.toString(), "--output", tempDir.resolve("coverage").toString(),
-                    "--no-html", "--policy-hit-ratio", "0");
+                    "--no-html", "--policy-hit-ratio", "1");
 
             assertThat(exitCode).as("stdout: %s, stderr: %s", out, err).isZero();
+            assertThat(out.toString()).as("stdout: %s, stderr: %s", out, err).contains("Coverage:", "Policy Hit Ratio",
+                    "PASS");
         }
 
         @Test

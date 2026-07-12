@@ -83,7 +83,7 @@ Each user is assigned a `pdpId` that maps to a tenant directory. The server auto
 Verify the `pdpId` in the user configuration matches the directory name.
 
 ### New tenant not recognized
-Ensure the directory exists and contains at least one `.sapl` file. Check server logs for configuration loading messages.
+Ensure the directory exists and contains at least one `.sapl` file. A tenant whose configuration is definitively broken is not skipped silently. That `pdpId` appears in `GET /actuator/health` in the `ERROR` state with a `lastError` reason and fails closed, while the other tenants are unaffected. Check the health endpoint and the server logs for configuration loading messages.
 
 ### Tenant isolation not working
 Verify `IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=MULTI_DIRECTORY` is set. Without this, all policies are loaded as a single PDP.

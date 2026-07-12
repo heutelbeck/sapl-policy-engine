@@ -516,6 +516,21 @@ class MatchersTests {
     }
 
     @Test
+    @DisplayName("long number matchers compare exactly and do not truncate fractional arguments")
+    void whenLongNumberMatchersGivenFractionalArgument_thenComparesExactlyWithoutTruncation() {
+        assertThat(numberEqualTo(2L).matches(Value.of(2.9))).isFalse();
+        assertThat(numberEqualTo(2L).matches(Value.of(2.0))).isTrue();
+        assertThat(greaterThan(2L).matches(Value.of(2.9))).isTrue();
+        assertThat(greaterThan(3L).matches(Value.of(2.9))).isFalse();
+        assertThat(lessThan(3L).matches(Value.of(2.9))).isTrue();
+        assertThat(lessThan(2L).matches(Value.of(2.9))).isFalse();
+        assertThat(greaterThanOrEqualTo(3L).matches(Value.of(2.9))).isFalse();
+        assertThat(lessThanOrEqualTo(2L).matches(Value.of(2.9))).isFalse();
+        assertThat(between(10L, 10L).matches(Value.of(10.9))).isFalse();
+        assertThat(between(10L, 11L).matches(Value.of(10.9))).isTrue();
+    }
+
+    @Test
     void whenCloseTo_thenMatchesWithinDelta() {
         var matcher = closeTo(10.0, 0.1);
 

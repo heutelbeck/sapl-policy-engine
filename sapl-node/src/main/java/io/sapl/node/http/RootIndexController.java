@@ -24,7 +24,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.health.contributor.Status;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,10 +44,9 @@ import lombok.val;
  * {@code git.properties} resource (shipped by {@code sapl-pdp} via the
  * git-commit-id plugin and auto-bound to {@code git.commit.id.abbrev}).
  * <p>
- * Server-mode only: gated by {@code @Profile("!cli")} so CLI invocations
- * (which run a no-Spring picocli process) do not instantiate this bean.
+ * Server-mode only. The local CLI builds its PDP directly without a Spring
+ * context, so this web bean is instantiated only when the server runs.
  */
-@Profile("!cli")
 @RestController
 class RootIndexController {
 

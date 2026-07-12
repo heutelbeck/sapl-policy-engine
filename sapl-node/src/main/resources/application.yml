@@ -109,9 +109,19 @@ io.sapl:
     # reject-on-missing-pdp-id: false
     # default-pdp-id: "default"
 
-    # OAuth2 settings (only relevant if allow-oauth2-auth is true)
+    # OAuth2 settings (only relevant if allow-oauth2-auth is true).
+    # pdp-id-claim accepts a claim name or a dot-separated path into
+    # nested claims (an exact top-level claim wins over path reading).
+    # audiences and required-scopes are opt-in access gates: when set, a
+    # token must carry one of the listed aud values / scopes (scope or
+    # scp claim) or it is rejected. Set at least one on a shared IdP,
+    # otherwise any valid token from the issuer grants PDP access.
     # oauth:
     #   pdp-id-claim: "sapl_pdp_id"
+    #   audiences:
+    #     - "sapl-pdp"
+    #   required-scopes:
+    #     - "sapl:pdp"
 
     # Scalar OAuth2 client id (optional). When set, the Scalar Authorize
     # dialog presents this id as the suggested OIDC client. Independent
@@ -119,6 +129,10 @@ io.sapl:
     # allow-oauth2-auth is true.
     # scalar:
     #   oauth-client-id: "sapl-node-scalar"
+
+    # OpenID Authorization API 1.0 binding at /access/v1/evaluation.
+    # openid-authz-api:
+    #   enabled: true
 
     # User entries for Basic Auth and API Key authentication.
     # Each user is associated with a pdp-id for multi-tenant routing.
@@ -146,6 +160,30 @@ io.sapl:
     # connections and lets the server detect clients that drop without
     # closing. Always on; default 15 seconds (values below 1 are raised).
     keep-alive: 15
+
+    # Maximum number of entries accepted in a MultiAuthorizationSubscription
+    # on public HTTP and RSocket PDP endpoints.
+    max-multi-subscription-count: 256
+
+    # --- Admission Limits and Rate Limiting ---
+    #
+    # Optional global caps on concurrent streams and connections and global
+    # rate limits on unary requests. All default to 0, meaning unbounded.
+    # HTTP requests beyond a cap receive 503, requests beyond a rate
+    # receive 429, both with a Retry-After header. RSocket connections and
+    # requests beyond a limit receive the retriable REJECTED_SETUP and
+    # REJECTED errors. Every rejection increments the
+    # sapl.limits.rejections counter and logs a rate limited warning.
+    #
+    # limits:
+    #   http:
+    #     sse:
+    #       max-concurrent-streams: 10000
+    #     requests-per-second: 50000
+    #   rsocket:
+    #     max-connections: 1000
+    #     max-streams-per-connection: 10000
+    #     requests-per-second: 50000
 
   # --- PDP Policy Source ---
   #
@@ -194,6 +232,9 @@ io.sapl:
     #   allow-unsigned: true
     #   unsigned-tenants:
     #     - "development"
+    #   # SECURITY: never combine allow-unsigned or unsigned-tenants with
+    #   # REMOTE_BUNDLES. A network-fetched unsigned bundle can be replaced in
+    #   # transit to inject arbitrary policy. Use only with local trusted sources.
 
     # --- Remote Bundles ---
     #
@@ -204,11 +245,18 @@ io.sapl:
     #   pdp-ids:
     #     - default
     #   mode: POLLING
-    #   poll-interval: 30s
+    #   poll-interval: 5s
     #   # long-poll-timeout: 30s
     #   # auth-header-name: Authorization
     #   # auth-header-value: "Bearer <token>"
+    #   # allow-insecure-http: false
     #   # follow-redirects: true
+    #   # Transport freshness: mark a pdpId stale after this long without a
+    #   # successful contact (default derived from the poll cadence).
+    #   # stale-after-no-contact: 60s
+    #   # Fail closed (deny) after this long without contact. Off by default.
+    #   # When set it must be greater than stale-after-no-contact.
+    #   # fail-closed-after-no-contact: 300s
 
 # --- API Documentation (Scalar UI on top of springdoc-generated OpenAPI) ---
 

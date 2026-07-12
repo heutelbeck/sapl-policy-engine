@@ -20,6 +20,7 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -36,6 +37,7 @@ public class ExtendedFilterCompiler {
 
     private static final int MAX_RECURSION_DEPTH = 500;
 
+    public static final String     ERROR_CONDITION_NON_BOOLEAN                                     = "Condition must evaluate to boolean, got %s.";
     public static final String     ERROR_MAXIMUM_RECURSION_DEPTH_EXCEEDED                          = "Maximum recursion depth exceeded";
     public static final ErrorValue ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS = Value
             .error("Stream operators not allowed in filter function arguments.");
@@ -180,6 +182,13 @@ public class ExtendedFilterCompiler {
 
     private static Value navigateAndApply(Value current, UnaryOperator<Value> terminal, List<PathElement> path,
             PathAnalysis pathAnalysis, EvaluationContext evalCtx) {
+        // Shared regex budget across the whole filter so per-element matches cannot
+        // amplify cost with size.
+        return BoundedRegex.runWithSharedMatchBudget(() -> navigate(current, terminal, path, pathAnalysis, evalCtx));
+    }
+
+    private static Value navigate(Value current, UnaryOperator<Value> terminal, List<PathElement> path,
+            PathAnalysis pathAnalysis, EvaluationContext evalCtx) {
         if (current instanceof ErrorValue) {
             return current;
         }
@@ -286,7 +295,15 @@ public class ExtendedFilterCompiler {
             return indexValue instanceof ErrorValue ? indexValue : current;
         }
         if (indexValue instanceof NumberValue(BigDecimal number)) {
-            return navigateIndex(current, number.intValue(), terminal, tail, pathAnalysis, evalCtx);
+            final int index;
+            try {
+                index = number.intValueExact();
+            } catch (ArithmeticException ignored) {
+                // A fractional or out-of-int-range subscript addresses no element. Leave it
+                // untouched.
+                return current;
+            }
+            return navigateIndex(current, index, terminal, tail, pathAnalysis, evalCtx);
         }
         if (indexValue instanceof TextValue(String text)) {
             return navigateKey(current, text, terminal, tail, pathAnalysis, evalCtx);
@@ -544,16 +561,21 @@ public class ExtendedFilterCompiler {
             if (condResult instanceof ErrorValue) {
                 return condResult;
             }
-            if (condResult instanceof BooleanValue(boolean matches) && matches) {
-                val result = transform.apply(element, localCtx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
-                if (!(result instanceof UndefinedValue)) {
-                    builder.add(result);
+            if (condResult instanceof BooleanValue(boolean matches)) {
+                if (matches) {
+                    val result = transform.apply(element, localCtx);
+                    if (result instanceof ErrorValue) {
+                        return result;
+                    }
+                    if (!(result instanceof UndefinedValue)) {
+                        builder.add(result);
+                    }
+                } else {
+                    builder.add(element);
                 }
             } else {
-                builder.add(element);
+                return Value.errorAt(pathAnalysis.filterLocation(), ERROR_CONDITION_NON_BOOLEAN,
+                        condResult.getClass().getSimpleName());
             }
         }
         return builder.build();
@@ -568,16 +590,21 @@ public class ExtendedFilterCompiler {
             if (condResult instanceof ErrorValue) {
                 return condResult;
             }
-            if (condResult instanceof BooleanValue(boolean matches) && matches) {
-                val result = transform.apply(entry.getValue(), localCtx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
-                if (!(result instanceof UndefinedValue)) {
-                    builder.put(entry.getKey(), result);
+            if (condResult instanceof BooleanValue(boolean matches)) {
+                if (matches) {
+                    val result = transform.apply(entry.getValue(), localCtx);
+                    if (result instanceof ErrorValue) {
+                        return result;
+                    }
+                    if (!(result instanceof UndefinedValue)) {
+                        builder.put(entry.getKey(), result);
+                    }
+                } else {
+                    builder.put(entry.getKey(), entry.getValue());
                 }
             } else {
-                builder.put(entry.getKey(), entry.getValue());
+                return Value.errorAt(pathAnalysis.filterLocation(), ERROR_CONDITION_NON_BOOLEAN,
+                        condResult.getClass().getSimpleName());
             }
         }
         return builder.build();

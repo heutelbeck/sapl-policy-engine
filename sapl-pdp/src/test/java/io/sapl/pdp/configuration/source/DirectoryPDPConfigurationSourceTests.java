@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import com.github.valfirst.slf4jtest.LoggingEvent;
+import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
@@ -24,6 +26,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
+import org.slf4j.event.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -134,7 +137,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         assertThat(configs.getFirst()).satisfies(config -> {
             assertThat(config.pdpId()).isEqualTo("cultist");
-            assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
+            assertThat(config.configurationId()).startsWith("dir:").doesNotContain("sha256");
         });
     }
 
@@ -198,6 +201,20 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    @DisplayName("a malformed pdp.json is reported as a configuration error, not a configuration")
+    void whenPdpJsonMalformedThenConfigurationErrorEmitted() throws IOException {
+        createFile(tempDir.resolve("pdp.json"), "{ this is not valid json");
+        createFile(tempDir.resolve("policy.sapl"), "policy \"p\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+
+        assertThat(capture.errors()).singleElement().satisfies(error -> assertThat(error.pdpId()).isEqualTo("default"));
+        assertThat(capture.configs()).isEmpty();
+    }
+
+    @Test
     void whenFileIsModifiedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         createFile(tempDir.resolve("pdp.json"),
                 """
@@ -221,6 +238,35 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    @DisplayName("a subscriber that throws does not stop hot-reload for other subscribers")
+    void whenSubscriberThrowsThenOtherSubscribersKeepReceivingUpdates() throws IOException {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+        val configs = capture.configs();
+        source.subscribe(event -> {
+            throw new RuntimeException("hostile subscriber");
+        });
+
+        assertThat(configs).hasSize(1);
+
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
+                        """);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2));
+
+        createFile(tempDir.resolve("second.sapl"), "policy \"second\" deny true;");
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(3));
+    }
+
+    @Test
     void whenFileIsAddedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         writePdpJson(tempDir);
         createFile(tempDir.resolve("first.sapl"), "policy \"first\" permit true;");
@@ -234,6 +280,24 @@ class DirectoryPDPConfigurationSourceTests {
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
                 .last().satisfies(config -> assertThat(config.saplDocuments()).hasSize(2)));
+    }
+
+    @Test
+    @DisplayName("adding an extension file triggers a reload that carries the extension")
+    void whenExtensionFileAddedThenConfigurationCarriesExtension() throws IOException {
+        writePdpJson(tempDir);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val configs = captureConfigurations(source);
+
+        assertThat(configs).hasSize(1).first().satisfies(config -> assertThat(config.extensions()).isEmpty());
+
+        createFile(tempDir.resolve("ext-upstreams.json"), """
+                { "servers": [] }""");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
+                .last().satisfies(config -> assertThat(config.extensions()).containsKey("upstreams")));
     }
 
     @Test
@@ -282,6 +346,16 @@ class DirectoryPDPConfigurationSourceTests {
         source.close();
 
         assertThat(source.isClosed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("closing before the monitor ever started shuts down quietly")
+    void whenClosedBeforeMonitorStartedThenNoWarningOrErrorLogged() {
+        TestLoggerFactory.clearAll();
+        source = new DirectoryPDPConfigurationSource(tempDir);
+        source.close();
+        assertThat(TestLoggerFactory.getAllLoggingEvents()).extracting(LoggingEvent::getLevel)
+                .doesNotContain(Level.WARN, Level.ERROR);
     }
 
     @Test
@@ -337,28 +411,42 @@ class DirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenTotalSizeExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
-        writePdpJson(tempDir);
-        val largeContent = "x".repeat(2 * 1024 * 1024);
-        for (int i = 0; i < 6; i++) {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "compilerOptions": { "maxTotalSizeMegabytes": 2 }
+                        }
+                        """);
+        val oneMegabyte = "x".repeat(1024 * 1024);
+        for (int i = 0; i < 3; i++) {
             createFile(tempDir.resolve("large" + i + ".sapl"),
-                    "policy \"large%d\" permit \"%s\";".formatted(i, largeContent));
+                    "policy \"large%d\" permit \"%s\";".formatted(i, oneMegabyte));
         }
 
         source = new DirectoryPDPConfigurationSource(tempDir);
 
         assertThat(source.isClosed()).isFalse();
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
     void whenFileCountExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
-        writePdpJson(tempDir);
-        for (int i = 0; i < 1002; i++) {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "compilerOptions": { "maxPolicyDocuments": 3 }
+                        }
+                        """);
+        for (int i = 0; i < 4; i++) {
             createFile(tempDir.resolve("policy" + i + ".sapl"), "policy \"p%d\" permit true;".formatted(i));
         }
 
         source = new DirectoryPDPConfigurationSource(tempDir);
 
         assertThat(source.isClosed()).isFalse();
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test

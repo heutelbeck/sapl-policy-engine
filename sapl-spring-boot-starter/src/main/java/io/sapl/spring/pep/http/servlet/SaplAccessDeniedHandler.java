@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.servlet;
 
 import java.io.IOException;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
@@ -64,6 +65,10 @@ public class SaplAccessDeniedHandler implements AccessDeniedHandler {
         if (result.failureState() || !mutableResponse.isModified()) {
             fallback.handle(request, response, denied);
             return;
+        }
+        val shapedStatus = mutableResponse.getStatusCode();
+        if (!shapedStatus.isError() && !shapedStatus.is3xxRedirection()) {
+            mutableResponse.setStatusCode(HttpStatus.FORBIDDEN);
         }
         mutableResponse.commit();
     }

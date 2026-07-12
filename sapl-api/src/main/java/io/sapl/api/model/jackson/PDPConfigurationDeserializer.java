@@ -30,6 +30,7 @@ import io.sapl.api.pdp.configuration.PdpData;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import lombok.val;
 
@@ -51,8 +52,8 @@ import lombok.val;
  * </ul>
  * Optional fields:
  * <ul>
- * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.);
- * defaults to an empty ObjectValue</li>
+ * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.).
+ * Defaults to an empty ObjectValue</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {
@@ -69,6 +70,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_EXPECTED_START_ARRAY         = "Expected START_ARRAY for saplDocuments.";
     private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
+    private static final String ERROR_EXPECTED_STRING_ELEMENT      = "Expected VALUE_STRING element in saplDocuments.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
@@ -87,6 +89,9 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         List<String>       saplDocuments      = List.of();
         ObjectValue        variables          = Value.EMPTY_OBJECT;
         ObjectValue        secrets            = Value.EMPTY_OBJECT;
+        ObjectValue        extensions         = Value.EMPTY_OBJECT;
+        ObjectValue        extensionSecrets   = Value.EMPTY_OBJECT;
+        Set<String>        criticalExtensions = Set.of();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val fieldName = parser.currentName();
@@ -101,6 +106,10 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             case "saplDocuments"                    -> saplDocuments = deserializeStringList(parser, context);
             case "variables"                        -> variables = deserializeObjectValue(parser, context);
             case "secrets"                          -> secrets = deserializeObjectValue(parser, context);
+            case "extensions"                       -> extensions = deserializeObjectValue(parser, context);
+            case "extensionSecrets"                 -> extensionSecrets = deserializeObjectValue(parser, context);
+            case "criticalExtensions"               ->
+                criticalExtensions = Set.copyOf(deserializeStringList(parser, context));
             default                                 -> parser.skipChildren();
             }
         }
@@ -116,7 +125,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         }
 
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments,
-                new PdpData(variables, secrets));
+                new PdpData(variables, secrets), extensions, extensionSecrets, criticalExtensions);
     }
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {
@@ -126,6 +135,9 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
 
         val strings = new ArrayList<String>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
+            if (parser.currentToken() != JsonToken.VALUE_STRING) {
+                return context.reportInputMismatch(List.class, ERROR_EXPECTED_STRING_ELEMENT);
+            }
             strings.add(parser.getString());
         }
         return strings;

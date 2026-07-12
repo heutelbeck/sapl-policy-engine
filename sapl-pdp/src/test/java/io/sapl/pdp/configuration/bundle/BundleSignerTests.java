@@ -225,6 +225,16 @@ class BundleSignerTests {
                 .isInstanceOf(BundleSignatureException.class).hasMessageContaining("Unsupported signature algorithm");
     }
 
+    @Test
+    void whenVerifyingWithUnsupportedHashAlgorithmThenThrowsException() {
+        val sig         = new BundleManifest.Signature("Ed25519", "hash-alg-key", "abc123");
+        val badManifest = new BundleManifest(BundleManifest.MANIFEST_VERSION, "SHA-1", REFERENCE,
+                Map.of("test.sapl", BundleManifest.computeHash("test")), sig);
+        val variables   = Map.of("test.sapl", "test");
+        assertThatThrownBy(() -> BundleSigner.verify(badManifest, variables, cultPublic))
+                .isInstanceOf(BundleSignatureException.class).hasMessageContaining("Unsupported hash algorithm");
+    }
+
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("emptySignatureValueCases")
     void whenVerifyingWithEmptySignatureValueThenThrowsException(String signatureValue) {

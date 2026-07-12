@@ -20,6 +20,7 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +30,7 @@ import java.util.Map;
 
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("FunctionCallCompiler")
 class FunctionCallCompilerTests {
@@ -110,7 +112,7 @@ class FunctionCallCompilerTests {
     @Test
     void whenFunctionCallWithStreamArgThenComputesPerStreamValueAcrossRounds() {
         // Drives test.fn(<stream.attr>) where the function multiplies its arg by 10.
-        // Each round binds a new value for stream.attr; the function is invoked
+        // Each round binds a new value for stream.attr. The function is invoked
         // synchronously and the new value flows out per round.
         var fnBroker = functionBroker("test.fn",
                 args -> Value.of(((NumberValue) args.getFirst()).value().intValue() * 10));
@@ -234,6 +236,19 @@ class FunctionCallCompilerTests {
         assertThat(eval.value()).isEqualTo(Value.of("result"));
         assertThat(eval.invocations()).extracting(AttributeFinderInvocation::attributeName)
                 .containsExactlyInAnyOrder("a.attr", "b.attr");
+    }
+
+    @Test
+    void whenFunctionNameIsSyntacticallyInvalidThenCompilerExceptionIsRaisedBeforeEvaluation() {
+        // A name with characters the function-name validator rejects must be
+        // caught at compile time, never propagate an IllegalArgumentException
+        // from the eval-path invocation constructor.
+        var                    ctx         = compilationContext();
+        var                    invalidName = "bad_name.fn";
+        final ThrowingCallable compile     = () -> FunctionCallCompiler.compile(invalidName, List.of(), TEST_LOCATION,
+                ctx);
+
+        assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class);
     }
 
     @Test

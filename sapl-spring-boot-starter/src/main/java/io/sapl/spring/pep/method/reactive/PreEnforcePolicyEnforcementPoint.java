@@ -75,6 +75,8 @@ import java.util.Set;
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT = "Access Denied by @PreEnforce PEP. The PDP decision was %s, not PERMIT.";
+    private static final String ERROR_NULL_RAP_RETURN_FLUX              = "@PreEnforce method returned null instead of a Flux.";
+    private static final String ERROR_NULL_RAP_RETURN_MONO              = "@PreEnforce method returned null instead of a Mono.";
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE           = "@PreEnforce reactive PEP supports Mono and Flux only. Found return type %s.";
 
     private static final Object EMPTY_RAP_MARKER = new Object();
@@ -120,13 +122,17 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val itemType = ResolvableType.forMethodReturnType(methodInvocation.getMethod()).getGeneric(0);
         val plan     = enforcementPlan(authzDecision, itemType);
 
+        // The lifecycle side-effect operators sit upstream of onErrorResume so an
+        // AccessDeniedException thrown by a failing lifecycle/subscription obligation
+        // handler is caught by the same error funnel as any other failure and routed
+        // through the plan's ErrorSignal handlers, rather than escaping unmapped.
         return Mono.defer(() -> {
             plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
             return applyOutput(plan, rapStream(methodInvocation, authzDecision));
-        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan))
-                .onErrorResume(plan::enforceErrorConstraints).doOnRequest(plan::enforceSubscription)
+        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan)).doOnRequest(plan::enforceSubscription)
                 .doOnCancel(plan::enforceCancel).doOnSuccess(v -> plan.enforceComplete())
-                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination);
+                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination)
+                .onErrorResume(plan::enforceErrorConstraints);
     }
 
     private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {
@@ -156,13 +162,15 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val publisherType = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
         val plan          = enforcementPlan(authzDecision, publisherType);
 
+        // See enforceDecision: lifecycle operators are upstream of onErrorResume so a
+        // failing lifecycle/subscription obligation routes through the error funnel.
         return Flux.defer(() -> {
             plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
             return applyOutputFlux(plan, rapFluxStream(methodInvocation, authzDecision));
-        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan))
-                .onErrorResume(plan::enforceErrorConstraints).doOnRequest(plan::enforceSubscription)
+        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan)).doOnRequest(plan::enforceSubscription)
                 .doOnCancel(plan::enforceCancel).doOnComplete(plan::enforceComplete)
-                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination);
+                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination)
+                .onErrorResume(plan::enforceErrorConstraints);
     }
 
     private static Mono<?> rapStream(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
@@ -170,11 +178,16 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             return Mono.error(new AccessDeniedException(
                     ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT.formatted(authzDecision.decision())));
         }
+        Mono<?> rap;
         try {
-            return (Mono<?>) methodInvocation.proceed();
+            rap = (Mono<?>) methodInvocation.proceed();
         } catch (Throwable t) {
             return Mono.error(t);
         }
+        if (rap == null) {
+            return Mono.error(new IllegalStateException(ERROR_NULL_RAP_RETURN_MONO));
+        }
+        return rap;
     }
 
     private static Flux<?> rapFluxStream(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
@@ -182,11 +195,16 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             return Flux.error(new AccessDeniedException(
                     ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT.formatted(authzDecision.decision())));
         }
+        Flux<?> rap;
         try {
-            return (Flux<?>) methodInvocation.proceed();
+            rap = (Flux<?>) methodInvocation.proceed();
         } catch (Throwable t) {
             return Flux.error(t);
         }
+        if (rap == null) {
+            return Flux.error(new IllegalStateException(ERROR_NULL_RAP_RETURN_FLUX));
+        }
+        return rap;
     }
 
     /**

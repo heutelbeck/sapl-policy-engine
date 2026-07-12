@@ -57,7 +57,8 @@ class RemotePDPRSocketIT {
 
     private static final int             RSOCKET_PORT      = 7000;
     private static final int             HTTP_PORT         = 8080;
-    private static final String          SAPL_SERVER_IMAGE = "ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT";
+    private static final String          SAPL_SERVER_IMAGE = System.getProperty("sapl.node.image",
+            "ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT");
     private static final ImagePullPolicy NEVER_PULL        = imageName -> false;
     private static final Duration        STARTUP           = Duration.ofMinutes(2);
     private static final String          STARTUP_LOG       = ".*SAPL Node ready.*\\n";
@@ -119,7 +120,7 @@ class RemotePDPRSocketIT {
                 val properties = new String[] { "io.sapl.pdp.remote.enabled=true", "io.sapl.pdp.remote.type=rsocket",
                         "io.sapl.pdp.remote.host=" + container.getHost(),
                         "io.sapl.pdp.remote.port=" + container.getMappedPort(RSOCKET_PORT),
-                        "io.sapl.pdp.remote.bearer-token=" + API_KEY };
+                        "io.sapl.pdp.remote.bearer-token=" + API_KEY, "io.sapl.pdp.remote.allow-insecure-http=true" };
                 runWithPdp(properties, AuthorizationDecision.PERMIT);
             }
         }

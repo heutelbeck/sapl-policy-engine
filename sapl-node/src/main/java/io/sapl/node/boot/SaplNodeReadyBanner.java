@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.server.context.WebServerInitializedEvent;
-import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -39,7 +38,6 @@ import lombok.val;
  */
 @Slf4j
 @Component
-@Profile("!cli")
 @RequiredArgsConstructor
 class SaplNodeReadyBanner {
 

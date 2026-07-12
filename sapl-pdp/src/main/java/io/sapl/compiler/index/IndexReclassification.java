@@ -23,7 +23,6 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -40,31 +39,31 @@ import java.util.List;
  * collects the documents whose applicability touched an error branch and hands
  * them here. Each suspect is re-evaluated directly, which is exactly what the
  * naive index does, so all backends agree on the error-meets-dominator corner.
- * The cost falls only on the rare error path; clean matches and clean drops are
+ * The cost falls only on the rare error path. Clean matches and clean drops are
  * resolved by the index without re-evaluation.
  */
 @UtilityClass
 public class IndexReclassification {
 
     /**
-     * Re-evaluates each suspect document's applicability under Kleene
-     * semantics. A {@code true} result is added to {@code matching}, an error
-     * to {@code errors}, and anything else (a dominating {@code false}) is
-     * dropped.
+     * Re-evaluates each suspect document's applicability under Kleene semantics.
+     * A {@code true} result is added to {@code trueMatches}, an error becomes an
+     * {@link PolicyMatches.ErrorMatch} carrying the document and its error, and
+     * a dominating {@code false} is dropped.
      *
      * @param suspects documents whose index classification touched an error
      * @param ctx the evaluation context
-     * @param matching collects suspects that re-evaluate to applicable
-     * @param errors collects error votes for suspects that genuinely error
+     * @param trueMatches collects suspects that re-evaluate to applicable
+     * @param errorMatches collects error matches for suspects that genuinely error
      */
-    public static void reclassifySuspects(Collection<CompiledDocument> suspects, EvaluationContext ctx,
-            List<CompiledDocument> matching, List<Vote> errors) {
+    public static void reclassifySuspectsKleene(Collection<CompiledDocument> suspects, EvaluationContext ctx,
+            List<CompiledDocument> trueMatches, List<PolicyMatches.ErrorMatch> errorMatches) {
         for (val document : suspects) {
             val applicability = applicability(document, ctx);
             if (applicability instanceof ErrorValue error) {
-                errors.add(Vote.error(error, document.metadata()));
+                errorMatches.add(new PolicyMatches.ErrorMatch(document, error));
             } else if (applicability instanceof BooleanValue(var b) && b) {
-                matching.add(document);
+                trueMatches.add(document);
             }
         }
     }

@@ -44,8 +44,8 @@ import lombok.val;
 
 /**
  * Provides rename functionality for SAPL variable definitions.
- * Scoping: set-level variables are visible to all policies;
- * policy-level variables are visible to statements following their
+ * Scoping: set-level variables are visible to all policies.
+ * Policy-level variables are visible to statements following their
  * definition within the same policy.
  */
 class SAPLRenameProvider {
@@ -99,11 +99,20 @@ class SAPLRenameProvider {
         if (policySet == null) {
             return;
         }
+        // A policy that re-declares the same name shadows the set-level variable.
+        // If the cursor is inside such a policy, the rename targets the policy-level
+        // var.
+        for (val policy : policySet.policy()) {
+            if (containsPosition(policy, position) && policyRedeclares(policy, targetName)) {
+                collectRenameEditsInPolicy(policy, targetName, newName, edits);
+                return;
+            }
+        }
         // Check if it's a set-level var
         for (val varDef : policySet.valueDefinition()) {
             if (varDef.name != null && varDef.name.getText().equals(targetName)) {
                 edits.add(new TextEdit(rangeOf(varDef.name), newName));
-                collectReferencesInTree(policySet, targetName, edits, newName);
+                collectSetLevelReferences(policySet, targetName, newName, edits);
                 return;
             }
         }
@@ -114,6 +123,53 @@ class SAPLRenameProvider {
                 return;
             }
         }
+    }
+
+    private void collectSetLevelReferences(PolicySetContext policySet, String targetName, String newName,
+            List<TextEdit> edits) {
+        for (val varDef : policySet.valueDefinition()) {
+            if (varDef.eval != null) {
+                collectReferencesInTree(varDef.eval, targetName, edits, newName);
+            }
+        }
+        // A policy that re-declares the same name shadows the set-level variable only
+        // from its redefinition onward. References preceding it still bind to the set
+        // var.
+        for (val policy : policySet.policy()) {
+            if (policyRedeclares(policy, targetName)) {
+                collectSetLevelReferencesBeforeShadowing(policy, targetName, newName, edits);
+            } else {
+                collectReferencesInTree(policy, targetName, edits, newName);
+            }
+        }
+    }
+
+    private void collectSetLevelReferencesBeforeShadowing(PolicyContext policy, String targetName, String newName,
+            List<TextEdit> edits) {
+        for (val statement : policy.policyBody().statements) {
+            if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
+                val varDef = varDefStmt.valueDefinition();
+                if (varDef.name != null && varDef.name.getText().equals(targetName)) {
+                    return;
+                }
+            }
+            collectReferencesInTree(statement, targetName, edits, newName);
+        }
+    }
+
+    private boolean policyRedeclares(PolicyContext policy, String targetName) {
+        if (policy == null || policy.policyBody() == null) {
+            return false;
+        }
+        for (val statement : policy.policyBody().statements) {
+            if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
+                val varDef = varDefStmt.valueDefinition();
+                if (varDef.name != null && varDef.name.getText().equals(targetName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void collectRenameEditsInPolicy(PolicyContext policy, String targetName, String newName,

@@ -19,12 +19,15 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -165,5 +168,80 @@ class ArrayFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
+
+    @Test
+    void whenCrossProductWouldExceedMaximumPairsThenError() {
+        val result = ArrayFunctionLibrary.crossProduct(arrayWithSize(256), arrayWithSize(256));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Cross product size").contains("65535");
+    }
+
+    @Nested
+    @DisplayName("numeric aggregation precision and overflow")
+    class NumericAggregationTests {
+
+        private static ArrayValue arrayOf(BigDecimal... numbers) {
+            val builder = ArrayValue.builder();
+            for (val number : numbers) {
+                builder.add(Value.of(number));
+            }
+            return builder.build();
+        }
+
+        @Test
+        @DisplayName("max returns the true largest integer beyond double precision")
+        void whenIntegersExceedDoublePrecisionThenMaxReturnsTrueLargestElement() {
+            val larger  = new BigDecimal("9007199254740993");
+            val smaller = new BigDecimal("9007199254740992");
+
+            val result = ArrayFunctionLibrary.max(arrayOf(larger, smaller));
+
+            assertThat(result).isInstanceOf(NumberValue.class).extracting(value -> ((NumberValue) value).value())
+                    .satisfies(value -> assertThat(value).isEqualByComparingTo(larger));
+        }
+
+        @Test
+        @DisplayName("min returns the true smallest high-precision decimal")
+        void whenDecimalsDifferBelowDoublePrecisionThenMinReturnsTrueSmallestElement() {
+            val smaller = new BigDecimal("0.10000000000000001");
+            val larger  = new BigDecimal("0.10000000000000002");
+
+            val result = ArrayFunctionLibrary.min(arrayOf(larger, smaller));
+
+            assertThat(result).isInstanceOf(NumberValue.class).extracting(value -> ((NumberValue) value).value())
+                    .satisfies(value -> assertThat(value).isEqualByComparingTo(smaller));
+        }
+
+        @Test
+        @DisplayName("sum of values whose total exceeds double range stays numeric and exact")
+        void whenSumExceedsDoubleRangeThenNumericResultNotError() {
+            val huge = new BigDecimal("1E308");
+
+            val result = ArrayFunctionLibrary.sum(arrayOf(huge, huge));
+
+            assertThat(result).isInstanceOf(NumberValue.class).extracting(value -> ((NumberValue) value).value())
+                    .satisfies(value -> assertThat(value).isEqualByComparingTo(new BigDecimal("2E308")));
+        }
+
+        @Test
+        @DisplayName("multiply of values whose product exceeds double range stays numeric and exact")
+        void whenProductExceedsDoubleRangeThenNumericResultNotError() {
+            val huge = new BigDecimal("1E308");
+
+            val result = ArrayFunctionLibrary.multiply(arrayOf(huge, huge));
+
+            assertThat(result).isInstanceOf(NumberValue.class).extracting(value -> ((NumberValue) value).value())
+                    .satisfies(value -> assertThat(value).isEqualByComparingTo(new BigDecimal("1E616")));
+        }
+    }
+
+    private static ArrayValue arrayWithSize(int size) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < size; i++) {
+            builder.add(Value.of(i));
+        }
+        return builder.build();
     }
 }

@@ -39,7 +39,8 @@ public class MultiAuthorizationSubscriptionDeserializer extends StdDeserializer<
         super(MultiAuthorizationSubscription.class);
     }
 
-    private static final String ERROR_EXPECTED_START_OBJECT = "Expected START_OBJECT for MultiAuthorizationSubscription.";
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id: %s.";
+    private static final String ERROR_EXPECTED_START_OBJECT     = "Expected START_OBJECT for MultiAuthorizationSubscription.";
 
     private final AuthorizationSubscriptionDeserializer subscriptionDeserializer = new AuthorizationSubscriptionDeserializer();
 
@@ -55,7 +56,15 @@ public class MultiAuthorizationSubscriptionDeserializer extends StdDeserializer<
             val subscriptionId = parser.currentName();
             parser.nextToken();
             val subscription = subscriptionDeserializer.deserialize(parser, context);
-            multiSubscription.addSubscription(subscriptionId, subscription);
+            if (multiSubscription.getSubscription(subscriptionId) != null) {
+                return context.reportInputMismatch(MultiAuthorizationSubscription.class,
+                        ERROR_DUPLICATE_SUBSCRIPTION_ID.formatted(subscriptionId));
+            }
+            try {
+                multiSubscription.addSubscription(subscriptionId, subscription);
+            } catch (IllegalArgumentException e) {
+                return context.reportInputMismatch(MultiAuthorizationSubscription.class, e.getMessage());
+            }
         }
 
         return multiSubscription;

@@ -114,6 +114,35 @@ class FilterFunctionLibraryTests {
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("BLACKEN_LENGTH");
     }
 
+    @Test
+    void blackenFractionalDiscloseLeftThrowsException() {
+        val text       = Value.of("test");
+        val fractional = Value.of(2.5);
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(text, fractional))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("DISCLOSE_LEFT");
+    }
+
+    @Test
+    void blackenFractionalDiscloseRightThrowsException() {
+        val text         = Value.of("test");
+        val discloseLeft = Value.of(2);
+        val fractional   = Value.of(2.5);
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(text, discloseLeft, fractional))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("DISCLOSE_RIGHT");
+    }
+
+    @Test
+    void blackenFractionalLengthThrowsException() {
+        val text          = Value.of("test");
+        val discloseLeft  = Value.of(2);
+        val discloseRight = Value.of(2);
+        val replacement   = Value.of("*");
+        val fractional    = Value.of(2.5);
+        assertThatThrownBy(
+                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, fractional))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("BLACKEN_LENGTH");
+    }
+
     @ParameterizedTest(name = "Blacken {0}: left={1}, right={2}, replacement={3} -> {4}")
     @CsvSource(delimiter = '|', textBlock = """
             Necronomicon      | 5 | 3 | *   | Necro****con
@@ -302,4 +331,25 @@ class FilterFunctionLibraryTests {
         assertThatThrownBy(() -> FilterFunctionLibrary.blacken(parameters)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Maximum allowed");
     }
+
+    @Test
+    void blackenWhenLargeUntrustedInputWithoutOverrideThenBounded() {
+        val hugeSecret = "s".repeat(2_000_000);
+        val parameters = new Value[] { Value.of(hugeSecret), Value.of(0), Value.of(0), Value.of("X") };
+
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(parameters)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Maximum allowed");
+    }
+
+    @Test
+    void blackenWhenLongReplacementAmplifiesOutputThenBounded() {
+        val longReplacement = "X".repeat(2_000);
+        val parameters      = new Value[] { Value.of("secret"), Value.of(0), Value.of(0), Value.of(longReplacement),
+                Value.of(MAX_BLACKEN_LENGTH_FOR_TEST) };
+
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(parameters)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Maximum allowed");
+    }
+
+    private static final int MAX_BLACKEN_LENGTH_FOR_TEST = 10_000;
 }

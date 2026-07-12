@@ -21,6 +21,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -139,16 +140,22 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
             if (pair.isEmpty()) {
                 continue;
             }
-            val eq    = pair.indexOf('=');
-            val key   = eq < 0 ? decode(pair) : decode(pair.substring(0, eq));
-            val value = eq < 0 ? "" : decode(pair.substring(eq + 1));
+            val eq  = pair.indexOf('=');
+            val key = eq < 0 ? decode(pair) : decode(pair.substring(0, eq));
+            // null (not "") for a valueless param to match the reactive stack's
+            // getQueryParams().
+            val value = eq < 0 ? null : decode(pair.substring(eq + 1));
             out.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
         }
         return out;
     }
 
     private static String decode(String value) {
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException malformedEscape) {
+            return value;
+        }
     }
 
     private static void writeClient(HttpServletRequest request, JsonGenerator gen) {
@@ -176,10 +183,13 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
         }
         gen.writeName(HEADERS);
         gen.writeStartObject();
+        val writtenHeaderNames = new HashSet<String>();
         while (headerNames.hasMoreElements()) {
             val name    = headerNames.nextElement();
             val headers = request.getHeaders(name);
-            if (headers != null && headers.hasMoreElements()) {
+            // Dedup case-variant header names (getHeaders is case-insensitive). Two
+            // names differing only in case would otherwise emit a duplicate JSON key.
+            if (headers != null && headers.hasMoreElements() && writtenHeaderNames.add(name.toLowerCase(Locale.ROOT))) {
                 gen.writeName(name.toLowerCase(Locale.ROOT));
                 gen.writeStartArray();
                 while (headers.hasMoreElements()) {
@@ -228,8 +238,9 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
         if (parsed.proto() != null) {
             gen.writeStringProperty(FORWARDED_PROTO, parsed.proto());
         }
-        if (parsed.port() != null) {
-            gen.writeNumberProperty(FORWARDED_PORT, parsed.port());
+        val port = parsed.port();
+        if (port != null) {
+            gen.writeNumberProperty(FORWARDED_PORT, port);
         }
         gen.writeEndObject();
     }

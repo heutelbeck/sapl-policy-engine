@@ -18,6 +18,7 @@
 package io.sapl.test.grammar.antlr.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.List;
 
@@ -94,8 +95,8 @@ class SAPLTestValidatorTests {
     }
 
     @Test
-    @DisplayName("multiple amount less than two produces error")
-    void whenMultipleAmountLessThanTwo_thenError() {
+    @DisplayName("verification count of one produces no error")
+    void whenVerificationCountIsOne_thenNoError() {
         var document = """
                 requirement "Function Call Count" {
                     given
@@ -110,8 +111,7 @@ class SAPLTestValidatorTests {
 
         var errors = validate(document);
 
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_MULTIPLE_AMOUNT));
+        assertThat(errors).isEmpty();
     }
 
     @Test
@@ -168,6 +168,24 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("an over-long regex is rejected without compiling, guarding the LSP validation thread")
+    void whenRegexExceedsLengthCapThenError() {
+        var document = """
+                requirement "Pattern Matching" {
+                    scenario "huge regex"
+                        when subject "mi-go" attempts action "communicate" on resource "brain_cylinder"
+                        expect decision is permit, with obligation matching object where { "pattern" is text with regex "%s" };
+                }
+                """
+                .formatted("a".repeat(10_000));
+
+        var errors = validate(document);
+
+        assertThat(errors).hasSize(1).first().satisfies(
+                e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX));
+    }
+
+    @Test
     @DisplayName("string length of zero produces error")
     void whenStringLengthZero_thenError() {
         var document = """
@@ -175,23 +193,6 @@ class SAPLTestValidatorTests {
                     scenario "zero length"
                         when subject "hastur" attempts action "speak" on resource "name"
                         expect decision is permit, with obligation matching object where { "text" is text with length 0 };
-                }
-                """;
-
-        var errors = validate(document);
-
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_STRING_WITH_LENGTH));
-    }
-
-    @Test
-    @DisplayName("negative string length produces error")
-    void whenStringLengthNegative_thenError() {
-        var document = """
-                requirement "String Length" {
-                    scenario "negative length"
-                        when subject "hastur" attempts action "speak" on resource "name"
-                        expect decision is permit, with obligation matching object where { "text" is text with length -5 };
                 }
                 """;
 
@@ -230,15 +231,11 @@ class SAPLTestValidatorTests {
     void whenMultipleErrorsInDocument_thenAllErrorsReported() {
         var document = """
                 requirement "Eldritch Chaos" {
-                    given
-                        - function chaos.invoke() maps to true
-                        - function chaos.repeat() maps to true
                     scenario "chaos scenario"
                         when subject "cultist" attempts action "summon" on resource "void"
-                        expect permit
-                        verify
-                            - function chaos.invoke() is called 0 times
-                            - function chaos.repeat() is called 1 times;
+                        expect
+                            - permit 0 times
+                            - deny 0 times;
                 }
                 """;
 
@@ -269,8 +266,8 @@ class SAPLTestValidatorTests {
     }
 
     @Test
-    @DisplayName("zero amount produces error")
-    void whenZeroAmount_thenError() {
+    @DisplayName("verification count of zero produces no error")
+    void whenVerificationCountIsZero_thenNoError() {
         var document = """
                 requirement "Zero Amount" {
                     given
@@ -285,8 +282,7 @@ class SAPLTestValidatorTests {
 
         var errors = validate(document);
 
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_MULTIPLE_AMOUNT));
+        assertThat(errors).isEmpty();
     }
 
     @Test
@@ -310,14 +306,14 @@ class SAPLTestValidatorTests {
     }
 
     @Test
-    @DisplayName("multiple amount in expect block is validated")
-    void whenMultipleAmountInExpectBlock_thenValidated() {
+    @DisplayName("zero repetition count in expect block produces error")
+    void whenZeroRepetitionInExpectBlock_thenError() {
         var document = """
                 requirement "Expect Amount" {
                     scenario "invalid expect count"
                         when "subject" attempts "action" on "resource"
                         expect
-                            - permit 1 times;
+                            - permit 0 times;
                 }
                 """;
 
@@ -325,6 +321,39 @@ class SAPLTestValidatorTests {
 
         assertThat(errors).hasSize(1).first()
                 .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_MULTIPLE_AMOUNT));
+    }
+
+    @Test
+    @DisplayName("regex whose unescaped form is an invalid pattern produces error")
+    void whenRegexUnescapesToInvalidPattern_thenError() {
+        var document = """
+                requirement "Pattern Matching" {
+                    scenario "unicode escape to bracket"
+                        when "mi-go" attempts "communicate" on "brain_cylinder"
+                        expect decision is permit, with resource matching text with regex "\\u005B";
+                }
+                """;
+
+        var errors = validate(document);
+
+        assertThat(errors).hasSize(1).first().satisfies(
+                e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX));
+    }
+
+    @Test
+    @DisplayName("regex with backslash escape that unescapes to a valid pattern produces no error")
+    void whenRegexUnescapesToValidPattern_thenNoError() {
+        var document = """
+                requirement "Pattern Matching" {
+                    scenario "escaped digit class"
+                        when "mi-go" attempts "communicate" on "brain_cylinder"
+                        expect decision is permit, with resource matching text with regex "\\\\d+";
+                }
+                """;
+
+        var errors = validate(document);
+
+        assertThat(errors).isEmpty();
     }
 
     @Test
@@ -466,6 +495,20 @@ class SAPLTestValidatorTests {
         var errors = validate(document);
 
         assertThat(errors).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a requirement with no name (partial document) does not crash validation")
+    void whenRequirementHasNoNameThenValidationDoesNotThrow() {
+        var document = """
+                requirement {
+                    scenario "s"
+                        when subject "u" attempts action "a" on resource "r"
+                        expect permit;
+                }
+                """;
+
+        assertThatCode(() -> validate(document)).doesNotThrowAnyException();
     }
 
     private List<ValidationError> validate(String document) {

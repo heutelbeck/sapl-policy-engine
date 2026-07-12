@@ -1,1 +1,11 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/heutelbeck/sapl-policy-engine/security/advisories
+    about: Report suspected security vulnerabilities privately.
+  - name: Documentation
+    url: https://sapl.io/docs/latest/
+    about: Read the SAPL language, integration, and operations documentation.
+  - name: Community support
+    url: https://discord.gg/pRXEVWm3xM
+    about: Ask usage questions and discuss ideas with the SAPL community.

@@ -44,12 +44,12 @@ class JWTEncodingDecodingUtilsTests {
                 arguments("url-safe", Base64.getUrlEncoder().encodeToString(SECRET)));
     }
 
-    @ParameterizedTest(name = "a {0} Base64 key decodes to the original key bytes")
+    @ParameterizedTest(name = "a {0} Base64 trust anchor that fails X509 parsing yields no key")
     @MethodSource("base64Alphabets")
-    @DisplayName("a key in either Base64 alphabet decodes to the original key bytes")
-    void whenKeyIsInEitherBase64AlphabetThenDecodesToOriginalBytes(String alphabet, String encodedKey) {
+    @DisplayName("a trust anchor whose bytes fail X509 parsing must not become an HMAC verifier")
+    void whenTrustAnchorFailsX509ParsingThenNoKeyIsBuilt(String alphabet, String encodedKey) {
         val key = JWTEncodingDecodingUtils.jsonNodeToKey(JSON.stringNode(encodedKey));
 
-        assertThat(key).hasValueSatisfying(decoded -> assertThat(decoded.getEncoded()).isEqualTo(SECRET));
+        assertThat(key).isEmpty();
     }
 }

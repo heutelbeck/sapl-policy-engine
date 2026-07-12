@@ -64,10 +64,10 @@ class IndexPredicateCollisionTests {
 
         val index = IndexFactory.createIndex(documents, compileCtx);
 
-        val result = index.match(SaplTesting.subscriptionContext("""
+        val result = index.matchKleene(SaplTesting.subscriptionContext("""
                 { "subject": "BB", "action": "read", "resource": "data" }
                 """));
 
-        assertThat(result.matchingDocuments()).extracting(d -> d.metadata().name()).containsExactly("permitBb");
+        assertThat(result.trueMatches()).extracting(d -> d.metadata().name()).containsExactly("permitBb");
     }
 }

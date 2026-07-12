@@ -153,7 +153,8 @@ public class BenchmarkReportWriter {
         sb.append("method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,"
                 + "mean_ns_op,latency_p50_ns,latency_p90_ns,latency_p99_ns,latency_p999_ns,latency_max_ns\n");
         for (val r : results) {
-            val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
+            // Little's Law: per-request latency = threads / throughput.
+            val meanNs = r.mean() > 0 ? Math.max(1, r.threads()) * 1_000_000_000.0 / r.mean() : 0;
             val l      = r.latency();
             sb.append(String.format(Locale.US,
                     "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.0f,%.0f,%.0f,%.0f,%.0f", r.method(),
@@ -182,7 +183,8 @@ public class BenchmarkReportWriter {
         sb.append("method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,"
                 + "mean_ns_op,latency_p50_ns,latency_p90_ns,latency_p99_ns,latency_p999_ns,latency_max_ns\n");
         for (val r : results) {
-            val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
+            // Little's Law: per-request latency = threads / throughput.
+            val meanNs = r.mean() > 0 ? Math.max(1, r.threads()) * 1_000_000_000.0 / r.mean() : 0;
             val l      = r.latency();
             sb.append(String.format(Locale.US,
                     "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.0f,%.0f,%.0f,%.0f,%.0f", r.method(),
@@ -257,6 +259,9 @@ public class BenchmarkReportWriter {
         sb.append(sep);
         for (val r : withLatency) {
             val l = r.latency();
+            if (l == null) {
+                continue;
+            }
             sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %12.0f | %12.0f | %12.0f | %12.0f | %12.0f |",
                     r.method(), r.threads(), l.p50(), l.p90(), l.p99(), l.p999(), l.max())).append('\n');
         }

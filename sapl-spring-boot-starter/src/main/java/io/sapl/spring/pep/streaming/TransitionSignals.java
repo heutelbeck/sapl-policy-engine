@@ -192,13 +192,27 @@ public class TransitionSignals {
 
     /**
      * Substitution path: a wrapping {@code Flux.create} sink so the boundary-error
-     * callback can
-     * {@code sink.next(emit.get())} a substitute item. This costs one extra
-     * subscription and
-     * {@code OverflowStrategy.BUFFER} on the sink (the {@code Flux.create}
-     * default); the inner subscription is bound to
-     * the sink's lifetime via {@code sink.onDispose(...)}, so a downstream cancel
-     * propagates upstream.
+     * callback can {@code sink.next(emit.get())} a substitute item in place of the
+     * boundary signal. The inner subscription requests unbounded, so real items and
+     * boundary substitutes reach the sink in strict source order.
+     * <p>
+     * That order is a hard correctness requirement: a substitute reordered ahead of
+     * the data item it marks would bind an authorization transition to the wrong
+     * element. It must not be traded for backpressure. Throttling the inner demand
+     * lets the barrier process a boundary error during prefetch ahead of the
+     * still-queued data item before it, so the substitute overtakes that item.
+     * <p>
+     * Unbounded inner demand means this path buffers, unlike the observe-only paths
+     * which are pure pass-throughs with full backpressure. The buffering is
+     * accepted
+     * by design: substitutes are injected only at suspend or grant boundaries,
+     * which
+     * are rare, and the buffer grows without bound only under a slow consumer
+     * against
+     * a high-volume source, a trade accepted for this opt-in helper. Do not relay
+     * downstream demand to the inner subscription to bound it. That reintroduces
+     * the
+     * reordering above. A downstream cancel disposes the subscription.
      */
     private static <T> Flux<T> observeAndSubstitute(Flux<T> source, Consumer<AccessDeniedException> onSuspend,
             Supplier<T> emitOnSuspend, Consumer<AccessGrantedException> onGranted, Supplier<T> emitOnGranted) {

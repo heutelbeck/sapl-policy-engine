@@ -80,6 +80,23 @@ class ReactiveMutableHttpRequestTests {
             val mutated = mutable.applyTo(MockServerWebExchange.from(original)).getRequest();
             assertThat(mutated.getHeaders().get("X-Tenant")).containsExactly("gamma");
         }
+
+        @Test
+        @DisplayName("removeHeader strips a header set under different casing")
+        void removeIsCaseInsensitiveAgainstSet() {
+            mutable.setHeader("X-Tenant", "beta");
+            mutable.removeHeader("x-tenant");
+            val mutated = mutable.applyTo(MockServerWebExchange.from(original)).getRequest();
+            assertThat(mutated.getHeaders().get("X-Tenant")).isNullOrEmpty();
+        }
+
+        @Test
+        @DisplayName("addHeader appends to an existing delegate header named with different casing")
+        void addIsCaseInsensitiveAgainstDelegate() {
+            mutable.addHeader("x-tenant", "beta");
+            val mutated = mutable.applyTo(MockServerWebExchange.from(original)).getRequest();
+            assertThat(mutated.getHeaders().get("x-tenant")).containsExactly("alpha", "beta");
+        }
     }
 
     @Nested

@@ -27,7 +27,7 @@ import lombok.NonNull;
  * One subscription key may have many occurrences when the same
  * attribute is read at multiple call sites in a policy. The
  * {@code head} flag has moved to {@link SubscriptionKey} (where it
- * affects subscription identity); occurrences carry only the source
+ * affects subscription identity). Occurrences carry only the source
  * position for trace and coverage reporting.
  *
  * @param location source position of this read site

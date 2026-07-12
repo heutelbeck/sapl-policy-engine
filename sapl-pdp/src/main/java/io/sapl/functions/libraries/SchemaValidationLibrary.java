@@ -22,6 +22,7 @@ import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.BoundedRegularExpressionFactory;
 import lombok.val;
 
@@ -272,13 +273,13 @@ public class SchemaValidationLibrary {
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
                        "C" : { "x" : 1, "y" : 2, "z" : 3 }
                     };
-              isCompliantWithExternalSchemas(valid, schema, externals) == true;
+              isCompliantWithExternalSchemas(valid, schema, [externals]) == true;
               var invalid = {
                        "A" : { "x" : "I AM NOT A NUMBER I AM A FREE MAN", "y" : 2, "z" : 3 },
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
                        "C" : { "x" : 1, "y" : 2, "z" : 3 }
                     };
-              isCompliantWithExternalSchemas(invalid, schema, externals) == false;
+              isCompliantWithExternalSchemas(invalid, schema, [externals]) == false;
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isCompliantWithExternalSchemas(Value validationSubject, ObjectValue jsonSchema,
@@ -396,10 +397,12 @@ public class SchemaValidationLibrary {
             val schemaNode  = ValueJsonMarshaller.toJsonNode(jsonSchema);
             val validator   = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
-            val errors      = validator.validate(subjectNode);
+            val errors      = BoundedRegex.runWithSharedMatchBudget(() -> validator.validate(subjectNode));
             return createValidationResult(errors.isEmpty(), errors);
         } catch (SchemaException e) {
-            return createValidationResult(false, List.of());
+            // An uncompilable schema (malformed, bad or unresolvable $ref) is an author
+            // error, not a non-compliant subject. Surface it as an error.
+            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
         } catch (IllegalArgumentException e) {
             return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
         } catch (Throwable t) {

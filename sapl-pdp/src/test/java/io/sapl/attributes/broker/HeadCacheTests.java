@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Pure unit tests for the eval-side head-cache helper. No broker,
- * no concurrency; the five-step pipeline is exercised in isolation.
+ * no concurrency. The five-step pipeline is exercised in isolation.
  */
 @DisplayName("HeadCache")
 class HeadCacheTests {
@@ -47,8 +47,8 @@ class HeadCacheTests {
             Value.EMPTY_OBJECT);
 
     private static AttributeFinderInvocation invocation(String fqn) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1), Duration.ofMillis(100),
-                Duration.ofMillis(100), 0L, false, CTX);
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, false, CTX);
     }
 
     private static SubscriptionKey headKey(String fqn) {
@@ -297,11 +297,11 @@ class HeadCacheTests {
             cache.retainOnly(Set.of(keyH, keyL));
             assertThat(cache.merge(Map.of()).get(keyH).value()).isEqualTo(Value.of("v1"));
 
-            // Round 2: head dep dropped; cache evicts it.
+            // Round 2: head dep dropped. Cache evicts it.
             cache.retainOnly(Set.of(keyL));
             assertThat(cache.merge(Map.of()).get(keyH)).isNull();
 
-            // Round 3: head dep re-enters; broker delivers v3 (the world moved).
+            // Round 3: head dep re-enters. Broker delivers v3 (the world moved).
             cache.captureFrom(Map.of(keyH, snap(Value.of("v3"))));
             cache.retainOnly(Set.of(keyH, keyL));
             assertThat(cache.merge(Map.of()).get(keyH).value()).isEqualTo(Value.of("v3"));
@@ -316,7 +316,7 @@ class HeadCacheTests {
 
             cache.captureFrom(brokerSnap);
 
-            // No head keys captured; cache reports empty via merge with no input.
+            // No head keys captured. Cache reports empty via merge with no input.
             assertThat(cache.merge(Map.of())).isEmpty();
         }
     }

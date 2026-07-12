@@ -26,7 +26,7 @@ import lombok.NonNull;
  * {@link EvaluationContext}. Pairs the attribute value the trigger
  * loop most recently observed with the {@link Instant} the broker
  * emitted it. The timestamp is the data's freshness, not a round
- * counter; operators can reason about staleness without a separate
+ * counter. Operators can reason about staleness without a separate
  * clock query.
  *
  * @param value the latest value the trigger loop holds for the

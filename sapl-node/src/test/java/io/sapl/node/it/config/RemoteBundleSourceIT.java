@@ -17,6 +17,8 @@
  */
 package io.sapl.node.it.config;
 
+import static io.sapl.api.pdp.StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -63,7 +65,6 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
     private static final String WIREMOCK_IMAGE      = "wiremock/wiremock:3.12.0";
     private static final int    WIREMOCK_PORT       = 8080;
     private static final String BUNDLE_SERVER_ALIAS = "bundle-server";
-    private static final String DEFAULT_PDP_ID      = "default";
 
     private static final String PERMIT_POLICY = """
             policy "permit-all"
@@ -182,7 +183,7 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
     class HealthEndpointTests {
 
         @Test
-        @DisplayName("G1: health reports DOWN when no valid bundle has been loaded")
+        @DisplayName("health reports DOWN when no valid bundle has been loaded")
         void whenNoBundleLoadedThenHealthDown() {
             try (val network = Network.newNetwork(); val wiremock = createWireMockContainer(network)) {
                 wiremock.start();
@@ -201,7 +202,7 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("G2: health reports UP after successful bundle fetch")
+        @DisplayName("health reports UP after successful bundle fetch")
         void whenBundleLoadedThenHealthUp() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                     .withPolicy("permit-all", PERMIT_POLICY).build();
@@ -224,7 +225,7 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("G3: health stays UP during server outage with last-known bundle")
+        @DisplayName("health stays UP during server outage with last-known bundle")
         void whenServerOutageThenHealthStillUp() {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                     .withPolicy("permit-all", PERMIT_POLICY).build();

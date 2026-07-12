@@ -36,6 +36,7 @@ import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthHandler.HttpAuthResult;
 import io.sapl.node.auth.http.HttpAuthenticationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
@@ -50,12 +51,15 @@ class DecideOnceServletTests {
     @Mock
     private HttpAuthHandler authHandler;
 
+    @Mock
+    private HttpServletRequest oversizedRequest;
+
     private final JsonMapper mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
     @Test
     @DisplayName("malformed subscription JSON is rejected with 400 and the PDP is never consulted")
     void whenSubscriptionJsonIsMalformedThenBadRequestAndPdpNotCalled() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         val request = new MockHttpServletRequest();
         request.setContent("{ \"subject\": ".getBytes(UTF_8));
         val response = new MockHttpServletResponse();
@@ -77,5 +81,33 @@ class DecideOnceServletTests {
 
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
         verifyNoInteractions(pdp);
+    }
+
+    @Test
+    @DisplayName("a chunked over-limit body is rejected with 413 and the PDP is never consulted")
+    void whenBodyExceedsLimitThenContentTooLargeAndPdpNotCalled() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
+        when(oversizedRequest.getInputStream()).thenReturn(new TooLargeInputStream());
+        val response = new MockHttpServletResponse();
+
+        new DecideOnceServlet(pdp, authHandler, mapper).handlePost(oversizedRequest, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+        verifyNoInteractions(pdp);
+    }
+
+    @Test
+    @DisplayName("a PDP failure fails closed: SC_OK with an INDETERMINATE decision and no stack leak")
+    void whenPdpThrowsThenFailsClosedToIndeterminate() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
+        when(pdp.decideOnce(any(), any())).thenThrow(new RuntimeException("boom"));
+        val request = new MockHttpServletRequest();
+        request.setContent("{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"doc\"}".getBytes(UTF_8));
+        val response = new MockHttpServletResponse();
+
+        new DecideOnceServlet(pdp, authHandler, mapper).handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_OK);
+        assertThat(response.getContentAsString()).contains("INDETERMINATE");
     }
 }

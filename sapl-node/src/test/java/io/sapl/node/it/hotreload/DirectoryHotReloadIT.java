@@ -17,6 +17,7 @@
  */
 package io.sapl.node.it.hotreload;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
@@ -118,7 +119,8 @@ class DirectoryHotReloadIT extends BaseIntegrationTest {
 
                 await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
                     val decision = pdp.decide(TEST_SUBSCRIPTION).blockFirst();
-                    assert decision != null && decision.decision() == AuthorizationDecision.PERMIT.decision();
+                    assertThat(decision).isNotNull().extracting(AuthorizationDecision::decision)
+                            .isEqualTo(AuthorizationDecision.PERMIT.decision());
                 });
             }
         }

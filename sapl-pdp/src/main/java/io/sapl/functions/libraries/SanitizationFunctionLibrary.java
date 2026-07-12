@@ -127,6 +127,8 @@ public class SanitizationFunctionLibrary {
 
     static final String ERROR_POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
 
+    private static final Pattern ZERO_WIDTH_CHARACTERS = Pattern.compile("[\\u200b\\u200c\\u200d\\ufeff]");
+
     private static final Pattern SQL_METACHARACTERS    = Pattern.compile("[';*()@]");
     private static final Pattern SQL_DML_DDL_KEYWORDS  = Pattern.compile(
             "\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b",
@@ -195,7 +197,10 @@ public class SanitizationFunctionLibrary {
             if (userInput == null || userInput.isEmpty()) {
                 return false;
             }
-            val normalizedInput = Normalizer.normalize(userInput, Normalizer.Form.NFKC);
+            val canonicalInput = Normalizer.normalize(userInput, Normalizer.Form.NFKC);
+            // Strip zero-width and format characters so keywords obfuscated by an
+            // interior zero-width character are matched as the plain keyword.
+            val normalizedInput = ZERO_WIDTH_CHARACTERS.matcher(canonicalInput).replaceAll("");
             for (Pattern pattern : patterns) {
                 if (BoundedRegex.matcher(pattern, normalizedInput).find()) {
                     return true;
@@ -226,6 +231,7 @@ public class SanitizationFunctionLibrary {
             (Portland OR Seattle), and contractions (What's your name?).
 
             Takes a TEXT value and returns it unchanged if clean, or an error if injection patterns are detected.
+            Inputs longer than 1,048,576 characters return an error before Unicode normalization.
 
             These inputs pass through:
             ```
@@ -260,6 +266,9 @@ public class SanitizationFunctionLibrary {
             Use assertNoSqlInjectionStrict if the input should be a structured identifier where SQL syntax never belongs.
             """)
     public static Value assertNoSqlInjection(TextValue inputToSanitize) {
+        if (TextParseLimits.exceedsMaxInput(inputToSanitize.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         val potentialInjectionDetected = BALANCED_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
         if (potentialInjectionDetected) {
             return Value.error(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);
@@ -287,6 +296,7 @@ public class SanitizationFunctionLibrary {
             contain SQL syntax.
 
             Takes a TEXT value and returns it unchanged if clean, or an error if any SQL syntax is found.
+            Inputs longer than 1,048,576 characters return an error before Unicode normalization.
 
             These inputs pass through:
             ```
@@ -321,6 +331,9 @@ public class SanitizationFunctionLibrary {
             For natural language or user names, use assertNoSqlInjection instead.
             """)
     public static Value assertNoSqlInjectionStrict(TextValue inputToSanitize) {
+        if (TextParseLimits.exceedsMaxInput(inputToSanitize.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         val potentialInjectionDetected = STRICT_SQL_INJECTION_PREDICATE.test(inputToSanitize.value());
         if (potentialInjectionDetected) {
             return Value.error(ERROR_POTENTIAL_SQL_INJECTION_DETECTED);

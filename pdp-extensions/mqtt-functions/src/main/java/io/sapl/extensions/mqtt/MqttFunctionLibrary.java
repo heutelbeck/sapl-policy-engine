@@ -19,11 +19,16 @@ package io.sapl.extensions.mqtt;
 
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+
+import java.util.Optional;
+
+import lombok.val;
 
 /**
  * This sapl function library provides functions to check whether mqtt topics
@@ -52,8 +57,7 @@ public class MqttFunctionLibrary {
             ```sapl
             policy "client can only publish to own topics"
             permit
-                action == "publish"
-            where
+                action == "publish";
                 mqtt.isMatchingAllTopics("clients/" + subject.clientId + "/#", resource.topic);
             ```
 
@@ -62,16 +66,28 @@ public class MqttFunctionLibrary {
             ```sapl
             policy "subscriber has partial access"
             permit
-                action == "subscribe"
-            where
+                action == "subscribe";
                 mqtt.isMatchingAtLeastOneTopic("public/#", resource.topics);
             ```
+
+            ## Resource Limits
+
+            Topic arrays are capped at 32 entries and 8192 total UTF-8 bytes before
+            any topic is parsed. This mirrors the default MQTT PIP topic filter
+            limits and keeps policy evaluation bounded when request-controlled
+            arrays are supplied.
             """;
 
     private static final String ERROR_ALL_TOPICS_MUST_BE_TEXT      = "All topics must be text values.";
+    private static final String ERROR_MALFORMED_TOPIC              = "A topic is not a well-formed MQTT topic. It must be a non-empty string of at most 65535 UTF-8 bytes without null characters or unmatched UTF-16 surrogates.";
     private static final String ERROR_TOPIC_CONTAINS_WILDCARD      = "The wildcard topic must not be matched against topics containing wildcards.";
+    private static final String ERROR_TOPIC_FILTER_LIMIT_EXCEEDED  = "MQTT topic count %d exceeds the limit of %d.";
+    private static final String ERROR_TOPIC_FILTERS_TOO_LARGE      = "MQTT topics exceed the limit of %d UTF-8 bytes.";
     private static final String ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY = "The topics must be a text value or an array of text values.";
     private static final String ERROR_WILDCARD_TOPIC_MUST_BE_TEXT  = "The wildcard topic must be a text value.";
+
+    static final int MAX_TOPIC_FILTER_BYTES = 8_192;
+    static final int MAX_TOPIC_FILTERS      = 32;
 
     /**
      * This function checks whether all given mqtt topics are matching the wildcard
@@ -100,18 +116,24 @@ public class MqttFunctionLibrary {
               subject == "firstSubject";
               mqtt.isMatchingAllTopics(resource, "first/second/third");
             ```
+
+            Topic arrays over 32 entries or 8192 total UTF-8 bytes return an error.
             """)
     public static Value isMatchingAllTopics(Value wildcardTopic, Value topics) {
         if (!(wildcardTopic instanceof TextValue wildcardText)) {
             return Value.error(ERROR_WILDCARD_TOPIC_MUST_BE_TEXT);
         }
-        var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
+        try {
+            val mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
-        return switch (topics) {
-        case ArrayValue arrayTopics -> isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
-        case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
-        };
+            return switch (topics) {
+            case ArrayValue arrayTopics -> isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
+            case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
+            default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
+            };
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return Value.error(ERROR_MALFORMED_TOPIC);
+        }
     }
 
     /**
@@ -141,37 +163,45 @@ public class MqttFunctionLibrary {
               subject == "secondSubject";
               mqtt.isMatchingAtLeastOneTopic(resource, "first/second/third");
             ```
+
+            Topic arrays over 32 entries or 8192 total UTF-8 bytes return an error.
             """)
     public static Value isMatchingAtLeastOneTopic(Value wildcardTopic, Value topics) {
         if (!(wildcardTopic instanceof TextValue wildcardText)) {
             return Value.error(ERROR_WILDCARD_TOPIC_MUST_BE_TEXT);
         }
-        var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
+        try {
+            val mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
-        return switch (topics) {
-        case ArrayValue arrayTopics -> isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
-        case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
-        };
+            return switch (topics) {
+            case ArrayValue arrayTopics -> isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
+            case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
+            default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
+            };
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return Value.error(ERROR_MALFORMED_TOPIC);
+        }
     }
 
     private static Value isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, TextValue topic) {
         if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
             return Value.error(ERROR_TOPIC_CONTAINS_WILDCARD);
         }
-        var mqttTopic = MqttTopic.of(topic.value());
+        val mqttTopic = MqttTopic.of(topic.value());
         return Value.of(mqttTopicFilter.matches(mqttTopic));
     }
 
     private static Value isMatchingAllTopicsInArray(MqttTopicFilter mqttTopicFilter, ArrayValue topics) {
+        val limitError = topicArrayLimitError(topics);
+        if (limitError.isPresent()) {
+            return limitError.get();
+        }
         for (Value topicValue : topics) {
-            if (!(topicValue instanceof TextValue topic)) {
-                return Value.error(ERROR_ALL_TOPICS_MUST_BE_TEXT);
-            }
+            val topic = (TextValue) topicValue;
             if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
                 return Value.error(ERROR_TOPIC_CONTAINS_WILDCARD);
             }
-            var mqttTopic = MqttTopic.of(topic.value());
+            val mqttTopic = MqttTopic.of(topic.value());
             if (!mqttTopicFilter.matches(mqttTopic)) {
                 return Value.FALSE;
             }
@@ -180,18 +210,57 @@ public class MqttFunctionLibrary {
     }
 
     private static Value isMatchingAtLeastOneTopicInArray(MqttTopicFilter mqttTopicFilter, ArrayValue topics) {
+        val limitError = topicArrayLimitError(topics);
+        if (limitError.isPresent()) {
+            return limitError.get();
+        }
         for (Value topicValue : topics) {
-            if (!(topicValue instanceof TextValue topic)) {
-                return Value.error(ERROR_ALL_TOPICS_MUST_BE_TEXT);
-            }
+            val topic = (TextValue) topicValue;
             if (MqttTopicFilter.of(topic.value()).containsWildcards()) {
                 return Value.error(ERROR_TOPIC_CONTAINS_WILDCARD);
             }
-            var mqttTopic = MqttTopic.of(topic.value());
+            val mqttTopic = MqttTopic.of(topic.value());
             if (mqttTopicFilter.matches(mqttTopic)) {
                 return Value.TRUE;
             }
         }
         return Value.FALSE;
+    }
+
+    private static Optional<Value> topicArrayLimitError(ArrayValue topics) {
+        if (topics.size() > MAX_TOPIC_FILTERS) {
+            return Optional
+                    .of(Value.error(ERROR_TOPIC_FILTER_LIMIT_EXCEEDED.formatted(topics.size(), MAX_TOPIC_FILTERS)));
+        }
+        long totalBytes = 0L;
+        for (Value topicValue : topics) {
+            if (!(topicValue instanceof TextValue topic)) {
+                return Optional.of(Value.error(ERROR_ALL_TOPICS_MUST_BE_TEXT));
+            }
+            totalBytes += utf8ByteCount(topic.value());
+            if (totalBytes > MAX_TOPIC_FILTER_BYTES) {
+                return Optional.of(Value.error(ERROR_TOPIC_FILTERS_TOO_LARGE.formatted(MAX_TOPIC_FILTER_BYTES)));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static long utf8ByteCount(String text) {
+        long bytes = 0L;
+        var  index = 0;
+        while (index < text.length()) {
+            val codePoint = text.codePointAt(index);
+            if (codePoint <= 0x7F) {
+                bytes++;
+            } else if (codePoint <= 0x7FF) {
+                bytes += 2L;
+            } else if (codePoint <= 0xFFFF) {
+                bytes += 3L;
+            } else {
+                bytes += 4L;
+            }
+            index += Character.charCount(codePoint);
+        }
+        return bytes;
     }
 }

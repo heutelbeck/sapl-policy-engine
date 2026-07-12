@@ -21,6 +21,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import io.sapl.pdp.plugins.PluginsSource;
@@ -59,7 +60,8 @@ public record PDPComponents(
         List<DecisionInterceptor> decisionInterceptors,
         List<SubscriptionLifecycleListener> lifecycleListeners,
         @Nullable PluginsSource pluginsSource,
-        boolean ownsPluginsSource) implements AutoCloseable {
+        boolean ownsPluginsSource,
+        @Nullable AttributeRepository ownedRepository) implements AutoCloseable {
 
     private static final String WARN_ERROR_CLOSING_RESOURCE = "Error closing {}: {}";
 
@@ -81,6 +83,12 @@ public record PDPComponents(
         if (ownsPluginsSource) {
             closeQuietly(pluginsSource);
         }
+        // Builder-created default repository only. A withRepository or
+        // withAttributeBroker
+        // repository stays caller-owned (ownedRepository is null then). Closing it
+        // shuts
+        // down its scheduler, otherwise that thread leaks for the PDP's lifetime.
+        closeQuietly(ownedRepository);
     }
 
     private static void closeAll(Object... resources) {

@@ -24,9 +24,9 @@ import java.time.ZoneId;
 import java.util.Objects;
 
 /**
- * Test {@link Clock} whose current instant is mutated explicitly by
- * the test author. Use with {@link TestTimeScheduler} to drive
- * deterministic time-based assertions: set the instant, advance the
+ * Test {@link Clock} whose current instant is mutated explicitly by the test
+ * author. Use with {@link TestTimeScheduler}
+ * to drive deterministic time-based assertions: set the instant, advance the
  * scheduler, observe emissions.
  */
 public final class MutableClock extends Clock {

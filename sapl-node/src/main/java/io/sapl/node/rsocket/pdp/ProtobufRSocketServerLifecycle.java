@@ -17,8 +17,9 @@
  */
 package io.sapl.node.rsocket.pdp;
 
+import static io.sapl.node.MultiSubscriptionLimits.requirePositiveMax;
+
 import java.io.IOException;
-import java.net.BindException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -29,6 +30,7 @@ import org.springframework.context.SmartLifecycle;
 
 import io.netty.channel.unix.DomainSocketAddress;
 import io.netty.handler.ssl.SslContext;
+import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
@@ -55,7 +57,14 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
     private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(2);
 
-    private static final String ERROR_PAYLOAD_SIZE  = "SAPL Node refused to start. sapl.pdp.rsocket.max-inbound-payload-size is %d, must be positive.";
+    /**
+     * The RSocket protocol per frame ceiling. A single decision frame can
+     * already reach this size, so any smaller inbound payload limit would
+     * reject legitimate decision frames at the transport layer at runtime.
+     */
+    private static final int PROTOCOL_PAYLOAD_CEILING = 16_777_215;
+
+    private static final String ERROR_PAYLOAD_SIZE  = "SAPL Node refused to start. sapl.pdp.rsocket.max-inbound-payload-size is %d, must be at least 16777215.";
     private static final String ACTION_PAYLOAD_SIZE = """
             Set sapl.pdp.rsocket.max-inbound-payload-size to at least 16777215,
             the RSocket protocol per frame ceiling. Lower values are not legal
@@ -76,9 +85,14 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final int                                      maxInboundPayloadSize;
+    private final int                                      maxMultiSubscriptionCount;
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
+    // Optional admission limits. When set, the acceptor is wrapped with the
+    // configured connection, stream, and rate checks; when null the raw
+    // acceptor is bound unchanged.
+    private final @Nullable RSocketLimiter limiter;
     // Optional TLS context. When set, the TCP server is wrapped in TLS via
     // Reactor Netty's secure() before being handed to TcpServerTransport.
     // Resolution from a Spring Boot SslBundle happens in the @Configuration.
@@ -97,7 +111,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             if (!enabled || running) {
                 return;
             }
-            if (maxInboundPayloadSize <= 0) {
+            if (maxInboundPayloadSize < PROTOCOL_PAYLOAD_CEILING) {
                 throw new SaplStartupConfigurationException(ERROR_PAYLOAD_SIZE.formatted(maxInboundPayloadSize),
                         ACTION_PAYLOAD_SIZE);
             }
@@ -107,7 +121,11 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
                 log.warn("RSocket server has no authentication configured");
             }
             log.debug("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
-            val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
+            SocketAcceptor acceptor = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator,
+                    requirePositiveMax(maxMultiSubscriptionCount));
+            if (limiter != null) {
+                acceptor = limiter.wrap(acceptor);
+            }
             val transport = createTransport();
             server  = bind(acceptor, transport);
             running = true;
@@ -155,7 +173,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         }
     }
 
-    private CloseableChannel bind(ProtobufRSocketAcceptor acceptor, TcpServerTransport transport) {
+    private CloseableChannel bind(SocketAcceptor acceptor, TcpServerTransport transport) {
         try {
             return RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
         } catch (RuntimeException e) {
@@ -171,18 +189,18 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     }
 
     /**
-     * Walks the cause chain to recognise the address-in-use bind failure. The
-     * concrete root cause varies by transport: the NIO transport raises a
-     * {@link BindException}, while the native epoll transport raises a Netty
-     * {@code NativeIoException} carrying errno 98 whose message reads
-     * {@code "Address already in use"}. Only this condition gets the clean
-     * operator message; every other bind failure propagates unchanged.
+     * Walks the cause chain to recognise the address-in-use bind failure by its
+     * message. The concrete root cause varies by transport: the NIO transport
+     * raises a {@code java.net.BindException}, while the native epoll transport
+     * raises a Netty {@code NativeIoException} carrying errno 98. Both report
+     * the in-use condition with a message containing
+     * {@code "Address already in use"} (or {@code "error(-98)"}). Only this
+     * condition gets the clean operator message. Every other bind failure,
+     * including a {@code BindException} for an unrelated reason such as
+     * "Cannot assign requested address", propagates unchanged.
      */
     static boolean isAddressInUse(Throwable failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof BindException) {
-                return true;
-            }
             val message = cause.getMessage();
             if (message != null && (message.contains("Address already in use") || message.contains("error(-98)"))) {
                 return true;

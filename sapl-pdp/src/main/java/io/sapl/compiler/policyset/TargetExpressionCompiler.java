@@ -33,7 +33,7 @@ import java.util.List;
 @UtilityClass
 public class TargetExpressionCompiler {
     private static final String ERROR_TARGET_RELATIVE_ACCESSOR = "The target expression contains a top-level relative value accessor (@ or #) outside of any expression that may set its value.";
-    private static final String ERROR_TARGET_STATIC_ERROR      = "The target expression statically evaluates to an error: %s.";
+    private static final String ERROR_TARGET_STATIC            = "The target expression statically evaluates to an error: %s.";
     private static final String ERROR_TARGET_STREAM_OPERATOR   = "Target expression must not contain attributes operators <>!.";
 
     public CompiledExpression compileTargetExpression(Expression targetExpression, CompiledExpression schemaValidator,
@@ -45,9 +45,9 @@ public class TargetExpressionCompiler {
                 : NaryBooleanCompiler.compile(List.of(ExpressionCompiler.compile(targetExpression, ctx)),
                         targetExpression.location(), Value.FALSE, Value.TRUE);
         if (compiledTarget instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_TARGET_STATIC_ERROR.formatted(error), targetExpression.location());
+            throw new SaplCompilerException(ERROR_TARGET_STATIC.formatted(error), targetExpression.location());
         }
-        if (compiledTarget instanceof PureOperator po && !po.isDependingOnSubscription()) {
+        if (compiledTarget instanceof PureOperator po && po.isRelativeExpression()) {
             throw new SaplCompilerException(ERROR_TARGET_RELATIVE_ACCESSOR, targetExpression.location());
         }
         if (compiledTarget instanceof StreamOperator) {

@@ -113,7 +113,7 @@ class ReportBuilderUtilTests {
         val report = ReportBuilderUtil.extractReport(traced(vote), DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.contributingDocuments()).singleElement().satisfies(doc -> {
-            assertThat(doc.name()).isEqualTo("forbidden-knowledge-access");
+            assertThat(doc.name()).isEqualTo("test-set->forbidden-knowledge-access");
             assertThat(doc.decision()).isEqualTo(Decision.PERMIT);
             assertThat(doc.attributes()).isEmpty();
         });
@@ -190,7 +190,7 @@ class ReportBuilderUtilTests {
 
         assertThat(report.contributingDocuments()).hasSize(2);
         assertThat(report.contributingDocuments().get(0).name()).isEqualTo("inner-set");
-        assertThat(report.contributingDocuments().get(1).name()).isEqualTo("inner-policy");
+        assertThat(report.contributingDocuments().get(1).name()).isEqualTo("inner-set->inner-policy");
     }
 
     @Test
@@ -205,13 +205,14 @@ class ReportBuilderUtilTests {
 
         val key         = environmentKey("time.now");
         val publishedAt = Instant.parse("2024-01-23T10:30:05.123Z");
-        val tracedVote  = new TracedVote(vote, DUMMY_TIMESTAMP, Map.of(key, List.of(occurrence("time-policy"))),
+        val tracedVote  = new TracedVote(vote, DUMMY_TIMESTAMP,
+                Map.of(key, List.of(occurrence("test-set->time-policy"))),
                 Map.of(key, new AttributeSnapshot(Value.of("now"), publishedAt)));
 
         val report = ReportBuilderUtil.extractReport(tracedVote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
         assertThat(report.contributingDocuments()).singleElement().satisfies(doc -> {
-            assertThat(doc.name()).isEqualTo("time-policy");
+            assertThat(doc.name()).isEqualTo("test-set->time-policy");
             assertThat(doc.attributes()).singleElement().satisfies(attr -> {
                 assertThat(attr.key()).isEqualTo(key);
                 assertThat(attr.value()).isEqualTo(Value.of("now"));
@@ -252,7 +253,8 @@ class ReportBuilderUtilTests {
                 Outcome.PERMIT);
 
         val key        = environmentKey("time.now");
-        val tracedVote = new TracedVote(vote, DUMMY_TIMESTAMP, Map.of(key, List.of(occurrence("time-policy"))),
+        val tracedVote = new TracedVote(vote, DUMMY_TIMESTAMP,
+                Map.of(key, List.of(occurrence("test-set->time-policy"))),
                 Map.of(key, new AttributeSnapshot(Value.of("now"), Instant.parse("2024-01-23T10:30:05Z"))));
 
         val objectValue = ReportBuilderUtil.extractReportAsValue(tracedVote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
@@ -262,6 +264,31 @@ class ReportBuilderUtilTests {
         assertThat(docs.size()).isEqualTo(1);
         val doc = (ObjectValue) docs.get(0);
         assertThat(doc.get("attributes")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("attributes a child policy's attribute read under the qualified setname->policyname entry")
+    void whenChildPolicyOfSetReadsAttributeThenAttributedUnderQualifiedName() {
+        val policyVoter = new PolicyVoterMetadata("p1", "pdp", "config", null, Outcome.PERMIT, false);
+        val policyVote  = Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, policyVoter);
+        val setVoter    = new PolicySetVoterMetadata("s1", "pdp", "config", null, DENY_OVERRIDES, Outcome.PERMIT,
+                false);
+        val vote        = Vote.combinedVote(AuthorizationDecision.PERMIT, setVoter, List.of(policyVote),
+                Outcome.PERMIT);
+
+        val key         = environmentKey("time.now");
+        val publishedAt = Instant.parse("2024-01-23T10:30:05.123Z");
+        val tracedVote  = new TracedVote(vote, DUMMY_TIMESTAMP, Map.of(key, List.of(occurrence("s1->p1"))),
+                Map.of(key, new AttributeSnapshot(Value.of("now"), publishedAt)));
+
+        val report = ReportBuilderUtil.extractReport(tracedVote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
+
+        assertThat(report.contributingDocuments()).filteredOn(doc -> "s1->p1".equals(doc.name())).singleElement()
+                .satisfies(doc -> assertThat(doc.attributes()).singleElement().satisfies(attr -> {
+                    assertThat(attr.key()).isEqualTo(key);
+                    assertThat(attr.value()).isEqualTo(Value.of("now"));
+                    assertThat(attr.valueTimestamp()).isEqualTo(publishedAt);
+                }));
     }
 
     private TracedVote traced(Vote vote) {
@@ -275,8 +302,8 @@ class ReportBuilderUtilTests {
     }
 
     private static SubscriptionKey environmentKey(String attributeName) {
-        val invocation = new AttributeFinderInvocation("test-config", attributeName, List.of(), Duration.ofSeconds(10),
-                Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
+        val invocation = new AttributeFinderInvocation("test-pdp", "test-config", attributeName, List.of(),
+                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         return new SubscriptionKey(invocation, false);
     }
 

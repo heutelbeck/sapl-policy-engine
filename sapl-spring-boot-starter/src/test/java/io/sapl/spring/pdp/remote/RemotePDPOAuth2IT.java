@@ -53,7 +53,7 @@ import reactor.test.StepVerifier;
  * starter on both HTTP and RSocket
  * transports. Starts a Keycloak container with a service-account client and a
  * SAPL Node container configured for OAuth2
- * JWT resource-server validation; the autowired remote PDP authenticates by
+ * JWT resource-server validation. The autowired remote PDP authenticates by
  * minting a JWT via Spring's
  * {@code OAuth2AuthorizedClientManager}.
  */
@@ -65,7 +65,8 @@ class RemotePDPOAuth2IT {
 
     private static final int             RSOCKET_PORT      = 7000;
     private static final int             HTTP_PORT         = 8080;
-    private static final String          SAPL_SERVER_IMAGE = "ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT";
+    private static final String          SAPL_SERVER_IMAGE = System.getProperty("sapl.node.image",
+            "ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT");
     private static final String          KEYCLOAK_IMAGE    = "quay.io/keycloak/keycloak:25.0";
     private static final String          REALM             = "sapl-it";
     private static final String          CLIENT_ID         = "sapl-pdp-client";
@@ -140,7 +141,8 @@ class RemotePDPOAuth2IT {
                 "spring.security.oauth2.client.registration." + REGISTRATION_ID + ".client-secret=" + CLIENT_SECRET,
                 "spring.security.oauth2.client.registration." + REGISTRATION_ID
                         + ".authorization-grant-type=client_credentials",
-                "spring.security.oauth2.client.provider." + REGISTRATION_ID + ".token-uri=" + tokenUri };
+                "spring.security.oauth2.client.provider." + REGISTRATION_ID + ".token-uri=" + tokenUri,
+                "io.sapl.pdp.remote.allow-insecure-http=true" };
     }
 
     private void runWithPdp(String[] properties, AuthorizationDecision expected) {

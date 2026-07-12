@@ -35,6 +35,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.tls.HandshakeCertificates;
 import okhttp3.tls.HeldCertificate;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +58,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("HTTP remote PDP")
 class RemoteHttpReactivePolicyDecisionPointTests {
 
     private static final String ID = "id1";
@@ -86,7 +88,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
         server = new MockWebServer();
         server.start();
         pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
-                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").build();
+                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").allowInsecureTransport().build();
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
         pdp.setTimeoutMillis(30000);
@@ -98,7 +100,8 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     }
 
     @Test
-    void whenSubscribingIncludingErrors_thenAfterErrorsCloseConnectionsAndReconnection() throws JacksonException {
+    @DisplayName("streaming decisions reconnect after malformed events")
+    void whenSubscribingIncludingErrorsThenAfterErrorsCloseConnectionsAndReconnection() throws JacksonException {
         // The first is propagated. The second results in an error. The third is dropped
         // due to the error
         prepareDecisions(
@@ -120,25 +123,60 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     }
 
     @Test
-    @DisplayName("a client built via a public constructor round-trips SAPL values in decisions")
-    void whenBuiltViaPublicConstructorThenSaplValuesRoundTrip() throws JacksonException {
-        // Without SaplJacksonModule the WebClient cannot deserialize SAPL Value types
-        // and
-        // falls back to INDETERMINATE, so the public constructors must register it too.
-        val decision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
-                Value.of("transformed-resource"));
-        server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .setResponseCode(HttpStatus.OK.value()).setBody(MAPPER.writeValueAsString(decision)));
+    @Timeout(30)
+    @DisplayName("a healthy stream that reconnects more often than maxRetries survives: the retry budget resets on each genuine decision (run2-103)")
+    void whenStreamRecoversBetweenFailuresThenRetryBudgetResetsAndStreamSurvives() throws JacksonException {
+        pdp.setMaxRetries(3);
+        // Each connection delivers one genuine DENY then an invalid event forcing a
+        // reconnect. Five DENYs require surviving four reconnects. A cumulative budget
+        // of
+        // 3 would have terminated the stream before the fifth DENY.
+        for (int i = 0; i < 6; i++) {
+            prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.DENY, null });
+        }
 
-        val constructed  = new RemoteHttpReactivePolicyDecisionPoint(server.url("/").toString(), "secret", "key",
-                HttpClient.create());
         val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
-        StepVerifier.create(constructed.decideOnce(subscription)).expectNext(decision).verifyComplete();
+        StepVerifier.create(pdp.decide(subscription))
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY).thenCancel().verify();
     }
 
     @Test
-    void whenSubscribingMultiDecideAll_thenGetResults() throws JacksonException {
+    @DisplayName("a client built via a public constructor round-trips SAPL values in decisions")
+    void whenBuiltViaPublicConstructorThenSaplValuesRoundTrip() throws Exception {
+        // Without SaplJacksonModule the WebClient cannot deserialize SAPL Value types
+        // and
+        // falls back to INDETERMINATE, so the public constructors must register it too.
+        val decision          = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                Value.of("transformed-resource"));
+        val serverCertificate = new HeldCertificate.Builder().commonName("localhost")
+                .addSubjectAlternativeName("localhost").build();
+        val serverHandshake   = new HandshakeCertificates.Builder().heldCertificate(serverCertificate).build();
+        val tlsServer         = new MockWebServer();
+        tlsServer.useHttps(serverHandshake.sslSocketFactory(), false);
+        tlsServer.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setResponseCode(HttpStatus.OK.value()).setBody(MAPPER.writeValueAsString(decision)));
+        tlsServer.start();
+
+        try {
+            val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            val constructed  = new RemoteHttpReactivePolicyDecisionPoint(tlsServer.url("/").toString(), "secret", "key",
+                    sslContext);
+            val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+
+            StepVerifier.create(constructed.decideOnce(subscription)).expectNext(decision).verifyComplete();
+        } finally {
+            tlsServer.shutdown();
+        }
+    }
+
+    @Test
+    @DisplayName("multi-decision streams reconnect after malformed events")
+    void whenSubscribingMultiDecideAllThenGetResults() throws JacksonException {
         val decision1 = new MultiAuthorizationDecision();
         decision1.setDecision(ID, AuthorizationDecision.PERMIT);
         val decision2 = new MultiAuthorizationDecision();
@@ -156,7 +194,8 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     }
 
     @Test
-    void whenSubscribingMultiDecide_thenGetResults() throws JacksonException {
+    @DisplayName("identifiable multi-decision streams reconnect after malformed events")
+    void whenSubscribingMultiDecideThenGetResults() throws JacksonException {
         val decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
         val decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
         val indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
@@ -172,11 +211,11 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     }
 
     private void prepareDecisions(Object[] decisions) throws JacksonException {
-        StringBuilder body = new StringBuilder();
-        for (var decision : decisions) {
-            if (decision == null)
+        val body = new StringBuilder();
+        for (val decision : decisions) {
+            if (decision == null) {
                 body.append("data: INTENDED INVALID VALUE TO CAUSE AN ERROR\n\n");
-            else {
+            } else {
                 body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
             }
         }
@@ -186,17 +225,19 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("builder constructs an HTTP remote PDP")
     void construct() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").build();
+                .basicAuth("secret", "key").allowInsecureTransport().build();
         assertThat(pdpUnderTest).isNotNull();
     }
 
     @Test
+    @DisplayName("builder constructs an HTTP remote PDP with a custom SSL context")
     void constructWithSslContext() throws SSLException {
         val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").secure(sslContext).build();
+                .basicAuth("secret", "key").secure(sslContext).allowInsecureTransport().build();
         assertThat(pdpUnderTest).isNotNull();
     }
 
@@ -239,9 +280,10 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     }
 
     @Test
+    @DisplayName("timeouts and retry settings are mutable")
     void settersAndGetters() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").build();
+                .basicAuth("secret", "key").allowInsecureTransport().build();
         pdpUnderTest.setFirstBackoffMillis(998);
         pdpUnderTest.setMaxBackOffMillis(1001);
         pdpUnderTest.setTimeoutMillis(997);
@@ -259,9 +301,11 @@ class RemoteHttpReactivePolicyDecisionPointTests {
         @Test
         @DisplayName("Builder rejects both basic and API key authentication (REQ-AUTH-4)")
         void whenDualAuthConfiguredThenThrows() {
-            val builder = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost").basicAuth("secret",
-                    "key");
-            assertThatThrownBy(() -> builder.apiKey("my-api-key")).isInstanceOf(IllegalStateException.class)
+            val              builder         = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+                    .basicAuth("secret", "key");
+            ThrowingCallable configureApiKey = () -> builder.apiKey("my-api-key");
+
+            assertThatThrownBy(configureApiKey).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("authentication method already defined");
         }
     }
@@ -282,6 +326,20 @@ class RemoteHttpReactivePolicyDecisionPointTests {
                     .verifyComplete();
 
             assertThat(server.getRequestCount()).isEqualTo(1);
+        }
+
+        @Test
+        @Timeout(5)
+        @DisplayName("decideAllOnce maps an empty server response to an indeterminate decision (fail closed)")
+        void whenDecideAllOnceReceivesEmptyResponseThenIndeterminate() {
+            server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .setResponseCode(HttpStatus.OK.value()));
+
+            val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                    JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
+
+            StepVerifier.create(pdp.decideAllOnce(subscription)).expectNext(MultiAuthorizationDecision.indeterminate())
+                    .verifyComplete();
         }
     }
 
@@ -331,7 +389,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
 
         private Value createDeeplyNestedValue(String leafValue, int depth) {
             Value current = Value.of(leafValue);
-            for (var i = 0; i < depth; i++) {
+            for (int i = 0; i < depth; i++) {
                 current = Value.ofObject(Map.of("level" + i, current));
             }
             return current;

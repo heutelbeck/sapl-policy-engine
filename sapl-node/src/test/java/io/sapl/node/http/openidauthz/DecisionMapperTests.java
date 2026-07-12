@@ -160,7 +160,8 @@ class DecisionMapperTests {
             val response = DecisionMapper.map(sapl, MAPPER);
             assertThat(response.context().get(DecisionMapper.SAPL_KEY))
                     .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-                    .extractingByKey(DecisionMapper.OBLIGATIONS_KEY).asString().contains("first", "second", "third");
+                    .extractingByKey(DecisionMapper.OBLIGATIONS_KEY).asString()
+                    .containsSubsequence("first", "second", "third");
         }
     }
 

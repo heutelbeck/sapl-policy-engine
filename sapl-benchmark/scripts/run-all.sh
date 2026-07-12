@@ -44,7 +44,7 @@ run() {
     echo ""
 }
 
-for quality in quick full; do
+for quality in ${BENCH_QUALITIES:-quick full}; do
     echo ""
     echo "================================================================"
     echo "  QUALITY: $quality"
@@ -94,3 +94,5 @@ if [ -n "$FAILED" ]; then
     echo -e "$FAILED"
 fi
 echo "================================================================"
+
+[ -z "$FAILED" ]

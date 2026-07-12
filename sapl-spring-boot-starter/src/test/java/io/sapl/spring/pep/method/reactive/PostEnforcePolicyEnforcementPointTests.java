@@ -494,8 +494,8 @@ class PostEnforcePolicyEnforcementPointTests {
                     .thenReturn(Mono.just(decisionWithObligation(Obligation.LIBRARIAN_REDACTS)));
 
             StepVerifier.create(archive.closeTheWardedDoor()).verifyComplete();
-            // The Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran;
-            // it skipped because the OutputSignal value is Maybe.absent for void.
+            // The Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran.
+            // It skipped because the OutputSignal value is Maybe.absent for void.
         }
 
         @Test

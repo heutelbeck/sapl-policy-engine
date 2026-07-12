@@ -95,19 +95,23 @@ public record VoteReport(
 
     private static List<ContributingDocument> collectContributingDocuments(Vote vote,
             Map<SubscriptionKey, List<Occurrence>> dependencies, Map<SubscriptionKey, AttributeSnapshot> readSnapshot) {
-        val documents = new ArrayList<ContributingDocument>();
-        collectDocumentsRecursively(vote.contributingVotes(), dependencies, readSnapshot, documents);
+        val documents   = new ArrayList<ContributingDocument>();
+        val rootSetName = vote.voter() instanceof PolicySetVoterMetadata ? vote.voter().name() : null;
+        collectDocumentsRecursively(vote.contributingVotes(), rootSetName, dependencies, readSnapshot, documents);
         return documents;
     }
 
-    private static void collectDocumentsRecursively(List<Vote> votes,
+    private static void collectDocumentsRecursively(List<Vote> votes, String enclosingSetName,
             Map<SubscriptionKey, List<Occurrence>> dependencies, Map<SubscriptionKey, AttributeSnapshot> readSnapshot,
             List<ContributingDocument> accumulator) {
         for (val v : votes) {
-            val name = v.voter().name();
+            val isPolicySet = v.voter() instanceof PolicySetVoterMetadata;
+            val name        = enclosingSetName == null || isPolicySet ? v.voter().name()
+                    : enclosingSetName + "->" + v.voter().name();
             accumulator.add(new ContributingDocument(name, v.authorizationDecision().decision(), v.errors(),
                     attributesFor(name, dependencies, readSnapshot)));
-            collectDocumentsRecursively(v.contributingVotes(), dependencies, readSnapshot, accumulator);
+            val childSetName = isPolicySet ? v.voter().name() : enclosingSetName;
+            collectDocumentsRecursively(v.contributingVotes(), childSetName, dependencies, readSnapshot, accumulator);
         }
     }
 

@@ -78,6 +78,55 @@ class ConflateBySubscriptionTests {
         }
     }
 
+    /**
+     * Emits a scripted sequence, then completes (returns {@code null}). Signals
+     * {@code allBuffered} once the consumer has pulled every scripted item, so the
+     * test can hold demand at zero and let the source complete before requesting.
+     */
+    private static final class FiniteScriptedStream implements Stream<IdentifiableAuthorizationDecision> {
+        private final ConcurrentLinkedQueue<IdentifiableAuthorizationDecision> scripted;
+        private final CountDownLatch                                           allBuffered;
+
+        FiniteScriptedStream(List<IdentifiableAuthorizationDecision> scripted, CountDownLatch allBuffered) {
+            this.scripted    = new ConcurrentLinkedQueue<>(scripted);
+            this.allBuffered = allBuffered;
+        }
+
+        @Override
+        public IdentifiableAuthorizationDecision awaitNext() {
+            val item = scripted.poll();
+            if (item == null) {
+                allBuffered.countDown();
+            }
+            return item;
+        }
+
+        @Override
+        public Poll<IdentifiableAuthorizationDecision> tryNext() {
+            throw new UnsupportedOperationException("not used by the conflating bridge");
+        }
+
+        @Override
+        public void close() {
+            // nothing to release
+        }
+    }
+
+    @Test
+    @DisplayName("a zero-demand consumer still receives the final pending decisions after source completion")
+    void whenSourceCompletesWithZeroDemandThenFinalDecisionsDelivered() {
+        val allBuffered = new CountDownLatch(1);
+        val script      = List.of(decision("a", AuthorizationDecision.PERMIT),
+                decision("a", AuthorizationDecision.DENY), decision("b", AuthorizationDecision.PERMIT));
+
+        val flux = DelegatingReactivePolicyDecisionPoint
+                .conflateBySubscription(() -> new FiniteScriptedStream(script, allBuffered));
+
+        StepVerifier.create(flux, 0).then(() -> awaitBuffered(allBuffered)).thenRequest(3)
+                .expectNext(decision("a", AuthorizationDecision.DENY))
+                .expectNext(decision("b", AuthorizationDecision.PERMIT)).expectComplete().verify(Duration.ofSeconds(5));
+    }
+
     @Test
     @DisplayName("a slow consumer keeps the latest decision per subscription and loses no other subscription")
     void whenSlowConsumerThenLatestPerSubscriptionPreserved() {

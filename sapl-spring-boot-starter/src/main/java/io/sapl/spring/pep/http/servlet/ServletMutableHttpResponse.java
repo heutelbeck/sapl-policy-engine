@@ -23,8 +23,12 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
@@ -52,23 +56,21 @@ import lombok.val;
  * state, not the underlying delegate. Writes through either the servlet API or
  * the {@link MutableHttpResponse} API
  * mutate the buffer; nothing reaches the client until {@link #commit()} runs.
- * {@link #isModified()} ticks for every
- * mutation made through the typed API or through {@link #getOutputStream()} or
- * {@link #getWriter()}; bulk header
- * changes applied through the {@link #headers()} view share the same buffer but
- * do not tick the flag.
+ * {@link #isModified()} ticks for mutations made through the typed API, the
+ * standard mutator methods on the {@link #headers()} view,
+ * {@link #getOutputStream()}, or {@link #getWriter()}.
  * <p>
  * Performance: every controller byte is captured in memory and re-emitted on
  * commit. This is fine for typical HTTP
  * responses but is unsuitable for unbounded streaming bodies. Callers that do
  * not need response-level mutation should
- * not wrap at all; the SAPL HTTP PEP filter installs this wrapper only when the
+ * not wrap at all. The SAPL HTTP PEP filter installs this wrapper only when the
  * active enforcement plan schedules at
  * least one handler at the response signal.
  */
 public final class ServletMutableHttpResponse extends HttpServletResponseWrapper implements MutableHttpResponse {
 
-    private final HttpHeaders           headers    = new HttpHeaders();
+    private final HttpHeaders           headers    = new MarkingHttpHeaders();
     private final ByteArrayOutputStream bodyBuffer = new ByteArrayOutputStream();
 
     private int                           statusCode = HttpServletResponse.SC_OK;
@@ -184,12 +186,12 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
 
     @Override
     public void setDateHeader(String name, long date) {
-        setHeader(name, Long.toString(date));
+        setHeader(name, formatHttpDate(date));
     }
 
     @Override
     public void addDateHeader(String name, long date) {
-        addHeader(name, Long.toString(date));
+        addHeader(name, formatHttpDate(date));
     }
 
     @Override
@@ -285,12 +287,17 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
         flushPending();
         val underlying = (HttpServletResponse) getResponse();
         underlying.setStatus(statusCode);
+        val body = bodyBuffer.toByteArray();
+        // A buffered Content-Length may be stale after a handler replaced the body.
+        // Reconcile it so the emitted body and the header always agree.
+        if (headers.containsHeader(HttpHeaders.CONTENT_LENGTH)) {
+            headers.set(HttpHeaders.CONTENT_LENGTH, Integer.toString(body.length));
+        }
         for (val entry : headers.headerSet()) {
             for (val value : entry.getValue()) {
                 underlying.addHeader(entry.getKey(), value);
             }
         }
-        val body = bodyBuffer.toByteArray();
         if (body.length > 0) {
             underlying.getOutputStream().write(body);
         }
@@ -311,6 +318,10 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
 
     private void markModified() {
         modified = true;
+    }
+
+    private static String formatHttpDate(long epochMillis) {
+        return DateTimeFormatter.RFC_1123_DATE_TIME.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneOffset.UTC));
     }
 
     private static final class BufferingServletOutputStream extends ServletOutputStream {
@@ -343,6 +354,94 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
         @Override
         public void setWriteListener(WriteListener writeListener) {
             // Buffering output stream does not perform asynchronous I/O.
+        }
+    }
+
+    private final class MarkingHttpHeaders extends HttpHeaders {
+
+        @Override
+        public void add(String headerName, String headerValue) {
+            super.add(headerName, headerValue);
+            markModified();
+        }
+
+        @Override
+        public void addAll(HttpHeaders values) {
+            super.addAll(values);
+            if (!values.isEmpty()) {
+                markModified();
+            }
+        }
+
+        @Override
+        public void addAll(String headerName, List<? extends String> headerValues) {
+            super.addAll(headerName, headerValues);
+            if (!headerValues.isEmpty()) {
+                markModified();
+            }
+        }
+
+        @Override
+        public void clear() {
+            if (!isEmpty()) {
+                super.clear();
+                markModified();
+            }
+        }
+
+        @Override
+        public @Nullable List<String> put(String headerName, List<String> headerValues) {
+            val previous = super.put(headerName, headerValues);
+            markModified();
+            return previous;
+        }
+
+        @Override
+        public void putAll(HttpHeaders values) {
+            super.putAll(values);
+            if (!values.isEmpty()) {
+                markModified();
+            }
+        }
+
+        @Override
+        public void putAll(Map<? extends String, ? extends List<String>> values) {
+            super.putAll(values);
+            if (!values.isEmpty()) {
+                markModified();
+            }
+        }
+
+        @Override
+        public @Nullable List<String> putIfAbsent(String headerName, List<String> headerValues) {
+            val previous = super.putIfAbsent(headerName, headerValues);
+            if (previous == null) {
+                markModified();
+            }
+            return previous;
+        }
+
+        @Override
+        public @Nullable List<String> remove(String headerName) {
+            val previous = super.remove(headerName);
+            if (previous != null) {
+                markModified();
+            }
+            return previous;
+        }
+
+        @Override
+        public void set(String headerName, String headerValue) {
+            super.set(headerName, headerValue);
+            markModified();
+        }
+
+        @Override
+        public void setAll(Map<String, String> values) {
+            super.setAll(values);
+            if (!values.isEmpty()) {
+                markModified();
+            }
         }
     }
 }

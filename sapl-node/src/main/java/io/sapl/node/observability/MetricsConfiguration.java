@@ -33,7 +33,7 @@ import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
  * its no-interceptor fast path that produces no per-decision timestamp. A
  * registered interceptor, even a no-op one, would still force the PDP onto the
  * traced path (the timestamp is computed before interceptor dispatch), so
- * leaving the metrics interceptor inactive is not enough; it must be absent.
+ * leaving the metrics interceptor inactive is not enough. It must be absent.
  *
  * <p>
  * The decision is a runtime check (a {@code null} return), not a

@@ -17,6 +17,8 @@
  */
 package io.sapl.node.auth;
 
+import static io.sapl.node.auth.JwtClaimPaths.resolveStringClaim;
+
 import static io.sapl.node.auth.SaplRoles.PDP_CLIENT_AUTHORITIES;
 
 import org.springframework.core.convert.converter.Converter;
@@ -42,7 +44,7 @@ public class SaplJwtAuthenticationConverter implements Converter<Jwt, AbstractAu
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();
-        val pdpIdValue = jwt.getClaimAsString(pdpIdClaim);
+        val pdpIdValue = resolveStringClaim(jwt, pdpIdClaim);
         if (pdpIdValue == null || pdpIdValue.isBlank()) {
             if (properties.isRejectOnMissingPdpId()) {
                 throw new InvalidBearerTokenException(ERROR_MISSING_PDP_ID_CLAIM.formatted(pdpIdClaim));

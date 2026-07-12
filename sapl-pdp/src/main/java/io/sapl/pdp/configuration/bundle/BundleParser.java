@@ -17,8 +17,12 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.secrets.ValueSealer;
+import org.jspecify.annotations.Nullable;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -29,6 +33,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -54,15 +59,23 @@ import java.util.zip.ZipInputStream;
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- *   .sapl-manifest.json  (signature and file hashes)
- *   pdp.json             (optional configuration)
+ *   .sapl-manifest.json               (signature and file hashes)
+ *   pdp.json                          (configuration, never secrets)
+ *   secrets.sealed.json               (optional, sealed PDP-level secrets)
  *   access-control.sapl
  *   audit.sapl
- *   logging.sapl
+ *   ext-upstreams.json                (optional, cleartext extension data)
+ *   ext-upstreams-secrets.sealed.json (optional, sealed extension secrets)
+ *   critical-extensions.json          (optional, names the consumer must support)
  * </pre>
  * <p>
  * Subdirectories inside bundles are ignored. Only root-level files are
- * processed.
+ * processed. Secrets files carry their sealing state in the name: a
+ * {@code .sealed.json} name must hold sealed content, and a bundle never mixes
+ * sealed and plaintext secrets files. Plaintext secrets files
+ * ({@code secrets.json}, {@code ext-<name>-secrets.json}) are accepted for
+ * development setups only, gated by the consumer's
+ * {@code acceptUnencryptedSecrets} opt-in.
  * </p>
  * <h2>Archive Security</h2>
  * <p>
@@ -142,11 +155,13 @@ public class BundleParser {
     private static final String ERROR_ENTRY_NAME_TOO_LONG               = "Entry name too long (>%d).";
     private static final String ERROR_FAILED_TO_PARSE_BUNDLE            = "Failed to parse bundle from %s.";
     private static final String ERROR_FAILED_TO_READ_BUNDLE             = "Failed to read bundle file.";
+    private static final String ERROR_MIXED_SEALING_IN_BUNDLE           = "The bundle mixes sealed and plaintext secrets files. Seal all secrets or none.";
     private static final String ERROR_NESTED_ARCHIVE_DETECTED           = "Nested archive detected.";
     private static final String ERROR_PATH_TRAVERSAL_ATTEMPT            = "ZIP security violation: Path traversal attempt in bundle from %s.";
+    private static final String ERROR_SEALED_CONTENT_NOT_SEALED         = "Bundle entry '%s' is named sealed but its content is not sealed.";
     private static final String ERROR_TOO_MANY_ENTRIES                  = "Too many entries (>%d).";
     private static final String ERROR_UNCOMPRESSED_SIZE_EXCEEDS         = "Uncompressed size exceeds %d MB.";
-    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE         = "Unexpected file in bundle from %s: %s. Bundles may only contain pdp.json, the manifest, and root-level .sapl files.";
+    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE         = "Unexpected file in bundle from %s: %s. Bundles may only contain pdp.json, the manifest, root-level .sapl files, secrets files, ext-*.json extension files, and critical-extensions.json.";
     private static final String ERROR_ZIP_BOMB_DETECTED                 = "ZIP bomb detected: %s Source: %s.";
 
     /**
@@ -268,6 +283,49 @@ public class BundleParser {
         return parse(bundleBytes, pdpId, securityPolicy, MAX_UNCOMPRESSED_SIZE_BYTES);
     }
 
+    /**
+     * A parsed bundle together with the signing time from its manifest.
+     *
+     * @param configuration the PDP configuration extracted from the bundle
+     * @param signedAt the manifest's signature-covered creation time, or null for
+     * an unsigned bundle
+     */
+    public record ParsedBundle(PDPConfiguration configuration, @Nullable Instant signedAt) {}
+
+    /**
+     * Parses a bundle from a byte array like {@link #parse(byte[], String,
+     * BundleSecurityPolicy)} and additionally returns the manifest's signing time.
+     * The signing time is covered by the bundle signature, so consumers can use it
+     * for freshness checks, for example to reject the replay of an older, validly
+     * signed bundle at a mutable URL.
+     *
+     * @param bundleBytes
+     * the bundle data as byte array
+     * @param pdpId
+     * the PDP identifier
+     * @param securityPolicy
+     * the security policy defining signature verification requirements
+     *
+     * @return the PDP configuration together with the signing time
+     *
+     * @throws PDPConfigurationException
+     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * @throws BundleSignatureException
+     * if signature verification fails or security policy is violated
+     */
+    public ParsedBundle parseWithMetadata(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy) {
+        val bundle        = parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
+                MAX_UNCOMPRESSED_SIZE_BYTES);
+        val configuration = bundle.toPDPConfiguration(pdpId, securityPolicy);
+        // Only expose the signing time when the signature was actually verified. With
+        // verification disabled, or for an unsigned bundle, the manifest's created time is
+        // unauthenticated and must not be used as a freshness or replay signal.
+        val verified = securityPolicy.signatureRequired() && bundle.manifest() != null
+                && BundleSigner.isSigned(bundle.manifest());
+        val signedAt = verified ? bundle.manifest().created() : null;
+        return new ParsedBundle(configuration, signedAt);
+    }
+
     PDPConfiguration parse(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy,
             long maxUncompressedBytes) {
         return parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
@@ -293,7 +351,7 @@ public class BundleParser {
                 // compression-ratio limits.
                 val entryContent = readZipEntryContent(zipStream, sourceDescription, totalUncompressed, compressedSize,
                         maxUncompressedBytes);
-                totalUncompressed += entryContent.length();
+                totalUncompressed += entryContent.uncompressedBytes();
 
                 if (compressedSize > 0) {
                     validateCompressionRatio(compressedSize, totalUncompressed, sourceDescription);
@@ -304,7 +362,7 @@ public class BundleParser {
                             ERROR_UNEXPECTED_FILE_IN_BUNDLE.formatted(sourceDescription, entryName));
                 }
 
-                content.put(entryName, entryContent);
+                content.put(entryName, entryContent.text());
             }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_BUNDLE.formatted(sourceDescription), e);
@@ -314,14 +372,37 @@ public class BundleParser {
     }
 
     private Bundle toBundleContent(HashMap<String, String> content) {
-        val manifestJson = content.remove(MANIFEST_FILENAME);
-        val pdpJson      = content.remove(PDP_JSON);
-        val saplFiles    = new HashMap<String, String>();
+        val manifestJson           = content.remove(MANIFEST_FILENAME);
+        val pdpJson                = content.remove(PDP_JSON);
+        val criticalExtensionsJson = content.remove(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
+        val plaintextSecrets       = content.remove(ExtensionFiles.SECRETS_FILE);
+        val sealedSecrets          = content.remove(ExtensionFiles.SEALED_SECRETS_FILE);
+        val saplFiles              = new HashMap<String, String>();
+        val extensions             = new HashMap<String, String>();
+        val extensionSecrets       = new HashMap<String, String>();
+        val sealedExtensionSecrets = new HashMap<String, String>();
 
         for (val entry : content.entrySet()) {
-            if (entry.getKey().endsWith(SAPL_EXTENSION)) {
-                saplFiles.put(entry.getKey(), entry.getValue());
+            val name = entry.getKey();
+            if (name.endsWith(SAPL_EXTENSION)) {
+                saplFiles.put(name, entry.getValue());
+            } else if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
+                requireSealedContent(name, entry.getValue());
+                sealedExtensionSecrets.put(ExtensionFiles.sealedExtensionSecretsNameOf(name), entry.getValue());
+            } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name), entry.getValue());
+            } else if (ExtensionFiles.isExtensionFile(name)) {
+                extensions.put(ExtensionFiles.extensionNameOf(name), entry.getValue());
             }
+        }
+
+        if (sealedSecrets != null) {
+            requireSealedContent(ExtensionFiles.SEALED_SECRETS_FILE, sealedSecrets);
+        }
+        val hasPlaintext = plaintextSecrets != null || !extensionSecrets.isEmpty();
+        val hasSealed    = sealedSecrets != null || !sealedExtensionSecrets.isEmpty();
+        if (hasPlaintext && hasSealed) {
+            throw new PDPConfigurationException(ERROR_MIXED_SEALING_IN_BUNDLE);
         }
 
         BundleManifest manifest = null;
@@ -329,7 +410,15 @@ public class BundleParser {
             manifest = BundleManifest.fromJson(manifestJson);
         }
 
-        return new Bundle(pdpJson, saplFiles, manifest);
+        val secretsJson = sealedSecrets != null ? sealedSecrets : plaintextSecrets;
+        return new Bundle(pdpJson, secretsJson, sealedSecrets != null, saplFiles, extensions, extensionSecrets,
+                sealedExtensionSecrets, criticalExtensionsJson, manifest);
+    }
+
+    private static void requireSealedContent(String name, String content) {
+        if (!ValueSealer.hasSealedShape(Value.ofJson(content))) {
+            throw new PDPConfigurationException(ERROR_SEALED_CONTENT_NOT_SEALED.formatted(name));
+        }
     }
 
     private boolean isAllowedEntry(ZipEntry entry, String normalizedName) {
@@ -337,7 +426,12 @@ public class BundleParser {
             return false;
         }
         return PDP_JSON.equals(normalizedName) || MANIFEST_FILENAME.equals(normalizedName)
-                || normalizedName.endsWith(SAPL_EXTENSION);
+                || ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(normalizedName)
+                || ExtensionFiles.SECRETS_FILE.equals(normalizedName)
+                || ExtensionFiles.SEALED_SECRETS_FILE.equals(normalizedName) || normalizedName.endsWith(SAPL_EXTENSION)
+                || ExtensionFiles.isExtensionFile(normalizedName)
+                || ExtensionFiles.isExtensionSecretsFile(normalizedName)
+                || ExtensionFiles.isSealedExtensionSecretsFile(normalizedName);
     }
 
     private void validateZipEntry(ZipEntry entry, int entryCount, String sourceDescription) {
@@ -381,7 +475,7 @@ public class BundleParser {
         return normalized;
     }
 
-    private String readZipEntryContent(ZipInputStream zipStream, String sourceDescription, long currentTotal,
+    private EntryContent readZipEntryContent(ZipInputStream zipStream, String sourceDescription, long currentTotal,
             long compressedSize, long maxUncompressedBytes) throws IOException {
         val buffer    = new ByteArrayOutputStream();
         val data      = new byte[READ_BUFFER_SIZE];
@@ -401,8 +495,16 @@ public class BundleParser {
             buffer.write(data, 0, bytesRead);
         }
 
-        return buffer.toString(StandardCharsets.UTF_8);
+        return new EntryContent(buffer.toString(StandardCharsets.UTF_8), entrySize);
     }
+
+    /**
+     * Decoded entry text together with its decompressed byte count. The byte count
+     * feeds the cumulative ZIP-bomb size and compression-ratio limits, which must
+     * track decompressed bytes rather than the UTF-16 char count of the decoded
+     * text (the two differ for multibyte UTF-8 content).
+     */
+    private record EntryContent(String text, long uncompressedBytes) {}
 
     private void validateUncompressedSize(long totalUncompressed, String sourceDescription, long maxUncompressedBytes) {
         if (totalUncompressed > maxUncompressedBytes) {

@@ -18,10 +18,13 @@
 package io.sapl.pdp.remote;
 
 import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 /**
@@ -37,16 +40,33 @@ class RemotePdpRetry {
 
     static final int RETRY_ESCALATION_THRESHOLD = 5;
 
-    static Retry createRetrySpec(long maxRetries, int firstBackoffMillis, int maxBackOffMillis) {
-        return Retry.backoff(maxRetries, Duration.ofMillis(firstBackoffMillis))
-                .maxBackoff(Duration.ofMillis(maxBackOffMillis)).doBeforeRetry(signal -> {
-                    val attempt = signal.totalRetries() + 1;
-                    if (attempt >= RETRY_ESCALATION_THRESHOLD) {
-                        log.error(ERROR_STREAM_RECONNECT, attempt);
-                    } else {
-                        log.warn(ERROR_STREAM_RECONNECT, attempt);
-                    }
-                });
+    // Every error retries so the stream stays alive emitting INDETERMINATE and
+    // recovers when the
+    // dependency returns. A "permanent" auth error may just be an IdP lagging a
+    // rotated credential.
+    static Retry createRetrySpec(AtomicLong consecutiveFailures, long maxRetries, int firstBackoffMillis,
+            int maxBackOffMillis) {
+        return Retry.from(retrySignals -> retrySignals.concatMap(retrySignal -> {
+            val attempt = consecutiveFailures.incrementAndGet();
+            if (attempt > maxRetries) {
+                return Mono.error(retrySignal.failure());
+            }
+            if (attempt >= RETRY_ESCALATION_THRESHOLD) {
+                log.error(ERROR_STREAM_RECONNECT, attempt);
+            } else {
+                log.warn(ERROR_STREAM_RECONNECT, attempt);
+            }
+            return Mono.delay(backoffWithJitter(attempt, firstBackoffMillis, maxBackOffMillis));
+        }));
+    }
+
+    // Exponential backoff capped at maxBackOffMillis, with 50% jitter
+    // to avoid synchronized reconnect storms across clients.
+    private static Duration backoffWithJitter(long attempt, int firstBackoffMillis, int maxBackOffMillis) {
+        val exponential = firstBackoffMillis * Math.pow(2d, attempt - 1d);
+        val capped      = (long) Math.min(exponential, maxBackOffMillis);
+        val jittered    = capped / 2L + ThreadLocalRandom.current().nextLong(capped / 2L + 1L);
+        return Duration.ofMillis(Math.max(1L, jittered));
     }
 
     static void logInsecureSslWarning() {
