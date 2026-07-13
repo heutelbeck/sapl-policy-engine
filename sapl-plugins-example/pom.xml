@@ -23,23 +23,21 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>io.sapl</groupId>
-		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.1.0-SNAPSHOT</version>
-		<relativePath>../pom.xml</relativePath>
-	</parent>
-
+	<groupId>io.sapl</groupId>
 	<artifactId>sapl-plugins-example</artifactId>
+	<version>4.2.0-SNAPSHOT</version>
 	<name>SAPL Example Plugin</name>
 	<description>Reference SAPL plugin contributing a function library and a
 		Policy Information Point, packaged as a PF4J plugin JAR.</description>
 
 	<properties>
-		<main.basedir>${project.basedir}/../</main.basedir>
-		<maven.deploy.skip>true</maven.deploy.skip>
+		<maven.compiler.release>21</maven.compiler.release>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<pf4j.version>3.15.0</pf4j.version>
+		<lombok.version>1.18.46</lombok.version>
+		<maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+		<maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
 	</properties>
-
 	<dependencies>
 		<!-- Supplied by the host (the SAPL engine) at runtime. -->
 		<dependency>
@@ -52,24 +50,32 @@
 		<dependency>
 			<groupId>org.pf4j</groupId>
 			<artifactId>pf4j</artifactId>
+			<version>${pf4j.version}</version>
 			<scope>provided</scope>
 		</dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>${lombok.version}</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
 
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven-compiler-plugin.version}</version>
 				<configuration>
 					<!-- Add the PF4J extension annotation processor so it
 						generates META-INF/extensions.idx alongside Lombok. -->
 					<annotationProcessorPaths combine.children="append">
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
 						<path>
 							<groupId>org.pf4j</groupId>
 							<artifactId>pf4j</artifactId>
@@ -81,13 +87,14 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
+				<version>${maven-jar-plugin.version}</version>
 				<configuration>
 					<archive>
 						<manifestEntries>
 							<Plugin-Id>sapl-plugins-example</Plugin-Id>
 							<Plugin-Version>${project.version}</Plugin-Version>
 							<Plugin-Provider>SAPL</Plugin-Provider>
-							<Plugin-Requires>=4.1.0</Plugin-Requires>
+							<Plugin-Requires>4.2.0</Plugin-Requires>
 						</manifestEntries>
 					</archive>
 				</configuration>
