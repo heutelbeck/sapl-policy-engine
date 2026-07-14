@@ -61,7 +61,7 @@ jobs:
           build-mode: manual
 
       - name: Build for CodeQL
-        run: mvn -B -DskipTests -Dformatter.skip=true package -pl '!sapl-bom,!sapl-code-style' -T 1.5C
+        run: mvn -B -DskipTests -Dformatter.skip=true -Dasciidoctor.skip=true package -pl '!sapl-bom,!sapl-code-style' -T 1.5C
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
