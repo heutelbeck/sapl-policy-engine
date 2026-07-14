@@ -1514,7 +1514,7 @@ jobs:
       - name: Move snapshot tag to current commit
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         run: |
           gh api -X PATCH "repos/${{ github.repository }}/git/refs/tags/snapshot" \
             -f sha="${{ github.sha }}" -F force=true
