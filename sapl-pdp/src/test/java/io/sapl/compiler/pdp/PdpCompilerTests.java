@@ -30,6 +30,7 @@ import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -222,6 +223,40 @@ class PdpCompilerTests {
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
 
             assertThat(compiledVoter.metadata().outcome()).isEqualTo(expected);
+        }
+    }
+
+    @Nested
+    @DisplayName("voter metadata provenance")
+    class VoterMetadataProvenanceTests {
+
+        private static final PDPConfiguration PROVENANCE_CONFIG = new PDPConfiguration("test-pdp", "release-77",
+                new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(VALID_POLICY),
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+
+        @Test
+        @DisplayName("compiled voter metadata carries the configuration's configurationId, not the pdpId")
+        void whenCompilingThenMetadataCarriesConfigurationId() {
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(PROVENANCE_CONFIG, compilationContext());
+
+            assertThat(compiledVoter.metadata()).satisfies(metadata -> {
+                assertThat(metadata.configurationId()).isEqualTo("release-77");
+                assertThat(metadata.pdpId()).isEqualTo("test-pdp");
+            });
+        }
+
+        @Test
+        @DisplayName("error voter metadata carries the configuration's configurationId, not the pdpId")
+        void whenCreatingErrorVoterThenMetadataCarriesConfigurationId() {
+            val exception = new SaplCompilerException("Compilation failed.");
+            val plugins   = new PluginsBundle(SaplTesting.FUNCTION_BROKER);
+
+            val errorVoter = PdpCompiler.createErrorVoter(PROVENANCE_CONFIG, exception, plugins);
+
+            assertThat(errorVoter.metadata()).satisfies(metadata -> {
+                assertThat(metadata.configurationId()).isEqualTo("release-77");
+                assertThat(metadata.pdpId()).isEqualTo("test-pdp");
+            });
         }
     }
 

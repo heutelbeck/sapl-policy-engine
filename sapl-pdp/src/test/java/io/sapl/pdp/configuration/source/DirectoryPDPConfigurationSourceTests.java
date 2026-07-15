@@ -111,7 +111,8 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenPdpJsonHasConfigurationIdThenUsesExplicitId() throws IOException {
+    @DisplayName("a pdp.json still carrying configurationId is rejected with the migration message")
+    void whenPdpJsonHasConfigurationIdThenConfigurationErrorEmitted() throws IOException {
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
         createFile(tempDir.resolve("pdp.json"),
                 """
@@ -119,16 +120,11 @@ class DirectoryPDPConfigurationSourceTests {
                         """);
         source = new DirectoryPDPConfigurationSource(tempDir, "cultist");
 
-        val configs = captureConfigurations(source);
-
-        assertThat(configs.getFirst()).satisfies(config -> {
-            assertThat(config.pdpId()).isEqualTo("cultist");
-            assertThat(config.configurationId()).isEqualTo("eldritch-v1");
-        });
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
-    void whenPdpJsonHasNoConfigurationIdThenAutoGeneratesId() throws IOException {
+    void whenLoadingDirectoryThenContentDerivedIdIsAssigned() throws IOException {
         writePdpJson(tempDir);
         createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
         source = new DirectoryPDPConfigurationSource(tempDir, "cultist");
@@ -137,7 +133,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         assertThat(configs.getFirst()).satisfies(config -> {
             assertThat(config.pdpId()).isEqualTo("cultist");
-            assertThat(config.configurationId()).startsWith("dir:").doesNotContain("sha256");
+            assertThat(config.configurationId()).matches("^dir:[^@]+@[0-9a-f]{16}$");
         });
     }
 

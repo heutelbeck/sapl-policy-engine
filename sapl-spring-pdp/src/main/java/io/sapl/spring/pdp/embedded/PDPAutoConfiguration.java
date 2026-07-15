@@ -206,12 +206,14 @@ public class PDPAutoConfiguration {
         }
         case BUNDLES         -> {
             log.info("Loading policies from bundles: {}", resolvedPath);
-            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), resolvedPath);
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), properties.getSecrets(),
+                    resolvedPath);
             yield new BundlePDPConfigurationSource(rawPath, securityPolicy);
         }
         case REMOTE_BUNDLES  -> {
             val props          = properties.getRemoteBundles();
-            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), resolvedPath);
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), properties.getSecrets(),
+                    resolvedPath);
             val sourceConfig   = new RemoteBundleSourceConfig(props.getBaseUrl(), props.getPdpIds(),
                     RemoteBundleSourceConfig.FetchMode.valueOf(props.getMode().name()), props.getPollInterval(),
                     props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
@@ -332,26 +334,42 @@ public class PDPAutoConfiguration {
         return policyInformationPointAttributeBroker;
     }
 
-    private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {
+    private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps,
+            SecretsProperties secretsProps, Path policiesPath) {
         val publicKey       = loadPublicKey(securityProps);
         val keyCatalogue    = buildKeyCatalogue(securityProps.getKeys());
         val tenantTrust     = buildTenantTrust(securityProps.getTenants());
         val unsignedTenants = new HashSet<>(securityProps.getUnsignedTenants());
+        val sealingKeyIds   = sealingKeyIds(secretsProps);
 
         if (publicKey != null || !keyCatalogue.isEmpty()) {
             log.info("Bundle signature verification enabled. Global key: {}, catalogue keys: {}, tenant bindings: {}",
                     publicKey != null, keyCatalogue.size(), tenantTrust.size());
             val builder = publicKey != null ? BundleSecurityPolicy.builder(publicKey) : BundleSecurityPolicy.builder();
             return builder.withKeyCatalogue(keyCatalogue).withTenantTrust(tenantTrust)
-                    .withUnsignedTenants(unsignedTenants).build();
+                    .withUnsignedTenants(unsignedTenants).withSealingKeyIds(sealingKeyIds).build();
         }
 
         if (securityProps.isAllowUnsigned()) {
             return BundleSecurityPolicy.builder().disableSignatureVerification().withUnsignedTenants(unsignedTenants)
-                    .build();
+                    .withSealingKeyIds(sealingKeyIds).build();
         }
 
         throw new BundleSecurityNotConfiguredException(policiesPath.toString());
+    }
+
+    /**
+     * The key ids of the X25519 sealing recipient keys this deployment holds.
+     * Bundles whose manifest names a different sealing recipient are rejected
+     * before any unseal attempt. An empty set means possession is unknown and
+     * the pre-check is skipped.
+     */
+    private Set<String> sealingKeyIds(SecretsProperties secretsProps) {
+        val key = readSecretsDecryptionKey(secretsProps);
+        if (key != null && key.getKeyID() != null) {
+            return Set.of(key.getKeyID());
+        }
+        return Set.of();
     }
 
     private PublicKey loadPublicKey(BundleSecurityProperties securityProps) {

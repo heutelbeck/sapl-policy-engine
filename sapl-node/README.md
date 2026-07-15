@@ -33,7 +33,6 @@ Create `~/sapl/policies/pdp.json`:
 
 ```json
 {
-  "configurationId": "quickstart-v1",
   "algorithm": {
     "votingMode": "PRIORITY_PERMIT",
     "defaultDecision": "DENY",
@@ -63,7 +62,14 @@ Output:
 
 ```
 Created bundle: /home/user/sapl/policies/default.saplbundle (1 policies)
+Configuration ID: bundle@a1b2c3d4e5f60718
 ```
+
+The configuration id identifies this publication in health endpoints and
+decision logs. It is recorded in the bundle manifest: pass
+`--configuration-id` to set it explicitly, or a content-derived id of the
+form `bundle@<hash16>` is used. The id is printed on stdout for CI or
+agent capture.
 
 ### 3. Generate Signing Keys
 
@@ -132,9 +138,12 @@ Signature:
   Key ID: prod-2026
   Created: 2026-02-07T14:13:24.414521581Z
 
+Manifest:
+  Configuration ID: bundle@a1b2c3d4e5f60718
+  Attribution: "sapl-node/4.2.0"
+
 Configuration (pdp.json):
   {
-    "configurationId": "quickstart-v1",
     "algorithm": {
       "votingMode": "PRIORITY_PERMIT",
       "defaultDecision": "DENY",
@@ -248,9 +257,13 @@ Create a policy bundle from a directory containing `.sapl` files and a `pdp.json
 sapl bundle create -i <dir> -o <file>
 
 Options:
-  -i, --input   Input directory containing policies
-  -o, --output  Output .saplbundle file
+  -i, --input           Input directory containing policies
+  -o, --output          Output .saplbundle file
+  --configuration-id    Configuration id recorded in the bundle manifest
+                        (defaults to a content-derived bundle@<hash16> id)
 ```
+
+The resulting configuration id is printed on stdout on success.
 
 ### bundle sign
 
@@ -542,7 +555,7 @@ A `.saplbundle` file is a ZIP archive:
 
 ```
 my-policies.saplbundle
-+-- .sapl-manifest.json    (optional: signature + SHA-256 hashes)
++-- .sapl-manifest.json    (manifest: configuration id, metadata, SHA-256 hashes, optional signature)
 +-- pdp.json               (PDP configuration)
 +-- policy1.sapl           (policy files)
 +-- policy2.sapl
@@ -551,13 +564,12 @@ my-policies.saplbundle
 
 Constraints: max 10 MB uncompressed, max 1000 entries, no subdirectories, no nested archives.
 
-When signed, the manifest contains Ed25519 signatures over SHA-256 hashes of all files.
+The manifest carries the bundle's configuration id and attribution. When signed, it also contains an Ed25519 signature over the manifest, covering the SHA-256 hashes of all files.
 
 ## PDP Configuration (pdp.json)
 
 ```json
 {
-  "configurationId": "my-app-v1",
   "algorithm": {
     "votingMode": "PRIORITY_PERMIT",
     "defaultDecision": "DENY",
@@ -567,7 +579,7 @@ When signed, the manifest contains Ed25519 signatures over SHA-256 hashes of all
 }
 ```
 
-The `configurationId` is required for bundles. It appears in health endpoints and decision logs, enabling operators to correlate decisions with the exact policy version that produced them. For directory sources, it is optional and auto-generated when absent.
+Since SAPL 4.2.0, pdp.json must not contain a `configurationId` field; a pdp.json still carrying one is rejected with a migration message. The configuration id lives in the bundle manifest (set at build time or content-derived as `bundle@<hash16>`) and is derived from content for directory (`dir:<dirName>@<hash16>`) and resource (`res:<name>@<hash16>`) sources. It appears in health endpoints and decision logs, enabling operators to correlate decisions with the exact publication that produced them.
 
 Voting modes: `PRIORITY_DENY`, `PRIORITY_PERMIT`, `UNANIMOUS`, `UNANIMOUS_STRICT`, `UNIQUE`.
 

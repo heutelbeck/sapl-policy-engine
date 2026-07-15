@@ -646,8 +646,8 @@ public class PolicyDecisionPointBuilder {
      * production environments.
      * </p>
      * <p>
-     * Each bundle must contain a pdp.json file with a {@code configurationId}
-     * field. The PDP ID is derived from the
+     * Each bundle carries its {@code configurationId} in the bundle manifest.
+     * The PDP ID is derived from the
      * bundle filename (minus the .saplbundle extension).
      * </p>
      *
@@ -739,7 +739,7 @@ public class PolicyDecisionPointBuilder {
      * production environments.
      * </p>
      * <p>
-     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * The bundle carries its {@code configurationId} in the bundle manifest.
      * </p>
      *
      * @param bundleBytes
@@ -766,7 +766,7 @@ public class PolicyDecisionPointBuilder {
      * production environments.
      * </p>
      * <p>
-     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * The bundle carries its {@code configurationId} in the bundle manifest.
      * </p>
      *
      * @param bundleStream
@@ -792,7 +792,7 @@ public class PolicyDecisionPointBuilder {
      * production environments.
      * </p>
      * <p>
-     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * The bundle carries its {@code configurationId} in the bundle manifest.
      * </p>
      *
      * @param bundlePath
@@ -887,10 +887,7 @@ public class PolicyDecisionPointBuilder {
         try {
             // Create default configuration from collected policies
             if (!policyDocuments.isEmpty()) {
-                val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
-                val config    = new PDPConfiguration("default", ConfigurationIds.generate("config"), algorithm,
-                        List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-                initialConfigurations.add(config);
+                initialConfigurations.add(embeddedConfiguration());
             }
 
             // Fail-fast validation of the initial configurations requires the plugins to
@@ -946,6 +943,15 @@ public class PolicyDecisionPointBuilder {
         } catch (Exception e) {
             log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
         }
+    }
+
+    private PDPConfiguration embeddedConfiguration() {
+        val algorithm    = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
+        val documents    = List.copyOf(policyDocuments);
+        val data         = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+        val unidentified = new PDPConfiguration("default", "unidentified", algorithm, documents, data);
+        val derivedId    = ConfigurationIds.derive("embedded", ConfigurationIds.entriesOf(unidentified));
+        return new PDPConfiguration("default", derivedId, algorithm, documents, data);
     }
 
     private static void requireInitialConfigurationLoaded(PdpVoterSource voterSource, PDPConfiguration configuration) {

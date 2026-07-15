@@ -255,13 +255,13 @@ root-level files. Subdirectories and unknown file names are rejected.
 
 | File | Required | Purpose |
 |------|----------|---------|
-| `pdp.json` | Yes | PDP configuration: combining algorithm, variables, and a `configurationId` that uniquely identifies this configuration version. Never contains secrets. |
+| `pdp.json` | Yes | PDP configuration: combining algorithm and variables. Never contains secrets. Since SAPL 4.2.0 it must not contain a `configurationId` field; a bundle carrying one is rejected with a migration message. |
 | `*.sapl` | Yes | SAPL policy documents. |
 | `secrets.sealed.json` | No | Sealed PDP-level secrets. Scalar leaves are `ENC[...]` tokens encrypted to an X25519 recipient key, structure and key names stay readable. |
 | `ext-<name>.json` | No | Cleartext extension data. Named JSON for consumers other than the PDP, for example gateway upstream configuration. |
 | `ext-<name>-secrets.sealed.json` | No | Sealed extension secrets for the same `<name>`. |
 | `critical-extensions.json` | No | A JSON array of extension names the consumer MUST be able to process, e.g. `["upstreams"]`. |
-| `.sapl-manifest.json` | If signed | Cryptographic manifest with SHA-256 content hashes and an Ed25519 signature covering every other file. |
+| `.sapl-manifest.json` | Yes | Manifest carrying the bundle's packaging metadata and SHA-256 content hashes, plus an Ed25519 signature covering every other file when signed. See [Manifest Schema](#manifest-schema). |
 
 #### Secrets Sealing
 
@@ -283,6 +283,47 @@ listed name must have a payload in the bundle (`ext-<name>.json` or
 `ext-<name>-secrets.sealed.json` or both), otherwise the bundle is rejected. The
 critical set is covered by the manifest signature, so it cannot be stripped in
 transit.
+
+#### Manifest Schema
+
+The manifest is a strict, typed JSON document. Unknown top-level fields and
+missing required fields are rejected fail-closed; this schema contract protects
+against format skew in both directions (a newer manifest fails unknown-field
+validation on old engines; an older manifest fails required-field validation with
+a migration message on new engines).
+
+```json
+{
+  "version": "4.2.0",
+  "hashAlgorithm": "SHA-256",
+  "created": "2026-07-15T10:30:00Z",
+  "configurationId": "release-77",
+  "attribution": "sapl-node/4.2.0",
+  "audience": {
+    "sealingRecipient": "recipient-key-2026"
+  },
+  "files": {
+    "pdp.json": "sha256:...",
+    "policy.sapl": "sha256:..."
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "keyId": "prod-2026",
+    "value": "base64-signature"
+  }
+}
+```
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `version` | Yes | Recorded provenance: the engine library version that wrote the manifest, minted at build time. Publishers cannot set it, and it is not validated on load. |
+| `hashAlgorithm` | Yes | Always `SHA-256`. |
+| `created` | Yes | Build timestamp. |
+| `configurationId` | Yes | The publication identity of this bundle: explicit (set at build time) or content-derived (`bundle@<hash16>`). 1 to 256 printable ASCII characters without whitespace, `/` or `\`. Signed and tamper-evident. |
+| `attribution` | Yes | An arbitrary JSON string or object (at most 16 KiB serialized), signed, never interpreted by the engine. The single opaque metadata slot: a builder tags a plain string, a publisher can nest a full trust chain. |
+| `audience.sealingRecipient` | Iff sealed content present | The single X25519 recipient key id the bundle's sealed content is sealed to. Consumers fail fast before any unseal attempt when they do not hold this key. One PDP in N realms means N publications, each re-sealed and re-signed. |
+| `files` | Yes | SHA-256 hash per bundle file (the manifest itself excluded). |
+| `signature` | If signed | Ed25519 signature over the canonical manifest bytes. |
 
 ### Bundle Validity
 

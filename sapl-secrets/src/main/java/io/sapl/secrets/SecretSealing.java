@@ -18,6 +18,7 @@
 package io.sapl.secrets;
 
 import java.text.ParseException;
+import java.util.Optional;
 
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JOSEException;
@@ -78,6 +79,25 @@ public class SecretSealing {
             return jwe.serialize();
         } catch (JOSEException e) {
             throw new SecretSealingException(ERROR_CANNOT_SEAL, e);
+        }
+    }
+
+    /**
+     * Reads the recipient key id from a compact JWE token produced by
+     * {@link #seal}, without decrypting it.
+     *
+     * @param sealedCompactJwe the compact JWE token
+     * @return the recipient key id from the token header, or empty when the token
+     * cannot be parsed or names no key id
+     */
+    public static Optional<String> recipientKeyIdOf(String sealedCompactJwe) {
+        if (sealedCompactJwe == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.ofNullable(JWEObject.parse(sealedCompactJwe).getHeader().getKeyID());
+        } catch (ParseException e) {
+            return Optional.empty();
         }
     }
 

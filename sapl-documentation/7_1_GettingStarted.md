@@ -265,7 +265,7 @@ To get started with signed bundles:
 
 ```shell
 mkdir policies
-echo '{"configurationId":"v1","algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"}}' > policies/pdp.json
+echo '{"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"}}' > policies/pdp.json
 echo 'policy "allow-all" permit' > policies/allow-all.sapl
 sapl bundle keygen -o signing
 sapl bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem

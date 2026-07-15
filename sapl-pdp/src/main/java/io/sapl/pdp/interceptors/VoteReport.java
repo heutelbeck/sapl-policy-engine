@@ -74,6 +74,26 @@ public record VoteReport(
         List<ErrorValue> errors) {
 
     /**
+     * The rendered configuration id when a report reaches this layer without
+     * its provenance anchor. Contains whitespace, which the configuration id
+     * rules forbid, so it can never collide with a real id. Reporting is
+     * observability infrastructure and never refuses to report; monitoring on
+     * this sentinel is the enforcement signal, while the fail-fast guarantees
+     * live upstream at configuration load and voter compilation.
+     */
+    public static final String MISSING_CONFIGURATION_ID = "MISSING CONFIGURATION ID";
+
+    /**
+     * Renders a missing provenance anchor as the explicit sentinel instead of
+     * refusing to report: a dropped report is the worst audit failure.
+     */
+    public VoteReport {
+        if (configurationId == null || configurationId.isBlank()) {
+            configurationId = MISSING_CONFIGURATION_ID;
+        }
+    }
+
+    /**
      * Extracts a concise report from a {@link TracedVote}.
      */
     public static VoteReport from(TracedVote tracedVote, String subscriptionId,

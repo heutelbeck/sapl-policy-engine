@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -46,36 +45,30 @@ import java.util.stream.Stream;
  * Utility for loading PDP configurations from filesystem paths and raw content.
  * <p>
  * This loader handles the parsing of pdp.json configuration files and SAPL
- * policy documents. It also manages the
- * generation of configuration IDs for audit and correlation purposes.
+ * policy documents. It also derives configuration IDs for audit and
+ * correlation purposes.
  * </p>
  * <h2>Configuration ID Strategy</h2>
  * <p>
- * The configuration ID uniquely identifies a specific version of a PDP
- * configuration. This ID is available during
- * policy evaluation and enables correlation of authorization decisions with the
- * exact policy set that produced them.
+ * The configuration ID uniquely identifies a specific publication of a PDP
+ * configuration. This ID is available during policy evaluation and enables
+ * correlation of authorization decisions with the exact policy set that
+ * produced them. Explicit IDs exist only in bundle manifests; pdp.json never
+ * carries a configuration ID, and a pdp.json still containing one is rejected.
  * </p>
  * <ul>
- * <li><b>Explicit ID:</b> If pdp.json contains a {@code configurationId} field,
- * that value is used. This is the
- * recommended approach for Policy Administration Points (PAPs) that manage
- * their own versioning.</li>
- * <li><b>Auto-generated ID:</b> If no explicit ID is provided, an ID is
- * generated from the source path and, for mutable directory sources, a load
- * timestamp. It is a disambiguator, not an integrity token.</li>
- * </ul>
- * <h2>Auto-generated ID Format</h2>
- * <ul>
- * <li>Directory sources: {@code dir:<path>@<timestamp>}</li>
- * <li>Resource sources: {@code res:<path>}</li>
+ * <li><b>Bundle sources:</b> The ID is read from the bundle manifest and
+ * supplied by the caller of {@link #loadFromBundle}.</li>
+ * <li><b>Directory sources:</b> The ID is derived from content on every
+ * (re)load as {@code dir:<dirName>@<hash16>}, where the hash covers every file
+ * the loader reads (pdp.json, SAPL documents, secrets, and extension
+ * files).</li>
+ * <li><b>Resource sources:</b> The ID is derived the same way as
+ * {@code res:<name>@<hash16>}.</li>
  * </ul>
  * <p>
- * The auto-generated ID does not carry a content hash and must not be treated
- * as an integrity guarantee. It does not cover variables, secrets, or compiler
- * options, so two materially different configurations may share an
- * auto-generated ID. Audit-grade integrity comes from signed bundles, which
- * supply their own {@code configurationId}, not from auto-generated IDs.
+ * Derived IDs are recomputed on every load and never persisted; identical
+ * content always yields the identical ID.
  * </p>
  * <h2>Security: TOCTOU Mitigation</h2>
  * <p>
@@ -102,26 +95,27 @@ public class PDPConfigurationLoader {
     private static final long   MAX_PDP_JSON_BYTES               = MAX_PDP_JSON_SIZE_MEBIBYTES * 1024L * 1024L;
     private static final int    READ_BUFFER_SIZE                 = 8192;
 
-    private static final String ERROR_BUNDLE_MISSING_CONFIGURATION_ID  = "Bundle '%s' pdp.json is missing required field 'configurationId'.";
-    private static final String ERROR_BUNDLE_MISSING_PDP_JSON          = "Bundle '%s' is missing pdp.json. Bundles require pdp.json with a configurationId.";
-    private static final String ERROR_CONFIG_FILE_SIZE_EXCEEDS_MAXIMUM = "%s exceeds maximum size of %d MiB.";
-    private static final String ERROR_FAILED_TO_LIST_EXTENSION_FILES   = "Failed to list extension files in directory.";
-    private static final String ERROR_FAILED_TO_LIST_SAPL_FILES        = "Failed to list SAPL files in directory.";
-    private static final String ERROR_FAILED_TO_PARSE_PDP_JSON         = "Failed to parse pdp.json content.";
-    private static final String ERROR_FAILED_TO_READ_EXTENSION_FILE    = "Failed to read extension file '%s'.";
-    private static final String ERROR_FAILED_TO_READ_PDP_JSON          = "Failed to read pdp.json from '%s'.";
-    private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT     = "Failed to read SAPL document '%s'.";
-    private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM       = "File count exceeds maximum of %d files.";
-    private static final String ERROR_MIXED_SEALING_IN_DIRECTORY       = "The directory mixes sealed and plaintext secrets files. Seal all secrets or none.";
-    private static final String ERROR_PDP_JSON_CONTENT_REQUIRED        = "pdp.json content must not be empty.";
-    private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED       = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
-    private static final String ERROR_PDP_JSON_SECRETS_NOT_ALLOWED     = "pdp.json must not contain a 'secrets' section. Move the secrets object to 'secrets.json' (sealed: 'secrets.sealed.json').";
-    private static final String ERROR_SEALED_CONTENT_NOT_SEALED        = "File '%s' is named sealed but its content is not sealed.";
-    private static final String ERROR_SECRETS_FILE_NOT_OBJECT          = "Secrets file '%s' must contain a JSON object.";
-    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM       = "Total size of SAPL documents exceeds maximum of %d MB.";
+    private static final String ERROR_BUNDLE_CONFIGURATION_ID_REQUIRED  = "Bundle '%s' requires a non-blank configurationId from the bundle manifest.";
+    private static final String ERROR_BUNDLE_MISSING_PDP_JSON           = "Bundle '%s' is missing pdp.json. Bundles require a pdp.json configuration file.";
+    private static final String ERROR_CONFIG_FILE_SIZE_EXCEEDS_MAXIMUM  = "%s exceeds maximum size of %d MiB.";
+    private static final String ERROR_FAILED_TO_LIST_EXTENSION_FILES    = "Failed to list extension files in directory.";
+    private static final String ERROR_FAILED_TO_LIST_SAPL_FILES         = "Failed to list SAPL files in directory.";
+    private static final String ERROR_FAILED_TO_PARSE_PDP_JSON          = "Failed to parse pdp.json content.";
+    private static final String ERROR_FAILED_TO_READ_EXTENSION_FILE     = "Failed to read extension file '%s'.";
+    private static final String ERROR_FAILED_TO_READ_PDP_JSON           = "Failed to read pdp.json from '%s'.";
+    private static final String ERROR_FAILED_TO_READ_SAPL_DOCUMENT      = "Failed to read SAPL document '%s'.";
+    private static final String ERROR_FILE_COUNT_EXCEEDS_MAXIMUM        = "File count exceeds maximum of %d files.";
+    private static final String ERROR_MIXED_SEALING_IN_DIRECTORY        = "The directory mixes sealed and plaintext secrets files. Seal all secrets or none.";
+    private static final String ERROR_PDP_JSON_CONFIGURATION_ID_REMOVED = "pdp.json must not contain a 'configurationId' field. The configurationId moved to the bundle manifest and is derived from content for directory and resource sources. Remove the field.";
+    private static final String ERROR_PDP_JSON_CONTENT_REQUIRED         = "pdp.json content must not be empty.";
+    private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED        = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
+    private static final String ERROR_PDP_JSON_SECRETS_NOT_ALLOWED      = "pdp.json must not contain a 'secrets' section. Move the secrets object to 'secrets.json' (sealed: 'secrets.sealed.json').";
+    private static final String ERROR_SEALED_CONTENT_NOT_SEALED         = "File '%s' is named sealed but its content is not sealed.";
+    private static final String ERROR_SECRETS_FILE_NOT_OBJECT           = "Secrets file '%s' must contain a JSON object.";
+    private static final String ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM        = "Total size of SAPL documents exceeds maximum of %d MB.";
 
     private static final String WARN_PDP_JSON_MISSING_ALGORITHM = "pdp.json does not contain an 'algorithm' field. Using default: {}.";
-    private static final String WARN_PDP_JSON_NOT_FOUND         = "pdp.json not found at '{}'. Using defaults: algorithm={}, configurationId=default.";
+    private static final String WARN_PDP_JSON_NOT_FOUND         = "pdp.json not found at '{}'. Using default algorithm: {}.";
 
     private static final JsonMapper MAPPER = createMapper();
 
@@ -133,16 +127,15 @@ public class PDPConfigurationLoader {
     /**
      * Loads a PDP configuration from a directory path.
      * <p>
-     * If pdp.json is present, its {@code algorithm} and optional
-     * {@code configurationId} are used. If pdp.json is absent, safe defaults
-     * are applied ({@link CombiningAlgorithm#DEFAULT}, configurationId "default").
-     * If pdp.json is present but has no {@code algorithm} field, the default
-     * algorithm is used with a warning.
+     * If pdp.json is present, its {@code algorithm} is used. If pdp.json is
+     * absent, the default algorithm {@link CombiningAlgorithm#DEFAULT} is
+     * applied. If pdp.json is present but has no {@code algorithm} field, the
+     * default algorithm is used with a warning.
      * </p>
      * <p>
-     * When no explicit {@code configurationId} is provided, an ID is
-     * auto-generated in the format:
-     * {@code dir:<path>@<timestamp>}
+     * The configuration ID is derived from the directory content on every
+     * (re)load in the format {@code dir:<dirName>@<hash16>}, covering every file
+     * this loader reads.
      * </p>
      *
      * @param path
@@ -157,7 +150,8 @@ public class PDPConfigurationLoader {
      */
     public static PDPConfiguration loadFromDirectory(Path path, String pdpId) {
         val pdpJsonPath           = path.resolve(PDP_JSON);
-        val pdpJson               = loadPdpJson(pdpJsonPath);
+        val pdpJsonFile           = loadPdpJson(pdpJsonPath);
+        val pdpJson               = pdpJsonFile.parsed();
         val maxDocuments          = CompilationContext.intOption(pdpJson.compilerOptions(),
                 CompilationContext.OPTION_MAX_POLICY_DOCUMENTS, CompilationContext.DEFAULT_MAX_POLICY_DOCUMENTS);
         val maxTotalSizeMegabytes = CompilationContext.intOption(pdpJson.compilerOptions(),
@@ -166,17 +160,34 @@ public class PDPConfigurationLoader {
         val documents             = new ArrayList<>(saplContents.values());
         val supplements           = loadSupplementsFromDirectory(path);
 
-        val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
-                : generateDirectoryConfigurationId(path);
+        val contents = new TreeMap<String, byte[]>();
+        if (pdpJsonFile.raw() != null) {
+            contents.put(PDP_JSON, pdpJsonFile.raw().getBytes(StandardCharsets.UTF_8));
+        }
+        putUtf8(contents, saplContents);
+        putUtf8(contents, supplements.rawFiles());
+        val configurationId = ConfigurationIds.derive("dir:" + directoryName(path), contents);
 
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
                 new PdpData(pdpJson.variables(), supplements.secrets()), supplements.extensions(),
                 supplements.extensionSecrets(), supplements.criticalExtensions());
     }
 
+    private static void putUtf8(Map<String, byte[]> contents, Map<String, String> textByName) {
+        for (val entry : textByName.entrySet()) {
+            contents.put(entry.getKey(), entry.getValue().getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private static String directoryName(Path path) {
+        val fileName = path.toAbsolutePath().normalize().getFileName();
+        return fileName != null ? fileName.toString() : "root";
+    }
+
     private static DirectorySupplements loadSupplementsFromDirectory(Path directory) {
         val    extensions       = new LinkedHashMap<String, Value>();
         val    extensionSecrets = new LinkedHashMap<String, Value>();
+        val    rawFiles         = new LinkedHashMap<String, String>();
         var    secrets          = Value.EMPTY_OBJECT;
         var    hasPlaintext     = false;
         var    hasSealed        = false;
@@ -197,24 +208,34 @@ public class PDPConfigurationLoader {
             val name = fileNamePath.toString();
             if (ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(name)) {
                 criticalJson = readExtensionFileContent(path);
+                rawFiles.put(name, criticalJson);
             } else if (ExtensionFiles.SECRETS_FILE.equals(name)) {
                 hasPlaintext = true;
-                secrets      = parseSecretsObject(name, readExtensionFileContent(path));
+                val raw = readExtensionFileContent(path);
+                rawFiles.put(name, raw);
+                secrets = parseSecretsObject(name, raw);
             } else if (ExtensionFiles.SEALED_SECRETS_FILE.equals(name)) {
                 hasSealed = true;
-                secrets   = parseSecretsObject(name, readExtensionFileContent(path));
+                val raw = readExtensionFileContent(path);
+                rawFiles.put(name, raw);
+                secrets = parseSecretsObject(name, raw);
                 requireSealedContent(name, secrets);
             } else if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
                 hasSealed = true;
-                val sealedValue = Value.ofJson(readExtensionFileContent(path));
+                val raw = readExtensionFileContent(path);
+                rawFiles.put(name, raw);
+                val sealedValue = Value.ofJson(raw);
                 requireSealedContent(name, sealedValue);
                 extensionSecrets.put(ExtensionFiles.sealedExtensionSecretsNameOf(name), sealedValue);
             } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
                 hasPlaintext = true;
-                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name),
-                        Value.ofJson(readExtensionFileContent(path)));
+                val raw = readExtensionFileContent(path);
+                rawFiles.put(name, raw);
+                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name), Value.ofJson(raw));
             } else if (ExtensionFiles.isExtensionFile(name)) {
-                extensions.put(ExtensionFiles.extensionNameOf(name), Value.ofJson(readExtensionFileContent(path)));
+                val raw = readExtensionFileContent(path);
+                rawFiles.put(name, raw);
+                extensions.put(ExtensionFiles.extensionNameOf(name), Value.ofJson(raw));
             }
         }
 
@@ -224,7 +245,7 @@ public class PDPConfigurationLoader {
 
         val criticalExtensions = ExtensionFiles.parseCriticalExtensions(criticalJson);
         ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), extensionSecrets.keySet());
-        return new DirectorySupplements(secrets, extensions, extensionSecrets, criticalExtensions);
+        return new DirectorySupplements(secrets, extensions, extensionSecrets, criticalExtensions, rawFiles);
     }
 
     private static ObjectValue parseSecretsObject(String fileName, String content) {
@@ -244,14 +265,15 @@ public class PDPConfigurationLoader {
             ObjectValue secrets,
             Map<String, Value> extensions,
             Map<String, Value> extensionSecrets,
-            Set<String> criticalExtensions) {}
+            Set<String> criticalExtensions,
+            Map<String, String> rawFiles) {}
 
     /**
      * Loads a PDP configuration from raw content.
      * <p>
-     * If pdpJsonContent contains a {@code configurationId}, it is used. Otherwise,
-     * an ID is auto-generated in the
-     * format: {@code res:<path>}
+     * The configuration ID is derived from the content in the format
+     * {@code res:<sourceName>@<hash16>}, covering the pdp.json content and every
+     * SAPL document.
      * </p>
      *
      * @param pdpJsonContent
@@ -260,8 +282,8 @@ public class PDPConfigurationLoader {
      * map of filename to SAPL document content
      * @param pdpId
      * the PDP identifier to use
-     * @param sourcePath
-     * the source path for auto-generated ID (e.g., classpath resource path)
+     * @param sourceName
+     * the source name for the derived ID (e.g., a resource directory name)
      *
      * @return the loaded configuration
      *
@@ -269,12 +291,16 @@ public class PDPConfigurationLoader {
      * if loading fails
      */
     public static PDPConfiguration loadFromContent(String pdpJsonContent, Map<String, String> saplDocuments,
-            String pdpId, String sourcePath) {
+            String pdpId, String sourceName) {
         val pdpJson   = parsePdpJson(pdpJsonContent);
         val documents = new ArrayList<>(saplDocuments.values());
 
-        val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
-                : generateResourceConfigurationId(sourcePath);
+        val contents = new TreeMap<String, byte[]>();
+        if (pdpJsonContent != null) {
+            contents.put(PDP_JSON, pdpJsonContent.getBytes(StandardCharsets.UTF_8));
+        }
+        putUtf8(contents, saplDocuments);
+        val configurationId = ConfigurationIds.derive("res:" + sourceName, contents);
 
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
                 new PdpData(pdpJson.variables(), Value.EMPTY_OBJECT));
@@ -283,7 +309,8 @@ public class PDPConfigurationLoader {
     /**
      * Loads a PDP configuration from raw content for bundles.
      * <p>
-     * Bundles require pdp.json to be present with a {@code configurationId} field.
+     * The configuration ID is supplied by the caller from the bundle manifest and
+     * is required.
      * </p>
      *
      * @param pdpJsonContent
@@ -294,23 +321,24 @@ public class PDPConfigurationLoader {
      * map of filename to SAPL document content
      * @param pdpId
      * the PDP identifier to use
+     * @param configurationId
+     * the configuration ID from the bundle manifest
      *
      * @return the loaded configuration
      *
      * @throws PDPConfigurationException
-     * if pdp.json is missing or configurationId is not specified
+     * if pdp.json is missing or the configuration ID is blank
      */
     public static PDPConfiguration loadFromBundle(String pdpJsonContent, String secretsJsonContent,
-            Map<String, String> saplDocuments, String pdpId) {
+            Map<String, String> saplDocuments, String pdpId, String configurationId) {
         if (pdpJsonContent == null || pdpJsonContent.isBlank()) {
             throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_PDP_JSON.formatted(pdpId));
         }
+        if (configurationId == null || configurationId.isBlank()) {
+            throw new PDPConfigurationException(ERROR_BUNDLE_CONFIGURATION_ID_REQUIRED.formatted(pdpId));
+        }
 
         val pdpJson = parsePdpJson(pdpJsonContent);
-
-        if (pdpJson.configurationId() == null || pdpJson.configurationId().isBlank()) {
-            throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_CONFIGURATION_ID.formatted(pdpId));
-        }
 
         val secrets = secretsJsonContent != null ? parseSecretsObject(ExtensionFiles.SECRETS_FILE, secretsJsonContent)
                 : Value.EMPTY_OBJECT;
@@ -319,48 +347,19 @@ public class PDPConfigurationLoader {
                 CompilationContext.OPTION_MAX_POLICY_DOCUMENTS, CompilationContext.DEFAULT_MAX_POLICY_DOCUMENTS);
         enforceDocumentCount(saplDocuments.size(), maxDocuments);
         val documents = new ArrayList<>(saplDocuments.values());
-        return new PDPConfiguration(pdpId, pdpJson.configurationId(), pdpJson.algorithm(), pdpJson.compilerOptions(),
-                documents, new PdpData(pdpJson.variables(), secrets));
+        return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
+                new PdpData(pdpJson.variables(), secrets));
     }
 
-    private static String generateDirectoryConfigurationId(Path path) {
-        val normalizedPath = normalizePath(path);
-        val timestamp      = Instant.now().toString();
-        return "dir:%s@%s".formatted(normalizedPath, timestamp);
-    }
-
-    private static String generateResourceConfigurationId(String sourcePath) {
-        return "res:%s".formatted(normalizePath(sourcePath));
-    }
-
-    private static String normalizePath(Path path) {
-        var normalized = path.toAbsolutePath().normalize().toString();
-        normalized = normalized.replace('\\', '/');
-        if (normalized.endsWith("/")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        return normalized;
-    }
-
-    private static String normalizePath(String path) {
-        var normalized = path.replace('\\', '/');
-        if (normalized.endsWith("/")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        if (!normalized.startsWith("/")) {
-            normalized = "/" + normalized;
-        }
-        return normalized;
-    }
-
-    private static PdpJsonContent loadPdpJson(Path pdpJsonPath) {
+    private static PdpJsonFile loadPdpJson(Path pdpJsonPath) {
         if (!Files.exists(pdpJsonPath)) {
             log.warn(WARN_PDP_JSON_NOT_FOUND, pdpJsonPath, CombiningAlgorithm.DEFAULT.toCanonicalString());
-            return new PdpJsonContent(CombiningAlgorithm.DEFAULT, "default", Value.EMPTY_OBJECT);
+            return new PdpJsonFile(null,
+                    new PdpJsonContent(CombiningAlgorithm.DEFAULT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         }
         try {
             val content = readCappedText(pdpJsonPath);
-            return parsePdpJson(content);
+            return new PdpJsonFile(content, parsePdpJson(content));
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_READ_PDP_JSON.formatted(pdpJsonPath), e);
         }
@@ -372,6 +371,12 @@ public class PDPConfigurationLoader {
         }
         try {
             val node = MAPPER.readTree(content);
+
+            // The migration rejection comes first so a legacy pdp.json always surfaces
+            // the migration message, even when other fields are also invalid.
+            if (node.has("configurationId")) {
+                throw new PDPConfigurationException(ERROR_PDP_JSON_CONFIGURATION_ID_REMOVED);
+            }
 
             CombiningAlgorithm algorithm;
             val                algorithmNode = node.get("algorithm");
@@ -387,14 +392,6 @@ public class PDPConfigurationLoader {
                 algorithm = MAPPER.treeToValue(algorithmNode, CombiningAlgorithm.class);
             }
 
-            String configurationId = null;
-            if (node.has("configurationId")) {
-                val idNode = node.get("configurationId");
-                if (idNode.isString() && !idNode.asString().isBlank()) {
-                    configurationId = idNode.asString();
-                }
-            }
-
             if (node.has(SECRETS_SECTION)) {
                 throw new PDPConfigurationException(ERROR_PDP_JSON_SECRETS_NOT_ALLOWED);
             }
@@ -403,7 +400,7 @@ public class PDPConfigurationLoader {
 
             val variables = parseValueSection(node, "variables");
 
-            return new PdpJsonContent(algorithm, compilerOptions, configurationId, variables);
+            return new PdpJsonContent(algorithm, compilerOptions, variables);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
@@ -508,15 +505,8 @@ public class PDPConfigurationLoader {
         }
     }
 
-    private record PdpJsonContent(
-            CombiningAlgorithm algorithm,
-            ObjectValue compilerOptions,
-            String configurationId,
-            ObjectValue variables) {
+    private record PdpJsonContent(CombiningAlgorithm algorithm, ObjectValue compilerOptions, ObjectValue variables) {}
 
-        PdpJsonContent(CombiningAlgorithm algorithm, String configurationId, ObjectValue variables) {
-            this(algorithm, Value.EMPTY_OBJECT, configurationId, variables);
-        }
-    }
+    private record PdpJsonFile(String raw, PdpJsonContent parsed) {}
 
 }

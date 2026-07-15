@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration.bundle;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
+import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -29,6 +30,8 @@ import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
 import io.sapl.secrets.ValueSealer;
 import lombok.val;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -45,16 +48,17 @@ import java.util.zip.ZipOutputStream;
 /**
  * Builder for creating SAPL bundle files (.saplbundle).
  * <p>
- * A SAPL bundle is a ZIP archive containing policy documents and a required
- * pdp.json configuration file with a {@code configurationId}. This builder
- * provides a fluent API to construct bundles programmatically, serving as the
- * inverse of {@link BundleParser}.
+ * A SAPL bundle is a ZIP archive containing policy documents, a required
+ * pdp.json configuration file, and a manifest. This builder provides a fluent
+ * API to construct bundles programmatically, serving as the inverse of
+ * {@link BundleParser}.
  * </p>
  * <h2>Bundle Structure</h2>
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- *   pdp.json                        (required, must contain configurationId, never secrets)
+ *   .sapl-manifest.json             (always present, carries the configurationId)
+ *   pdp.json                        (required, never secrets)
  *   secrets.sealed.json             (optional, sealed PDP-level secrets)
  *   access-control.sapl
  *   audit.sapl
@@ -62,6 +66,17 @@ import java.util.zip.ZipOutputStream;
  *   ext-upstreams-secrets.sealed.json (optional, sealed extension secrets)
  *   critical-extensions.json        (optional, names the consumer must support)
  * </pre>
+ *
+ * <h2>Manifest and Configuration Id</h2>
+ * <p>
+ * Every built bundle carries a {@code .sapl-manifest.json}, signed or not. The
+ * manifest is the carrier of the bundle's {@code configurationId}: set it
+ * explicitly with {@link #withConfigurationId}, or a content-derived default of
+ * the form {@code bundle@<hash16>} is computed from the per-file hashes. The
+ * manifest also records an {@code attribution} value (see
+ * {@link #withAttribution}) and, when the bundle carries sealed content, the
+ * {@code audience.sealingRecipient} key id.
+ * </p>
  *
  * <h2>Secrets</h2>
  * <p>
@@ -130,21 +145,27 @@ public final class BundleBuilder {
     // engine and can overflow the stack on large inputs.
     private static final Pattern SLUG = Pattern.compile("^(?!-)(?!.*--)[a-z0-9-]+(?<!-)$");
 
-    private static final String ERROR_AMBIGUOUS_SECRETS            = "Both cleartext and sealed PDP-level secrets were set. Use withSecrets or withSealedSecrets, not both.";
-    private static final String ERROR_BUNDLE_MISSING_PDP_JSON      = "Bundle is missing pdp.json. Bundles require a pdp.json with a 'configurationId' field.";
-    private static final String ERROR_EXTENSION_NAME_NOT_SLUG      = "Extension name '%s' must be a slug (lowercase letters, digits, and single hyphens).";
-    private static final String ERROR_EXTENSION_NAME_RESERVED      = "Extension name '%s' must not end with '-secrets'. Use withExtensionSecrets for sealed data.";
-    private static final String ERROR_EXTENSION_SECRETS_NOT_SEALED = "Extension secrets '%s' must already be sealed. Use withExtensionSecrets to seal cleartext.";
-    private static final String ERROR_FAILED_TO_CREATE_BUNDLE      = "Failed to create bundle.";
-    private static final String ERROR_FAILED_TO_WRITE_BUNDLE       = "Failed to write bundle to path: %s.";
-    private static final String ERROR_POLICY_FILENAME_NULL_EMPTY   = "Policy filename must not be null or empty.";
-    private static final String ERROR_POLICY_SYNTAX_ERRORS         = "Bundle contains policies with syntax errors:%n%s";
-    private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519  = "Private key must be Ed25519, got: %s.";
-    private static final String ERROR_PRIVATE_KEY_NULL             = "Private key must not be null.";
-    private static final String ERROR_SECRETS_NOT_SEALED           = "Secrets must already be sealed. Use withSecrets to seal cleartext.";
-    private static final String ERROR_SECRETS_REQUIRE_KEY          = "Secrets require a sealing key. Call sealSecretsWith before building.";
+    private static final String ERROR_AMBIGUOUS_SECRETS                        = "Both cleartext and sealed PDP-level secrets were set. Use withSecrets or withSealedSecrets, not both.";
+    private static final String ERROR_ATTRIBUTION_JSON_INVALID                 = "Attribution must be valid JSON text.";
+    private static final String ERROR_BUNDLE_MISSING_PDP_JSON                  = "Bundle is missing pdp.json. Bundles require a pdp.json configuration file.";
+    private static final String ERROR_EXTENSION_NAME_NOT_SLUG                  = "Extension name '%s' must be a slug (lowercase letters, digits, and single hyphens).";
+    private static final String ERROR_EXTENSION_NAME_RESERVED                  = "Extension name '%s' must not end with '-secrets'. Use withExtensionSecrets for sealed data.";
+    private static final String ERROR_EXTENSION_SECRETS_NOT_SEALED             = "Extension secrets '%s' must already be sealed. Use withExtensionSecrets to seal cleartext.";
+    private static final String ERROR_FAILED_TO_CREATE_BUNDLE                  = "Failed to create bundle.";
+    private static final String ERROR_FAILED_TO_WRITE_BUNDLE                   = "Failed to write bundle to path: %s.";
+    private static final String ERROR_POLICY_FILENAME_NULL_EMPTY               = "Policy filename must not be null or empty.";
+    private static final String ERROR_POLICY_SYNTAX_ERRORS                     = "Bundle contains policies with syntax errors:%n%s";
+    private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519              = "Private key must be Ed25519, got: %s.";
+    private static final String ERROR_PRIVATE_KEY_NULL                         = "Private key must not be null.";
+    private static final String ERROR_SEALED_CONTENT_REQUIRES_RECIPIENT        = "Sealed content requires a sealing recipient key id. Use sealSecretsWith with a keyed recipient or withSealingRecipient.";
+    private static final String ERROR_SEALING_RECIPIENT_WITHOUT_SEALED_CONTENT = "A sealing recipient is set but the bundle carries no sealed content. Remove withSealingRecipient or add sealed secrets.";
+    private static final String ERROR_SECRETS_NOT_SEALED                       = "Secrets must already be sealed. Use withSecrets to seal cleartext.";
+    private static final String ERROR_SECRETS_REQUIRE_KEY                      = "Secrets require a sealing key. Call sealSecretsWith before building.";
 
     private String                    pdpJson;
+    private String                    configurationId;
+    private JsonNode                  attribution;
+    private String                    sealingRecipient;
     private String                    secrets;
     private String                    sealedSecrets;
     private final Map<String, String> policies               = new LinkedHashMap<>();
@@ -189,14 +210,11 @@ public final class BundleBuilder {
     }
 
     /**
-     * Sets the combining algorithm for the bundle with an auto-generated
-     * configurationId.
+     * Sets the combining algorithm for the bundle.
      * <p>
-     * This is a convenience method that generates a pdp.json with the algorithm and
-     * an auto-generated configurationId.
-     * If you need to include custom configurationId, variables, or other settings,
-     * use {@link #withPdpJson(String)}
-     * instead.
+     * This is a convenience method that generates a pdp.json with the algorithm.
+     * If you need to include variables or other settings, use
+     * {@link #withPdpJson(String)} instead.
      * </p>
      *
      * @param algorithm
@@ -205,33 +223,17 @@ public final class BundleBuilder {
      * @return this builder for method chaining
      */
     public BundleBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm) {
-        return withCombiningAlgorithm(algorithm, ConfigurationIds.generate("bundle"));
-    }
-
-    /**
-     * Sets the combining algorithm and configurationId for the bundle.
-     *
-     * @param algorithm
-     * the combining algorithm
-     * @param configurationId
-     * the configuration identifier
-     *
-     * @return this builder for method chaining
-     */
-    public BundleBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm, String configurationId) {
         this.pdpJson = """
-                { "algorithm": %s, "configurationId": "%s" }
-                """.formatted(algorithmToJson(algorithm), configurationId);
+                { "algorithm": %s }
+                """.formatted(algorithmToJson(algorithm));
         return this;
     }
 
     /**
-     * Sets the combining algorithm and variables for the bundle with an
-     * auto-generated configurationId.
+     * Sets the combining algorithm and variables for the bundle.
      * <p>
-     * This method generates a pdp.json with algorithm, configurationId, and
-     * variables settings. The variables map is
-     * serialized as a JSON object.
+     * This method generates a pdp.json with algorithm and variables settings. The
+     * variables map is serialized as a JSON object.
      * </p>
      *
      * @param algorithm
@@ -242,23 +244,6 @@ public final class BundleBuilder {
      * @return this builder for method chaining
      */
     public BundleBuilder withConfiguration(CombiningAlgorithm algorithm, Map<String, String> variables) {
-        return withConfiguration(algorithm, ConfigurationIds.generate("bundle"), variables);
-    }
-
-    /**
-     * Sets the combining algorithm, configurationId, and variables for the bundle.
-     *
-     * @param algorithm
-     * the combining algorithm
-     * @param configurationId
-     * the configuration identifier
-     * @param variables
-     * the policy variables as a map
-     *
-     * @return this builder for method chaining
-     */
-    public BundleBuilder withConfiguration(CombiningAlgorithm algorithm, String configurationId,
-            Map<String, String> variables) {
         val variablesJson = new StringBuilder();
         variablesJson.append("{ ");
 
@@ -274,8 +259,93 @@ public final class BundleBuilder {
         variablesJson.append(" }");
 
         this.pdpJson = """
-                { "algorithm": %s, "configurationId": "%s", "variables": %s }
-                """.formatted(algorithmToJson(algorithm), configurationId, variablesJson);
+                { "algorithm": %s, "variables": %s }
+                """.formatted(algorithmToJson(algorithm), variablesJson);
+        return this;
+    }
+
+    /**
+     * Sets the configuration id recorded in the bundle manifest.
+     * <p>
+     * When not set, a content-derived default of the form
+     * {@code bundle@<hash16>} is computed from the per-file hashes at build time.
+     * </p>
+     *
+     * @param configurationId
+     * the configuration id (1 to 256 printable ASCII characters without
+     * whitespace, {@code /} or {@code \})
+     *
+     * @return this builder for method chaining
+     *
+     * @throws IllegalArgumentException
+     * if the configuration id is invalid
+     */
+    public BundleBuilder withConfigurationId(String configurationId) {
+        ConfigurationIds.requireValid(configurationId);
+        this.configurationId = configurationId;
+        return this;
+    }
+
+    /**
+     * Sets the manifest attribution to a plain string tag, for example
+     * {@code "my-publisher/1.0"}.
+     * <p>
+     * When no attribution is set, the library default
+     * {@code "sapl-pdp/<version>"} is recorded. The engine never interprets the
+     * attribution value.
+     * </p>
+     *
+     * @param attributionTag
+     * the attribution string
+     *
+     * @return this builder for method chaining
+     */
+    public BundleBuilder withAttribution(String attributionTag) {
+        this.attribution = BundleManifest.attributionOfText(attributionTag);
+        return this;
+    }
+
+    /**
+     * Sets the manifest attribution from arbitrary JSON text. The value must be a
+     * JSON string or object no larger than
+     * {@link BundleManifest#MAX_ATTRIBUTION_BYTES} bytes when serialized; this is
+     * enforced at build time.
+     *
+     * @param attributionJson
+     * the attribution as JSON text
+     *
+     * @return this builder for method chaining
+     *
+     * @throws IllegalArgumentException
+     * if the text is not valid JSON
+     */
+    public BundleBuilder withAttributionJson(String attributionJson) {
+        try {
+            this.attribution = BundleManifest.parseAttributionJson(attributionJson);
+        } catch (JacksonException e) {
+            throw new IllegalArgumentException(ERROR_ATTRIBUTION_JSON_INVALID, e);
+        }
+        return this;
+    }
+
+    /**
+     * Sets the sealing recipient key id recorded in the manifest's audience
+     * block.
+     * <p>
+     * Usually the recipient is resolved automatically: from the
+     * {@link #sealSecretsWith} key's key id, or from the JWE header of
+     * already-sealed input. Use this method to state it explicitly, for example
+     * when re-bundling sealed content whose tokens carry no key id. Building
+     * fails when a recipient is set but the bundle carries no sealed content.
+     * </p>
+     *
+     * @param sealingRecipientKeyId
+     * the recipient key id
+     *
+     * @return this builder for method chaining
+     */
+    public BundleBuilder withSealingRecipient(String sealingRecipientKeyId) {
+        this.sealingRecipient = sealingRecipientKeyId;
         return this;
     }
 
@@ -325,10 +395,10 @@ public final class BundleBuilder {
     /**
      * Configures the bundle to be signed with an Ed25519 private key.
      * <p>
-     * When signing is enabled, the bundle will include a
-     * {@code .sapl-manifest.json} file containing SHA-256 hashes of
-     * all files and an Ed25519 signature. This allows consumers to verify bundle
-     * integrity and authenticity.
+     * When signing is enabled, the bundle's {@code .sapl-manifest.json} carries
+     * an Ed25519 signature over the manifest, including the SHA-256 hashes of
+     * all files. This allows consumers to verify bundle integrity and
+     * authenticity.
      * </p>
      *
      * @param privateKey
@@ -525,6 +595,14 @@ public final class BundleBuilder {
     }
 
     /**
+     * A built bundle together with the manifest that was written into it.
+     *
+     * @param bytes the bundle as a byte array
+     * @param manifest the manifest written into the bundle
+     */
+    public record BuildResult(byte[] bytes, BundleManifest manifest) {}
+
+    /**
      * Builds the bundle and returns it as a byte array.
      *
      * @return the bundle as a byte array
@@ -533,9 +611,24 @@ public final class BundleBuilder {
      * if bundle creation fails
      */
     public byte[] build() {
+        return buildWithManifest().bytes();
+    }
+
+    /**
+     * Builds the bundle and returns both the bundle bytes and the manifest that
+     * was written into it. Use this when the resulting configuration id or other
+     * manifest metadata is needed, since sealing is nondeterministic and the
+     * manifest cannot be recomputed from the inputs.
+     *
+     * @return the bundle bytes together with the written manifest
+     *
+     * @throws PDPConfigurationException
+     * if bundle creation fails
+     */
+    public BuildResult buildWithManifest() {
         val outputStream = new ByteArrayOutputStream();
-        writeTo(outputStream);
-        return outputStream.toByteArray();
+        val manifest     = writeTo(outputStream);
+        return new BuildResult(outputStream.toByteArray(), manifest);
     }
 
     /**
@@ -544,17 +637,19 @@ public final class BundleBuilder {
      * @param path
      * the target file path
      *
+     * @return the manifest that was written into the bundle
+     *
      * @throws PDPConfigurationException
      * if bundle creation or writing fails
      */
-    public void writeTo(Path path) {
+    public BundleManifest writeTo(Path path) {
         try {
             val parent = path.toAbsolutePath().getParent();
             if (parent != null) {
                 Files.createDirectories(parent);
             }
             try (val outputStream = Files.newOutputStream(path)) {
-                writeTo(outputStream);
+                return writeTo(outputStream);
             }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_WRITE_BUNDLE.formatted(path), e);
@@ -571,10 +666,12 @@ public final class BundleBuilder {
      * @param outputStream
      * the target output stream
      *
+     * @return the manifest that was written into the bundle
+     *
      * @throws PDPConfigurationException
      * if bundle creation fails
      */
-    public void writeTo(OutputStream outputStream) {
+    public BundleManifest writeTo(OutputStream outputStream) {
         validatePdpJson();
         validatePolicies();
         if (secrets != null && sealedSecrets != null) {
@@ -587,48 +684,109 @@ public final class BundleBuilder {
         allSecretNames.addAll(sealedExtensionSecrets.keySet());
         ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), allSecretNames);
         try (val zipStream = new ZipOutputStream(outputStream)) {
-            // Collect all files for potential signing
-            val allFiles = new TreeMap<String, String>();
+            val allFiles = assembleFiles();
+            val manifest = buildManifest(allFiles);
 
-            allFiles.put(PDP_JSON, pdpJson);
-
-            allFiles.putAll(policies);
-
-            if (secrets != null) {
-                allFiles.put(ExtensionFiles.SEALED_SECRETS_FILE, sealDocument(secrets));
-            }
-            if (sealedSecrets != null) {
-                allFiles.put(ExtensionFiles.SEALED_SECRETS_FILE, sealedSecrets);
-            }
-            for (val entry : extensions.entrySet()) {
-                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SUFFIX,
-                        entry.getValue());
-            }
-            for (val entry : extensionSecrets.entrySet()) {
-                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey()
-                        + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX, sealDocument(entry.getValue()));
-            }
-            for (val entry : sealedExtensionSecrets.entrySet()) {
-                allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey()
-                        + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX, entry.getValue());
-            }
-            if (!criticalExtensions.isEmpty()) {
-                allFiles.put(ExtensionFiles.CRITICAL_EXTENSIONS_FILE, ExtensionFiles.toJson(criticalExtensions));
-            }
-
-            // Write all content files
             for (val entry : allFiles.entrySet()) {
                 writeEntry(zipStream, entry.getKey(), entry.getValue());
             }
-
-            // Add manifest if signing is enabled
-            if (signingKey != null) {
-                val manifest = BundleSigner.sign(allFiles, signingKey, signingKeyId);
-                writeEntry(zipStream, BundleManifest.MANIFEST_FILENAME, manifest.toJson());
-            }
+            writeEntry(zipStream, BundleManifest.MANIFEST_FILENAME, manifest.toJson());
+            return manifest;
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_CREATE_BUNDLE, e);
         }
+    }
+
+    private TreeMap<String, String> assembleFiles() {
+        val allFiles = new TreeMap<String, String>();
+
+        allFiles.put(PDP_JSON, pdpJson);
+
+        allFiles.putAll(policies);
+
+        if (secrets != null) {
+            allFiles.put(ExtensionFiles.SEALED_SECRETS_FILE, sealDocument(secrets));
+        }
+        if (sealedSecrets != null) {
+            allFiles.put(ExtensionFiles.SEALED_SECRETS_FILE, sealedSecrets);
+        }
+        for (val entry : extensions.entrySet()) {
+            allFiles.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.EXTENSION_SUFFIX,
+                    entry.getValue());
+        }
+        for (val entry : extensionSecrets.entrySet()) {
+            allFiles.put(
+                    ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX,
+                    sealDocument(entry.getValue()));
+        }
+        for (val entry : sealedExtensionSecrets.entrySet()) {
+            allFiles.put(
+                    ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX,
+                    entry.getValue());
+        }
+        if (!criticalExtensions.isEmpty()) {
+            allFiles.put(ExtensionFiles.CRITICAL_EXTENSIONS_FILE, ExtensionFiles.toJson(criticalExtensions));
+        }
+        return allFiles;
+    }
+
+    private BundleManifest buildManifest(Map<String, String> allFiles) {
+        val fileHashes = new TreeMap<String, String>();
+        for (val entry : allFiles.entrySet()) {
+            fileHashes.put(entry.getKey(), BundleManifest.computeHash(entry.getValue()));
+        }
+
+        val resolvedId          = configurationId != null ? configurationId : deriveDefaultConfigurationId(fileHashes);
+        val resolvedAttribution = attribution != null ? attribution
+                : BundleManifest.attributionOfText("sapl-pdp/" + SaplVersion.VERSION);
+        val resolvedRecipient   = resolveSealingRecipient(allFiles);
+
+        val unsignedManifest = BundleManifest.builder().configurationId(resolvedId).attribution(resolvedAttribution)
+                .audience(resolvedRecipient).files(fileHashes).buildUnsigned();
+
+        if (signingKey != null) {
+            return BundleSigner.sign(unsignedManifest, signingKey, signingKeyId);
+        }
+        return unsignedManifest;
+    }
+
+    private static String deriveDefaultConfigurationId(Map<String, String> fileHashes) {
+        val hashContents = new TreeMap<String, byte[]>();
+        for (val entry : fileHashes.entrySet()) {
+            hashContents.put(entry.getKey(), entry.getValue().getBytes(StandardCharsets.UTF_8));
+        }
+        return ConfigurationIds.derive("bundle", hashContents);
+    }
+
+    private String resolveSealingRecipient(Map<String, String> allFiles) {
+        val hasSealedContent = secrets != null || sealedSecrets != null || !extensionSecrets.isEmpty()
+                || !sealedExtensionSecrets.isEmpty();
+        if (!hasSealedContent) {
+            if (sealingRecipient != null) {
+                throw new PDPConfigurationException(ERROR_SEALING_RECIPIENT_WITHOUT_SEALED_CONTENT);
+            }
+            return null;
+        }
+        if (sealingRecipient != null) {
+            return sealingRecipient;
+        }
+        if (secretsSealingKey != null && secretsSealingKey.getKeyID() != null) {
+            return secretsSealingKey.getKeyID();
+        }
+        for (val entry : allFiles.entrySet()) {
+            if (isSealedFileName(entry.getKey())) {
+                val recipient = ValueSealer.recipientKeyIdOf(Value.ofJson(entry.getValue()));
+                if (recipient.isPresent()) {
+                    return recipient.get();
+                }
+            }
+        }
+        throw new PDPConfigurationException(ERROR_SEALED_CONTENT_REQUIRES_RECIPIENT);
+    }
+
+    private static boolean isSealedFileName(String fileName) {
+        return ExtensionFiles.SEALED_SECRETS_FILE.equals(fileName)
+                || ExtensionFiles.isSealedExtensionSecretsFile(fileName);
     }
 
     /**
@@ -651,7 +809,7 @@ public final class BundleBuilder {
         if (pdpJson == null || pdpJson.isBlank()) {
             throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_PDP_JSON);
         }
-        PDPConfigurationLoader.loadFromBundle(pdpJson, null, Map.of(), "build-validation");
+        PDPConfigurationLoader.loadFromBundle(pdpJson, null, Map.of(), "build-validation", "build-validation");
     }
 
     private void validatePolicies() {

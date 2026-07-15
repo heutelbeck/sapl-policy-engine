@@ -22,9 +22,11 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.secrets.SecretSealing;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -41,7 +43,11 @@ import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -55,6 +61,9 @@ class BundleParserTests {
 
     private static final String TEST_PDP_ID    = "cthulhu-pdp";
     private static final String TEST_CONFIG_ID = "eldritch-v1";
+
+    private static final String DEFAULT_PDP_JSON = """
+            {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"}}""";
 
     private static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
             DefaultDecision.PERMIT, ErrorHandling.ABSTAIN);
@@ -89,13 +98,12 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingValidBundleThenExtractsAllContent() throws IOException {
-        val bundleBytes = createBundleWithConfigId(
+    void whenParsingValidBundleThenManifestIdLandsInConfiguration() throws IOException {
+        val bundleBytes = manifestedBundle(Map.of("pdp.json",
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" }, "configurationId": "%s" }
-                        """
-                        .formatted(TEST_CONFIG_ID),
-                "elder-sign.sapl", "policy \"elder-sign\" permit true;");
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
+                        """,
+                "elder-sign.sapl", "policy \"elder-sign\" permit true;"));
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
@@ -107,27 +115,40 @@ class BundleParserTests {
 
     @Test
     void whenParsingBundleWithoutPdpJsonThenThrowsException() throws IOException {
-        val bundleBytes = createBundleWithoutPdpJson("cultist.sapl", "policy \"cultist\" deny true;");
+        val bundleBytes = manifestedBundle(Map.of("cultist.sapl", "policy \"cultist\" deny true;"));
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdp.json");
     }
 
     @Test
-    void whenParsingBundleWithoutConfigurationIdThenThrowsException() throws IOException {
-        val bundleBytes = createBundleWithConfigId(
-                """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
-                        """,
-                "cultist.sapl", "policy \"cultist\" deny true;");
+    @DisplayName("a bundle without a manifest is rejected fail-closed")
+    void whenParsingBundleWithoutManifestThenRejected() throws IOException {
+        val bundleBytes = rawZip(Map.of("pdp.json", DEFAULT_PDP_JSON, "cultist.sapl", "policy \"cultist\" deny true;"));
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("configurationId");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(".sapl-manifest.json");
+    }
+
+    @Test
+    @DisplayName("a legacy pdp.json still carrying configurationId is rejected with the migration message")
+    void whenParsingBundleWithLegacyConfigurationIdInPdpJsonThenRejected() throws IOException {
+        val legacyPdpJson = """
+                {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"},"configurationId":"legacy-v1"}""";
+        val bundleBytes   = manifestedBundle(Map.of("pdp.json", legacyPdpJson));
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("moved to the bundle manifest");
     }
 
     @Test
     void whenParsingBundleWithMultiplePoliciesThenAllPoliciesExtracted() throws IOException {
-        val bundleBytes = createBundleWithMultiplePolicies();
+        val files = new LinkedHashMap<String, String>();
+        files.put("pdp.json", DEFAULT_PDP_JSON);
+        for (val name : new String[] { "access.sapl", "audit.sapl", "logging.sapl" }) {
+            files.put(name, "policy \"" + name + "\" permit true;");
+        }
+        val bundleBytes = manifestedBundle(files);
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
@@ -138,12 +159,11 @@ class BundleParserTests {
     void whenParsingFromPathThenConfigurationIsExtracted() throws IOException {
         val bundlePath = tempDir.resolve("test.saplbundle");
         Files.write(bundlePath,
-                createBundleWithConfigId(
+                manifestedBundle(Map.of("pdp.json",
                         """
-                                { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" }, "configurationId": "%s" }
-                                """
-                                .formatted(TEST_CONFIG_ID),
-                        "shoggoth.sapl", "policy \"shoggoth\" deny true;"));
+                                { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                                """,
+                        "shoggoth.sapl", "policy \"shoggoth\" deny true;")));
 
         val config = BundleParser.parse(bundlePath, TEST_PDP_ID, developmentPolicy);
 
@@ -154,18 +174,79 @@ class BundleParserTests {
     @ParameterizedTest(name = "parse from InputStream with size known = {0}")
     @ValueSource(booleans = { true, false })
     void whenParsingFromInputStreamThenConfigurationIsExtracted(boolean sizeKnown) throws IOException {
-        val bundleBytes = createBundleWithConfigId(
-                """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "%s" }
-                        """
-                        .formatted(TEST_CONFIG_ID),
-                "dagon.sapl", "policy \"dagon\" permit true;");
+        val bundleBytes = manifestedBundle(
+                Map.of("pdp.json", DEFAULT_PDP_JSON, "dagon.sapl", "policy \"dagon\" permit true;"));
         val inputStream = new ByteArrayInputStream(bundleBytes);
 
         val config = sizeKnown ? BundleParser.parse(inputStream, bundleBytes.length, TEST_PDP_ID, developmentPolicy)
                 : BundleParser.parse(inputStream, TEST_PDP_ID, developmentPolicy);
 
         assertThat(config.saplDocuments()).hasSize(1);
+    }
+
+    @Nested
+    @DisplayName("audience possession pre-check")
+    class AudiencePossessionPreCheck {
+
+        private byte[] sealedBundle() {
+            val recipient = SecretSealing.generateRecipientKey();
+            return BundleBuilder.create().withPdpJson(DEFAULT_PDP_JSON).withSecrets("""
+                    { "apiKey": "TOP-SECRET-VALUE" }""").sealSecretsWith(recipient.toPublicJWK()).build();
+        }
+
+        @Test
+        @DisplayName("a sealed bundle whose recipient key is not held is rejected before any unseal attempt")
+        void whenSealingRecipientNotHeldThenFailFast() {
+            val bundleBytes    = sealedBundle();
+            val mismatchPolicy = BundleSecurityPolicy.builder().disableSignatureVerification()
+                    .withSealingKeyIds(Set.of("other-key")).build();
+
+            assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, mismatchPolicy))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("recipient")
+                    .hasMessageContaining("other-key");
+        }
+
+        @Test
+        @DisplayName("a sealed bundle whose recipient key is held is accepted")
+        void whenSealingRecipientHeldThenAccepted() {
+            val bundleBytes = sealedBundle();
+            val matchPolicy = BundleSecurityPolicy.builder().disableSignatureVerification()
+                    .withSealingKeyIds(Set.of("recipient")).build();
+
+            val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, matchPolicy);
+
+            assertThat(config.data().secrets()).containsKey("apiKey");
+        }
+
+        @Test
+        @DisplayName("an empty sealing key set skips the possession pre-check")
+        void whenNoSealingKeyIdsDeclaredThenPossessionCheckIsSkipped() {
+            val bundleBytes = sealedBundle();
+
+            val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
+
+            assertThat(config.data().secrets()).containsKey("apiKey");
+        }
+
+        @Test
+        @DisplayName("sealed content without a manifest audience is rejected")
+        void whenSealedContentWithoutAudienceThenRejected() throws IOException {
+            val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "secrets.sealed.json", """
+                    { "apiKey": "ENC[ciphertext]" }"""), null);
+
+            assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                    .isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("names no audience.sealingRecipient");
+        }
+
+        @Test
+        @DisplayName("a manifest audience without sealed content is rejected")
+        void whenAudienceWithoutSealedContentThenRejected() throws IOException {
+            val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON), "orphan-recipient-key");
+
+            assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("no sealed content");
+        }
     }
 
     @Test
@@ -217,12 +298,7 @@ class BundleParserTests {
     @Test
     void whenBundleExceedsCompressionRatioThenThrowsException() throws IOException {
         val largeRepetitiveContent = "A".repeat(50_000);
-        val bundleBytes            = createBundleWithConfigId(
-                """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "%s" }
-                        """
-                        .formatted(TEST_CONFIG_ID),
-                "eldritch-tome.sapl",
+        val bundleBytes            = createBundleWithEntryAndConfig("eldritch-tome.sapl",
                 "policy \"forbidden-knowledge\" permit true; /* " + largeRepetitiveContent + " */");
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
@@ -309,7 +385,9 @@ class BundleParserTests {
 
     @Test
     void whenBundleContainsOnlyPdpJsonThenReturnsEmptyDocuments() throws IOException {
-        val pdpJsonBundle = createBundleWithOnlyPdpJson();
+        val pdpJsonBundle = manifestedBundle(Map.of("pdp.json", """
+                {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"ABSTAIN"}}
+                """));
 
         val pdpJsonConfig = BundleParser.parse(pdpJsonBundle, TEST_PDP_ID, developmentPolicy);
 
@@ -344,11 +422,11 @@ class BundleParserTests {
     }
 
     @Test
-    void whenParsingInvalidZipDataThenThrowsExceptionForMissingPdpJson() {
+    void whenParsingInvalidZipDataThenThrowsExceptionForMissingManifest() {
         val invalidData = "This is not a ZIP file".getBytes(StandardCharsets.UTF_8);
 
         assertThatThrownBy(() -> BundleParser.parse(invalidData, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("pdp.json");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(".sapl-manifest.json");
     }
 
     @Test
@@ -394,7 +472,7 @@ class BundleParserTests {
     @Test
     @DisplayName("a critical-extensions.json entry is an allowed bundle file")
     void whenCriticalExtensionsFilePresentThenAccepted() throws IOException {
-        val bundleBytes = createBundleWithEntryAndConfig("critical-extensions.json", "[]");
+        val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "critical-extensions.json", "[]"));
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
@@ -435,8 +513,8 @@ class BundleParserTests {
     @Test
     @DisplayName("a bundle's secrets file is loaded into the PDP data")
     void whenBundleHasSecretsFileThenLoaded() throws IOException {
-        val bundleBytes = createBundleWithEntryAndConfig("secrets.sealed.json", """
-                { "apiKey": "ENC[ciphertext]" }""");
+        val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "secrets.sealed.json", """
+                { "apiKey": "ENC[ciphertext]" }"""), "recipient-key");
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
@@ -446,59 +524,47 @@ class BundleParserTests {
     @Test
     @DisplayName("a critical extension without any payload is rejected at parse time")
     void whenCriticalExtensionMissingPayloadThenRejected() throws IOException {
-        val bundleBytes = createBundleWithEntryAndConfig("critical-extensions.json", """
-                ["upstreams"]""");
+        val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "critical-extensions.json", """
+                ["upstreams"]"""));
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Critical extension 'upstreams'");
     }
 
-    private byte[] createBundleWithConfigId(String pdpJson, String saplFileName, String saplContent)
-            throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-
-            zos.putNextEntry(new ZipEntry(saplFileName));
-            zos.write(saplContent.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-        }
-        return baos.toByteArray();
+    private static byte[] manifestedBundle(Map<String, String> files) throws IOException {
+        return manifestedBundle(files, null);
     }
 
-    private byte[] createBundleWithoutPdpJson(String saplFileName, String saplContent) throws IOException {
+    private static byte[] manifestedBundle(Map<String, String> files, String sealingRecipient) throws IOException {
+        val hashes = new TreeMap<String, String>();
+        for (val entry : files.entrySet()) {
+            hashes.put(entry.getKey(), BundleManifest.computeHash(entry.getValue()));
+        }
+        val manifest = BundleManifest.builder().configurationId(TEST_CONFIG_ID)
+                .attribution(BundleManifest.attributionOfText("bundle-parser-tests")).audience(sealingRecipient)
+                .files(hashes).buildUnsigned();
+
+        val allEntries = new LinkedHashMap<String, String>(files);
+        allEntries.put(BundleManifest.MANIFEST_FILENAME, manifest.toJson());
+        return rawZip(allEntries);
+    }
+
+    private static byte[] rawZip(Map<String, String> entries) throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
-            zos.putNextEntry(new ZipEntry(saplFileName));
-            zos.write(saplContent.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
+            for (val entry : entries.entrySet()) {
+                zos.putNextEntry(new ZipEntry(entry.getKey()));
+                zos.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
         }
         return baos.toByteArray();
     }
 
     private void addPdpJsonEntry(ZipOutputStream zos) throws IOException {
-        val pdpJson = """
-                {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"},"configurationId":"%s"}"""
-                .formatted(TEST_CONFIG_ID);
         zos.putNextEntry(new ZipEntry("pdp.json"));
-        zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
+        zos.write(DEFAULT_PDP_JSON.getBytes(StandardCharsets.UTF_8));
         zos.closeEntry();
-    }
-
-    private byte[] createBundleWithMultiplePolicies() throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            addPdpJsonEntry(zos);
-
-            for (String name : new String[] { "access.sapl", "audit.sapl", "logging.sapl" }) {
-                zos.putNextEntry(new ZipEntry(name));
-                zos.write(("policy \"" + name + "\" permit true;").getBytes(StandardCharsets.UTF_8));
-                zos.closeEntry();
-            }
-        }
-        return baos.toByteArray();
     }
 
     private byte[] createBundleWithNestedDirectory() throws IOException {
@@ -542,20 +608,6 @@ class BundleParserTests {
                 zos.write(("policy \"p" + i + "\" permit true;").getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
             }
-        }
-        return baos.toByteArray();
-    }
-
-    private byte[] createBundleWithOnlyPdpJson() throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            val pdpJson = """
-                    {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"ABSTAIN"},"configurationId":"%s"}
-                    """
-                    .formatted(TEST_CONFIG_ID);
-            zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
         }
         return baos.toByteArray();
     }

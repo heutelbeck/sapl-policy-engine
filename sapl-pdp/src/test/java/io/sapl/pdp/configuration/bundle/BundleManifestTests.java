@@ -17,8 +17,10 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import io.sapl.api.SaplVersion;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -33,206 +35,219 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("BundleManifest")
 class BundleManifestTests {
 
-    @Test
-    void whenBuildingUnsignedManifestThenContainsFileHashes() {
-        val manifest = BundleManifest.builder()
-                .addFile("necronomicon.sapl", "policy \"forbidden\" deny subject.sanity < 10")
-                .addFile("pdp.json", "{ \"algorithm\": \"DENY_OVERRIDES\" }").buildUnsigned();
+    private static final Instant CREATED_TIME = Instant.parse("2024-01-15T10:30:00Z");
 
-        assertThat(manifest.version()).isEqualTo(BundleManifest.MANIFEST_VERSION);
-        assertThat(manifest.hashAlgorithm()).isEqualTo(BundleManifest.HASH_ALGORITHM);
-        assertThat(manifest.files()).hasSize(2).containsKey("necronomicon.sapl").containsKey("pdp.json");
-        assertThat(manifest.signature()).isNull();
+    private static BundleManifest.Builder validBuilder() {
+        return BundleManifest.builder().created(CREATED_TIME).configurationId("test-config")
+                .attribution(BundleManifest.attributionOfText("test-suite"))
+                .addFile("pdp.json", "{ \"algorithm\": null }")
+                .addFile("necronomicon.sapl", "policy \"forbidden\" deny subject.sanity < 10");
     }
 
-    @Test
-    void whenBuildingSignedManifestThenContainsSignature() {
-        val manifest = BundleManifest.builder()
-                .addFile("ritual.sapl", "policy \"ritual\" permit action.type == \"summon\"")
-                .signature("elder-key", "base64signature==").build();
-
-        assertThat(manifest.signature()).isNotNull();
-        assertThat(manifest.signature().algorithm()).isEqualTo("Ed25519");
-        assertThat(manifest.signature().keyId()).isEqualTo("elder-key");
-        assertThat(manifest.signature().value()).isEqualTo("base64signature==");
+    private static String validManifestJson() {
+        return validBuilder().buildUnsigned().toJson();
     }
 
-    @Test
-    void whenSettingCreationTimeThenManifestContainsCreatedTime() {
-        val createdTime = Instant.parse("2024-01-15T10:30:00Z");
-        val manifest    = BundleManifest.builder().created(createdTime)
-                .addFile("tome.sapl", "policy \"tome\" permit true").buildUnsigned();
+    @Nested
+    @DisplayName("minting")
+    class Minting {
 
-        assertThat(manifest.created()).isEqualTo(createdTime);
+        @Test
+        @DisplayName("mints the engine library version and the creation time at build")
+        void whenBuildingThenVersionIsMintedFromSaplVersionAndCreatedIsSet() {
+            val manifest = validBuilder().buildUnsigned();
+
+            assertThat(manifest.version()).isEqualTo(SaplVersion.VERSION);
+            assertThat(manifest.created()).isEqualTo(CREATED_TIME);
+            assertThat(manifest.signature()).isNull();
+        }
+
+        @Test
+        @DisplayName("round-trips configurationId, attribution, and audience through JSON")
+        void whenBuildingWithAllMetadataThenRoundTripPreservesIt() {
+            val original = validBuilder().configurationId("release-77")
+                    .attribution(BundleManifest.parseAttributionJson("{\"publisher\":\"arkham\",\"build\":42}"))
+                    .audience("recipient-key-2024").buildUnsigned();
+
+            val restored = BundleManifest.fromJson(original.toJson());
+
+            assertThat(restored.configurationId()).isEqualTo("release-77");
+            assertThat(restored.attribution().get("publisher").asString()).isEqualTo("arkham");
+            assertThat(restored.audience().sealingRecipient()).isEqualTo("recipient-key-2024");
+            assertThat(restored.version()).isEqualTo(SaplVersion.VERSION);
+        }
+
+        @Test
+        @DisplayName("builds a signed manifest carrying the signature block")
+        void whenBuildingSignedManifestThenContainsSignature() {
+            val manifest = validBuilder().signature("elder-key", "base64signature==").build();
+
+            assertThat(manifest.signature()).isNotNull();
+            assertThat(manifest.signature().algorithm()).isEqualTo("Ed25519");
+            assertThat(manifest.signature().keyId()).isEqualTo("elder-key");
+            assertThat(manifest.signature().value()).isEqualTo("base64signature==");
+        }
+
+        @Test
+        @DisplayName("withoutSignature keeps all metadata fields")
+        void whenRemovingSignatureThenAllOtherFieldsAreKept() {
+            val manifest = validBuilder().audience("recipient-key").signature("key-id", "signature-value").build();
+
+            val unsigned = manifest.withoutSignature();
+
+            assertThat(unsigned.signature()).isNull();
+            assertThat(unsigned.files()).isEqualTo(manifest.files());
+            assertThat(unsigned.version()).isEqualTo(manifest.version());
+            assertThat(unsigned.configurationId()).isEqualTo(manifest.configurationId());
+            assertThat(unsigned.attribution()).isEqualTo(manifest.attribution());
+            assertThat(unsigned.audience()).isEqualTo(manifest.audience());
+        }
     }
 
-    @Test
-    void whenAddingFileBytesThenHashIsComputed() {
-        val content  = "policy \"byte-test\" permit true".getBytes(StandardCharsets.UTF_8);
-        val manifest = BundleManifest.builder().addFile("byte-policy.sapl", content).buildUnsigned();
+    @Nested
+    @DisplayName("strict validation")
+    class StrictValidation {
 
-        assertThat(manifest.files()).containsKey("byte-policy.sapl");
-        assertThat(manifest.files().get("byte-policy.sapl")).startsWith("sha256:");
+        @Test
+        @DisplayName("rejects unknown top-level fields fail-closed")
+        void whenParsingManifestWithUnknownFieldThenRejected() {
+            val json = validManifestJson().replaceFirst("\\{", "{ \"maxAge\": 3600,");
+
+            assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("Failed to parse manifest");
+        }
+
+        @ParameterizedTest(name = "missing {0} is rejected with the migration message")
+        @ValueSource(strings = { "created", "configurationId", "attribution" })
+        void whenParsingManifestMissingRequiredFieldThenRejectedWithMigrationMessage(String field) {
+            val json = validManifestJson().replaceFirst("\"" + field + "\"", "\"" + field + "Removed\"")
+                    .replaceFirst("\"" + field + "Removed\"[^,}]*(,)?", "");
+
+            assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("rebuild the bundle with SAPL 4.2.0 or later");
+        }
+
+        @ParameterizedTest(name = "invalid configurationId \"{0}\" is rejected at build")
+        @ValueSource(strings = { " ", "has space", "has/slash" })
+        void whenBuildingWithInvalidConfigurationIdThenRejected(String configurationId) {
+            val builder = validBuilder().configurationId(configurationId);
+
+            assertThatThrownBy(builder::buildUnsigned).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("configurationId");
+        }
+
+        @Test
+        @DisplayName("accepts string and object attribution")
+        void whenAttributionIsStringOrObjectThenAccepted() {
+            val withString = validBuilder().attribution(BundleManifest.attributionOfText("tag")).buildUnsigned();
+            val withObject = validBuilder().attribution(BundleManifest.parseAttributionJson("{\"a\":1}"))
+                    .buildUnsigned();
+
+            assertThat(withString.attribution().isString()).isTrue();
+            assertThat(withObject.attribution().isObject()).isTrue();
+        }
+
+        @ParameterizedTest(name = "attribution {0} is rejected")
+        @ValueSource(strings = { "[1,2]", "42", "true" })
+        void whenAttributionIsNotStringOrObjectThenRejected(String attributionJson) {
+            val builder = validBuilder().attribution(BundleManifest.parseAttributionJson(attributionJson));
+
+            assertThatThrownBy(builder::buildUnsigned).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("string or object");
+        }
+
+        @Test
+        @DisplayName("rejects oversized attribution at build and at parse")
+        void whenAttributionExceedsSizeCapThenRejectedAtBuildAndParse() {
+            val hugeText = "x".repeat(BundleManifest.MAX_ATTRIBUTION_BYTES + 1);
+            val builder  = validBuilder().attribution(BundleManifest.attributionOfText(hugeText));
+
+            assertThatThrownBy(builder::buildUnsigned).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("maximum serialized size");
+
+            val json = validManifestJson().replace("\"test-suite\"", "\"" + hugeText + "\"");
+            assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("maximum serialized size");
+        }
+
+        @Test
+        @DisplayName("rejects a blank audience.sealingRecipient")
+        void whenAudienceRecipientIsBlankThenRejected() {
+            val builder = validBuilder().audience(" ");
+
+            assertThatThrownBy(builder::buildUnsigned).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("sealingRecipient");
+        }
+
+        @ParameterizedTest(name = "version \"{0}\" parses when required fields are present")
+        @ValueSource(strings = { "1.0", "utterly-garbage-version" })
+        void whenParsingManifestWithForeignVersionThenAcceptedBecauseVersionIsProvenanceOnly(String version) {
+            val json = validManifestJson().replace("\"" + SaplVersion.VERSION + "\"", "\"" + version + "\"");
+
+            val manifest = BundleManifest.fromJson(json);
+
+            assertThat(manifest.version()).isEqualTo(version);
+        }
+
+        @Test
+        @DisplayName("rejects invalid JSON")
+        void whenParsingInvalidJsonThenThrowsException() {
+            val invalidJson = "{ invalid json }";
+
+            assertThatThrownBy(() -> BundleManifest.fromJson(invalidJson)).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("Failed to parse manifest");
+        }
     }
 
-    @Test
-    void whenAddingPrecomputedHashThenHashIsStored() {
-        val precomputedHash = "sha256:abc123def456";
-        val manifest        = BundleManifest.builder().addFileHash("precomputed.sapl", precomputedHash).buildUnsigned();
+    @Nested
+    @DisplayName("hashing and canonical form")
+    class HashingAndCanonicalForm {
 
-        assertThat(manifest.files().get("precomputed.sapl")).isEqualTo(precomputedHash);
+        @Test
+        void whenComputingHashThenDeterministicResultIsProduced() {
+            val content = "policy \"deterministic\" permit true";
+
+            val hash1 = BundleManifest.computeHash(content);
+            val hash2 = BundleManifest.computeHash(content);
+
+            assertThat(hash1).isEqualTo(hash2).startsWith("sha256:")
+                    .isEqualTo(BundleManifest.computeHash(content.getBytes(StandardCharsets.UTF_8)));
+        }
+
+        @Test
+        void whenSettingFilesMapThenAllFilesAreStored() {
+            val files    = Map.of("policy1.sapl", "sha256:hash1", "policy2.sapl", "sha256:hash2", "pdp.json",
+                    "sha256:hash3");
+            val manifest = validBuilder().files(files).buildUnsigned();
+
+            assertThat(manifest.files()).hasSize(3).containsAllEntriesOf(files);
+        }
+
+        @Test
+        @DisplayName("canonical bytes are stable across toJson, fromJson, and toCanonicalBytes")
+        void whenRoundTrippingThroughJsonThenCanonicalBytesAreStable() {
+            val original = validBuilder().audience("recipient-key").signature("arkham-key", "YXJraGFtX3NpZw==").build();
+
+            val restored = BundleManifest.fromJson(original.toJson());
+
+            assertThat(restored.toCanonicalBytes()).isEqualTo(original.toCanonicalBytes());
+            assertThat(restored.withoutSignature().toCanonicalBytes())
+                    .isEqualTo(original.withoutSignature().toCanonicalBytes());
+        }
+
+        @Test
+        void whenConvertingToCanonicalBytesThenFilesAreSorted() {
+            val manifest = validBuilder().addFile("zeta.sapl", "z").addFile("alpha.sapl", "a").addFile("beta.sapl", "b")
+                    .buildUnsigned();
+
+            val json = new String(manifest.toCanonicalBytes(), StandardCharsets.UTF_8);
+
+            val alphaIndex = json.indexOf("alpha.sapl");
+            val betaIndex  = json.indexOf("beta.sapl");
+            val zetaIndex  = json.indexOf("zeta.sapl");
+
+            assertThat(alphaIndex).isLessThan(betaIndex);
+            assertThat(betaIndex).isLessThan(zetaIndex);
+        }
     }
-
-    @Test
-    void whenSettingFilesMapThenAllFilesAreStored() {
-        val files    = Map.of("policy1.sapl", "sha256:hash1", "policy2.sapl", "sha256:hash2", "pdp.json",
-                "sha256:hash3");
-        val manifest = BundleManifest.builder().files(files).buildUnsigned();
-
-        assertThat(manifest.files()).hasSize(3).containsAllEntriesOf(files);
-    }
-
-    @Test
-    void whenRemovingSignatureThenSignatureIsNull() {
-        val manifest = BundleManifest.builder().addFile("test.sapl", "policy \"test\" permit true")
-                .signature("key-id", "signature-value").build();
-
-        val unsigned = manifest.withoutSignature();
-
-        assertThat(unsigned.signature()).isNull();
-        assertThat(unsigned.files()).isEqualTo(manifest.files());
-        assertThat(unsigned.version()).isEqualTo(manifest.version());
-    }
-
-    @Test
-    void whenSerializingToJsonThenValidJsonIsProduced() {
-        val manifest = BundleManifest.builder().addFile("cult.sapl", "policy \"cult\" permit true")
-                .signature("dagon-key", "ZWxkZXJfc2lnbg==").build();
-
-        val json = manifest.toJson();
-
-        assertThat(json).contains("\"version\"").contains("\"hashAlgorithm\"").contains("\"files\"")
-                .contains("\"signature\"").contains("cult.sapl");
-    }
-
-    @Test
-    void whenParsingFromJsonThenManifestIsRestored() {
-        val json = """
-                {
-                  "version": "1.0",
-                  "hashAlgorithm": "SHA-256",
-                  "created": "2024-01-15T10:30:00Z",
-                  "files": {
-                    "access.sapl": "sha256:dGVzdGhhc2g="
-                  },
-                  "signature": {
-                    "algorithm": "Ed25519",
-                    "keyId": "miskatonic-key",
-                    "value": "c2lnbmF0dXJl"
-                  }
-                }
-                """;
-
-        val manifest = BundleManifest.fromJson(json);
-
-        assertThat(manifest.version()).isEqualTo("1.0");
-        assertThat(manifest.hashAlgorithm()).isEqualTo("SHA-256");
-        assertThat(manifest.files()).containsKey("access.sapl");
-        assertThat(manifest.signature().keyId()).isEqualTo("miskatonic-key");
-    }
-
-    @Test
-    void whenParsingInvalidJsonThenThrowsException() {
-        val invalidJson = "{ invalid json }";
-
-        assertThatThrownBy(() -> BundleManifest.fromJson(invalidJson)).isInstanceOf(BundleSignatureException.class)
-                .hasMessageContaining("Failed to parse manifest");
-    }
-
-    @Test
-    void whenSerializingAndParsingThenRoundtripPreservesContent() {
-        val original = BundleManifest.builder().created(Instant.parse("2024-06-15T12:00:00Z"))
-                .addFile("arkham.sapl", "policy \"asylum\" permit subject.role == \"doctor\"")
-                .addFile("pdp.json",
-                        "{ \"algorithm\": { \"votingMode\": \"PRIORITY_PERMIT\", \"defaultDecision\": \"DENY\", \"errorHandling\": \"ABSTAIN\" } }")
-                .signature("arkham-key", "YXJraGFtX3NpZw==").build();
-
-        val json     = original.toJson();
-        val restored = BundleManifest.fromJson(json);
-
-        assertThat(restored.version()).isEqualTo(original.version());
-        assertThat(restored.hashAlgorithm()).isEqualTo(original.hashAlgorithm());
-        assertThat(restored.created()).isEqualTo(original.created());
-        assertThat(restored.files()).isEqualTo(original.files());
-        assertThat(restored.signature().keyId()).isEqualTo(original.signature().keyId());
-        assertThat(restored.signature().value()).isEqualTo(original.signature().value());
-    }
-
-    @Test
-    void whenComputingHashThenDeterministicResultIsProduced() {
-        val content = "policy \"deterministic\" permit true";
-
-        val hash1 = BundleManifest.computeHash(content);
-        val hash2 = BundleManifest.computeHash(content);
-
-        assertThat(hash1).isEqualTo(hash2).startsWith("sha256:");
-    }
-
-    @Test
-    void whenComputingHashFromBytesThenSameAsString() {
-        val content    = "policy \"byte-equality\" permit true";
-        val stringHash = BundleManifest.computeHash(content);
-        val bytesHash  = BundleManifest.computeHash(content.getBytes(StandardCharsets.UTF_8));
-
-        assertThat(stringHash).isEqualTo(bytesHash);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "policy \"elder\" permit true", "policy \"different\" deny false",
-            "{ \"algorithm\": \"PERMIT_OVERRIDES\" }" })
-    void whenComputingHashForDifferentContentThenDifferentHashesAreProduced(String content) {
-        val baseHash    = BundleManifest.computeHash("policy \"base\" permit true");
-        val contentHash = BundleManifest.computeHash(content);
-
-        assertThat(contentHash).isNotEqualTo(baseHash);
-    }
-
-    @Test
-    void whenConvertingToCanonicalBytesThenDeterministicOutputIsProduced() {
-        val manifest = BundleManifest.builder().addFile("z-file.sapl", "policy \"z\" permit true")
-                .addFile("a-file.sapl", "policy \"a\" permit true").buildUnsigned();
-
-        val bytes1 = manifest.toCanonicalBytes();
-        val bytes2 = manifest.toCanonicalBytes();
-
-        assertThat(bytes1).isEqualTo(bytes2);
-    }
-
-    @Test
-    void whenConvertingToCanonicalBytesThenFilesAreSorted() {
-        val manifest = BundleManifest.builder().addFile("zeta.sapl", "z").addFile("alpha.sapl", "a")
-                .addFile("beta.sapl", "b").buildUnsigned();
-
-        val json = new String(manifest.toCanonicalBytes(), StandardCharsets.UTF_8);
-
-        val alphaIndex = json.indexOf("alpha.sapl");
-        val betaIndex  = json.indexOf("beta.sapl");
-        val zetaIndex  = json.indexOf("zeta.sapl");
-
-        assertThat(alphaIndex).isLessThan(betaIndex);
-        assertThat(betaIndex).isLessThan(zetaIndex);
-    }
-
-    @Test
-    void whenManifestFilenameConstantThenIsCorrect() {
-        assertThat(BundleManifest.MANIFEST_FILENAME).isEqualTo(".sapl-manifest.json");
-    }
-
-    @Test
-    void whenAlgorithmConstantsThenAreCorrect() {
-        assertThat(BundleManifest.HASH_ALGORITHM).isEqualTo("SHA-256");
-        assertThat(BundleManifest.SIGNATURE_ALGORITHM).isEqualTo("Ed25519");
-        assertThat(BundleManifest.MANIFEST_VERSION).isEqualTo("1.0");
-    }
-
 }

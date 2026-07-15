@@ -25,6 +25,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,11 +36,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,7 +62,7 @@ class PDPConfigurationLoaderTests {
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
-        assertThat(config.configurationId()).isEqualTo("default");
+        assertThat(config.configurationId()).matches("^dir:[^@/\\\\]+@[0-9a-f]{16}$");
         assertThat(config.data().variables()).isEmpty();
         assertThat(config.data().secrets()).isEmpty();
     }
@@ -67,8 +70,7 @@ class PDPConfigurationLoaderTests {
     @Test
     @DisplayName("extension files in the directory are loaded into the configuration")
     void whenDirectoryHasExtensionFilesThenLoadedIntoConfiguration() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
         Files.writeString(tempDir.resolve("ext-upstreams.json"), """
                 { "servers": [] }""");
         Files.writeString(tempDir.resolve("ext-upstreams-secrets.json"), """
@@ -86,8 +88,7 @@ class PDPConfigurationLoaderTests {
     @Test
     @DisplayName("a secrets.json file is loaded into the PDP data")
     void whenDirectoryHasSecretsFileThenLoaded() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
         Files.writeString(tempDir.resolve("secrets.json"), """
                 { "apiKey": "cleartext-value" }""");
 
@@ -99,8 +100,7 @@ class PDPConfigurationLoaderTests {
     @Test
     @DisplayName("a secrets.sealed.json file with sealed content is loaded into the PDP data")
     void whenDirectoryHasSealedSecretsFileThenLoaded() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
         Files.writeString(tempDir.resolve("secrets.sealed.json"), """
                 { "apiKey": "ENC[ciphertext]" }""");
 
@@ -112,8 +112,7 @@ class PDPConfigurationLoaderTests {
     @Test
     @DisplayName("a sealed-named secrets file with plaintext content is rejected")
     void whenSealedNamedSecretsFileHasPlaintextThenThrows() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
         Files.writeString(tempDir.resolve("secrets.sealed.json"), """
                 { "apiKey": "cleartext-value" }""");
 
@@ -124,8 +123,7 @@ class PDPConfigurationLoaderTests {
     @Test
     @DisplayName("a directory mixing sealed and plaintext secrets files is rejected")
     void whenDirectoryMixesSealingThenThrows() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
         Files.writeString(tempDir.resolve("secrets.sealed.json"), """
                 { "apiKey": "ENC[ciphertext]" }""");
         Files.writeString(tempDir.resolve("ext-upstreams.json"), "{}");
@@ -140,7 +138,7 @@ class PDPConfigurationLoaderTests {
     @DisplayName("a pdp.json with an inline secrets section is rejected")
     void whenPdpJsonHasInlineSecretsThenThrows() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1", "secrets": { "k": "v" } }""");
+                { "secrets": { "k": "v" } }""");
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
                 .isInstanceOf(PDPConfigurationException.class)
@@ -150,8 +148,7 @@ class PDPConfigurationLoaderTests {
     @Test
     @DisplayName("a critical extension without any payload file is rejected")
     void whenDirectoryCriticalExtensionMissingPayloadThenThrows() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
         Files.writeString(tempDir.resolve("critical-extensions.json"), """
                 ["upstreams"]""");
 
@@ -176,7 +173,6 @@ class PDPConfigurationLoaderTests {
         val pdpJson = """
                 {
                   "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" },
-                  "configurationId": "innsmouth-v1",
                   "variables": {
                     "cultName": "Esoteric Order of Dagon",
                     "memberCount": 42,
@@ -190,7 +186,7 @@ class PDPConfigurationLoaderTests {
 
         assertThat(config.combiningAlgorithm()).isEqualTo(
                 new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
-        assertThat(config.configurationId()).isEqualTo("innsmouth-v1");
+        assertThat(config.configurationId()).matches("^dir:[^@]+@[0-9a-f]{16}$");
         assertThat(config.data().variables()).containsEntry("cultName", Value.of("Esoteric Order of Dagon"))
                 .containsEntry("memberCount", Value.of(42)).containsEntry("isActive", Value.TRUE);
     }
@@ -324,18 +320,16 @@ class PDPConfigurationLoaderTests {
         val pdpJsonContent = """
                 {
                   "algorithm": { "votingMode": "UNIQUE", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" },
-                  "configurationId": "ritual-v2",
                   "variables": {"ritual": "summoning"}
                 }
                 """;
         val saplDocuments  = Map.of("summon.sapl", "policy \"summon\" permit action == \"summon\"", "banish.sapl",
                 "policy \"banish\" permit action == \"banish\"");
 
-        val config = PDPConfigurationLoader.loadFromContent(pdpJsonContent, saplDocuments, "ritual-pdp",
-                "/policies/rituals");
+        val config = PDPConfigurationLoader.loadFromContent(pdpJsonContent, saplDocuments, "ritual-pdp", "rituals");
 
         assertThat(config.pdpId()).isEqualTo("ritual-pdp");
-        assertThat(config.configurationId()).isEqualTo("ritual-v2");
+        assertThat(config.configurationId()).matches("^res:rituals@[0-9a-f]{16}$");
         assertThat(config.combiningAlgorithm())
                 .isEqualTo(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE));
         assertThat(config.data().variables()).containsEntry("ritual", Value.of("summoning"));
@@ -368,49 +362,56 @@ class PDPConfigurationLoaderTests {
                 """
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
                         """,
-                Map.of(), "test-pdp", "/policies/test");
+                Map.of(), "test-pdp", "test");
 
         assertThat(config.combiningAlgorithm()).isEqualTo(
                 new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
         assertThat(config.data().variables()).isEmpty();
-        assertThat(config.configurationId()).isEqualTo("res:/policies/test");
+        assertThat(config.configurationId()).matches("^res:test@[0-9a-f]{16}$");
     }
 
     @Test
     void whenBundleContainsMorePoliciesThanConfiguredMaximumThenThrowsException() {
         val pdpJson       = """
                 {
-                  "configurationId": "bundle-v1",
                   "compilerOptions": { "maxPolicyDocuments": 1 }
                 }
                 """;
         val saplDocuments = Map.of("one.sapl", "policy \"one\" permit", "two.sapl", "policy \"two\" permit");
 
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromBundle(pdpJson, null, saplDocuments, "test-pdp"))
+        assertThatThrownBy(
+                () -> PDPConfigurationLoader.loadFromBundle(pdpJson, null, saplDocuments, "test-pdp", "bundle-v1"))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("File count exceeds maximum");
     }
 
     @Test
-    void whenAutoGeneratingResourceIdThenItIsPlainPathWithoutContentHash() {
-        val config = PDPConfigurationLoader.loadFromContent("""
+    @DisplayName("the resource id equals the independently recomputed content derivation")
+    void whenLoadingFromContentThenIdEqualsRecomputedDerivation() {
+        val pdpJsonContent = """
                 { "algorithm": { "votingMode": "UNIQUE", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
-                """, Map.of("test.sapl", "policy \"test\" permit"), "test-pdp", "/policies/arkham");
+                """;
+        val saplDocuments  = Map.of("test.sapl", "policy \"test\" permit");
 
-        assertThat(config.configurationId()).isEqualTo("res:/policies/arkham").doesNotContain("sha256");
+        val config = PDPConfigurationLoader.loadFromContent(pdpJsonContent, saplDocuments, "test-pdp", "arkham");
+
+        val contents = new TreeMap<String, byte[]>();
+        contents.put("pdp.json", pdpJsonContent.getBytes(StandardCharsets.UTF_8));
+        contents.put("test.sapl", "policy \"test\" permit".getBytes(StandardCharsets.UTF_8));
+        assertThat(config.configurationId()).isEqualTo(ConfigurationIds.derive("res:arkham", contents));
     }
 
     @Test
-    void whenTwoResourceConfigsDifferOnlyInVariablesThenAutoIdDoesNotPretendIntegrity() {
+    @DisplayName("resource configs differing only in variables get different derived ids")
+    void whenTwoResourceConfigsDifferOnlyInVariablesThenDerivedIdsDiffer() {
         val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
         val benign        = PDPConfigurationLoader.loadFromContent("""
                 { "variables": { "cultName": "benign" } }
-                """, saplDocuments, "test-pdp", "/policies/cult");
+                """, saplDocuments, "test-pdp", "cult");
         val malicious     = PDPConfigurationLoader.loadFromContent("""
                 { "variables": { "cultName": "malicious" } }
-                """, saplDocuments, "test-pdp", "/policies/cult");
+                """, saplDocuments, "test-pdp", "cult");
 
-        assertThat(benign.configurationId()).isEqualTo("res:/policies/cult").doesNotContain("sha256")
-                .isEqualTo(malicious.configurationId());
+        assertThat(benign.configurationId()).isNotEqualTo(malicious.configurationId());
     }
 
     @Test
@@ -518,6 +519,128 @@ class PDPConfigurationLoaderTests {
 
         assertThat(config.combiningAlgorithm()).isEqualTo(
                 new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
+    }
+
+    @Nested
+    @DisplayName("legacy configurationId rejection")
+    class LegacyConfigurationIdRejection {
+
+        private static final String LEGACY_PDP_JSON = """
+                { "configurationId": "legacy-v1" }""";
+
+        @Test
+        @DisplayName("a directory pdp.json still carrying configurationId is rejected with the migration message")
+        void whenDirectoryPdpJsonCarriesConfigurationIdThenRejected() throws IOException {
+            Files.writeString(tempDir.resolve("pdp.json"), LEGACY_PDP_JSON);
+
+            assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("moved to the bundle manifest");
+        }
+
+        @Test
+        @DisplayName("content still carrying configurationId is rejected with the migration message")
+        void whenContentCarriesConfigurationIdThenRejected() {
+            val emptyMap = Map.<String, String>of();
+
+            assertThatThrownBy(
+                    () -> PDPConfigurationLoader.loadFromContent(LEGACY_PDP_JSON, emptyMap, "test-pdp", "test"))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("moved to the bundle manifest");
+        }
+
+        @Test
+        @DisplayName("a bundle pdp.json still carrying configurationId is rejected with the migration message")
+        void whenBundlePdpJsonCarriesConfigurationIdThenRejected() {
+            val emptyMap = Map.<String, String>of();
+
+            assertThatThrownBy(
+                    () -> PDPConfigurationLoader.loadFromBundle(LEGACY_PDP_JSON, null, emptyMap, "test-pdp", "id-1"))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("moved to the bundle manifest");
+        }
+    }
+
+    @Nested
+    @DisplayName("derived directory ids")
+    class DerivedDirectoryIds {
+
+        @Test
+        @DisplayName("the directory id uses the directory name, not the path")
+        void whenLoadingFromDirectoryThenIdUsesDirectoryName() throws IOException {
+            val policies = Files.createDirectory(tempDir.resolve("policies"));
+            Files.writeString(policies.resolve("access.sapl"), "policy \"access\" permit true");
+
+            val config = PDPConfigurationLoader.loadFromDirectory(policies, "test-pdp");
+
+            assertThat(config.configurationId()).matches("^dir:policies@[0-9a-f]{16}$");
+        }
+
+        @Test
+        @DisplayName("identical content in equally named directories at different paths yields the identical id")
+        void whenSameContentInSameNamedDirectoriesAtDifferentPathsThenSameId() throws IOException {
+            val firstParent  = Files.createDirectory(tempDir.resolve("host-a"));
+            val secondParent = Files.createDirectory(tempDir.resolve("host-b"));
+            val firstDir     = Files.createDirectory(firstParent.resolve("policies"));
+            val secondDir    = Files.createDirectory(secondParent.resolve("policies"));
+            for (val dir : new Path[] { firstDir, secondDir }) {
+                Files.writeString(dir.resolve("access.sapl"), "policy \"access\" permit true");
+            }
+
+            val firstConfig  = PDPConfigurationLoader.loadFromDirectory(firstDir, "test-pdp");
+            val secondConfig = PDPConfigurationLoader.loadFromDirectory(secondDir, "test-pdp");
+
+            assertThat(firstConfig.configurationId()).isEqualTo(secondConfig.configurationId());
+        }
+
+        @Test
+        @DisplayName("reloading an unchanged directory yields the identical id")
+        void whenReloadingUnchangedDirectoryThenIdenticalId() throws IOException {
+            writePdpJson(tempDir);
+            Files.writeString(tempDir.resolve("access.sapl"), "policy \"access\" permit true");
+
+            val firstLoad  = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+            val secondLoad = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            assertThat(firstLoad.configurationId()).isEqualTo(secondLoad.configurationId());
+        }
+
+        @Test
+        @DisplayName("a secrets file change flips the derived id")
+        void whenSecretsFileChangesThenIdChanges() throws IOException {
+            writePdpJson(tempDir);
+            Files.writeString(tempDir.resolve("secrets.json"), """
+                    { "apiKey": "first-value" }""");
+            val firstLoad = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            Files.writeString(tempDir.resolve("secrets.json"), """
+                    { "apiKey": "second-value" }""");
+            val secondLoad = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            assertThat(firstLoad.configurationId()).isNotEqualTo(secondLoad.configurationId());
+        }
+
+        @Test
+        @DisplayName("a policy content change flips the derived id")
+        void whenPolicyContentChangesThenIdChanges() throws IOException {
+            writePdpJson(tempDir);
+            Files.writeString(tempDir.resolve("access.sapl"), "policy \"access\" permit true");
+            val firstLoad = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            Files.writeString(tempDir.resolve("access.sapl"), "policy \"access\" deny true");
+            val secondLoad = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            assertThat(firstLoad.configurationId()).isNotEqualTo(secondLoad.configurationId());
+        }
+    }
+
+    @ParameterizedTest(name = "configurationId = \"{0}\" is rejected")
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    @DisplayName("loadFromBundle requires a non-blank configurationId")
+    void whenLoadingFromBundleWithBlankConfigurationIdThenThrows(String configurationId) {
+        val emptyMap = Map.<String, String>of();
+
+        assertThatThrownBy(
+                () -> PDPConfigurationLoader.loadFromBundle("{}", null, emptyMap, "test-pdp", configurationId))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("non-blank configurationId");
     }
 
     private void writePdpJson(Path directory) throws IOException {

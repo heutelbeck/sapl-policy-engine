@@ -76,7 +76,6 @@ mkdir -p "$POLICIES"
 # the regression guard for that class of native-image-only failure.
 cat >"$POLICIES/pdp.json" <<'JSON'
 {
-  "configurationId": "smoke",
   "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" },
   "compilerFlags": { "indexing": "SMTDD" }
 }

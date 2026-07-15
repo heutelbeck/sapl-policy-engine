@@ -17,10 +17,12 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.pdp.configuration.ConfigurationIds;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.secrets.SecretSealing;
 import lombok.val;
@@ -48,6 +50,7 @@ import java.security.PrivateKey;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -60,7 +63,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class BundleBuilderTests {
 
     private static final String VALID_PDP_JSON = """
-            { "configurationId": "test", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+            { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
             """;
 
     @TempDir
@@ -103,7 +106,7 @@ class BundleBuilderTests {
         @Test
         void whenAddingPdpJsonThenBundleContainsPdpJson() throws IOException {
             val pdpJsonContent = """
-                    { "configurationId": "test-v1", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                    { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
                     """;
             val bundle         = BundleBuilder.create().withPdpJson(pdpJsonContent).build();
 
@@ -113,21 +116,23 @@ class BundleBuilderTests {
         }
 
         @ParameterizedTest(name = "configurationId {0}")
-        @MethodSource("invalidConfigurationIdCases")
-        void whenAddingPdpJsonWithInvalidConfigurationIdThenThrowsException(String description, String pdpJson) {
+        @MethodSource("legacyConfigurationIdCases")
+        @DisplayName("a legacy pdp.json still carrying configurationId is rejected with the migration message")
+        void whenAddingPdpJsonWithLegacyConfigurationIdThenBuildRejectsWithMigrationMessage(String description,
+                String pdpJson) {
             val builder = BundleBuilder.create().withPdpJson(pdpJson);
 
             assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("configurationId");
+                    .hasMessageContaining("moved to the bundle manifest");
         }
 
-        static Stream<Arguments> invalidConfigurationIdCases() {
+        static Stream<Arguments> legacyConfigurationIdCases() {
             return Stream.of(
-                    arguments("missing",
+                    arguments("explicit value",
                             """
-                                    { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                                    { "configurationId": "legacy-v1", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
                                     """),
-                    arguments("blank",
+                    arguments("blank value",
                             """
                                     { "configurationId": "   ", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
                                     """));
@@ -223,8 +228,8 @@ class BundleBuilderTests {
                     """).build();
 
             val entries = extractEntries(bundle);
-            assertThat(entries).hasSize(4).containsKeys("pdp.json", "forbidden-tome.sapl", "altar-access.sapl",
-                    "deep-one-greeting.sapl");
+            assertThat(entries).hasSize(5).containsKeys("pdp.json", BundleManifest.MANIFEST_FILENAME,
+                    "forbidden-tome.sapl", "altar-access.sapl", "deep-one-greeting.sapl");
         }
 
         @Test
@@ -240,7 +245,8 @@ class BundleBuilderTests {
             val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicies(policies).build();
 
             val entries = extractEntries(bundle);
-            assertThat(entries).hasSize(3).containsKeys("pdp.json", "shoggoth-containment.sapl", "mi-go-trade.sapl");
+            assertThat(entries).hasSize(4).containsKeys("pdp.json", BundleManifest.MANIFEST_FILENAME,
+                    "shoggoth-containment.sapl", "mi-go-trade.sapl");
         }
 
         @ParameterizedTest(name = "[{index}] {0}")
@@ -287,8 +293,9 @@ class BundleBuilderTests {
                             """).build();
 
             val entries = extractEntries(bundle);
-            assertThat(entries).hasSize(3)
-                    .containsKeys("pdp.json", "necronomicon-access.sapl", "miskatonic-library.sapl")
+            assertThat(entries).hasSize(4)
+                    .containsKeys("pdp.json", BundleManifest.MANIFEST_FILENAME, "necronomicon-access.sapl",
+                            "miskatonic-library.sapl")
                     .extractingByKey("pdp.json").asString().contains("PRIORITY_PERMIT");
         }
 
@@ -306,7 +313,7 @@ class BundleBuilderTests {
 
             val content = Files.readAllBytes(bundlePath);
             val entries = extractEntries(content);
-            assertThat(entries).hasSize(2).containsKeys("pdp.json", "summoning.sapl");
+            assertThat(entries).hasSize(3).containsKeys("pdp.json", BundleManifest.MANIFEST_FILENAME, "summoning.sapl");
         }
 
         @Test
@@ -319,7 +326,8 @@ class BundleBuilderTests {
                     """).writeTo(outputStream);
 
             val entries = extractEntries(outputStream.toByteArray());
-            assertThat(entries).hasSize(2).containsKeys("pdp.json", "yog-sothoth.sapl");
+            assertThat(entries).hasSize(3).containsKeys("pdp.json", BundleManifest.MANIFEST_FILENAME,
+                    "yog-sothoth.sapl");
         }
 
         @Test
@@ -364,7 +372,7 @@ class BundleBuilderTests {
 
             assertThat(config).satisfies(c -> {
                 assertThat(c.pdpId()).isEqualTo("arkham-pdp");
-                assertThat(c.configurationId()).startsWith("bundle-");
+                assertThat(c.configurationId()).matches("^bundle@[0-9a-f]{16}$");
                 assertThat(c.combiningAlgorithm()).isEqualTo(algorithm);
                 assertThat(c.saplDocuments()).hasSize(1).first().asString().contains("arkham-asylum");
             });
@@ -414,7 +422,7 @@ class BundleBuilderTests {
             val bundle = BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT)
                     .withPdpJson(
                             """
-                                    { "configurationId": "override", "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
+                                    { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
                                     """)
                     .build();
 
@@ -602,7 +610,7 @@ class BundleBuilderTests {
         @DisplayName("a pdp.json with an inline secrets section is rejected")
         void whenPdpJsonHasInlineSecretsThenBuildFails() {
             val builder = BundleBuilder.create().withPdpJson("""
-                    { "configurationId": "test", "secrets": { "k": "v" } }""");
+                    { "secrets": { "k": "v" } }""");
             assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("must not contain a 'secrets' section");
         }
@@ -620,7 +628,8 @@ class BundleBuilderTests {
         void whenSealedSecretsThenStoredVerbatim() throws IOException {
             val sealed = """
                     { "apiKey": "ENC[ciphertext]" }""";
-            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed).build();
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed)
+                    .withSealingRecipient("legacy-recipient-key").build();
             assertThat(extractEntries(bundle).get("secrets.sealed.json")).isEqualTo(sealed);
         }
 
@@ -689,7 +698,8 @@ class BundleBuilderTests {
             val sealed  = """
                     { "apiKey": "ENC[ciphertext]" }""";
             val bundle  = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", "{}")
-                    .withSealedExtensionSecrets("upstreams", sealed).build();
+                    .withSealedExtensionSecrets("upstreams", sealed).withSealingRecipient("legacy-recipient-key")
+                    .build();
             val entries = extractEntries(bundle);
             assertThat(entries.get("ext-upstreams-secrets.sealed.json")).isEqualTo(sealed);
         }
@@ -775,6 +785,137 @@ class BundleBuilderTests {
                     .withCriticalExtension("upstreams").signWith(cultKeyPair.getPrivate(), "elder-key").build();
             val config = BundleParser.parse(bundle, "pdp", signedPolicy);
             assertThat(config.criticalExtensions()).containsExactly("upstreams");
+        }
+    }
+
+    @Nested
+    @DisplayName("manifest metadata")
+    class ManifestMetadata {
+
+        @Test
+        @DisplayName("an unsigned build always contains a parseable manifest whose default id is content-derived")
+        void whenBuildingUnsignedThenManifestIsPresentWithDerivedDefaultId() throws IOException {
+            val result = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withPolicy("altar.sapl", """
+                    policy "altar" permit true;
+                    """).buildWithManifest();
+
+            val entries  = extractEntries(result.bytes());
+            val manifest = BundleManifest.fromJson(entries.get(BundleManifest.MANIFEST_FILENAME));
+
+            val hashContents = new TreeMap<String, byte[]>();
+            for (val entry : manifest.files().entrySet()) {
+                hashContents.put(entry.getKey(), entry.getValue().getBytes(StandardCharsets.UTF_8));
+            }
+            val expectedId = ConfigurationIds.derive("bundle", hashContents);
+
+            assertThat(manifest.configurationId()).isEqualTo(expectedId).isEqualTo(result.manifest().configurationId());
+            assertThat(manifest.signature()).isNull();
+            assertThat(manifest.files()).containsKeys("pdp.json", "altar.sapl")
+                    .doesNotContainKey(BundleManifest.MANIFEST_FILENAME);
+        }
+
+        @Test
+        @DisplayName("an explicit configuration id is honored and an invalid one rejected")
+        void whenSettingConfigurationIdThenHonoredAndValidated() throws IOException {
+            val bundle   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withConfigurationId("release-77").build();
+            val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
+
+            assertThat(manifest.configurationId()).isEqualTo("release-77");
+
+            val builder = BundleBuilder.create();
+            assertThatThrownBy(() -> builder.withConfigurationId("has space"))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("invalid");
+        }
+
+        @Test
+        @DisplayName("the default attribution is sapl-pdp/<engine version>")
+        void whenNoAttributionSetThenLibraryDefaultIsRecorded() throws IOException {
+            val bundle   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).build();
+            val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
+
+            assertThat(manifest.attribution().asString()).isEqualTo("sapl-pdp/" + SaplVersion.VERSION);
+        }
+
+        @Test
+        @DisplayName("string and JSON object attribution round-trip through the manifest")
+        void whenSettingAttributionThenRoundTripsThroughManifest() throws IOException {
+            val withTag     = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withAttribution("acme/9.9").build();
+            val tagManifest = BundleManifest.fromJson(extractEntries(withTag).get(BundleManifest.MANIFEST_FILENAME));
+            assertThat(tagManifest.attribution().asString()).isEqualTo("acme/9.9");
+
+            val withObject     = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                    .withAttributionJson("{\"publisher\":\"arkham\",\"chain\":{\"stage\":1}}").build();
+            val objectManifest = BundleManifest
+                    .fromJson(extractEntries(withObject).get(BundleManifest.MANIFEST_FILENAME));
+            assertThat(objectManifest.attribution().isObject()).isTrue();
+            assertThat(objectManifest.attribution().get("publisher").asString()).isEqualTo("arkham");
+
+            val builder = BundleBuilder.create();
+            assertThatThrownBy(() -> builder.withAttributionJson("{ not json"))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("valid JSON");
+        }
+
+        @Test
+        @DisplayName("sealSecretsWith records the recipient key id as the manifest audience")
+        void whenSealingSecretsThenAudienceRecipientIsSealingKeyId() throws IOException {
+            val recipient = SecretSealing.generateRecipientKey();
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSecrets("""
+                    { "apiKey": "TOP-SECRET-VALUE" }""").sealSecretsWith(recipient.toPublicJWK()).build();
+
+            val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
+
+            assertThat(manifest.audience()).isNotNull();
+            assertThat(manifest.audience().sealingRecipient()).isEqualTo(recipient.getKeyID());
+        }
+
+        @Test
+        @DisplayName("already-sealed input resolves the audience from the JWE token key id")
+        void whenPreSealedInputThenAudienceResolvedFromTokenKeyId() throws IOException {
+            val recipient = SecretSealing.generateRecipientKey();
+            val sealedDoc = "{ \"apiKey\": \"ENC[%s]\" }"
+                    .formatted(SecretSealing.seal(recipient.toPublicJWK(), "\"v\""));
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealedDoc).build();
+
+            val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
+
+            assertThat(manifest.audience()).isNotNull();
+            assertThat(manifest.audience().sealingRecipient()).isEqualTo(recipient.getKeyID());
+        }
+
+        @Test
+        @DisplayName("sealed content with no determinable recipient fails the build")
+        void whenSealedContentWithoutDeterminableRecipientThenBuildFails() {
+            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets("""
+                    { "apiKey": "ENC[not-a-parseable-jwe]" }""");
+
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("sealing recipient key id");
+        }
+
+        @Test
+        @DisplayName("the audience block is absent when the bundle carries no sealed content")
+        void whenNoSealedContentThenNoAudienceAndExplicitRecipientIsRejected() throws IOException {
+            val bundle   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).build();
+            val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
+            assertThat(manifest.audience()).isNull();
+
+            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealingRecipient("some-key");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("no sealed content");
+        }
+
+        @Test
+        @DisplayName("writeTo and buildWithManifest return the manifest that was written")
+        void whenWritingThenWrittenManifestIsReturned() throws IOException {
+            val bundlePath = tempDir.resolve("returned-manifest.saplbundle");
+            val returned   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withConfigurationId("write-check")
+                    .writeTo(bundlePath);
+
+            val entries = extractEntries(Files.readAllBytes(bundlePath));
+            val written = BundleManifest.fromJson(entries.get(BundleManifest.MANIFEST_FILENAME));
+
+            assertThat(returned.configurationId()).isEqualTo("write-check");
+            assertThat(written.toCanonicalBytes()).isEqualTo(returned.toCanonicalBytes());
         }
     }
 

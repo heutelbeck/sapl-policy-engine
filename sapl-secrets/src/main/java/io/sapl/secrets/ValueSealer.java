@@ -18,6 +18,7 @@
 package io.sapl.secrets;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
 
@@ -143,6 +144,28 @@ public class ValueSealer {
         case ArrayValue array    -> array.stream().allMatch(ValueSealer::hasSealedShape);
         case TextValue(var text) -> hasSealedShape(text);
         default                  -> false;
+        };
+    }
+
+    /**
+     * Reads the recipient key id from the first sealed {@code ENC[...]} leaf of a
+     * value, without decrypting anything. Objects and arrays are traversed depth
+     * first.
+     *
+     * @param value
+     * the value to inspect
+     *
+     * @return the recipient key id named by the first sealed leaf, or empty when
+     * the value carries no sealed leaf or the leaf's token names no key id
+     */
+    public static Optional<String> recipientKeyIdOf(Value value) {
+        return switch (value) {
+        case ObjectValue object                            ->
+            object.values().stream().map(ValueSealer::recipientKeyIdOf).flatMap(Optional::stream).findFirst();
+        case ArrayValue array                              ->
+            array.stream().map(ValueSealer::recipientKeyIdOf).flatMap(Optional::stream).findFirst();
+        case TextValue(var text) when hasSealedShape(text) -> SecretSealing.recipientKeyIdOf(unwrap(text));
+        default                                            -> Optional.empty();
         };
     }
 

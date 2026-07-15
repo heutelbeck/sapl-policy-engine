@@ -34,7 +34,7 @@ import lombok.val;
 class SecretsUnsealingTests {
 
     private static final String PDP_JSON = """
-            { "configurationId": "test", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+            { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
             """;
 
     private static final String SECRETS_JSON = """

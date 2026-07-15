@@ -117,6 +117,7 @@ public final class BundleSecurityPolicy {
     private final Set<String>              unsignedTenants;
     private final Map<String, PublicKey>   keyCatalogue;
     private final Map<String, Set<String>> tenantTrust;
+    private final Set<String>              sealingKeyIds;
 
     /**
      * Creates a builder for security policy configuration with signature
@@ -172,6 +173,22 @@ public final class BundleSecurityPolicy {
      */
     public boolean signatureRequired() {
         return signatureRequired;
+    }
+
+    /**
+     * Returns the key ids of the X25519 recipient private keys the local
+     * deployment holds for unsealing sealed bundle content.
+     * <p>
+     * When non-empty, a bundle carrying sealed content whose manifest names a
+     * sealing recipient outside this set is rejected before any unseal attempt.
+     * An empty set means possession is unknown or undeclared (for example relay
+     * consumers that never unseal), and the possession pre-check is skipped.
+     * </p>
+     *
+     * @return the held sealing key ids, never null
+     */
+    public Set<String> sealingKeyIds() {
+        return sealingKeyIds;
     }
 
     /**
@@ -310,6 +327,7 @@ public final class BundleSecurityPolicy {
         private Set<String>              unsignedTenants   = Set.of();
         private Map<String, PublicKey>   keyCatalogue      = Map.of();
         private Map<String, Set<String>> tenantTrust       = Map.of();
+        private Set<String>              sealingKeyIds     = Set.of();
 
         private Builder(PublicKey publicKey) {
             this.publicKey = publicKey;
@@ -383,6 +401,22 @@ public final class BundleSecurityPolicy {
         }
 
         /**
+         * Sets the key ids of the X25519 recipient private keys the local
+         * deployment holds for unsealing sealed bundle content. This enables the
+         * fail-fast possession pre-check against the manifest's
+         * {@code audience.sealingRecipient} before any unseal attempt.
+         *
+         * @param sealingKeyIds
+         * set of held sealing key ids; null or empty skips the pre-check
+         *
+         * @return this builder
+         */
+        public Builder withSealingKeyIds(Set<String> sealingKeyIds) {
+            this.sealingKeyIds = sealingKeyIds != null ? Set.copyOf(sealingKeyIds) : Set.of();
+            return this;
+        }
+
+        /**
          * Builds the security policy.
          * <p>
          * The resulting policy is validated to ensure consistent configuration. If
@@ -400,7 +434,8 @@ public final class BundleSecurityPolicy {
                 throw new IllegalStateException(ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY);
             }
 
-            return new BundleSecurityPolicy(publicKey, signatureRequired, unsignedTenants, keyCatalogue, tenantTrust);
+            return new BundleSecurityPolicy(publicKey, signatureRequired, unsignedTenants, keyCatalogue, tenantTrust,
+                    sealingKeyIds);
         }
 
         private static Map<String, Set<String>> copyTenantTrust(Map<String, Set<String>> tenantTrust) {

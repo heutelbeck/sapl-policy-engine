@@ -167,4 +167,36 @@ class ValueSealerTests {
             assertThatThrownBy(() -> ValueSealer.unseal(wrongKey, sealed)).isInstanceOf(SecretSealingException.class);
         }
     }
+
+    @Nested
+    @DisplayName("recipient key id extraction")
+    class RecipientKeyId {
+
+        @Test
+        @DisplayName("returns the recipient key id of a sealed document")
+        void whenDocumentSealedThenRecipientKeyIdReturned() {
+            var sealed = ValueSealer.seal(sealingKey(), sampleSecrets());
+            assertThat(ValueSealer.recipientKeyIdOf(sealed)).contains(recipient.getKeyID());
+        }
+
+        @Test
+        @DisplayName("returns empty for a plaintext document")
+        void whenDocumentPlaintextThenEmpty() {
+            assertThat(ValueSealer.recipientKeyIdOf(sampleSecrets())).isEmpty();
+        }
+
+        @Test
+        @DisplayName("returns empty when the sealed token names no key id")
+        void whenTokenWithoutKeyIdThenEmpty() {
+            var keyWithoutKid = new OctetKeyPair.Builder(recipient.toPublicJWK()).keyID(null).build();
+            var sealed        = ValueSealer.seal(keyWithoutKid, sampleSecrets());
+            assertThat(ValueSealer.recipientKeyIdOf(sealed)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("returns empty for a malformed ENC token")
+        void whenMalformedTokenThenEmpty() {
+            assertThat(ValueSealer.recipientKeyIdOf(Value.of("ENC[not-a-jwe]"))).isEmpty();
+        }
+    }
 }

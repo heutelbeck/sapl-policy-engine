@@ -53,7 +53,7 @@ class ExtensionsProcessorTests {
     @DisplayName("the processor is committed the unsealed extension config and secrets when a configuration goes live")
     void whenDirectoryHasExtensionsThenProcessorCommittedWithCleartext() throws Exception {
         Files.writeString(policyDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+                {}""");
         Files.writeString(policyDir.resolve("policy.sapl"), """
                 policy "p" permit true;
                 """);
@@ -80,7 +80,7 @@ class ExtensionsProcessorTests {
     @DisplayName("the default processor rejects a configuration that declares a critical capability it cannot deploy")
     void whenCriticalCapabilityAndDefaultProcessorThenConfigurationRejected() throws Exception {
         Files.writeString(policyDir.resolve("pdp.json"), """
-                { "configurationId": "cfg-1" }""");
+                {}""");
         Files.writeString(policyDir.resolve("policy.sapl"), """
                 policy "p" permit true;
                 """);

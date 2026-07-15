@@ -27,18 +27,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Base64;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.node.cli.SaplNodeCli;
 import lombok.val;
 import picocli.CommandLine;
@@ -54,7 +60,6 @@ class BundleCommandTests {
 
     private static final String TEST_PDP_JSON = """
             {
-              "configurationId": "test-v1",
               "algorithm": {
                 "votingMode": "PRIORITY_DENY",
                 "defaultDecision": "DENY",
@@ -689,17 +694,6 @@ class BundleCommandTests {
             return inputDir;
         }
 
-        private String bundleEntry(Path bundle, String entryName) throws IOException {
-            try (val zip = new ZipInputStream(Files.newInputStream(bundle))) {
-                ZipEntry entry;
-                while ((entry = zip.getNextEntry()) != null) {
-                    if (entry.getName().equals(entryName)) {
-                        return new String(zip.readAllBytes(), StandardCharsets.UTF_8);
-                    }
-                }
-            }
-            return "";
-        }
     }
 
     @Nested
@@ -834,6 +828,173 @@ class BundleCommandTests {
             assertThat(err.toString()).contains("not signed");
         }
 
+    }
+
+    @Nested
+    @DisplayName("bundle manifest metadata")
+    class ManifestMetadataTests {
+
+        @Test
+        @DisplayName("create without --configuration-id prints a derived id matching the manifest and attribution")
+        void whenNoConfigurationIdOptionThenDerivedIdPrintedAndRecorded() throws Exception {
+            val inputDir   = createPolicyInputDir();
+            val outputFile = tempDir.resolve("derived-id.saplbundle");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString());
+
+            assertThat(exitCode).isZero();
+            val printedId = printedConfigurationId(out.toString());
+            assertThat(printedId).matches("^bundle@[0-9a-f]{16}$");
+            val manifest = bundleEntry(outputFile, ".sapl-manifest.json");
+            assertThat(manifestField(manifest, "configurationId")).isEqualTo(printedId);
+            assertThat(manifestField(manifest, "attribution")).isEqualTo("sapl-node/" + SaplVersion.VERSION);
+        }
+
+        @Test
+        @DisplayName("create with --configuration-id prints the explicit id and records it in the manifest")
+        void whenConfigurationIdOptionThenExplicitIdPrintedAndRecorded() throws Exception {
+            val inputDir   = createPolicyInputDir();
+            val outputFile = tempDir.resolve("explicit-id.saplbundle");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(),
+                    "--configuration-id", "release-77");
+
+            assertThat(exitCode).isZero();
+            assertThat(printedConfigurationId(out.toString())).isEqualTo("release-77");
+            val manifest = bundleEntry(outputFile, ".sapl-manifest.json");
+            assertThat(manifestField(manifest, "configurationId")).isEqualTo("release-77");
+        }
+
+        @ParameterizedTest(name = "invalid configuration id \"{0}\" is rejected")
+        @MethodSource("invalidConfigurationIds")
+        void whenInvalidConfigurationIdThenCreateFails(String invalidConfigurationId) throws Exception {
+            val inputDir   = createPolicyInputDir();
+            val outputFile = tempDir.resolve("invalid-id.saplbundle");
+
+            val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString(),
+                    "--configuration-id", invalidConfigurationId);
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("Error creating bundle").contains("invalid");
+        }
+
+        static Stream<String> invalidConfigurationIds() {
+            return Stream.of("has space", "x".repeat(257));
+        }
+
+        @Test
+        @DisplayName("unpack prints the manifest configuration id")
+        void whenUnpackThenManifestConfigurationIdPrinted() throws Exception {
+            val bundleFile = createTestBundle();
+            val outDir     = tempDir.resolve("unpack-id");
+
+            val exitCode = cmd.execute("bundle", "unpack", "-b", bundleFile.toString(), "-o", outDir.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).containsPattern("Configuration ID: bundle@[0-9a-f]{16}");
+        }
+
+        @Test
+        @DisplayName("sign preserves the original configuration id")
+        void whenSignThenOriginalConfigurationIdPreserved() throws Exception {
+            val inputDir     = createPolicyInputDir();
+            val bundleFile   = tempDir.resolve("to-sign.saplbundle");
+            val signedBundle = tempDir.resolve("signed-with-id.saplbundle");
+            cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundleFile.toString(),
+                    "--configuration-id", "release-77");
+            val keyPair    = generateEd25519KeyPair();
+            val privateKey = tempDir.resolve("sign-id.pem");
+            Files.writeString(privateKey, toPem(keyPair.privateKey(), "PRIVATE KEY"));
+
+            val exitCode = cmd.execute("bundle", "sign", "-b", bundleFile.toString(), "-k", privateKey.toString(), "-o",
+                    signedBundle.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Configuration ID: release-77");
+            val manifest = bundleEntry(signedBundle, ".sapl-manifest.json");
+            assertThat(manifestField(manifest, "configurationId")).isEqualTo("release-77");
+        }
+
+        @Test
+        @DisplayName("inspect shows the configuration id")
+        void whenInspectThenConfigurationIdShown() throws Exception {
+            val bundleFile = createTestBundle();
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).containsPattern("Configuration ID: bundle@[0-9a-f]{16}");
+        }
+
+        @Test
+        @DisplayName("unpack tolerates a legacy pre-4.2 manifest and notes the missing configuration id")
+        void whenUnpackLegacyManifestThenSucceedsWithLegacyNote() throws Exception {
+            val bundleFile = createLegacyBundle();
+            val outDir     = tempDir.resolve("unpack-legacy");
+
+            val exitCode = cmd.execute("bundle", "unpack", "-b", bundleFile.toString(), "-o", outDir.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Configuration ID: (none recorded; manifest predates SAPL 4.2.0)");
+            assertThat(outDir.resolve("test.sapl")).exists();
+        }
+
+        @Test
+        @DisplayName("inspect degrades on a legacy pre-4.2 manifest instead of aborting")
+        void whenInspectLegacyManifestThenDegradesInsteadOfAborting() throws Exception {
+            val bundleFile = createLegacyBundle();
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Status: UNKNOWN (manifest predates SAPL 4.2.0 or is malformed)")
+                    .contains("Configuration ID: (none recorded; manifest predates SAPL 4.2.0)");
+        }
+
+        private Path createLegacyBundle() throws IOException {
+            val legacyManifest = """
+                    {
+                      "version": "1.0",
+                      "hashAlgorithm": "SHA-256",
+                      "created": "2026-02-11T18:48:02Z",
+                      "files": {}
+                    }
+                    """;
+            val bundleFile     = tempDir.resolve("legacy-" + System.nanoTime() + ".saplbundle");
+            try (val zip = new ZipOutputStream(Files.newOutputStream(bundleFile))) {
+                zip.putNextEntry(new ZipEntry(".sapl-manifest.json"));
+                zip.write(legacyManifest.getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+                zip.putNextEntry(new ZipEntry("test.sapl"));
+                zip.write(TEST_POLICY.getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+            return bundleFile;
+        }
+
+        private String printedConfigurationId(String output) {
+            val matcher = Pattern.compile("Configuration ID: (\\S+)").matcher(output);
+            assertThat(matcher.find()).isTrue();
+            return matcher.group(1);
+        }
+
+        private String manifestField(String manifestJson, String field) {
+            val matcher = Pattern.compile("\"" + field + "\"\\s*:\\s*\"([^\"]+)\"").matcher(manifestJson);
+            assertThat(matcher.find()).isTrue();
+            return matcher.group(1);
+        }
+    }
+
+    private static String bundleEntry(Path bundle, String entryName) throws IOException {
+        try (val zip = new ZipInputStream(Files.newInputStream(bundle))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (entry.getName().equals(entryName)) {
+                    return new String(zip.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+        }
+        return "";
     }
 
     private Path createPolicyInputDir() throws Exception {

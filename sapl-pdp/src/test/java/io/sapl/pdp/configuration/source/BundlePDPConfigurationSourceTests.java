@@ -95,7 +95,7 @@ class BundlePDPConfigurationSourceTests {
     void whenLoadingSingleBundleThenVoterSourceReceivesConfigWithDerivedPdpId() throws IOException {
         createBundle(tempDir.resolve("necronomicon.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "necronomicon-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "forbidden.sapl", "policy \"forbidden\" deny true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -112,13 +112,13 @@ class BundlePDPConfigurationSourceTests {
     void whenLoadingMultipleBundlesThenVoterSourceReceivesConfigForEach() throws IOException {
         createBundle(tempDir.resolve("rlyeh.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "rlyeh-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "cthulhu.sapl", "policy \"cthulhu\" deny true;");
 
         createBundle(tempDir.resolve("yuggoth.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" }, "configurationId": "yuggoth-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" } }
                         """,
                 "migo.sapl", "policy \"migo\" permit true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -168,12 +168,14 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleHasExplicitConfigurationIdThenConfigurationIdIsUsed() throws IOException {
-        createBundle(tempDir.resolve("arkham.saplbundle"),
-                """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "eldritch-bundle-v1" }
-                        """,
-                "policy.sapl", "policy \"test\" permit true;");
+    void whenBundleHasExplicitConfigurationIdThenConfigurationIdIsUsed() {
+        BundleBuilder.create()
+                .withPdpJson(
+                        """
+                                { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                                """)
+                .withPolicy("policy.sapl", "policy \"test\" permit true;").withConfigurationId("eldritch-bundle-v1")
+                .writeTo(tempDir.resolve("arkham.saplbundle"));
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
         val configs = captureConfigurations(source);
@@ -201,7 +203,7 @@ class BundlePDPConfigurationSourceTests {
     void whenBundleIsModifiedThenVoterSourceReceivesUpdatedConfig() throws IOException {
         createBundle(tempDir.resolve("innsmouth.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "innsmouth-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -213,7 +215,7 @@ class BundlePDPConfigurationSourceTests {
 
         createBundle(tempDir.resolve("innsmouth.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "innsmouth-v2" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"updated\" deny true;");
 
@@ -227,7 +229,7 @@ class BundlePDPConfigurationSourceTests {
     void whenOneSubscriberThrowsThenOthersStillReceiveReloads() throws IOException {
         createBundle(tempDir.resolve("dunwich.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "dunwich-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -242,7 +244,7 @@ class BundlePDPConfigurationSourceTests {
 
         createBundle(tempDir.resolve("dunwich.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "dunwich-v2" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"updated\" deny true;");
 
@@ -291,7 +293,7 @@ class BundlePDPConfigurationSourceTests {
     void whenDisposeIsCalledThenIsDisposedReturnsTrue() throws IOException {
         createBundle(tempDir.resolve("disposable.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
 
@@ -309,7 +311,7 @@ class BundlePDPConfigurationSourceTests {
     void whenDisposeIsCalledTwiceThenIsIdempotent() throws IOException {
         createBundle(tempDir.resolve("disposable.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v2" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
 
@@ -328,7 +330,7 @@ class BundlePDPConfigurationSourceTests {
         Files.createDirectory(realDir);
         createBundle(realDir.resolve("test.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "test-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
 
@@ -351,7 +353,7 @@ class BundlePDPConfigurationSourceTests {
     void whenSymlinkBundleFilePresentThenItIsLoaded() throws IOException {
         createBundle(tempDir.resolve("real.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "real-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"real\" permit true;");
 
@@ -377,7 +379,7 @@ class BundlePDPConfigurationSourceTests {
     void whenNewBundleIsAddedThenVoterSourceReceivesConfig() throws IOException {
         createBundle(tempDir.resolve("initial.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"initial\" permit true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -388,7 +390,7 @@ class BundlePDPConfigurationSourceTests {
 
         createBundle(tempDir.resolve("added.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "added-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"added\" deny true;");
 
@@ -404,7 +406,7 @@ class BundlePDPConfigurationSourceTests {
         val bundlePath = tempDir.resolve("deletable.saplbundle");
         createBundle(bundlePath,
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "deletable-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"deletable\" permit true;");
 
@@ -427,7 +429,7 @@ class BundlePDPConfigurationSourceTests {
         val bundlePath = tempDir.resolve(".saplbundle");
         createBundle(bundlePath,
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "stemless-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"stemless\" permit true;");
 
@@ -452,7 +454,7 @@ class BundlePDPConfigurationSourceTests {
     void whenNonBundleFilesPresentThenTheyAreIgnored() throws IOException {
         createBundle(tempDir.resolve("valid.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"valid\" permit true;");
 
@@ -484,7 +486,7 @@ class BundlePDPConfigurationSourceTests {
         for (int i = 0; i < 10; i++) {
             createBundle(tempDir.resolve("tenant" + i + ".saplbundle"),
                     """
-                            { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "tenant%d-v1" }
+                            { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                             """
                             .formatted(i),
                     "policy.sapl", "policy \"tenant%d\" permit subject.tenant == %d;".formatted(i, i));
@@ -496,19 +498,8 @@ class BundlePDPConfigurationSourceTests {
         assertThat(configs).hasSize(10);
     }
 
-    private void createBundle(Path bundlePath, String pdpJson, String saplFileName, String saplContent)
-            throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-
-            zos.putNextEntry(new ZipEntry(saplFileName));
-            zos.write(saplContent.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-        }
-        Files.write(bundlePath, baos.toByteArray());
+    private void createBundle(Path bundlePath, String pdpJson, String saplFileName, String saplContent) {
+        BundleBuilder.create().withPdpJson(pdpJson).withPolicy(saplFileName, saplContent).writeTo(bundlePath);
     }
 
     private void createBundleWithoutPdpJson(Path bundlePath, String saplFileName, String saplContent)
@@ -547,7 +538,7 @@ class BundlePDPConfigurationSourceTests {
         try (val zos = new ZipOutputStream(baos)) {
             zos.putNextEntry(new ZipEntry("pdp.json"));
             zos.write(
-                    "{\"algorithm\":{\"votingMode\":\"PRIORITY_DENY\",\"defaultDecision\":\"DENY\",\"errorHandling\":\"PROPAGATE\"},\"configurationId\":\"nested-v1\"}"
+                    "{\"algorithm\":{\"votingMode\":\"PRIORITY_DENY\",\"defaultDecision\":\"DENY\",\"errorHandling\":\"PROPAGATE\"}}"
                             .getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
 
@@ -570,7 +561,7 @@ class BundlePDPConfigurationSourceTests {
         val bundlePath = tempDir.resolve("disposable.saplbundle");
         createBundle(bundlePath,
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v3" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"original\" permit true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -584,12 +575,12 @@ class BundlePDPConfigurationSourceTests {
         // Modify existing bundle and add new bundle after dispose
         createBundle(bundlePath,
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v4" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"modified\" deny true;");
         createBundle(tempDir.resolve("new.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "new-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"new\" deny true;");
 
@@ -604,14 +595,14 @@ class BundlePDPConfigurationSourceTests {
         // Create bundle with valid name
         createBundle(tempDir.resolve("valid.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v2" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"valid\" permit true;");
 
         // Create bundle with invalid name (spaces)
         createBundle(tempDir.resolve("invalid name.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "invalid-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"invalid\" deny true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -627,7 +618,7 @@ class BundlePDPConfigurationSourceTests {
     void whenBundleIsCorruptThenItIsSkipped() throws IOException {
         createBundle(tempDir.resolve("valid.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "valid-v3" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"valid\" permit true;");
 
@@ -648,7 +639,7 @@ class BundlePDPConfigurationSourceTests {
     void whenSymlinkBundleAddedAfterStartThenItIsLoaded(@TempDir Path externalDir) throws IOException {
         createBundle(tempDir.resolve("initial.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v2" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"initial\" permit true;");
 
@@ -656,7 +647,7 @@ class BundlePDPConfigurationSourceTests {
         val targetBundle = externalDir.resolve("target.saplbundle");
         createBundle(targetBundle,
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "target-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"target\" deny true;");
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
@@ -721,7 +712,7 @@ class BundlePDPConfigurationSourceTests {
     void whenLoadingUnsignedBundleWithRequiredSignatureThenBundleIsSkipped() throws IOException {
         createBundle(tempDir.resolve("unsigned.saplbundle"),
                 """
-                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "unsigned-v1" }
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
                         """,
                 "policy.sapl", "policy \"unsigned\" permit true;");
 
@@ -731,29 +722,19 @@ class BundlePDPConfigurationSourceTests {
         assertThat(captureConfigurations(source)).isEmpty();
     }
 
-    private void createBundleWithVariables(Path bundlePath) throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write(
-                    """
-                            {
-                              "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
-                              "configurationId": "cultist-v1",
-                              "variables": {
-                                "realm": "arkham",
-                                "accessLevel": 5
-                              }
-                            }
-                            """
-                            .getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-
-            zos.putNextEntry(new ZipEntry("policy.sapl"));
-            zos.write("policy \"cultist\" permit subject.realm == realm;".getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-        }
-        Files.write(bundlePath, baos.toByteArray());
+    private void createBundleWithVariables(Path bundlePath) {
+        BundleBuilder.create()
+                .withPdpJson(
+                        """
+                                {
+                                  "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                                  "variables": {
+                                    "realm": "arkham",
+                                    "accessLevel": 5
+                                  }
+                                }
+                                """)
+                .withPolicy("policy.sapl", "policy \"cultist\" permit subject.realm == realm;").writeTo(bundlePath);
     }
 
 }
