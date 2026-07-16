@@ -224,8 +224,7 @@ public final class BundleBuilder {
      * @return this builder for method chaining
      */
     public BundleBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm) {
-        this.pdpJson = """
-                { "algorithm": %s }""".formatted(algorithmToJson(algorithm)) + "\n";
+        this.pdpJson = "{ \"algorithm\": %s }".formatted(algorithmToJson(algorithm)) + "\n";
         return this;
     }
 
@@ -258,8 +257,8 @@ public final class BundleBuilder {
 
         variablesJson.append(" }");
 
-        this.pdpJson = """
-                { "algorithm": %s, "variables": %s }""".formatted(algorithmToJson(algorithm), variablesJson) + "\n";
+        this.pdpJson = "{ \"algorithm\": %s, \"variables\": %s }".formatted(algorithmToJson(algorithm), variablesJson)
+                + "\n";
         return this;
     }
 
