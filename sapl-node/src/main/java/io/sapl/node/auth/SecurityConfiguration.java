@@ -19,6 +19,8 @@ package io.sapl.node.auth;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import java.util.stream.Collectors;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -421,20 +423,22 @@ public class SecurityConfiguration {
     }
 
     /**
-     * Extracts the token's scopes, accepting both common claim shapes: a
-     * space-delimited {@code scope} string (RFC 8693) and an {@code scp} array
-     * (Azure AD, Okta). Mirrors Spring Security's authorities converter.
+     * Extracts the token's scopes as an immutable set, accepting both common
+     * claim shapes: a space-delimited {@code scope} string (RFC 8693) and an
+     * {@code scp} array (Azure AD, Okta). Mirrors Spring Security's
+     * authorities converter. Duplicate scope values in a malformed token are
+     * tolerated and deduplicated.
      */
-    private static Collection<String> tokenScopes(Jwt jwt) {
+    private static Set<String> tokenScopes(Jwt jwt) {
         for (val claimName : List.of(CLAIM_SCOPE, CLAIM_SCP)) {
             val claimValue = jwt.getClaim(claimName);
             if (claimValue instanceof String scopeString) {
-                return Arrays.asList(scopeString.split(" "));
+                return Arrays.stream(scopeString.split(" ")).collect(Collectors.toUnmodifiableSet());
             }
             if (claimValue instanceof Collection<?> scopeCollection) {
-                return scopeCollection.stream().map(String::valueOf).toList();
+                return scopeCollection.stream().map(String::valueOf).collect(Collectors.toUnmodifiableSet());
             }
         }
-        return List.of();
+        return Set.of();
     }
 }
