@@ -226,7 +226,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenOneSubscriberThrowsThenOthersStillReceiveReloads() throws IOException {
+    void whenOneSubscriberThrowsThenOthersStillReceiveReloads() {
         createBundle(tempDir.resolve("dunwich.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
@@ -290,7 +290,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalledThenIsDisposedReturnsTrue() throws IOException {
+    void whenDisposeIsCalledThenIsDisposedReturnsTrue() {
         createBundle(tempDir.resolve("disposable.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
@@ -308,7 +308,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDisposeIsCalledTwiceThenIsIdempotent() throws IOException {
+    void whenDisposeIsCalledTwiceThenIsIdempotent() {
         createBundle(tempDir.resolve("disposable.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
@@ -709,7 +709,7 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenLoadingUnsignedBundleWithRequiredSignatureThenBundleIsSkipped() throws IOException {
+    void whenLoadingUnsignedBundleWithRequiredSignatureThenBundleIsSkipped() {
         createBundle(tempDir.resolve("unsigned.saplbundle"),
                 """
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }

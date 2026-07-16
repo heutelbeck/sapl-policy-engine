@@ -111,8 +111,10 @@ import static java.util.Objects.requireNonNull;
 // @formatter:on
 public class BundleCommand {
 
-    private static final String PDP_JSON       = "pdp.json";
-    private static final String SAPL_EXTENSION = ".sapl";
+    private static final String CONFIGURATION_ID_DETAIL_LINE = "  Configuration ID: %s%n";
+    private static final String CONFIGURATION_ID_LINE        = "Configuration ID: %s%n";
+    private static final String PDP_JSON                     = "pdp.json";
+    private static final String SAPL_EXTENSION               = ".sapl";
 
     private static final String ERROR_ALREADY_SEALED             = "Error: The input folder is already sealed. Omit --seal-to to bundle it verbatim.";
     public static final String  ERROR_BUNDLE_NOT_FOUND           = "Error: Bundle file not found: %s.";
@@ -249,7 +251,7 @@ public class BundleCommand {
                 val manifest = builder.writeTo(outputFile);
 
                 printSuccess(out, policies);
-                out.printf("Configuration ID: %s%n", manifest.configurationId());
+                out.printf(CONFIGURATION_ID_LINE, manifest.configurationId());
                 return 0;
 
             } catch (CommandFailedException e) {
@@ -431,7 +433,7 @@ public class BundleCommand {
 
                 out.printf("Unpacked bundle: %s (%d files) to %s%n", bundleFile, unpacked.size(), outputDir);
                 if (manifestJson != null) {
-                    out.printf("Configuration ID: %s%n", manifestConfigurationId(manifestJson));
+                    out.printf(CONFIGURATION_ID_LINE, manifestConfigurationId(manifestJson));
                 }
                 return 0;
 
@@ -776,7 +778,7 @@ public class BundleCommand {
                 val manifest = builder.writeTo(target);
 
                 out.printf("Signed bundle: %s (key-id: %s)%n", target, keyId);
-                out.printf("Configuration ID: %s%n", manifest.configurationId());
+                out.printf(CONFIGURATION_ID_LINE, manifest.configurationId());
                 return 0;
 
             } catch (CommandFailedException e) {
@@ -878,7 +880,7 @@ public class BundleCommand {
                 out.println("Verification successful");
                 out.printf("  Key ID: %s%n", manifest.signature().keyId());
                 out.printf("  Created: %s%n", manifest.created());
-                out.printf("  Configuration ID: %s%n", manifest.configurationId());
+                out.printf(CONFIGURATION_ID_DETAIL_LINE, manifest.configurationId());
                 out.printf("  Files verified: %d%n", manifest.files().size());
                 return 0;
 
@@ -963,42 +965,12 @@ public class BundleCommand {
                 out.printf("Bundle: %s%n", bundleFile.getFileName());
                 out.println();
 
-                val            manifestJson       = contents.get(BundleManifest.MANIFEST_FILENAME);
-                BundleManifest manifest           = null;
-                var            manifestUnreadable = false;
-                if (manifestJson != null) {
-                    // Inspection degrades on a legacy or malformed manifest instead of
-                    // aborting, so pre-4.2 bundles can still be audited before rebuilding.
-                    try {
-                        manifest = BundleManifest.fromJson(manifestJson);
-                    } catch (BundleSignatureException e) {
-                        manifestUnreadable = true;
-                    }
-                }
-                out.println("Signature:");
-                if (manifest != null && manifest.signature() != null) {
-                    out.printf("  Status: SIGNED%n");
-                    out.printf("  Algorithm: %s%n", manifest.signature().algorithm());
-                    out.printf("  Key ID: %s%n", manifest.signature().keyId());
-                    out.printf("  Created: %s%n", manifest.created());
-                } else if (manifestUnreadable) {
-                    out.printf("  Status: UNKNOWN (manifest predates SAPL 4.2.0 or is malformed)%n");
-                } else {
-                    out.printf("  Status: UNSIGNED%n");
-                }
-                val integrityOk = printIntegrity(out, contents, manifest, manifestUnreadable);
+                val manifestJson = contents.get(BundleManifest.MANIFEST_FILENAME);
+                val reading      = readManifestLeniently(manifestJson);
+                printSignature(out, reading);
+                val integrityOk = printIntegrity(out, contents, reading.manifest(), reading.unreadable());
                 out.println();
-
-                if (manifest != null) {
-                    out.println("Manifest:");
-                    out.printf("  Configuration ID: %s%n", manifest.configurationId());
-                    out.printf("  Attribution: %s%n", manifest.attribution());
-                    out.println();
-                } else if (manifestUnreadable) {
-                    out.println("Manifest:");
-                    out.printf("  Configuration ID: %s%n", manifestConfigurationId(manifestJson));
-                    out.println();
-                }
+                printManifestSection(out, reading, manifestJson);
 
                 val pdpJson = contents.get(PDP_JSON);
                 if (pdpJson != null) {
@@ -1009,17 +981,7 @@ public class BundleCommand {
                 }
                 out.println();
 
-                out.println("Policies:");
-                var policyCount = 0;
-                for (val entry : contents.entrySet()) {
-                    if (entry.getKey().endsWith(SAPL_EXTENSION)) {
-                        out.printf("  - %s (%d bytes)%n", entry.getKey(), byteSize(entry.getValue()));
-                        policyCount++;
-                    }
-                }
-                if (policyCount == 0) {
-                    out.println(NONE_LISTED);
-                }
+                printPolicies(out, contents);
                 out.println();
 
                 printSecrets(out, contents);
@@ -1034,6 +996,67 @@ public class BundleCommand {
             } catch (IOException | BundleSignatureException e) {
                 err.println(ERROR_INSPECTING_BUNDLE.formatted(e.getMessage()));
                 return 1;
+            }
+        }
+
+        private record ManifestReading(@Nullable BundleManifest manifest, boolean unreadable) {}
+
+        /**
+         * Inspection degrades on a legacy or malformed manifest instead of
+         * aborting, so pre-4.2 bundles can still be audited before rebuilding.
+         */
+        private static ManifestReading readManifestLeniently(@Nullable String manifestJson) {
+            if (manifestJson == null) {
+                return new ManifestReading(null, false);
+            }
+            try {
+                return new ManifestReading(BundleManifest.fromJson(manifestJson), false);
+            } catch (BundleSignatureException e) {
+                return new ManifestReading(null, true);
+            }
+        }
+
+        private static void printSignature(PrintWriter out, ManifestReading reading) {
+            out.println("Signature:");
+            val manifest = reading.manifest();
+            if (manifest != null && manifest.signature() != null) {
+                out.printf("  Status: SIGNED%n");
+                out.printf("  Algorithm: %s%n", manifest.signature().algorithm());
+                out.printf("  Key ID: %s%n", manifest.signature().keyId());
+                out.printf("  Created: %s%n", manifest.created());
+            } else if (reading.unreadable()) {
+                out.printf("  Status: UNKNOWN (manifest predates SAPL 4.2.0 or is malformed)%n");
+            } else {
+                out.printf("  Status: UNSIGNED%n");
+            }
+        }
+
+        private static void printManifestSection(PrintWriter out, ManifestReading reading,
+                @Nullable String manifestJson) {
+            val manifest = reading.manifest();
+            if (manifest != null) {
+                out.println("Manifest:");
+                out.printf(CONFIGURATION_ID_DETAIL_LINE, manifest.configurationId());
+                out.printf("  Attribution: %s%n", manifest.attribution());
+                out.println();
+            } else if (reading.unreadable()) {
+                out.println("Manifest:");
+                out.printf(CONFIGURATION_ID_DETAIL_LINE, manifestConfigurationId(manifestJson));
+                out.println();
+            }
+        }
+
+        private static void printPolicies(PrintWriter out, Map<String, String> contents) {
+            out.println("Policies:");
+            var policyCount = 0;
+            for (val entry : contents.entrySet()) {
+                if (entry.getKey().endsWith(SAPL_EXTENSION)) {
+                    out.printf("  - %s (%d bytes)%n", entry.getKey(), byteSize(entry.getValue()));
+                    policyCount++;
+                }
+            }
+            if (policyCount == 0) {
+                out.println(NONE_LISTED);
             }
         }
 

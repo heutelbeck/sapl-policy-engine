@@ -35,6 +35,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -588,7 +590,7 @@ class SchemaValidatorCompilerTests {
         void whenValidateThrowsAtEvalTimeThenReturnsErrorValue() {
             // A networknt throw on adversarial input must surface as an ErrorValue, not
             // crash the eval path.
-            val throwingSchema = org.mockito.Mockito.mock(com.networknt.schema.Schema.class);
+            val throwingSchema = mock(com.networknt.schema.Schema.class);
             org.mockito.Mockito
                     .when(throwingSchema
                             .validate(org.mockito.ArgumentMatchers.any(tools.jackson.databind.JsonNode.class)))

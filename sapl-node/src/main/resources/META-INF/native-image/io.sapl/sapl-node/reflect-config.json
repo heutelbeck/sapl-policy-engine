@@ -534,6 +534,13 @@
     "allDeclaredFields": true
   },
   {
+    "name": "io.sapl.pdp.configuration.bundle.BundleManifest$Audience",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "io.sapl.pdp.configuration.bundle.BundleManifest$Signature",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,

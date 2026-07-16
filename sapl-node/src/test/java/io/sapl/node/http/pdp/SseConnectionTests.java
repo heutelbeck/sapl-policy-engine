@@ -31,6 +31,7 @@ import java.io.Writer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,7 +61,7 @@ class SseConnectionTests {
     void whenWriteFlushStalledThenCompleteReturnsPromptly() throws Exception {
         val flushEntered = new CountDownLatch(1);
         val releaseFlush = new CountDownLatch(1);
-        val response     = org.mockito.Mockito.mock(HttpServletResponse.class);
+        val response     = mock(HttpServletResponse.class);
         val writer       = new PrintWriter(new Writer() {
                              @Override
                              public void write(char[] cbuf, int off, int len) {

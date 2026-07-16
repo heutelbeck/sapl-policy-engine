@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.pep.data.mongo;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -309,7 +310,7 @@ class MongoShimEndToEndTests {
         @DisplayName("A terminating method whose return type is neither Flux nor Mono is rejected, never run with an unenforced query")
         void givenNonReactiveTerminatingReturnTypeWhenDispatchedThenFailsClosed() throws Exception {
             @SuppressWarnings("unchecked")
-            val          delegateChain = (FindWithQuery<Citizen>) org.mockito.Mockito.mock(FindWithQuery.class);
+            val          delegateChain = (FindWithQuery<Citizen>) mock(FindWithQuery.class);
             val          originalQuery = new Query();
             final Method dispatch      = MongoShimMethodInterceptor.class.getDeclaredMethod("dispatchTerminatingFind",
                     FindWithQuery.class, Query.class, Method.class, Object[].class);

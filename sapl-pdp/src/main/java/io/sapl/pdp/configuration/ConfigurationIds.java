@@ -65,15 +65,6 @@ public final class ConfigurationIds {
     }
 
     /**
-     * Derives a configuration id of the form {@code <label>@<hash16>} from named
-     * contents.
-     *
-     * @param label a short source label, for example {@code bundle} or
-     * {@code dir:policies}
-     * @param namedContents map of entry name to entry content bytes
-     * @return the derived configuration id
-     */
-    /**
      * The canonical entry set of a complete assembled configuration: the
      * closure authority for content-derived ids. Includes every component
      * that influences PDP behavior - combining algorithm, compiler options,
@@ -109,6 +100,15 @@ public final class ConfigurationIds {
         return text.getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * Derives a configuration id of the form {@code <label>@<hash16>} from named
+     * contents.
+     *
+     * @param label a short source label, for example {@code bundle} or
+     * {@code dir:policies}
+     * @param namedContents map of entry name to entry content bytes
+     * @return the derived configuration id
+     */
     public static String derive(String label, Map<String, byte[]> namedContents) {
         return label + "@" + contentHash16(namedContents);
     }

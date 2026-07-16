@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PrivateKey;
+import java.util.Arrays;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -224,8 +225,7 @@ public final class BundleBuilder {
      */
     public BundleBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm) {
         this.pdpJson = """
-                { "algorithm": %s }
-                """.formatted(algorithmToJson(algorithm));
+                { "algorithm": %s }""".formatted(algorithmToJson(algorithm)) + "\n";
         return this;
     }
 
@@ -259,8 +259,7 @@ public final class BundleBuilder {
         variablesJson.append(" }");
 
         this.pdpJson = """
-                { "algorithm": %s, "variables": %s }
-                """.formatted(algorithmToJson(algorithm), variablesJson);
+                { "algorithm": %s, "variables": %s }""".formatted(algorithmToJson(algorithm), variablesJson) + "\n";
         return this;
     }
 
@@ -600,7 +599,24 @@ public final class BundleBuilder {
      * @param bytes the bundle as a byte array
      * @param manifest the manifest written into the bundle
      */
-    public record BuildResult(byte[] bytes, BundleManifest manifest) {}
+    public record BuildResult(byte[] bytes, BundleManifest manifest) {
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof BuildResult(byte[] otherBytes, BundleManifest otherManifest)
+                    && Arrays.equals(bytes, otherBytes) && manifest.equals(otherManifest);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Arrays.hashCode(bytes) + manifest.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "BuildResult[bytes=%d bytes, manifest=%s]".formatted(bytes.length, manifest);
+        }
+    }
 
     /**
      * Builds the bundle and returns it as a byte array.

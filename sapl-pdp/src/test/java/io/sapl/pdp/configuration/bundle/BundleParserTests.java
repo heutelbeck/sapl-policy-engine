@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
@@ -145,7 +146,7 @@ class BundleParserTests {
     void whenParsingBundleWithMultiplePoliciesThenAllPoliciesExtracted() throws IOException {
         val files = new LinkedHashMap<String, String>();
         files.put("pdp.json", DEFAULT_PDP_JSON);
-        for (val name : new String[] { "access.sapl", "audit.sapl", "logging.sapl" }) {
+        for (val name : List.of("access.sapl", "audit.sapl", "logging.sapl")) {
             files.put(name, "policy \"" + name + "\" permit true;");
         }
         val bundleBytes = manifestedBundle(files);
