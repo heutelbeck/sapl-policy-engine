@@ -1299,7 +1299,7 @@ jobs:
 
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: snapshot-node
           name: Latest SAPL Node Snapshot
@@ -1363,7 +1363,7 @@ jobs:
 
       - name: Create release
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           name: SAPL Node ${{ github.ref_name }}
           body: |
@@ -1472,7 +1472,7 @@ jobs:
 
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: snapshot
           name: Latest Snapshot
@@ -1521,7 +1521,7 @@ jobs:
 
       - name: Create release
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           name: SAPL Language Server ${{ github.ref_name }}
           body: |
