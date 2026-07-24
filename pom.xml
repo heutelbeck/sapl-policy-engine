@@ -99,8 +99,8 @@
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
 		<okhttp.version>5.4.0</okhttp.version>
-		<scalar.version>0.6.54</scalar.version>
-		<vaadin.version>25.2.2</vaadin.version>
+		<scalar.version>0.6.59</scalar.version>
+		<vaadin.version>25.2.3</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.46</lombok.version>
 		<jupiter.version>6.1.2</jupiter.version>
@@ -140,16 +140,16 @@
 		<!-- Maven Plug-Ins -->
 		<sb-contrib.version>7.7.4</sb-contrib.version>
 		<maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
-		<maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
+		<maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
 		<exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
 		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
 		<maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
-		<native-maven-plugin.version>1.1.4</native-maven-plugin.version>
+		<native-maven-plugin.version>1.1.6</native-maven-plugin.version>
 		<maven-source-plugin.version>3.4.0</maven-source-plugin.version>
 		<maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
 		<jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
 		<maven-install-plugin.version>3.1.4</maven-install-plugin.version>
-		<license-maven-plugin.version>5.0.0</license-maven-plugin.version>
+		<license-maven-plugin.version>5.1.1</license-maven-plugin.version>
 		<sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
 		<maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
@@ -157,7 +157,7 @@
 		<maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
 		<maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
 		<cyclonedx-maven-plugin.version>2.9.2</cyclonedx-maven-plugin.version>
-		<spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
+		<spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
 		<formatter-maven-plugin.version>2.29.0</formatter-maven-plugin.version>
 		<maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
 		<build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
