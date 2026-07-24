@@ -420,6 +420,26 @@
 					<skipNotDeployed>false</skipNotDeployed>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>create-completion-dir</id>
+						<phase>process-test-classes</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<skip>${maven.test.skip}</skip>
+							<target>
+								<mkdir dir="${project.build.directory}/generated-completion"/>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		<!-- Generate AsciiDoc man page sources from picocli @Command annotations -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -438,21 +458,6 @@
 							<arguments>
 								<argument>io.sapl.node.cli.SaplNodeCli</argument>
 								<argument>--outdir=${project.build.directory}/generated-manpage-adoc</argument>
-							</arguments>
-						</configuration>
-					</execution>
-					<execution>
-						<id>create-completion-dir</id>
-						<phase>process-test-classes</phase>
-						<goals>
-							<goal>exec</goal>
-						</goals>
-						<configuration>
-							<skip>${maven.test.skip}</skip>
-							<executable>mkdir</executable>
-							<arguments>
-								<argument>-p</argument>
-								<argument>${project.build.directory}/generated-completion</argument>
 							</arguments>
 						</configuration>
 					</execution>
