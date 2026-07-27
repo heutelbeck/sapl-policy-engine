@@ -802,6 +802,10 @@ public class BundleCommand {
             return files;
         }
 
+        private static String resealDocument(Value document, Keyring source, OctetKeyPair targetPublicKey) {
+            return ValueJsonMarshaller.toJsonString(ValueSealer.reseal(source, targetPublicKey, document));
+        }
+
     }
 
     // @formatter:off
@@ -1493,10 +1497,6 @@ public class BundleCommand {
         return ValueJsonMarshaller.toJsonString(ValueSealer.unseal(privateKey, Value.ofJson(sealedJson)));
     }
 
-    private static String resealDocument(Value document, Keyring source, OctetKeyPair targetPublicKey) {
-        return ValueJsonMarshaller.toJsonString(ValueSealer.reseal(source, targetPublicKey, document));
-    }
-
     private static String fileNameOf(Path path) {
         return requireNonNull(path.getFileName()).toString();
     }
@@ -1572,7 +1572,7 @@ public class BundleCommand {
         try {
             for (val entry : contentByTarget.entrySet()) {
                 val target = entry.getKey();
-                val temp   = Files.createTempFile(target.getParent(), fileNameOf(target), ".tmp");
+                val temp   = Files.createTempFile(requireNonNull(target.getParent()), fileNameOf(target), ".tmp");
                 staged.put(target, temp);
                 Files.writeString(temp, entry.getValue());
                 restrictToOwner(temp);
