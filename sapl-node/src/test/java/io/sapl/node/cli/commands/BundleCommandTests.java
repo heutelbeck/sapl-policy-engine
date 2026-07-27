@@ -728,7 +728,7 @@ class BundleCommandTests {
 
             assertThat(exitCode).isZero();
             try (val entries = Files.list(dir)) {
-                assertThat(entries).noneMatch(file -> file.getFileName().toString().endsWith(".tmp"));
+                assertThat(entries).noneMatch(file -> file.toString().endsWith(".tmp"));
             }
         }
 
