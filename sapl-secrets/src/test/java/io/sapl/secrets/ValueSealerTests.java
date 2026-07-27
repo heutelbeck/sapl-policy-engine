@@ -169,6 +169,84 @@ class ValueSealerTests {
     }
 
     @Nested
+    @DisplayName("keyring unseal")
+    class KeyringUnseal {
+
+        private final OctetKeyPair keyA = SecretSealing.generateRecipientKey("a");
+        private final OctetKeyPair keyB = SecretSealing.generateRecipientKey("b");
+
+        @Test
+        @DisplayName("an object sealed to one key round-trips through a keyring")
+        void whenObjectSealedThenKeyringUnsealRoundTrips() {
+            var sealed = ValueSealer.seal(keyA.toPublicJWK(), sampleSecrets());
+            assertThat(ValueSealer.unseal(Keyring.of(keyA), sealed)).isEqualTo(sampleSecrets());
+        }
+
+        @Test
+        @DisplayName("a tree with leaves under different key ids unseals each by its own key id")
+        void whenTreeHoldsLeavesUnderDifferentKeyIdsThenEachRoutesByItsOwnKeyId() {
+            var mixed = ObjectValue.builder().put("a", ValueSealer.seal(keyA.toPublicJWK(), Value.of("x")))
+                    .put("b", ValueSealer.seal(keyB.toPublicJWK(), Value.of("y"))).build();
+            var plain = ObjectValue.builder().put("a", Value.of("x")).put("b", Value.of("y")).build();
+            assertThat(ValueSealer.unseal(Keyring.of(keyA, keyB), mixed)).isEqualTo(plain);
+        }
+
+        @Test
+        @DisplayName("a leaf whose key id is not in the keyring is rejected, failing closed")
+        void whenLeafKeyIdNotInKeyringThenThrows() {
+            var mixed = ObjectValue.builder().put("a", ValueSealer.seal(keyA.toPublicJWK(), Value.of("x")))
+                    .put("b", ValueSealer.seal(keyB.toPublicJWK(), Value.of("y"))).build();
+            var ring  = Keyring.of(keyA);
+            assertThatThrownBy(() -> ValueSealer.unseal(ring, mixed)).isInstanceOf(SecretSealingException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("reseal")
+    class Reseal {
+
+        private final OctetKeyPair keyA = SecretSealing.generateRecipientKey("a");
+        private final OctetKeyPair keyB = SecretSealing.generateRecipientKey("b");
+        private final OctetKeyPair keyC = SecretSealing.generateRecipientKey("c");
+
+        @Test
+        @DisplayName("a resealed object unseals under the target but no longer under the source")
+        void whenObjectResealedThenUnsealsUnderTargetButNotSource() {
+            var sealed   = ValueSealer.seal(keyA.toPublicJWK(), sampleSecrets());
+            var resealed = ValueSealer.reseal(Keyring.of(keyA), keyB.toPublicJWK(), sealed);
+            assertThat(ValueSealer.unseal(keyB, resealed)).isEqualTo(sampleSecrets());
+            assertThatThrownBy(() -> ValueSealer.unseal(keyA, resealed)).isInstanceOf(SecretSealingException.class);
+        }
+
+        @MethodSource("io.sapl.secrets.ValueSealerTests#scalars")
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("resealing preserves each scalar's original type and value")
+        void whenResealedThenScalarTypesPreserved(Value scalar) {
+            var sealed   = ValueSealer.seal(keyA.toPublicJWK(), scalar);
+            var resealed = ValueSealer.reseal(Keyring.of(keyA), keyB.toPublicJWK(), sealed);
+            assertThat(ValueSealer.unseal(keyB, resealed)).isEqualTo(scalar);
+        }
+
+        @Test
+        @DisplayName("resealing a mixed-key-id tree puts every leaf under the target key id")
+        void whenMixedKidTreeResealedThenAllLeavesUnderTargetKeyId() {
+            var mixed    = ObjectValue.builder().put("a", ValueSealer.seal(keyA.toPublicJWK(), Value.of("x")))
+                    .put("b", ValueSealer.seal(keyB.toPublicJWK(), Value.of("y"))).build();
+            var plain    = ObjectValue.builder().put("a", Value.of("x")).put("b", Value.of("y")).build();
+            var resealed = ValueSealer.reseal(Keyring.of(keyA, keyB), keyC.toPublicJWK(), mixed);
+            assertThat(ValueSealer.unseal(keyC, resealed)).isEqualTo(plain);
+            assertThat(ValueSealer.recipientKeyIdOf(resealed)).contains("c");
+        }
+
+        @Test
+        @DisplayName("non-sealed leaves pass through a reseal unchanged")
+        void whenNonSealedLeavesResealedThenPassThroughUnchanged() {
+            assertThat(ValueSealer.reseal(Keyring.of(keyA), keyB.toPublicJWK(), sampleSecrets()))
+                    .isEqualTo(sampleSecrets());
+        }
+    }
+
+    @Nested
     @DisplayName("recipient key id extraction")
     class RecipientKeyId {
 

@@ -190,7 +190,7 @@ class BundleParserTests {
     class AudiencePossessionPreCheck {
 
         private byte[] sealedBundle() {
-            val recipient = SecretSealing.generateRecipientKey();
+            val recipient = SecretSealing.generateRecipientKey("recipient");
             return BundleBuilder.create().withPdpJson(DEFAULT_PDP_JSON).withSecrets("""
                     { "apiKey": "TOP-SECRET-VALUE" }""").sealSecretsWith(recipient.toPublicJWK()).build();
         }

@@ -24,7 +24,9 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.libraries.crypto.PemUtils;
+import io.sapl.secrets.Keyring;
 import io.sapl.secrets.SecretSealing;
+import io.sapl.secrets.SecretSealingException;
 import io.sapl.secrets.ValueSealer;
 import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
@@ -44,6 +46,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
@@ -103,7 +106,8 @@ import static java.util.Objects.requireNonNull;
         """ },
     subcommands = {
         BundleCommand.Create.class, BundleCommand.Unpack.class,
-        BundleCommand.Seal.class, BundleCommand.Unseal.class, BundleCommand.Sign.class,
+        BundleCommand.Seal.class, BundleCommand.Unseal.class, BundleCommand.Reseal.class,
+        BundleCommand.Sign.class,
         BundleCommand.Verify.class, BundleCommand.Inspect.class,
         BundleCommand.Keygen.class, BundleCommand.SecretsKeygen.class
     }
@@ -129,6 +133,9 @@ public class BundleCommand {
     private static final String ERROR_NOT_A_DIRECTORY            = "Error: Input path is not a directory: %s.";
     private static final String ERROR_NO_POLICIES_FOUND          = "Error: No .sapl files found in: %s.";
     private static final String ERROR_PLAINTEXT_SECRETS_UNSEALED = "Error: The input folder has plaintext secrets. Provide --seal-to to seal them, or pre-seal the folder.";
+    private static final String ERROR_RESEALING_DIRECTORY        = "Error resealing directory: %s.";
+    private static final String ERROR_RESEAL_PLAINTEXT_SECRETS   = "Error: The input folder has plaintext secrets. Reseal rekeys only sealed secrets. Seal the folder first.";
+    private static final String ERROR_RESEAL_UNSEALED_LEAVES     = "Error: The sealed secrets file %s contains unsealed cleartext leaves. Reseal rekeys only sealed leaves. Seal the folder first.";
     private static final String ERROR_SEALING_DIRECTORY          = "Error sealing directory: %s.";
     private static final String ERROR_SIGNING_BUNDLE             = "Error signing bundle: %s.";
     private static final String ERROR_SIGN_PLAINTEXT_SECRETS     = "Error: The bundle contains plaintext secrets. Unpack, seal the directory, and re-create before signing.";
@@ -543,7 +550,7 @@ public class BundleCommand {
         footer = { """
               sapl bundle seal -i ./policies --seal-to recipient.pub.jwk
 
-            See Also: sapl-bundle-unseal(1), sapl-bundle-keygen-secrets(1)
+            See Also: sapl-bundle-unseal(1), sapl-bundle-reseal(1), sapl-bundle-keygen-secrets(1)
             """ }
     )
     // @formatter:on
@@ -621,7 +628,7 @@ public class BundleCommand {
         footer = { """
               sapl bundle unseal -i ./policies --unseal-with recipient.jwk
 
-            See Also: sapl-bundle-seal(1), sapl-bundle-keygen-secrets(1)
+            See Also: sapl-bundle-seal(1), sapl-bundle-reseal(1), sapl-bundle-keygen-secrets(1)
             """ }
     )
     // @formatter:on
@@ -674,6 +681,125 @@ public class BundleCommand {
                 err.println(ERROR_UNSEALING_DIRECTORY.formatted(e.getMessage()));
                 return 1;
             }
+        }
+
+    }
+
+    // @formatter:off
+    @Command(
+        name = "reseal",
+        mixinStandardHelpOptions = true,
+        header = "Reseal a policy directory's secrets from one recipient to another.",
+        description = { """
+            Rekeys every sealed secrets file in the directory from a source
+            X25519 recipient private key to a target X25519 recipient public
+            key, in place and under the same names: secrets.sealed.json stays
+            secrets.sealed.json and each ext-<name>-secrets.sealed.json keeps
+            its name, while their sealed leaves are decrypted with the source
+            key and re-encrypted to the target key. The plaintext exists only
+            transiently in memory; no cleartext is ever written.
+
+            A single source key rekeys a uniformly sealed folder: every sealed
+            leaf must have been sealed to the source key's id. A folder whose
+            leaves are sealed under mixed key ids is out of scope for this
+            command and fails closed. Plaintext secrets are rejected; seal the
+            folder first. A folder mixing sealed and plaintext secrets is
+            rejected. A sealed secrets file that actually holds cleartext leaves
+            is rejected rather than passed through as a false success.
+
+            Because the sealed files are rewritten where they already exist,
+            --force is required to confirm overwriting them.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Secrets resealed (or none found)",
+            " 1:Error (directory or key not found, sealed files present without --force, plaintext or mixed secrets, wrong source key, or I/O error)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle reseal -i ./policies --unseal-with old.jwk --seal-to new.pub.jwk --force
+
+            See Also: sapl-bundle-seal(1), sapl-bundle-unseal(1), sapl-bundle-keygen-secrets(1)
+            """ }
+    )
+    // @formatter:on
+    static class Reseal implements Callable<Integer> {
+
+        @Spec
+        private CommandSpec spec;
+
+        @Option(names = { "-i",
+                "--input" }, required = true, description = "Directory whose sealed secrets are resealed")
+        private Path inputDir;
+
+        @Option(names = {
+                "--unseal-with" }, required = true, description = "X25519 source recipient private key (JWK file) the secrets are currently sealed to")
+        private Path unsealWithFile;
+
+        @Option(names = {
+                "--seal-to" }, required = true, description = "X25519 target recipient public key (JWK file) to reseal the secrets to")
+        private Path sealToFile;
+
+        @Option(names = { "--force" }, description = "Overwrite the existing sealed secrets files in place")
+        private boolean force;
+
+        @Override
+        public Integer call() {
+            val out = spec.commandLine().getOut();
+            val err = spec.commandLine().getErr();
+            try {
+                requireDirectory(inputDir);
+                requireKeyFile(unsealWithFile);
+                requireKeyFile(sealToFile);
+                val source      = Keyring.of(loadX25519PrivateKey(unsealWithFile));
+                val target      = loadX25519PublicKey(sealToFile);
+                val sealedFiles = sealedSecretsFiles(scanAndCheckSecrets());
+                if (sealedFiles.isEmpty()) {
+                    out.println("No sealed secrets found.");
+                    return 0;
+                }
+                for (val file : sealedFiles) {
+                    requireOverwritable(force, file);
+                }
+                val resealed = new LinkedHashMap<Path, String>();
+                for (val file : sealedFiles) {
+                    val document = Value.ofJson(Files.readString(file));
+                    if (!ValueSealer.hasSealedShape(document)) {
+                        throw new CommandFailedException(ERROR_RESEAL_UNSEALED_LEAVES.formatted(file));
+                    }
+                    resealed.put(file, resealDocument(document, source, target));
+                }
+                writeAllAtomically(resealed);
+                out.printf("Resealed %d secrets file(s) in %s%n", sealedFiles.size(), inputDir);
+                return 0;
+
+            } catch (CommandFailedException e) {
+                e.printTo(err);
+                return 1;
+            } catch (IOException | ParseException | SecretSealingException e) {
+                err.println(ERROR_RESEALING_DIRECTORY.formatted(e.getMessage()));
+                return 1;
+            }
+        }
+
+        private SecretsFiles scanAndCheckSecrets() throws IOException, CommandFailedException {
+            val secretsFiles = SecretsFiles.scan(inputDir);
+            if (secretsFiles.hasPlaintext() && secretsFiles.hasSealed()) {
+                throw new CommandFailedException(ERROR_MIXED_SEALING);
+            }
+            if (secretsFiles.hasPlaintext()) {
+                throw new CommandFailedException(ERROR_RESEAL_PLAINTEXT_SECRETS);
+            }
+            return secretsFiles;
+        }
+
+        private static List<Path> sealedSecretsFiles(SecretsFiles secretsFiles) {
+            val files = new ArrayList<Path>();
+            if (secretsFiles.sealedSecrets() != null) {
+                files.add(secretsFiles.sealedSecrets());
+            }
+            files.addAll(secretsFiles.sealedExtensionSecrets());
+            return files;
         }
 
     }
@@ -1367,6 +1493,10 @@ public class BundleCommand {
         return ValueJsonMarshaller.toJsonString(ValueSealer.unseal(privateKey, Value.ofJson(sealedJson)));
     }
 
+    private static String resealDocument(Value document, Keyring source, OctetKeyPair targetPublicKey) {
+        return ValueJsonMarshaller.toJsonString(ValueSealer.reseal(source, targetPublicKey, document));
+    }
+
     private static String fileNameOf(Path path) {
         return requireNonNull(path.getFileName()).toString();
     }
@@ -1420,6 +1550,44 @@ public class BundleCommand {
             err.println(getMessage());
             if (hint != null) {
                 err.println(hint);
+            }
+        }
+    }
+
+    /**
+     * Writes each target file by staging its content to a sibling temporary file
+     * (owner-only, same directory so the rename stays on one filesystem) and then
+     * atomically moving it onto the target. No target is ever left half-written: a
+     * failure before the move phase leaves every target untouched, and each move is
+     * atomic, so a fault during the move phase can only leave earlier targets fully
+     * replaced and later ones fully intact, never a truncated file. Staged files
+     * that were not moved are always cleaned up.
+     *
+     * @param contentByTarget the content to write, keyed by its target file
+     *
+     * @throws IOException if staging or moving a file fails
+     */
+    private static void writeAllAtomically(Map<Path, String> contentByTarget) throws IOException {
+        val staged = new LinkedHashMap<Path, Path>();
+        try {
+            for (val entry : contentByTarget.entrySet()) {
+                val target = entry.getKey();
+                val temp   = Files.createTempFile(target.getParent(), fileNameOf(target), ".tmp");
+                staged.put(target, temp);
+                Files.writeString(temp, entry.getValue());
+                restrictToOwner(temp);
+            }
+            for (val entry : staged.entrySet()) {
+                Files.move(entry.getValue(), entry.getKey(), StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            for (val temp : staged.values()) {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException cleanupFailure) {
+                    // Best effort: a leftover temporary file is harmless and must not mask the outcome.
+                }
             }
         }
     }

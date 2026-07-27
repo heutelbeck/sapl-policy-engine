@@ -18,6 +18,7 @@
 package io.sapl.node.cli.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -42,6 +43,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.SaplVersion;
@@ -683,15 +685,261 @@ class BundleCommandTests {
             return bundle;
         }
 
-        private Path policyDirWithSecrets() throws IOException {
-            val inputDir = tempDir.resolve("policies-secrets");
-            Files.createDirectories(inputDir);
-            Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
-            Files.writeString(inputDir.resolve("pdp.json"), TEST_PDP_JSON);
-            Files.writeString(inputDir.resolve("secrets.json"), """
-                    { "http": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } }
-                    """);
-            return inputDir;
+    }
+
+    @Nested
+    @DisplayName("bundle reseal")
+    class ResealTests {
+
+        @Test
+        @DisplayName("resealing to a new recipient lets the target key recover the plaintext and rekeys the ciphertext")
+        void whenResealedThenTargetKeyRecoversPlaintextAndCiphertextChanged() throws IOException {
+            val dir = sealedDir("recipientA");
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+            val sealed = dir.resolve("secrets.sealed.json");
+            val before = Files.readString(sealed);
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Resealed 1 secrets file(s)");
+            assertThat(Files.readString(sealed)).contains("ENC[").doesNotContain("TOP-SECRET-VALUE")
+                    .isNotEqualTo(before);
+
+            val unsealExit = cmd.execute("bundle", "unseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientB.jwk").toString());
+
+            assertThat(unsealExit).isZero();
+            assertThat(Files.readString(dir.resolve("secrets.json"))).contains("TOP-SECRET-VALUE")
+                    .doesNotContain("ENC[");
+        }
+
+        @Test
+        @DisplayName("a successful reseal leaves no staged temporary files behind")
+        void whenResealedThenNoTemporaryFilesRemain() throws IOException {
+            val dir = sealedDir("recipientA");
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isZero();
+            try (val entries = Files.list(dir)) {
+                assertThat(entries).noneMatch(file -> file.getFileName().toString().endsWith(".tmp"));
+            }
+        }
+
+        @Test
+        @DisplayName("after resealing, the old source key can no longer open the secrets")
+        void whenResealedThenSourceKeyCanNoLongerOpenIt() throws IOException {
+            val dir = sealedDir("recipientA");
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+            cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("resealing directory");
+        }
+
+        @Test
+        @DisplayName("a wrong --unseal-with key fails closed and leaves the sealed files intact")
+        void whenWrongUnsealWithKeyThenFailsClosedAndLeavesFilesIntact() throws IOException {
+            val dir = sealedDir("recipientA");
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientC").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientC.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("resealing directory");
+
+            val unsealExit = cmd.execute("bundle", "unseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString());
+
+            assertThat(unsealExit).isZero();
+            assertThat(Files.readString(dir.resolve("secrets.json"))).contains("TOP-SECRET-VALUE");
+        }
+
+        @Test
+        @DisplayName("resealing over existing sealed files needs --force")
+        void whenResealWithoutForceThenFailsThenForceSucceeds() throws IOException {
+            val dir = sealedDir("recipientA");
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString());
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("already exists").contains("--force");
+
+            val forcedExit = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+            assertThat(forcedExit).isZero();
+        }
+
+        @Test
+        @DisplayName("a directory with no sealed secrets reports none found")
+        void whenNoSealedSecretsThenReportsNoneFound() throws Exception {
+            val dir = createPolicyInputDir();
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientA").toString());
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("No sealed secrets found.");
+        }
+
+        @Test
+        @DisplayName("plaintext secrets are rejected: seal the folder first")
+        void whenPlaintextSecretsThenRejected() throws IOException {
+            val dir = policyDirWithSecrets(tempDir.resolve("reseal-plaintext-" + System.nanoTime()));
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientA").toString());
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("plaintext");
+        }
+
+        @Test
+        @DisplayName("a folder mixing sealed and plaintext secrets is rejected")
+        void whenMixedSealingThenRejected() throws IOException {
+            val dir = sealedDir("recipientA");
+            Files.writeString(dir.resolve("ext-foo-secrets.json"), """
+                    { "k": "plaintext" }""");
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("mixes sealed and plaintext");
+        }
+
+        @Test
+        @DisplayName("a sealed-named file holding cleartext is rejected, not passed through as success")
+        void whenSealedFileHoldsCleartextThenFailsClosedAndLeavesFileIntact() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientA").toString());
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+            val dir       = createPolicyInputDir();
+            val cleartext = """
+                    { "db": { "password": "s3cret" } }""";
+            val forged    = dir.resolve("secrets.sealed.json");
+            Files.writeString(forged, cleartext);
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("unsealed cleartext leaves");
+            assertThat(Files.readString(forged)).isEqualTo(cleartext);
+        }
+
+        @Test
+        @DisplayName("extension secrets files are resealed too")
+        void whenExtensionSecretsThenAlsoResealed() throws IOException {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientA").toString());
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+            val dir = policyDirWithSecrets(tempDir.resolve("reseal-ext-" + System.nanoTime()));
+            Files.writeString(dir.resolve("ext-upstreams-secrets.json"), """
+                    { "token": "EXT-SECRET-VALUE" }""");
+            cmd.execute("bundle", "seal", "-i", dir.toString(), "--seal-to",
+                    tempDir.resolve("recipientA.pub.jwk").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Resealed 2 secrets file(s)");
+
+            val unsealExit = cmd.execute("bundle", "unseal", "-i", dir.toString(), "--unseal-with",
+                    tempDir.resolve("recipientB.jwk").toString());
+
+            assertThat(unsealExit).isZero();
+            assertThat(Files.readString(dir.resolve("secrets.json"))).contains("TOP-SECRET-VALUE");
+            assertThat(Files.readString(dir.resolve("ext-upstreams-secrets.json"))).contains("EXT-SECRET-VALUE");
+        }
+
+        @Test
+        @DisplayName("fails when the input directory does not exist")
+        void whenInputDirNotFoundThenFails() {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientA").toString());
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", tempDir.resolve("nonexistent").toString(),
+                    "--unseal-with", tempDir.resolve("recipientA.jwk").toString(), "--seal-to",
+                    tempDir.resolve("recipientB.pub.jwk").toString(), "--force");
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("not a directory");
+        }
+
+        @ParameterizedTest(name = "missing {0} key file fails")
+        @MethodSource("missingKeyScenarios")
+        void whenKeyFileNotFoundThenFails(String missingOption) throws IOException {
+            val dir = sealedDir("recipientA");
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
+            val unsealWith = "--unseal-with".equals(missingOption) ? tempDir.resolve("nonexistent.jwk")
+                    : tempDir.resolve("recipientA.jwk");
+            val sealTo     = "--seal-to".equals(missingOption) ? tempDir.resolve("nonexistent.pub.jwk")
+                    : tempDir.resolve("recipientB.pub.jwk");
+
+            val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with", unsealWith.toString(),
+                    "--seal-to", sealTo.toString(), "--force");
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("Key file not found");
+        }
+
+        @Test
+        @DisplayName("help renders the reseal usage")
+        void whenHelpRequestedThenUsageRenders() {
+            val exitCode = cmd.execute("bundle", "reseal", "--help");
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("Reseal", "--unseal-with", "--seal-to", "--force");
+        }
+
+        @Test
+        @DisplayName("bundle help lists reseal as a subcommand")
+        void whenBundleHelpThenListsReseal() {
+            val exitCode = cmd.execute("bundle", "--help");
+
+            assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("reseal");
+        }
+
+        static Stream<Arguments> missingKeyScenarios() {
+            return Stream.of(arguments("--unseal-with"), arguments("--seal-to"));
+        }
+
+        // Fresh policy dir with plaintext secrets, sealed to <prefix>.pub.jwk. Returns the dir.
+        private Path sealedDir(String prefix) throws IOException {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve(prefix).toString());
+            val dir = policyDirWithSecrets(tempDir.resolve("reseal-" + prefix + "-" + System.nanoTime()));
+            cmd.execute("bundle", "seal", "-i", dir.toString(), "--seal-to",
+                    tempDir.resolve(prefix + ".pub.jwk").toString());
+            return dir;
         }
 
     }
@@ -995,6 +1243,20 @@ class BundleCommandTests {
             }
         }
         return "";
+    }
+
+    private Path policyDirWithSecrets() throws IOException {
+        return policyDirWithSecrets(tempDir.resolve("policies-secrets"));
+    }
+
+    private Path policyDirWithSecrets(Path inputDir) throws IOException {
+        Files.createDirectories(inputDir);
+        Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
+        Files.writeString(inputDir.resolve("pdp.json"), TEST_PDP_JSON);
+        Files.writeString(inputDir.resolve("secrets.json"), """
+                { "http": { "headers": { "X-API-Key": "TOP-SECRET-VALUE" } } }
+                """);
+        return inputDir;
     }
 
     private Path createPolicyInputDir() throws Exception {

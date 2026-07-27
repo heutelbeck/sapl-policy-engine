@@ -19,12 +19,15 @@ package io.sapl.secrets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.nimbusds.jose.CompressionAlgorithm;
@@ -124,5 +127,88 @@ class SecretSealingTests {
         var index       = token.length() / 2;
         var replacement = token.charAt(index) == 'A' ? 'B' : 'A';
         return token.substring(0, index) + replacement + token.substring(index + 1);
+    }
+
+    @Nested
+    @DisplayName("key id assignment")
+    class KeyIdAssignment {
+
+        @Test
+        @DisplayName("a key generated with a chosen key id carries that id")
+        void whenGeneratedWithKeyIdThenKidIsThatId() {
+            assertThat(SecretSealing.generateRecipientKey("alpha").getKeyID()).isEqualTo("alpha");
+        }
+
+        @Test
+        @DisplayName("two keys generated without a chosen id get distinct key ids")
+        void whenTwoKeysGeneratedThenKeyIdsDiffer() {
+            assertThat(SecretSealing.generateRecipientKey().getKeyID())
+                    .isNotEqualTo(SecretSealing.generateRecipientKey().getKeyID());
+        }
+    }
+
+    @Nested
+    @DisplayName("keyring routing")
+    class KeyringRouting {
+
+        static final OctetKeyPair keyA = SecretSealing.generateRecipientKey("a");
+        static final OctetKeyPair keyB = SecretSealing.generateRecipientKey("b");
+
+        static Stream<Arguments> plaintextsAndKeys() {
+            return Stream.of(arguments("secret-for-a", keyA), arguments("secret-for-b", keyB));
+        }
+
+        @MethodSource("plaintextsAndKeys")
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("a keyring routes each token to the key its own key id names")
+        void whenKeyringHoldsManyKeysThenEachTokenRoutesToItsOwnKey(String plaintext, OctetKeyPair key) {
+            var ring   = Keyring.of(keyA, keyB);
+            var sealed = SecretSealing.seal(key.toPublicJWK(), plaintext);
+            assertThat(SecretSealing.unseal(ring, sealed)).isEqualTo(plaintext);
+        }
+
+        @Test
+        @DisplayName("a token whose key id is not in the keyring is rejected")
+        void whenKeyIdNotInKeyringThenThrows() {
+            var ring   = Keyring.of(keyB);
+            var sealed = SecretSealing.seal(keyA.toPublicJWK(), "secret");
+            assertThatThrownBy(() -> SecretSealing.unseal(ring, sealed)).isInstanceOf(SecretSealingException.class)
+                    .hasMessageContaining("'a'");
+        }
+
+        @Test
+        @DisplayName("a token that names no key id is rejected")
+        void whenTokenNamesNoKeyIdThenThrows() {
+            var noKid  = new OctetKeyPair.Builder(keyA.toPublicJWK()).keyID(null).build();
+            var ring   = Keyring.of(keyA);
+            var sealed = SecretSealing.seal(noKid, "secret");
+            assertThatThrownBy(() -> SecretSealing.unseal(ring, sealed)).isInstanceOf(SecretSealingException.class)
+                    .hasMessageContaining("no key id");
+        }
+
+        @Test
+        @DisplayName("an empty keyring rejects every token, failing closed")
+        void whenKeyringEmptyThenThrows() {
+            var ring   = Keyring.of();
+            var sealed = SecretSealing.seal(keyA.toPublicJWK(), "secret");
+            assertThatThrownBy(() -> SecretSealing.unseal(ring, sealed)).isInstanceOf(SecretSealingException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("reseal")
+    class Reseal {
+
+        private final OctetKeyPair keyA = SecretSealing.generateRecipientKey("a");
+        private final OctetKeyPair keyB = SecretSealing.generateRecipientKey("b");
+
+        @Test
+        @DisplayName("a resealed token unseals under the target but no longer under the source")
+        void whenResealedThenUnsealsUnderTargetButNotSource() {
+            var sealed   = SecretSealing.seal(keyA.toPublicJWK(), "s3cr3t");
+            var resealed = SecretSealing.reseal(Keyring.of(keyA), keyB.toPublicJWK(), sealed);
+            assertThat(SecretSealing.unseal(keyB, resealed)).isEqualTo("s3cr3t");
+            assertThatThrownBy(() -> SecretSealing.unseal(keyA, resealed)).isInstanceOf(SecretSealingException.class);
+        }
     }
 }

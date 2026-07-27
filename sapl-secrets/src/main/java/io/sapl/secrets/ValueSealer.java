@@ -19,6 +19,7 @@ package io.sapl.secrets;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
 
@@ -59,71 +60,86 @@ public class ValueSealer {
 
     /** Seals a {@code secrets} object to the recipient, returning an object. */
     public static ObjectValue seal(OctetKeyPair recipientPublicKey, ObjectValue object) {
-        val builder = ObjectValue.builder();
-        for (val entry : object.entrySet()) {
-            builder.put(entry.getKey(), seal(recipientPublicKey, entry.getValue()));
-        }
-        return builder.build();
+        return mapLeaves(object, leaf -> sealLeaf(recipientPublicKey, leaf));
     }
 
     /** Seals any value; objects and arrays are traversed, every scalar leaf sealed. */
     public static Value seal(OctetKeyPair recipientPublicKey, Value value) {
-        return switch (value) {
-        case ObjectValue object -> seal(recipientPublicKey, object);
-        case ArrayValue array   -> sealArray(recipientPublicKey, array);
-        default                 -> sealLeaf(recipientPublicKey, value);
-        };
+        return mapLeaves(value, leaf -> sealLeaf(recipientPublicKey, leaf));
     }
 
     /** Unseals a {@code secrets} object with the recipient's private key. */
     public static ObjectValue unseal(OctetKeyPair recipientPrivateKey, ObjectValue object) {
-        val builder = ObjectValue.builder();
-        for (val entry : object.entrySet()) {
-            builder.put(entry.getKey(), unseal(recipientPrivateKey, entry.getValue()));
-        }
-        return builder.build();
+        return mapLeaves(object, leaf -> unsealLeaf(recipientPrivateKey, leaf));
     }
 
     /** Unseals any value; sealed leaves are restored to their original scalar type, non-scalar leaves are refused. */
     public static Value unseal(OctetKeyPair recipientPrivateKey, Value value) {
-        return switch (value) {
-        case ObjectValue object                            -> unseal(recipientPrivateKey, object);
-        case ArrayValue array                              -> unsealArray(recipientPrivateKey, array);
-        case TextValue(var text) when hasSealedShape(text) -> unsealLeaf(recipientPrivateKey, text);
-        default                                            -> value;
-        };
+        return mapLeaves(value, leaf -> unsealLeaf(recipientPrivateKey, leaf));
     }
 
-    private static ArrayValue sealArray(OctetKeyPair key, ArrayValue array) {
-        val elements = new ArrayList<Value>(array.size());
-        for (val element : array) {
-            elements.add(seal(key, element));
-        }
-        return Value.ofArray(elements);
+    /**
+     * Unseals a {@code secrets} object by routing each sealed leaf on its own key
+     * id through {@code keyring}. A tree may legitimately hold leaves under
+     * different key ids, for example after a partial reseal.
+     *
+     * @param keyring the keyring resolving each leaf's recipient private key
+     * @param object the object to unseal
+     * @return the object with every sealed leaf restored to its original scalar
+     * @throws SecretSealingException if a leaf names a key id the keyring lacks, or
+     * a leaf fails to unseal
+     */
+    public static ObjectValue unseal(Keyring keyring, ObjectValue object) {
+        return mapLeaves(object, leaf -> unsealLeaf(keyring, leaf));
     }
 
-    private static Value sealLeaf(OctetKeyPair key, Value value) {
-        if (isScalar(value)) {
-            return Value.of(
-                    MARKER_PREFIX + SecretSealing.seal(key, ValueJsonMarshaller.toJsonString(value)) + MARKER_SUFFIX);
-        }
-        throw new SecretSealingException(ERROR_UNSEALABLE_VALUE.formatted(value.getClass().getSimpleName()));
+    /**
+     * Unseals any value; each sealed leaf is routed by its own key id through the
+     * keyring, non-sealed leaves pass through unchanged.
+     *
+     * @param keyring the keyring resolving each leaf's recipient private key
+     * @param value the value to unseal
+     * @return the value with every sealed leaf restored to its original scalar
+     * @throws SecretSealingException if a leaf names a key id the keyring lacks, or
+     * a leaf fails to unseal
+     */
+    public static Value unseal(Keyring keyring, Value value) {
+        return mapLeaves(value, leaf -> unsealLeaf(keyring, leaf));
     }
 
-    private static ArrayValue unsealArray(OctetKeyPair key, ArrayValue array) {
-        val elements = new ArrayList<Value>(array.size());
-        for (val element : array) {
-            elements.add(unseal(key, element));
-        }
-        return Value.ofArray(elements);
+    /**
+     * Reseals a {@code secrets} object to a single new recipient: every sealed leaf
+     * is unsealed (routed by its own key id through {@code source}) and resealed to
+     * {@code targetPublicKey}. Non-sealed leaves pass through unchanged.
+     * <p>
+     * This is decrypt-then-encrypt per leaf: plaintext is held transiently in
+     * memory. It is not proxy re-encryption.
+     *
+     * @param source the keyring resolving each leaf's current recipient private key
+     * @param targetPublicKey the new recipient's public key to reseal every leaf to
+     * @param object the object to reseal
+     * @return the object with every sealed leaf resealed to {@code targetPublicKey}
+     * @throws SecretSealingException if a leaf cannot be routed, unsealed or resealed
+     */
+    public static ObjectValue reseal(Keyring source, OctetKeyPair targetPublicKey, ObjectValue object) {
+        return mapLeaves(object, leaf -> resealLeaf(source, targetPublicKey, leaf));
     }
 
-    private static Value unsealLeaf(OctetKeyPair key, String text) {
-        val restored = Value.ofJson(SecretSealing.unseal(key, unwrap(text)));
-        if (isScalar(restored)) {
-            return restored;
-        }
-        throw new SecretSealingException(ERROR_UNSEALED_NOT_SCALAR.formatted(restored.getClass().getSimpleName()));
+    /**
+     * Reseals any value to a single target public key; each sealed leaf is routed
+     * by its own key id, non-sealed leaves pass through unchanged.
+     * <p>
+     * This is decrypt-then-encrypt per leaf: plaintext is held transiently in
+     * memory. It is not proxy re-encryption.
+     *
+     * @param source the keyring resolving each leaf's current recipient private key
+     * @param targetPublicKey the new recipient's public key to reseal every leaf to
+     * @param value the value to reseal
+     * @return the value with every sealed leaf resealed to {@code targetPublicKey}
+     * @throws SecretSealingException if a leaf cannot be routed, unsealed or resealed
+     */
+    public static Value reseal(Keyring source, OctetKeyPair targetPublicKey, Value value) {
+        return mapLeaves(value, leaf -> resealLeaf(source, targetPublicKey, leaf));
     }
 
     /**
@@ -167,6 +183,66 @@ public class ValueSealer {
         case TextValue(var text) when hasSealedShape(text) -> SecretSealing.recipientKeyIdOf(unwrap(text));
         default                                            -> Optional.empty();
         };
+    }
+
+    private static ObjectValue mapLeaves(ObjectValue object, UnaryOperator<Value> leafOperation) {
+        val builder = ObjectValue.builder();
+        for (val entry : object.entrySet()) {
+            builder.put(entry.getKey(), mapLeaves(entry.getValue(), leafOperation));
+        }
+        return builder.build();
+    }
+
+    private static Value mapLeaves(Value value, UnaryOperator<Value> leafOperation) {
+        return switch (value) {
+        case ObjectValue object -> mapLeaves(object, leafOperation);
+        case ArrayValue array   -> {
+            val elements = new ArrayList<Value>(array.size());
+            for (val element : array) {
+                elements.add(mapLeaves(element, leafOperation));
+            }
+            yield Value.ofArray(elements);
+        }
+        default                 -> leafOperation.apply(value);
+        };
+    }
+
+    private static Value sealLeaf(OctetKeyPair key, Value leaf) {
+        if (isScalar(leaf)) {
+            return Value.of(
+                    MARKER_PREFIX + SecretSealing.seal(key, ValueJsonMarshaller.toJsonString(leaf)) + MARKER_SUFFIX);
+        }
+        throw new SecretSealingException(ERROR_UNSEALABLE_VALUE.formatted(leaf.getClass().getSimpleName()));
+    }
+
+    private static Value unsealLeaf(OctetKeyPair key, Value leaf) {
+        if (leaf instanceof TextValue(var text) && hasSealedShape(text)) {
+            return restoreLeaf(SecretSealing.unseal(key, unwrap(text)));
+        }
+        return leaf;
+    }
+
+    private static Value unsealLeaf(Keyring keyring, Value leaf) {
+        if (leaf instanceof TextValue(var text) && hasSealedShape(text)) {
+            return restoreLeaf(SecretSealing.unseal(keyring, unwrap(text)));
+        }
+        return leaf;
+    }
+
+    private static Value resealLeaf(Keyring source, OctetKeyPair targetPublicKey, Value leaf) {
+        if (leaf instanceof TextValue(var text) && hasSealedShape(text)) {
+            return Value
+                    .of(MARKER_PREFIX + SecretSealing.reseal(source, targetPublicKey, unwrap(text)) + MARKER_SUFFIX);
+        }
+        return leaf;
+    }
+
+    private static Value restoreLeaf(String plaintext) {
+        val restored = Value.ofJson(plaintext);
+        if (isScalar(restored)) {
+            return restored;
+        }
+        throw new SecretSealingException(ERROR_UNSEALED_NOT_SCALAR.formatted(restored.getClass().getSimpleName()));
     }
 
     private static boolean isScalar(Value value) {

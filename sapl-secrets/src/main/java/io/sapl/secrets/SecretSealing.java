@@ -19,6 +19,7 @@ package io.sapl.secrets;
 
 import java.text.ParseException;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JOSEException;
@@ -53,18 +54,39 @@ public class SecretSealing {
     private static final JWEAlgorithm     ALGORITHM  = JWEAlgorithm.ECDH_ES;
     private static final EncryptionMethod ENCRYPTION = EncryptionMethod.A256GCM;
     private static final Curve            CURVE      = Curve.X25519;
-    private static final String           KEY_ID     = "recipient";
 
     private static final String ERROR_CANNOT_GENERATE_KEY    = "Cannot generate a recipient key.";
     private static final String ERROR_CANNOT_SEAL            = "Cannot seal a secret.";
     private static final String ERROR_CANNOT_UNSEAL          = "Cannot unseal a secret.";
+    private static final String ERROR_MISSING_KEY_ID         = "Cannot unseal a secret: the sealed token declares no key id to route by.";
     private static final String ERROR_UNEXPECTED_ALGORITHM   = "Refusing to unseal: expected %s/%s but the token declares %s/%s.";
     private static final String ERROR_UNEXPECTED_COMPRESSION = "Refusing to unseal: the token declares compression %s but none is expected.";
+    private static final String ERROR_UNKNOWN_KEY_ID         = "Cannot unseal a secret: the keyring holds no key for key id '%s'.";
 
-    /** Generates a recipient key pair (the private key; its public part seals). */
+    /**
+     * Generates a recipient key pair with a fresh, unique key id (the private key;
+     * its public part seals). Two calls never collide on key id, so generated keys
+     * route unambiguously through a {@link Keyring}.
+     *
+     * @return a new X25519 recipient key pair with a random key id
+     * @throws SecretSealingException if key generation fails
+     */
     public static OctetKeyPair generateRecipientKey() {
+        return generateRecipientKey(UUID.randomUUID().toString());
+    }
+
+    /**
+     * Generates a recipient key pair with a caller-chosen key id (the private key;
+     * its public part seals). Use this for a stable, addressable key id; use
+     * {@link #generateRecipientKey()} when any unique id will do.
+     *
+     * @param keyId the key id to stamp on the generated key
+     * @return a new X25519 recipient key pair carrying {@code keyId}
+     * @throws SecretSealingException if key generation fails
+     */
+    public static OctetKeyPair generateRecipientKey(String keyId) {
         try {
-            return new OctetKeyPairGenerator(CURVE).keyID(KEY_ID).generate();
+            return new OctetKeyPairGenerator(CURVE).keyID(keyId).generate();
         } catch (JOSEException e) {
             throw new SecretSealingException(ERROR_CANNOT_GENERATE_KEY, e);
         }
@@ -119,5 +141,43 @@ public class SecretSealing {
         } catch (ParseException | JOSEException e) {
             throw new SecretSealingException(ERROR_CANNOT_UNSEAL, e);
         }
+    }
+
+    /**
+     * Unseals a token produced by {@link #seal} by routing on the token's own key
+     * id: reads the recipient key id from the token, resolves the matching private
+     * key from {@code keyring}, and unseals. Fails closed.
+     *
+     * @param keyring the keyring to resolve the recipient private key from
+     * @param sealed the compact JWE token to unseal
+     * @return the recovered plaintext
+     * @throws SecretSealingException if the token declares no key id, if the
+     * keyring holds no key for that key id, or if unsealing fails
+     */
+    public static String unseal(Keyring keyring, String sealed) {
+        val keyId      = recipientKeyIdOf(sealed).orElseThrow(() -> new SecretSealingException(ERROR_MISSING_KEY_ID));
+        val privateKey = keyring.privateKeyFor(keyId)
+                .orElseThrow(() -> new SecretSealingException(ERROR_UNKNOWN_KEY_ID.formatted(keyId)));
+        return unseal(privateKey, sealed);
+    }
+
+    /**
+     * Reseals a token to a new recipient: unseals it with the key the
+     * {@code source} keyring resolves for the token's key id, then seals the
+     * recovered plaintext to {@code targetPublicKey}. Equivalent to
+     * {@code seal(targetPublicKey, unseal(source, sealed))}.
+     * <p>
+     * This is decrypt-then-encrypt: the caller holds the plaintext transiently in
+     * memory between the two steps. It is not proxy re-encryption.
+     *
+     * @param source the keyring resolving the current recipient's private key
+     * @param targetPublicKey the new recipient's public key to seal to
+     * @param sealed the compact JWE token to reseal
+     * @return a new compact JWE token sealed to {@code targetPublicKey}
+     * @throws SecretSealingException if the source token cannot be routed or
+     * unsealed, or if sealing to the target fails
+     */
+    public static String reseal(Keyring source, OctetKeyPair targetPublicKey, String sealed) {
+        return seal(targetPublicKey, unseal(source, sealed));
     }
 }
