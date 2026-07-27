@@ -54,6 +54,7 @@ public class JsonEditor extends Component implements HasSize {
     private static final String PROP_IS_READ_ONLY        = "isReadOnly";
     private static final String PROP_HAS_LINE_NUMBERS    = "hasLineNumbers";
     private static final String PROP_IS_LINT             = "isLint";
+    private static final String PROP_LINE_WRAPPING       = "lineWrapping";
     private static final String PROP_IS_MERGE_MODE       = "isMergeMode";
     private static final String PROP_MERGE_RIGHT_CONTENT = "mergeRightContent";
     private static final String PROP_MATCH_BRACKETS      = "matchBrackets";
@@ -90,6 +91,7 @@ public class JsonEditor extends Component implements HasSize {
         element.setProperty(PROP_IS_READ_ONLY, config.isReadOnly());
         element.setProperty(PROP_HAS_LINE_NUMBERS, config.isHasLineNumbers());
         element.setProperty(PROP_IS_LINT, config.isLint());
+        element.setProperty(PROP_LINE_WRAPPING, config.isLineWrapping());
     }
 
     /**
@@ -161,6 +163,26 @@ public class JsonEditor extends Component implements HasSize {
      */
     public boolean isLint() {
         return getElement().getProperty(PROP_IS_LINT, true);
+    }
+
+    /**
+     * Enables or disables soft line wrapping. When enabled, long lines wrap at
+     * the editor width instead of scrolling horizontally.
+     *
+     * @param lineWrapping true to wrap long lines
+     */
+    public void setLineWrapping(boolean lineWrapping) {
+        getElement().setProperty(PROP_LINE_WRAPPING, lineWrapping);
+        getElement().callJsFunction("setLineWrapping", lineWrapping);
+    }
+
+    /**
+     * Returns whether soft line wrapping is enabled.
+     *
+     * @return true if line wrapping is enabled
+     */
+    public boolean isLineWrapping() {
+        return getElement().getProperty(PROP_LINE_WRAPPING, false);
     }
 
     /**

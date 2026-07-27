@@ -83,6 +83,7 @@ public class SaplEditorLsp extends Component implements HasSize {
     private static final String PROP_AUTOCOMPLETE_TRIGGER = "autocompleteTrigger";
     private static final String PROP_AUTOCOMPLETE_DELAY   = "autocompleteDelay";
     private static final String PROP_FOLDING_ENABLED      = "foldingEnabled";
+    private static final String PROP_LINE_WRAPPING        = "lineWrapping";
 
     @Getter
     private String document;
@@ -116,6 +117,7 @@ public class SaplEditorLsp extends Component implements HasSize {
         element.setProperty(PROP_HAS_LINE_NUMBERS, config.isHasLineNumbers());
         element.setProperty(PROP_AUTOCOMPLETE_TRIGGER, config.getAutocompleteTrigger().name().toLowerCase());
         element.setProperty(PROP_AUTOCOMPLETE_DELAY, config.getAutocompleteDelay());
+        element.setProperty(PROP_LINE_WRAPPING, config.isLineWrapping());
         if (config.getWsUrl() != null) {
             element.setProperty(PROP_WS_URL, config.getWsUrl());
         }
@@ -187,6 +189,26 @@ public class SaplEditorLsp extends Component implements HasSize {
      */
     public boolean isReadOnly() {
         return getElement().getProperty(PROP_IS_READ_ONLY, false);
+    }
+
+    /**
+     * Enables or disables soft line wrapping. When enabled, long lines wrap at
+     * the editor width instead of scrolling horizontally.
+     *
+     * @param lineWrapping true to wrap long lines
+     */
+    public void setLineWrapping(boolean lineWrapping) {
+        getElement().setProperty(PROP_LINE_WRAPPING, lineWrapping);
+        getElement().callJsFunction("setLineWrapping", lineWrapping);
+    }
+
+    /**
+     * Returns whether soft line wrapping is enabled.
+     *
+     * @return true if line wrapping is enabled
+     */
+    public boolean isLineWrapping() {
+        return getElement().getProperty(PROP_LINE_WRAPPING, false);
     }
 
     /**

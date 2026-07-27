@@ -23,6 +23,7 @@ const readOnlyCompartment = new Compartment();
 const lintCompartment = new Compartment();
 const bracketMatchingCompartment = new Compartment();
 const closeBracketsCompartment = new Compartment();
+const lineWrappingCompartment = new Compartment();
 
 // SAPL light theme. WCAG AA compliant, brand-aligned colors
 const saplLightHighlightStyle = HighlightStyle.define([
@@ -64,7 +65,8 @@ class JsonEditorLsp extends LitElement {
         matchBrackets: { type: Boolean },
         autoCloseBrackets: { type: Boolean },
         highlightChanges: { type: Boolean },
-        collapseUnchanged: { type: Boolean }
+        collapseUnchanged: { type: Boolean },
+        lineWrapping: { type: Boolean }
     };
 
     static styles = css`
@@ -269,6 +271,7 @@ class JsonEditorLsp extends LitElement {
         this.autoCloseBrackets = true;
         this.highlightChanges = true;
         this.collapseUnchanged = false;
+        this.lineWrapping = false;
 
         // Internal state
         this._editor = null;
@@ -335,7 +338,8 @@ class JsonEditorLsp extends LitElement {
             themeCompartment.of(this.isDarkTheme ? oneDark : saplLight),
             readOnlyCompartment.of(EditorState.readOnly.of(this.isReadOnly)),
             bracketMatchingCompartment.of(this.matchBrackets ? bracketMatching() : []),
-            closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : [])
+            closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
+            lineWrappingCompartment.of(this.lineWrapping ? EditorView.lineWrapping : [])
         ];
 
         if (withLinting && this.isLint) {
@@ -559,6 +563,18 @@ class JsonEditorLsp extends LitElement {
     setLint(lint) {
         this.isLint = lint;
         const effect = lintCompartment.reconfigure(lint ? [linter(jsonParseLinter()), lintGutter()] : []);
+
+        if (this._editor) {
+            this._editor.dispatch({ effects: effect });
+        }
+        if (this._rightEditor) {
+            this._rightEditor.dispatch({ effects: effect });
+        }
+    }
+
+    setLineWrapping(enabled) {
+        this.lineWrapping = enabled;
+        const effect = lineWrappingCompartment.reconfigure(enabled ? EditorView.lineWrapping : []);
 
         if (this._editor) {
             this._editor.dispatch({ effects: effect });
