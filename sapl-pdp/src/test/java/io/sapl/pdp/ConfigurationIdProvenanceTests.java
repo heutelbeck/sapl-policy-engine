@@ -25,7 +25,11 @@ import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.DirectoryProvenance;
+import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
+import io.sapl.pdp.configuration.bundle.BundleParser;
+import io.sapl.pdp.configuration.bundle.BundleProvenance;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.VoteReport;
@@ -140,6 +144,29 @@ class ConfigurationIdProvenanceTests {
         val reportValue = ReportBuilderUtil.toObjectValue(report);
 
         assertThat(reportValue.get("configurationId")).isEqualTo(Value.of(report.configurationId()));
+    }
+
+    @Test
+    @DisplayName("identical content from a directory and a bundle derives the same content id but different provenance")
+    void whenSameContentLoadedFromDirectoryAndBundleThenContentIdMatchesButProvenanceDiffers(@TempDir Path policyDir)
+            throws Exception {
+        Files.writeString(policyDir.resolve("pdp.json"), PDP_JSON);
+        Files.writeString(policyDir.resolve("permit-read.sapl"), PERMIT_READ_POLICY);
+        val directoryConfiguration = PDPConfigurationLoader.loadFromDirectory(policyDir, DEFAULT_PDP_ID);
+
+        val bundleBytes         = BundleBuilder.create().withPdpJson(PDP_JSON)
+                .withPolicy("permit-read.sapl", PERMIT_READ_POLICY).withConfigurationId("provenance-bundle-id").build();
+        val bundleConfiguration = BundleParser.parse(bundleBytes, DEFAULT_PDP_ID,
+                BundleSecurityPolicy.builder().disableSignatureVerification().build());
+
+        val directoryContentId = ConfigurationIds.contentHash16(ConfigurationIds.entriesOf(directoryConfiguration));
+        val bundleContentId    = ConfigurationIds.contentHash16(ConfigurationIds.entriesOf(bundleConfiguration));
+
+        assertThat(directoryConfiguration.provenance()).isInstanceOf(DirectoryProvenance.class)
+                .isNotInstanceOf(BundleProvenance.class);
+        assertThat(bundleConfiguration.provenance()).isInstanceOf(BundleProvenance.class)
+                .isNotInstanceOf(DirectoryProvenance.class);
+        assertThat(directoryContentId).isEqualTo(bundleContentId);
     }
 
     private VoteReport decideAndCaptureReport(PolicyDecisionPointBuilder builder) throws Exception {

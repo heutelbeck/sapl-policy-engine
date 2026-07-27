@@ -168,9 +168,20 @@ public class PDPConfigurationLoader {
         putUtf8(contents, supplements.rawFiles());
         val configurationId = ConfigurationIds.derive("dir:" + directoryName(path), contents);
 
+        // Key the provenance map by the document source string so a consumer holding a
+        // saplDocuments() entry can recover its .sapl filename by direct lookup. The
+        // loader assembles saplContents as filename to source, but only the source
+        // strings survive into PDPConfiguration.saplDocuments(); inverting to
+        // source to filename is the unambiguous join back to the originating file. Only
+        // policy filenames enter here, never the content of any secrets file.
+        val documentFiles = new HashMap<String, String>();
+        saplContents.forEach((fileName, source) -> documentFiles.put(source, fileName));
+        val pdpJsonProvenancePath = pdpJsonFile.raw() != null ? pdpJsonPath.toString() : null;
+        val provenance            = new DirectoryProvenance(path.toString(), pdpJsonProvenancePath, documentFiles);
+
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
                 new PdpData(pdpJson.variables(), supplements.secrets()), supplements.extensions(),
-                supplements.extensionSecrets(), supplements.criticalExtensions());
+                supplements.extensionSecrets(), supplements.criticalExtensions(), provenance);
     }
 
     private static void putUtf8(Map<String, byte[]> contents, Map<String, String> textByName) {

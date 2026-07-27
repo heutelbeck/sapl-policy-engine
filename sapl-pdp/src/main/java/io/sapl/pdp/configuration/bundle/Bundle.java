@@ -74,11 +74,17 @@ record Bundle(
         allSecretNames.addAll(sealedExtensionSecrets.keySet());
         val criticalExtensions = ExtensionFiles.parseCriticalExtensions(criticalExtensionsJson);
         ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), allSecretNames);
-        val configuration = PDPConfigurationLoader.loadFromBundle(pdpJson, secretsJson, saplDocuments, pdpId,
+        val configuration  = PDPConfigurationLoader.loadFromBundle(pdpJson, secretsJson, saplDocuments, pdpId,
                 manifest.configurationId());
-        val allSecrets    = toValues(extensionSecrets);
+        val provenance     = new BundleProvenance(pdpId, saplDocuments, pdpJson, extensions, criticalExtensionsJson,
+                manifest);
+        val withProvenance = new PDPConfiguration(configuration.pdpId(), configuration.configurationId(),
+                configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
+                configuration.data(), configuration.extensions(), configuration.extensionSecrets(),
+                configuration.criticalExtensions(), provenance);
+        val allSecrets     = toValues(extensionSecrets);
         allSecrets.putAll(toValues(sealedExtensionSecrets));
-        return configuration.withExtensions(toValues(extensions), allSecrets, criticalExtensions);
+        return withProvenance.withExtensions(toValues(extensions), allSecrets, criticalExtensions);
     }
 
     private void checkAudience(BundleSecurityPolicy securityPolicy) {
