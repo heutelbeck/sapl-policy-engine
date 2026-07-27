@@ -21,7 +21,6 @@ import io.sapl.ast.Outcome;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -31,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("PdpVoterMetadata")
 class PdpVoterMetadataTests {
 
-    private static PdpVoterMetadata metadataWithConfigurationId(@Nullable String configurationId) {
+    private static PdpVoterMetadata metadataWithConfigurationId(String configurationId) {
         return new PdpVoterMetadata("pdp voter", "default", configurationId, null, Outcome.PERMIT_OR_DENY, false);
     }
 
