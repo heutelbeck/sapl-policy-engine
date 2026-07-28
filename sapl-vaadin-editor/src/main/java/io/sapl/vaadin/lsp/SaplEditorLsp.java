@@ -84,6 +84,7 @@ public class SaplEditorLsp extends Component implements HasSize {
     private static final String PROP_AUTOCOMPLETE_DELAY   = "autocompleteDelay";
     private static final String PROP_FOLDING_ENABLED      = "foldingEnabled";
     private static final String PROP_LINE_WRAPPING        = "lineWrapping";
+    private static final String PROP_FOLLOW_COLOR_SCHEME  = "followColorScheme";
 
     @Getter
     private String document;
@@ -118,6 +119,7 @@ public class SaplEditorLsp extends Component implements HasSize {
         element.setProperty(PROP_AUTOCOMPLETE_TRIGGER, config.getAutocompleteTrigger().name().toLowerCase());
         element.setProperty(PROP_AUTOCOMPLETE_DELAY, config.getAutocompleteDelay());
         element.setProperty(PROP_LINE_WRAPPING, config.isLineWrapping());
+        element.setProperty(PROP_FOLLOW_COLOR_SCHEME, config.isFollowColorScheme());
         if (config.getWsUrl() != null) {
             element.setProperty(PROP_WS_URL, config.getWsUrl());
         }
@@ -209,6 +211,27 @@ public class SaplEditorLsp extends Component implements HasSize {
      */
     public boolean isLineWrapping() {
         return getElement().getProperty(PROP_LINE_WRAPPING, false);
+    }
+
+    /**
+     * Enables or disables following the host page's color scheme. When enabled,
+     * the editor switches between its light and dark themes to match the page
+     * instead of using the fixed dark-theme setting.
+     *
+     * @param followColorScheme true to follow the page color scheme
+     */
+    public void setFollowColorScheme(boolean followColorScheme) {
+        getElement().setProperty(PROP_FOLLOW_COLOR_SCHEME, followColorScheme);
+        getElement().callJsFunction("setFollowColorScheme", followColorScheme);
+    }
+
+    /**
+     * Returns whether the editor follows the host page's color scheme.
+     *
+     * @return true if the editor follows the page color scheme
+     */
+    public boolean isFollowColorScheme() {
+        return getElement().getProperty(PROP_FOLLOW_COLOR_SCHEME, false);
     }
 
     /**

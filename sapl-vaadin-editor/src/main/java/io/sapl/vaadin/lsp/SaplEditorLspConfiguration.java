@@ -82,4 +82,10 @@ public class SaplEditorLspConfiguration {
      * horizontally.
      */
     private boolean lineWrapping = false;
+
+    /**
+     * Whether the editor follows the host page's color scheme (light or dark)
+     * automatically instead of using the fixed {@code darkTheme} value.
+     */
+    private boolean followColorScheme = false;
 }

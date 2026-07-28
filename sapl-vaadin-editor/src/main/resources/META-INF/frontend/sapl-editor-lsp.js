@@ -33,6 +33,25 @@ const bracketMatchingCompartment = new Compartment();
 const closeBracketsCompartment = new Compartment();
 const lineWrappingCompartment = new Compartment();
 
+// Resolves whether the host page is currently in a dark color scheme. Reads the standard CSS `color-scheme`
+// the host applies to the document root (Vaadin/Lumo set it via a theme="dark" / theme="light-dark" attribute
+// on <html>): an explicit dark or light wins, and when the app defers to the system ("light dark") the OS
+// preference decides. Used only when followColorScheme is enabled.
+function pageColorSchemeDark() {
+    try {
+        const scheme = getComputedStyle(document.documentElement).colorScheme || '';
+        if (scheme.includes('dark') && !scheme.includes('light')) {
+            return true;
+        }
+        if (scheme.includes('light') && !scheme.includes('dark')) {
+            return false;
+        }
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch (e) {
+        return false;
+    }
+}
+
 // SAPL light theme. WCAG AA compliant, brand-aligned colors
 const saplLightHighlightStyle = HighlightStyle.define([
     { tag: tags.keyword, color: '#027080' },
@@ -184,7 +203,8 @@ class SaplEditorLsp extends LitElement {
         autocompleteTrigger: { type: String },  // 'manual' or 'on_typing'
         autocompleteDelay: { type: Number },
         foldingEnabled: { type: Boolean },
-        lineWrapping: { type: Boolean }
+        lineWrapping: { type: Boolean },
+        followColorScheme: { type: Boolean }
     };
 
     static styles = css`
@@ -196,8 +216,10 @@ class SaplEditorLsp extends LitElement {
         #editor-container {
             height: 100%;
             width: 100%;
-            border: 1px solid var(--lumo-contrast-20pct, #ccc);
-            border-radius: var(--lumo-border-radius-m, 4px);
+            box-sizing: border-box;
+            /* --vaadin-* props adapt across Lumo and Aura; --lumo-* are undefined under Aura. */
+            border: 1px solid var(--vaadin-border-color-secondary);
+            border-radius: var(--vaadin-radius-m);
             overflow: hidden;
         }
         .cm-editor {
@@ -486,6 +508,7 @@ class SaplEditorLsp extends LitElement {
         this.autocompleteDelay = 300;
         this.foldingEnabled = false;
         this.lineWrapping = false;
+        this.followColorScheme = false;
 
         // Internal state
         this._editor = null;
@@ -534,9 +557,12 @@ class SaplEditorLsp extends LitElement {
     }
 
     firstUpdated() {
-        this.setAttribute('data-theme', this.isDarkTheme ? 'dark' : 'light');
+        this.setAttribute('data-theme', this._effectiveDark() ? 'dark' : 'light');
         this.setAttribute('data-readonly', this.isReadOnly ? 'true' : 'false');
         this._initEditor();
+        if (this.followColorScheme) {
+            this._installColorSchemeWatcher();
+        }
         if (this.wsUrl) {
             this._connectLsp();
         }
@@ -550,6 +576,7 @@ class SaplEditorLsp extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this._removeColorSchemeWatcher();
         this._disconnectLsp();
         this._destroyEditors();
     }
@@ -594,7 +621,7 @@ class SaplEditorLsp extends LitElement {
             keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...lintKeymap]),
             keymap.of([indentWithTab]),
             languageCompartment.of(this._getLanguageMode()),
-            themeCompartment.of(this.isDarkTheme ? oneDark : saplLight),
+            themeCompartment.of(this._effectiveDark() ? oneDark : saplLight),
             readOnlyCompartment.of(EditorState.readOnly.of(this.isReadOnly)),
             bracketMatchingCompartment.of(this.matchBrackets ? bracketMatching() : []),
             closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
@@ -673,7 +700,7 @@ class SaplEditorLsp extends LitElement {
                 basicSetup,
                 keymap.of([indentWithTab]),
                 languageCompartment.of(this._getLanguageMode()),
-                themeCompartment.of(this.isDarkTheme ? oneDark : saplLight),
+                themeCompartment.of(this._effectiveDark() ? oneDark : saplLight),
                 bracketMatchingCompartment.of(this.matchBrackets ? bracketMatching() : []),
                 closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
                 cursorTheme
@@ -1445,6 +1472,57 @@ class SaplEditorLsp extends LitElement {
         }
         if (this._rightEditor) {
             this._rightEditor.dispatch({ effects: effect });
+        }
+    }
+
+    _effectiveDark() {
+        return this.followColorScheme ? pageColorSchemeDark() : this.isDarkTheme;
+    }
+
+    _applyEffectiveTheme() {
+        const dark = this._effectiveDark();
+        this.setAttribute('data-theme', dark ? 'dark' : 'light');
+        const effect = themeCompartment.reconfigure(dark ? oneDark : saplLight);
+        if (this._editor) {
+            this._editor.dispatch({ effects: effect });
+        }
+        if (this._rightEditor) {
+            this._rightEditor.dispatch({ effects: effect });
+        }
+    }
+
+    _installColorSchemeWatcher() {
+        if (this._colorSchemeObserver) {
+            return;
+        }
+        // Follow the host page's color scheme: Vaadin toggles theme="dark"/"light-dark" on <html>, and the OS
+        // preference applies when the app defers to the system. Re-theme on either signal.
+        this._colorSchemeObserver = new MutationObserver(() => this._applyEffectiveTheme());
+        this._colorSchemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['theme'] });
+        this._colorSchemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        this._colorSchemeMediaListener = () => this._applyEffectiveTheme();
+        this._colorSchemeMedia.addEventListener('change', this._colorSchemeMediaListener);
+    }
+
+    _removeColorSchemeWatcher() {
+        if (this._colorSchemeObserver) {
+            this._colorSchemeObserver.disconnect();
+            this._colorSchemeObserver = null;
+        }
+        if (this._colorSchemeMedia && this._colorSchemeMediaListener) {
+            this._colorSchemeMedia.removeEventListener('change', this._colorSchemeMediaListener);
+            this._colorSchemeMedia = null;
+            this._colorSchemeMediaListener = null;
+        }
+    }
+
+    setFollowColorScheme(follow) {
+        this.followColorScheme = follow;
+        if (follow) {
+            this._installColorSchemeWatcher();
+            this._applyEffectiveTheme();
+        } else {
+            this._removeColorSchemeWatcher();
         }
     }
 
