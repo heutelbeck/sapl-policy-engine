@@ -35,6 +35,8 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 
+import lombok.val;
+
 @DisplayName("Value sealing")
 class ValueSealerTests {
 
@@ -275,6 +277,26 @@ class ValueSealerTests {
         @DisplayName("returns empty for a malformed ENC token")
         void whenMalformedTokenThenEmpty() {
             assertThat(ValueSealer.recipientKeyIdOf(Value.of("ENC[not-a-jwe]"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("strict extraction returns every recipient in a mixed-key tree")
+        void whenTreeUsesMultipleRecipientsThenStrictExtractionReturnsAll() {
+            val first  = SecretSealing.generateRecipientKey("first");
+            val second = SecretSealing.generateRecipientKey("second");
+            val mixed  = ObjectValue.builder().put("a", ValueSealer.seal(first.toPublicJWK(), Value.of("x")))
+                    .put("b", ValueSealer.seal(second.toPublicJWK(), Value.of("y"))).build();
+
+            assertThat(ValueSealer.recipientKeyIdsOf(mixed)).containsExactlyInAnyOrder("first", "second");
+        }
+
+        @Test
+        @DisplayName("strict extraction rejects a malformed sealed-looking leaf")
+        void whenSealedLeafIsMalformedThenStrictExtractionFails() {
+            val malformed = Value.of("ENC[not-a-jwe]");
+
+            assertThatThrownBy(() -> ValueSealer.recipientKeyIdsOf(malformed))
+                    .isInstanceOf(SecretSealingException.class).hasMessageContaining("malformed");
         }
     }
 }

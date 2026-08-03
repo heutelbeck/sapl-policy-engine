@@ -9,6 +9,10 @@
 # the configured public key. Operators relying on unsigned bundles for
 # local development must set io.sapl.pdp.embedded.bundle-security.allow-unsigned=true
 # explicitly; the docker profile does not weaken this.
+#
+# Sealed bundles use io.sapl.pdp.embedded.secrets.private-key-paths. Mount
+# current and previous X25519 private JWK files read-only and list both paths
+# during a recipient-key rotation. A container restart applies the new keyring.
 
 server:
   address: 0.0.0.0

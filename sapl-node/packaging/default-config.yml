@@ -181,6 +181,17 @@ io.sapl:
       # unsigned-tenants:
       #   - "development"
 
+    # --- Sealed Bundle Secrets ---
+    #
+    # Keep current and previous X25519 private keys together during rotation.
+    # Remove the previous key only after every bundle has been resealed.
+    #
+    # secrets:
+    #   private-key-paths:
+    #     - /etc/sapl/bundle-recipient-current.jwk
+    #     - /etc/sapl/bundle-recipient-previous.jwk
+    #   accept-unencrypted: false
+
     # --- Remote Bundles ---
     #
     # Required when pdp-config-type is REMOTE_BUNDLES.

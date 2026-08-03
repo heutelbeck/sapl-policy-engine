@@ -248,6 +248,30 @@ class BundleParserTests {
             assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                     .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("no sealed content");
         }
+
+        @Test
+        @DisplayName("a sealed leaf addressed to a recipient other than the manifest audience is rejected")
+        void whenLeafRecipientDiffersFromAudienceThenRejected() throws IOException {
+            val recipient   = SecretSealing.generateRecipientKey("actual-recipient");
+            val sealed      = SecretSealing.seal(recipient.toPublicJWK(), "\"secret\"");
+            val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "secrets.sealed.json", """
+                    { "apiKey": "ENC[%s]" }""".formatted(sealed)), "claimed-recipient");
+
+            assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("does not match")
+                    .hasMessageNotContaining("actual-recipient");
+        }
+
+        @Test
+        @DisplayName("an empty sealed object with an explicit audience is accepted")
+        void whenSealedObjectIsEmptyThenExplicitAudienceIsAccepted() throws IOException {
+            val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "secrets.sealed.json", "{}"),
+                    "recipient");
+
+            val configuration = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
+
+            assertThat(configuration.data().secrets()).isEmpty();
+        }
     }
 
     @Test
@@ -514,8 +538,10 @@ class BundleParserTests {
     @Test
     @DisplayName("a bundle's secrets file is loaded into the PDP data")
     void whenBundleHasSecretsFileThenLoaded() throws IOException {
+        val recipient   = SecretSealing.generateRecipientKey("recipient-key");
+        val sealed      = SecretSealing.seal(recipient.toPublicJWK(), "\"secret\"");
         val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "secrets.sealed.json", """
-                { "apiKey": "ENC[ciphertext]" }"""), "recipient-key");
+                { "apiKey": "ENC[%s]" }""".formatted(sealed)), "recipient-key");
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 

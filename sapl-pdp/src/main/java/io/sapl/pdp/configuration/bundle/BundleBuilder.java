@@ -28,6 +28,7 @@ import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
+import io.sapl.secrets.SecretSealingException;
 import io.sapl.secrets.ValueSealer;
 import lombok.val;
 import tools.jackson.core.JacksonException;
@@ -159,6 +160,7 @@ public final class BundleBuilder {
     private static final String ERROR_PRIVATE_KEY_MUST_BE_ED25519              = "Private key must be Ed25519, got: %s.";
     private static final String ERROR_PRIVATE_KEY_NULL                         = "Private key must not be null.";
     private static final String ERROR_SEALED_CONTENT_REQUIRES_RECIPIENT        = "Sealed content requires a sealing recipient key id. Use sealSecretsWith with a keyed recipient or withSealingRecipient.";
+    private static final String ERROR_SEALED_CONTENT_USES_MULTIPLE_RECIPIENTS  = "All sealed bundle leaves must use the same recipient named by the manifest audience.";
     private static final String ERROR_SEALING_RECIPIENT_WITHOUT_SEALED_CONTENT = "A sealing recipient is set but the bundle carries no sealed content. Remove withSealingRecipient or add sealed secrets.";
     private static final String ERROR_SECRETS_NOT_SEALED                       = "Secrets must already be sealed. Use withSecrets to seal cleartext.";
     private static final String ERROR_SECRETS_REQUIRE_KEY                      = "Secrets require a sealing key. Call sealSecretsWith before building.";
@@ -782,19 +784,27 @@ public final class BundleBuilder {
             }
             return null;
         }
-        if (sealingRecipient != null) {
-            return sealingRecipient;
-        }
-        if (secretsSealingKey != null && secretsSealingKey.getKeyID() != null) {
-            return secretsSealingKey.getKeyID();
-        }
-        for (val entry : allFiles.entrySet()) {
-            if (isSealedFileName(entry.getKey())) {
-                val recipient = ValueSealer.recipientKeyIdOf(Value.ofJson(entry.getValue()));
-                if (recipient.isPresent()) {
-                    return recipient.get();
+        val recipients = new HashSet<String>();
+        try {
+            for (val entry : allFiles.entrySet()) {
+                if (isSealedFileName(entry.getKey())) {
+                    recipients.addAll(ValueSealer.recipientKeyIdsOf(Value.ofJson(entry.getValue())));
                 }
             }
+        } catch (SecretSealingException e) {
+            throw new PDPConfigurationException(ERROR_SEALED_CONTENT_REQUIRES_RECIPIENT, e);
+        }
+        val configuredRecipient = sealingRecipient != null ? sealingRecipient
+                : secretsSealingKey != null ? secretsSealingKey.getKeyID() : null;
+        if (recipients.size() > 1
+                || configuredRecipient != null && !recipients.isEmpty() && !recipients.contains(configuredRecipient)) {
+            throw new PDPConfigurationException(ERROR_SEALED_CONTENT_USES_MULTIPLE_RECIPIENTS);
+        }
+        if (configuredRecipient != null) {
+            return configuredRecipient;
+        }
+        if (recipients.size() == 1) {
+            return recipients.iterator().next();
         }
         throw new PDPConfigurationException(ERROR_SEALED_CONTENT_REQUIRES_RECIPIENT);
     }

@@ -232,6 +232,12 @@ var config = new RemoteBundleSourceConfig(
 
 var pdp = PolicyDecisionPointBuilder.withDefaults(mapper, clock)
     .withRemoteBundleSource(config)
+    .withSecretsDecryptionKeyring(Keyring.of(currentRecipient, previousRecipient))
     .build()
     .pdp();
 ```
+
+Keep current and previous recipient keys in the keyring while the remote publisher
+reseals bundles. Restart the consumer after changing the keyring. Invalid updates,
+including an unknown or mixed recipient, become configuration errors and do not
+replace the last-good configuration.

@@ -22,13 +22,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.secrets.Keyring;
 import io.sapl.secrets.SecretSealing;
+import io.sapl.secrets.ValueSealer;
 
 import lombok.val;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @DisplayName("SecretsUnsealing")
 class SecretsUnsealingTests {
@@ -76,5 +87,25 @@ class SecretsUnsealingTests {
         assertThat(ValueJsonMarshaller.toJsonString(unsealed.extensionSecrets().get("paratron-gateway")))
                 .contains("EXT-SECRET-VALUE").doesNotContain("ENC[");
         assertThat(ValueJsonMarshaller.toJsonString(unsealed.extensions().get("paratron-gateway"))).contains("route");
+    }
+
+    @Test
+    @DisplayName("a rotation keyring unseals PDP and extension secrets addressed to different accepted keys")
+    void whenConfigurationUsesRotationKeysThenEachLeafIsRoutedByKeyId() {
+        val previous         = SecretSealing.generateRecipientKey("previous");
+        val current          = SecretSealing.generateRecipientKey("current");
+        val sealedPdpSecrets = ObjectValue.builder()
+                .put("old", ValueSealer.seal(previous.toPublicJWK(), Value.of("old-secret")))
+                .put("new", ValueSealer.seal(current.toPublicJWK(), Value.of("new-secret"))).build();
+        val sealedExtension  = ValueSealer.seal(current.toPublicJWK(), Value.of("extension-secret"));
+        val configuration    = new PDPConfiguration("pdp", "config", CombiningAlgorithm.DEFAULT, Value.EMPTY_OBJECT,
+                List.of(), new PdpData(Value.EMPTY_OBJECT, sealedPdpSecrets), Map.of(),
+                Map.of("gateway", sealedExtension), Set.of());
+
+        val unsealed = SecretsUnsealing.process(Keyring.of(current, previous), false, configuration);
+
+        assertThat(unsealed.data().secrets()).containsEntry("old", Value.of("old-secret")).containsEntry("new",
+                Value.of("new-secret"));
+        assertThat(unsealed.extensionSecrets()).containsEntry("gateway", Value.of("extension-secret"));
     }
 }

@@ -56,6 +56,7 @@ import io.sapl.pdp.configuration.source.*;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSource;
 import io.sapl.pdp.plugins.StaticPluginsSource;
+import io.sapl.secrets.Keyring;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
@@ -147,17 +148,18 @@ public class PolicyDecisionPointBuilder {
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
-    private OctetKeyPair secretsDecryptionKey;
-    private boolean      acceptUnencryptedSecrets;
+    private Keyring secretsDecryptionKeyring;
+    private boolean acceptUnencryptedSecrets;
 
-    private static final String ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE  = "Secrets decryption key must contain a private key component.";
-    private static final String ERROR_DECRYPTION_KEY_MUST_BE_X25519   = "Secrets decryption key must be an X25519 key.";
-    private static final String ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL = "Secrets decryption key must not be null.";
-    private static final String ERROR_INITIAL_CONFIGURATION_FAILED    = "The initial configuration for pdpId '%s' failed to compile: %s";
-    private static final String ERROR_NO_PLUGINS_AVAILABLE            = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
-    private static final String ERROR_SOURCE_ALREADY_REGISTERED       = "A configuration source has already been registered. Only one source is allowed.";
-    private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS    = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
-    private static final String WARN_ERROR_CLOSING_RESOURCE           = "Error closing {} during failed PDP build: {}.";
+    private static final String ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE       = "Secrets decryption key must contain a private key component.";
+    private static final String ERROR_DECRYPTION_KEY_MUST_BE_X25519        = "Secrets decryption key must be an X25519 key.";
+    private static final String ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL      = "Secrets decryption key must not be null.";
+    private static final String ERROR_DECRYPTION_KEYRING_MUST_NOT_BE_EMPTY = "Secrets decryption keyring must not be empty.";
+    private static final String ERROR_INITIAL_CONFIGURATION_FAILED         = "The initial configuration for pdpId '%s' failed to compile: %s";
+    private static final String ERROR_NO_PLUGINS_AVAILABLE                 = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
+    private static final String ERROR_SOURCE_ALREADY_REGISTERED            = "A configuration source has already been registered. Only one source is allowed.";
+    private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS         = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
+    private static final String WARN_ERROR_CLOSING_RESOURCE                = "Error closing {} during failed PDP build: {}.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper) {
         this.mapper = mapper;
@@ -545,7 +547,27 @@ public class PolicyDecisionPointBuilder {
         if (!recipientPrivateKey.isPrivate()) {
             throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE);
         }
-        this.secretsDecryptionKey = recipientPrivateKey;
+        return withSecretsDecryptionKeyring(Keyring.of(recipientPrivateKey));
+    }
+
+    /**
+     * Sets the X25519 recipient private keys with which this PDP unseals
+     * configuration secrets. Each sealed leaf is routed exclusively by its JWE
+     * {@code kid}; keys are typically kept together during a recipient-key
+     * rotation.
+     *
+     * @param keyring the validated recipient private keys
+     * @return this builder
+     * @throws IllegalArgumentException if the keyring is null or empty
+     */
+    public PolicyDecisionPointBuilder withSecretsDecryptionKeyring(Keyring keyring) {
+        if (keyring == null) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL);
+        }
+        if (keyring.privateKeysByKeyId().isEmpty()) {
+            throw new IllegalArgumentException(ERROR_DECRYPTION_KEYRING_MUST_NOT_BE_EMPTY);
+        }
+        this.secretsDecryptionKeyring = keyring;
         return this;
     }
 
@@ -878,8 +900,8 @@ public class PolicyDecisionPointBuilder {
         val voterSource             = new PdpVoterSource(pluginsSource, clock, extensionsProcessor);
         // Wrap the configured source so secrets are unsealed at the source
         // boundary. Downstream, the compiler included, only ever sees cleartext.
-        val effectiveSource = secretsDecryptionKey != null && configurationSource != null
-                ? new SecretsUnsealingSource(configurationSource, secretsDecryptionKey, acceptUnencryptedSecrets)
+        val effectiveSource = secretsDecryptionKeyring != null && configurationSource != null
+                ? new SecretsUnsealingSource(configurationSource, secretsDecryptionKeyring, acceptUnencryptedSecrets)
                 : configurationSource;
         val blockingPdp     = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
                 resolvedTimestampSource);
@@ -963,8 +985,8 @@ public class PolicyDecisionPointBuilder {
     }
 
     private PDPConfiguration unsealSecrets(PDPConfiguration configuration) {
-        return secretsDecryptionKey == null ? configuration
-                : SecretsUnsealing.process(secretsDecryptionKey, acceptUnencryptedSecrets, configuration);
+        return secretsDecryptionKeyring == null ? configuration
+                : SecretsUnsealing.process(secretsDecryptionKeyring, acceptUnencryptedSecrets, configuration);
     }
 
     private PluginsSource resolvePluginsSource() {

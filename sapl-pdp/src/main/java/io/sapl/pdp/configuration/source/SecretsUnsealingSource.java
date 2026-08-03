@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration.source;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -25,8 +26,8 @@ import com.nimbusds.jose.jwk.OctetKeyPair;
 
 import io.sapl.pdp.SecretsUnsealing;
 import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.secrets.Keyring;
 import io.sapl.secrets.SecretSealingException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -52,16 +53,44 @@ import lombok.val;
  * broad so that no unseal fault, expected or not, escapes onto that thread.
  */
 @Slf4j
-@RequiredArgsConstructor
 public final class SecretsUnsealingSource implements PDPConfigurationSource {
 
     private static final String WARN_UNSEAL_REJECTED = "Rejected a configuration for pdpId '{}' (configurationId '{}') because {}. The previously loaded configuration for this pdpId, if any, remains active.";
 
     private final PDPConfigurationSource delegate;
-    private final OctetKeyPair           recipientPrivateKey;
+    private final Keyring                keyring;
     private final boolean                acceptUnencryptedSecrets;
 
     private final Map<Consumer<ConfigurationEvent>, Consumer<ConfigurationEvent>> wrappers = new ConcurrentHashMap<>();
+
+    /**
+     * Creates a source using one recipient private key.
+     *
+     * @param delegate the source to decorate
+     * @param recipientPrivateKey the X25519 recipient private key
+     * @param acceptUnencryptedSecrets whether unsealed secrets are accepted
+     * @throws NullPointerException if the delegate or key is null
+     * @throws SecretSealingException if the key is not a valid keyring member
+     */
+    public SecretsUnsealingSource(PDPConfigurationSource delegate,
+            OctetKeyPair recipientPrivateKey,
+            boolean acceptUnencryptedSecrets) {
+        this(delegate, Keyring.of(recipientPrivateKey), acceptUnencryptedSecrets);
+    }
+
+    /**
+     * Creates a source routing sealed leaves across a recipient keyring.
+     *
+     * @param delegate the source to decorate
+     * @param keyring the X25519 recipient private keys
+     * @param acceptUnencryptedSecrets whether unsealed secrets are accepted
+     * @throws NullPointerException if the delegate or keyring is null
+     */
+    public SecretsUnsealingSource(PDPConfigurationSource delegate, Keyring keyring, boolean acceptUnencryptedSecrets) {
+        this.delegate                 = Objects.requireNonNull(delegate, "delegate");
+        this.keyring                  = Objects.requireNonNull(keyring, "keyring");
+        this.acceptUnencryptedSecrets = acceptUnencryptedSecrets;
+    }
 
     @Override
     public void subscribe(Consumer<ConfigurationEvent> listener) {
@@ -89,7 +118,7 @@ public final class SecretsUnsealingSource implements PDPConfigurationSource {
 
     private ConfigurationEvent unseal(ConfigurationEvent event) {
         try {
-            return SecretsUnsealing.processEvent(recipientPrivateKey, acceptUnencryptedSecrets, event);
+            return SecretsUnsealing.processEvent(keyring, acceptUnencryptedSecrets, event);
         } catch (RuntimeException failure) {
             // Immortal error path: an unseal failure must never crash the delegate's
             // monitoring thread. Only a NewConfiguration can fail to unseal (other events

@@ -20,6 +20,7 @@ package io.sapl.spring.pdp.embedded;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -155,17 +156,18 @@ public class EmbeddedPDPProperties {
     public static class SecretsProperties {
 
         /**
-         * Path to the X25519 recipient private key file (JWK) used to unseal bundle
-         * secrets. If unset, secrets are left as {@code ENC[...]} tokens.
+         * Paths to X25519 recipient private key files (JWK). Configure the current
+         * and previous keys together during bundle-recipient rotation. Each sealed
+         * leaf is routed by its JWE key id.
          */
-        private String privateKeyPath;
+        private List<String> privateKeyPaths = new ArrayList<>();
 
         /**
-         * The X25519 recipient private key as a JWK string. Alternative to
-         * privateKeyPath for containerized deployments where the key is injected via
-         * environment variable.
+         * X25519 recipient private keys as JWK strings. This is the plural
+         * alternative to {@link #privateKeyPaths}.
          */
-        private String privateKey;
+        @ToString.Exclude
+        private List<String> privateKeys = new ArrayList<>();
 
         /**
          * Accept configurations whose secrets are not sealed.

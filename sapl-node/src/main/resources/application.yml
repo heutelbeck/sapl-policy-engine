@@ -235,6 +235,19 @@ io.sapl:
     #   # REMOTE_BUNDLES. A network-fetched unsigned bundle can be replaced in
     #   # transit to inject arbitrary policy. Use only with local trusted sources.
 
+    # --- Sealed Bundle Secrets ---
+    #
+    # Keep the current and previous X25519 recipient private keys configured
+    # together while publishers reseal bundles during a key rotation. Every key
+    # must have a unique, non-blank kid. Restart the node after changing the list.
+    #
+    # secrets:
+    #   private-key-paths:
+    #     - /run/secrets/bundle-recipient-current.jwk
+    #     - /run/secrets/bundle-recipient-previous.jwk
+    #   # Cleartext bundle secrets remain rejected by default.
+    #   accept-unencrypted: false
+
     # --- Remote Bundles ---
     #
     # Required when pdp-config-type is REMOTE_BUNDLES.

@@ -19,6 +19,8 @@ package io.sapl.secrets;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.UnaryOperator;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
@@ -55,8 +57,9 @@ public class ValueSealer {
     private static final String MARKER_PREFIX = "ENC[";
     private static final String MARKER_SUFFIX = "]";
 
-    private static final String ERROR_UNSEALABLE_VALUE    = "Refusing to seal a %s value in a secrets object.";
-    private static final String ERROR_UNSEALED_NOT_SCALAR = "Refusing to unseal a %s value from a secrets leaf.";
+    private static final String ERROR_MISSING_RECIPIENT_KEY_ID = "A sealed secret leaf is malformed or declares no recipient key id.";
+    private static final String ERROR_UNSEALABLE_VALUE         = "Refusing to seal a %s value in a secrets object.";
+    private static final String ERROR_UNSEALED_NOT_SCALAR      = "Refusing to unseal a %s value from a secrets leaf.";
 
     /** Seals a {@code secrets} object to the recipient, returning an object. */
     public static ObjectValue seal(OctetKeyPair recipientPublicKey, ObjectValue object) {
@@ -185,6 +188,21 @@ public class ValueSealer {
         };
     }
 
+    /**
+     * Reads every recipient key id from the sealed leaves of a value without
+     * decrypting it.
+     *
+     * @param value the value to inspect
+     * @return the distinct recipient key ids declared by its sealed leaves
+     * @throws SecretSealingException if a sealed-looking leaf is malformed or
+     * declares no key id
+     */
+    public static Set<String> recipientKeyIdsOf(Value value) {
+        val recipients = new TreeSet<String>();
+        collectRecipientKeyIds(value, recipients);
+        return Set.copyOf(recipients);
+    }
+
     private static ObjectValue mapLeaves(ObjectValue object, UnaryOperator<Value> leafOperation) {
         val builder = ObjectValue.builder();
         for (val entry : object.entrySet()) {
@@ -235,6 +253,22 @@ public class ValueSealer {
                     .of(MARKER_PREFIX + SecretSealing.reseal(source, targetPublicKey, unwrap(text)) + MARKER_SUFFIX);
         }
         return leaf;
+    }
+
+    private static void collectRecipientKeyIds(Value value, Set<String> recipients) {
+        switch (value) {
+        case ObjectValue object  -> object.values().forEach(child -> collectRecipientKeyIds(child, recipients));
+        case ArrayValue array    -> array.forEach(child -> collectRecipientKeyIds(child, recipients));
+        case TextValue(var text) -> {
+            if (hasSealedShape(text)) {
+                recipients.add(SecretSealing.recipientKeyIdOf(unwrap(text))
+                        .orElseThrow(() -> new SecretSealingException(ERROR_MISSING_RECIPIENT_KEY_ID)));
+            }
+        }
+        default                  -> {
+            // Non-sealed leaves have no recipient.
+        }
+        }
     }
 
     private static Value restoreLeaf(String plaintext) {

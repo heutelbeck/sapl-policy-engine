@@ -626,9 +626,10 @@ class BundleBuilderTests {
         @Test
         @DisplayName("already-sealed secrets are stored verbatim without a key")
         void whenSealedSecretsThenStoredVerbatim() throws IOException {
-            val sealed = """
-                    { "apiKey": "ENC[ciphertext]" }""";
-            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed)
+            val recipient = SecretSealing.generateRecipientKey("legacy-recipient-key");
+            val sealed    = """
+                    { "apiKey": "ENC[%s]" }""".formatted(SecretSealing.seal(recipient.toPublicJWK(), "\"secret\""));
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed)
                     .withSealingRecipient("legacy-recipient-key").build();
             assertThat(extractEntries(bundle).get("secrets.sealed.json")).isEqualTo(sealed);
         }
@@ -695,12 +696,13 @@ class BundleBuilderTests {
         @Test
         @DisplayName("already-sealed extension secrets are stored verbatim without a key")
         void whenSealedExtensionSecretsAddedThenStoredVerbatim() throws IOException {
-            val sealed  = """
-                    { "apiKey": "ENC[ciphertext]" }""";
-            val bundle  = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", "{}")
+            val recipient = SecretSealing.generateRecipientKey("legacy-recipient-key");
+            val sealed    = """
+                    { "apiKey": "ENC[%s]" }""".formatted(SecretSealing.seal(recipient.toPublicJWK(), "\"secret\""));
+            val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", "{}")
                     .withSealedExtensionSecrets("upstreams", sealed).withSealingRecipient("legacy-recipient-key")
                     .build();
-            val entries = extractEntries(bundle);
+            val entries   = extractEntries(bundle);
             assertThat(entries.get("ext-upstreams-secrets.sealed.json")).isEqualTo(sealed);
         }
 
@@ -890,6 +892,20 @@ class BundleBuilderTests {
 
             assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("sealing recipient key id");
+        }
+
+        @Test
+        @DisplayName("sealed leaves for multiple recipients cannot be published in one bundle")
+        void whenSealedContentUsesMultipleRecipientsThenBuildFails() {
+            val first   = SecretSealing.generateRecipientKey("first");
+            val second  = SecretSealing.generateRecipientKey("second");
+            val sealed  = "{\"first\":\"ENC[%s]\",\"second\":\"ENC[%s]\"}".formatted(
+                    SecretSealing.seal(first.toPublicJWK(), "\"one\""),
+                    SecretSealing.seal(second.toPublicJWK(), "\"two\""));
+            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed);
+
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("same recipient");
         }
 
         @Test
