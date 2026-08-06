@@ -82,6 +82,20 @@
             <version>${project.version}</version>
         </dependency>
 		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>sapl-attribute-api</artifactId>
+			<version>${project.version}</version>
+			<exclusions>
+				<!-- sapl-node is Servlet/Jetty-based; avoid pulling reactor-netty
+				     and the reactive web server stack into the classpath. reactor-core
+				     itself is already provided via sapl-pdp-reactive. -->
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-webflux</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-test</artifactId>
 			<version>${project.version}</version>
@@ -580,6 +594,33 @@
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
 						<artifactId>native-maven-plugin</artifactId>
+						<version>0.10.6</version>
+						<extensions>true</extensions>
+						<executions>
+							<execution>
+								<id>build-native</id>
+								<goals>
+									<goal>compile-no-fork</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+						<configuration>
+							<imageName>sapl</imageName>
+							<buildArgs>
+								<buildArg>--no-fallback</buildArg>
+								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
+								<buildArg>--enable-url-protocols=http,https</buildArg>
+								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+								<buildArg>-march=compatibility</buildArg>
+								<buildArg>-O3</buildArg>
+								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+							</buildArgs>
+							<quickBuild>false</quickBuild>
+							<javaLauncher>
+        <version>17</version>
+    </javaLauncher>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>

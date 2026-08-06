@@ -27,13 +27,7 @@ import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -79,12 +73,20 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
      */
     private long sequenceCounter = 0L;
 
+    // Needed for delegate pattern
+    private final Consumer<RepositoryKey> onExpiry;
+
     public InMemoryAttributeRepository() {
+        this(key -> {});
+    }
+
+    public InMemoryAttributeRepository(Consumer<RepositoryKey> onExpiry) {
+        this.onExpiry  = onExpiry; // new
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            val thread = Thread.ofVirtual().unstarted(runnable);
-            thread.setName("InMemoryAttributeRepository-ttl");
-            return thread;
-        });
+                           val thread = Thread.ofVirtual().unstarted(runnable);
+                           thread.setName("InMemoryAttributeRepository-ttl");
+                           return thread;
+                       });
     }
 
     @Override
@@ -120,9 +122,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             toFire = observers(key);
             seq    = ++sequenceCounter;
         } finally {
-
             lock.unlock();
-
         }
         fireObservers(toFire, Value.UNDEFINED, seq);
     }
@@ -139,14 +139,15 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         try {
             if (closed) {
                 initial = Value.error(ERROR_CLOSED);
+                seqInit = sequenceCounter;
             } else {
                 observersByKey.computeIfAbsent(repoKey, k -> new HashSet<>()).add(observer);
                 val entry = entries.get(repoKey);
                 initial = entry != null ? entry.value : Value.UNDEFINED;
+                seqInit = sequenceCounter;
             }
             seqInit = sequenceCounter;
         } finally {
-
             lock.unlock();
 
         }
@@ -234,6 +235,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             lock.unlock();
 
         }
+        onExpiry.accept(key); // new
         fireObservers(toFire, Value.UNDEFINED, seq);
     }
 

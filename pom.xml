@@ -801,6 +801,8 @@
 
 		<!-- Server applications -->
 		<module>sapl-node</module>
+		<module>sapl-attribute-api</module>
+		<module>sapl-attribute-api-gui</module>
 		<module>sapl-playground</module>
 
 		<!-- Benchmarks (not published, not in BOM) -->

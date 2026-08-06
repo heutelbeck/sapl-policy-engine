@@ -46,17 +46,37 @@ import lombok.val;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
+import io.sapl.pdp.configuration.AttributeConfiguration;
+import org.springframework.context.annotation.Import;
+
 @EnableCaching
-@ComponentScan({ "io.sapl.node", "io.sapl.server" })
+@ComponentScan({ "io.sapl.node", "io.sapl.server", "io.sapl.attributeapi" })
 @EnableConfigurationProperties(SaplNodeProperties.class)
 @ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
 // Transaction + persistence autoconfigure classes live in transitive Spring Boot
 // jars not on this module's compile classpath. excludeName by string is the
 // only way to reference them without forcing a transitive-to-compile bump.
-@SpringBootApplication(excludeName = {
+@SpringBootApplication(excludeName = { "io.sapl.spring.config.AuthorizationManagerConfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizationAutoConfiguration",
-        "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
+        "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration",
+        "io.sapl.spring.data.mongo.config.SaplMongoReactiveAutoConfiguration",
+        "org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration",
+        "org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration",
+        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration",
+        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveAutoConfiguration",
+        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveRepositoriesAutoConfiguration",
+        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration",
+        // sapl-pdp's AttributeConfiguration provides its own ConnectionFactory/
+        // DatabaseClient beans only when io.sapl.attributes.storage=postgres.
+        // Without these excludes, Spring Boot's generic R2DBC autoconfiguration
+        // eagerly creates a fallback ConnectionFactory bean and fails with
+        // "Failed to determine a suitable R2DBC Connection URL" for every other
+        // storage backend (including the heap default).
+        "org.springframework.boot.r2dbc.autoconfigure.ConnectionFactoryAutoConfiguration",
+        "org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration",
+        "org.springframework.boot.r2dbc.autoconfigure.health.ConnectionFactoryHealthContributorAutoConfiguration" })
+@Import({ AttributeConfiguration.class })
 public class SaplNodeApplication {
 
     private static final String SERVER_COMMAND   = "server";
@@ -188,6 +208,21 @@ public class SaplNodeApplication {
      * field it reads via reflection.
      */
     static class NativeResourceHints implements RuntimeHintsRegistrar {
+
+        private static final String COMMANDS_PACKAGE  = "io.sapl.node.cli.commands.";
+        private static final String OPTIONS_PACKAGE   = "io.sapl.node.cli.options.";
+        private static final String BENCHMARK_PACKAGE = "io.sapl.node.cli.benchmark.";
+
+        private static final String[] PICOCLI_REFLECTION_CLASSES = { COMMANDS_PACKAGE + "AttributesCommand",
+                COMMANDS_PACKAGE + "BenchmarkCommand", OPTIONS_PACKAGE + "BenchmarkOptions",
+                OPTIONS_PACKAGE + "BundleVerificationOptions", COMMANDS_PACKAGE + "CheckCommand",
+                COMMANDS_PACKAGE + "DecideCommand", COMMANDS_PACKAGE + "DecideOnceCommand",
+                COMMANDS_PACKAGE + "DeleteAttributeCommand", COMMANDS_PACKAGE + "GetAttributeCommand",
+                OPTIONS_PACKAGE + "NamedSubscriptionOptions", COMMANDS_PACKAGE + "LoadtestCommand",
+                OPTIONS_PACKAGE + "PdpOptions", OPTIONS_PACKAGE + "PolicySourceOptions",
+                COMMANDS_PACKAGE + "PublishAttributeCommand", OPTIONS_PACKAGE + "RemoteConnectionOptions",
+                OPTIONS_PACKAGE + "RemoteConnectionOptions$AuthOptions", COMMANDS_PACKAGE + "ServerCommand",
+                OPTIONS_PACKAGE + "SubscriptionInputOptions", COMMANDS_PACKAGE + "TestCommand" };
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {

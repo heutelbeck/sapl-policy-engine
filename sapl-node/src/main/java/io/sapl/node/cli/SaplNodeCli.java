@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.functions.libraries.SaplFunctionLibrary;
+import io.sapl.node.cli.commands.AttributesCommand;
 import io.sapl.node.cli.commands.BenchmarkCommand;
 import io.sapl.node.cli.commands.BundleCommand;
 import io.sapl.node.cli.commands.CheckCommand;
@@ -89,7 +90,7 @@ import picocli.CommandLine.IVersionProvider;
         ServerCommand.class, BundleCommand.class, CheckCommand.class,
         DecideCommand.class, DecideOnceCommand.class, GenerateCredentialsCommand.class,
         TestCommand.class, BenchmarkCommand.class,
-        LoadtestCommand.class
+        LoadtestCommand.class, AttributesCommand.class
     }
 )
 // @formatter:on

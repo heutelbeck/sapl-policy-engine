@@ -1,0 +1,129 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.attributeapigui.ui;
+
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.PasswordField;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Route;
+import io.sapl.attributeapigui.connection.ConnectionMode;
+import io.sapl.attributeapigui.connection.ConnectionSettings;
+import jakarta.annotation.security.RolesAllowed;
+import lombok.Getter;
+
+@Route(value = "settings", layout = MainLayout.class)
+@PageTitle("Settings")
+@RolesAllowed("ADMIN")
+public class SettingsView extends VerticalLayout {
+    // Load the available settings
+    @Getter
+    private final ConnectionSettings settings;
+
+    private final TextField                baseUrlField  = new TextField("API url");
+    private final ComboBox<ConnectionMode> modeField     = new ComboBox<>("Authentication");
+    private final TextField                usernameField = new TextField("Username");
+    private final PasswordField            passwordField = new PasswordField("Password");
+    private final PasswordField            apiKeyField   = new PasswordField("Api key");
+
+    public SettingsView(ConnectionSettings settings) {
+        this.settings = settings;
+
+        // 1 rem = 16px -> 16pxx32rem = 512px
+        setMaxWidth("32rem");
+        add(new H2("Connection"));
+        add(new Paragraph("Configure the settings needed for to access the SAPL attribute API"));
+
+        // Baser URL with preset settings
+        baseUrlField.setPlaceholder("http://localhost:8090");
+        baseUrlField.setWidthFull();
+        baseUrlField.setValue(settings.getBaseUrl() != null ? settings.getBaseUrl() : "");
+
+        // Dropdown with available settings
+        modeField.setItems(ConnectionMode.values());
+        modeField.setItemLabelGenerator(SettingsView::labelFor);
+        // OIDC has no login flow implemented in this GUI yet - keep the enum
+        // value for later, but gray it out in the list so it cannot be selected.
+        modeField.setRenderer(new ComponentRenderer<>(mode -> {
+            var item = new Span(labelFor(mode));
+            if (mode == ConnectionMode.OIDC) {
+                item.getStyle().set("opacity", "0.5").set("pointer-events", "none");
+            }
+            return item;
+        }));
+        modeField.setValue(settings.getMode() == ConnectionMode.OIDC ? ConnectionMode.NONE : settings.getMode());
+        modeField.setWidthFull();
+
+        // Switch the visible fields, OIDC cannot be selected (see renderer above)
+        modeField.addValueChangeListener(event -> {
+            if (event.getValue() == ConnectionMode.OIDC) {
+                modeField.setValue(event.getOldValue());
+                Notification.show("OpenID Connect authentication is not yet available in this GUI.");
+                return;
+            }
+            updateVisibility(event.getValue());
+        });
+
+        // Settings of the fields
+        usernameField.setWidthFull();
+        usernameField.setValue(settings.getUsername() != null ? settings.getUsername() : "");
+        passwordField.setWidthFull();
+        passwordField.setValue(settings.getPassword() != null ? settings.getPassword() : "");
+        apiKeyField.setWidthFull();
+        apiKeyField.setValue(settings.getApiKey() != null ? settings.getApiKey() : "");
+
+        // Save button
+        var saveButton = new Button("Save", event -> {
+            settings.setBaseUrl(baseUrlField.getValue().trim());
+            settings.setMode(modeField.getValue());
+            settings.setUsername(usernameField.getValue().trim());
+            settings.setPassword(passwordField.getValue());
+            settings.setApiKey(apiKeyField.getValue());
+
+            var notification = Notification.show("Connection settings saved.");
+            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        });
+
+        add(baseUrlField, modeField, usernameField, passwordField, apiKeyField, saveButton);
+
+        updateVisibility(modeField.getValue());
+    }
+
+    private void updateVisibility(ConnectionMode mode) {
+        usernameField.setVisible(mode == ConnectionMode.BASIC);
+        passwordField.setVisible(mode == ConnectionMode.BASIC);
+        apiKeyField.setVisible(mode == ConnectionMode.API);
+    }
+
+    private static String labelFor(ConnectionMode mode) {
+        return switch (mode) {
+        case NONE  -> "No authentication";
+        case BASIC -> "Username + Password";
+        case API   -> "API key";
+        case OIDC  -> "OpenID Connect";
+        };
+    }
+}

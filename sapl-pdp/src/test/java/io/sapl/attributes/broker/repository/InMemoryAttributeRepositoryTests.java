@@ -74,7 +74,7 @@ class InMemoryAttributeRepositoryTests {
         return new RepositoryKey(null, fqn, List.of(), TEST_PDP_ID);
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     @DisplayName("the same attribute observed by two different pdpIds maps to distinct repository keys (tenant isolation)")
     void whenSameAttributeDifferentPdpIdThenDistinctRepositoryKeys() {
         val keyTenantA = RepositoryKey.fromInvocation(invocation("env.shared", "tenant-a"));

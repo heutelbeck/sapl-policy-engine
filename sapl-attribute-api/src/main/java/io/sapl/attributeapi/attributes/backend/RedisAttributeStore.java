@@ -1,0 +1,159 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.attributeapi.attributes.backend;
+
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.Value;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import io.sapl.api.model.ValueJsonMarshaller;
+import lombok.NonNull;
+import org.jspecify.annotations.Nullable;
+
+public class RedisAttributeStore implements AttributeStore {
+    private static final String ERROR_TTL_NOT_POSITIVE = "Ttl must be a strictly positive Duration.";
+    private static final String UNDEFINED_STRING       = "UNDEFINED";
+    private static final String ERROR_PDP_ID_IS_EMPTY  = "pdpId must be resolved before reaching the store";
+
+    private final RedisClient                             client;
+    private final StatefulRedisConnection<String, String> connection;
+    private final RedisCommands<String, String>           cli;
+
+    public RedisAttributeStore(RedisClient client) {
+        this.client     = client;
+        this.connection = client.connect();
+        this.cli        = connection.sync();
+    }
+
+    @Override
+    public void publish(AttributeKey signature, Value value, String pdpId) {
+        publishInternal(signature, value, null, pdpId);
+    }
+
+    @Override
+    public void publish(AttributeKey signature, Value value, Duration ttl, String pdpId) {
+        if (ttl.isZero() || ttl.isNegative()) {
+            throw new IllegalArgumentException(ERROR_TTL_NOT_POSITIVE);
+        }
+        publishInternal(signature, value, ttl, pdpId);
+    }
+
+    private void publishInternal(AttributeKey signature, @NonNull Value value, @Nullable Duration ttl, String pdpId) {
+        String redisKey   = toRedisKey(signature, pdpId);
+        String redisValue = ValueJsonMarshaller.toJsonString(value);
+
+        Map<String, String> fields = new HashMap<>();
+        fields.put("name", signature.name());
+        fields.put("arguments", valuesToJson(signature.arguments()));
+        fields.put("value", redisValue);
+        if (signature.entity() != null) {
+            fields.put("entity", ValueJsonMarshaller.toJsonString(signature.entity()));
+        }
+
+        cli.hset(redisKey, fields);
+        if (ttl == null) {
+            cli.persist(redisKey);
+        } else {
+            cli.expire(redisKey, ttl.toSeconds());
+        }
+        cli.publish("sapl:changes:" + redisKey, redisValue);
+    }
+
+    @Override
+    public void remove(AttributeKey signature, String pdpId) {
+        String redisKey = toRedisKey(signature, pdpId);
+        cli.del(redisKey);
+        cli.publish("sapl:changes:" + redisKey, UNDEFINED_STRING);
+    }
+
+    @Override
+    public Long count(String pdpId) {
+        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
+        return (long) cli.keys("sapl:attribute:" + pdpId + ":*").size();
+    }
+
+    @Override
+    public Value get(AttributeKey signature, String pdpId) {
+        var raw = cli.hget(toRedisKey(signature, pdpId), "value");
+
+        return raw != null ? ValueJsonMarshaller.json(raw) : Value.UNDEFINED;
+    }
+
+    @Override
+    public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
+        // todo: implement a Redis scan with MATCH-pattern. Keys is blocking the whole
+        // keyspace
+        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
+
+        String pattern = "sapl:attribute:" + pdpId + ":*";
+
+        // Sort the list of keys to guarantee a deterministic output for limit/offset
+        List<String> keys = cli.keys(pattern).stream().sorted().toList();
+
+        // set the right offset as start point, check if the start exceeds the List
+        // limit and set the endpoint
+        int start = offset != null ? offset : 0;
+        if (start >= keys.size()) {
+            return List.of();
+        }
+        int end = limit != null ? Math.min(start + limit, keys.size()) : keys.size();
+
+        // return the keys with/without limit/offset operations
+        return keys.subList(start, end).stream().map(cli::hgetall).filter(hash -> !hash.isEmpty())
+                .map(RedisAttributeStore::toAttributeEntry).toList();
+    }
+
+    @Override
+    public void close() {
+        connection.close();
+        client.close();
+    }
+
+    private String toRedisKey(AttributeKey signature, String pdpId) {
+        String entity    = signature.entity() != null ? ValueJsonMarshaller.toJsonString(signature.entity()) : "null";
+        String arguments = valuesToJson(signature.arguments());
+
+        return "sapl:attribute:" + pdpId + ":" + entity + ":" + signature.name() + ":" + arguments;
+    }
+
+    private String valuesToJson(List<Value> values) {
+        return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
+    }
+
+    private static AttributeEntry toAttributeEntry(Map<String, String> hash) {
+        String name         = hash.get("name");
+        String entityRaw    = hash.get("entity");
+        String argumentsRaw = hash.get("arguments");
+        String valueRaw     = hash.get("value");
+
+        Value       entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
+        List<Value> arguments = argumentsRaw != null && ValueJsonMarshaller.json(argumentsRaw) instanceof ArrayValue a
+                ? a
+                : List.of();
+        Value       value     = valueRaw != null ? ValueJsonMarshaller.json(valueRaw) : Value.UNDEFINED;
+
+        return new AttributeEntry(new AttributeKey(entity, name, arguments), value);
+    }
+}

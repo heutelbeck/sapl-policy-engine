@@ -89,7 +89,7 @@ public interface AttributeRepository extends AutoCloseable {
      * changes deliver until the returned handle is closed.
      * <p>
      * {@code onValue} fires outside any internal lock of this
-     * repository. Concurrent fires are serialised per registration so
+     * repository. Concurrent fires are serialized per registration so
      * the observer sees changes in order.
      *
      * @param invocation the invocation to observe
