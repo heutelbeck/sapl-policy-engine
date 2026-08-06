@@ -25,7 +25,6 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.r2dbc.core.DatabaseClient;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -34,15 +33,46 @@ import java.util.List;
 import java.util.Objects;
 
 public class PostgresAttributeStore implements AttributeStore {
-    private static final String ERROR_TTL_NOT_POSITIVE = "Ttl must be a strictly positive Duration.";
-    private static final String ERROR_PDP_ID_IS_EMPTY  = "pdpId must be resolved before reaching the store";
+    private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
+    private static final String ERROR_PDP_ID_IS_EMPTY  = "PDP-ID must be resolved before reaching the store";
+    private static final String NOTIFY_SQL             = "SELECT pg_notify('attribute_changes', :payload)";
 
     private final DatabaseClient client;
-    private final String         table;
+
+    private final String table;
+    private final String countSql;
+    private final String getSql;
+    private final String getAllSql;
+    private final String upsertSql;
+    private final String deleteSql;
 
     public PostgresAttributeStore(DatabaseClient client, String table) {
         this.client = client;
         this.table  = table;
+
+        this.countSql  = "SELECT count(*) FROM " + table
+                + " WHERE pdp_id = :pdpId AND (expires_at IS NULL OR expires_at > NOW())";
+        this.getSql    = "SELECT value FROM " + table + " WHERE pdp_id = :pdpId AND name = :name "
+                + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
+                + "AND arguments = CAST(:arguments AS jsonb) AND (expires_at IS NULL OR expires_at > NOW())";
+        this.getAllSql = "SELECT name, entity, arguments, value FROM " + table + " WHERE pdp_id = :pdpId "
+                + "AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY name, entity, arguments LIMIT :limit OFFSET :offset";
+        // ON CONFLICT triggers the unique constraint in the db if the value already
+        // exists
+        // Indexes:
+        // "attributes_pdp_id_name_entity_arguments_key" UNIQUE CONSTRAINT, btree
+        // (pdp_id, name, entity, arguments) NULLS NOT DISTINCT
+        // DO UPDATE executes an update statement instead. This logic implements a real
+        // upsert and an atomic execution
+        // The atomic execution is important to have the same Decision if a multi node
+        // setup is used
+        this.upsertSql = "INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
+                + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
+                + "ON CONFLICT (pdp_id, name, entity, arguments) "
+                + "DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at";
+        this.deleteSql = "DELETE FROM " + table + " WHERE pdp_id = :pdpId AND name = :name "
+                + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
+                + "AND arguments = CAST(:arguments AS jsonb)";
     }
 
     @Override
@@ -67,8 +97,7 @@ public class PostgresAttributeStore implements AttributeStore {
     public Long count(String pdpId) {
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
 
-        var spec = client.sql("SELECT count(*) FROM " + table
-                + " where pdp_id = :pdpId AND (expires_at IS NULL OR expires_at > NOW())").bind("pdpId", pdpId);
+        var spec = client.sql(countSql).bind("pdpId", pdpId);
 
         return spec.map(row -> Objects.requireNonNull(row.get(0, Long.class))).one().block();
     }
@@ -80,10 +109,7 @@ public class PostgresAttributeStore implements AttributeStore {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
 
-        var spec = client.sql("SELECT value FROM " + table + " WHERE pdp_id = :pdpId AND name = :name "
-                + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
-                + "AND arguments = CAST(:arguments AS jsonb) " + "AND (expires_at IS NULL OR expires_at > NOW())")
-                .bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
+        var spec = client.sql(getSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
 
         return (entityJson != null ? spec.bind("entity", entityJson) : spec.bindNull("entity", String.class)).map(r -> {
             String raw = r.get("value", String.class);
@@ -95,9 +121,7 @@ public class PostgresAttributeStore implements AttributeStore {
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
 
-        var spec = client.sql("SELECT name, entity, arguments, value FROM " + table + " WHERE pdp_id = :pdpId "
-                + "AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY name, entity, arguments LIMIT :limit OFFSET :offset")
-                .bind("pdpId", pdpId);
+        var spec = client.sql(getAllSql).bind("pdpId", pdpId);
 
         spec = limit != null ? spec.bind("limit", limit) : spec.bindNull("limit", Integer.class);
         spec = offset != null ? spec.bind("offset", offset) : spec.bindNull("offset", Integer.class);
@@ -113,7 +137,7 @@ public class PostgresAttributeStore implements AttributeStore {
         var payload = ValueJsonMarshaller.toJsonString(ObjectValue.builder().put("pdpId", Value.of(pdpId))
                 .put("name", Value.of(key.name())).put("entity", key.entity() != null ? key.entity() : Value.NULL)
                 .put("arguments", Value.ofArray(key.arguments())).build());
-        client.sql("SELECT pg_notify('attribute_changes', :payload)").bind("payload", payload).then().block();
+        client.sql(NOTIFY_SQL).bind("payload", payload).then().block();
     }
 
     private void upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
@@ -121,20 +145,8 @@ public class PostgresAttributeStore implements AttributeStore {
         var argumentsJson = valuesToJson(key.arguments());
         var valueJson     = ValueJsonMarshaller.toJsonString(value);
 
-        // ON CONFLICT triggers the unique constraint in the db if the value already
-        // exists
-        // Indexes:
-        // "attributes_pdp_id_name_entity_arguments_key" UNIQUE CONSTRAINT, btree
-        // (pdp_id, name, entity, arguments) NULLS NOT DISTINCT
-        // DO UPDATE executes an update statement instead. This logic implements a real
-        // upsert and an atomic execution
-        // The atomic execution is important to have the same Decision if a multi node
-        // setup is used
-        var upsertSpec = client.sql("INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
-                + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
-                + "ON CONFLICT (pdp_id, name, entity, arguments) "
-                + "DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at").bind("pdpId", pdpId)
-                .bind("name", key.name()).bind("arguments", argumentsJson).bind("value", valueJson);
+        var upsertSpec = client.sql(upsertSql).bind("pdpId", pdpId).bind("name", key.name())
+                .bind("arguments", argumentsJson).bind("value", valueJson);
 
         upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
@@ -148,11 +160,7 @@ public class PostgresAttributeStore implements AttributeStore {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
 
-        var spec = client
-                .sql("DELETE FROM " + table + " " + "WHERE pdp_id = :pdpId AND name = :name "
-                        + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
-                        + "AND arguments = CAST(:arguments AS jsonb)")
-                .bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
+        var spec = client.sql(deleteSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
         (entityJson != null ? spec.bind("entity", entityJson) : spec.bindNull("entity", String.class)).then().block();
         notifyPdp(key, pdpId);
     }
@@ -171,7 +179,7 @@ public class PostgresAttributeStore implements AttributeStore {
         List<Value> arguments = argumentsRaw != null && ValueJsonMarshaller.json(argumentsRaw) instanceof ArrayValue a
                 ? a
                 : List.of();
-        Value       value     = valueRaw != null ? ValueJsonMarshaller.json(valueRaw) : Value.UNDEFINED;
+        Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
         return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);
     }

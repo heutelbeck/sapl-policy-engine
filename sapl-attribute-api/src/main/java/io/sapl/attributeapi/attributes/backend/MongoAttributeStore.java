@@ -35,8 +35,15 @@ import java.util.List;
 import java.util.Objects;
 
 public class MongoAttributeStore implements AttributeStore {
-    private static final String ERROR_TTL_NOT_POSITIVE = "Ttl must be a strictly positive Duration.";
-    private static final String ERROR_PDP_ID_IS_EMPTY  = "pdpId must be resolved before reaching the store";
+    private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
+    private static final String ERROR_PDP_ID_IS_EMPTY  = "PDP-ID must be resolved before reaching the store";
+
+    private static final String PDP_ID_FIELD     = "pdpId";
+    private static final String NAME_FIELD       = "name";
+    private static final String ENTITY_FIELD     = "entity";
+    private static final String ARGUMENTS_FIELD  = "arguments";
+    private static final String VALUE_FIELD      = "value";
+    private static final String EXPIRES_AT_FIELD = "expiresAt";
 
     private final ReactiveMongoTemplate mongo;
     private final String                collection;
@@ -68,21 +75,21 @@ public class MongoAttributeStore implements AttributeStore {
     public Long count(String pdpId) {
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
 
-        var query = new Query(Criteria.where("pdpId").is(pdpId));
-        query.addCriteria(new Criteria().orOperator(Criteria.where("expiresAt").isNull(),
-                Criteria.where("expiresAt").gt(new Date())));
+        var query = new Query(Criteria.where(PDP_ID_FIELD).is(pdpId));
+        query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
+                Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
         return mongo.count(query, collection).block();
     }
 
     @Override
     public Value get(AttributeKey key, String pdpId) {
         var query = doMongoQuery(key, pdpId);
-        query.addCriteria(new Criteria().orOperator(Criteria.where("expiresAt").isNull(),
-                Criteria.where("expiresAt").gt(new Date())));
+        query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
+                Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
         var document = mongo.findOne(query, Document.class, collection).block();
         if (document == null)
             return Value.UNDEFINED;
-        var valueJson = document.getString("value");
+        var valueJson = document.getString(VALUE_FIELD);
         return valueJson != null ? ValueJsonMarshaller.json(valueJson) : Value.UNDEFINED;
     }
 
@@ -90,11 +97,11 @@ public class MongoAttributeStore implements AttributeStore {
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
 
-        var query = new Query(Criteria.where("pdpId").is(pdpId));
+        var query = new Query(Criteria.where(PDP_ID_FIELD).is(pdpId));
 
-        query.addCriteria(new Criteria().orOperator(Criteria.where("expiresAt").isNull(),
-                Criteria.where("expiresAt").gt(new Date())));
-        query.with(Sort.by(Sort.Direction.ASC, "name", "entity", "arguments"));
+        query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
+                Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
+        query.with(Sort.by(Sort.Direction.ASC, NAME_FIELD, ENTITY_FIELD, ARGUMENTS_FIELD));
 
         if (offset != null) {
             query.skip(offset);
@@ -122,9 +129,9 @@ public class MongoAttributeStore implements AttributeStore {
         var argsJson   = valuesToJson(key.arguments());
         var valueJson  = ValueJsonMarshaller.toJsonString(value);
 
-        var update = new Update().set("pdpId", pdpId).set("name", key.name()).set("entity", entityJson)
-                .set("arguments", argsJson).set("value", valueJson)
-                .set("expiresAt", expiresAt != null ? Date.from(expiresAt) : null);
+        var update = new Update().set(PDP_ID_FIELD, pdpId).set(NAME_FIELD, key.name()).set(ENTITY_FIELD, entityJson)
+                .set(ARGUMENTS_FIELD, argsJson).set(VALUE_FIELD, valueJson)
+                .set(EXPIRES_AT_FIELD, expiresAt != null ? Date.from(expiresAt) : null);
 
         mongo.upsert(doMongoQuery(key, pdpId), update, collection).block();
     }
@@ -132,8 +139,8 @@ public class MongoAttributeStore implements AttributeStore {
     private Query doMongoQuery(AttributeKey key, String pdpId) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argsJson   = valuesToJson(key.arguments());
-        var criteria   = Criteria.where("pdpId").is(pdpId).and("name").is(key.name()).and("entity").is(entityJson)
-                .and("arguments").is(argsJson);
+        var criteria   = Criteria.where(PDP_ID_FIELD).is(pdpId).and(NAME_FIELD).is(key.name()).and(ENTITY_FIELD)
+                .is(entityJson).and(ARGUMENTS_FIELD).is(argsJson);
 
         return new Query(criteria);
     }
@@ -143,17 +150,17 @@ public class MongoAttributeStore implements AttributeStore {
     }
 
     private static AttributeEntry mapDocument(Document document) {
-        String name         = document.getString("name");
-        String entityRaw    = document.getString("entity");
-        String argumentsRaw = document.getString("arguments");
-        String valueRaw     = document.getString("value");
+        String name         = document.getString(NAME_FIELD);
+        String entityRaw    = document.getString(ENTITY_FIELD);
+        String argumentsRaw = document.getString(ARGUMENTS_FIELD);
+        String valueRaw     = document.getString(VALUE_FIELD);
 
         Value       entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
         List<Value> arguments = argumentsRaw != null && ValueJsonMarshaller.json(argumentsRaw) instanceof ArrayValue a
                 ? a
                 : List.of();
-        Value       value     = valueRaw != null ? ValueJsonMarshaller.json(valueRaw) : Value.UNDEFINED;
+        Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
-        return new AttributeEntry(new AttributeKey(entity, name, arguments), value);
+        return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);
     }
 }

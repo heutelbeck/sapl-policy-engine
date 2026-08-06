@@ -52,10 +52,7 @@ public class PostgresAttributeRepository implements AttributeRepository {
     private final DatabaseClient       client;
     private final PostgresqlConnection connection;
     private final String               table;
-
-    // todo: Replace/remove as soon it's clarified how to add the pdpId to the
-    // Repository
-    private final String pdpId;
+    private final String               pdpId;
 
     private record DBEntry(String name, String entity, String arguments, String value, OffsetDateTime expiresAt) {}
 

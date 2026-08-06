@@ -34,13 +34,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class RedisAttributeRepository implements AttributeRepository {
-    private static final String ERROR_TTL_NOT_POSITIVE           = "Ttl must be a strictly positive Duration.";
+    private static final String ERROR_TTL_NOT_POSITIVE           = "TTL must be a strictly positive Duration.";
     private static final String ERROR_CLOSED                     = "Repository is closed.";
     private static final String UNDEFINED_STRING                 = "UNDEFINED";
     private static final String NOTIFY_KEYSPACE_EVENTS_PARAM     = "notify-keyspace-events";
-    private static final String ERROR_KEYSPACE_NOTIFICATIONS_OFF = "Redis is not configured to publish expired-key events (notify-keyspace-events='%s'). "
-            + "Set it to include 'Ex' before starting the application, e.g. via redis.conf or "
-            + "'CONFIG SET notify-keyspace-events Ex' — the application does not change this itself.";
+    private static final String ERROR_KEYSPACE_NOTIFICATIONS_OFF = "Configure Redis to publish expired key events.";
 
     private final ReentrantLock                                 lock = new ReentrantLock(true);
     private final RedisClient                                   client;
@@ -80,10 +78,9 @@ public class RedisAttributeRepository implements AttributeRepository {
             public void message(String pattern, String channel, String message) {
                 // sapl:changes:* → Wertänderungen
                 String redisKey = channel.substring("sapl:changes:".length());
-                // notifyObservers(redisKey, toValueFromRedisValue(message));
-                Value value = message.equals(UNDEFINED_STRING) ? Value.UNDEFINED : ValueJsonMarshaller.json(message);
+                Value  value    = message.equals(UNDEFINED_STRING) ? Value.UNDEFINED
+                        : ValueJsonMarshaller.json(message);
 
-                // notifyObservers(redisKey, message);
                 notifyObservers(redisKey, value);
             }
         });

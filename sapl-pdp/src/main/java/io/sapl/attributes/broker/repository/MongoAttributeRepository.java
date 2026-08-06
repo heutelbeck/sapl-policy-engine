@@ -58,10 +58,7 @@ public class MongoAttributeRepository implements AttributeRepository {
 
     private final ReactiveMongoTemplate mongo;
     private final String                collection;
-
-    // todo: Replace/remove as soon it's clarified how to add the pdpId to the
-    // Repository
-    private final String pdpId;
+    private final String                pdpId;
 
     public MongoAttributeRepository(ReactiveMongoTemplate mongo, String pdpId, String collection) {
         this.mongo              = mongo;

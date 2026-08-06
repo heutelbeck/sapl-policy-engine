@@ -222,7 +222,7 @@ class RedisAttributeRepositoryTests {
             try {
                 assertThatThrownBy(
                         () -> new RedisAttributeRepository(RedisClient.create(redis.getRedisURI()), "test-tenant", 0))
-                        .isInstanceOf(IllegalStateException.class).hasMessageContaining("notify-keyspace-events");
+                        .isInstanceOf(IllegalStateException.class);
             } finally {
                 // Restore for the other tests in this class — notify-keyspace-events is
                 // server-wide, not per connection/database.

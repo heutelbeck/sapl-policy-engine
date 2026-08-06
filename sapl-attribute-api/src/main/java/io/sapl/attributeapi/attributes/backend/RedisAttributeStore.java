@@ -33,9 +33,14 @@ import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class RedisAttributeStore implements AttributeStore {
-    private static final String ERROR_TTL_NOT_POSITIVE = "Ttl must be a strictly positive Duration.";
+    private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
     private static final String UNDEFINED_STRING       = "UNDEFINED";
-    private static final String ERROR_PDP_ID_IS_EMPTY  = "pdpId must be resolved before reaching the store";
+    private static final String ERROR_PDP_ID_IS_EMPTY  = "PDP-ID must be resolved before reaching the store";
+
+    private static final String NAME_FIELD      = "name";
+    private static final String ENTITY_FIELD    = "entity";
+    private static final String ARGUMENTS_FIELD = "arguments";
+    private static final String VALUE_FIELD     = "value";
 
     private final RedisClient                             client;
     private final StatefulRedisConnection<String, String> connection;
@@ -65,11 +70,11 @@ public class RedisAttributeStore implements AttributeStore {
         String redisValue = ValueJsonMarshaller.toJsonString(value);
 
         Map<String, String> fields = new HashMap<>();
-        fields.put("name", signature.name());
-        fields.put("arguments", valuesToJson(signature.arguments()));
-        fields.put("value", redisValue);
+        fields.put(NAME_FIELD, signature.name());
+        fields.put(ARGUMENTS_FIELD, valuesToJson(signature.arguments()));
+        fields.put(VALUE_FIELD, redisValue);
         if (signature.entity() != null) {
-            fields.put("entity", ValueJsonMarshaller.toJsonString(signature.entity()));
+            fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(signature.entity()));
         }
 
         cli.hset(redisKey, fields);
@@ -96,15 +101,14 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public Value get(AttributeKey signature, String pdpId) {
-        var raw = cli.hget(toRedisKey(signature, pdpId), "value");
+        var raw = cli.hget(toRedisKey(signature, pdpId), VALUE_FIELD);
 
         return raw != null ? ValueJsonMarshaller.json(raw) : Value.UNDEFINED;
     }
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        // todo: implement a Redis scan with MATCH-pattern. Keys is blocking the whole
-        // keyspace
+        // TODO: implement a Redis scan with MATCH-pattern. Keys is blocking the whole key space
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
 
         String pattern = "sapl:attribute:" + pdpId + ":*";
@@ -112,8 +116,7 @@ public class RedisAttributeStore implements AttributeStore {
         // Sort the list of keys to guarantee a deterministic output for limit/offset
         List<String> keys = cli.keys(pattern).stream().sorted().toList();
 
-        // set the right offset as start point, check if the start exceeds the List
-        // limit and set the endpoint
+        // set the right offset as start point, check if the start exceeds the List limit and set the end point
         int start = offset != null ? offset : 0;
         if (start >= keys.size()) {
             return List.of();
@@ -143,10 +146,10 @@ public class RedisAttributeStore implements AttributeStore {
     }
 
     private static AttributeEntry toAttributeEntry(Map<String, String> hash) {
-        String name         = hash.get("name");
-        String entityRaw    = hash.get("entity");
-        String argumentsRaw = hash.get("arguments");
-        String valueRaw     = hash.get("value");
+        String name         = hash.get(NAME_FIELD);
+        String entityRaw    = hash.get(ENTITY_FIELD);
+        String argumentsRaw = hash.get(ARGUMENTS_FIELD);
+        String valueRaw     = hash.get(VALUE_FIELD);
 
         Value       entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
         List<Value> arguments = argumentsRaw != null && ValueJsonMarshaller.json(argumentsRaw) instanceof ArrayValue a
