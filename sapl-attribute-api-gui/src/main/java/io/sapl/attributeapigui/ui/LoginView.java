@@ -17,7 +17,6 @@
  */
 package io.sapl.attributeapigui.ui;
 
-import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
@@ -26,18 +25,13 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @Route("login")
 @AnonymousAllowed
 public class LoginView extends VerticalLayout {
-    private final LoginForm login         = new LoginForm();
-    private final Anchor    keycloakLogin = new Anchor("/oauth2/authorization/keycloak", "Login mit Keycloak");
+    private final LoginForm login = new LoginForm();
 
     public LoginView() {
-        // do a normal redirect instead of using the Vaadin router
-        keycloakLogin.getElement().setAttribute("router-ignore", true);
-
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
         login.setAction("login");
         add(login);
-        add(keycloakLogin);
     }
 }

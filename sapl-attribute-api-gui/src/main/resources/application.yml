@@ -1,0 +1,15 @@
+server:
+  port: ${PORT:8091}
+
+vaadin:
+  allowed-packages: io.sapl
+
+spring:
+  application:
+    name: "Attribute API GUI"
+
+io:
+  sapl:
+    attribute-api-gui:
+      admin-username: admin
+      admin-password: ${SAPL_GUI_ADMIN_PASSWORD}
