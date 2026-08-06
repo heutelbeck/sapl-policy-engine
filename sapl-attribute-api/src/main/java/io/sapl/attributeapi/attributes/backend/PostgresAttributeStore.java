@@ -39,7 +39,6 @@ public class PostgresAttributeStore implements AttributeStore {
 
     private final DatabaseClient client;
 
-    private final String table;
     private final String countSql;
     private final String getSql;
     private final String getAllSql;
@@ -48,7 +47,6 @@ public class PostgresAttributeStore implements AttributeStore {
 
     public PostgresAttributeStore(DatabaseClient client, String table) {
         this.client = client;
-        this.table  = table;
 
         this.countSql  = "SELECT count(*) FROM " + table
                 + " WHERE pdp_id = :pdpId AND (expires_at IS NULL OR expires_at > NOW())";
@@ -137,6 +135,7 @@ public class PostgresAttributeStore implements AttributeStore {
         var payload = ValueJsonMarshaller.toJsonString(ObjectValue.builder().put("pdpId", Value.of(pdpId))
                 .put("name", Value.of(key.name())).put("entity", key.entity() != null ? key.entity() : Value.NULL)
                 .put("arguments", Value.ofArray(key.arguments())).build());
+
         client.sql(NOTIFY_SQL).bind("payload", payload).then().block();
     }
 
@@ -159,8 +158,9 @@ public class PostgresAttributeStore implements AttributeStore {
     private void deleteFromDB(@NonNull AttributeKey key, String pdpId) {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
+        var spec          = client.sql(deleteSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments",
+                argumentsJson);
 
-        var spec = client.sql(deleteSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
         (entityJson != null ? spec.bind("entity", entityJson) : spec.bindNull("entity", String.class)).then().block();
         notifyPdp(key, pdpId);
     }
