@@ -78,7 +78,7 @@ public class MongoAttributeStore implements AttributeStore {
         var query = new Query(Criteria.where(PDP_ID_FIELD).is(pdpId));
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
                 Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
-        
+
         return mongo.count(query, collection).block();
     }
 
@@ -87,14 +87,14 @@ public class MongoAttributeStore implements AttributeStore {
         var query = doMongoQuery(key, pdpId);
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
                 Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
-        
+
         var document = mongo.findOne(query, Document.class, collection).block();
-        
+
         if (document == null)
             return Value.UNDEFINED;
-        
+
         var valueJson = document.getString(VALUE_FIELD);
-        
+
         return valueJson != null ? ValueJsonMarshaller.json(valueJson) : Value.UNDEFINED;
     }
 
