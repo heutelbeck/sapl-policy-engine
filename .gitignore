@@ -52,3 +52,8 @@ sapl-benchmark/bin/
 *.lock
 
 .sonarlint/
+
+# Personal local config overrides (paths, credentials). Never shared defaults.
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties

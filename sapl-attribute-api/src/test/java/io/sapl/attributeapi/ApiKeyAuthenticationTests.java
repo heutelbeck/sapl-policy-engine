@@ -38,7 +38,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -78,7 +78,7 @@ class ApiKeyAuthenticationTests {
     @Test
     @DisplayName("Valid API key authenticates and can publish and read an attribute")
     void validApiKeySucceeds() throws Exception {
-        mockMvc.perform(post("/api/attributes/sapl.test.apikey").header(HttpHeaders.AUTHORIZATION, VALID_KEY_HEADER)
+        mockMvc.perform(put("/api/attributes/sapl.test.apikey").header(HttpHeaders.AUTHORIZATION, VALID_KEY_HEADER)
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_apikey", "ttl": 60 }
                         """)).andExpect(status().isCreated());

@@ -64,26 +64,28 @@ public class PostgresAttributeStore implements AttributeStore {
         // upsert and an atomic execution
         // The atomic execution is important to have the same Decision if a multi node
         // setup is used
+        // xmax is an internal variable from Postgres to track if a row was ~ deleted, updated, ...
         this.upsertSql = "INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
                 + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
                 + "ON CONFLICT (pdp_id, name, entity, arguments) "
-                + "DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at";
+                + "DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at "
+                + "RETURNING (xmax = 0) AS inserted";
         this.deleteSql = "DELETE FROM " + table + " WHERE pdp_id = :pdpId AND name = :name "
                 + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
                 + "AND arguments = CAST(:arguments AS jsonb)";
     }
 
     @Override
-    public void publish(AttributeKey key, Value value, String pdpId) {
-        upsertToDB(key, value, null, pdpId);
+    public boolean publish(AttributeKey key, Value value, String pdpId) {
+        return upsertToDB(key, value, null, pdpId);
     }
 
     @Override
-    public void publish(AttributeKey key, Value value, Duration ttl, String pdpId) {
+    public boolean publish(AttributeKey key, Value value, Duration ttl, String pdpId) {
         if (ttl.isZero() || ttl.isNegative()) {
             throw new IllegalArgumentException(ERROR_TTL_NOT_POSITIVE);
         }
-        upsertToDB(key, value, Instant.now().plus(ttl), pdpId);
+        return upsertToDB(key, value, Instant.now().plus(ttl), pdpId);
     }
 
     @Override
@@ -139,7 +141,7 @@ public class PostgresAttributeStore implements AttributeStore {
         client.sql(NOTIFY_SQL).bind("payload", payload).then().block();
     }
 
-    private void upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
+    private boolean upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
         var valueJson     = ValueJsonMarshaller.toJsonString(value);
@@ -150,9 +152,12 @@ public class PostgresAttributeStore implements AttributeStore {
         upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
 
-        (entityJson != null ? upsertSpec.bind("entity", entityJson) : upsertSpec.bindNull("entity", String.class))
-                .then().block();
+        Boolean inserted = (entityJson != null ? upsertSpec.bind("entity", entityJson)
+                : upsertSpec.bindNull("entity", String.class)).map(row -> row.get("inserted", Boolean.class)).one()
+                .block();
+
         notifyPdp(key, pdpId);
+        return Boolean.TRUE.equals(inserted);
     }
 
     private void deleteFromDB(@NonNull AttributeKey key, String pdpId) {

@@ -43,18 +43,22 @@ public class AttributeApiController {
 
     private final AttributeApiService service;
 
-    @PostMapping("/{entity}/{name}")
+    @PutMapping("/{entity}/{name}")
     public ResponseEntity<Void> publish(@PathVariable String entity, @PathVariable String name,
             @RequestBody AttributePublishRequest request) {
-        service.publish(entity, name, request, currentPdpId());
-        return ResponseEntity.created(URI.create("/api/attributes/" + entity + "/" + name)).build();
+        boolean created = service.publish(entity, name, request, currentPdpId());
+
+        return created ? ResponseEntity.created(URI.create("/api/attributes/" + entity + "/" + name)).build()
+                : ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{name}")
+    @PutMapping("/{name}")
     public ResponseEntity<Void> publishGlobalAttribute(@PathVariable String name,
             @RequestBody AttributePublishRequest request) {
-        service.publish(null, name, request, currentPdpId());
-        return ResponseEntity.created(URI.create("/api/attributes/" + name)).build();
+        boolean created = service.publish(null, name, request, currentPdpId());
+
+        return created ? ResponseEntity.created(URI.create("/api/attributes/" + name)).build()
+                : ResponseEntity.ok().build();
     }
 
     // RFC 7231, Section 4.3.5: A payload within a DELETE request message has no
@@ -89,14 +93,14 @@ public class AttributeApiController {
     }
 
     @GetMapping
-    public ResponseEntity<List<JsonNode>> getAllAttributesFromPdp(@RequestParam(required = false) Integer limit,
-            @RequestParam(required = false) Integer offset) {
-        return ResponseEntity.ok(service.getAll(currentPdpId(), limit, offset));
-    }
+    public ResponseEntity<?> getAllAttributesFromPdp(@RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer offset,
+            @RequestParam(required = false, defaultValue = "false") boolean count) {
 
-    @GetMapping("/_count")
-    public ResponseEntity<Long> count() {
-        return ResponseEntity.ok(service.count(currentPdpId()));
+        if (count) {
+            return ResponseEntity.ok(service.count(currentPdpId()));
+        }
+        return ResponseEntity.ok(service.getAll(currentPdpId(), limit, offset));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -96,8 +96,8 @@ public class AttributeApiClient {
                 arguments == null ? List.of() : arguments);
 
         var request = (entity == null || entity.isBlank())
-                ? client.post().uri(settings.getBaseUrl() + "/api/attributes/{name}", name)
-                : client.post().uri(settings.getBaseUrl() + "/api/attributes/{entity}/{name}", entity, name);
+                ? client.put().uri(settings.getBaseUrl() + "/api/attributes/{name}", name)
+                : client.put().uri(settings.getBaseUrl() + "/api/attributes/{entity}/{name}", entity, name);
 
         request.headers(this::addAuthorization).contentType(MediaType.APPLICATION_JSON).body(body).retrieve()
                 .toBodilessEntity();
@@ -113,7 +113,7 @@ public class AttributeApiClient {
     public Long getAttributeCount() {
         checkConfiguration();
 
-        return client.get().uri(settings.getBaseUrl() + "/api/attributes/_count").headers(this::addAuthorization)
+        return client.get().uri(settings.getBaseUrl() + "/api/attributes?count=true").headers(this::addAuthorization)
                 .retrieve().body(Long.class);
     }
 

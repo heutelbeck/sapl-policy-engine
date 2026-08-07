@@ -29,7 +29,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -52,9 +52,9 @@ abstract class AbstractAttributeApiTests {
     }
 
     @Test
-    @DisplayName("POST /api/attributes/{name} returns 201")
+    @DisplayName("PUT /api/attributes/{name} returns 201")
     void publishGlobalAttribute() throws Exception {
-        mockMvc.perform(post("/api/attributes/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(put("/api/attributes/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
                 { "value": "test_1",
                   "ttl": 60
                  }
@@ -62,10 +62,10 @@ abstract class AbstractAttributeApiTests {
     }
 
     @Test
-    @DisplayName("POST /api/attributes/sapl.test/{name} returns 201")
+    @DisplayName("PUT /api/attributes/sapl.test/{name} returns 201")
     void publishAttributeWithEntity() throws Exception {
         mockMvc.perform(
-                post("/api/attributes/sapl.test/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
+                put("/api/attributes/sapl.test/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_2",
                           "ttl": 60
                           }
@@ -73,10 +73,10 @@ abstract class AbstractAttributeApiTests {
     }
 
     @Test
-    @DisplayName("POST /api/attributes/sapl.test/{name} returns error for unqualified name")
+    @DisplayName("PUT /api/attributes/sapl.test/{name} returns error for unqualified name")
     void publishAttributeWithInvalidAttributeName() throws Exception {
         MvcResult result = mockMvc
-                .perform(post("/api/attributes/sapl.test/sapl").contentType(MediaType.APPLICATION_JSON).content("""
+                .perform(put("/api/attributes/sapl.test/sapl").contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_3",
                           "ttl": 60
                          }
@@ -88,7 +88,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/sapl.test/{name} returns test_4 value")
     void getGlobalAttribute() throws Exception {
-        mockMvc.perform(post("/api/attributes/sapl.test.deletion").contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(put("/api/attributes/sapl.test.deletion").contentType(MediaType.APPLICATION_JSON).content("""
                 { "value": "test_4",
                   "ttl": 60
                   }
@@ -102,7 +102,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("DELETE /api/attributes/sapl.test/{name} returns 201")
     void publishAndDeleteAttribute() throws Exception {
-        mockMvc.perform(post("/api/attributes/sapl.test/sapl.test.publishAndDelete")
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.publishAndDelete")
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_5",
                           "ttl": 60
@@ -120,7 +120,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("TTL expires for /api/attributes/sapl.test/{name} and shows no content")
     void ttlExpires() throws Exception {
-        mockMvc.perform(post("/api/attributes/sapl.test/sapl.test.ttlExpired").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.ttlExpired").contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         { "value": "test_6",
                           "ttl": 1
@@ -130,5 +130,34 @@ abstract class AbstractAttributeApiTests {
         Thread.sleep(2000);
 
         mockMvc.perform(get("/api/attributes/sapl.test/sapl.test.ttlExpired")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /api/attributes/{name} returns 201 on create, 200 on update")
+    void publishTwiceReturnsCreatedThenOk() throws Exception {
+        mockMvc.perform(put("/api/attributes/sapl.test.upsert").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_7",
+                  "ttl": 60
+                 }
+                """)).andExpect(status().isCreated());
+
+        mockMvc.perform(put("/api/attributes/sapl.test.upsert").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_7_updated",
+                  "ttl": 60
+                 }
+                """)).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /api/attributes?count=true returns the number of published attributes")
+    void countReflectsPublishedAttributes() throws Exception {
+        mockMvc.perform(put("/api/attributes/sapl.test.count").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_8",
+                  "ttl": 60
+                 }
+                """)).andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk()).andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("1");
     }
 }

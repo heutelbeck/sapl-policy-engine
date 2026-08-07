@@ -44,7 +44,7 @@ public class PublishAttributeCommand extends BaseAttributeCommand {
                 """.formatted(toJsonValue(value), argsJson, ttlJson, pdpId);
 
         var uri      = UriComponentsBuilder.fromUriString(url + attributePath(entity, name)).build().toUri();
-        var response = webClient.post().uri(uri).contentType(MediaType.APPLICATION_JSON).bodyValue(json).retrieve()
+        var response = webClient.put().uri(uri).contentType(MediaType.APPLICATION_JSON).bodyValue(json).retrieve()
                 .toEntity(String.class).block();
 
         return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;

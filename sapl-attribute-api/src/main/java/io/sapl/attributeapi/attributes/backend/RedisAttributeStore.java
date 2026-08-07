@@ -53,19 +53,20 @@ public class RedisAttributeStore implements AttributeStore {
     }
 
     @Override
-    public void publish(AttributeKey signature, Value value, String pdpId) {
-        publishInternal(signature, value, null, pdpId);
+    public boolean publish(AttributeKey signature, Value value, String pdpId) {
+        return publishInternal(signature, value, null, pdpId);
     }
 
     @Override
-    public void publish(AttributeKey signature, Value value, Duration ttl, String pdpId) {
+    public boolean publish(AttributeKey signature, Value value, Duration ttl, String pdpId) {
         if (ttl.isZero() || ttl.isNegative()) {
             throw new IllegalArgumentException(ERROR_TTL_NOT_POSITIVE);
         }
-        publishInternal(signature, value, ttl, pdpId);
+        return publishInternal(signature, value, ttl, pdpId);
     }
 
-    private void publishInternal(AttributeKey signature, @NonNull Value value, @Nullable Duration ttl, String pdpId) {
+    private boolean publishInternal(AttributeKey signature, @NonNull Value value, @Nullable Duration ttl,
+            String pdpId) {
         String redisKey   = toRedisKey(signature, pdpId);
         String redisValue = ValueJsonMarshaller.toJsonString(value);
 
@@ -77,13 +78,19 @@ public class RedisAttributeStore implements AttributeStore {
             fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(signature.entity()));
         }
 
+        // Redis + hset lacks a function to return if a key was new or not new. It just return how many fields are there
+        // It causes two connections for now and should be considered. It's not an atomic action!!
+        boolean created = cli.exists(redisKey) == 0;
         cli.hset(redisKey, fields);
+
         if (ttl == null) {
             cli.persist(redisKey);
         } else {
             cli.expire(redisKey, ttl.toSeconds());
         }
         cli.publish("sapl:changes:" + redisKey, redisValue);
+
+        return created;
     }
 
     @Override

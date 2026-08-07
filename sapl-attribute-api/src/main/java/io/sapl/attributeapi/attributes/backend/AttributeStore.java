@@ -24,9 +24,9 @@ import java.time.Duration;
 import java.util.List;
 
 public interface AttributeStore {
-    void publish(AttributeKey key, Value value, String pdpId);
+    boolean publish(AttributeKey key, Value value, String pdpId);
 
-    void publish(AttributeKey key, Value value, Duration ttl, String pdpId);
+    boolean publish(AttributeKey key, Value value, Duration ttl, String pdpId);
 
     void remove(AttributeKey key, String pdpId);
 

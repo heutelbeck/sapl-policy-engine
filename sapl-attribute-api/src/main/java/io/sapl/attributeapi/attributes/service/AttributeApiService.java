@@ -43,7 +43,7 @@ public class AttributeApiService {
     private final AttributeStore                 store;
     private final AttributeApiSecurityProperties securityProperties;
 
-    public void publish(String entity, String attribute, AttributePublishRequest body, @Nullable String pdpId) {
+    public boolean publish(String entity, String attribute, AttributePublishRequest body, @Nullable String pdpId) {
         List<Value> arguments   = body.getArguments() == null ? List.of()
                 : body.getArguments().stream().map(ValueJsonMarshaller::fromJsonNode).toList();
         Value       entityValue = entity != null && !entity.isBlank() ? Value.of(entity) : null;
@@ -53,9 +53,9 @@ public class AttributeApiService {
         var sig = new AttributeKey(entityValue, attribute, arguments);
 
         if (ttl == null || ttl <= 0) {
-            store.publish(sig, value, resolvePdpId(pdpId));
+            return store.publish(sig, value, resolvePdpId(pdpId));
         } else {
-            store.publish(sig, value, Duration.ofSeconds(ttl), resolvePdpId(pdpId));
+            return store.publish(sig, value, Duration.ofSeconds(ttl), resolvePdpId(pdpId));
         }
     }
 

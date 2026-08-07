@@ -28,6 +28,9 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+
+import com.mongodb.client.result.UpdateResult;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -54,16 +57,16 @@ public class MongoAttributeStore implements AttributeStore {
     }
 
     @Override
-    public void publish(AttributeKey key, Value value, String pdpId) {
-        upsertToDB(key, value, null, pdpId);
+    public boolean publish(AttributeKey key, Value value, String pdpId) {
+        return upsertToDB(key, value, null, pdpId);
     }
 
     @Override
-    public void publish(AttributeKey key, Value value, Duration ttl, String pdpId) {
+    public boolean publish(AttributeKey key, Value value, Duration ttl, String pdpId) {
         if (ttl.isZero() || ttl.isNegative()) {
             throw new IllegalArgumentException(ERROR_TTL_NOT_POSITIVE);
         }
-        upsertToDB(key, value, Instant.now().plus(ttl), pdpId);
+        return upsertToDB(key, value, Instant.now().plus(ttl), pdpId);
     }
 
     @Override
@@ -129,7 +132,7 @@ public class MongoAttributeStore implements AttributeStore {
         mongo.remove(doMongoQuery(key, pdpId), collection).block();
     }
 
-    private void upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
+    private boolean upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argsJson   = valuesToJson(key.arguments());
         var valueJson  = ValueJsonMarshaller.toJsonString(value);
@@ -138,7 +141,8 @@ public class MongoAttributeStore implements AttributeStore {
                 .set(ARGUMENTS_FIELD, argsJson).set(VALUE_FIELD, valueJson)
                 .set(EXPIRES_AT_FIELD, expiresAt != null ? Date.from(expiresAt) : null);
 
-        mongo.upsert(doMongoQuery(key, pdpId), update, collection).block();
+        UpdateResult result = mongo.upsert(doMongoQuery(key, pdpId), update, collection).block();
+        return result.getUpsertedId() != null;
     }
 
     private Query doMongoQuery(AttributeKey key, String pdpId) {
