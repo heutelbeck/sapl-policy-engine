@@ -18,6 +18,7 @@
 package io.sapl.attributeapigui.connection;
 
 import com.vaadin.flow.spring.annotation.VaadinSessionScope;
+import io.sapl.attributeapigui.config.AttributeApiConnectionProperties;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 
@@ -27,11 +28,19 @@ import java.io.Serializable;
 @Component
 @VaadinSessionScope
 public class ConnectionSettings implements Serializable {
-    private ConnectionMode mode = ConnectionMode.NONE;
+    private ConnectionMode mode;
     private String         baseUrl;
     private String         username;
     private String         password;
     private String         apiKey;
+
+    public ConnectionSettings(AttributeApiConnectionProperties properties) {
+        this.mode     = properties.getMethod();
+        this.baseUrl  = properties.getBaseUrl();
+        this.username = properties.getBasic().getUsername();
+        this.password = properties.getBasic().getPassword();
+        this.apiKey   = properties.getApi().getKey();
+    }
 
     public boolean isConfigured() {
         if (baseUrl == null || baseUrl.isBlank()) {

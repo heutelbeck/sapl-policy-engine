@@ -34,7 +34,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(AttributeApiGuiSecurityProperties.class)
+@EnableConfigurationProperties({ AttributeApiGuiSecurityProperties.class, AttributeApiConnectionProperties.class })
 public class SecurityConfiguration {
 
     @Bean

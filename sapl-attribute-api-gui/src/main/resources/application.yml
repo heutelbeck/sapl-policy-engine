@@ -11,5 +11,13 @@ spring:
 io:
   sapl:
     attribute-api-gui:
-      admin-username: admin
+      admin-username: ${SAPL_GUI_ADMIN_USERNAME:admin}
       admin-password: ${SAPL_GUI_ADMIN_PASSWORD}
+      connection:
+        base-url: http://localhost:8090
+        method: ${METHOD:basic} # none | basic | api
+        basic:
+          username: ${BASIC_USERNAME:}
+          password: ${BASIC_PASSWORD:}
+        api:
+          key: ${API_KEY:}
