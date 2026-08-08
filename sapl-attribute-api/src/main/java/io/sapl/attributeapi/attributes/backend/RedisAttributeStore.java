@@ -128,10 +128,11 @@ public class RedisAttributeStore implements AttributeStore {
         if (start >= keys.size()) {
             return List.of();
         }
-        int end = limit != null ? Math.min(start + limit, keys.size()) : keys.size();
+        long end = limit != null ? Math.min((long) start + limit, keys.size()) : keys.size();
 
         // return the keys with/without limit/offset operations
-        return keys.subList(start, end).stream().map(cli::hgetall).filter(hash -> !hash.isEmpty())
+        // Downcast is safe because keys.size() is always an integer and will be in Math.min the lowest value if start+limit is overflowing
+        return keys.subList(start, (int) end).stream().map(cli::hgetall).filter(hash -> !hash.isEmpty())
                 .map(RedisAttributeStore::toAttributeEntry).toList();
     }
 

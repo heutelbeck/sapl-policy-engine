@@ -46,7 +46,7 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
+import org.springframework.security.config.http.SessionCreationPolicy;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Slf4j
@@ -72,6 +72,7 @@ public class AttributeSecurityConfiguration {
 
         // CSRF is not needed because we have a stateless API
         http.csrf(AbstractHttpConfigurer::disable);
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         if (noAuthenticationMechanismIsDefined()) {
             throw new IllegalStateException("No authentication method set");
