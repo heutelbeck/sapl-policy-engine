@@ -27,9 +27,11 @@ import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.r2dbc.core.DatabaseClient;
+import java.util.concurrent.locks.ReentrantLock;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-
+import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -43,39 +45,112 @@ import java.util.Objects;
 @Slf4j
 
 public class PostgresAttributeRepository implements AttributeRepository {
-    private static final String ERROR_HANDLE_NOTIFICATION = "Error while handling attribute_changes notification for pdpId '{}'";
+    private static final String ERROR_HANDLE_NOTIFICATION           = "Error while handling attribute_changes notification for pdpId '{}'";
+    private static final String WARN_RECONNECTING                   = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
+    private static final String ERROR_RECONNECT_GIVEN_UP            = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
+    private static final String DEBUG_STALE_CONNECTION_CLOSE_FAILED = "Error closing stale connection for pdpId '{}': {}";
+
+    private static final String NOTIFY_SQL = "SELECT pg_notify('attribute_changes', :payload)";
+    private static final String LISTEN_SQL = "LISTEN attribute_changes";
 
     // Delegate Pattern . observer(), close() etc are generated
     @Delegate(excludes = ExcludedMethods.class)
     private final InMemoryAttributeRepository internalRepository;
 
-    private final DatabaseClient       client;
-    private final PostgresqlConnection connection;
-    private final String               table;
-    private final String               pdpId;
+    // Connection may be interrupted and needs to be replaced immediately
+    private volatile PostgresqlConnection connection;
+    private final ConnectionFactory       connectionFactory;
+    private final ReentrantLock           reloadLock = new ReentrantLock();
+    private volatile boolean              closed     = false;
+    // Set on the first failure of a reconnect episode, cleared on the next successful
+    // reconnect. RetryBackoffSpec has no elapsed-time cutoff of its own (only maxAttempts,
+    // which does not map cleanly onto "give up after 10 minutes"), so the deadline is
+    // tracked here and enforced via the filter below.
+    private volatile Instant reconnectDeadline;
+
+    private final DatabaseClient client;
+    private final String         table;
+    private final String         pdpId;
+
+    // Built once per instance since they embed the (dynamic, per-instance) table name.
+    private final String getAllSql;
+    private final String getSql;
+    private final String upsertSql;
+    private final String deleteSql;
 
     private record DBEntry(String name, String entity, String arguments, String value, OffsetDateTime expiresAt) {}
 
     public PostgresAttributeRepository(DatabaseClient client,
-            ConnectionFactory connection,
+            ConnectionFactory connectionFactory,
             String pdpId,
             String table) {
 
-        this.client = client;
-        this.pdpId  = pdpId;
-        this.table  = table;
-        // Connect to the right channel to receive changes
-        this.connection = Mono.from(connection.create()).cast(PostgresqlConnection.class).block();
+        this.client            = client;
+        this.connectionFactory = connectionFactory;
+        this.pdpId             = pdpId;
+        this.table             = table;
 
-        Mono.from(Objects.requireNonNull(this.connection).createStatement("LISTEN attribute_changes").execute())
-                .subscribe();
+        this.getAllSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " WHERE pdp_id = :pdpId";
+        this.getSql    = "SELECT name, entity, arguments, value, expires_at FROM " + table + " "
+                + "WHERE pdp_id = :pdpId AND name = :name AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
+                + "AND arguments = CAST(:arguments AS jsonb)";
+        // ON CONFLICT triggers the unique constraint in the db if the value already exists.
+        // Indexes: "attributes_pdp_id_name_entity_arguments_key" UNIQUE CONSTRAINT, btree
+        // (pdp_id, name, entity, arguments) NULLS NOT DISTINCT
+        // DO UPDATE executes an update statement instead. This logic implements a real
+        // upsert and an atomic execution. The atomic execution is important to have the
+        // same Decision if a multi node setup is used.
+        this.upsertSql = "INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
+                + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
+                + "ON CONFLICT (pdp_id, name, entity, arguments) "
+                + "DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at";
+        this.deleteSql = "DELETE FROM " + table + " WHERE pdp_id = :pdpId AND name = :name "
+                + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
+                + "AND arguments = CAST(:arguments AS jsonb)";
 
-        // boundedElastic --> allowing a thread pool with blocking operations
-        this.connection.getNotifications().mapNotNull(Notification::getParameter).publishOn(Schedulers.boundedElastic())
-                .subscribe(this::handleNotification, error -> log.error(ERROR_HANDLE_NOTIFICATION, pdpId, error));
-
+        // Attribute loading
+        connectAndListen();
         this.internalRepository = new InMemoryAttributeRepository(this::deleteFromDB);
         loadFromDB();
+    }
+
+    // Reconnect-Fix: Connections needs to be re-intialized after a disconnect. Before that it was only loaded once
+    // during start time
+    private void connectAndListen() {
+        establishConnection();
+        Flux.defer(() -> connection.getNotifications()).mapNotNull(Notification::getParameter)
+                .publishOn(Schedulers.boundedElastic())
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
+                        .filter(throwable -> !closed
+                                && (reconnectDeadline == null || Instant.now().isBefore(reconnectDeadline)))
+                        .doBeforeRetry(signal -> {
+                            log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
+                            if (reconnectDeadline == null) {
+                                reconnectDeadline = Instant.now().plus(Duration.ofMinutes(10));
+                            }
+                            try {
+                                establishConnection();
+                                reconnectDeadline = null;
+                                loadFromDB();
+                            } catch (Exception e) {
+                                log.debug("Reconnect attempt failed for pdpId '{}': {}", pdpId, e.getMessage());
+                            }
+                        }))
+                .subscribe(this::handleNotification, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error));
+    }
+
+    private void establishConnection() {
+        PostgresqlConnection newConnection = Mono.from(connectionFactory.create()).cast(PostgresqlConnection.class)
+                .block();
+        Mono.from(newConnection.createStatement(LISTEN_SQL).execute()).block();
+
+        PostgresqlConnection previous = this.connection;
+        this.connection = newConnection;
+
+        if (previous != null) {
+            Mono.from(previous.close()).subscribe(v -> {},
+                    e -> log.debug(DEBUG_STALE_CONNECTION_CLOSE_FAILED, pdpId, e.getMessage()));
+        }
     }
 
     private interface ExcludedMethods {
@@ -111,38 +186,42 @@ public class PostgresAttributeRepository implements AttributeRepository {
 
     @Override
     public void close() {
+        closed = true;
         internalRepository.close();
         Mono.from(connection.close()).block();
     }
 
     public void loadFromDB() {
-        var rows = client
-                .sql("SELECT name, entity, arguments, value, expires_at FROM " + table + " WHERE pdp_id = :pdpId")
-                .bind("pdpId", pdpId)
-                .map(row -> new DBEntry(row.get("name", String.class), row.get("entity", String.class),
-                        row.get("arguments", String.class), row.get("value", String.class),
-                        row.get("expires_at", OffsetDateTime.class)))
-                .all().collectList().block();
+        reloadLock.lock();
+        try {
+            var rows = client.sql(getAllSql).bind("pdpId", pdpId)
+                    .map(row -> new DBEntry(row.get("name", String.class), row.get("entity", String.class),
+                            row.get("arguments", String.class), row.get("value", String.class),
+                            row.get("expires_at", OffsetDateTime.class)))
+                    .all().collectList().block();
 
-        if (rows == null)
-            return;
+            if (rows == null)
+                return;
 
-        for (var row : rows) {
-            var key       = new RepositoryKey(row.entity() != null ? ValueJsonMarshaller.json(row.entity()) : null,
-                    row.name(), jsonToValues(row.arguments()), pdpId);
-            var value     = ValueJsonMarshaller.json(row.value());
-            var expiresAt = row.expiresAt() != null ? row.expiresAt().toInstant() : null;
+            for (var row : rows) {
+                var key       = new RepositoryKey(row.entity() != null ? ValueJsonMarshaller.json(row.entity()) : null,
+                        row.name(), jsonToValues(row.arguments()), pdpId);
+                var value     = ValueJsonMarshaller.json(row.value());
+                var expiresAt = row.expiresAt() != null ? row.expiresAt().toInstant() : null;
 
-            if (expiresAt != null) {
-                var remainingTTL = Duration.between(Instant.now(), expiresAt);
-                if (!remainingTTL.isNegative()) {
-                    internalRepository.publish(key, value, remainingTTL);
+                if (expiresAt != null) {
+                    var remainingTTL = Duration.between(Instant.now(), expiresAt);
+                    if (!remainingTTL.isNegative()) {
+                        internalRepository.publish(key, value, remainingTTL);
+                    } else {
+                        deleteFromDB(key);
+                    }
                 } else {
-                    deleteFromDB(key);
+                    internalRepository.publish(key, value);
                 }
-            } else {
-                internalRepository.publish(key, value);
             }
+        } finally {
+            reloadLock.unlock();
         }
     }
 
@@ -151,20 +230,8 @@ public class PostgresAttributeRepository implements AttributeRepository {
         var argumentsJson = valuesToJson(key.arguments());
         var valueJson     = ValueJsonMarshaller.toJsonString(value);
 
-        // ON CONFLICT triggers the unique constraint in the db if the value already
-        // exists
-        // Indexes:
-        // "attributes_pdp_id_name_entity_arguments_key" UNIQUE CONSTRAINT, btree
-        // (pdp_id, name, entity, arguments) NULLS NOT DISTINCT
-        // DO UPDATE executes an update statement instead. This logic implements a real
-        // upsert and an atomic execution
-        // The atomic execution is important to have the same Decision if a multi node
-        // setup is used
-        var upsertSpec = client.sql("INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
-                + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
-                + "ON CONFLICT (pdp_id, name, entity, arguments) "
-                + "DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at").bind("pdpId", pdpId)
-                .bind("name", key.name()).bind("arguments", argumentsJson).bind("value", valueJson);
+        var upsertSpec = client.sql(upsertSql).bind("pdpId", pdpId).bind("name", key.name())
+                .bind("arguments", argumentsJson).bind("value", valueJson);
 
         upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
@@ -177,11 +244,7 @@ public class PostgresAttributeRepository implements AttributeRepository {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
 
-        var spec = client
-                .sql("DELETE FROM " + table + " " + "WHERE pdp_id = :pdpId AND name = :name "
-                        + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
-                        + "AND arguments = CAST(:arguments AS jsonb)")
-                .bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
+        var spec = client.sql(deleteSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
         (entityJson != null ? spec.bind("entity", entityJson) : spec.bindNull("entity", String.class)).then().block();
     }
 
@@ -198,10 +261,21 @@ public class PostgresAttributeRepository implements AttributeRepository {
     private void notifyOthers(RepositoryKey key) {
         // The select is an alternative way to trigger the NOTIFY attribute_changes
         // 'payload' or pg_notify function in Postgres
-        client.sql("SELECT pg_notify('attribute_changes', :payload)").bind("payload", keyToPayload(key)).then().block();
+        client.sql(NOTIFY_SQL).bind("payload", keyToPayload(key)).then().block();
     }
 
     private void handleNotification(String payload) {
+        reloadLock.lock();
+        try {
+            handleNotificationLocked(payload);
+        } catch (Exception e) {
+            log.error(ERROR_HANDLE_NOTIFICATION, pdpId, e);
+        } finally {
+            reloadLock.unlock();
+        }
+    }
+
+    private void handleNotificationLocked(String payload) {
         var node              = (ObjectValue) ValueJsonMarshaller.json(payload);
         var notificationPdpId = ((TextValue) Objects.requireNonNull(node.get("pdpId"))).value();
 
@@ -212,10 +286,8 @@ public class PostgresAttributeRepository implements AttributeRepository {
         var key        = payloadToKey(node);
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
 
-        var spec = client.sql("SELECT name, entity, arguments, value, expires_at FROM " + table + " "
-                + "WHERE pdp_id = :pdpId AND name = :name " + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
-                + "AND arguments = CAST(:arguments AS jsonb)").bind("pdpId", pdpId).bind("name", key.name())
-                .bind("arguments", valuesToJson(key.arguments()));
+        var spec = client.sql(getSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments",
+                valuesToJson(key.arguments()));
 
         var row = (entityJson != null ? spec.bind("entity", entityJson) : spec.bindNull("entity", String.class))
                 .map(r -> new DBEntry(r.get("name", String.class), r.get("entity", String.class),
