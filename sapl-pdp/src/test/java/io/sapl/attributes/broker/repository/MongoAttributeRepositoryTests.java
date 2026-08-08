@@ -24,6 +24,8 @@ import io.sapl.api.model.Value;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
 import org.testcontainers.junit.jupiter.Container;
@@ -37,6 +39,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
+@DisabledOnOs(OS.WINDOWS)
 @DisplayName("MongoAttributeRepository")
 class MongoAttributeRepositoryTests {
 

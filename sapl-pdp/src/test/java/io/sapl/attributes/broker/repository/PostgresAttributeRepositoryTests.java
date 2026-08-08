@@ -25,6 +25,8 @@ import io.sapl.api.model.Value;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -37,6 +39,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
+@DisabledOnOs(OS.WINDOWS)
 @DisplayName("PostgresAttributeRepository")
 class PostgresAttributeRepositoryTests {
 
