@@ -20,6 +20,8 @@ package io.sapl.attributeapi;
 import com.mongodb.reactivestreams.client.MongoClients;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
 import io.sapl.attributeapi.attributes.backend.MongoAttributeStore;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +37,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
         "io.sapl.attribute-api.allow-api-key-auth=false", "io.sapl.attribute-api.allow-oauth2-auth=false",
         "io.sapl.attributes.storage=none" })
 @Testcontainers
+@DisabledOnOs(OS.WINDOWS)
 @Import(AttributeApiMongoTests.Config.class)
 class AttributeApiMongoTests extends AbstractAttributeApiTests {
 

@@ -24,6 +24,8 @@ import io.sapl.attributeapi.attributes.backend.RedisAttributeStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,6 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "io.sapl.attributes.storage=none" })
 @AutoConfigureMockMvc
 @Testcontainers
+@DisabledOnOs(OS.WINDOWS)
 @Import(ApiKeyAuthenticationTests.Config.class)
 class ApiKeyAuthenticationTests {
 
