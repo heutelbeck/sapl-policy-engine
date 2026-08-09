@@ -208,10 +208,6 @@ public class SaplNodeApplication {
      * field it reads via reflection.
      */
     static class NativeResourceHints implements RuntimeHintsRegistrar {
-
-        private static final String COMMANDS_PACKAGE = "io.sapl.node.cli.commands.";
-        private static final String OPTIONS_PACKAGE  = "io.sapl.node.cli.options.";
-
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
             hints.resources().registerPattern("banner-color.txt");

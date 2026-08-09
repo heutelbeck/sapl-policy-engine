@@ -51,6 +51,11 @@ public class AttributeRepositoryFactory {
     private static final String ERROR_UNKNOWN_TYPE       = "attributeRepository.type='%s' for pdpId '%s' is not "
             + "supported. Set it to one of: postgres, mongo, redis.";
 
+    private static final String HOST_FIELD     = "host";
+    private static final String PORT_FIELD     = "port";
+    private static final String PASSWORD_FIELD = "password";
+    private static final String DATABASE_FIELD = "database";
+
     // yield --> value goes back from a case to the switch expression and not "outside" the method like a return.
     // config, pdpId parameter is set via AttributeConfiguration class
     public AttributeRepository create(ObjectValue config, String pdpId) {
@@ -61,28 +66,29 @@ public class AttributeRepositoryFactory {
 
         case "postgres" -> {
             val cf    = ConnectionFactories.get(ConnectionFactoryOptions.builder().option(DRIVER, "postgresql")
-                    .option(HOST, Objects.requireNonNull(str(config, "host"))).option(PORT, num(config, "port"))
+                    .option(HOST, Objects.requireNonNull(str(config, HOST_FIELD))).option(PORT, num(config, PORT_FIELD))
                     .option(USER, Objects.requireNonNull(str(config, "username")))
-                    .option(PASSWORD, Objects.requireNonNull(str(config, "password")))
-                    .option(DATABASE, Objects.requireNonNull(str(config, "database"))).build());
+                    .option(PASSWORD, Objects.requireNonNull(str(config, PASSWORD_FIELD)))
+                    .option(DATABASE, Objects.requireNonNull(str(config, DATABASE_FIELD))).build());
             val table = validIdentifier(config, "tableName", pdpId);
 
             yield new PostgresAttributeRepository(DatabaseClient.create(cf), cf, pdpId, table);
         }
 
         case "mongo" -> {
-            val host       = str(config, "host");
-            val port       = num(config, "port");
-            val database   = str(config, "database");
-            val username   = str(config, "username");
-            val password   = str(config, "password");
-            val authDb     = str(config, "authDatabase");
-            val collection = validIdentifier(config, "collectionName", pdpId);
-            val creds      = username == null || username.isBlank() ? ""
+            val host            = str(config, HOST_FIELD);
+            val port            = num(config, PORT_FIELD);
+            val database        = str(config, DATABASE_FIELD);
+            val username        = str(config, "username");
+            val password        = str(config, PASSWORD_FIELD);
+            val authDb          = str(config, "authDatabase");
+            val collection      = validIdentifier(config, "collectionName", pdpId);
+            val creds           = username == null || username.isBlank() ? ""
                     : encode(username) + ":" + encode(password) + "@";
-            val auth       = username == null || username.isBlank() ? ""
-                    : "?authSource=" + (authDb != null ? authDb : database);
-            val cs         = new ConnectionString("mongodb://" + creds + host + ":" + port + "/" + database + auth);
+            val effectiveAuthDb = authDb != null ? authDb : database;
+            val auth            = username == null || username.isBlank() ? "" : "?authSource=" + effectiveAuthDb;
+            val cs              = new ConnectionString(
+                    "mongodb://" + creds + host + ":" + port + "/" + database + auth);
 
             yield new MongoAttributeRepository(
                     new ReactiveMongoTemplate(MongoClients.create(cs), Objects.requireNonNull(cs.getDatabase())), pdpId,

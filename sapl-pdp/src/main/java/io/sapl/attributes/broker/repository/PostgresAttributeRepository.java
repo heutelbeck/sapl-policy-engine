@@ -38,13 +38,14 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 // Using R2DBC because it's reactive. JPA/Hibernate would block
 // R2DBC offers persistent DB connections. A consistent connection
 // is necessary because we need Postgres Pub/Sub
 @Slf4j
 
-public class PostgresAttributeRepository implements AttributeRepository {
+public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String ERROR_HANDLE_NOTIFICATION           = "Error while handling attribute_changes notification for pdpId '{}'";
     private static final String WARN_RECONNECTING                   = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
     private static final String ERROR_RECONNECT_GIVEN_UP            = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
@@ -53,15 +54,21 @@ public class PostgresAttributeRepository implements AttributeRepository {
     private static final String NOTIFY_SQL = "SELECT pg_notify('attribute_changes', :payload)";
     private static final String LISTEN_SQL = "LISTEN attribute_changes";
 
+    private static final String FIELD_PDP_ID    = "pdpId";
+    private static final String FIELD_NAME      = "name";
+    private static final String FIELD_ENTITY    = "entity";
+    private static final String FIELD_ARGUMENTS = "arguments";
+    private static final String FIELD_VALUE     = "value";
+
     // Delegate Pattern . observer(), close() etc are generated
     @Delegate(excludes = ExcludedMethods.class)
     private final InMemoryAttributeRepository internalRepository;
 
     // Connection may be interrupted and needs to be replaced immediately
-    private volatile PostgresqlConnection connection;
-    private final ConnectionFactory       connectionFactory;
-    private final ReentrantLock           reloadLock = new ReentrantLock();
-    private volatile boolean              closed     = false;
+    private final AtomicReference<PostgresqlConnection> connection = new AtomicReference<>();
+    private final ConnectionFactory                     connectionFactory;
+    private final ReentrantLock                         reloadLock = new ReentrantLock();
+    private volatile boolean                            closed     = false;
     // Set on the first failure of a reconnect episode, cleared on the next successful
     // reconnect. RetryBackoffSpec has no elapsed-time cutoff of its own (only maxAttempts,
     // which does not map cleanly onto "give up after 10 minutes"), so the deadline is
@@ -69,7 +76,6 @@ public class PostgresAttributeRepository implements AttributeRepository {
     private volatile Instant reconnectDeadline;
 
     private final DatabaseClient client;
-    private final String         table;
     private final String         pdpId;
 
     // Built once per instance since they embed the (dynamic, per-instance) table name.
@@ -88,7 +94,6 @@ public class PostgresAttributeRepository implements AttributeRepository {
         this.client            = client;
         this.connectionFactory = connectionFactory;
         this.pdpId             = pdpId;
-        this.table             = table;
 
         this.getAllSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " WHERE pdp_id = :pdpId";
         this.getSql    = "SELECT name, entity, arguments, value, expires_at FROM " + table + " "
@@ -118,7 +123,7 @@ public class PostgresAttributeRepository implements AttributeRepository {
     // during start time
     private void connectAndListen() {
         establishConnection();
-        Flux.defer(() -> connection.getNotifications()).mapNotNull(Notification::getParameter)
+        Flux.defer(() -> connection.get().getNotifications()).mapNotNull(Notification::getParameter)
                 .publishOn(Schedulers.boundedElastic())
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
                         .filter(throwable -> !closed
@@ -140,12 +145,12 @@ public class PostgresAttributeRepository implements AttributeRepository {
     }
 
     private void establishConnection() {
-        PostgresqlConnection newConnection = Mono.from(connectionFactory.create()).cast(PostgresqlConnection.class)
-                .block();
+        PostgresqlConnection newConnection = Objects.requireNonNull(
+                Mono.from(connectionFactory.create()).cast(PostgresqlConnection.class).block(),
+                "Connection factory returned no connection for pdpId '" + pdpId + "'");
         Mono.from(newConnection.createStatement(LISTEN_SQL).execute()).block();
 
-        PostgresqlConnection previous = this.connection;
-        this.connection = newConnection;
+        PostgresqlConnection previous = this.connection.getAndSet(newConnection);
 
         if (previous != null) {
             Mono.from(previous.close()).subscribe(v -> {},
@@ -188,15 +193,15 @@ public class PostgresAttributeRepository implements AttributeRepository {
     public void close() {
         closed = true;
         internalRepository.close();
-        Mono.from(connection.close()).block();
+        Mono.from(connection.get().close()).block();
     }
 
-    public void loadFromDB() {
+    private void loadFromDB() {
         reloadLock.lock();
         try {
-            var rows = client.sql(getAllSql).bind("pdpId", pdpId)
-                    .map(row -> new DBEntry(row.get("name", String.class), row.get("entity", String.class),
-                            row.get("arguments", String.class), row.get("value", String.class),
+            var rows = client.sql(getAllSql).bind(FIELD_PDP_ID, pdpId)
+                    .map(row -> new DBEntry(row.get(FIELD_NAME, String.class), row.get(FIELD_ENTITY, String.class),
+                            row.get(FIELD_ARGUMENTS, String.class), row.get(FIELD_VALUE, String.class),
                             row.get("expires_at", OffsetDateTime.class)))
                     .all().collectList().block();
 
@@ -230,22 +235,24 @@ public class PostgresAttributeRepository implements AttributeRepository {
         var argumentsJson = valuesToJson(key.arguments());
         var valueJson     = ValueJsonMarshaller.toJsonString(value);
 
-        var upsertSpec = client.sql(upsertSql).bind("pdpId", pdpId).bind("name", key.name())
-                .bind("arguments", argumentsJson).bind("value", valueJson);
+        var upsertSpec = client.sql(upsertSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name())
+                .bind(FIELD_ARGUMENTS, argumentsJson).bind(FIELD_VALUE, valueJson);
 
         upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
 
-        (entityJson != null ? upsertSpec.bind("entity", entityJson) : upsertSpec.bindNull("entity", String.class))
-                .then().block();
+        (entityJson != null ? upsertSpec.bind(FIELD_ENTITY, entityJson)
+                : upsertSpec.bindNull(FIELD_ENTITY, String.class)).then().block();
     }
 
     public void deleteFromDB(@NonNull RepositoryKey key) {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
 
-        var spec = client.sql(deleteSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments", argumentsJson);
-        (entityJson != null ? spec.bind("entity", entityJson) : spec.bindNull("entity", String.class)).then().block();
+        var spec = client.sql(deleteSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name()).bind(FIELD_ARGUMENTS,
+                argumentsJson);
+        (entityJson != null ? spec.bind(FIELD_ENTITY, entityJson) : spec.bindNull(FIELD_ENTITY, String.class)).then()
+                .block();
     }
 
     private static String valuesToJson(List<Value> values) {
@@ -277,7 +284,7 @@ public class PostgresAttributeRepository implements AttributeRepository {
 
     private void handleNotificationLocked(String payload) {
         var node              = (ObjectValue) ValueJsonMarshaller.json(payload);
-        var notificationPdpId = ((TextValue) Objects.requireNonNull(node.get("pdpId"))).value();
+        var notificationPdpId = ((TextValue) Objects.requireNonNull(node.get(FIELD_PDP_ID))).value();
 
         if (!pdpId.equals(notificationPdpId)) {
             return; // notification is for a different pdpId, not relevant to this repository
@@ -286,12 +293,12 @@ public class PostgresAttributeRepository implements AttributeRepository {
         var key        = payloadToKey(node);
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
 
-        var spec = client.sql(getSql).bind("pdpId", pdpId).bind("name", key.name()).bind("arguments",
+        var spec = client.sql(getSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name()).bind(FIELD_ARGUMENTS,
                 valuesToJson(key.arguments()));
 
-        var row = (entityJson != null ? spec.bind("entity", entityJson) : spec.bindNull("entity", String.class))
-                .map(r -> new DBEntry(r.get("name", String.class), r.get("entity", String.class),
-                        r.get("arguments", String.class), r.get("value", String.class),
+        var row = (entityJson != null ? spec.bind(FIELD_ENTITY, entityJson) : spec.bindNull(FIELD_ENTITY, String.class))
+                .map(r -> new DBEntry(r.get(FIELD_NAME, String.class), r.get(FIELD_ENTITY, String.class),
+                        r.get(FIELD_ARGUMENTS, String.class), r.get(FIELD_VALUE, String.class),
                         r.get("expires_at", OffsetDateTime.class)))
                 .one().block();
 
@@ -312,16 +319,17 @@ public class PostgresAttributeRepository implements AttributeRepository {
     }
 
     private String keyToPayload(RepositoryKey key) {
-        return ValueJsonMarshaller.toJsonString(ObjectValue.builder().put("pdpId", Value.of(pdpId))
-                .put("name", Value.of(key.name())).put("entity", key.entity() != null ? key.entity() : Value.NULL)
-                .put("arguments", Value.ofArray(key.arguments())).build());
+        return ValueJsonMarshaller.toJsonString(
+                ObjectValue.builder().put(FIELD_PDP_ID, Value.of(pdpId)).put(FIELD_NAME, Value.of(key.name()))
+                        .put(FIELD_ENTITY, key.entity() != null ? key.entity() : Value.NULL)
+                        .put(FIELD_ARGUMENTS, Value.ofArray(key.arguments())).build());
     }
 
     private RepositoryKey payloadToKey(ObjectValue node) {
-        var name      = ((TextValue) Objects.requireNonNull(node.get("name"))).value();
-        var entityVal = node.get("entity");
+        var name      = ((TextValue) Objects.requireNonNull(node.get(FIELD_NAME))).value();
+        var entityVal = node.get(FIELD_ENTITY);
         var entity    = entityVal == Value.NULL ? null : entityVal;
-        var arguments = ((ArrayValue) Objects.requireNonNull(node.get("arguments"))).stream().toList();
+        var arguments = ((ArrayValue) Objects.requireNonNull(node.get(FIELD_ARGUMENTS))).stream().toList();
 
         return new RepositoryKey(entity, name, arguments, pdpId);
     }

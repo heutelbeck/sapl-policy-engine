@@ -148,14 +148,15 @@ class RedisAttributeRepositoryTests {
 
         @Test
         @DisplayName("after TTL expires, a fresh observe returns UNDEFINED")
-        void thenObserverReceivesUndefinedAfterExpiry() throws InterruptedException {
+        void thenObserverReceivesUndefinedAfterExpiry() {
             repository.publish(key("sapl.test.ttl"), Value.of("temp"), Duration.ofSeconds(1));
-            // Redis expires keys natively without notifying existing observers.
-            // Wait for expiry, then verify via a fresh observe delivering the initial
-            // value.
-            Thread.sleep(2_000);
-            repository.observe(invocation("sapl.test.ttl"), received::add);
-            assertThat(received.getFirst()).isEqualTo(Value.UNDEFINED);
+            // Redis expires keys natively without notifying existing observers, so
+            // poll via fresh observe calls until the server-side expiry has happened.
+            Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                received.clear();
+                repository.observe(invocation("sapl.test.ttl"), received::add);
+                assertThat(received.getFirst()).isEqualTo(Value.UNDEFINED);
+            });
         }
     }
 
@@ -219,18 +220,18 @@ class RedisAttributeRepositoryTests {
         @Test
         @DisplayName("construction fails fast with a clear error instead of starting up silently")
         void constructorRejectsMissingKeyspaceNotifications() {
-            val setupClient = RedisClient.create(redis.getRedisURI());
-            setupClient.connect().sync().configSet("notify-keyspace-events", "");
+            try (val setupClient = RedisClient.create(redis.getRedisURI());
+                    val testClient = RedisClient.create(redis.getRedisURI())) {
+                setupClient.connect().sync().configSet("notify-keyspace-events", "");
 
-            try {
-                assertThatThrownBy(
-                        () -> new RedisAttributeRepository(RedisClient.create(redis.getRedisURI()), "test-tenant", 0))
-                        .isInstanceOf(IllegalStateException.class);
-            } finally {
-                // Restore for the other tests in this class — notify-keyspace-events is
-                // server-wide, not per connection/database.
-                setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
-                setupClient.shutdown();
+                try {
+                    assertThatThrownBy(() -> new RedisAttributeRepository(testClient, "test-tenant", 0))
+                            .isInstanceOf(IllegalStateException.class);
+                } finally {
+                    // Restore for the other tests in this class — notify-keyspace-events is
+                    // server-wide, not per connection/database.
+                    setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
+                }
             }
         }
     }

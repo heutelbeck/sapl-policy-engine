@@ -33,19 +33,20 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
-public class RedisAttributeRepository implements AttributeRepository {
+public final class RedisAttributeRepository implements AttributeRepository {
     private static final String ERROR_TTL_NOT_POSITIVE           = "TTL must be a strictly positive Duration.";
     private static final String ERROR_CLOSED                     = "Repository is closed.";
     private static final String UNDEFINED_STRING                 = "UNDEFINED";
     private static final String NOTIFY_KEYSPACE_EVENTS_PARAM     = "notify-keyspace-events";
     private static final String ERROR_KEYSPACE_NOTIFICATIONS_OFF = "Configure Redis to publish expired key events.";
 
+    private static final String CHANGES_CHANNEL_PREFIX = "sapl:changes:";
+
     private final ReentrantLock                                 lock = new ReentrantLock(true);
     private final RedisClient                                   client;
     private final StatefulRedisConnection<String, String>       connection;
     private final RedisCommands<String, String>                 cli;
     private final StatefulRedisPubSubConnection<String, String> pubsub;
-    private final int                                           database;
 
     private final Map<String, Set<Consumer<Value>>> observersByKey = new HashMap<>();
 
@@ -59,12 +60,11 @@ public class RedisAttributeRepository implements AttributeRepository {
         this.pubsub     = client.connectPubSub();
         this.cli        = connection.sync();
         this.pdpId      = pdpId;
-        this.database   = database;
 
         requireKeyspaceNotificationsEnabled();
 
         // Subscribe to needed channels
-        pubsub.sync().psubscribe("sapl:changes:*");
+        pubsub.sync().psubscribe(CHANGES_CHANNEL_PREFIX + "*");
         pubsub.sync().subscribe("__keyevent@" + database + "__:expired");
 
         pubsub.addListener(new RedisPubSubAdapter<>() {
@@ -77,7 +77,7 @@ public class RedisAttributeRepository implements AttributeRepository {
             @Override
             public void message(String pattern, String channel, String message) {
                 // sapl:changes:* → Wertänderungen
-                String redisKey = channel.substring("sapl:changes:".length());
+                String redisKey = channel.substring(CHANGES_CHANNEL_PREFIX.length());
                 Value  value    = message.equals(UNDEFINED_STRING) ? Value.UNDEFINED
                         : ValueJsonMarshaller.json(message);
 
@@ -146,13 +146,13 @@ public class RedisAttributeRepository implements AttributeRepository {
             cli.expire(redisKey, ttl.toSeconds());
         }
 
-        cli.publish("sapl:changes:" + redisKey, redisValue);
+        cli.publish(CHANGES_CHANNEL_PREFIX + redisKey, redisValue);
     }
 
     @Override
     public void remove(@NonNull RepositoryKey key) {
         cli.del(toRedisKey(key));
-        cli.publish("sapl:changes:" + toRedisKey(key), UNDEFINED_STRING);
+        cli.publish(CHANGES_CHANNEL_PREFIX + toRedisKey(key), UNDEFINED_STRING);
     }
 
     @Override

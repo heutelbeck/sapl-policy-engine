@@ -57,7 +57,7 @@ public class AttributesView extends VerticalLayout {
     private static String COLUMN_NAME_VALUE     = "value";
 
     // Internal http client, fixed SonarQube issue because client wasn't transient
-    private final transient AttributeApiClient client;
+    private transient AttributeApiClient client;
 
     // Search fields
     private final TextField entityField    = new TextField();

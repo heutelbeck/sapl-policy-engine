@@ -27,6 +27,7 @@ import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -35,14 +36,20 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
 @Slf4j
 
-public class MongoAttributeRepository implements AttributeRepository {
+public final class MongoAttributeRepository implements AttributeRepository {
     private static final String ERROR_HANDLE_NOTIFICATION = "Error while handling attribute_changes notification for pdpId '{}'";
+
+    private static final String FIELD_PDP_ID     = "pdpId";
+    private static final String FIELD_NAME       = "name";
+    private static final String FIELD_ENTITY     = "entity";
+    private static final String FIELD_ARGUMENTS  = "arguments";
+    private static final String FIELD_VALUE      = "value";
+    private static final String FIELD_EXPIRES_AT = "expiresAt";
 
     // Delegate Pattern . observer(), close() etc are generated
     @Delegate(excludes = ExcludedMethods.class)
@@ -73,54 +80,74 @@ public class MongoAttributeRepository implements AttributeRepository {
     private void subscribeToChangeStream() {
         mongo.changeStream(Document.class)
                 .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP))
-                .watchCollection(collection).listen()
-                .filter(event -> event.getBody() != null && pdpId.equals(event.getBody().getString("pdpId")))
-                .publishOn(Schedulers.boundedElastic()).subscribe(event -> {
-                    var doc = event.getBody();
-                    var opType = event.getOperationType();
-                    var entityJson = Objects.requireNonNull(doc).getString("entity");
-                    var key = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
-                            doc.getString("name"), jsonToValues(doc.getString("arguments")), pdpId);
+                .watchCollection(collection).listen().filter(this::matchesPdpId).publishOn(Schedulers.boundedElastic())
+                .subscribe(this::handleChangeStreamEvent, error -> log.error(ERROR_HANDLE_NOTIFICATION, pdpId, error));
+    }
 
-                    if (opType != null && "delete".equals(opType.getValue())) {
-                        internalRepository.remove(key);
-                        return;
-                    }
+    private boolean matchesPdpId(ChangeStreamEvent<Document> event) {
+        return event.getBody() != null && pdpId.equals(event.getBody().getString(FIELD_PDP_ID));
+    }
 
-                    var valueJson = doc.getString("value");
+    private void handleChangeStreamEvent(ChangeStreamEvent<Document> event) {
+        var doc = Objects.requireNonNull(event.getBody());
+        var key = keyFromDocument(doc);
 
-                    if (valueJson == null)
-                        return;
+        if (isDeleteEvent(event)) {
+            internalRepository.remove(key);
+            return;
+        }
 
-                    var value = ValueJsonMarshaller.json(valueJson);
-                    var dateField = doc.getDate("expiresAt");
-                    var expiresAt = dateField != null ? dateField.toInstant() : null;
+        publishFromDocument(key, doc);
+    }
 
-                    if (expiresAt != null) {
-                        var remaining = Duration.between(Instant.now(), expiresAt);
-                        if (!remaining.isNegative())
-                            internalRepository.publish(key, value, remaining);
-                    } else {
-                        internalRepository.publish(key, value);
-                    }
-                }, error -> log.error(ERROR_HANDLE_NOTIFICATION, pdpId, error));
+    private static boolean isDeleteEvent(ChangeStreamEvent<Document> event) {
+        var opType = event.getOperationType();
+        return opType != null && "delete".equals(opType.getValue());
+    }
+
+    private RepositoryKey keyFromDocument(Document doc) {
+        var entityJson = doc.getString(FIELD_ENTITY);
+        return new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
+                doc.getString(FIELD_NAME), jsonToValues(doc.getString(FIELD_ARGUMENTS)), pdpId);
+    }
+
+    private void publishFromDocument(RepositoryKey key, Document doc) {
+        var valueJson = doc.getString(FIELD_VALUE);
+        if (valueJson == null)
+            return;
+
+        var value     = ValueJsonMarshaller.json(valueJson);
+        var expiresAt = expiryFromDocument(doc);
+
+        if (expiresAt == null) {
+            internalRepository.publish(key, value);
+            return;
+        }
+
+        var remaining = Duration.between(Instant.now(), expiresAt);
+        if (!remaining.isNegative())
+            internalRepository.publish(key, value, remaining);
+    }
+
+    private static Instant expiryFromDocument(Document doc) {
+        var dateField = doc.getDate(FIELD_EXPIRES_AT);
+        return dateField != null ? dateField.toInstant() : null;
     }
 
     private void loadFromDB() {
-        var query = new Query(Criteria.where("pdpId").is(pdpId));
+        var query = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
         mongo.find(query, Document.class, collection).toStream().forEach(doc -> {
-            var entityJson = doc.getString("entity");
-            var argsJson   = doc.getString("arguments");
-            var valueJson  = doc.getString("value");
+            var entityJson = doc.getString(FIELD_ENTITY);
+            var argsJson   = doc.getString(FIELD_ARGUMENTS);
+            var valueJson  = doc.getString(FIELD_VALUE);
 
             if (valueJson == null)
                 return;
 
             var key       = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
-                    doc.getString("name"), jsonToValues(argsJson), pdpId);
+                    doc.getString(FIELD_NAME), jsonToValues(argsJson), pdpId);
             var value     = ValueJsonMarshaller.json(valueJson);
-            var dateField = doc.getDate("expiresAt");
-            var expiresAt = dateField != null ? dateField.toInstant() : null;
+            var expiresAt = expiryFromDocument(doc);
 
             if (expiresAt != null) {
                 var remainingTTL = Duration.between(Instant.now(), expiresAt);
@@ -157,9 +184,8 @@ public class MongoAttributeRepository implements AttributeRepository {
         var argsJson   = valuesToJson(key.arguments());
         var valueJson  = ValueJsonMarshaller.toJsonString(value);
 
-        var update = new Update().set("pdpId", pdpId).set("name", key.name()).set("entity", entityJson)
-                .set("arguments", argsJson).set("value", valueJson)
-                .set("expiresAt", expiresAt != null ? Date.from(expiresAt) : null);
+        var update = new Update().set(FIELD_PDP_ID, pdpId).set(FIELD_NAME, key.name()).set(FIELD_ENTITY, entityJson)
+                .set(FIELD_ARGUMENTS, argsJson).set(FIELD_VALUE, valueJson).set(FIELD_EXPIRES_AT, expiresAt);
 
         mongo.upsert(doMongoQuery(key), update, collection).block();
     }
@@ -173,8 +199,8 @@ public class MongoAttributeRepository implements AttributeRepository {
     private Query doMongoQuery(RepositoryKey key) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argsJson   = valuesToJson(key.arguments());
-        var criteria   = Criteria.where("pdpId").is(pdpId).and("name").is(key.name()).and("entity").is(entityJson)
-                .and("arguments").is(argsJson);
+        var criteria   = Criteria.where(FIELD_PDP_ID).is(pdpId).and(FIELD_NAME).is(key.name()).and(FIELD_ENTITY)
+                .is(entityJson).and(FIELD_ARGUMENTS).is(argsJson);
 
         return new Query(criteria);
     }
