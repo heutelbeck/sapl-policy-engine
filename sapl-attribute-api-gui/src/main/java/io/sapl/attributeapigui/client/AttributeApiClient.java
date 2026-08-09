@@ -38,7 +38,7 @@ import java.util.Optional;
 @Component
 @VaadinSessionScope
 public class AttributeApiClient {
-	private static final String ERROR_NO_ATTRIBUTE_TO_DELTE = "There was no such attribute to delete from the repository.";
+    private static final String ERROR_NO_ATTRIBUTE_TO_DELTE = "There was no such attribute to delete from the repository.";
     private static final String API_GLOBAL_ATTRIBUTE        = "/api/attributes/{name}";
     private static final String API_ATTRIBUTE_WITH_ENTITY   = "/api/attributes/{entity}/{name}";
 
@@ -89,7 +89,7 @@ public class AttributeApiClient {
             client.delete().uri(uri).headers(this::addAuthorization).retrieve().toBodilessEntity();
             return true;
         } catch (HttpClientErrorException.NotFound e) {
-        	log.debug(ERROR_NO_ATTRIBUTE_TO_DELTE);
+            log.debug(ERROR_NO_ATTRIBUTE_TO_DELTE);
             return false;
         }
     }

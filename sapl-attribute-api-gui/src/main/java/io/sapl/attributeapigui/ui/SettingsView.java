@@ -28,6 +28,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.attributeapigui.connection.ConnectionMode;
@@ -36,6 +37,7 @@ import jakarta.annotation.security.RolesAllowed;
 import lombok.Getter;
 
 @Route(value = "settings", layout = MainLayout.class)
+@Menu(order = 2, icon = "vaadin:cog", title = "Settings")
 @PageTitle("Settings")
 @RolesAllowed("ADMIN")
 public class SettingsView extends VerticalLayout {

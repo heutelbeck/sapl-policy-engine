@@ -30,6 +30,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.attributeapigui.client.AttributeApiClient;
@@ -45,12 +46,18 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 @Slf4j
+@Menu(order = 1, icon = "vaadin:list", title = "Attributes")
 @Route(value = "", layout = MainLayout.class)
 @PageTitle("Attributes")
 @RolesAllowed("ADMIN")
 public class AttributesView extends VerticalLayout {
-    // Internal http client
-    private final AttributeApiClient client;
+    private static String COLUMN_NAME_ENTITY    = "entity";
+    private static String COLUMN_NAME_ARGUMENTS = "arguments";
+    private static String COLUMN_NAME_NAME      = "name";
+    private static String COLUMN_NAME_VALUE     = "value";
+
+    // Internal http client, fixed SonarQube issue because client wasn't transient
+    private final transient AttributeApiClient client;
 
     // Search fields
     private final TextField entityField    = new TextField();
@@ -76,10 +83,11 @@ public class AttributesView extends VerticalLayout {
         setSizeFull();
         add(new H2("Repository overview"));
 
-        grid.addColumn(entry -> String.valueOf(entry.get("entity"))).setHeader("Entity").setAutoWidth(true);
-        grid.addColumn(entry -> String.valueOf(entry.get("name"))).setHeader("Name").setAutoWidth(true);
-        grid.addColumn(entry -> String.valueOf(entry.get("arguments"))).setHeader("Arguments").setAutoWidth(true);
-        grid.addColumn(entry -> String.valueOf(entry.get("value"))).setHeader("Value").setAutoWidth(true);
+        grid.addColumn(entry -> String.valueOf(entry.get(COLUMN_NAME_ENTITY))).setHeader("Entity").setAutoWidth(true);
+        grid.addColumn(entry -> String.valueOf(entry.get(COLUMN_NAME_NAME))).setHeader("Name").setAutoWidth(true);
+        grid.addColumn(entry -> String.valueOf(entry.get(COLUMN_NAME_ARGUMENTS))).setHeader("Arguments")
+                .setAutoWidth(true);
+        grid.addColumn(entry -> String.valueOf(entry.get(COLUMN_NAME_VALUE))).setHeader("Value").setAutoWidth(true);
         grid.setSizeFull();
         grid.setItems(List.of());
 
@@ -90,13 +98,13 @@ public class AttributesView extends VerticalLayout {
             if (selected == null) {
                 return;
             }
-            var entity       = selected.get("entity");
-            var rawArguments = selected.get("arguments");
+            var entity       = selected.get(COLUMN_NAME_ENTITY);
+            var rawArguments = selected.get(COLUMN_NAME_ARGUMENTS);
 
             // Generics are erased at runtime, so only the raw List type is checkable here.
             var arguments = rawArguments instanceof List<?> rawList ? rawList.stream().map(String::valueOf).toList()
                     : List.<String>of();
-            deleteItem(entity == null ? null : entity.toString(), selected.get("name").toString(), arguments);
+            deleteItem(entity == null ? null : entity.toString(), selected.get(COLUMN_NAME_NAME).toString(), arguments);
         }, Key.DELETE).listenOn(grid);
 
         // Search fields
@@ -189,44 +197,53 @@ public class AttributesView extends VerticalLayout {
         }
     }
 
+    // SonarQube : Refactored
     private void search() {
         var key    = keyField.getValue();
         var entity = entityField.getValue();
 
         try {
             if (key == null || key.isBlank()) {
-                grid.setItems(query -> {
-                    try {
-                        return client.getAllAttributes(query.getLimit(), query.getOffset()).stream();
-                    } catch (RuntimeException e) {
-                        log.warn("Failed to fetch attributes page (limit {}, offset {})", query.getLimit(),
-                                query.getOffset(), e);
-                        Notification.show("Fehler beim Laden: " + e.getMessage());
-                        return Stream.empty();
-                    }
-                }, query -> client.getAttributeCount().intValue());
-
-                if (client.getAttributeCount() == 0) {
-                    Notification.show("No attributes found.");
-                }
+                searchAllAttributes();
             } else {
-                var rawArguments = argumentsField.getValue();
-                var arguments    = (rawArguments == null || rawArguments.isBlank()) ? List.<String>of()
-                        : Arrays.stream(rawArguments.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
-
-                var value = client.getAttribute(entity, key.trim(), arguments);
-                if (value.isPresent()) {
-                    grid.setItems(List.of(Map.of("entity", entity == null ? "" : entity, "name", key.trim(),
-                            "arguments", arguments, "value", value.get())));
-                } else {
-                    grid.setItems(List.of());
-                    Notification.show("No attribute found for key '" + key.trim() + "'.");
-                }
+                searchByKey(entity, key);
             }
         } catch (RuntimeException e) {
             log.warn("Failed to look up attributes (key '{}', entity '{}')", key, entity, e);
             var notification = Notification.show("Search failed: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    private void searchAllAttributes() {
+        grid.setItems(query -> {
+            try {
+                return client.getAllAttributes(query.getLimit(), query.getOffset()).stream();
+            } catch (RuntimeException e) {
+                log.warn("Failed to fetch attributes page (limit {}, offset {})", query.getLimit(), query.getOffset(),
+                        e);
+                Notification.show("Fehler beim Laden: " + e.getMessage());
+                return Stream.empty();
+            }
+        }, query -> client.getAttributeCount().intValue());
+
+        if (client.getAttributeCount() == 0) {
+            Notification.show("No attributes found.");
+        }
+    }
+
+    private void searchByKey(String entity, String key) {
+        var rawArguments = argumentsField.getValue();
+        var arguments    = (rawArguments == null || rawArguments.isBlank()) ? List.<String>of()
+                : Arrays.stream(rawArguments.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+
+        var value = client.getAttribute(entity, key.trim(), arguments);
+        if (value.isPresent()) {
+            grid.setItems(List.of(Map.of(COLUMN_NAME_ENTITY, entity == null ? "" : entity, COLUMN_NAME_NAME, key.trim(),
+                    COLUMN_NAME_ARGUMENTS, arguments, COLUMN_NAME_VALUE, value.get())));
+        } else {
+            grid.setItems(List.of());
+            Notification.show("No attribute found for key '" + key.trim() + "'.");
         }
     }
 

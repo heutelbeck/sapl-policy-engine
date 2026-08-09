@@ -20,18 +20,19 @@ package io.sapl.attributeapigui.ui;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.server.menu.MenuConfiguration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.annotation.security.RolesAllowed;
 
 @PageTitle("SAPL Attribute API")
 @RolesAllowed("ADMIN")
 public class MainLayout extends AppLayout {
-    public final String PAGE_TITLE = "SAPL Attribute API";
+    public static final String PAGE_TITLE = "SAPL Attribute API";
 
     public MainLayout() {
         // Creates the hamburger menu and the page title
@@ -39,8 +40,13 @@ public class MainLayout extends AppLayout {
 
         // Build the navigation on the side
         var navigation = new SideNav();
-        navigation.addItem(new SideNavItem("Attributes", AttributesView.class, VaadinIcon.LIST.create()));
-        navigation.addItem(new SideNavItem("Settings", SettingsView.class, VaadinIcon.COG.create()));
+
+        // Add the menu items
+        for (var entry : MenuConfiguration.getMenuEntries()) {
+            var item = entry.icon() != null ? new SideNavItem(entry.title(), entry.path(), new Icon(entry.icon()))
+                    : new SideNavItem(entry.title(), entry.path());
+            navigation.addItem(item);
+        }
 
         var container = new VerticalLayout(navigation);
         container.addClassNames(LumoUtility.Padding.SMALL);
