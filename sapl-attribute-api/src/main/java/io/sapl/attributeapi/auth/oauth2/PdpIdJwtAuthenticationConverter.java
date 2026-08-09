@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributeapi.auth.OAuth2;
+package io.sapl.attributeapi.auth.oauth2;
 
 import io.sapl.attributeapi.auth.AttributeApiUserDetails;
 import lombok.val;

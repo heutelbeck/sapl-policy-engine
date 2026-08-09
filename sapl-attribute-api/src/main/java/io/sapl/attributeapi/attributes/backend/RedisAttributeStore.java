@@ -33,6 +33,9 @@ import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class RedisAttributeStore implements AttributeStore {
+    private static final String REDIS_NAMESPACE_PREFIX = "sapl:attribute:";
+    private static final String REDIS_CHANGES_PREFIX   = "sapl:changes:";
+
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
     private static final String UNDEFINED_STRING       = "UNDEFINED";
     private static final String ERROR_PDP_ID_IS_EMPTY  = "PDP-ID must be resolved before reaching the store";
@@ -88,7 +91,7 @@ public class RedisAttributeStore implements AttributeStore {
         } else {
             cli.expire(redisKey, ttl.toSeconds());
         }
-        cli.publish("sapl:changes:" + redisKey, redisValue);
+        cli.publish(REDIS_CHANGES_PREFIX + redisKey, redisValue);
 
         return created;
     }
@@ -97,13 +100,13 @@ public class RedisAttributeStore implements AttributeStore {
     public void remove(AttributeKey signature, String pdpId) {
         String redisKey = toRedisKey(signature, pdpId);
         cli.del(redisKey);
-        cli.publish("sapl:changes:" + redisKey, UNDEFINED_STRING);
+        cli.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
     }
 
     @Override
     public Long count(String pdpId) {
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-        return (long) cli.keys("sapl:attribute:" + pdpId + ":*").size();
+        return (long) cli.keys(REDIS_NAMESPACE_PREFIX + pdpId + ":*").size();
     }
 
     @Override
@@ -118,7 +121,7 @@ public class RedisAttributeStore implements AttributeStore {
         // TODO: implement a Redis scan with MATCH-pattern. Keys is blocking the whole key space
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
 
-        String pattern = "sapl:attribute:" + pdpId + ":*";
+        String pattern = REDIS_NAMESPACE_PREFIX + pdpId + ":*";
 
         // Sort the list of keys to guarantee a deterministic output for limit/offset
         List<String> keys = cli.keys(pattern).stream().sorted().toList();
@@ -147,7 +150,7 @@ public class RedisAttributeStore implements AttributeStore {
         String entity    = signature.entity() != null ? ValueJsonMarshaller.toJsonString(signature.entity()) : "null";
         String arguments = valuesToJson(signature.arguments());
 
-        return "sapl:attribute:" + pdpId + ":" + entity + ":" + signature.name() + ":" + arguments;
+        return REDIS_NAMESPACE_PREFIX + pdpId + ":" + entity + ":" + signature.name() + ":" + arguments;
     }
 
     private String valuesToJson(List<Value> values) {

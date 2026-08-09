@@ -17,6 +17,7 @@
  */
 package io.sapl.attributeapi;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -48,24 +52,24 @@ abstract class AbstractAttributeApiTests {
     }
 
     /** Subclasses clean their backend between tests. */
-    protected void cleanRepository() {
-    }
+    protected abstract void cleanRepository();
 
     @Test
     @DisplayName("PUT /api/attributes/{name} returns 201")
     void publishGlobalAttribute() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
-                { "value": "test_1",
-                  "ttl": 60
-                 }
-                """)).andExpect(status().isCreated());
+        mockMvc.perform(
+                put("/api/attributes/sapl.test.role").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "test_1",
+                          "ttl": 60
+                         }
+                        """)).andExpect(status().isCreated());
     }
 
     @Test
     @DisplayName("PUT /api/attributes/sapl.test/{name} returns 201")
     void publishAttributeWithEntity() throws Exception {
-        mockMvc.perform(
-                put("/api/attributes/sapl.test/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.role").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_2",
                           "ttl": 60
                           }
@@ -75,8 +79,8 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("PUT /api/attributes/sapl.test/{name} returns error for unqualified name")
     void publishAttributeWithInvalidAttributeName() throws Exception {
-        MvcResult result = mockMvc
-                .perform(put("/api/attributes/sapl.test/sapl").contentType(MediaType.APPLICATION_JSON).content("""
+        MvcResult result = mockMvc.perform(
+                put("/api/attributes/sapl.test/sapl").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_3",
                           "ttl": 60
                          }
@@ -88,11 +92,12 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/sapl.test/{name} returns test_4 value")
     void getGlobalAttribute() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.deletion").contentType(MediaType.APPLICATION_JSON).content("""
-                { "value": "test_4",
-                  "ttl": 60
-                  }
-                """)).andExpect(status().isCreated());
+        mockMvc.perform(put("/api/attributes/sapl.test.deletion").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        { "value": "test_4",
+                          "ttl": 60
+                          }
+                        """)).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.deletion")).andExpect(status().isOk())
                 .andReturn();
@@ -102,7 +107,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("DELETE /api/attributes/sapl.test/{name} returns 201")
     void publishAndDeleteAttribute() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.publishAndDelete")
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.publishAndDelete").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_5",
                           "ttl": 60
@@ -113,49 +118,51 @@ abstract class AbstractAttributeApiTests {
                 .andExpect(status().isOk()).andReturn();
         assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test_5\"");
 
-        mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.publishAndDelete"))
+        mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.publishAndDelete").with(csrf()))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("TTL expires for /api/attributes/sapl.test/{name} and shows no content")
     void ttlExpires() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.ttlExpired").contentType(MediaType.APPLICATION_JSON)
-                .content("""
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.ttlExpired").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_6",
                           "ttl": 1
                           }
                         """)).andExpect(status().isCreated());
 
-        Thread.sleep(2000);
-
-        mockMvc.perform(get("/api/attributes/sapl.test/sapl.test.ttlExpired")).andExpect(status().isNotFound());
+        Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> mockMvc
+                .perform(get("/api/attributes/sapl.test/sapl.test.ttlExpired")).andExpect(status().isNotFound()));
     }
 
     @Test
     @DisplayName("PUT /api/attributes/{name} returns 201 on create, 200 on update")
     void publishTwiceReturnsCreatedThenOk() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.upsert").contentType(MediaType.APPLICATION_JSON).content("""
-                { "value": "test_7",
-                  "ttl": 60
-                 }
-                """)).andExpect(status().isCreated());
+        mockMvc.perform(
+                put("/api/attributes/sapl.test.upsert").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "test_7",
+                          "ttl": 60
+                         }
+                        """)).andExpect(status().isCreated());
 
-        mockMvc.perform(put("/api/attributes/sapl.test.upsert").contentType(MediaType.APPLICATION_JSON).content("""
-                { "value": "test_7_updated",
-                  "ttl": 60
-                 }
-                """)).andExpect(status().isOk());
+        mockMvc.perform(
+                put("/api/attributes/sapl.test.upsert").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "test_7_updated",
+                          "ttl": 60
+                         }
+                        """)).andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("GET /api/attributes?count=true returns the number of published attributes")
     void countReflectsPublishedAttributes() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.count").contentType(MediaType.APPLICATION_JSON).content("""
-                { "value": "test_8",
-                  "ttl": 60
-                 }
-                """)).andExpect(status().isCreated());
+        mockMvc.perform(
+                put("/api/attributes/sapl.test.count").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "test_8",
+                          "ttl": 60
+                         }
+                        """)).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk()).andReturn();
         assertThat(result.getResponse().getContentAsString()).isEqualTo("1");

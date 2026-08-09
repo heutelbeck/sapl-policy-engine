@@ -41,7 +41,6 @@ import ch.qos.logback.core.ConsoleAppender;
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
 import io.sapl.node.boot.SaplBanner;
-import io.sapl.node.cli.SaplNodeCli;
 import lombok.val;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -209,20 +208,8 @@ public class SaplNodeApplication {
      */
     static class NativeResourceHints implements RuntimeHintsRegistrar {
 
-        private static final String COMMANDS_PACKAGE  = "io.sapl.node.cli.commands.";
-        private static final String OPTIONS_PACKAGE   = "io.sapl.node.cli.options.";
-        private static final String BENCHMARK_PACKAGE = "io.sapl.node.cli.benchmark.";
-
-        private static final String[] PICOCLI_REFLECTION_CLASSES = { COMMANDS_PACKAGE + "AttributesCommand",
-                COMMANDS_PACKAGE + "BenchmarkCommand", OPTIONS_PACKAGE + "BenchmarkOptions",
-                OPTIONS_PACKAGE + "BundleVerificationOptions", COMMANDS_PACKAGE + "CheckCommand",
-                COMMANDS_PACKAGE + "DecideCommand", COMMANDS_PACKAGE + "DecideOnceCommand",
-                COMMANDS_PACKAGE + "DeleteAttributeCommand", COMMANDS_PACKAGE + "GetAttributeCommand",
-                OPTIONS_PACKAGE + "NamedSubscriptionOptions", COMMANDS_PACKAGE + "LoadtestCommand",
-                OPTIONS_PACKAGE + "PdpOptions", OPTIONS_PACKAGE + "PolicySourceOptions",
-                COMMANDS_PACKAGE + "PublishAttributeCommand", OPTIONS_PACKAGE + "RemoteConnectionOptions",
-                OPTIONS_PACKAGE + "RemoteConnectionOptions$AuthOptions", COMMANDS_PACKAGE + "ServerCommand",
-                OPTIONS_PACKAGE + "SubscriptionInputOptions", COMMANDS_PACKAGE + "TestCommand" };
+        private static final String COMMANDS_PACKAGE = "io.sapl.node.cli.commands.";
+        private static final String OPTIONS_PACKAGE  = "io.sapl.node.cli.options.";
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {

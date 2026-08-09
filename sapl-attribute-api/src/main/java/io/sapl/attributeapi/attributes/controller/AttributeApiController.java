@@ -93,7 +93,7 @@ public class AttributeApiController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllAttributesFromPdp(@RequestParam(required = false) Integer limit,
+    public ResponseEntity<Object> getAllAttributesFromPdp(@RequestParam(required = false) Integer limit,
             @RequestParam(required = false) Integer offset,
             @RequestParam(required = false, defaultValue = "false") boolean count) {
 

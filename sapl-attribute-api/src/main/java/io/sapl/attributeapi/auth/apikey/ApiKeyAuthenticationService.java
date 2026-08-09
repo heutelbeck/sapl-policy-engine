@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributeapi.auth.ApiKey;
+package io.sapl.attributeapi.auth.apikey;
 
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import io.sapl.attributeapi.auth.AttributeApiUserDetails;

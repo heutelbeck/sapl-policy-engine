@@ -27,6 +27,22 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties(prefix = "io.sapl.attributes")
 public class AttributeStorageProperties implements InitializingBean {
+    private static final String POSTGRES_DEFAULT_HOSTNAME  = "localhost";
+    private static final int    POSTGRES_DEFAULT_PORT      = 5432;
+    private static final String POSTGRES_DEFAULT_DB        = "sapl";
+    private static final String POSTGRES_DEFAULT_USERNAME  = "sapl";
+    private static final String POSTGRES_DEFAULT_TABLENAME = "attributes";
+
+    private static final String MONGO_DEFAULT_HOSTNAME   = "localhost";
+    private static final int    MONGO_DEFAULT_PORT       = 27017;
+    private static final String MONGO_DEFAULT_DB         = "sapl";
+    private static final String MONGO_DEFAULT_AUTH_DB    = "admin";
+    private static final String MONGO_DEFAULT_COLLECTION = "attributes";
+
+    private static final String REDIS_DEFAULT_HOSTNAME = "localhost";
+    private static final int    REDIS_DEFAULT_PORT     = 6379;
+    private static final int    REDIS_DEFAULT_DB       = 0;
+
     private String storage;
 
     private Postgres postgres = new Postgres();
@@ -38,31 +54,31 @@ public class AttributeStorageProperties implements InitializingBean {
 
     @Data
     public static class Postgres {
-        private String host      = "localhost";
-        private int    port      = 5432;
-        private String database  = "sapl";
-        private String username  = "sapl";
+        private String host      = POSTGRES_DEFAULT_HOSTNAME;
+        private int    port      = POSTGRES_DEFAULT_PORT;
+        private String database  = POSTGRES_DEFAULT_DB;
+        private String username  = POSTGRES_DEFAULT_USERNAME;
         private String password;
-        private String tableName = "attributes";
+        private String tableName = POSTGRES_DEFAULT_TABLENAME;
     }
 
     @Data
     public static class Mongo {
-        private String host           = "localhost";
-        private int    port           = 27017;
-        private String database       = "sapl";
+        private String host           = MONGO_DEFAULT_HOSTNAME;
+        private int    port           = MONGO_DEFAULT_PORT;
+        private String database       = MONGO_DEFAULT_DB;
         private String username;
         private String password;
-        private String authDatabase   = "admin";
-        private String collectionName = "attributes";
+        private String authDatabase   = MONGO_DEFAULT_AUTH_DB;
+        private String collectionName = MONGO_DEFAULT_COLLECTION;
     }
 
     @Data
     public static class Redis {
-        private String host     = "localhost";
-        private int    port     = 6379;
+        private String host     = REDIS_DEFAULT_HOSTNAME;
+        private int    port     = REDIS_DEFAULT_PORT;
         private String password;
-        private int    database = 0;
+        private int    database = REDIS_DEFAULT_DB;
     }
 
     @Override

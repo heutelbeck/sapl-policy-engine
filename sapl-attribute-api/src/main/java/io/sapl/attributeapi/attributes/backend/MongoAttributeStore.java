@@ -33,7 +33,6 @@ import com.mongodb.client.result.UpdateResult;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -80,7 +79,7 @@ public class MongoAttributeStore implements AttributeStore {
 
         var query = new Query(Criteria.where(PDP_ID_FIELD).is(pdpId));
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
-                Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
+                Criteria.where(EXPIRES_AT_FIELD).gt(Instant.now())));
 
         return mongo.count(query, collection).block();
     }
@@ -89,7 +88,7 @@ public class MongoAttributeStore implements AttributeStore {
     public Value get(AttributeKey key, String pdpId) {
         var query = doMongoQuery(key, pdpId);
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
-                Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
+                Criteria.where(EXPIRES_AT_FIELD).gt(Instant.now())));
 
         var document = mongo.findOne(query, Document.class, collection).block();
 
@@ -108,7 +107,7 @@ public class MongoAttributeStore implements AttributeStore {
         var query = new Query(Criteria.where(PDP_ID_FIELD).is(pdpId));
 
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
-                Criteria.where(EXPIRES_AT_FIELD).gt(new Date())));
+                Criteria.where(EXPIRES_AT_FIELD).gt(Instant.now())));
         query.with(Sort.by(Sort.Direction.ASC, NAME_FIELD, ENTITY_FIELD, ARGUMENTS_FIELD));
 
         if (offset != null) {
@@ -125,7 +124,8 @@ public class MongoAttributeStore implements AttributeStore {
 
     @Override
     public void close() {
-
+        // Noop: The used Mongo implementation is a Spring-managed bean shared across the application
+        // The class is not responsible for it's lifecycle
     }
 
     private void deleteFromDB(@NonNull AttributeKey key, String pdpId) {
@@ -138,11 +138,10 @@ public class MongoAttributeStore implements AttributeStore {
         var valueJson  = ValueJsonMarshaller.toJsonString(value);
 
         var update = new Update().set(PDP_ID_FIELD, pdpId).set(NAME_FIELD, key.name()).set(ENTITY_FIELD, entityJson)
-                .set(ARGUMENTS_FIELD, argsJson).set(VALUE_FIELD, valueJson)
-                .set(EXPIRES_AT_FIELD, expiresAt != null ? Date.from(expiresAt) : null);
+                .set(ARGUMENTS_FIELD, argsJson).set(VALUE_FIELD, valueJson).set(EXPIRES_AT_FIELD, expiresAt);
 
         UpdateResult result = mongo.upsert(doMongoQuery(key, pdpId), update, collection).block();
-        return result.getUpsertedId() != null;
+        return result != null && result.getUpsertedId() != null;
     }
 
     private Query doMongoQuery(AttributeKey key, String pdpId) {

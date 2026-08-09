@@ -17,10 +17,10 @@
  */
 package io.sapl.attributeapi.auth;
 
-import io.sapl.attributeapi.auth.ApiKey.ApiKeyAuthenticationFilter;
-import io.sapl.attributeapi.auth.ApiKey.ApiKeyAuthenticationProvider;
-import io.sapl.attributeapi.auth.ApiKey.ApiKeyAuthenticationService;
-import io.sapl.attributeapi.auth.OAuth2.PdpIdJwtAuthenticationConverter;
+import io.sapl.attributeapi.auth.apikey.ApiKeyAuthenticationFilter;
+import io.sapl.attributeapi.auth.apikey.ApiKeyAuthenticationProvider;
+import io.sapl.attributeapi.auth.apikey.ApiKeyAuthenticationService;
+import io.sapl.attributeapi.auth.oauth2.PdpIdJwtAuthenticationConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +46,7 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -70,9 +71,13 @@ public class AttributeSecurityConfiguration {
         // embedded inside sapl-node).
         http.securityMatcher("/api/attributes/**");
 
-        // CSRF is not needed because we have a stateless API
-        http.csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .ignoringRequestMatchers(request -> {
+                    String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+                    return authHeader != null && authHeader.startsWith("Bearer ");
+                }));
 
         if (noAuthenticationMechanismIsDefined()) {
             throw new IllegalStateException("No authentication method set");
@@ -81,57 +86,68 @@ public class AttributeSecurityConfiguration {
         if (properties.isAllowNoAuth() && !properties.isAllowBasicAuth() && !properties.isAllowApiKeyAuth()
                 && !properties.isAllowOAuth2Auth()) {
             log.warn("Server has been configured to reply to requests without authentication.");
-            return http.httpBasic(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()).build();
+            return http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll()).build();
         }
 
-        var authenticationEntryPoint = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
-        http.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint));
-
         if (properties.isAllowBasicAuth()) {
-            log.info("Basic authentication activated.");
-            if (!hasBasicAuthUsers()) {
-                log.warn("Basic authentication is enabled but no users with basic credentials are configured.");
-            }
-            http.httpBasic(withDefaults());
+            httpBasicAllowed(http);
         } else {
             http.httpBasic(AbstractHttpConfigurer::disable);
         }
 
         if (properties.isAllowApiKeyAuth()) {
-            log.info("API key authentication activated.");
-
-            if (!hasApiKeyUsers()) {
-                log.warn("API key authentication is enabled but no api key is defined.");
-            }
-
-            AuthenticationManager apiKeyAuthenticationManager = new ProviderManager(
-                    new ApiKeyAuthenticationProvider(new ApiKeyAuthenticationService(properties)));
-            http.addFilterBefore(new ApiKeyAuthenticationFilter(apiKeyAuthenticationManager, authenticationEntryPoint),
-                    UsernamePasswordAuthenticationFilter.class);
+            apiKeyAllowed(http);
         }
 
         if (properties.isAllowOAuth2Auth()) {
-            log.info("OAuth2 authentication activated");
-
-            var converter = new PdpIdJwtAuthenticationConverter(properties.getOauth2().getOidcPdpIdClaim());
-            var decoder   = jwtDecoder();
-
-            // API keys are also carried as "Authorization: Bearer sapl_..." - leave
-            // those alone here so the apiKeyFilter above gets a chance to handle
-            // them instead of failing JWT decoding.
-            http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(request -> {
-                String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-                if (authHeader != null && authHeader.startsWith("Bearer sapl_")) {
-                    return null;
-                }
-                return new DefaultBearerTokenResolver().resolve(request);
-            }).jwt(jwt -> jwt.decoder(decoder).jwtAuthenticationConverter(converter)));
+            oauth2Allowed(http);
         }
 
         http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
 
         return http.build();
+    }
+
+    private void httpBasicAllowed(HttpSecurity http) {
+        log.info("Basic authentication activated.");
+        if (!hasBasicAuthUsers()) {
+            log.warn("Basic authentication is enabled but no users with basic credentials are configured.");
+        }
+        http.httpBasic(withDefaults());
+    }
+
+    private void apiKeyAllowed(HttpSecurity http) {
+        var authenticationEntryPoint = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
+        http.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint));
+
+        log.info("API key authentication activated.");
+
+        if (!hasApiKeyUsers()) {
+            log.warn("API key authentication is enabled but no api key is defined.");
+        }
+
+        AuthenticationManager apiKeyAuthenticationManager = new ProviderManager(
+                new ApiKeyAuthenticationProvider(new ApiKeyAuthenticationService(properties)));
+        http.addFilterBefore(new ApiKeyAuthenticationFilter(apiKeyAuthenticationManager, authenticationEntryPoint),
+                UsernamePasswordAuthenticationFilter.class);
+    }
+
+    private void oauth2Allowed(HttpSecurity http) {
+        log.info("OAuth2 authentication activated");
+
+        var converter = new PdpIdJwtAuthenticationConverter(properties.getOauth2().getOidcPdpIdClaim());
+        var decoder   = jwtDecoder();
+
+        // API keys are also carried as "Authorization: Bearer sapl_..." - leave
+        // those alone here so the apiKeyFilter above gets a chance to handle
+        // them instead of failing JWT decoding.
+        http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(request -> {
+            String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+            if (authHeader != null && authHeader.startsWith("Bearer sapl_")) {
+                return null;
+            }
+            return new DefaultBearerTokenResolver().resolve(request);
+        }).jwt(jwt -> jwt.decoder(decoder).jwtAuthenticationConverter(converter)));
     }
 
     @Bean
