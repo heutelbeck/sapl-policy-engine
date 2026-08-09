@@ -71,8 +71,8 @@ public class AttributeSecurityConfiguration {
         http.securityMatcher("/api/attributes/**");
 
         // CSRF is not needed because we have a stateless API
-        http.csrf(AbstractHttpConfigurer::disable);
-        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http.csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         if (noAuthenticationMechanismIsDefined()) {
             throw new IllegalStateException("No authentication method set");
