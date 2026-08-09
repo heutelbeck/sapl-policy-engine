@@ -3,7 +3,6 @@ package io.sapl.node.cli.commands;
 import org.springframework.web.util.UriComponentsBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.Mixin;
-
 import java.io.IOException;
 import java.util.List;
 

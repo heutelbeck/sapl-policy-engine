@@ -126,8 +126,7 @@ public class RedisAttributeRepository implements AttributeRepository {
     }
 
     private void publishInternal(@NonNull RepositoryKey key, @NonNull Value value, @Nullable Duration ttl) {
-        String redisKey = toRedisKey(key);
-        // String redisValue = toRawString(value);
+        String redisKey   = toRedisKey(key);
         String redisValue = ValueJsonMarshaller.toJsonString(value);
 
         Map<String, String> fields = new HashMap<>();

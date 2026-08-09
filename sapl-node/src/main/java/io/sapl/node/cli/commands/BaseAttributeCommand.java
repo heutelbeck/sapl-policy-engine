@@ -22,17 +22,19 @@ public abstract class BaseAttributeCommand implements Callable<Integer> {
             .build();
 
     protected String toJsonValue(String s) {
-        if (s.equalsIgnoreCase("true") || s.equalsIgnoreCase("false") || s.equalsIgnoreCase("null"))
+        if ("true".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s) || "null".equalsIgnoreCase(s))
             return s.toLowerCase();
         try {
             Long.parseLong(s);
             return s;
         } catch (NumberFormatException ignored) {
+            // Not a Long, try Double next
         }
         try {
             Double.parseDouble(s);
             return s;
         } catch (NumberFormatException ignored) {
+            // Not a Double, try String next
         }
         return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }

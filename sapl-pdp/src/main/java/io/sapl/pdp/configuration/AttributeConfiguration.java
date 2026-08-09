@@ -26,7 +26,6 @@ import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
-import io.sapl.attributes.libraries.UserPolicyInformationPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
@@ -149,8 +148,6 @@ public class AttributeConfiguration {
     public AttributeBroker attributeBroker(AttributeRepository repository, ApplicationContext ctx) {
         val pipBeans = Arrays.stream(ctx.getBeanNamesForAnnotation(PolicyInformationPoint.class)).map(ctx::getBean)
                 .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
-
-        pipBeans.add(new UserPolicyInformationPoint());
 
         return PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker(Clock.systemUTC(),
                 JsonMapper.builder().build(), true, pipBeans, repository);

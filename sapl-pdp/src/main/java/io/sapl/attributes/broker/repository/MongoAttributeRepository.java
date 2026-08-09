@@ -106,7 +106,7 @@ public class MongoAttributeRepository implements AttributeRepository {
                 }, error -> log.error(ERROR_HANDLE_NOTIFICATION, pdpId, error));
     }
 
-    public void loadFromDB() {
+    private void loadFromDB() {
         var query = new Query(Criteria.where("pdpId").is(pdpId));
         mongo.find(query, Document.class, collection).toStream().forEach(doc -> {
             var entityJson = doc.getString("entity");

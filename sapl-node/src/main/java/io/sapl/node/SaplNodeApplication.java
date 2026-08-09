@@ -41,6 +41,7 @@ import ch.qos.logback.core.ConsoleAppender;
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
 import io.sapl.node.boot.SaplBanner;
+import io.sapl.node.cli.SaplNodeCli;
 import lombok.val;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
