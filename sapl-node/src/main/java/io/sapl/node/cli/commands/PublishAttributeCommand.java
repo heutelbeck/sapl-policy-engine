@@ -5,8 +5,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Command(name = "publish", mixinStandardHelpOptions = true, description = "Publish an attribute into the attribute repository of a running SAPL node")
 public class PublishAttributeCommand extends BaseAttributeCommand {
@@ -31,20 +32,16 @@ public class PublishAttributeCommand extends BaseAttributeCommand {
 
     @Override
     public Integer call() {
-        var argsJson = arguments.stream().filter(s -> !s.isEmpty()).map(this::toJsonValue)
-                .collect(Collectors.joining(",", "[", "]"));
-        var ttlJson  = ttl >= 0 ? String.valueOf(ttl) : "null";
-        var json     = """
-                {
-                    "value": %s,
-                    "arguments": %s,
-                    "ttl": %s,
-                    "pdpid": "%s"
-                }
-                """.formatted(toJsonValue(value), argsJson, ttlJson, pdpId);
+        var argumentValues = arguments.stream().filter(s -> !s.isEmpty()).map(this::parseLiteral).toList();
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("value", parseLiteral(value));
+        body.put("arguments", argumentValues);
+        body.put("ttl", ttl >= 0 ? ttl : null);
+        body.put("pdpid", pdpId);
 
         var uri      = UriComponentsBuilder.fromUriString(url + attributePath(entity, name)).build().toUri();
-        var response = webClient.put().uri(uri).contentType(MediaType.APPLICATION_JSON).bodyValue(json).retrieve()
+        var response = webClient.put().uri(uri).contentType(MediaType.APPLICATION_JSON).bodyValue(body).retrieve()
                 .toEntity(String.class).block();
 
         return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;

@@ -92,6 +92,14 @@ class PostgresAttributeRepositoryTests {
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
 
+    private Value firstReceived() {
+        return received.getFirst();
+    }
+
+    private Value lastReceived() {
+        return received.getLast();
+    }
+
     @Nested
     @DisplayName("when a value is published")
     class WhenValueIsPublished {
@@ -102,7 +110,7 @@ class PostgresAttributeRepositoryTests {
             repository.publish(key("sapl.test.attr"), Value.of("test"));
             repository.observe(invocation("sapl.test.attr"), received::add);
 
-            assertThat(received.get(0)).isEqualTo(Value.of("test"));
+            assertThat(firstReceived()).isEqualTo(Value.of("test"));
         }
 
         @Test
@@ -119,7 +127,7 @@ class PostgresAttributeRepositoryTests {
 
             try (val repo2 = new PostgresAttributeRepository(client2, factory2, "test-tenant", "attributes")) {
                 repo2.observe(invocation("sapl.test.persist"), received::add);
-                assertThat(received.get(0)).isEqualTo(Value.of(42L));
+                assertThat(firstReceived()).isEqualTo(Value.of(42L));
             }
         }
     }
@@ -135,8 +143,7 @@ class PostgresAttributeRepositoryTests {
             repository.observe(invocation("sapl.test.remove"), received::add);
             repository.remove(key("sapl.test.remove"));
 
-            Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .until(() -> received.get(received.size() - 1).equals(Value.UNDEFINED));
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
     }
 
@@ -149,11 +156,10 @@ class PostgresAttributeRepositoryTests {
         void thenObserverReceivesNewValue() {
             repository.publish(key("sapl.test.overwrite"), Value.of("1"), Duration.ofSeconds(120));
             repository.observe(invocation("sapl.test.overwrite"), received::add);
-            assertThat(received.get(0)).isEqualTo(Value.of("1"));
+            assertThat(firstReceived()).isEqualTo(Value.of("1"));
 
             repository.publish(key("sapl.test.overwrite"), Value.of("2"), Duration.ofSeconds(120));
-            Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .until(() -> received.get(received.size() - 1).equals(Value.of("2")));
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.of("2")));
         }
     }
 
@@ -167,8 +173,7 @@ class PostgresAttributeRepositoryTests {
             repository.observe(invocation("sapl.test.ttl"), received::add);
             repository.publish(key("sapl.test.ttl"), Value.of("temp"), Duration.ofSeconds(1));
 
-            Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .until(() -> received.get(received.size() - 1).equals(Value.UNDEFINED));
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
     }
 
@@ -179,9 +184,6 @@ class PostgresAttributeRepositoryTests {
         @Test
         @DisplayName("repository reconnects and catches up on changes missed during the outage")
         void thenObserverEventuallyReceivesChangesMissedDuringOutage() {
-            // A second instance stands in for "another node": its writes go through the
-            // normal connection pool, unaffected by killing repository's dedicated LISTEN
-            // connection below.
             val config2  = PostgresqlConnectionConfiguration.builder().host(postgres.getHost())
                     .port(postgres.getMappedPort(5432)).database(postgres.getDatabaseName())
                     .username(postgres.getUsername()).password(postgres.getPassword()).build();
@@ -192,19 +194,15 @@ class PostgresAttributeRepositoryTests {
                 repository.observe(invocation("sapl.test.reconnect"), received::add);
                 repo2.publish(key("sapl.test.reconnect"), Value.of("before-outage"));
                 Awaitility.await().atMost(Duration.ofSeconds(5))
-                        .until(() -> received.get(received.size() - 1).equals(Value.of("before-outage")));
+                        .until(() -> lastReceived().equals(Value.of("before-outage")));
 
-                // Simulate a dropped connection: kill every backend that issued LISTEN,
-                // rather than trying to single out repository's specific connection.
                 client.sql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
                         + "WHERE query LIKE 'LISTEN%' AND pid <> pg_backend_pid()").then().block();
 
-                // A change published while repository is disconnected must not be lost:
-                // the reconnect's full reload has to catch it, not just future live events.
                 repo2.publish(key("sapl.test.reconnect"), Value.of("during-outage"));
 
                 Awaitility.await().atMost(Duration.ofSeconds(15))
-                        .until(() -> received.get(received.size() - 1).equals(Value.of("during-outage")));
+                        .until(() -> lastReceived().equals(Value.of("during-outage")));
             }
         }
     }

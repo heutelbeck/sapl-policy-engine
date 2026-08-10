@@ -63,9 +63,6 @@ public class AttributeConfiguration {
      */
     @Bean
     @Primary
-    // SuppressWarnings("resource"): The repository outlives this method, and it's stored in the cache and stored later.
-    // TODO: Clarify if SuppressWarnings is ok!
-    @SuppressWarnings("resource")
     public AttributeRepository attributeRepository(PDPConfigurationSource source) {
         var cache       = new ConcurrentHashMap<String, AttributeRepository>(); // configId → repo
         var pdpToConfig = new ConcurrentHashMap<String, String>();              // pdpId → current configId
@@ -83,9 +80,12 @@ public class AttributeConfiguration {
                 // at whatever it pointed at before - not silently fall back to the
                 // shared EMPTY_REPOSITORY, and not lose its previous, working repository.
                 try {
-                    cache.computeIfAbsent(configId,
-                            k -> repoNode instanceof ObjectValue obj ? AttributeRepositoryFactory.create(obj, pdpId)
-                                    : new InMemoryAttributeRepository());
+                    cache.computeIfAbsent(configId, k -> {
+                        AttributeRepository newRepository = repoNode instanceof ObjectValue obj
+                                ? AttributeRepositoryFactory.create(obj, pdpId)
+                                : new InMemoryAttributeRepository();
+                        return newRepository;
+                    });
                 } catch (RuntimeException failure) {
                     log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
                     return;
@@ -153,7 +153,6 @@ public class AttributeConfiguration {
                 JsonMapper.builder().build(), true, pipBeans, repository);
     }
 
-    // todo: maybe deprecated or still used to load jackson instances?
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();

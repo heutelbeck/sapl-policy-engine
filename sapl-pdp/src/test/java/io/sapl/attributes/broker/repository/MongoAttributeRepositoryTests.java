@@ -71,6 +71,14 @@ class MongoAttributeRepositoryTests {
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
 
+    private Value firstReceived() {
+        return received.getFirst();
+    }
+
+    private Value lastReceived() {
+        return received.getLast();
+    }
+
     @Nested
     @DisplayName("when a value is published")
     class WhenValueIsPublished {
@@ -81,7 +89,7 @@ class MongoAttributeRepositoryTests {
             repository.publish(key("sapl.test.attr"), Value.of("test"));
             repository.observe(invocation("sapl.test.attr"), received::add);
 
-            assertThat(received.get(0)).isEqualTo(Value.of("test"));
+            assertThat(firstReceived()).isEqualTo(Value.of("test"));
         }
 
         @Test
@@ -93,7 +101,7 @@ class MongoAttributeRepositoryTests {
             val template2 = new ReactiveMongoTemplate(new SimpleReactiveMongoDatabaseFactory(client2, "sapl"));
             try (val repo2 = new MongoAttributeRepository(template2, "test-tenant", "attributes")) {
                 repo2.observe(invocation("sapl.test.persist"), received::add);
-                assertThat(received.get(0)).isEqualTo(Value.of(42L));
+                assertThat(firstReceived()).isEqualTo(Value.of(42L));
             }
         }
     }
@@ -109,8 +117,7 @@ class MongoAttributeRepositoryTests {
             repository.observe(invocation("sapl.test.remove"), received::add);
             repository.remove(key("sapl.test.remove"));
 
-            Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .until(() -> received.get(received.size() - 1).equals(Value.UNDEFINED));
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
     }
 
@@ -123,11 +130,10 @@ class MongoAttributeRepositoryTests {
         void thenObserverReceivesNewValue() {
             repository.publish(key("sapl.test.overwrite"), Value.of("1"), Duration.ofSeconds(120));
             repository.observe(invocation("sapl.test.overwrite"), received::add);
-            assertThat(received.get(0)).isEqualTo(Value.of("1"));
+            assertThat(firstReceived()).isEqualTo(Value.of("1"));
 
             repository.publish(key("sapl.test.overwrite"), Value.of("2"), Duration.ofSeconds(120));
-            Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .until(() -> received.get(received.size() - 1).equals(Value.of("2")));
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.of("2")));
         }
     }
 
@@ -141,8 +147,7 @@ class MongoAttributeRepositoryTests {
             repository.observe(invocation("sapl.test.ttl"), received::add);
             repository.publish(key("sapl.test.ttl"), Value.of("temp"), Duration.ofSeconds(1));
 
-            Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .until(() -> received.get(received.size() - 1).equals(Value.UNDEFINED));
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
     }
 }

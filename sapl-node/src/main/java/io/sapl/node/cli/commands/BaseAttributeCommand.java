@@ -21,22 +21,26 @@ public abstract class BaseAttributeCommand implements Callable<Integer> {
             new ReactorClientHttpConnector(reactor.netty.http.client.HttpClient.create().protocol(HttpProtocol.HTTP11)))
             .build();
 
-    protected String toJsonValue(String s) {
-        if ("true".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s) || "null".equalsIgnoreCase(s))
-            return s.toLowerCase();
+    protected Object parseLiteral(String s) {
+        if ("true".equalsIgnoreCase(s))
+            return Boolean.TRUE;
+        if ("false".equalsIgnoreCase(s))
+            return Boolean.FALSE;
+        if ("null".equalsIgnoreCase(s))
+            return null;
+
         try {
-            Long.parseLong(s);
-            return s;
+            return Long.parseLong(s);
         } catch (NumberFormatException ignored) {
-            // Not a Long, try Double next
+            // try next, if its not a long
         }
+
         try {
-            Double.parseDouble(s);
-            return s;
+            return Double.parseDouble(s);
         } catch (NumberFormatException ignored) {
-            // Not a Double, try String next
+            // try next (string), if its not a double
         }
-        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return s;
     }
 
     protected String attributePath(String entity, String name) {

@@ -118,7 +118,6 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        // TODO: implement a Redis scan with MATCH-pattern. Keys is blocking the whole key space
         Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
 
         String pattern = REDIS_NAMESPACE_PREFIX + pdpId + ":*";
