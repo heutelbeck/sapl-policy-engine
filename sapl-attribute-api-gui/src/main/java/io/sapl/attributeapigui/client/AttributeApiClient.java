@@ -19,6 +19,7 @@ package io.sapl.attributeapigui.client;
 
 import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import io.sapl.attributeapigui.connection.ConnectionSettings;
+import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -42,20 +43,26 @@ public class AttributeApiClient {
     private static final String API_GLOBAL_ATTRIBUTE        = "/api/attributes/{name}";
     private static final String API_ATTRIBUTE_WITH_ENTITY   = "/api/attributes/{entity}/{name}";
 
-    private final ConnectionSettings settings;
-    private final RestClient         client = RestClient.create();
+    private final ConnectionSettingsHolder settingsHolder;
+    private final RestClient               client = RestClient.create();
 
-    public AttributeApiClient(ConnectionSettings settings) {
-        this.settings = settings;
+    public enum DeleteOutput {
+        DELETED,
+        NOT_FOUND
+    }
+
+    public AttributeApiClient(ConnectionSettingsHolder settingsHolder) {
+        this.settingsHolder = settingsHolder;
     }
 
     public Optional<Object> getAttribute(String entity, String name, List<String> arguments) {
-        checkConfiguration();
+        var settings = settingsHolder.get();
+        checkConfiguration(settings);
 
         try {
             var builder = (entity == null || entity.isBlank())
-                    ? UriComponentsBuilder.fromUriString(settings.getBaseUrl() + API_GLOBAL_ATTRIBUTE)
-                    : UriComponentsBuilder.fromUriString(settings.getBaseUrl() + API_ATTRIBUTE_WITH_ENTITY);
+                    ? UriComponentsBuilder.fromUriString(settings.baseUrl() + API_GLOBAL_ATTRIBUTE)
+                    : UriComponentsBuilder.fromUriString(settings.baseUrl() + API_ATTRIBUTE_WITH_ENTITY);
 
             if (arguments != null && !arguments.isEmpty()) {
                 builder.queryParam("arg", arguments.toArray());
@@ -64,7 +71,7 @@ public class AttributeApiClient {
             var uri = (entity == null || entity.isBlank()) ? builder.buildAndExpand(name).toUri()
                     : builder.buildAndExpand(entity, name).toUri();
 
-            var value = client.get().uri(uri).headers(this::addAuthorization).retrieve().body(Object.class);
+            var value = client.get().uri(uri).headers(h -> addAuthorization(h, settings)).retrieve().body(Object.class);
 
             return Optional.ofNullable(value);
         } catch (HttpClientErrorException.NotFound e) {
@@ -72,12 +79,13 @@ public class AttributeApiClient {
         }
     }
 
-    public boolean deleteAttribute(String entity, String name, List<String> arguments) {
-        checkConfiguration();
+    public DeleteOutput deleteAttribute(String entity, String name, List<String> arguments) {
+        var settings = settingsHolder.get();
+        checkConfiguration(settings);
         try {
             var builder = (entity == null || entity.isBlank())
-                    ? UriComponentsBuilder.fromUriString(settings.getBaseUrl() + API_GLOBAL_ATTRIBUTE)
-                    : UriComponentsBuilder.fromUriString(settings.getBaseUrl() + API_ATTRIBUTE_WITH_ENTITY);
+                    ? UriComponentsBuilder.fromUriString(settings.baseUrl() + API_GLOBAL_ATTRIBUTE)
+                    : UriComponentsBuilder.fromUriString(settings.baseUrl() + API_ATTRIBUTE_WITH_ENTITY);
 
             if (arguments != null && !arguments.isEmpty()) {
                 builder.queryParam("arg", arguments.toArray());
@@ -86,59 +94,62 @@ public class AttributeApiClient {
             var uri = (entity == null || entity.isBlank()) ? builder.buildAndExpand(name).toUri()
                     : builder.buildAndExpand(entity, name).toUri();
 
-            client.delete().uri(uri).headers(this::addAuthorization).retrieve().toBodilessEntity();
-            return true;
+            client.delete().uri(uri).headers(h -> addAuthorization(h, settings)).retrieve().toBodilessEntity();
+            return DeleteOutput.DELETED;
         } catch (HttpClientErrorException.NotFound e) {
             log.debug(ERROR_NO_ATTRIBUTE_TO_DELTE);
-            return false;
+            return DeleteOutput.NOT_FOUND;
         }
     }
 
     public void publishAttribute(String entity, String name, JsonNode value, Long ttl, List<JsonNode> arguments) {
-        checkConfiguration();
+        var settings = settingsHolder.get();
+        checkConfiguration(settings);
 
         var body = Map.of("value", value, "ttl", Objects.requireNonNullElse(ttl, 0L), "arguments",
                 arguments == null ? List.of() : arguments);
 
         var request = (entity == null || entity.isBlank())
-                ? client.put().uri(settings.getBaseUrl() + API_GLOBAL_ATTRIBUTE, name)
-                : client.put().uri(settings.getBaseUrl() + API_ATTRIBUTE_WITH_ENTITY, entity, name);
+                ? client.put().uri(settings.baseUrl() + API_GLOBAL_ATTRIBUTE, name)
+                : client.put().uri(settings.baseUrl() + API_ATTRIBUTE_WITH_ENTITY, entity, name);
 
-        request.headers(this::addAuthorization).contentType(MediaType.APPLICATION_JSON).body(body).retrieve()
-                .toBodilessEntity();
+        request.headers(h -> addAuthorization(h, settings)).contentType(MediaType.APPLICATION_JSON).body(body)
+                .retrieve().toBodilessEntity();
     }
 
     public List<Map<String, Object>> getAllAttributes(int limit, int offset) {
-        checkConfiguration();
+        var settings = settingsHolder.get();
+        checkConfiguration(settings);
 
-        return client.get().uri(settings.getBaseUrl() + "/api/attributes?limit={limit}&offset={offset}", limit, offset)
-                .headers(this::addAuthorization).retrieve().body(new ParameterizedTypeReference<>() {});
+        return client.get().uri(settings.baseUrl() + "/api/attributes?limit={limit}&offset={offset}", limit, offset)
+                .headers(h -> addAuthorization(h, settings)).retrieve().body(new ParameterizedTypeReference<>() {});
     }
 
     public Long getAttributeCount() {
-        checkConfiguration();
+        var settings = settingsHolder.get();
+        checkConfiguration(settings);
 
-        return client.get().uri(settings.getBaseUrl() + "/api/attributes?count=true").headers(this::addAuthorization)
-                .retrieve().body(Long.class);
+        return client.get().uri(settings.baseUrl() + "/api/attributes?count=true")
+                .headers(h -> addAuthorization(h, settings)).retrieve().body(Long.class);
     }
 
-    private void checkConfiguration() {
+    private void checkConfiguration(ConnectionSettings settings) {
         if (!settings.isConfigured()) {
             throw new IllegalStateException("Not connected - configure a connection on the Settings view first.");
         }
     }
 
-    private void addAuthorization(HttpHeaders headers) {
-        switch (settings.getMode()) {
+    private void addAuthorization(HttpHeaders headers, ConnectionSettings settings) {
+        switch (settings.mode()) {
         case NONE -> {
             // keine Authentifizierung
         }
 
-        case BASIC -> headers.setBasicAuth(settings.getUsername(), settings.getPassword());
+        case BASIC -> headers.setBasicAuth(settings.username(), settings.password());
 
-        case API -> headers.setBearerAuth(settings.getApiKey());
+        case API -> headers.setBearerAuth(settings.apiKey());
 
-        default -> throw new IllegalStateException("Unsupported authentication mode: " + settings.getMode());
+        default -> throw new IllegalStateException("Unsupported authentication mode: " + settings.mode());
         }
     }
 }

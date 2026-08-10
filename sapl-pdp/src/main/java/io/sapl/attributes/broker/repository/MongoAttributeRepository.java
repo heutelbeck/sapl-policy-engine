@@ -85,7 +85,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
     }
 
     private boolean matchesPdpId(ChangeStreamEvent<Document> event) {
-        return event.getBody() != null && pdpId.equals(event.getBody().getString(FIELD_PDP_ID));
+        var body = event.getBody();
+        return body != null && pdpId.equals(body.getString(FIELD_PDP_ID));
     }
 
     private void handleChangeStreamEvent(ChangeStreamEvent<Document> event) {

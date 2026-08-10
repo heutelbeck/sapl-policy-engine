@@ -102,7 +102,7 @@ class PostgresAttributeRepositoryTests {
             repository.publish(key("sapl.test.attr"), Value.of("test"));
             repository.observe(invocation("sapl.test.attr"), received::add);
 
-            assertThat(received.getFirst()).isEqualTo(Value.of("test"));
+            assertThat(received.get(0)).isEqualTo(Value.of("test"));
         }
 
         @Test
@@ -119,7 +119,7 @@ class PostgresAttributeRepositoryTests {
 
             try (val repo2 = new PostgresAttributeRepository(client2, factory2, "test-tenant", "attributes")) {
                 repo2.observe(invocation("sapl.test.persist"), received::add);
-                assertThat(received.getFirst()).isEqualTo(Value.of(42L));
+                assertThat(received.get(0)).isEqualTo(Value.of(42L));
             }
         }
     }
@@ -135,7 +135,8 @@ class PostgresAttributeRepositoryTests {
             repository.observe(invocation("sapl.test.remove"), received::add);
             repository.remove(key("sapl.test.remove"));
 
-            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.getLast().equals(Value.UNDEFINED));
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .until(() -> received.get(received.size() - 1).equals(Value.UNDEFINED));
         }
     }
 
@@ -148,10 +149,11 @@ class PostgresAttributeRepositoryTests {
         void thenObserverReceivesNewValue() {
             repository.publish(key("sapl.test.overwrite"), Value.of("1"), Duration.ofSeconds(120));
             repository.observe(invocation("sapl.test.overwrite"), received::add);
-            assertThat(received.getFirst()).isEqualTo(Value.of("1"));
+            assertThat(received.get(0)).isEqualTo(Value.of("1"));
 
             repository.publish(key("sapl.test.overwrite"), Value.of("2"), Duration.ofSeconds(120));
-            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.getLast().equals(Value.of("2")));
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .until(() -> received.get(received.size() - 1).equals(Value.of("2")));
         }
     }
 
@@ -165,7 +167,8 @@ class PostgresAttributeRepositoryTests {
             repository.observe(invocation("sapl.test.ttl"), received::add);
             repository.publish(key("sapl.test.ttl"), Value.of("temp"), Duration.ofSeconds(1));
 
-            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.getLast().equals(Value.UNDEFINED));
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .until(() -> received.get(received.size() - 1).equals(Value.UNDEFINED));
         }
     }
 
@@ -189,7 +192,7 @@ class PostgresAttributeRepositoryTests {
                 repository.observe(invocation("sapl.test.reconnect"), received::add);
                 repo2.publish(key("sapl.test.reconnect"), Value.of("before-outage"));
                 Awaitility.await().atMost(Duration.ofSeconds(5))
-                        .until(() -> received.getLast().equals(Value.of("before-outage")));
+                        .until(() -> received.get(received.size() - 1).equals(Value.of("before-outage")));
 
                 // Simulate a dropped connection: kill every backend that issued LISTEN,
                 // rather than trying to single out repository's specific connection.
@@ -201,7 +204,7 @@ class PostgresAttributeRepositoryTests {
                 repo2.publish(key("sapl.test.reconnect"), Value.of("during-outage"));
 
                 Awaitility.await().atMost(Duration.ofSeconds(15))
-                        .until(() -> received.getLast().equals(Value.of("during-outage")));
+                        .until(() -> received.get(received.size() - 1).equals(Value.of("during-outage")));
             }
         }
     }

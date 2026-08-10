@@ -78,7 +78,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
             public void message(String pattern, String channel, String message) {
                 // sapl:changes:* → Wertänderungen
                 String redisKey = channel.substring(CHANGES_CHANNEL_PREFIX.length());
-                Value  value    = message.equals(UNDEFINED_STRING) ? Value.UNDEFINED
+                Value  value    = UNDEFINED_STRING.equals(message) ? Value.UNDEFINED
                         : ValueJsonMarshaller.json(message);
 
                 notifyObservers(redisKey, value);

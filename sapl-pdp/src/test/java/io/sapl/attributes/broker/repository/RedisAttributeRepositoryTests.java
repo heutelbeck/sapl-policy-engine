@@ -95,7 +95,7 @@ class RedisAttributeRepositoryTests {
             repository.publish(key("sapl.test.attr"), Value.of("test"));
             repository.observe(invocation("sapl.test.attr"), received::add);
 
-            assertThat(received.getFirst()).isEqualTo(Value.of("test"));
+            assertThat(received.get(0)).isEqualTo(Value.of("test"));
         }
 
         @Test
@@ -106,7 +106,7 @@ class RedisAttributeRepositoryTests {
             val client2 = RedisClient.create(redis.getRedisURI());
             try (val repo2 = new RedisAttributeRepository(client2, "test-tenant", 0)) {
                 repo2.observe(invocation("sapl.test.persist"), received::add);
-                assertThat(received.getFirst()).isEqualTo(Value.of(42L));
+                assertThat(received.get(0)).isEqualTo(Value.of(42L));
             }
         }
     }
@@ -122,7 +122,8 @@ class RedisAttributeRepositoryTests {
             repository.observe(invocation("sapl.test.remove"), received::add);
             repository.remove(key("sapl.test.remove"));
 
-            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.getLast().equals(Value.UNDEFINED));
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .until(() -> received.get(received.size() - 1).equals(Value.UNDEFINED));
         }
     }
 
@@ -135,10 +136,11 @@ class RedisAttributeRepositoryTests {
         void thenObserverReceivesNewValue() {
             repository.publish(key("sapl.test.overwrite"), Value.of("1"), Duration.ofSeconds(120));
             repository.observe(invocation("sapl.test.overwrite"), received::add);
-            assertThat(received.getFirst()).isEqualTo(Value.of("1"));
+            assertThat(received.get(0)).isEqualTo(Value.of("1"));
 
             repository.publish(key("sapl.test.overwrite"), Value.of("2"), Duration.ofSeconds(120));
-            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.getLast().equals(Value.of("2")));
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .until(() -> received.get(received.size() - 1).equals(Value.of("2")));
         }
     }
 
@@ -155,7 +157,7 @@ class RedisAttributeRepositoryTests {
             Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                 received.clear();
                 repository.observe(invocation("sapl.test.ttl"), received::add);
-                assertThat(received.getFirst()).isEqualTo(Value.UNDEFINED);
+                assertThat(received.get(0)).isEqualTo(Value.UNDEFINED);
             });
         }
     }
@@ -225,14 +227,17 @@ class RedisAttributeRepositoryTests {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "");
 
                 try {
-                    assertThatThrownBy(() -> new RedisAttributeRepository(testClient, "test-tenant", 0))
-                            .isInstanceOf(IllegalStateException.class);
+                    assertThatThrownBy(() -> createRepository(testClient)).isInstanceOf(IllegalStateException.class);
                 } finally {
                     // Restore for the other tests in this class — notify-keyspace-events is
                     // server-wide, not per connection/database.
                     setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
                 }
             }
+        }
+
+        private static RedisAttributeRepository createRepository(RedisClient client) {
+            return new RedisAttributeRepository(client, "test-tenant", 0);
         }
     }
 }

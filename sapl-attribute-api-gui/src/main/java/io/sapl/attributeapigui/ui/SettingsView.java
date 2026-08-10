@@ -33,26 +33,22 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.attributeapigui.connection.ConnectionMode;
 import io.sapl.attributeapigui.connection.ConnectionSettings;
+import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
 import jakarta.annotation.security.RolesAllowed;
-import lombok.Getter;
 
 @Route(value = "settings", layout = MainLayout.class)
 @Menu(order = 2, icon = "vaadin:cog", title = "Settings")
 @PageTitle("Settings")
 @RolesAllowed("ADMIN")
 public class SettingsView extends VerticalLayout {
-    // Load the available settings
-    @Getter
-    private final ConnectionSettings settings;
-
     private final TextField                baseUrlField  = new TextField("API url");
     private final ComboBox<ConnectionMode> modeField     = new ComboBox<>("Authentication");
     private final TextField                usernameField = new TextField("Username");
     private final PasswordField            passwordField = new PasswordField("Password");
     private final PasswordField            apiKeyField   = new PasswordField("Api key");
 
-    public SettingsView(ConnectionSettings settings) {
-        this.settings = settings;
+    public SettingsView(ConnectionSettingsHolder settingsHolder) {
+        var settings = settingsHolder.get();
 
         // 1 rem = 16px -> 16pxx32rem = 512px
         setMaxWidth("32rem");
@@ -62,7 +58,7 @@ public class SettingsView extends VerticalLayout {
         // Baser URL with preset settings
         baseUrlField.setPlaceholder("http://localhost:8090");
         baseUrlField.setWidthFull();
-        baseUrlField.setValue(settings.getBaseUrl() != null ? settings.getBaseUrl() : "");
+        baseUrlField.setValue(settings.baseUrl() != null ? settings.baseUrl() : "");
 
         // Dropdown with available settings
         modeField.setItems(ConnectionMode.values());
@@ -76,7 +72,7 @@ public class SettingsView extends VerticalLayout {
             }
             return item;
         }));
-        modeField.setValue(settings.getMode() == ConnectionMode.OIDC ? ConnectionMode.NONE : settings.getMode());
+        modeField.setValue(settings.mode() == ConnectionMode.OIDC ? ConnectionMode.NONE : settings.mode());
         modeField.setWidthFull();
 
         // Switch the visible fields, OIDC cannot be selected (see renderer above)
@@ -91,19 +87,17 @@ public class SettingsView extends VerticalLayout {
 
         // Settings of the fields
         usernameField.setWidthFull();
-        usernameField.setValue(settings.getUsername() != null ? settings.getUsername() : "");
+        usernameField.setValue(settings.username() != null ? settings.username() : "");
         passwordField.setWidthFull();
-        passwordField.setValue(settings.getPassword() != null ? settings.getPassword() : "");
+        passwordField.setValue(settings.password() != null ? settings.password() : "");
         apiKeyField.setWidthFull();
-        apiKeyField.setValue(settings.getApiKey() != null ? settings.getApiKey() : "");
+        apiKeyField.setValue(settings.apiKey() != null ? settings.apiKey() : "");
 
         // Save button
         var saveButton = new Button("Save", event -> {
-            settings.setBaseUrl(baseUrlField.getValue().trim());
-            settings.setMode(modeField.getValue());
-            settings.setUsername(usernameField.getValue().trim());
-            settings.setPassword(passwordField.getValue());
-            settings.setApiKey(apiKeyField.getValue());
+            var updated = new ConnectionSettings(modeField.getValue(), baseUrlField.getValue().trim(),
+                    usernameField.getValue().trim(), passwordField.getValue(), apiKeyField.getValue());
+            settingsHolder.update(updated);
 
             var notification = Notification.show("Connection settings saved.");
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);

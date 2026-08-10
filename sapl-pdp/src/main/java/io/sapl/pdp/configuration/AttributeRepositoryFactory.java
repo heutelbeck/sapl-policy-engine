@@ -96,10 +96,10 @@ public class AttributeRepositoryFactory {
         }
 
         case "redis" -> {
-            val host     = str(config, "host");
-            val port     = num(config, "port");
-            val password = str(config, "password");
-            val db       = num(config, "database");
+            val host     = str(config, HOST_FIELD);
+            val port     = num(config, PORT_FIELD);
+            val password = str(config, PASSWORD_FIELD);
+            val db       = num(config, DATABASE_FIELD);
             val builder  = RedisURI.Builder.redis(host, port).withDatabase(db);
 
             if (password != null && !password.isBlank()) {

@@ -248,7 +248,7 @@ public class AttributesView extends VerticalLayout {
     }
 
     private void deleteItem(String entity, String name, List<String> arguments) {
-        if (client.deleteAttribute(entity, name, arguments)) {
+        if (client.deleteAttribute(entity, name, arguments) == AttributeApiClient.DeleteOutput.DELETED) {
             search();
         }
     }
