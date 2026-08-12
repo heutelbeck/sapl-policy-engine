@@ -80,12 +80,9 @@ public class AttributeConfiguration {
                 // at whatever it pointed at before - not silently fall back to the
                 // shared EMPTY_REPOSITORY, and not lose its previous, working repository.
                 try {
-                    cache.computeIfAbsent(configId, k -> {
-                        AttributeRepository newRepository = repoNode instanceof ObjectValue obj
-                                ? AttributeRepositoryFactory.create(obj, pdpId)
-                                : new InMemoryAttributeRepository();
-                        return newRepository;
-                    });
+                    cache.computeIfAbsent(configId,
+                            k -> repoNode instanceof ObjectValue obj ? AttributeRepositoryFactory.create(obj, pdpId)
+                                    : new InMemoryAttributeRepository());
                 } catch (RuntimeException failure) {
                     log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
                     return;

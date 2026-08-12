@@ -7,6 +7,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 import reactor.netty.http.HttpProtocol;
 
+import java.io.Serializable;
 import java.util.concurrent.Callable;
 
 public abstract class BaseAttributeCommand implements Callable<Integer> {
@@ -21,7 +22,7 @@ public abstract class BaseAttributeCommand implements Callable<Integer> {
             new ReactorClientHttpConnector(reactor.netty.http.client.HttpClient.create().protocol(HttpProtocol.HTTP11)))
             .build();
 
-    protected Object parseLiteral(String s) {
+    protected Serializable parseLiteral(String s) {
         if ("true".equalsIgnoreCase(s))
             return Boolean.TRUE;
         if ("false".equalsIgnoreCase(s))
@@ -30,13 +31,13 @@ public abstract class BaseAttributeCommand implements Callable<Integer> {
             return null;
 
         try {
-            return Long.parseLong(s);
+            return Long.valueOf(s);
         } catch (NumberFormatException ignored) {
             // try next, if its not a long
         }
 
         try {
-            return Double.parseDouble(s);
+            return Double.valueOf(s);
         } catch (NumberFormatException ignored) {
             // try next (string), if its not a double
         }
