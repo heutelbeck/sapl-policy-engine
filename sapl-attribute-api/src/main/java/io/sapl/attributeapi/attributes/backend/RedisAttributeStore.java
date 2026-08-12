@@ -23,6 +23,7 @@ import io.lettuce.core.api.sync.RedisCommands;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,21 +123,21 @@ public class RedisAttributeStore implements AttributeStore {
 
         String pattern = REDIS_NAMESPACE_PREFIX + pdpId + ":*";
 
-        // Sort the list of keys to guarantee a deterministic output for limit/offset
-        List<String> keys = cli.keys(pattern).stream().sorted().toList();
+        // Sort the list of entries to guarantee a deterministic output for limit/offset
+        List<AttributeEntry> entries = cli.keys(pattern).stream().map(cli::hgetall).filter(hash -> !hash.isEmpty())
+                .map(RedisAttributeStore::toAttributeEntry).sorted(Comparator.comparing(entry -> entry.key().name()))
+                .toList();
 
         // set the right offset as start point, check if the start exceeds the List limit and set the end point
         int start = offset != null ? offset : 0;
-        if (start >= keys.size()) {
+        if (start >= entries.size()) {
             return List.of();
         }
-        long end = limit != null ? Math.min((long) start + limit, keys.size()) : keys.size();
+        // long arithmetic avoids int overflow when start+limit is huge; the downcast
+        // is safe because Math.min caps the result at entries.size(), which is an int.
+        int end = limit != null ? (int) Math.min((long) start + limit, entries.size()) : entries.size();
 
-        // return the keys with/without limit/offset operations
-        // Downcast is safe because keys.size() is always an integer and will be in Math.min the lowest value if
-        // start+limit is overflowing
-        return keys.subList(start, (int) end).stream().map(cli::hgetall).filter(hash -> !hash.isEmpty())
-                .map(RedisAttributeStore::toAttributeEntry).toList();
+        return entries.subList(start, end);
     }
 
     @Override

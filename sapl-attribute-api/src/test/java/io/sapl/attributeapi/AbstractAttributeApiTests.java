@@ -26,14 +26,17 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -74,6 +77,67 @@ abstract class AbstractAttributeApiTests {
                           "ttl": 60
                           }
                         """)).andExpect(status().isCreated());
+    }
+
+    @Test
+    @DisplayName("GET count of /api/attributes?count=true returns total of stored attributes for current tenant")
+    void publishMultipleAttributeWithEntity() throws Exception {
+        MvcResult before      = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk())
+                .andReturn();
+        long      countBefore = Long.parseLong(before.getResponse().getContentAsString());
+
+        for (int i = 0; i < 100; i++) {
+            mockMvc.perform(put("/api/attributes/sapl.test/test.attribute" + i).with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content("""
+                            { "value": "test_%d",
+                              "ttl": 60
+                              }
+                            """.formatted(i))).andExpect(status().isCreated());
+        }
+        MvcResult after      = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk())
+                .andReturn();
+        long      countAfter = Long.parseLong(after.getResponse().getContentAsString());
+
+        assertThat(countAfter - countBefore).isEqualTo(100);
+    }
+
+    @Test
+    @DisplayName("GET set of /api/attributes?limit=20?offset=X returns 20 attributes in a given order")
+    void requestMultipleAttributesWithLimitAndOffset() throws Exception {
+        List<String> pushedNames = new ArrayList<>();
+
+        for (int i = 0; i < 100; i++) {
+            String name = "limit.offset" + i;
+            pushedNames.add(name);
+            mockMvc.perform(put("/api/attributes/sapl.test/" + name).with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content("""
+                            { "value": "limitOffset_%d",
+                              "ttl": 60
+                              }
+                            """.formatted(i))).andExpect(status().isCreated());
+        }
+
+        List<String> expectedOrder  = new ArrayList<>(pushedNames);
+        List<String> collectedNames = new ArrayList<>();
+        Collections.sort(expectedOrder); // Sort lexixal like in the backends
+
+        for (int offset = 0; offset < 100; offset += 20) {
+            List<String> expectedPage = new ArrayList<>(expectedOrder.subList(offset, offset + 20));
+
+            MvcResult firstRequest  = mockMvc.perform(get("/api/attributes?limit=20&offset=" + offset))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$[*].name").value(expectedPage)).andReturn();
+            MvcResult secondRequest = mockMvc.perform(get("/api/attributes?limit=20&offset=" + offset))
+                    .andExpect(status().isOk()).andReturn();
+
+            // Repeated LIMIT/OFFSET request has to return the same hash twice
+            int firstHash  = firstRequest.getResponse().getContentAsString().hashCode();
+            int secondHash = secondRequest.getResponse().getContentAsString().hashCode();
+            assertThat(firstHash).as("offset %d: gleicher Request, gleicher Hash", offset).isEqualTo(secondHash);
+
+            collectedNames.addAll(expectedPage);
+        }
+
+        assertThat(collectedNames).containsExactlyElementsOf(pushedNames.stream().sorted().toList()).hasSize(100);
     }
 
     @Test
