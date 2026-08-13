@@ -19,16 +19,13 @@ package io.sapl.attributeapi;
 
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
-import io.sapl.attributeapi.attributes.backend.AttributeStore;
-import io.sapl.attributeapi.attributes.backend.PostgresAttributeStore;
 import lombok.val;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -36,10 +33,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
         "io.sapl.attribute-api.allow-no-auth=true", "io.sapl.attribute-api.allow-basic-auth=false",
         "io.sapl.attribute-api.allow-api-key-auth=false", "io.sapl.attribute-api.allow-oauth2-auth=false",
-        "io.sapl.attributes.storage=none" })
+        "io.sapl.attributes.storage=postgres" })
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
-@Import(AttributeApiPostgresTests.Config.class)
 class AttributeApiPostgresTests extends AbstractAttributeApiTests {
 
     private static final String CREATE_TABLE = """
@@ -58,6 +54,15 @@ class AttributeApiPostgresTests extends AbstractAttributeApiTests {
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
 
+    @DynamicPropertySource
+    static void postgresProperties(DynamicPropertyRegistry registry) {
+        registry.add("io.sapl.attributes.postgres.host", postgres::getHost);
+        registry.add("io.sapl.attributes.postgres.port", () -> postgres.getMappedPort(5432));
+        registry.add("io.sapl.attributes.postgres.database", postgres::getDatabaseName);
+        registry.add("io.sapl.attributes.postgres.username", postgres::getUsername);
+        registry.add("io.sapl.attributes.postgres.password", postgres::getPassword);
+    }
+
     @Override
     protected void cleanRepository() {
         val client = DatabaseClient.create(connectionFactory());
@@ -70,15 +75,5 @@ class AttributeApiPostgresTests extends AbstractAttributeApiTests {
                 .port(postgres.getMappedPort(5432)).database(postgres.getDatabaseName())
                 .username(postgres.getUsername()).password(postgres.getPassword()).build();
         return new PostgresqlConnectionFactory(config);
-    }
-
-    @TestConfiguration
-    static class Config {
-        @Bean
-        AttributeStore attributeStore() {
-            val client = DatabaseClient.create(connectionFactory());
-            client.sql(CREATE_TABLE).then().block();
-            return new PostgresAttributeStore(client, "attributes");
-        }
     }
 }

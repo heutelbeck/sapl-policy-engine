@@ -19,14 +19,11 @@ package io.sapl.attributeapi;
 
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
-import io.sapl.attributeapi.attributes.backend.AttributeStore;
-import io.sapl.attributeapi.attributes.backend.RedisAttributeStore;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -34,29 +31,28 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
         "io.sapl.attribute-api.allow-no-auth=true", "io.sapl.attribute-api.allow-basic-auth=false",
         "io.sapl.attribute-api.allow-api-key-auth=false", "io.sapl.attribute-api.allow-oauth2-auth=false",
-        "io.sapl.attributes.storage=none" })
+        "io.sapl.attributes.storage=redis" })
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
-@Import(AttributeApiRedisTests.Config.class)
 class AttributeApiRedisTests extends AbstractAttributeApiTests {
 
     @Container
     static GenericContainer<?> redis = new GenericContainer<>("redis:7").withExposedPorts(6379);
 
+    @DynamicPropertySource
+    static void redisProperties(DynamicPropertyRegistry registry) {
+        registry.add("io.sapl.attributes.redis.host", redis::getHost);
+        registry.add("io.sapl.attributes.redis.port", () -> redis.getMappedPort(6379));
+    }
+
     @Override
     protected void cleanRepository() {
-        RedisClient.create(redisUri()).connect().sync().flushall();
+        try (RedisClient client = RedisClient.create(redisUri()); var connection = client.connect()) {
+            connection.sync().flushall();
+        }
     }
 
     private static RedisURI redisUri() {
         return RedisURI.create(redis.getHost(), redis.getMappedPort(6379));
-    }
-
-    @TestConfiguration
-    static class Config {
-        @Bean
-        AttributeStore attributeStore() {
-            return new RedisAttributeStore(RedisClient.create(redisUri()));
-        }
     }
 }

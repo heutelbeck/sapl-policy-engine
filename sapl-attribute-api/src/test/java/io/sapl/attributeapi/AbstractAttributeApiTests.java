@@ -80,6 +80,47 @@ abstract class AbstractAttributeApiTests {
     }
 
     @Test
+    @DisplayName("PUT global attribute to /api/attributes/{name} without a ttl field returns 201 and never expires")
+    void publishGlobalAttributeWithoutTTL() throws Exception {
+        mockMvc.perform(
+                put("/api/attributes/sapl.test.no.ttl").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "no_ttl" }
+                        	""")).andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.no.ttl")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"no_ttl\"");
+    }
+
+    @Test
+    @DisplayName("DELETE global attribute /api/attributes/{name} returns 204 and removes the global attribute")
+    void deleteGlobalAttribute() throws Exception {
+        mockMvc.perform(put("/api/attributes/sapl.test.global.attribute").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "justAValue", "ttl": 60 }
+                        """)).andExpect(status().isCreated());
+
+        mockMvc.perform(delete("/api/attributes/sapl.test.global.attribute").with(csrf()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/attributes/sapl.test.global.attribute")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT attributes twice on /api/attributes/{entity}/{name} returns 201 on create, 200 on update")
+    void publishTwiceWithEntityReturnsCreatedThenOk() throws Exception {
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.createandupdate").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "created", "ttl": 60 }
+                        """)).andExpect(status().isCreated());
+
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.createandupdate").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "updated", "ttl": 60 }
+                        """)).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("GET count of /api/attributes?count=true returns total of stored attributes for current tenant")
     void publishMultipleAttributeWithEntity() throws Exception {
         MvcResult before      = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk())
@@ -119,7 +160,7 @@ abstract class AbstractAttributeApiTests {
 
         List<String> expectedOrder  = new ArrayList<>(pushedNames);
         List<String> collectedNames = new ArrayList<>();
-        Collections.sort(expectedOrder); // Sort lexixal like in the backends
+        Collections.sort(expectedOrder); // Sort lexical like in the backend
 
         for (int offset = 0; offset < 100; offset += 20) {
             List<String> expectedPage = new ArrayList<>(expectedOrder.subList(offset, offset + 20));
@@ -230,5 +271,44 @@ abstract class AbstractAttributeApiTests {
 
         MvcResult result = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk()).andReturn();
         assertThat(result.getResponse().getContentAsString()).isEqualTo("1");
+    }
+
+    @Test
+    @DisplayName("GET /api/attributes/{name}?arg=X converts the number argument properly and returns the right value")
+    void getAttributeWithOneArgumentAsNumber() throws Exception {
+        mockMvc.perform(put("/api/attributes/sapl.test.arguments").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        { "value": "aValue", "ttl": 60, "arguments": [42] }
+                        """)).andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.arguments?arg=42")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"aValue\"");
+    }
+
+    @Test
+    @DisplayName("GET /api/attributes/{name}?arg=X converts the text argument properly and returns the right value")
+    void getAttributeWithOneArgumentAsText() throws Exception {
+        mockMvc.perform(put("/api/attributes/sapl.test.arguments").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        { "value": "bValue", "ttl": 60, "arguments": ["this-is-text"] }
+                        """)).andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.arguments?arg=this-is-text"))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"bValue\"");
+    }
+
+    @Test
+    @DisplayName("GET /api/attributes/{name}?arg=X&arg= converts multiple arguments properly and returns the right value")
+    void getAttributeWithMultipleArguments() throws Exception {
+        mockMvc.perform(put("/api/attributes/sapl.test.multi.arguments").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "cValue", "ttl": 60, "arguments": [42, "this-is-text"] }
+                        """)).andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.multi.arguments?arg=42&arg=this-is-text"))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"cValue\"");
     }
 }
