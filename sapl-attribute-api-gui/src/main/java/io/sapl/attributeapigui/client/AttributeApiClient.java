@@ -23,13 +23,21 @@ import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.JsonNode;
 
+import java.io.IOException;
+import java.net.CookieManager;
+import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,9 +50,12 @@ public class AttributeApiClient {
     private static final String ERROR_NO_ATTRIBUTE_TO_DELTE = "There was no such attribute to delete from the repository.";
     private static final String API_GLOBAL_ATTRIBUTE        = "/api/attributes/{name}";
     private static final String API_ATTRIBUTE_WITH_ENTITY   = "/api/attributes/{entity}/{name}";
+    private static final String CSRF_COOKIE_NAME            = "XSRF-TOKEN";
+    private static final String CSRF_HEADER_NAME            = "X-XSRF-TOKEN";
 
     private final ConnectionSettingsHolder settingsHolder;
-    private final RestClient               client = RestClient.create();
+    private final CookieManager            cookieManager = new CookieManager();
+    private final RestClient               client        = buildClient();
 
     public enum DeleteOutput {
         DELETED,
@@ -53,6 +64,34 @@ public class AttributeApiClient {
 
     public AttributeApiClient(ConnectionSettingsHolder settingsHolder) {
         this.settingsHolder = settingsHolder;
+    }
+
+    private RestClient buildClient() {
+        var httpClient     = HttpClient.newBuilder().cookieHandler(cookieManager).build();
+        var requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        return RestClient.builder().requestFactory(requestFactory).requestInterceptor(this::addCsrfToken).build();
+    }
+
+    private ClientHttpResponse addCsrfToken(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
+            throws IOException {
+        var csrfCookie = setCsrfHeaderIfCookiePresent(request);
+        var response   = execution.execute(request, body);
+
+        if (!csrfCookie && response.getStatusCode().value() == HttpStatus.FORBIDDEN.value()) {
+            response.close();
+            setCsrfHeaderIfCookiePresent(request);
+            response = execution.execute(request, body);
+        }
+
+        return response;
+    }
+
+    private boolean setCsrfHeaderIfCookiePresent(HttpRequest request) {
+        return cookieManager.getCookieStore().get(request.getURI()).stream()
+                .filter(cookie -> CSRF_COOKIE_NAME.equals(cookie.getName())).findFirst().map(cookie -> {
+                    request.getHeaders().set(CSRF_HEADER_NAME, cookie.getValue());
+                    return true;
+                }).orElse(false);
     }
 
     public Optional<Object> getAttribute(String entity, String name, List<String> arguments) {

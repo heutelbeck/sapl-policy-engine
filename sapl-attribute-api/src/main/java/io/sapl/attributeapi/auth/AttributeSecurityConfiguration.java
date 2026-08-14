@@ -76,7 +76,7 @@ public class AttributeSecurityConfiguration {
         http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .ignoringRequestMatchers(request -> {
                     String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-                    return authHeader != null && authHeader.startsWith("Bearer ");
+                    return authHeader == null || authHeader.startsWith("Bearer ");
                 }));
 
         if (noAuthenticationMechanismIsDefined()) {

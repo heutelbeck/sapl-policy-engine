@@ -130,8 +130,8 @@ abstract class AbstractAttributeApiTests {
         for (int i = 0; i < 100; i++) {
             mockMvc.perform(put("/api/attributes/sapl.test/test.attribute" + i).with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{ \"value\": \"limitOffset_%d\", \"ttl\": 60 }"
-                    		.formatted(i))).andExpect(status().isCreated());
+                    .content("{ \"value\": \"limitOffset_%d\", \"ttl\": 60 }".formatted(i)))
+                    .andExpect(status().isCreated());
         }
         MvcResult after      = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk())
                 .andReturn();
@@ -148,9 +148,10 @@ abstract class AbstractAttributeApiTests {
         for (int i = 0; i < 100; i++) {
             String name = "limit.offset" + i;
             pushedNames.add(name);
-            mockMvc.perform(put("/api/attributes/sapl.test/" + name).with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{ \"value\": \"test_%d\", \"ttl\": 60 }".formatted(i))).andExpect(status().isCreated());
+            mockMvc.perform(
+                    put("/api/attributes/sapl.test/" + name).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                            .content("{ \"value\": \"test_%d\", \"ttl\": 60 }".formatted(i)))
+                    .andExpect(status().isCreated());
         }
 
         List<String> expectedOrder  = new ArrayList<>(pushedNames);

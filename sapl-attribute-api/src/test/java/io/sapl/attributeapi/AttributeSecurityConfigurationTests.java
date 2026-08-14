@@ -48,9 +48,9 @@ class AttributeSecurityConfigurationTests {
     void tearDown() {
         securityConfigLogger.detachAppender(appender);
     }
-    
+
     private static Logger loggerFor(Class<?> append) {
-    	return (Logger) LoggerFactory.getLogger(append);
+        return (Logger) LoggerFactory.getLogger(append);
     }
 
     @Test

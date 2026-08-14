@@ -38,10 +38,10 @@ class PostgresAttributeStoreTests {
     void whenPublishedWithNegativeTTLExceptionIsThrown() {
         var store = new PostgresAttributeStore(mock(DatabaseClient.class), "attributes");
         var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
-        var value         = Value.of("negative");
-        var ttl           = Duration.ofSeconds(-1);
+        var value = Value.of("negative");
+        var ttl   = Duration.ofSeconds(-1);
 
-        assertThatThrownBy(() -> store.publish(key, value, ttl, "default"))
-                .isInstanceOf(IllegalArgumentException.class).hasMessage("TTL must be a strictly positive Duration.");
+        assertThatThrownBy(() -> store.publish(key, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("TTL must be a strictly positive Duration.");
     }
 }
