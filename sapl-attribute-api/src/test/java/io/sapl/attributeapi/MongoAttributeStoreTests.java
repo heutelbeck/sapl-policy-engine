@@ -38,8 +38,10 @@ class MongoAttributeStoreTests {
     void whenPublishedWithNegativeTTLExceptionIsThrown() {
         var store = new MongoAttributeStore(mock(ReactiveMongoTemplate.class), "attributes");
         var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
-
-        assertThatThrownBy(() -> store.publish(key, Value.of("negative"), Duration.ofSeconds(-1), "default"))
+        var value         = Value.of("negative");
+        var ttl           = Duration.ofSeconds(-1);
+        
+        assertThatThrownBy(() -> store.publish(key, value, ttl, "default"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("TTL must be a strictly positive Duration.");
     }
 }

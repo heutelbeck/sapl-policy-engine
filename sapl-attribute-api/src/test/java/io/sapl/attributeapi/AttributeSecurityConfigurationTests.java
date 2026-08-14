@@ -38,7 +38,7 @@ class AttributeSecurityConfigurationTests {
 
     @BeforeEach
     void setUp() {
-        securityConfigLogger = (Logger) LoggerFactory.getLogger(AttributeSecurityConfiguration.class);
+        securityConfigLogger = loggerFor(AttributeSecurityConfiguration.class);
         appender             = new ListAppender<>();
         appender.start();
         securityConfigLogger.addAppender(appender);
@@ -47,6 +47,10 @@ class AttributeSecurityConfigurationTests {
     @AfterEach
     void tearDown() {
         securityConfigLogger.detachAppender(appender);
+    }
+    
+    private static Logger loggerFor(Class<?> append) {
+    	return (Logger) LoggerFactory.getLogger(append);
     }
 
     @Test

@@ -81,7 +81,7 @@ public class AttributeRepositoryFactory {
         try {
             repositoryType = RepositoryType.valueOf(type.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw new IllegalStateException(ERROR_UNKNOWN_TYPE.formatted(type, pdpId));
+            throw new IllegalStateException(ERROR_UNKNOWN_TYPE.formatted(type, pdpId), e);
         }
 
         return switch (repositoryType) {
@@ -128,7 +128,8 @@ public class AttributeRepositoryFactory {
         val password        = hasCredentials ? Objects.requireNonNull(stringValue(config, PASSWORD_FIELD),
                 () -> ERROR_MISSING_STRING.formatted(PASSWORD_FIELD, pdpId)) : null;
         val credentials     = hasCredentials ? encode(username) + ":" + encode(password) + "@" : "";
-        val authSourceQuery = hasCredentials ? "?authSource=" + (authDb != null ? authDb : database) : "";
+        val effectiveAuthDb = authDb != null ? authDb : database;
+        val authSourceQuery = hasCredentials ? "?authSource=" + effectiveAuthDb : "";
         val cs              = new ConnectionString(
                 "mongodb://" + credentials + host + ":" + port + "/" + database + authSourceQuery);
 

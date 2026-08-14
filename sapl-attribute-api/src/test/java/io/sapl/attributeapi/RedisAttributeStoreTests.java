@@ -52,10 +52,12 @@ class RedisAttributeStoreTests {
         when(client.connect()).thenReturn(connection);
         when(connection.sync()).thenReturn(commands);
 
-        var store = new RedisAttributeStore(client);
-        var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
-
-        assertThatThrownBy(() -> store.publish(key, Value.of("negative"), Duration.ofSeconds(-1), "default"))
+        var store         = new RedisAttributeStore(client);
+        var key           = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
+        var value         = Value.of("negative");
+        var ttl           = Duration.ofSeconds(-1);
+        		
+        assertThatThrownBy(() -> store.publish(key, value, ttl, "default"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("TTL must be a strictly positive Duration.");
     }
 }
