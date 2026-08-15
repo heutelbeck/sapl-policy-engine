@@ -120,8 +120,14 @@ public class AttributesView extends VerticalLayout {
         argumentsField.setPrefixComponent(new Span("arguments ="));
         argumentsField.addKeyPressListener(Key.ENTER, event -> search());
 
+        // Set id's for the search fields to find them easier in tests
+        entityField.setId("search-entity");
+        keyField.setId("search-key");
+        argumentsField.setId("search-arguments");
+
         var searchButton = new Button("Search", event -> search());
-        var searchRow    = new HorizontalLayout(entityField, keyField, argumentsField, searchButton);
+        searchButton.setId("search-button");
+        var searchRow = new HorizontalLayout(entityField, keyField, argumentsField, searchButton);
 
         // Publish fields
         publishEntityField.setPlaceholder("optional");
@@ -139,9 +145,17 @@ public class AttributesView extends VerticalLayout {
         publishArgumentsField.setPlaceholder("optional, comma-separated");
         publishArgumentsField.setPrefixComponent(new Span("arguments ="));
 
+        // Set the id's for the publish field to find them easier in tests
+        publishEntityField.setId("publish-entity");
+        publishNameField.setId("publish-name");
+        publishValueField.setId("publish-value");
+        publishTtlField.setId("publish-ttl");
+        publishArgumentsField.setId("publish-arguments");
+
         var publishButton = new Button("Publish", event -> publish());
-        var publishRow    = new HorizontalLayout(publishEntityField, publishNameField, publishValueField,
-                publishTtlField, publishArgumentsField, publishButton);
+        publishButton.setId("publish-button");
+        var publishRow = new HorizontalLayout(publishEntityField, publishNameField, publishValueField, publishTtlField,
+                publishArgumentsField, publishButton);
 
         add(new H3("Publish attribute"), publishRow, searchRow, grid);
         setFlexGrow(1, grid);
@@ -251,5 +265,9 @@ public class AttributesView extends VerticalLayout {
         if (client.deleteAttribute(entity, name, arguments) == AttributeApiClient.DeleteOutput.DELETED) {
             search();
         }
+    }
+
+    Grid<Map<String, Object>> getGrid() {
+        return grid;
     }
 }

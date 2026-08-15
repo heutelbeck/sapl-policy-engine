@@ -93,6 +93,12 @@ public class SettingsView extends VerticalLayout {
         apiKeyField.setWidthFull();
         apiKeyField.setValue(settings.apiKey() != null ? settings.apiKey() : "");
 
+        // Set id's for the fields to find them easier in tests
+        baseUrlField.setId("settings-base-url");
+        usernameField.setId("settings-username");
+        passwordField.setId("settings-password");
+        apiKeyField.setId("settings-api-key");
+
         // Save button
         var saveButton = new Button("Save", event -> {
             var updated = new ConnectionSettings(modeField.getValue(), baseUrlField.getValue().trim(),
@@ -102,6 +108,7 @@ public class SettingsView extends VerticalLayout {
             var notification = Notification.show("Connection settings saved.");
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         });
+        saveButton.setId("settings-save");
 
         add(baseUrlField, modeField, usernameField, passwordField, apiKeyField, saveButton);
 
@@ -121,5 +128,9 @@ public class SettingsView extends VerticalLayout {
         case API   -> "API key";
         case OIDC  -> "OpenID Connect";
         };
+    }
+
+    ComboBox<ConnectionMode> getModeField() {
+        return modeField;
     }
 }
