@@ -52,7 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
         "io.sapl.attribute-api.allow-api-key-auth=true", "io.sapl.attribute-api.users[0].id=tenant-a-user",
         "io.sapl.attribute-api.users[0].tenant-id=tenant-a",
-        "io.sapl.attribute-api.users[0].key.hash=87d452521c9a7f5c9052ae6190e900a46e2a2df5f144158c2fc20b797adb470b",
+        "io.sapl.attribute-api.users[0].api-key-hash=87d452521c9a7f5c9052ae6190e900a46e2a2df5f144158c2fc20b797adb470b",
         "io.sapl.attributes.storage=none" })
 @AutoConfigureMockMvc
 @Testcontainers
@@ -64,7 +64,7 @@ class ApiKeyAuthenticationTests {
     private static final String UNKNOWN_KEY_HEADER = "Bearer sapl_doesnotexist";
 
     @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:7").withExposedPorts(6379);
+    static GenericContainer<?> redis = createRedisContainer();
 
     @Autowired
     private MockMvc mockMvc;
@@ -116,5 +116,11 @@ class ApiKeyAuthenticationTests {
         AttributeStore attributeStore() {
             return new RedisAttributeStore(RedisClient.create(redisUri()));
         }
+    }
+
+    private static GenericContainer<?> createRedisContainer() {
+        GenericContainer<?> container = new GenericContainer<>("redis:7");
+        container.withExposedPorts(6379);
+        return container;
     }
 }

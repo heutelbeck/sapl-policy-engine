@@ -38,7 +38,7 @@ public class ApiKeyAuthenticationService {
     public Optional<AttributeApiUserDetails> findByApiKey(String rawKey) throws NoSuchAlgorithmException {
         String hash = sha256(rawKey);
         return properties.getUsers().stream()
-                .filter(user -> user.getKey() != null && hash.equals(user.getKey().getHash())).findFirst()
-                .map(user -> new AttributeApiUserDetails(user.getId(), null, user.getTenantId()));
+                .filter(user -> user.getApiKeyHash() != null && hash.equals(user.getApiKeyHash())).findFirst()
+                .map(user -> new AttributeApiUserDetails(user.getId(), null, user.getPdpId()));
     }
 }

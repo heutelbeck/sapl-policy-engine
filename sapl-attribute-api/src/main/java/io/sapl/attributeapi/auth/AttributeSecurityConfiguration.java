@@ -58,6 +58,16 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @RequiredArgsConstructor
 
 public class AttributeSecurityConfiguration {
+    private static final String BEARER_PREFIX             = "Bearer ";
+    private static final String ERROR_NO_AUTH_METHOD_SET  = "No authentication method is set";
+    private static final String WARN_NO_AUTH_CONFIGURED   = "Server has been configured to reply to requests without authentication.";
+    private static final String INFO_BASIC_AUTH_ACTIVATED = "Basic authentication activated.";
+    private static final String WARN_BASIC_NO_USERS       = "Basic authentication is enabled but no users with basic credentials are configured.";
+    private static final String INFO_API_KEY_ACTIVATED    = "API key authentication activated.";
+    private static final String WARN_API_KEY_NO_USERS     = "API key authentication is enabled but no api key is defined.";
+    private static final String INFO_OAUTH2_ACTIVATED     = "OAuth2 authentication activated";
+    private static final String ERROR_MISSING_ISSUER_URI  = "OAuth2 authentication is enabled but 'spring.security.oauth2.resourceserver.jwt.issuer-uri' is not set.";
+
     private final AttributeApiSecurityProperties properties;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
@@ -76,16 +86,16 @@ public class AttributeSecurityConfiguration {
         http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .ignoringRequestMatchers(request -> {
                     String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-                    return authHeader == null || authHeader.startsWith("Bearer ");
+                    return authHeader == null || authHeader.startsWith(BEARER_PREFIX);
                 }));
 
         if (noAuthenticationMechanismIsDefined()) {
-            throw new IllegalStateException("No authentication method set");
+            throw new IllegalStateException(ERROR_NO_AUTH_METHOD_SET);
         }
 
         if (properties.isAllowNoAuth() && !properties.isAllowBasicAuth() && !properties.isAllowApiKeyAuth()
                 && !properties.isAllowOAuth2Auth()) {
-            log.warn("Server has been configured to reply to requests without authentication.");
+            log.warn(WARN_NO_AUTH_CONFIGURED);
             return http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll()).build();
         }
 
@@ -109,9 +119,9 @@ public class AttributeSecurityConfiguration {
     }
 
     private void httpBasicAllowed(HttpSecurity http) {
-        log.info("Basic authentication activated.");
+        log.info(INFO_BASIC_AUTH_ACTIVATED);
         if (!hasBasicAuthUsers()) {
-            log.warn("Basic authentication is enabled but no users with basic credentials are configured.");
+            log.warn(WARN_BASIC_NO_USERS);
         }
         http.httpBasic(withDefaults());
     }
@@ -120,10 +130,10 @@ public class AttributeSecurityConfiguration {
         var authenticationEntryPoint = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
         http.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationEntryPoint));
 
-        log.info("API key authentication activated.");
+        log.info(INFO_API_KEY_ACTIVATED);
 
         if (!hasApiKeyUsers()) {
-            log.warn("API key authentication is enabled but no api key is defined.");
+            log.warn(WARN_API_KEY_NO_USERS);
         }
 
         AuthenticationManager apiKeyAuthenticationManager = new ProviderManager(
@@ -133,7 +143,7 @@ public class AttributeSecurityConfiguration {
     }
 
     private void oauth2Allowed(HttpSecurity http) {
-        log.info("OAuth2 authentication activated");
+        log.info(INFO_OAUTH2_ACTIVATED);
 
         var converter = new PdpIdJwtAuthenticationConverter(properties.getOauth2().getOidcPdpIdClaim());
         var decoder   = jwtDecoder();
@@ -143,7 +153,7 @@ public class AttributeSecurityConfiguration {
         // them instead of failing JWT decoding.
         http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(request -> {
             String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-            if (authHeader != null && authHeader.startsWith("Bearer sapl_")) {
+            if (authHeader != null && authHeader.startsWith(ApiKeyAuthenticationFilter.API_KEY_PREFIX)) {
                 return null;
             }
             return new DefaultBearerTokenResolver().resolve(request);
@@ -167,17 +177,16 @@ public class AttributeSecurityConfiguration {
     }
 
     private boolean hasBasicAuthUsers() {
-        return properties.getUsers().stream().anyMatch(user -> user.getBasic() != null);
+        return properties.getUsers().stream().anyMatch(user -> user.getUsername() != null);
     }
 
     private boolean hasApiKeyUsers() {
-        return properties.getUsers().stream().anyMatch(user -> user.getKey() != null);
+        return properties.getUsers().stream().anyMatch(user -> user.getApiKeyHash() != null);
     }
 
     private JwtDecoder jwtDecoder() {
         if (jwtIssuerUri == null || jwtIssuerUri.isBlank()) {
-            throw new IllegalStateException(
-                    "OAuth2 authentication is enabled but 'spring.security.oauth2.resourceserver.jwt.issuer-uri' is not set.");
+            throw new IllegalStateException(ERROR_MISSING_ISSUER_URI);
         }
         return JwtDecoders.fromIssuerLocation(jwtIssuerUri);
     }

@@ -50,6 +50,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String WARN_RECONNECTING                   = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
     private static final String ERROR_RECONNECT_GIVEN_UP            = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
     private static final String DEBUG_STALE_CONNECTION_CLOSE_FAILED = "Error closing stale connection for pdpId '{}': {}";
+    private static final String DEBUG_RECONNECT_FAILED              = "Reconnect attempt failed for pdpId '{}': {}";
+    private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
 
     private static final String NOTIFY_SQL = "SELECT pg_notify('attribute_changes', :payload)";
     private static final String LISTEN_SQL = "LISTEN attribute_changes";
@@ -138,7 +140,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                                 reconnectDeadline = null;
                                 loadFromDB();
                             } catch (Exception e) {
-                                log.debug("Reconnect attempt failed for pdpId '{}': {}", pdpId, e.getMessage());
+                                log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());
                             }
                         }))
                 .subscribe(this::handleNotification, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error));
@@ -147,7 +149,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private void establishConnection() {
         PostgresqlConnection newConnection = Objects.requireNonNull(
                 Mono.from(connectionFactory.create()).cast(PostgresqlConnection.class).block(),
-                "Connection factory returned no connection for pdpId '" + pdpId + "'");
+                ERROR_NO_CONNECTION_FROM_FACTORY + pdpId + "'");
         Mono.from(newConnection.createStatement(LISTEN_SQL).execute()).block();
 
         PostgresqlConnection previous = this.connection.getAndSet(newConnection);

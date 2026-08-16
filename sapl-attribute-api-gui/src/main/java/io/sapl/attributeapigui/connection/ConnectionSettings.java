@@ -24,8 +24,8 @@ public record ConnectionSettings(ConnectionMode mode, String baseUrl, String use
         implements Serializable {
 
     static ConnectionSettings from(AttributeApiConnectionProperties properties) {
-        return new ConnectionSettings(properties.getMethod(), properties.getBaseUrl(),
-                properties.getBasic().getUsername(), properties.getBasic().getPassword(), properties.getApi().getKey());
+        return new ConnectionSettings(properties.getMethod(), properties.getBaseUrl(), properties.getUsername(),
+                properties.getPassword(), properties.getApiKey());
     }
 
     public boolean isConfigured() {

@@ -32,19 +32,9 @@ public class AttributeApiConnectionProperties implements InitializingBean {
 
     private String         baseUrl;
     private ConnectionMode method = ConnectionMode.NONE;
-    private Basic          basic  = new Basic();
-    private Api            api    = new Api();
-
-    @Data
-    public static class Basic {
-        private String username;
-        private String password;
-    }
-
-    @Data
-    public static class Api {
-        private String key;
-    }
+    private String         username;
+    private String         password;
+    private String         apiKey;
 
     @Override
     public void afterPropertiesSet() {

@@ -63,6 +63,8 @@ public class AttributeRepositoryFactory {
     private static final String COLLECTION_FIELD = "collectionName";
     private static final String TYPE_FIELD       = "type";
 
+    private static final String POSTGRES_DRIVER = "postgresql";
+
     private static final String REGEX_PATTERN = "[A-Za-z_][A-Za-z0-9_]*";
 
     private enum RepositoryType {
@@ -104,7 +106,7 @@ public class AttributeRepositoryFactory {
                 () -> ERROR_MISSING_STRING.formatted(DATABASE_FIELD, pdpId));
 
         val connectionFactory = ConnectionFactories.get(
-                ConnectionFactoryOptions.builder().option(DRIVER, "postgresql").option(HOST, host).option(PORT, port)
+                ConnectionFactoryOptions.builder().option(DRIVER, POSTGRES_DRIVER).option(HOST, host).option(PORT, port)
                         .option(USER, username).option(PASSWORD, password).option(DATABASE, database).build());
 
         val table = validIdentifier(config, TABLENAME_FIELD, pdpId);

@@ -51,17 +51,26 @@ import java.util.stream.Stream;
 @PageTitle("Attributes")
 @RolesAllowed("ADMIN")
 public class AttributesView extends VerticalLayout {
-    private static String COLUMN_NAME_ENTITY    = "entity";
-    private static String COLUMN_NAME_ARGUMENTS = "arguments";
-    private static String COLUMN_NAME_NAME      = "name";
-    private static String COLUMN_NAME_VALUE     = "value";
+    private static final String COLUMN_NAME_ENTITY    = "entity";
+    private static final String COLUMN_NAME_ARGUMENTS = "arguments";
+    private static final String COLUMN_NAME_NAME      = "name";
+    private static final String COLUMN_NAME_VALUE     = "value";
+
+    private static final String MESSAGE_NAME_REQUIRED                      = "Name is required.";
+    private static final String MESSAGE_VALUE_REQUIRED                     = "Value is required.";
+    private static final String MESSAGE_ATTRIBUTE_PUBLISHED                = "Attribute published.";
+    private static final String MESSAGE_PUBLISH_FAILED_PREFIX              = "Publish failed: ";
+    private static final String MESSAGE_SEARCH_FAILED_PREFIX               = "Search failed: ";
+    private static final String MESSAGE_LOAD_FAILED_PREFIX                 = "Failed to load attributes: ";
+    private static final String MESSAGE_NO_ATTRIBUTES_FOUND                = "No attributes found.";
+    private static final String MESSAGE_NO_ATTRIBUTE_FOUND_FOR_NAME_PREFIX = "No attribute found for name '";
 
     // Internal http client, fixed SonarQube issue because client wasn't transient
     private transient AttributeApiClient client;
 
     // Search fields
     private final TextField entityField    = new TextField();
-    private final TextField keyField       = new TextField();
+    private final TextField nameField      = new TextField();
     private final TextField argumentsField = new TextField();
 
     // Publish fields
@@ -112,9 +121,9 @@ public class AttributesView extends VerticalLayout {
         entityField.setPrefixComponent(new Span("entity ="));
         entityField.addKeyPressListener(Key.ENTER, event -> search());
 
-        keyField.setPlaceholder("key");
-        keyField.setPrefixComponent(new Span("key ="));
-        keyField.addKeyPressListener(Key.ENTER, event -> search());
+        nameField.setPlaceholder("name");
+        nameField.setPrefixComponent(new Span("name ="));
+        nameField.addKeyPressListener(Key.ENTER, event -> search());
 
         argumentsField.setPlaceholder("optional, comma-separated");
         argumentsField.setPrefixComponent(new Span("arguments ="));
@@ -122,12 +131,12 @@ public class AttributesView extends VerticalLayout {
 
         // Set id's for the search fields to find them easier in tests
         entityField.setId("search-entity");
-        keyField.setId("search-key");
+        nameField.setId("search-name");
         argumentsField.setId("search-arguments");
 
         var searchButton = new Button("Search", event -> search());
         searchButton.setId("search-button");
-        var searchRow = new HorizontalLayout(entityField, keyField, argumentsField, searchButton);
+        var searchRow = new HorizontalLayout(entityField, nameField, argumentsField, searchButton);
 
         // Publish fields
         publishEntityField.setPlaceholder("optional");
@@ -176,22 +185,18 @@ public class AttributesView extends VerticalLayout {
         var raw    = publishValueField.getValue();
 
         if (name == null || name.isBlank()) {
-            Notification.show("Name is required.");
+            Notification.show(MESSAGE_NAME_REQUIRED);
             return;
         }
         if (raw == null || raw.isBlank()) {
-            Notification.show("Value is required.");
+            Notification.show(MESSAGE_VALUE_REQUIRED);
             return;
         }
 
         try {
-            var value = toJsonNode(raw);
-            var ttl   = publishTtlField.getValue() == null ? null : publishTtlField.getValue().longValue();
-
-            var rawArguments = publishArgumentsField.getValue();
-            var arguments    = (rawArguments == null || rawArguments.isBlank()) ? List.<JsonNode>of()
-                    : Arrays.stream(rawArguments.split(",")).map(String::trim).filter(s -> !s.isEmpty())
-                            .map(this::toJsonNode).toList();
+            var value     = toJsonNode(raw);
+            var ttl       = publishTtlField.getValue() == null ? null : publishTtlField.getValue().longValue();
+            var arguments = splitArguments(publishArgumentsField.getValue()).stream().map(this::toJsonNode).toList();
 
             client.publishAttribute(entity, name.trim(), value, ttl, arguments);
 
@@ -199,32 +204,32 @@ public class AttributesView extends VerticalLayout {
             publishValueField.clear();
             publishTtlField.clear();
             publishArgumentsField.clear();
-            Notification.show("Attribute published.");
+            Notification.show(MESSAGE_ATTRIBUTE_PUBLISHED);
 
-            if (keyField.getValue() == null || keyField.getValue().isBlank()) {
+            if (nameField.getValue() == null || nameField.getValue().isBlank()) {
                 grid.getDataProvider().refreshAll();
             }
         } catch (RuntimeException e) {
             log.warn("Failed to publish attribute (name '{}', entity '{}')", name, entity, e);
-            var notification = Notification.show("Publish failed: " + e.getMessage());
+            var notification = Notification.show(MESSAGE_PUBLISH_FAILED_PREFIX + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
 
     // SonarQube : Refactored
     private void search() {
-        var key    = keyField.getValue();
+        var name   = nameField.getValue();
         var entity = entityField.getValue();
 
         try {
-            if (key == null || key.isBlank()) {
+            if (name == null || name.isBlank()) {
                 searchAllAttributes();
             } else {
-                searchByKey(entity, key);
+                searchByName(entity, name);
             }
         } catch (RuntimeException e) {
-            log.warn("Failed to look up attributes (key '{}', entity '{}')", key, entity, e);
-            var notification = Notification.show("Search failed: " + e.getMessage());
+            log.warn("Failed to look up attributes (name '{}', entity '{}')", name, entity, e);
+            var notification = Notification.show(MESSAGE_SEARCH_FAILED_PREFIX + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
     }
@@ -236,28 +241,26 @@ public class AttributesView extends VerticalLayout {
             } catch (RuntimeException e) {
                 log.warn("Failed to fetch attributes page (limit {}, offset {})", query.getLimit(), query.getOffset(),
                         e);
-                Notification.show("Fehler beim Laden: " + e.getMessage());
+                Notification.show(MESSAGE_LOAD_FAILED_PREFIX + e.getMessage());
                 return Stream.empty();
             }
         }, query -> client.getAttributeCount().intValue());
 
         if (client.getAttributeCount() == 0) {
-            Notification.show("No attributes found.");
+            Notification.show(MESSAGE_NO_ATTRIBUTES_FOUND);
         }
     }
 
-    private void searchByKey(String entity, String key) {
-        var rawArguments = argumentsField.getValue();
-        var arguments    = (rawArguments == null || rawArguments.isBlank()) ? List.<String>of()
-                : Arrays.stream(rawArguments.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+    private void searchByName(String entity, String name) {
+        var arguments = splitArguments(argumentsField.getValue());
 
-        var value = client.getAttribute(entity, key.trim(), arguments);
+        var value = client.getAttribute(entity, name.trim(), arguments);
         if (value.isPresent()) {
-            grid.setItems(List.of(Map.of(COLUMN_NAME_ENTITY, entity == null ? "" : entity, COLUMN_NAME_NAME, key.trim(),
-                    COLUMN_NAME_ARGUMENTS, arguments, COLUMN_NAME_VALUE, value.get())));
+            grid.setItems(List.of(Map.of(COLUMN_NAME_ENTITY, entity == null ? "" : entity, COLUMN_NAME_NAME,
+                    name.trim(), COLUMN_NAME_ARGUMENTS, arguments, COLUMN_NAME_VALUE, value.get())));
         } else {
             grid.setItems(List.of());
-            Notification.show("No attribute found for key '" + key.trim() + "'.");
+            Notification.show(MESSAGE_NO_ATTRIBUTE_FOUND_FOR_NAME_PREFIX + name.trim() + "'.");
         }
     }
 
@@ -269,5 +272,13 @@ public class AttributesView extends VerticalLayout {
 
     Grid<Map<String, Object>> getGrid() {
         return grid;
+    }
+
+    private List<String> splitArguments(String rawArguments) {
+        if (rawArguments == null || rawArguments.isBlank()) {
+            return List.of();
+        }
+
+        return Arrays.stream(rawArguments.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 }

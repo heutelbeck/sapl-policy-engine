@@ -40,12 +40,17 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private static final String NOTIFY_KEYSPACE_EVENTS_PARAM     = "notify-keyspace-events";
     private static final String ERROR_KEYSPACE_NOTIFICATIONS_OFF = "Configure Redis to publish expired key events.";
 
+    private static final String FIELD_NAME      = "name";
+    private static final String FIELD_ENTITY    = "entity";
+    private static final String FIELD_ARGUMENTS = "arguments";
+    private static final String FIELD_VALUE     = "value";
+
     private static final String CHANGES_CHANNEL_PREFIX = "sapl:changes:";
 
     private final ReentrantLock                                 lock = new ReentrantLock(true);
     private final RedisClient                                   client;
     private final StatefulRedisConnection<String, String>       connection;
-    private final RedisCommands<String, String>                 cli;
+    private final RedisCommands<String, String>                 commands;
     private final StatefulRedisPubSubConnection<String, String> pubsub;
 
     private final Map<String, Set<Consumer<Value>>> observersByKey = new HashMap<>();
@@ -58,7 +63,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         this.client     = client;
         this.connection = client.connect();
         this.pubsub     = client.connectPubSub();
-        this.cli        = connection.sync();
+        this.commands   = connection.sync();
         this.pdpId      = pdpId;
 
         requireKeyspaceNotificationsEnabled();
@@ -87,7 +92,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
     }
 
     private void requireKeyspaceNotificationsEnabled() {
-        String flags = cli.configGet(NOTIFY_KEYSPACE_EVENTS_PARAM).getOrDefault(NOTIFY_KEYSPACE_EVENTS_PARAM, "");
+        String flags = commands.configGet(NOTIFY_KEYSPACE_EVENTS_PARAM).getOrDefault(NOTIFY_KEYSPACE_EVENTS_PARAM, "");
         if (!flags.contains("E") || !(flags.contains("x") || flags.contains("A"))) {
             throw new IllegalStateException(ERROR_KEYSPACE_NOTIFICATIONS_OFF.formatted(flags));
         }
@@ -130,29 +135,29 @@ public final class RedisAttributeRepository implements AttributeRepository {
         String redisValue = ValueJsonMarshaller.toJsonString(value);
 
         Map<String, String> fields = new HashMap<>();
-        fields.put("name", key.name());
-        fields.put("arguments", valuesToJson(key.arguments()));
-        fields.put("value", redisValue);
+        fields.put(FIELD_NAME, key.name());
+        fields.put(FIELD_ARGUMENTS, valuesToJson(key.arguments()));
+        fields.put(FIELD_VALUE, redisValue);
 
         if (key.entity() != null) {
-            fields.put("entity", ValueJsonMarshaller.toJsonString(key.entity()));
+            fields.put(FIELD_ENTITY, ValueJsonMarshaller.toJsonString(key.entity()));
         }
 
-        cli.hset(redisKey, fields);
+        commands.hset(redisKey, fields);
 
         if (ttl == null) {
-            cli.persist(redisKey);
+            commands.persist(redisKey);
         } else {
-            cli.expire(redisKey, ttl.toSeconds());
+            commands.expire(redisKey, ttl.toSeconds());
         }
 
-        cli.publish(CHANGES_CHANNEL_PREFIX + redisKey, redisValue);
+        commands.publish(CHANGES_CHANNEL_PREFIX + redisKey, redisValue);
     }
 
     @Override
     public void remove(@NonNull RepositoryKey key) {
-        cli.del(toRedisKey(key));
-        cli.publish(CHANGES_CHANNEL_PREFIX + toRedisKey(key), UNDEFINED_STRING);
+        commands.del(toRedisKey(key));
+        commands.publish(CHANGES_CHANNEL_PREFIX + toRedisKey(key), UNDEFINED_STRING);
     }
 
     @Override
@@ -171,7 +176,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
             } else {
                 // Register callback for future changes
                 observersByKey.computeIfAbsent(redisKey, k -> new HashSet<>()).add(onValue);
-                String raw = cli.hget(redisKey, "value");
+                String raw = commands.hget(redisKey, FIELD_VALUE);
                 initial = (raw == null || UNDEFINED_STRING.equals(raw)) ? Value.UNDEFINED
                         : ValueJsonMarshaller.json(raw);
             }

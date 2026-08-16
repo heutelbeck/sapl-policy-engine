@@ -24,15 +24,13 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 @RequiredArgsConstructor
 public class AttributeApiUserDetailsService implements UserDetailsService {
-
     private final AttributeApiSecurityProperties properties;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return properties.getUsers().stream()
-                .filter(user -> user.getBasic() != null && username.equals(user.getBasic().getUsername())).findFirst()
-                .map(user -> new AttributeApiUserDetails(user.getBasic().getUsername(), user.getBasic().getSecret(),
-                        user.getTenantId()))
+                .filter(user -> user.getUsername() != null && username.equals(user.getUsername())).findFirst()
+                .map(user -> new AttributeApiUserDetails(user.getUsername(), user.getSecret(), user.getPdpId()))
                 .orElseThrow(() -> new UsernameNotFoundException("User '" + username + "' not found"));
     }
 }

@@ -38,7 +38,6 @@ import java.util.Objects;
 
 public class MongoAttributeStore implements AttributeStore {
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
-    private static final String ERROR_PDP_ID_IS_EMPTY  = "PDP-ID must be resolved before reaching the store";
 
     private static final String PDP_ID_FIELD     = "pdpId";
     private static final String NAME_FIELD       = "name";
@@ -69,14 +68,12 @@ public class MongoAttributeStore implements AttributeStore {
     }
 
     @Override
-    public void remove(AttributeKey signature, String pdpId) {
-        deleteFromDB(signature, pdpId);
+    public void remove(AttributeKey key, String pdpId) {
+        deleteFromDB(key, pdpId);
     }
 
     @Override
     public Long count(String pdpId) {
-        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-
         var query = new Query(Criteria.where(PDP_ID_FIELD).is(pdpId));
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
                 Criteria.where(EXPIRES_AT_FIELD).gt(Instant.now())));
@@ -102,8 +99,6 @@ public class MongoAttributeStore implements AttributeStore {
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-
         var query = new Query(Criteria.where(PDP_ID_FIELD).is(pdpId));
 
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),

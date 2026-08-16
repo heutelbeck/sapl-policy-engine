@@ -26,9 +26,9 @@ import io.sapl.attributeapigui.connection.ConnectionMode;
 import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
 import org.springframework.security.test.context.support.WithUserDetails;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,14 +36,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "io.sapl.attribute-api-gui.admin-password=admin",
         "spring.autoconfigure.exclude=org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration" })
 class SettingsTests extends SpringBrowserlessTest {
-
-    // ConnectionSettingsHolder is @VaadinSessionScope, which is only active once
-    // initVaadinEnvironment() (a @BeforeEach in the base class) has run - not yet
-    // when Spring injects fields into the test instance. ApplicationContext itself
-    // is a singleton, so it can be injected eagerly and used to fetch the
-    // session-scoped bean lazily, once a test method actually runs.
     @Autowired
-    private ApplicationContext applicationContext;
+    private ObjectProvider<ConnectionSettingsHolder> settingsHolderProvider;
 
     @Test
     @WithUserDetails("admin")
@@ -61,7 +55,7 @@ class SettingsTests extends SpringBrowserlessTest {
         var settingsView   = navigate(SettingsView.class);
         var modeField      = settingsView.getModeField();
         var saveButton     = find(Button.class).id("settings-save");
-        var settingsHolder = applicationContext.getBean(ConnectionSettingsHolder.class);
+        var settingsHolder = settingsHolderProvider.getObject();
 
         test(modeField).selectItem("No authentication");
         test(saveButton).click();
@@ -75,7 +69,7 @@ class SettingsTests extends SpringBrowserlessTest {
         var settingsView   = navigate(SettingsView.class);
         var modeField      = settingsView.getModeField();
         var saveButton     = find(Button.class).id("settings-save");
-        var settingsHolder = applicationContext.getBean(ConnectionSettingsHolder.class);
+        var settingsHolder = settingsHolderProvider.getObject();
 
         test(modeField).selectItem("Username + Password");
 
@@ -97,7 +91,7 @@ class SettingsTests extends SpringBrowserlessTest {
         var settingsView   = navigate(SettingsView.class);
         var modeField      = settingsView.getModeField();
         var saveButton     = find(Button.class).id("settings-save");
-        var settingsHolder = applicationContext.getBean(ConnectionSettingsHolder.class);
+        var settingsHolder = settingsHolderProvider.getObject();
 
         test(modeField).selectItem("API key");
         var apiKeyField = find(PasswordField.class).id("settings-api-key");

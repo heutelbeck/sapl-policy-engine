@@ -39,7 +39,6 @@ public class PostgresAttributeStore implements AttributeStore {
     private static final String ARGUMENTS_FIELD        = "arguments";
     private static final String VALUE_FIELD            = "value";
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
-    private static final String ERROR_PDP_ID_IS_EMPTY  = "PDP-ID must be resolved before reaching the store";
     private static final String NOTIFY_SQL             = "SELECT pg_notify('attribute_changes', :payload)";
 
     private final DatabaseClient client;
@@ -100,34 +99,26 @@ public class PostgresAttributeStore implements AttributeStore {
 
     @Override
     public Long count(String pdpId) {
-        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-
         var spec = client.sql(countSql).bind(PDP_ID_FIELD, pdpId);
-
         return spec.map(row -> Objects.requireNonNull(row.get(0, Long.class))).one().block();
     }
 
     @Override
     public Value get(AttributeKey key, String pdpId) {
-        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
 
         var spec = client.sql(getSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name()).bind(ARGUMENTS_FIELD,
                 argumentsJson);
 
-        return (entityJson != null ? spec.bind(ENTITY_FIELD, entityJson) : spec.bindNull(ENTITY_FIELD, String.class))
-                .map(r -> {
-                    String raw = r.get(VALUE_FIELD, String.class);
-                    return raw != null ? ValueJsonMarshaller.json(raw) : Value.UNDEFINED;
-                }).one().blockOptional().orElse(Value.UNDEFINED);
+        return bindEntity(spec, entityJson).map(r -> {
+            String raw = r.get(VALUE_FIELD, String.class);
+            return raw != null ? ValueJsonMarshaller.json(raw) : Value.UNDEFINED;
+        }).one().blockOptional().orElse(Value.UNDEFINED);
     }
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-
         var spec = client.sql(getAllSql).bind(PDP_ID_FIELD, pdpId);
 
         spec = limit != null ? spec.bind("limit", limit) : spec.bindNull("limit", Integer.class);
@@ -162,8 +153,7 @@ public class PostgresAttributeStore implements AttributeStore {
         upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
 
-        Boolean inserted = (entityJson != null ? upsertSpec.bind(ENTITY_FIELD, entityJson)
-                : upsertSpec.bindNull(ENTITY_FIELD, String.class)).map(row -> row.get("inserted", Boolean.class)).one()
+        Boolean inserted = bindEntity(upsertSpec, entityJson).map(row -> row.get("inserted", Boolean.class)).one()
                 .block();
 
         notifyPdp(key, pdpId);
@@ -176,8 +166,7 @@ public class PostgresAttributeStore implements AttributeStore {
         var spec          = client.sql(deleteSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name())
                 .bind(ARGUMENTS_FIELD, argumentsJson);
 
-        (entityJson != null ? spec.bind(ENTITY_FIELD, entityJson) : spec.bindNull(ENTITY_FIELD, String.class)).then()
-                .block();
+        bindEntity(spec, entityJson).then().block();
         notifyPdp(key, pdpId);
     }
 
@@ -198,6 +187,11 @@ public class PostgresAttributeStore implements AttributeStore {
         Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
         return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);
+    }
+
+    private DatabaseClient.GenericExecuteSpec bindEntity(DatabaseClient.GenericExecuteSpec spec, String entityAsJson) {
+        return (entityAsJson != null ? spec.bind(ENTITY_FIELD, entityAsJson)
+                : spec.bindNull(ENTITY_FIELD, String.class));
     }
 
 }

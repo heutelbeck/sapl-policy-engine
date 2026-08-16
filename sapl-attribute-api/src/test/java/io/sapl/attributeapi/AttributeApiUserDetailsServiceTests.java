@@ -30,15 +30,11 @@ class AttributeApiUserDetailsServiceTests {
     @Test
     @DisplayName("returns matching user details for a known basic authentication user")
     void whenUserExistsThenReturnUserDetails() {
-        var basic = new AttributeApiSecurityProperties.Basic();
-
-        basic.setUsername("alice");
-        basic.setSecret(
-                "$argon2id$v=19$m=16384,t=2,p=1$TAKAbikXvm+RzKPUysWxog$Iv+pnfhWQst5SgL63Bu5VML6EruahgZxutrCBcntuAU"); // bob
-
         var user = new AttributeApiSecurityProperties.UserEntry();
-        user.setTenantId("tenant-a");
-        user.setBasic(basic);
+        user.setPdpId("tenant-a");
+        user.setUsername("alice");
+        user.setSecret(
+                "$argon2id$v=19$m=16384,t=2,p=1$TAKAbikXvm+RzKPUysWxog$Iv+pnfhWQst5SgL63Bu5VML6EruahgZxutrCBcntuAU"); // bob
 
         var properties = new AttributeApiSecurityProperties();
         properties.setUsers(List.of(user));

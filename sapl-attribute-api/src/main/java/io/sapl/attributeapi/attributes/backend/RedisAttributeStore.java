@@ -27,8 +27,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -39,7 +37,6 @@ public class RedisAttributeStore implements AttributeStore {
 
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
     private static final String UNDEFINED_STRING       = "UNDEFINED";
-    private static final String ERROR_PDP_ID_IS_EMPTY  = "PDP-ID must be resolved before reaching the store";
 
     private static final String NAME_FIELD      = "name";
     private static final String ENTITY_FIELD    = "entity";
@@ -48,85 +45,81 @@ public class RedisAttributeStore implements AttributeStore {
 
     private final RedisClient                             client;
     private final StatefulRedisConnection<String, String> connection;
-    private final RedisCommands<String, String>           cli;
+    private final RedisCommands<String, String>           commands;
 
     public RedisAttributeStore(RedisClient client) {
         this.client     = client;
         this.connection = client.connect();
-        this.cli        = connection.sync();
+        this.commands   = connection.sync();
     }
 
     @Override
-    public boolean publish(AttributeKey signature, Value value, String pdpId) {
-        return publishInternal(signature, value, null, pdpId);
+    public boolean publish(AttributeKey key, Value value, String pdpId) {
+        return publishInternal(key, value, null, pdpId);
     }
 
     @Override
-    public boolean publish(AttributeKey signature, Value value, Duration ttl, String pdpId) {
+    public boolean publish(AttributeKey key, Value value, Duration ttl, String pdpId) {
         if (ttl.isZero() || ttl.isNegative()) {
             throw new IllegalArgumentException(ERROR_TTL_NOT_POSITIVE);
         }
-        return publishInternal(signature, value, ttl, pdpId);
+        return publishInternal(key, value, ttl, pdpId);
     }
 
-    private boolean publishInternal(AttributeKey signature, @NonNull Value value, @Nullable Duration ttl,
-            String pdpId) {
-        String redisKey   = toRedisKey(signature, pdpId);
+    private boolean publishInternal(AttributeKey key, @NonNull Value value, @Nullable Duration ttl, String pdpId) {
+        String redisKey   = toRedisKey(key, pdpId);
         String redisValue = ValueJsonMarshaller.toJsonString(value);
 
         Map<String, String> fields = new HashMap<>();
-        fields.put(NAME_FIELD, signature.name());
-        fields.put(ARGUMENTS_FIELD, valuesToJson(signature.arguments()));
+        fields.put(NAME_FIELD, key.name());
+        fields.put(ARGUMENTS_FIELD, valuesToJson(key.arguments()));
         fields.put(VALUE_FIELD, redisValue);
-        if (signature.entity() != null) {
-            fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(signature.entity()));
+        if (key.entity() != null) {
+            fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(key.entity()));
         }
 
         // Redis + hset lacks a function to return if a key was new or not new. It just return how many fields are there
         // It causes two connections for now and should be considered. It's not an atomic action!!
-        boolean created = cli.exists(redisKey) == 0;
-        cli.hset(redisKey, fields);
+        boolean created = commands.exists(redisKey) == 0;
+        commands.hset(redisKey, fields);
 
         if (ttl == null) {
-            cli.persist(redisKey);
+            commands.persist(redisKey);
         } else {
-            cli.expire(redisKey, ttl.toSeconds());
+            commands.expire(redisKey, ttl.toSeconds());
         }
-        cli.publish(REDIS_CHANGES_PREFIX + redisKey, redisValue);
+        commands.publish(REDIS_CHANGES_PREFIX + redisKey, redisValue);
 
         return created;
     }
 
     @Override
-    public void remove(AttributeKey signature, String pdpId) {
-        String redisKey = toRedisKey(signature, pdpId);
-        cli.del(redisKey);
-        cli.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
+    public void remove(AttributeKey key, String pdpId) {
+        String redisKey = toRedisKey(key, pdpId);
+        commands.del(redisKey);
+        commands.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
     }
 
     @Override
     public Long count(String pdpId) {
-        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-        return (long) cli.keys(REDIS_NAMESPACE_PREFIX + pdpId + ":*").size();
+        return (long) commands.keys(REDIS_NAMESPACE_PREFIX + pdpId + ":*").size();
     }
 
     @Override
-    public Value get(AttributeKey signature, String pdpId) {
-        var raw = cli.hget(toRedisKey(signature, pdpId), VALUE_FIELD);
+    public Value get(AttributeKey key, String pdpId) {
+        var raw = commands.hget(toRedisKey(key, pdpId), VALUE_FIELD);
 
         return raw != null ? ValueJsonMarshaller.json(raw) : Value.UNDEFINED;
     }
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        Objects.requireNonNull(pdpId, ERROR_PDP_ID_IS_EMPTY);
-
         String pattern = REDIS_NAMESPACE_PREFIX + pdpId + ":*";
 
         // Sort the list of entries to guarantee a deterministic output for limit/offset
-        List<AttributeEntry> entries = cli.keys(pattern).stream().map(cli::hgetall).filter(hash -> !hash.isEmpty())
-                .map(RedisAttributeStore::toAttributeEntry).sorted(Comparator.comparing(entry -> entry.key().name()))
-                .toList();
+        List<AttributeEntry> entries = commands.keys(pattern).stream().map(commands::hgetall)
+                .filter(hash -> !hash.isEmpty()).map(RedisAttributeStore::toAttributeEntry)
+                .sorted(Comparator.comparing(entry -> entry.key().name())).toList();
 
         // set the right offset as start point, check if the start exceeds the List limit and set the end point
         int start = offset != null ? offset : 0;
@@ -146,11 +139,11 @@ public class RedisAttributeStore implements AttributeStore {
         client.close();
     }
 
-    private String toRedisKey(AttributeKey signature, String pdpId) {
-        String entity    = signature.entity() != null ? ValueJsonMarshaller.toJsonString(signature.entity()) : "null";
-        String arguments = valuesToJson(signature.arguments());
+    private String toRedisKey(AttributeKey key, String pdpId) {
+        String entity    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : "null";
+        String arguments = valuesToJson(key.arguments());
 
-        return REDIS_NAMESPACE_PREFIX + pdpId + ":" + entity + ":" + signature.name() + ":" + arguments;
+        return REDIS_NAMESPACE_PREFIX + pdpId + ":" + entity + ":" + key.name() + ":" + arguments;
     }
 
     private String valuesToJson(List<Value> values) {

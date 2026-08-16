@@ -23,8 +23,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.attributeapigui.config.AttributeApiConnectionProperties;
-import io.sapl.attributeapigui.config.AttributeApiConnectionProperties.Api;
-import io.sapl.attributeapigui.config.AttributeApiConnectionProperties.Basic;
 
 class ConnectionSettingsTests {
     private static final String DEFAULT_HOST     = "http://localhost:8090";
@@ -92,14 +90,11 @@ class ConnectionSettingsTests {
     @Test
     @DisplayName("from method maps properties with method basic and set user")
     void whenFromMethodWithBasicAndUserIsUsedThenConnectionSettingsAreRight() {
-        Basic user = new Basic();
-        user.setUsername(DEFAULT_USERNAME);
-        user.setPassword(DEFAULT_PASSWORD);
-
         var properties = new AttributeApiConnectionProperties();
         properties.setMethod(ConnectionMode.BASIC);
         properties.setBaseUrl(DEFAULT_HOST);
-        properties.setBasic(user);
+        properties.setUsername(DEFAULT_USERNAME);
+        properties.setPassword(DEFAULT_PASSWORD);
 
         var settings = ConnectionSettings.from(properties);
         assertThat(settings.isConfigured()).isTrue();
@@ -112,13 +107,10 @@ class ConnectionSettingsTests {
     @Test
     @DisplayName("from method maps properties with method basic and set user")
     void whenFromMethodWithApiAndApiKeyIsUsedThenConnectionSettingsAreRight() {
-        Api key = new Api();
-        key.setKey(DEFAULT_APIKEY);
-
         var properties = new AttributeApiConnectionProperties();
         properties.setMethod(ConnectionMode.API);
         properties.setBaseUrl(DEFAULT_HOST);
-        properties.setApi(key);
+        properties.setApiKey(DEFAULT_APIKEY);
 
         var settings = ConnectionSettings.from(properties);
         assertThat(settings.isConfigured()).isTrue();

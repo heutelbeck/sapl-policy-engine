@@ -37,7 +37,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class AttributeApiRedisTests extends AbstractAttributeApiTests {
 
     @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:7").withExposedPorts(6379);
+    static GenericContainer<?> redis = createRedisContainer();
 
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry registry) {
@@ -54,5 +54,11 @@ class AttributeApiRedisTests extends AbstractAttributeApiTests {
 
     private static RedisURI redisUri() {
         return RedisURI.create(redis.getHost(), redis.getMappedPort(6379));
+    }
+
+    private static GenericContainer<?> createRedisContainer() {
+        GenericContainer<?> container = new GenericContainer<>("redis:7");
+        container.withExposedPorts(6379);
+        return container;
     }
 }

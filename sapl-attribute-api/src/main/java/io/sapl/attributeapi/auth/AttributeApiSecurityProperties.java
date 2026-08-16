@@ -29,27 +29,17 @@ public class AttributeApiSecurityProperties {
     private boolean allowApiKeyAuth;
     private boolean allowOAuth2Auth;
 
-    private String          defaultTenantId = "default";
-    private List<UserEntry> users           = List.of();
-    private OAuth2          oauth2          = new OAuth2();
+    private String          defaultPdpId = "default";
+    private List<UserEntry> users        = List.of();
+    private OAuth2          oauth2       = new OAuth2();
 
     @Data
     public static class UserEntry {
         private String id;
-        private String tenantId;
-        private Basic  basic;
-        private ApiKey key;
-    }
-
-    @Data
-    public static class Basic {
+        private String pdpId;
         private String username;
         private String secret;
-    }
-
-    @Data
-    public static class ApiKey {
-        private String hash;
+        private String apiKeyHash;
     }
 
     @Data

@@ -67,8 +67,8 @@ class AttributeSecurityConfigurationTests {
     void whenBasicAuthEnabledWithUsersThenActivationIsLogged() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-basic-auth=true",
-                        "io.sapl.attribute-api.users[0].basic.username=testuser",
-                        "io.sapl.attribute-api.users[0].basic.secret=testsecret")
+                        "io.sapl.attribute-api.users[0].username=testuser",
+                        "io.sapl.attribute-api.users[0].secret=testsecret")
 
                 .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
                         .containsExactly("Basic authentication activated."));

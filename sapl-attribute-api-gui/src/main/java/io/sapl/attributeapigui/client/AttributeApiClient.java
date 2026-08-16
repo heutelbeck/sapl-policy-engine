@@ -37,6 +37,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.net.CookieManager;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
@@ -47,11 +48,18 @@ import java.util.Optional;
 @Component
 @VaadinSessionScope
 public class AttributeApiClient {
-    private static final String ERROR_NO_ATTRIBUTE_TO_DELTE = "There was no such attribute to delete from the repository.";
-    private static final String API_GLOBAL_ATTRIBUTE        = "/api/attributes/{name}";
-    private static final String API_ATTRIBUTE_WITH_ENTITY   = "/api/attributes/{entity}/{name}";
-    private static final String CSRF_COOKIE_NAME            = "XSRF-TOKEN";
-    private static final String CSRF_HEADER_NAME            = "X-XSRF-TOKEN";
+    private static final String ERROR_NOT_CONNECTED_TO_BACKEND = "Not connected to attribute store. Configure a connection in the settings first.";
+    private static final String ERROR_UNSUPPORTED_AUTH_MODE    = "Unsupported authentication mode.";
+    private static final String ERROR_NO_ATTRIBUTE_TO_DELETE   = "There was no such attribute to delete from the repository.";
+    private static final String API_GLOBAL_ATTRIBUTE           = "/api/attributes/{name}";
+    private static final String API_ATTRIBUTE_WITH_ENTITY      = "/api/attributes/{entity}/{name}";
+    private static final String API_ATTRIBUTE_COUNT            = "/api/attributes?count=true";
+    private static final String API_GET_ALL_ATTRIBUTES         = "/api/attributes?limit={limit}&offset={offset}";
+    private static final String CSRF_COOKIE_NAME               = "XSRF-TOKEN";
+    private static final String CSRF_HEADER_NAME               = "X-XSRF-TOKEN";
+    private static final String VALUE_FIELD                    = "value";
+    private static final String TTL_FIELD                      = "ttl";
+    private static final String ARGUMENTS_FIELD                = "arguments";
 
     private final ConnectionSettingsHolder settingsHolder;
     private final CookieManager            cookieManager = new CookieManager();
@@ -99,17 +107,7 @@ public class AttributeApiClient {
         checkConfiguration(settings);
 
         try {
-            var builder = (entity == null || entity.isBlank())
-                    ? UriComponentsBuilder.fromUriString(settings.baseUrl() + API_GLOBAL_ATTRIBUTE)
-                    : UriComponentsBuilder.fromUriString(settings.baseUrl() + API_ATTRIBUTE_WITH_ENTITY);
-
-            if (arguments != null && !arguments.isEmpty()) {
-                builder.queryParam("arg", arguments.toArray());
-            }
-
-            var uri = (entity == null || entity.isBlank()) ? builder.buildAndExpand(name).toUri()
-                    : builder.buildAndExpand(entity, name).toUri();
-
+            var uri   = buildUri(settings.baseUrl(), entity, name, arguments);
             var value = client.get().uri(uri).headers(h -> addAuthorization(h, settings)).retrieve().body(Object.class);
 
             return Optional.ofNullable(value);
@@ -121,22 +119,13 @@ public class AttributeApiClient {
     public DeleteOutput deleteAttribute(String entity, String name, List<String> arguments) {
         var settings = settingsHolder.get();
         checkConfiguration(settings);
+
         try {
-            var builder = (entity == null || entity.isBlank())
-                    ? UriComponentsBuilder.fromUriString(settings.baseUrl() + API_GLOBAL_ATTRIBUTE)
-                    : UriComponentsBuilder.fromUriString(settings.baseUrl() + API_ATTRIBUTE_WITH_ENTITY);
-
-            if (arguments != null && !arguments.isEmpty()) {
-                builder.queryParam("arg", arguments.toArray());
-            }
-
-            var uri = (entity == null || entity.isBlank()) ? builder.buildAndExpand(name).toUri()
-                    : builder.buildAndExpand(entity, name).toUri();
-
+            var uri = buildUri(settings.baseUrl(), entity, name, arguments);
             client.delete().uri(uri).headers(h -> addAuthorization(h, settings)).retrieve().toBodilessEntity();
             return DeleteOutput.DELETED;
         } catch (HttpClientErrorException.NotFound e) {
-            log.debug(ERROR_NO_ATTRIBUTE_TO_DELTE);
+            log.debug(ERROR_NO_ATTRIBUTE_TO_DELETE);
             return DeleteOutput.NOT_FOUND;
         }
     }
@@ -145,7 +134,7 @@ public class AttributeApiClient {
         var settings = settingsHolder.get();
         checkConfiguration(settings);
 
-        var body = Map.of("value", value, "ttl", Objects.requireNonNullElse(ttl, 0L), "arguments",
+        var body = Map.of(VALUE_FIELD, value, TTL_FIELD, Objects.requireNonNullElse(ttl, 0L), ARGUMENTS_FIELD,
                 arguments == null ? List.of() : arguments);
 
         var request = (entity == null || entity.isBlank())
@@ -160,7 +149,7 @@ public class AttributeApiClient {
         var settings = settingsHolder.get();
         checkConfiguration(settings);
 
-        return client.get().uri(settings.baseUrl() + "/api/attributes?limit={limit}&offset={offset}", limit, offset)
+        return client.get().uri(settings.baseUrl() + API_GET_ALL_ATTRIBUTES, limit, offset)
                 .headers(h -> addAuthorization(h, settings)).retrieve().body(new ParameterizedTypeReference<>() {});
     }
 
@@ -168,27 +157,40 @@ public class AttributeApiClient {
         var settings = settingsHolder.get();
         checkConfiguration(settings);
 
-        return client.get().uri(settings.baseUrl() + "/api/attributes?count=true")
-                .headers(h -> addAuthorization(h, settings)).retrieve().body(Long.class);
+        return client.get().uri(settings.baseUrl() + API_ATTRIBUTE_COUNT).headers(h -> addAuthorization(h, settings))
+                .retrieve().body(Long.class);
     }
 
     private void checkConfiguration(ConnectionSettings settings) {
         if (!settings.isConfigured()) {
-            throw new IllegalStateException("Not connected - configure a connection on the Settings view first.");
+            throw new IllegalStateException(ERROR_NOT_CONNECTED_TO_BACKEND);
         }
     }
 
     private void addAuthorization(HttpHeaders headers, ConnectionSettings settings) {
         switch (settings.mode()) {
         case NONE -> {
-            // keine Authentifizierung
+            // no authentication
         }
 
         case BASIC -> headers.setBasicAuth(settings.username(), settings.password());
 
         case API -> headers.setBearerAuth(settings.apiKey());
 
-        default -> throw new IllegalStateException("Unsupported authentication mode: " + settings.mode());
+        default -> throw new IllegalStateException(ERROR_UNSUPPORTED_AUTH_MODE);
         }
+    }
+
+    private URI buildUri(String baseURL, String entity, String name, List<String> arguments) {
+        var builder = (entity == null || entity.isBlank())
+                ? UriComponentsBuilder.fromUriString(baseURL + API_GLOBAL_ATTRIBUTE)
+                : UriComponentsBuilder.fromUriString(baseURL + API_ATTRIBUTE_WITH_ENTITY);
+
+        if (arguments != null && !arguments.isEmpty()) {
+            builder.queryParam("arg", arguments.toArray());
+        }
+
+        return (entity == null || entity.isBlank()) ? builder.buildAndExpand(name).toUri()
+                : builder.buildAndExpand(entity, name).toUri();
     }
 }

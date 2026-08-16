@@ -24,7 +24,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.ShortcutsKt;
-
 import io.sapl.attributeapigui.client.AttributeApiClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +32,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.node.JsonNodeFactory;
-
 import tools.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +39,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
@@ -90,11 +87,11 @@ class AttributesViewTests extends BrowserlessTest {
                 .thenReturn(AttributeApiClient.DeleteOutput.DELETED);
 
         var entityField  = find(TextField.class).id("search-entity");
-        var keyField     = find(TextField.class).id("search-key");
+        var nameField    = find(TextField.class).id("search-name");
         var searchButton = find(Button.class).id("search-button");
 
         test(entityField).setValue("sapl.test.entity");
-        test(keyField).setValue("sapl.test.attribute");
+        test(nameField).setValue("sapl.test.attribute");
         test(searchButton).click();
 
         var grid = view.getGrid();
@@ -106,7 +103,7 @@ class AttributesViewTests extends BrowserlessTest {
         verify(client).deleteAttribute("sapl.test.entity", "sapl.test.attribute", List.of());
         verify(client, times(2)).getAttribute("sapl.test.entity", "sapl.test.attribute", List.of());
     }
-    
+
     @Test
     @DisplayName("Search all attributes in the UI shows all attributes for the given user")
     void whenSearchWithBlankKeyThenAllAttributesLoaded() {

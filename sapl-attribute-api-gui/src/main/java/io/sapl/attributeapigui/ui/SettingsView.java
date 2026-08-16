@@ -41,6 +41,8 @@ import jakarta.annotation.security.RolesAllowed;
 @PageTitle("Settings")
 @RolesAllowed("ADMIN")
 public class SettingsView extends VerticalLayout {
+    private static final String INFO_OAUTH2_NOT_AVAILABLE_YET = "OAuth2 authentication is not yet available in this GUI.";
+
     private final TextField                baseUrlField  = new TextField("API url");
     private final ComboBox<ConnectionMode> modeField     = new ComboBox<>("Authentication");
     private final TextField                usernameField = new TextField("Username");
@@ -79,7 +81,7 @@ public class SettingsView extends VerticalLayout {
         modeField.addValueChangeListener(event -> {
             if (event.getValue() == ConnectionMode.OIDC) {
                 modeField.setValue(event.getOldValue());
-                Notification.show("OpenID Connect authentication is not yet available in this GUI.");
+                Notification.show(INFO_OAUTH2_NOT_AVAILABLE_YET);
                 return;
             }
             updateVisibility(event.getValue());

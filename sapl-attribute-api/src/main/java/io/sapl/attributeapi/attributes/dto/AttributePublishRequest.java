@@ -17,18 +17,7 @@
  */
 package io.sapl.attributeapi.attributes.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import tools.jackson.databind.JsonNode;
-
 import java.util.List;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class AttributePublishRequest {
-    private Long           ttl;           // optional, non set -> infinity
-    private JsonNode       value;         // required
-    private List<JsonNode> arguments;     // optional
-}
+public record AttributePublishRequest(Long ttl, JsonNode value, List<JsonNode> arguments) {}

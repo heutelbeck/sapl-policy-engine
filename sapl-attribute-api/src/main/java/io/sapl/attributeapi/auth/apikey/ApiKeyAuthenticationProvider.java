@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class ApiKeyAuthenticationProvider implements AuthenticationProvider {
+    private static final String               ERROR_NO_API_KEY = "Invalid api key.";
     private final ApiKeyAuthenticationService service;
 
     public ApiKeyAuthenticationProvider(ApiKeyAuthenticationService service) {
@@ -45,7 +46,7 @@ public class ApiKeyAuthenticationProvider implements AuthenticationProvider {
                 AttributeApiUserDetails details = user.get();
                 return UsernamePasswordAuthenticationToken.authenticated(details, null, details.getAuthorities());
             } else {
-                throw new BadCredentialsException("Invalid API key");
+                throw new BadCredentialsException(ERROR_NO_API_KEY);
             }
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);

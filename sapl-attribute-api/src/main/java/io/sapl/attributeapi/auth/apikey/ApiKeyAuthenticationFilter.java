@@ -39,7 +39,7 @@ import java.io.IOException;
  */
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String API_KEY_PREFIX = "Bearer sapl_";
+    public static final String API_KEY_PREFIX = "Bearer sapl_";
 
     private final AuthenticationManager    authenticationManager;
     private final AuthenticationEntryPoint authenticationEntryPoint;

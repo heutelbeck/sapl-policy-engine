@@ -92,19 +92,19 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     @Override
-    public void publish(@NonNull RepositoryKey k, @NonNull Value v) {
+    public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
         // RoutingAttributeRepository is only there to support routing for observe
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void publish(@NonNull RepositoryKey k, @NonNull Value v, @NonNull Duration ttl) {
+    public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
         // RoutingAttributeRepository is only there to support routing for observe
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void remove(@NonNull RepositoryKey k) {
+    public void remove(@NonNull RepositoryKey key) {
         // RoutingAttributeRepository is only there to support routing for observe
         throw new UnsupportedOperationException();
     }

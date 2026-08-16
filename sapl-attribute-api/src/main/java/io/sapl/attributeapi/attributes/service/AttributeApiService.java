@@ -40,35 +40,42 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
 public class AttributeApiService {
+    private static final String ERROR_LIMIT_NOT_POSITIVE  = "Limit must be strictly positive.";
+    private static final String ERROR_OFFSET_NOT_POSITIVE = "Offset must be strictly positive.";
+    private static final String NAME_FIELD                = "name";
+    private static final String ENTITY_FIELD              = "entity";
+    private static final String ARGUMENTS_FIELD           = "arguments";
+    private static final String VALUE_FIELD               = "value";
+
     private final AttributeStore                 store;
     private final AttributeApiSecurityProperties securityProperties;
 
     public boolean publish(String entity, String attribute, AttributePublishRequest body, @Nullable String pdpId) {
-        List<Value> arguments   = body.getArguments() == null ? List.of()
-                : body.getArguments().stream().map(ValueJsonMarshaller::fromJsonNode).toList();
-        Value       entityValue = entity != null && !entity.isBlank() ? Value.of(entity) : null;
-        Value       value       = ValueJsonMarshaller.fromJsonNode(body.getValue());
-        Long        ttl         = body.getTtl();
+        List<Value> arguments   = body.arguments() == null ? List.of()
+                : body.arguments().stream().map(ValueJsonMarshaller::fromJsonNode).toList();
+        Value       entityValue = toEntityValue(entity);
+        Value       value       = ValueJsonMarshaller.fromJsonNode(body.value());
+        Long        ttl         = body.ttl();
 
-        var sig = new AttributeKey(entityValue, attribute, arguments);
+        var key = new AttributeKey(entityValue, attribute, arguments);
 
         if (ttl == null || ttl <= 0) {
-            return store.publish(sig, value, resolvePdpId(pdpId));
+            return store.publish(key, value, resolvePdpId(pdpId));
         } else {
-            return store.publish(sig, value, Duration.ofSeconds(ttl), resolvePdpId(pdpId));
+            return store.publish(key, value, Duration.ofSeconds(ttl), resolvePdpId(pdpId));
         }
     }
 
     public void delete(String entity, String attribute, List<String> rawArgs, @Nullable String pdpId) {
-        List<Value> arguments   = rawArgs == null ? List.of() : rawArgs.stream().map(this::fromString).toList();
-        Value       entityValue = entity != null && !entity.isBlank() ? Value.of(entity) : null;
+        List<Value> arguments   = toArgumentValues(rawArgs);
+        Value       entityValue = toEntityValue(entity);
 
         store.remove(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
     }
 
     public JsonNode get(String entity, String attribute, List<String> rawArgs, @Nullable String pdpId) {
-        List<Value> arguments   = rawArgs == null ? List.of() : rawArgs.stream().map(this::fromString).toList();
-        Value       entityValue = entity != null && !entity.isBlank() ? Value.of(entity) : null;
+        List<Value> arguments   = toArgumentValues(rawArgs);
+        Value       entityValue = toEntityValue(entity);
         Value       value       = store.get(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
 
         if (value == Value.UNDEFINED)
@@ -79,10 +86,10 @@ public class AttributeApiService {
 
     public List<JsonNode> getAll(@Nullable String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
         if (limit != null && limit <= 0) {
-            throw new IllegalArgumentException("limit must be strictly positive.");
+            throw new IllegalArgumentException(ERROR_LIMIT_NOT_POSITIVE);
         }
         if (offset != null && offset < 0) {
-            throw new IllegalArgumentException("offset must not be negative.");
+            throw new IllegalArgumentException(ERROR_OFFSET_NOT_POSITIVE);
         }
 
         String resolvedPdpId = resolvePdpId(pdpId);
@@ -96,7 +103,7 @@ public class AttributeApiService {
     }
 
     private String resolvePdpId(@Nullable String pdpId) {
-        return pdpId == null || pdpId.isBlank() ? securityProperties.getDefaultTenantId() : pdpId;
+        return pdpId == null || pdpId.isBlank() ? securityProperties.getDefaultPdpId() : pdpId;
     }
 
     // Converts a query-parameter string into a SAPL value.
@@ -108,10 +115,18 @@ public class AttributeApiService {
 
     private JsonNode toJsonNode(AttributeEntry entry) {
         var key    = entry.key();
-        var object = ObjectValue.builder().put("entity", key.entity() != null ? key.entity() : Value.NULL)
-                .put("name", Value.of(key.name())).put("arguments", Value.ofArray(key.arguments()))
-                .put("value", entry.value()).build();
+        var object = ObjectValue.builder().put(ENTITY_FIELD, key.entity() != null ? key.entity() : Value.NULL)
+                .put(NAME_FIELD, Value.of(key.name())).put(ARGUMENTS_FIELD, Value.ofArray(key.arguments()))
+                .put(VALUE_FIELD, entry.value()).build();
 
         return ValueJsonMarshaller.toJsonNodeLenient(object);
+    }
+
+    private Value toEntityValue(String entity) {
+        return (entity != null && !entity.isBlank() ? Value.of(entity) : null);
+    }
+
+    private List<Value> toArgumentValues(List<String> arguments) {
+        return (arguments == null ? List.of() : arguments.stream().map(this::fromString).toList());
     }
 }
