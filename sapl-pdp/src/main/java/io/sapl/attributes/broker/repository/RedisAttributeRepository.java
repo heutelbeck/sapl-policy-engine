@@ -30,8 +30,14 @@ import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import io.lettuce.core.RedisConnectionStateListener;
+import io.lettuce.core.RedisChannelHandler;
+import java.net.SocketAddress;
 
 public final class RedisAttributeRepository implements AttributeRepository {
     private static final String ERROR_TTL_NOT_POSITIVE           = "TTL must be a strictly positive Duration.";
@@ -45,13 +51,16 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private static final String FIELD_ARGUMENTS = "arguments";
     private static final String FIELD_VALUE     = "value";
 
+    private static final String ATTRIBUTE_KEY_PREFIX   = "sapl:attribute:";
     private static final String CHANGES_CHANNEL_PREFIX = "sapl:changes:";
 
-    private final ReentrantLock                                 lock = new ReentrantLock(true);
     private final RedisClient                                   client;
     private final StatefulRedisConnection<String, String>       connection;
     private final RedisCommands<String, String>                 commands;
     private final StatefulRedisPubSubConnection<String, String> pubsub;
+    private final ExecutorService                               resyncExecutor = Executors
+            .newVirtualThreadPerTaskExecutor();
+    private final ReentrantLock                                 lock           = new ReentrantLock(true);
 
     private final Map<String, Set<Consumer<Value>>> observersByKey = new HashMap<>();
 
@@ -89,6 +98,16 @@ public final class RedisAttributeRepository implements AttributeRepository {
                 notifyObservers(redisKey, value);
             }
         });
+
+        // Monitor the current connection and reconnect if the connection was interrupted
+        pubsub.addListener(new RedisConnectionStateListener() {
+            @Override
+            public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
+                // Creates a new thread that is executed by the resync executer. The main event loop threads doesn't
+                // block that way
+                CompletableFuture.runAsync(RedisAttributeRepository.this::resyncObservers, resyncExecutor);
+            }
+        });
     }
 
     private void requireKeyspaceNotificationsEnabled() {
@@ -113,6 +132,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
         pubsub.sync().unsubscribe();
         pubsub.sync().punsubscribe();
+        resyncExecutor.close();
         connection.close();
         client.close();
     }
@@ -205,7 +225,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         String entity    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : "null";
         String arguments = valuesToJson(key.arguments());
 
-        return "sapl:attribute:" + pdpId + ":" + entity + ":" + key.name() + ":" + arguments;
+        return ATTRIBUTE_KEY_PREFIX + pdpId + ":" + entity + ":" + key.name() + ":" + arguments;
     }
 
     private String valuesToJson(List<Value> values) {
@@ -223,5 +243,22 @@ public final class RedisAttributeRepository implements AttributeRepository {
         }
 
         toFire.forEach(callback -> callback.accept(value));
+    }
+
+    private void resyncObservers() {
+        List<String> keysToResync;
+        lock.lock();
+        try {
+            keysToResync = new ArrayList<>(observersByKey.keySet());
+        } finally {
+            lock.unlock();
+        }
+
+        for (String redisKey : keysToResync) {
+            String raw   = commands.hget(redisKey, FIELD_VALUE);
+            Value  value = (raw == null || UNDEFINED_STRING.equals(raw)) ? Value.UNDEFINED
+                    : ValueJsonMarshaller.json(raw);
+            notifyObservers(redisKey, value);
+        }
     }
 }
