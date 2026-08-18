@@ -33,6 +33,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import io.lettuce.core.RedisConnectionStateListener;
@@ -132,7 +133,18 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
         pubsub.sync().unsubscribe();
         pubsub.sync().punsubscribe();
-        resyncExecutor.close();
+        
+        // Closes the executer properly instead of waiting too long. Warning in Sonar
+        resyncExecutor.shutdown();
+        try {
+            if (!resyncExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                resyncExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            resyncExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        
         connection.close();
         client.close();
     }
