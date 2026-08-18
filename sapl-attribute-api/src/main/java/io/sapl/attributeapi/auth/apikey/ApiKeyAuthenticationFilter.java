@@ -41,6 +41,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     public static final String API_KEY_PREFIX = "Bearer sapl_";
 
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final AuthenticationManager    authenticationManager;
     private final AuthenticationEntryPoint authenticationEntryPoint;
 
@@ -60,7 +62,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String key = authHeader.substring(API_KEY_PREFIX.length());
+        // Strip only "Bearer ", keeping the sapl_ prefix intact - the service
+        // parses the api-key-id out of the full sapl_<id>_<secret> token.
+        String key = authHeader.substring(BEARER_PREFIX.length());
 
         try {
             var authenticated = authenticationManager

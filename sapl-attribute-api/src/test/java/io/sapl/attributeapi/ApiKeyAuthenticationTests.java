@@ -46,13 +46,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * E2E tests for API key authentication in the standalone attribute API.
- * Raw key "testkey123" was hashed with SHA-256 to produce the hash configured
- * below (sha256sum on the raw key value).
+ * Wire format is sapl_&lt;api-key-id&gt;_&lt;secret&gt;. The configured api-key is
+ * the Argon2 encoding (Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8())
+ * of the full raw key "sapl_Gd405gc3Ri_testsecretsecret123" below.
  */
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
-        "io.sapl.attribute-api.allow-api-key-auth=true", "io.sapl.attribute-api.users[0].id=tenant-a-user",
-        "io.sapl.attribute-api.users[0].tenant-id=tenant-a",
-        "io.sapl.attribute-api.users[0].api-key-hash=87d452521c9a7f5c9052ae6190e900a46e2a2df5f144158c2fc20b797adb470b",
+        "io.sapl.attribute-api.allow-api-key-auth=true", "io.sapl.attribute-api.users[0].id=service-api-01",
+        "io.sapl.attribute-api.users[0].pdpId=service-api-01", "io.sapl.attribute-api.users[0].api-key-id=Gd405gc3Ri",
+        "io.sapl.attribute-api.users[0].api-key=$argon2id$v=19$m=16384,t=2,p=1$IT2dTRKDWOXkBS3oot6g5A$y4Ez2CLLAsbCua/wkIEVopbi2XumdZjYPGB2Sy1KxMM",
         "io.sapl.attributes.storage=none" })
 @AutoConfigureMockMvc
 @Testcontainers
@@ -60,8 +61,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(ApiKeyAuthenticationTests.Config.class)
 class ApiKeyAuthenticationTests {
 
-    private static final String VALID_KEY_HEADER   = "Bearer sapl_testkey123";
-    private static final String UNKNOWN_KEY_HEADER = "Bearer sapl_doesnotexist";
+    private static final String VALID_KEY_HEADER   = "Bearer sapl_Gd405gc3Ri_testsecretsecret123";
+    private static final String UNKNOWN_KEY_HEADER = "Bearer sapl_doesnotexist_x";
 
     @Container
     static GenericContainer<?> redis = createRedisContainer();

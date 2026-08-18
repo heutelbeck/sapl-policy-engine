@@ -65,6 +65,8 @@ The current version doesn't support an automatic setup. An automatic integration
 
 #### Redis
 
+The given `docker-redis.yml` file contains a minimum version to run the api with a Redis attribute store. Adjust the file to your environment needs but make sure that the `notify-keyspace-events` are set to `Ex`:
+
 ```yaml
 services:
   redis:
@@ -73,9 +75,11 @@ services:
     ports:
       - "6379:6379"
 ```
-`docker compose -f docker-compose.redis.yml up -d`
+`docker compose -f docker-redis.yml up -d`
 
 #### Mongo
+
+The given `docker-mongo.yml` file contains a minimum version to run the api with a MongoDB attribute store. Adjust the file to your environment needs but make sure that the replicat sets are activated:
 
 ```yaml
 services:
@@ -91,9 +95,11 @@ services:
       retries: 10
 ```
 
-`docker compose -f docker-compose.mongo.yml up -d`
+`docker compose -f docker-mongo.yml up -d`
 
 #### PostgreSQL
+
+The given `docker-postgres.yml` file contains a minimum version to run the api with a PostgreSQL attribute store. Adjust the file to your environment needs but make sure that the replicat sets are activated:
 
 ```yaml
 services:
@@ -109,7 +115,22 @@ services:
       - ./init/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 ```
 
-`docker compose -f docker-compose.postgres.yml up -d`
+Create the init folder `mkdir init` and create the file `vim init/postgres-init.sql` within the folder. The file should contain the following:
+
+```sql
+CREATE TABLE IF NOT EXISTS attributes (
+    pdp_id     TEXT        NOT NULL,
+    name       TEXT        NOT NULL,
+    entity     JSONB,
+    arguments  JSONB       NOT NULL DEFAULT '[]',
+    value      JSONB       NOT NULL,
+    expires_at TIMESTAMPTZ,
+    CONSTRAINT attribute_key_and_pdp_id_not_null
+        UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
+);
+```
+
+`docker compose -f docker-postgres.yml up -d`
 
 ## Building from Source
 

@@ -69,6 +69,7 @@ public class AttributeSecurityConfiguration {
     private static final String ERROR_MISSING_ISSUER_URI  = "OAuth2 authentication is enabled but 'spring.security.oauth2.resourceserver.jwt.issuer-uri' is not set.";
 
     private final AttributeApiSecurityProperties properties;
+    private final PasswordEncoder                encoder;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
     private String jwtIssuerUri;
@@ -137,7 +138,7 @@ public class AttributeSecurityConfiguration {
         }
 
         AuthenticationManager apiKeyAuthenticationManager = new ProviderManager(
-                new ApiKeyAuthenticationProvider(new ApiKeyAuthenticationService(properties)));
+                new ApiKeyAuthenticationProvider(new ApiKeyAuthenticationService(properties, encoder)));
         http.addFilterBefore(new ApiKeyAuthenticationFilter(apiKeyAuthenticationManager, authenticationEntryPoint),
                 UsernamePasswordAuthenticationFilter.class);
     }
@@ -167,7 +168,7 @@ public class AttributeSecurityConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(PasswordEncoder.class)
-    public PasswordEncoder passwordEncoder() {
+    public static PasswordEncoder passwordEncoder() {
         return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 
@@ -181,7 +182,7 @@ public class AttributeSecurityConfiguration {
     }
 
     private boolean hasApiKeyUsers() {
-        return properties.getUsers().stream().anyMatch(user -> user.getApiKeyHash() != null);
+        return properties.getUsers().stream().anyMatch(user -> user.getApiKeyId() != null);
     }
 
     private JwtDecoder jwtDecoder() {
