@@ -75,7 +75,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     // reconnect. RetryBackoffSpec has no elapsed-time cutoff of its own (only maxAttempts,
     // which does not map cleanly onto "give up after 10 minutes"), so the deadline is
     // tracked here and enforced via the filter below.
-    private volatile Instant reconnectDeadline;
+    private final AtomicReference<Instant> reconnectDeadline = new AtomicReference<>();
 
     private final DatabaseClient client;
     private final String         pdpId;
@@ -129,15 +129,13 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 .publishOn(Schedulers.boundedElastic())
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
                         .filter(throwable -> !closed
-                                && (reconnectDeadline == null || Instant.now().isBefore(reconnectDeadline)))
+                                && (reconnectDeadline.get() == null || Instant.now().isBefore(reconnectDeadline.get())))
                         .doBeforeRetry(signal -> {
                             log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-                            if (reconnectDeadline == null) {
-                                reconnectDeadline = Instant.now().plus(Duration.ofMinutes(10));
-                            }
+                            reconnectDeadline.compareAndSet(null, Instant.now().plus(Duration.ofMinutes(10)));
                             try {
                                 establishConnection();
-                                reconnectDeadline = null;
+                                reconnectDeadline.set(null);
                                 loadFromDB();
                             } catch (Exception e) {
                                 log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());

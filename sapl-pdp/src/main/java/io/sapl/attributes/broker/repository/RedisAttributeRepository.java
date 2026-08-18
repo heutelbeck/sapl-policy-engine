@@ -133,7 +133,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
         pubsub.sync().unsubscribe();
         pubsub.sync().punsubscribe();
-        
+
         // Closes the executer properly instead of waiting too long. Warning in Sonar
         resyncExecutor.shutdown();
         try {
@@ -144,7 +144,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
             resyncExecutor.shutdownNow();
             Thread.currentThread().interrupt();
         }
-        
+
         connection.close();
         client.close();
     }

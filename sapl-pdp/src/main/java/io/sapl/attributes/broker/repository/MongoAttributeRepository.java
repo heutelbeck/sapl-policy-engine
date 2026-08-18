@@ -32,17 +32,23 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 
 public final class MongoAttributeRepository implements AttributeRepository {
-    private static final String ERROR_HANDLE_NOTIFICATION = "Error while handling attribute_changes notification for pdpId '{}'";
+    private static final String WARN_RECONNECTING        = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
+    private static final String ERROR_RECONNECT_GIVEN_UP = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
 
     private static final String FIELD_PDP_ID     = "pdpId";
     private static final String FIELD_NAME       = "name";
@@ -61,11 +67,20 @@ public final class MongoAttributeRepository implements AttributeRepository {
         void publish(RepositoryKey key, Value value, Duration ttl);
 
         void remove(RepositoryKey key);
+
+        void close();
     }
 
     private final ReactiveMongoTemplate mongo;
     private final String                collection;
     private final String                pdpId;
+
+    // Set on the first failure of a reconnect episode, cleared on the next successful
+    // reconnect. RetryBackoffSpec has no elapsed-time cutoff of its own (only maxAttempts,
+    // which does not map cleanly onto "give up after 10 minutes"), so the deadline is
+    // tracked here and enforced via the filter below.
+    private final AtomicReference<Instant>    reconnectDeadline        = new AtomicReference<>();
+    private final AtomicReference<Disposable> changeStreamSubscription = new AtomicReference<>();
 
     public MongoAttributeRepository(ReactiveMongoTemplate mongo, String pdpId, String collection) {
         this.mongo              = mongo;
@@ -76,12 +91,36 @@ public final class MongoAttributeRepository implements AttributeRepository {
         subscribeToChangeStream();
     }
 
+    @Override
+    public void close() {
+        var subscription = changeStreamSubscription.get();
+        if (subscription != null) {
+            subscription.dispose();
+        }
+        internalRepository.close();
+    }
+
     // Requires MongoDB replica set (even a single-node rs works: --replSet rs0)
     private void subscribeToChangeStream() {
-        mongo.changeStream(Document.class)
+        changeStreamSubscription.set(
+                openChangeStream().filter(this::matchesPdpId).publishOn(Schedulers.boundedElastic()).doOnNext(event -> {
+                    if (reconnectDeadline.getAndSet(null) != null) {
+                        loadFromDB();
+                    }
+                }).retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
+                        .filter(throwable -> reconnectDeadline.get() == null
+                                || Instant.now().isBefore(reconnectDeadline.get()))
+                        .doBeforeRetry(signal -> {
+                            log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
+                            reconnectDeadline.compareAndSet(null, Instant.now().plus(Duration.ofMinutes(10)));
+                        })).subscribe(this::handleChangeStreamEvent,
+                                error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
+    }
+
+    private Flux<ChangeStreamEvent<Document>> openChangeStream() {
+        return Flux.defer(() -> mongo.changeStream(Document.class)
                 .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP))
-                .watchCollection(collection).listen().filter(this::matchesPdpId).publishOn(Schedulers.boundedElastic())
-                .subscribe(this::handleChangeStreamEvent, error -> log.error(ERROR_HANDLE_NOTIFICATION, pdpId, error));
+                .watchCollection(collection).listen());
     }
 
     private boolean matchesPdpId(ChangeStreamEvent<Document> event) {
