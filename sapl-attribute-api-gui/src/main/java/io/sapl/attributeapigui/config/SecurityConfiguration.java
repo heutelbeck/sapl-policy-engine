@@ -39,18 +39,18 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) {
+        http.authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health/**").permitAll());
         http.with(VaadinSecurityConfigurer.vaadin(), configurer -> configurer.loginView(LoginView.class));
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    PasswordEncoder passwordEncoder() {
         return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 
     @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder password,
-            AttributeApiGuiSecurityProperties properties) {
+    UserDetailsService userDetailsService(PasswordEncoder password, AttributeApiGuiSecurityProperties properties) {
         UserDetails admin = User.withUsername(properties.getAdminUsername())
                 .password(password.encode(properties.getAdminPassword())).roles("ADMIN").build();
         return new InMemoryUserDetailsManager(admin);
