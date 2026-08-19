@@ -25,9 +25,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.params.provider.Arguments;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -37,12 +42,11 @@ class ApiKeyAuthenticationServiceTests {
 
     private AttributeApiSecurityProperties properties;
     private PasswordEncoder                realEncoder;
-    private String                         encodedKey;
 
     @BeforeEach
     void setUp() {
         realEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-        encodedKey  = realEncoder.encode(RAW_KEY);
+        String encodedKey = realEncoder.encode(RAW_KEY);
 
         var user = new UserEntry();
         user.setId("sapl-api-user-01");
@@ -57,18 +61,18 @@ class ApiKeyAuthenticationServiceTests {
 
     @Nested
     class ApiKeyFinderTests {
-        @Test
-        @DisplayName("An empty key should return nothing")
-        void whenKeyIsNullThenReturnEmpty() throws Exception {
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidKeys")
+        @DisplayName("An invalid key should return nothing")
+        void whenKeyIsInvalidThenReturnEmpty(String key) throws Exception {
             var service = new ApiKeyAuthenticationService(properties, realEncoder);
-            assertThat(service.findByApiKey(null)).isEmpty();
+            assertThat(service.findByApiKey(key)).isEmpty();
         }
 
-        @Test
-        @DisplayName("A missing sapl_ prefix returns nothing")
-        void whenPrefixIsMissingThenReturnEmpty() throws Exception {
-            var service = new ApiKeyAuthenticationService(properties, realEncoder);
-            assertThat(service.findByApiKey("justAnApiKey_butWrong")).isEmpty();
+        private static Stream<Arguments> invalidKeys() {
+            return Stream.of(Arguments.of(Named.of("null key", null)),
+                    Arguments.of(Named.of("missing sapl_ prefix", "justAnApiKey_butWrong")),
+                    Arguments.of(Named.of("wrong secret for a known key id", "sapl_Gd405gc3Ri_wrongSecret")));
         }
 
         @Test
@@ -80,13 +84,6 @@ class ApiKeyAuthenticationServiceTests {
 
             assertThat(service.findByApiKey("sapl_keyIsInvalid_InConfiguration")).isEmpty();
             verify(fakeEncoder, times(1)).matches(any(), any()); // exactly one call happened
-        }
-
-        @Test
-        @DisplayName("If the secret of a valid key is wrong, then return nothing")
-        void whenSecretIsWrongReturnEmpty() throws Exception {
-            var service = new ApiKeyAuthenticationService(properties, realEncoder);
-            assertThat(service.findByApiKey("sapl_Gd405gc3Ri_wrongSecret")).isEmpty();
         }
 
         @Test
