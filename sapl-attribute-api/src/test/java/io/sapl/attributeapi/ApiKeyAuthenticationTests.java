@@ -120,7 +120,7 @@ class ApiKeyAuthenticationTests {
     }
 
     private static GenericContainer<?> createRedisContainer() {
-        GenericContainer<?> container = new GenericContainer<>("redis:7");
+        GenericContainer<?> container = new GenericContainer<>("redis:8");
         container.withExposedPorts(6379);
         return container;
     }

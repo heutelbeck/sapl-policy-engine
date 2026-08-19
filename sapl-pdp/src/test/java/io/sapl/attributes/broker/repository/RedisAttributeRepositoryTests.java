@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RedisAttributeRepositoryTests {
 
     @Container
-    static RedisContainer redis = new RedisContainer(DockerImageName.parse("redis:7"));
+    static RedisContainer redis = new RedisContainer(DockerImageName.parse("redis:8"));
 
     @BeforeAll
     static void enableKeyspaceNotifications() {
