@@ -47,6 +47,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -76,7 +77,7 @@ public class AttributeSecurityConfiguration {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain attributeApiSecurityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain attributeApiSecurityFilterChain(HttpSecurity http) throws Exception {
         // Scoped to this module's endpoints only, so it can coexist with a
         // host application's own catch-all SecurityFilterChain (e.g. when
         // embedded inside sapl-node).
@@ -85,7 +86,7 @@ public class AttributeSecurityConfiguration {
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringRequestMatchers(request -> {
+                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()).ignoringRequestMatchers(request -> {
                     String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
                     return authHeader == null || authHeader.startsWith(BEARER_PREFIX);
                 }));

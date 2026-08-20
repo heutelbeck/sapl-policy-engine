@@ -20,9 +20,10 @@ package io.sapl.attributeapigui.ui;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -39,7 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -136,7 +136,19 @@ public class AttributesView extends VerticalLayout {
 
         var searchButton = new Button("Search", event -> search());
         searchButton.setId("search-button");
-        var searchRow = new HorizontalLayout(entityField, nameField, argumentsField, searchButton);
+
+        // collapsable form to show the search fields when needed
+        var searchForm = new FormLayout(entityField, nameField, argumentsField);
+        searchForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("30em", 2),
+                new FormLayout.ResponsiveStep("60em", 3));
+
+        var searchButtonRow = new HorizontalLayout(searchButton);
+        searchButtonRow.setWidthFull();
+        searchButtonRow.setJustifyContentMode(JustifyContentMode.END);
+
+        var searchDetails = new Details("Search attributes", new VerticalLayout(searchForm, searchButtonRow));
+        searchDetails.setWidthFull();
+        searchDetails.setOpened(true);
 
         // Publish fields
         publishEntityField.setPlaceholder("optional");
@@ -163,10 +175,30 @@ public class AttributesView extends VerticalLayout {
 
         var publishButton = new Button("Publish", event -> publish());
         publishButton.setId("publish-button");
-        var publishRow = new HorizontalLayout(publishEntityField, publishNameField, publishValueField, publishTtlField,
-                publishArgumentsField, publishButton);
+        publishButton.setEnabled(false);
+        publishNameField.addValueChangeListener(event -> updatePublishButtonState(publishButton));
+        publishValueField.addValueChangeListener(event -> updatePublishButtonState(publishButton));
 
-        add(new H3("Publish attribute"), publishRow, searchRow, grid);
+        // collapsable form to show the publish fields when needed
+        var publishForm = new FormLayout(publishEntityField, publishNameField, publishValueField,
+                publishArgumentsField);
+
+        // Prevents a break in the layout by dynamically sizing the elements
+        publishForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("30em", 2),
+                new FormLayout.ResponsiveStep("60em", 3));
+
+        var publishButtonRow = new HorizontalLayout(publishButton);
+        publishButtonRow.setWidthFull();
+        publishButtonRow.setJustifyContentMode(JustifyContentMode.END);
+
+        var publishDetails = new Details("Publish attribute", new VerticalLayout(publishForm, publishButtonRow));
+        publishDetails.setWidthFull();
+
+        var deleteHint = new Span("Select a row and press the delete key to remove it.");
+        deleteHint.getStyle().set("color", "var(--lumo-secondary-text-color)").set("font-size",
+                "var(--lumo-font-size-s)");
+
+        add(publishDetails, searchDetails, deleteHint, grid);
         setFlexGrow(1, grid);
         // End search fields
     }
@@ -244,7 +276,14 @@ public class AttributesView extends VerticalLayout {
                 Notification.show(MESSAGE_LOAD_FAILED_PREFIX + e.getMessage());
                 return Stream.empty();
             }
-        }, query -> client.getAttributeCount().intValue());
+        }, query -> {
+            try {
+                return client.getAttributeCount().intValue();
+            } catch (RuntimeException e) {
+                Notification.show(MESSAGE_LOAD_FAILED_PREFIX + e.getMessage());
+                return 0;
+            }
+        });
 
         if (client.getAttributeCount() == 0) {
             Notification.show(MESSAGE_NO_ATTRIBUTES_FOUND);
@@ -265,8 +304,12 @@ public class AttributesView extends VerticalLayout {
     }
 
     private void deleteItem(String entity, String name, List<String> arguments) {
-        if (client.deleteAttribute(entity, name, arguments) == AttributeApiClient.DeleteOutput.DELETED) {
-            search();
+        try {
+            if (client.deleteAttribute(entity, name, arguments) == AttributeApiClient.DeleteOutput.DELETED) {
+                search();
+            }
+        } catch (RuntimeException e) {
+            Notification.show(MESSAGE_SEARCH_FAILED_PREFIX + e.getMessage());
         }
     }
 
@@ -280,5 +323,11 @@ public class AttributesView extends VerticalLayout {
         }
 
         return Arrays.stream(rawArguments.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+    }
+
+    private void updatePublishButtonState(Button publishButton) {
+        var name  = publishNameField.getValue();
+        var value = publishValueField.getValue();
+        publishButton.setEnabled(name != null && !name.isBlank() && value != null && !value.isBlank());
     }
 }
