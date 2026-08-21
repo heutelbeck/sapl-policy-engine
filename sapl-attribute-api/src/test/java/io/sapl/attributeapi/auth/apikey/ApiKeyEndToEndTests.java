@@ -15,10 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributeapi;
+package io.sapl.attributeapi.auth.apikey;
 
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
+import io.sapl.attributeapi.AttributeApiApplication;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
 import io.sapl.attributeapi.attributes.backend.RedisAttributeStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,8 +59,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
-@Import(ApiKeyAuthenticationTests.Config.class)
-class ApiKeyAuthenticationTests {
+@Import(ApiKeyEndToEndTests.Config.class)
+class ApiKeyEndToEndTests {
 
     private static final String VALID_KEY_HEADER   = "Bearer sapl_Gd405gc3Ri_testsecretsecret123";
     private static final String UNKNOWN_KEY_HEADER = "Bearer sapl_doesnotexist_x";
@@ -81,7 +82,7 @@ class ApiKeyAuthenticationTests {
 
     @Test
     @DisplayName("Valid API key authenticates and can publish and read an attribute")
-    void validApiKeySucceeds() throws Exception {
+    void whenApiKeyValidThenPublishAndRead() throws Exception {
         mockMvc.perform(put("/api/attributes/sapl.test.apikey").header(HttpHeaders.AUTHORIZATION, VALID_KEY_HEADER)
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_apikey", "ttl": 60 }
@@ -93,20 +94,20 @@ class ApiKeyAuthenticationTests {
 
     @Test
     @DisplayName("Unknown API key is rejected")
-    void unknownApiKeyIsRejected() throws Exception {
+    void whenApiKeyIsUnknownThenReject() throws Exception {
         mockMvc.perform(get("/api/attributes/sapl.test.apikey").header(HttpHeaders.AUTHORIZATION, UNKNOWN_KEY_HEADER))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Missing Authorization header is rejected")
-    void missingHeaderIsRejected() throws Exception {
+    void whenAuthorizationHeaderIsMissingThenReject() throws Exception {
         mockMvc.perform(get("/api/attributes/sapl.test.apikey")).andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Authorization header without the sapl_ API key prefix is rejected")
-    void wrongPrefixIsRejected() throws Exception {
+    void whenApiKeyPrefixIsWrongThenReject() throws Exception {
         mockMvc.perform(get("/api/attributes/sapl.test.apikey").header(HttpHeaders.AUTHORIZATION, "Bearer sometoken"))
                 .andExpect(status().isUnauthorized());
     }

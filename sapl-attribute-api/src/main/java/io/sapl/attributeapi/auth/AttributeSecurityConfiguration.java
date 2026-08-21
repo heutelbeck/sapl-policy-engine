@@ -163,13 +163,13 @@ public class AttributeSecurityConfiguration {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
+    UserDetailsService userDetailsService() {
         return new AttributeApiUserDetailsService(properties);
     }
 
     @Bean
     @ConditionalOnMissingBean(PasswordEncoder.class)
-    public static PasswordEncoder passwordEncoder() {
+    static PasswordEncoder passwordEncoder() {
         return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 

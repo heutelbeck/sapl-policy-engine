@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributeapi;
+package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -25,18 +25,18 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.r2dbc.core.DatabaseClient;
 
 import io.sapl.api.model.Value;
 import io.sapl.attributeapi.attributes.backend.AttributeKey;
-import io.sapl.attributeapi.attributes.backend.MongoAttributeStore;
+import io.sapl.attributeapi.attributes.backend.PostgresAttributeStore;
 
-class MongoAttributeStoreTests {
+class PostgresAttributeStoreTests {
 
     @Test
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
     void whenPublishedWithNegativeTTLExceptionIsThrown() {
-        var store = new MongoAttributeStore(mock(ReactiveMongoTemplate.class), "attributes");
+        var store = new PostgresAttributeStore(mock(DatabaseClient.class), "attributes");
         var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
         var value = Value.of("negative");
         var ttl   = Duration.ofSeconds(-1);

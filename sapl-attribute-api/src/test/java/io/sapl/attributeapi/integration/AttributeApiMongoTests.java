@@ -15,50 +15,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributeapi;
+package io.sapl.attributeapi.integration;
 
-import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisURI;
+import com.mongodb.reactivestreams.client.MongoClients;
+
+import io.sapl.attributeapi.AttributeApiApplication;
+
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mongodb.MongoDBContainer;
 
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
         "io.sapl.attribute-api.allow-no-auth=true", "io.sapl.attribute-api.allow-basic-auth=false",
         "io.sapl.attribute-api.allow-api-key-auth=false", "io.sapl.attribute-api.allow-oauth2-auth=false",
-        "io.sapl.attributes.storage=redis" })
+        "io.sapl.attributes.storage=mongo" })
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
-class AttributeApiRedisTests extends AbstractAttributeApiTests {
+class AttributeApiMongoTests extends AbstractAttributeApiTests {
 
     @Container
-    static GenericContainer<?> redis = createRedisContainer();
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:8.0");
 
     @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("io.sapl.attributes.redis.host", redis::getHost);
-        registry.add("io.sapl.attributes.redis.port", () -> redis.getMappedPort(6379));
+    static void mongoProperties(DynamicPropertyRegistry registry) {
+        registry.add("io.sapl.attributes.mongo.host", mongo::getHost);
+        registry.add("io.sapl.attributes.mongo.port", () -> mongo.getMappedPort(27017));
     }
 
     @Override
     protected void cleanRepository() {
-        try (RedisClient client = RedisClient.create(redisUri()); var connection = client.connect()) {
-            connection.sync().flushall();
-        }
-    }
-
-    private static RedisURI redisUri() {
-        return RedisURI.create(redis.getHost(), redis.getMappedPort(6379));
-    }
-
-    private static GenericContainer<?> createRedisContainer() {
-        GenericContainer<?> container = new GenericContainer<>("redis:8");
-        container.withExposedPorts(6379);
-        return container;
+        var client   = MongoClients.create(mongo.getConnectionString());
+        var template = new ReactiveMongoTemplate(new SimpleReactiveMongoDatabaseFactory(client, "sapl"));
+        template.dropCollection("attributes").block();
     }
 }

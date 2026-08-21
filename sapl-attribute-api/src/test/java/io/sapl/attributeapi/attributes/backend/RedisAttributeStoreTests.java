@@ -15,28 +15,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributeapi;
+package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.r2dbc.core.DatabaseClient;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
 import io.sapl.api.model.Value;
 import io.sapl.attributeapi.attributes.backend.AttributeKey;
-import io.sapl.attributeapi.attributes.backend.PostgresAttributeStore;
+import io.sapl.attributeapi.attributes.backend.RedisAttributeStore;
 
-class PostgresAttributeStoreTests {
+@ExtendWith(MockitoExtension.class)
+class RedisAttributeStoreTests {
+
+    @Mock
+    private RedisClient                             client;
+    @Mock
+    private StatefulRedisConnection<String, String> connection;
+    @Mock
+    private RedisCommands<String, String>           commands;
 
     @Test
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
     void whenPublishedWithNegativeTTLExceptionIsThrown() {
-        var store = new PostgresAttributeStore(mock(DatabaseClient.class), "attributes");
+        when(client.connect()).thenReturn(connection);
+        when(connection.sync()).thenReturn(commands);
+
+        var store = new RedisAttributeStore(client);
         var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
         var value = Value.of("negative");
         var ttl   = Duration.ofSeconds(-1);
