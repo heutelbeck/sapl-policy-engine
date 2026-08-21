@@ -19,22 +19,17 @@ package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
-
 import java.time.Duration;
 import java.util.List;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.sapl.api.model.Value;
-import io.sapl.attributeapi.attributes.backend.AttributeKey;
-import io.sapl.attributeapi.attributes.backend.RedisAttributeStore;
 
 @ExtendWith(MockitoExtension.class)
 class RedisAttributeStoreTests {

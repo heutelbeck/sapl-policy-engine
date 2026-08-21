@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import io.sapl.attributeapi.auth.AttributeSecurityConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -104,5 +103,26 @@ class AttributeSecurityConfigurationTests {
                     assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
                             .contains("OAuth2 authentication activated");
                 });
+    }
+
+    @Test
+    @DisplayName("The default claim for OIDC is pdp_id when not overriden by a user's configuration")
+    void whenOidcPdpIdClaimNotSetThenDefaultClaimNameIsPdpId() {
+        contextRunner
+                .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true")
+                .run(context -> assertThat(
+                        context.getBean(AttributeApiSecurityProperties.class).getOauth2().getOidcPdpIdClaim())
+                        .isEqualTo("pdp_id"));
+    }
+
+    @Test
+    @DisplayName("When a custom claim is set then the claim name is overwritten")
+    void whenOidcPdpIdClaimIsSetThenDefaultClaimNameIsPdpId() {
+        contextRunner
+                .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true",
+                        "io.sapl.attribute-api.oauth2.oidc-pdp-id-claim=my_claim")
+                .run(context -> assertThat(
+                        context.getBean(AttributeApiSecurityProperties.class).getOauth2().getOidcPdpIdClaim())
+                        .isEqualTo("my_claim"));
     }
 }

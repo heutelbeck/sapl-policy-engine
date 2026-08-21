@@ -113,6 +113,6 @@ public class AttributeApiSecurityProperties implements InitializingBean {
 
     @Data
     public static class OAuth2 {
-        private String oidcPdpIdClaim = "tenantId";
+        private String oidcPdpIdClaim = "pdp_id";
     }
 }

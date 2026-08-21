@@ -1,0 +1,46 @@
+{
+  "realm": "test-realm",
+  "enabled": true,
+  "accessTokenLifespan": 120,
+  "clients": [
+    {
+      "clientId": "test-api-client",
+      "secret": "test-api-client-secret",
+      "enabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "pdp-id-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "pdp_id",
+            "claim.value": "user-a",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "test-no-pdp-id",
+      "secret": "test-no-pdp-id-secret",
+      "enabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ]
+}

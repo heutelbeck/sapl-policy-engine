@@ -23,8 +23,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
-import io.sapl.attributeapi.auth.AttributeApiUserDetailsService;
 
 class AttributeApiUserDetailsServiceTests {
     @Test

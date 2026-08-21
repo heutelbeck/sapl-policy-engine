@@ -19,8 +19,6 @@ package io.sapl.attributeapi.auth.apikey;
 
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties.UserEntry;
-import io.sapl.attributeapi.auth.apikey.ApiKeyAuthenticationService;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,7 +31,6 @@ import java.util.List;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.params.provider.Arguments;
 import java.util.stream.Stream;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 

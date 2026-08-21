@@ -57,7 +57,6 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableConfigurationProperties(AttributeApiSecurityProperties.class)
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
 @RequiredArgsConstructor
-
 public class AttributeSecurityConfiguration {
     private static final String BEARER_PREFIX             = "Bearer ";
     private static final String ERROR_NO_AUTH_METHOD_SET  = "No authentication method is set";
@@ -150,9 +149,10 @@ public class AttributeSecurityConfiguration {
         var converter = new PdpIdJwtAuthenticationConverter(properties.getOauth2().getOidcPdpIdClaim());
         var decoder   = jwtDecoder();
 
-        // API keys are also carried as "Authorization: Bearer sapl_..." - leave
-        // those alone here so the apiKeyFilter above gets a chance to handle
-        // them instead of failing JWT decoding.
+        // Similar to the resolver in the pdp node. Prevents a failing request towards the API
+        // if both api key auth and oauth2 are activated. Otherwise all values from the Authoriziation: Bearer
+        // header would be forwarded to the JwtDecoder. The api keys would fail because api keys are not valid
+        // JWT's. The filter is active for the prefix sapl_ in the authorization header
         http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(request -> {
             String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
             if (authHeader != null && authHeader.startsWith(ApiKeyAuthenticationFilter.API_KEY_PREFIX)) {

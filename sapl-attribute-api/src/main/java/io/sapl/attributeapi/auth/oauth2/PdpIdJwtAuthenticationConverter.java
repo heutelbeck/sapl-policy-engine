@@ -17,7 +17,6 @@
  */
 package io.sapl.attributeapi.auth.oauth2;
 
-import io.sapl.attributeapi.auth.AttributeApiUserDetails;
 import lombok.val;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -25,13 +24,17 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 
+import io.sapl.attributeapi.auth.AttributeApiUserDetails;
+
+/**
+ * Validates the needed claim to identify the PDP within the token. The validated JWT will be converted
+ * into an authenticated user representation. The claim is configurable via
+ * {@code io.sapl.attribute-api.oauth2.oidc-pdp-id-claim}
+ * and is by default set to {@code pdp_id}.
+ */
 public class PdpIdJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
     private static final String ERROR_MISSING_PDP_ID = "JWT token missing required claim: %s.";
-
-    // Claim name is an external contract with the issuing OIDC provider's
-    // token mapper configuration (see sapl-k8s/), not an internal identifier -
-    // configurable via io.sapl.attribute-api.oauth2.oidc-pdp-id-claim.
-    private final String claimName;
+    private final String        claimName;
 
     public PdpIdJwtAuthenticationConverter(String claimName) {
         this.claimName = claimName;

@@ -24,8 +24,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
+
 import io.sapl.attributeapi.auth.AttributeApiUserDetails;
-import io.sapl.attributeapi.auth.oauth2.PdpIdJwtAuthenticationConverter;
 
 class PdpIdJwtAuthenticationConverterTests {
     private static final String                   CLAIM_NAME = "pdpId";

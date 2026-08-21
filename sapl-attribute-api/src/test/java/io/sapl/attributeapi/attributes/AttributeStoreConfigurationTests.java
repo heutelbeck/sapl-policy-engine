@@ -25,7 +25,6 @@ import io.lettuce.core.RedisClient;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
 import io.sapl.attributeapi.attributes.backend.MongoAttributeStore;
 import io.sapl.attributeapi.attributes.backend.PostgresAttributeStore;
-import io.sapl.attributeapi.attributes.AttributeStoreConfiguration;
 
 class AttributeStoreConfigurationTests {
 
