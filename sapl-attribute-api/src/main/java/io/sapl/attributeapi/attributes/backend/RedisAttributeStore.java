@@ -94,10 +94,11 @@ public class RedisAttributeStore implements AttributeStore {
     }
 
     @Override
-    public void remove(AttributeKey key, String pdpId) {
+    public boolean remove(AttributeKey key, String pdpId) {
         String redisKey = toRedisKey(key, pdpId);
-        commands.del(redisKey);
+        Long   deleted  = commands.del(redisKey);
         commands.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
+        return deleted != null && deleted > 0;
     }
 
     @Override

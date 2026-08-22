@@ -56,8 +56,6 @@ public class AttributesView extends VerticalLayout {
     private static final String COLUMN_NAME_NAME      = "name";
     private static final String COLUMN_NAME_VALUE     = "value";
 
-    private static final String MESSAGE_NAME_REQUIRED                      = "Name is required.";
-    private static final String MESSAGE_VALUE_REQUIRED                     = "Value is required.";
     private static final String MESSAGE_ATTRIBUTE_PUBLISHED                = "Attribute published.";
     private static final String MESSAGE_PUBLISH_FAILED_PREFIX              = "Publish failed: ";
     private static final String MESSAGE_SEARCH_FAILED_PREFIX               = "Search failed: ";
@@ -216,15 +214,6 @@ public class AttributesView extends VerticalLayout {
         var name   = publishNameField.getValue();
         var raw    = publishValueField.getValue();
 
-        if (name == null || name.isBlank()) {
-            Notification.show(MESSAGE_NAME_REQUIRED);
-            return;
-        }
-        if (raw == null || raw.isBlank()) {
-            Notification.show(MESSAGE_VALUE_REQUIRED);
-            return;
-        }
-
         try {
             var value     = toJsonNode(raw);
             var ttl       = publishTtlField.getValue() == null ? null : publishTtlField.getValue().longValue();
@@ -269,25 +258,18 @@ public class AttributesView extends VerticalLayout {
     private void searchAllAttributes() {
         grid.setItems(query -> {
             try {
-                return client.getAllAttributes(query.getLimit(), query.getOffset()).stream();
+                var page = client.getAllAttributes(query.getLimit(), query.getOffset());
+                if (query.getOffset() == 0 && page.isEmpty()) {
+                    Notification.show(MESSAGE_NO_ATTRIBUTES_FOUND);
+                }
+                return page.stream();
             } catch (RuntimeException e) {
                 log.warn("Failed to fetch attributes page (limit {}, offset {})", query.getLimit(), query.getOffset(),
                         e);
                 Notification.show(MESSAGE_LOAD_FAILED_PREFIX + e.getMessage());
                 return Stream.empty();
             }
-        }, query -> {
-            try {
-                return client.getAttributeCount().intValue();
-            } catch (RuntimeException e) {
-                Notification.show(MESSAGE_LOAD_FAILED_PREFIX + e.getMessage());
-                return 0;
-            }
         });
-
-        if (client.getAttributeCount() == 0) {
-            Notification.show(MESSAGE_NO_ATTRIBUTES_FOUND);
-        }
     }
 
     private void searchByName(String entity, String name) {

@@ -20,6 +20,7 @@ package io.sapl.attributeapigui.ui;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
@@ -39,9 +40,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -116,7 +120,6 @@ class AttributesViewTests extends BrowserlessTest {
             int offset = invocation.getArgument(1);
             return rows.stream().skip(offset).limit(limit).toList();
         });
-        when(client.getAttributeCount()).thenReturn(2L);
 
         var searchButton = find(Button.class).id("search-button");
         test(searchButton).click();
@@ -135,5 +138,99 @@ class AttributesViewTests extends BrowserlessTest {
         assertThat(test(grid).getCellText(1, 3)).isEqualTo("test2");
 
         verify(client, atLeastOnce()).getAllAttributes(anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("Pressing the delete key without a selected row does nothing")
+    void whenDeleteKeyIsPressedAndNoRowSelectedThenNothingHappens() {
+        var grid = view.getGrid();
+        ShortcutsKt._fireShortcut(grid, Key.DELETE);
+
+        verify(client, never()).deleteAttribute(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("When the publish fails then show an error notification and the form is not cleared")
+    void whenPublishFailsThenShowErrorNotificationAndKeepTheEnteredData() {
+        doThrow(new RuntimeException("Attribute store not reachable")).when(client).publishAttribute(any(), any(),
+                any(), any(), any());
+
+        test(find(TextField.class).id("publish-name")).setValue("sapl.test.attribute");
+        test(find(TextField.class).id("publish-value")).setValue("test");
+        test(find(Button.class).id("publish-button")).click();
+
+        var notification = find(Notification.class).all().getFirst();
+        assertThat(test(notification).getText()).isEqualTo("Publish failed: Attribute store not reachable");
+        assertThat(find(TextField.class).id("publish-name").getValue()).isEqualTo("sapl.test.attribute");
+    }
+    
+    @Test
+    @DisplayName("A published attribute with comma-separated arguments is properly split and trimmed")
+    void whenPublishAttributeWithArgumentThenArgumentsAreProperlyParsed() {
+    	test(find(TextField.class).id("publish-name")).setValue("sapl.test.attribute");
+        test(find(TextField.class).id("publish-value")).setValue("test");
+        test(find(TextField.class).id("publish-arguments")).setValue("arg1, arg2 ,arg3");
+        test(find(Button.class).id("publish-button")).click();
+        
+        verify(client).publishAttribute(eq(""), eq("sapl.test.attribute"), any(JsonNode.class), isNull(),
+                argThat(args -> args.size() == 3));
+    }
+
+    @Test
+    @DisplayName("When the search query for one attribute fails then show a notification within the UI")
+    void whenSearchByNameFailsThenAnErrorNotificationIsShown() {
+        when(client.getAttribute(any(), any(), any())).thenThrow(new RuntimeException("timeout"));
+
+        test(find(TextField.class).id("search-name")).setValue("sapl.test.attribute");
+        test(find(Button.class).id("search-button")).click();
+
+        var notification = find(Notification.class).all().getFirst();
+        assertThat(test(notification).getText()).isEqualTo("Search failed: timeout");
+    }
+
+    @Test
+    @DisplayName("When the search query for all attribute fails then show a notification within the UI")
+    void whenSearchAllFailsThenAnErrorNotificationIsShown() {
+        when(client.getAllAttributes(anyInt(), anyInt())).thenThrow(new RuntimeException("timeout. no connection."));
+        test(find(Button.class).id("search-button")).click();
+
+        assertThat(test(view.getGrid()).size()).isZero();
+
+        var notification = find(Notification.class).all().getFirst();
+        assertThat(test(notification).getText()).isEqualTo("Failed to load attributes: timeout. no connection.");
+    }
+    
+    @Test
+    @DisplayName("Search all attributes with an empty repository shows a notification")
+    void whenSearchAllAttributesAndRepositoryEmptyThenShowNotification() {
+    	when(client.getAllAttributes(anyInt(), anyInt())).thenReturn(List.of());
+        test(find(Button.class).id("search-button")).click();
+        
+        var notification = find(Notification.class).all().getFirst();
+        assertThat(test(notification).getText()).isEqualTo("No attributes found.");
+    }
+    
+    @Test
+    @DisplayName("Search all attributes with a set attribute name shows a notification")
+    void whenSearchAllAttributesWithAttributeNameAndRepositoryEmptyThenShowNotification() {
+        when(client.getAttribute(any(), any(), any())).thenReturn(Optional.empty());
+        test(find(TextField.class).id("search-name")).setValue("sapl.test.missing");
+        test(find(Button.class).id("search-button")).click();
+        
+        var notification = find(Notification.class).all().getFirst();
+        assertThat(test(notification).getText()).isEqualTo("No attribute found for name 'sapl.test.missing'.");
+    }
+
+    @Test
+    @DisplayName("The publish button is only activated when an attribute name and value are entered")
+    void whenAttributeNameAndValueAreEnteredThenPublishButtonIsActivated() {
+        var publishButton = find(Button.class).id("publish-button");
+        assertThat(publishButton.isEnabled()).isFalse();
+
+        test(find(TextField.class).id("publish-name")).setValue("sapl.test.attribute");
+        assertThat(publishButton.isEnabled()).isFalse();
+
+        test(find(TextField.class).id("publish-value")).setValue("test");
+        assertThat(publishButton.isEnabled()).isTrue();
     }
 }

@@ -143,4 +143,23 @@ class AttributeApiClientIntegrationTests {
         assertThat(result).contains("value");
     }
 
+    @Test
+    @DisplayName("Deleting an existing attribute returns HTTP DELETED")
+    void whenAnExistingAttributeIsDeletedThenReturnHttpDeleted() {
+        var value = JsonNodeFactory.instance.stringNode("value");
+        client.publishAttribute("sapl.test.entity", "sapl.test.delete", value, 60L, List.of());
+
+        var result = client.deleteAttribute("sapl.test.entity", "sapl.test.delete", List.of());
+
+        assertThat(result).isEqualTo(AttributeApiClient.DeleteOutput.DELETED);
+        assertThat(client.getAttribute("test.entity", "sapl.test.delete", List.of())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Deleting an non existing attribute returns HTTP NOT FOUND")
+    void whenNonExistingAttributeIsDeletedThenReturnHttpNotFound() {
+        var result = client.deleteAttribute("sapl.test.entity", "sapl.test.non.existing", List.of());
+        assertThat(result).isEqualTo(AttributeApiClient.DeleteOutput.NOT_FOUND);
+    }
+
 }

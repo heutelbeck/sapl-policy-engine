@@ -70,7 +70,10 @@ public class AttributeApiService {
         List<Value> arguments   = toArgumentValues(rawArgs);
         Value       entityValue = toEntityValue(entity);
 
-        store.remove(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
+        boolean removed = store.remove(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
+
+        if (!removed)
+            throw new NoSuchElementException();
     }
 
     public JsonNode get(String entity, String attribute, List<String> rawArgs, @Nullable String pdpId) {

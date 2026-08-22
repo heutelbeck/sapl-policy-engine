@@ -42,16 +42,19 @@ public class AttributeApiConnectionProperties implements InitializingBean {
             throw new IllegalStateException(ERROR_BASE_URL_NOT_SET);
         }
 
-        URI uri;
         try {
-            uri = URI.create(baseUrl);
+            URI uri = URI.create(baseUrl);
+
+            if (!isValidBaseUrl(uri)) {
+                throw new IllegalStateException(ERROR_MALFORMED_URL + baseUrl);
+            }
         } catch (IllegalArgumentException e) {
             throw new IllegalStateException(ERROR_MALFORMED_URL + baseUrl, e);
         }
+    }
 
-        boolean hasHttpScheme = "http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme());
-        if (!hasHttpScheme || uri.getHost() == null) {
-            throw new IllegalStateException(ERROR_MALFORMED_URL + baseUrl);
-        }
+    private boolean isValidBaseUrl(URI uri) {
+        return ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+                && uri.getHost() != null;
     }
 }

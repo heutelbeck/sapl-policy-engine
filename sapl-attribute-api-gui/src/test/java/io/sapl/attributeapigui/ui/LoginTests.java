@@ -18,11 +18,15 @@
 package io.sapl.attributeapigui.ui;
 
 import io.sapl.attributeapigui.GuiApplication;
+
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
@@ -38,13 +42,22 @@ class LoginTests {
     private MockMvc mockMvc;
 
     @Test
+    @DisplayName("When the credentials for admin within the login form are correct then login succeeds")
     void whenValidCredentialsThenLoginSucceeds() throws Exception {
         mockMvc.perform(formLogin("/login").user("admin").password("admin"))
                 .andExpect(authenticated().withRoles("ADMIN"));
     }
 
     @Test
+    @DisplayName("When the credentials for admin within the login form are invalid then login not succeeds")
     void whenInvalidCredentialsThenLoginFails() throws Exception {
         mockMvc.perform(formLogin("/login").user("user").password("user")).andExpect(unauthenticated());
+    }
+
+    @Test
+    @DisplayName("When a instance of the login view is created the login view is successfully created")
+    void whenLoginViewInstancedThenViewIsCreated() {
+        LoginView login = new LoginView();
+        assertNotNull(login);
     }
 }

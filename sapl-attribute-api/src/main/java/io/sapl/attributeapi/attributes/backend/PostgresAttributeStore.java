@@ -93,8 +93,8 @@ public class PostgresAttributeStore implements AttributeStore {
     }
 
     @Override
-    public void remove(AttributeKey key, String pdpId) {
-        deleteFromDB(key, pdpId);
+    public boolean remove(AttributeKey key, String pdpId) {
+        return deleteFromDB(key, pdpId);
     }
 
     @Override
@@ -160,14 +160,15 @@ public class PostgresAttributeStore implements AttributeStore {
         return Boolean.TRUE.equals(inserted);
     }
 
-    private void deleteFromDB(@NonNull AttributeKey key, String pdpId) {
+    private boolean deleteFromDB(@NonNull AttributeKey key, String pdpId) {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
         var spec          = client.sql(deleteSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name())
                 .bind(ARGUMENTS_FIELD, argumentsJson);
 
-        bindEntity(spec, entityJson).then().block();
+        Long rowsDeleted = bindEntity(spec, entityJson).fetch().rowsUpdated().block();
         notifyPdp(key, pdpId);
+        return rowsDeleted != null && rowsDeleted > 0;
     }
 
     private static String valuesToJson(List<Value> values) {

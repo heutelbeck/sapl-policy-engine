@@ -307,4 +307,11 @@ abstract class AbstractAttributeApiTests {
                 .andExpect(status().isOk()).andReturn();
         assertThat(result.getResponse().getContentAsString()).isEqualTo("\"cValue\"");
     }
+
+    @Test
+    @DisplayName("DELETE an non existing attribute returns HTTP NOT_FOUND")
+    void whenAttributeIsNonExistentAndDeleteIsRequestedThenReturnHttpNotFound() throws Exception {
+        mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.deleteNonExisting").with(csrf()))
+                .andExpect(status().isNotFound());
+    }
 }

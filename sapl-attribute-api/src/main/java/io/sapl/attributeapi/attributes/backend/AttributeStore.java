@@ -28,7 +28,7 @@ public interface AttributeStore {
 
     boolean publish(AttributeKey key, Value value, Duration ttl, String pdpId);
 
-    void remove(AttributeKey key, String pdpId);
+    boolean remove(AttributeKey key, String pdpId);
 
     Long count(String pdpId);
 

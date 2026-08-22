@@ -29,6 +29,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 
 import java.time.Duration;
@@ -68,8 +69,8 @@ public class MongoAttributeStore implements AttributeStore {
     }
 
     @Override
-    public void remove(AttributeKey key, String pdpId) {
-        deleteFromDB(key, pdpId);
+    public boolean remove(AttributeKey key, String pdpId) {
+        return deleteFromDB(key, pdpId);
     }
 
     @Override
@@ -123,8 +124,9 @@ public class MongoAttributeStore implements AttributeStore {
         // The class is not responsible for it's lifecycle
     }
 
-    private void deleteFromDB(@NonNull AttributeKey key, String pdpId) {
-        mongo.remove(doMongoQuery(key, pdpId), collection).block();
+    private boolean deleteFromDB(@NonNull AttributeKey key, String pdpId) {
+        DeleteResult result = mongo.remove(doMongoQuery(key, pdpId), collection).block();
+        return result != null && result.getDeletedCount() > 0;
     }
 
     private boolean upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {

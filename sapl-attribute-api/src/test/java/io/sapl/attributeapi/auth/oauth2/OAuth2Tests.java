@@ -118,11 +118,11 @@ class OAuth2Tests {
         mockMvc.perform(get("/api/attributes/sapl.test.oauth2").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$").value("test_oauth2"));
     }
-    
+
     @Test
     @DisplayName("An valid token is unauthorized when the set claim name for the pdp id is missing")
     void whenTokenClaimIsMissingThePdpIdClaimThenHttpUnauthorized() throws Exception {
-    	var token = getToken("test-no-pdp-id", "test-no-pdp-id-secret");
+        var token = getToken("test-no-pdp-id", "test-no-pdp-id-secret");
         mockMvc.perform(put("/api/attributes/sapl.test.oauth2").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_oauth2", "ttl": 60 }
