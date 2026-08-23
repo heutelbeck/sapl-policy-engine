@@ -158,6 +158,179 @@ To build the JAR file from the source execute the following commands
 
 ## Quick Start
 
+## Usage
+
+All examples are using the cURL client and need to be adjusted for different clients.
+
+### Authentication
+
+Assuming you have an attribute `sapl.test.attribute` published without an entity. Depending on your set authentication method you can authentication like that:
+
+| Auth method | Example |
+|-------------|---------|
+| No authentication | `curl http://localhost:8090/api/attributes/sapl.test.attribute` |
+| Basic authentication | `curl -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt http://localhost:8090/api/attributes/sapl.test.attribute`|
+| API key authentication | `curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" http://localhost:8090/api/attributes/sapl.test.attribute`|
+| OIDC auth | `curl -H "Authorization: Bearer <TOKEN>" http://localhost:8090/api/attributes/sapl.test.attribute` |
+
+Please read for basic authentication the additional section of how to use the API with CSRF protection [CSRF Protection](#using-basic-auth-with-csrf).
+
+### Publish an attribute
+
+The following examples are using as default the api key authentication.
+
+Publish an attribute without an entity (global attribute) and TTL. The attribute will never expire:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X PUT \
+  http://localhost:8090/api/attributes/sapl.test.attribute \
+  -H "Content-Type: application/json" \
+  -d '{ "value": "test" }'
+```
+
+Publish an attribute for the entity `alice` with a set expiry of 60 seconds:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X PUT \
+  http://localhost:8090/api/attributes/alice/sapl.test.attribute \
+  -H "Content-Type: application/json" \
+  -d '{ "value": "test", "ttl": 60 }'
+```
+
+Publish an attribute without an entity and TTL but with additional arguments:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X PUT \
+  http://localhost:8090/api/attributes/sapl.test.attribute \
+  -H "Content-Type: application/json" \
+  -d '{ "value": "test", "arguments": ["dept-x", "region-eu"] }'
+```
+
+Publish an attribute with entity, TTL and additional arguments:
+
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X PUT \
+  http://localhost:8090/api/attributes/alice/sapl.test.attribute \
+  -H "Content-Type: application/json" \
+  -d '{ "value": "test", "ttl": 60, "arguments": ["dept-x", "region-eu"] }'
+```
+
+### Delete an attribute
+
+Deletion of an attribute is similar to publish an attribute. Just the HTTP method is different and it's not necessary to enter the value or TTL.
+
+Delete an attribute without an entity and arguments:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X DELETE \
+  http://localhost:8090/api/attributes/sapl.test.attribute
+```
+Delete an attribute with an entity but without arguments:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X DELETE \
+  http://localhost:8090/api/attributes/alice/sapl.test.attribute
+```
+Delete an attribute without an entity but with arguments. The DELETE requests needs the list of arguments are parameter:
+
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X DELETE \
+  "http://localhost:8090/api/attributes/sapl.test.attribute?arg=dept-x&arg=region-eu"
+```
+
+Delete an attribute with an entity and arguments:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" -X DELETE \
+  "http://localhost:8090/api/attributes/alice/sapl.test.attr?arg=dept-x&arg=region-eu"
+```
+
+### Get an attribute
+
+To get an attribute you just need to send a HTTP GET and it's also not necessary to enter the value or TTL. You can search for a single attribute or get all attributes for the given pdp id.
+
+Get the value of a single attribute:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
+  http://localhost:8090/api/attributes/sapl.test.attribute
+
+"test"
+```
+
+Get all atributes for the authenticated user associated with a specific pdp id:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
+  http://localhost:8090/api/attributes
+```
+
+Count all attributes of the authenticated user associated with a specific pdp id:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
+  "http://localhost:8090/api/attributes?count=true"
+
+4
+```
+
+Using limit and offset by getting two attributes starting with an offset of 2. So the examples shows attribute stored at position 2 and 3:
+```bash
+curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
+  "http://localhost:8090/api/attributes?limit=2&offset=2"
+```
+
+### HTTP Status Codes
+
+The API returns the following HTTP status codes:
+
+| Action | Status code | Reason | Description |
+|--------|-------------|--------|-------------|
+Publish (new key) | 201 | Created | Key didn't exist in the repository |
+Publish (overwrite) | 200 | OK | Key was overwritten in the repository |
+Publish (invalid request) | 400 | Bad request | The data in the body couldn't be parsed |
+Delete (attribute existed) | 204 | No content | The attribute was deleted from the repository |
+Delete (attribute didn't exist) | 404 | Not found | The attribute didn't exist in the repository |
+Get (single attribute) | 200 | OK | The attribute did exist and the value is returned |
+Get (attribute missing) | 404 | Not found | The attribute did not exist in the repository | 
+Get all | 200 | OK | Returns always 200. If a repository is empty it returns an empty set [] |
+Get all (limit/offset invalid) | 400 | Bad request | The given limit or offset were wrong and leaded to an invalid request. Limit must be > 0 and offset must be >= 0.
+Count | 200 | OK | Returns always 200. If a repository is empty it return a count of 0 |
+Authentication failed | 401 | Unauthorized | The given credentials were incorrect or the used authentication method is not active |
+Basic authentication failed (CSRF) | 403 | Forbidden | Basic authentication required a CSRF cookie/header on state changing requests. API key and OIDC are exempt.
+
+### Using basic auth with CSRF
+
+The basic authentication has cross-site request forgery (CSRF) protection active because a browser automatically caches basic authentication credentials per origin and automatically reattach them to every subsequent request. Similar to a session cookie. A malicious page could therefore trigger a state changing request, like publishing or deleting an attribute, against the API from a victim's browser without ever knowing the actual credentials, relying on the browser sending them automatically. The SAPL attribute api server should also be usable by a web application that implements a graphical interface for the API. So the CSRF is by default activated for basic authentication. 
+
+API key authentication and OIDC authentication are using bearer tokens within the authorization header instead. The authorization header is not attached automatically by a browser because the client applications needs to set it explicitly on every request. Since there a no such ambient credentials to piggyback on, these two authentication modes are exempt from CSRF protection. It's recommended to use one of these two authentication methods.
+
+If you're using the API server with a CLI client like 'curl' and you want to use basic authentication please do the following steps:
+
+1. Obtain the cookie by sending a state changing request to the API server that will fail. Spring security's CSRF filter creates the token lazily, so that a GET request wouldn't be enough:
+   ```bash
+   curl -s -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt \
+              -X PUT "http://localhost:8090/api/attributes/sapl.test.attribute" \
+              -H "Content-Type: application/json" \
+              -d '{"value": "test"}'
+   ```
+
+2. Extract the token value from the XSRF-TOKEN cookie in the file `cookies.txt` by copying it manually or using `awk` to set a variable:
+   ```bash
+   CSRF=$(awk -F'\t' '$6=="XSRF-TOKEN"{print $7}' cookies.txt)
+   ```
+   Please be aware that depending on your shell the method to set a variable can differ.
+
+3. Now, you can use the token within the request and read the cookie from the `cookies.txt` file:
+    ```bash
+    curl -u sapl-api-user-01:sapl-api-user-01 -b cookies.txt \
+            -X PUT "http://localhost:8090/api/attributes/sapl.test.attribute" \
+            -H "Content-Type: application/json" \
+            -H "X-XSRF-TOKEN: $CSRF" \
+            -d '{"value": "test"}'
+    ```
+    Unlike you're using `-c cookies.txt' again the token won't change. For testing purposed this should be enough.
+
+You can also combine all the steps into one step and use:
+```bash
+curl -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt -b cookies.txt \
+        -X PUT "http://localhost:8090/api/attributes/sapl.test.attribute" \
+        -H "Content-Type: application/json" \
+        -H "X-XSRF-TOKEN: $(awk -F'\t' '$6=="XSRF-TOKEN"{print $7}' cookies.txt)" \
+        -d '{"value": "test"}'
+```
+
 ## Server Configuration
 
 ### Authentication

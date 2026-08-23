@@ -163,15 +163,15 @@ class AttributesViewTests extends BrowserlessTest {
         assertThat(test(notification).getText()).isEqualTo("Publish failed: Attribute store not reachable");
         assertThat(find(TextField.class).id("publish-name").getValue()).isEqualTo("sapl.test.attribute");
     }
-    
+
     @Test
     @DisplayName("A published attribute with comma-separated arguments is properly split and trimmed")
     void whenPublishAttributeWithArgumentThenArgumentsAreProperlyParsed() {
-    	test(find(TextField.class).id("publish-name")).setValue("sapl.test.attribute");
+        test(find(TextField.class).id("publish-name")).setValue("sapl.test.attribute");
         test(find(TextField.class).id("publish-value")).setValue("test");
         test(find(TextField.class).id("publish-arguments")).setValue("arg1, arg2 ,arg3");
         test(find(Button.class).id("publish-button")).click();
-        
+
         verify(client).publishAttribute(eq(""), eq("sapl.test.attribute"), any(JsonNode.class), isNull(),
                 argThat(args -> args.size() == 3));
     }
@@ -199,24 +199,24 @@ class AttributesViewTests extends BrowserlessTest {
         var notification = find(Notification.class).all().getFirst();
         assertThat(test(notification).getText()).isEqualTo("Failed to load attributes: timeout. no connection.");
     }
-    
+
     @Test
     @DisplayName("Search all attributes with an empty repository shows a notification")
     void whenSearchAllAttributesAndRepositoryEmptyThenShowNotification() {
-    	when(client.getAllAttributes(anyInt(), anyInt())).thenReturn(List.of());
+        when(client.getAllAttributes(anyInt(), anyInt())).thenReturn(List.of());
         test(find(Button.class).id("search-button")).click();
-        
+
         var notification = find(Notification.class).all().getFirst();
         assertThat(test(notification).getText()).isEqualTo("No attributes found.");
     }
-    
+
     @Test
     @DisplayName("Search all attributes with a set attribute name shows a notification")
     void whenSearchAllAttributesWithAttributeNameAndRepositoryEmptyThenShowNotification() {
         when(client.getAttribute(any(), any(), any())).thenReturn(Optional.empty());
         test(find(TextField.class).id("search-name")).setValue("sapl.test.missing");
         test(find(Button.class).id("search-button")).click();
-        
+
         var notification = find(Notification.class).all().getFirst();
         assertThat(test(notification).getText()).isEqualTo("No attribute found for name 'sapl.test.missing'.");
     }
