@@ -40,6 +40,18 @@ public class PostgresAttributeStore implements AttributeStore {
     private static final String VALUE_FIELD            = "value";
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
     private static final String NOTIFY_SQL             = "SELECT pg_notify('attribute_changes', :payload)";
+    private static final String CREATE_TABLE_SQL       = """
+            CREATE TABLE IF NOT EXISTS %1$s (
+                  pdp_id     TEXT        NOT NULL,
+                  name       TEXT        NOT NULL,
+                  entity     JSONB,
+                  arguments  JSONB       NOT NULL DEFAULT '[]',
+                  value      JSONB       NOT NULL,
+                  expires_at TIMESTAMPTZ,
+                  CONSTRAINT %1$s_pdp_id_name_entity_arguments_key
+                      UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
+                  )
+            """;
 
     private final DatabaseClient client;
 
@@ -49,8 +61,12 @@ public class PostgresAttributeStore implements AttributeStore {
     private final String upsertSql;
     private final String deleteSql;
 
-    public PostgresAttributeStore(DatabaseClient client, String table) {
+    public PostgresAttributeStore(DatabaseClient client, String table, boolean autoCreateTable) {
         this.client = client;
+
+        if (autoCreateTable) {
+            client.sql(CREATE_TABLE_SQL.formatted(table)).then().block();
+        }
 
         this.countSql  = "SELECT count(*) FROM " + table
                 + " WHERE pdp_id = :pdpId AND (expires_at IS NULL OR expires_at > NOW())";
@@ -194,5 +210,4 @@ public class PostgresAttributeStore implements AttributeStore {
         return (entityAsJson != null ? spec.bind(ENTITY_FIELD, entityAsJson)
                 : spec.bindNull(ENTITY_FIELD, String.class));
     }
-
 }

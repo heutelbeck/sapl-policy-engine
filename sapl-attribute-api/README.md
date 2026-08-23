@@ -13,7 +13,7 @@ SAPL Attribute API is a server that provides a restful HTTP API for the Streamin
 
 ## Setup for the backend
 
-The current version doesn't support an automatic setup. An automatic integration will follow in a later release. To prepare the backend for the API server do the following steps for:
+Most of the backends require a minimal manual setup. To prepare the backend for the API server do the following steps for:
 
 ### Redis
 
@@ -48,16 +48,18 @@ The current version doesn't support an automatic setup. An automatic integration
 
 1. Create a database e.g. `CREATE DATABASE sapl_attributes;`
 
-2. The database needs only one table
+2. The database table will be automatically created if missing during startup. If you want to create the table manually, you can use the following statement:
+
     ```sql
-    CREATE TABLE attributes (
-        pdp_id     TEXT NOT NULL,
-        name       TEXT NOT NULL,
-        entity     JSONB,
-        arguments  JSONB NOT NULL,
-        value      JSONB NOT NULL,
-        expires_at TIMESTAMPTZ,
-        UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
+    CREATE TABLE IF NOT EXISTS attributes (
+      pdp_id     TEXT        NOT NULL,
+      name       TEXT        NOT NULL,
+      entity     JSONB,
+      arguments  JSONB       NOT NULL DEFAULT '[]',
+      value      JSONB       NOT NULL,
+      expires_at TIMESTAMPTZ,
+      CONSTRAINT attributes_pdp_id_name_entity_arguments_key
+          UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
     );
     ```
 
@@ -111,24 +113,9 @@ services:
       POSTGRES_PASSWORD: sapl
     ports:
       - "5432:5432"
-    volumes:
-      - ./init/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 ```
 
-Create the init folder `mkdir init` and create the file `vim init/postgres-init.sql` within the folder. The file should contain the following:
-
-```sql
-CREATE TABLE IF NOT EXISTS attributes (
-    pdp_id     TEXT        NOT NULL,
-    name       TEXT        NOT NULL,
-    entity     JSONB,
-    arguments  JSONB       NOT NULL DEFAULT '[]',
-    value      JSONB       NOT NULL,
-    expires_at TIMESTAMPTZ,
-    CONSTRAINT attribute_key_and_pdp_id_not_null
-        UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
-);
-```
+The table within the database will automatically be created. 
 
 `docker compose -f docker-postgres.yml up -d`
 

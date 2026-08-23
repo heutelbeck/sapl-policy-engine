@@ -57,7 +57,7 @@ public class AttributeStoreConfiguration {
     @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "postgres")
     AttributeStore postgresAttributeStore(@Qualifier("attributeApiDatabaseClient") DatabaseClient client,
             AttributeStorageProperties properties) {
-        return new PostgresAttributeStore(client, properties.getPostgres().getTableName());
+        return new PostgresAttributeStore(client, properties.getPostgres().getTableName(), true);
     }
 
     @Bean("attributeApiMongoTemplate")

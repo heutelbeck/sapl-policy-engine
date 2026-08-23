@@ -52,6 +52,18 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String DEBUG_STALE_CONNECTION_CLOSE_FAILED = "Error closing stale connection for pdpId '{}': {}";
     private static final String DEBUG_RECONNECT_FAILED              = "Reconnect attempt failed for pdpId '{}': {}";
     private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
+    private static final String CREATE_TABLE_SQL                    = """
+            CREATE TABLE IF NOT EXISTS %1$s (
+                  pdp_id     TEXT        NOT NULL,
+                  name       TEXT        NOT NULL,
+                  entity     JSONB,
+                  arguments  JSONB       NOT NULL DEFAULT '[]',
+                  value      JSONB       NOT NULL,
+                  expires_at TIMESTAMPTZ,
+                  CONSTRAINT %1$s_pdp_id_name_entity_arguments_key
+                      UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
+                  )
+            """;
 
     private static final String NOTIFY_SQL = "SELECT pg_notify('attribute_changes', :payload)";
     private static final String LISTEN_SQL = "LISTEN attribute_changes";
@@ -96,6 +108,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         this.client            = client;
         this.connectionFactory = connectionFactory;
         this.pdpId             = pdpId;
+
+        client.sql(CREATE_TABLE_SQL.formatted(table)).then().block();
 
         this.getAllSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " WHERE pdp_id = :pdpId";
         this.getSql    = "SELECT name, entity, arguments, value, expires_at FROM " + table + " "

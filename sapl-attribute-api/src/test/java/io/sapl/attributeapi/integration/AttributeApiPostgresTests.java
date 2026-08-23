@@ -38,20 +38,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
 class AttributeApiPostgresTests extends AbstractAttributeApiTests {
-
-    private static final String CREATE_TABLE = """
-            CREATE TABLE IF NOT EXISTS attributes (
-                pdp_id     TEXT        NOT NULL,
-                name       TEXT        NOT NULL,
-                entity     JSONB,
-                arguments  JSONB       NOT NULL DEFAULT '[]',
-                value      JSONB       NOT NULL,
-                expires_at TIMESTAMPTZ,
-                CONSTRAINT attributes_pdp_id_name_entity_arguments_key
-                    UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
-            )
-            """;
-
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
 
@@ -67,7 +53,6 @@ class AttributeApiPostgresTests extends AbstractAttributeApiTests {
     @Override
     protected void cleanRepository() {
         val client = DatabaseClient.create(connectionFactory());
-        client.sql(CREATE_TABLE).then().block();
         client.sql("TRUNCATE TABLE attributes").then().block();
     }
 

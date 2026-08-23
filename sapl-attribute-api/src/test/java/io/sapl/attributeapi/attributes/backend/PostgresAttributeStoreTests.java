@@ -31,7 +31,7 @@ class PostgresAttributeStoreTests {
     @Test
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
     void whenPublishedWithNegativeTTLExceptionIsThrown() {
-        var store = new PostgresAttributeStore(mock(DatabaseClient.class), "attributes");
+        var store = new PostgresAttributeStore(mock(DatabaseClient.class), "attributes", false);
         var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
         var value = Value.of("negative");
         var ttl   = Duration.ofSeconds(-1);
