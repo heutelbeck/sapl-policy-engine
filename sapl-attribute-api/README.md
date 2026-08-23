@@ -29,7 +29,7 @@ The current version doesn't support an automatic setup. An automatic integration
 
 ### MongoDB
 
-1. The collection will be created automatically. For larger setup you should increase the performance by adding indices:
+1. The collection will be created automatically. For larger setups you should increase the performance by adding indices:
 
     ```js
     db.attributes.createIndex(
@@ -158,6 +158,50 @@ To build the JAR file from the source execute the following commands
 
 ## Quick Start
 
+Assuming you have set up Redis as a backend (see [Redis](#redis) above) and
+the repository is cloned to `/opt/sapl/`, you can start a minimal API server
+with the following commands:
+
+```bash
+mkdir sapl-attribute-api-server
+cd sapl-attribute-api-server
+vim application.yml
+```
+
+The file should contain:
+```yaml
+io:
+  sapl:
+    attribute-api:
+      enabled: true
+      allow-no-auth: true
+    attributes:
+      storage: redis
+      redis:
+        host: localhost
+        port: 6379
+```
+Then start the API server:
+```bash
+java -jar /opt/sapl/sapl-attribute-api/target/sapl-attribute-api-4.2.0-SNAPSHOT-exec.jar
+```
+
+Verify the API server is running:
+
+```bash
+curl -X PUT http://localhost:8090/api/attributes/sapl.test.attribute \
+  -H "Content-Type: application/json" -d '{"value": "test"}'
+```
+
+```bash
+curl http://localhost:8090/api/attributes/sapl.test.attribute
+
+"test"
+```
+
+See [Usage](#usage) for the full set of publish/get/delete examples and
+authentication options.
+
 ## Usage
 
 All examples are using the cURL client and need to be adjusted for different clients.
@@ -254,7 +298,31 @@ curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
 Get all atributes for the authenticated user associated with a specific pdp id:
 ```bash
 curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
-  http://localhost:8090/api/attributes
+  http://localhost:8090/api/attributes | jq
+
+[
+  {
+    "entity": "alice",
+    "name": "sapl.test.attribute",
+    "arguments": [
+      42,
+      "test"
+    ],
+    "value": "bob"
+  },
+  {
+    "entity": null,
+    "name": "sapl.test.attribute",
+    "arguments": [],
+    "value": "test"
+  },
+  {
+    "entity": null,
+    "name": "sapl.test.attribute10",
+    "arguments": [],
+    "value": "test"
+  },
+...
 ```
 
 Count all attributes of the authenticated user associated with a specific pdp id:
@@ -262,13 +330,29 @@ Count all attributes of the authenticated user associated with a specific pdp id
 curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
   "http://localhost:8090/api/attributes?count=true"
 
-4
+11
 ```
 
 Using limit and offset by getting two attributes starting with an offset of 2. So the examples shows attribute stored at position 2 and 3:
 ```bash
 curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
-  "http://localhost:8090/api/attributes?limit=2&offset=2"
+  "http://localhost:8090/api/attributes?limit=2&offset=2" | jq
+
+  [
+  {
+    "entity": null,
+    "name": "sapl.test.attribute10",
+    "arguments": [],
+    "value": "test"
+  },
+  {
+    "entity": null,
+    "name": "sapl.test.attribute2",
+    "arguments": [],
+    "value": "test"
+  }
+]
+
 ```
 
 ### HTTP Status Codes
@@ -324,6 +408,7 @@ If you're using the API server with a CLI client like 'curl' and you want to use
 
 You can also combine all the steps into one step and use:
 ```bash
+touch cookies.txt # If the file doesn't exist
 curl -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt -b cookies.txt \
         -X PUT "http://localhost:8090/api/attributes/sapl.test.attribute" \
         -H "Content-Type: application/json" \

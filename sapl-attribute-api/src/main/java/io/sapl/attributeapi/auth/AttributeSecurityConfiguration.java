@@ -84,8 +84,12 @@ public class AttributeSecurityConfiguration {
 
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // Set the CSRF token for basic auth and deactivates the lazy creation. Deactivates CSRF for bearer token
         http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()).ignoringRequestMatchers(request -> {
+                .csrfTokenRequestHandler((request, response, csrfToken) -> {
+                    csrfToken.get();
+                    new CsrfTokenRequestAttributeHandler().handle(request, response, csrfToken);
+                }).ignoringRequestMatchers(request -> {
                     String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
                     return authHeader == null || authHeader.startsWith(BEARER_PREFIX);
                 }));
