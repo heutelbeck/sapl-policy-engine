@@ -46,6 +46,7 @@ public class MongoAttributeStore implements AttributeStore {
     private static final String ARGUMENTS_FIELD  = "arguments";
     private static final String VALUE_FIELD      = "value";
     private static final String EXPIRES_AT_FIELD = "expiresAt";
+    private static final String ID_FIELD         = "_id";
 
     private final ReactiveMongoTemplate mongo;
     private final String                collection;
@@ -104,7 +105,7 @@ public class MongoAttributeStore implements AttributeStore {
 
         query.addCriteria(new Criteria().orOperator(Criteria.where(EXPIRES_AT_FIELD).isNull(),
                 Criteria.where(EXPIRES_AT_FIELD).gt(Instant.now())));
-        query.with(Sort.by(Sort.Direction.ASC, NAME_FIELD, ENTITY_FIELD, ARGUMENTS_FIELD));
+        query.with(Sort.by(Sort.Direction.ASC, ID_FIELD));
 
         if (offset != null) {
             query.skip(offset);

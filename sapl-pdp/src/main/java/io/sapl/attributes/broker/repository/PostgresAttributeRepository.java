@@ -54,6 +54,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
     private static final String CREATE_TABLE_SQL                    = """
             CREATE TABLE IF NOT EXISTS %1$s (
+                  id         BIGINT      GENERATED ALWAYS AS IDENTITY,
                   pdp_id     TEXT        NOT NULL,
                   name       TEXT        NOT NULL,
                   entity     JSONB,

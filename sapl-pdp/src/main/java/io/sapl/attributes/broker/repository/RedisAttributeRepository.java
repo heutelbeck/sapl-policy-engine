@@ -54,6 +54,8 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
     private static final String ATTRIBUTE_KEY_PREFIX   = "sapl:attribute:";
     private static final String CHANGES_CHANNEL_PREFIX = "sapl:changes:";
+    private static final String ORDER_KEY_PREFIX       = "sapl:attribute:order:";
+    private static final String SEQ_KEY_PREFIX         = "sapl:attribute:seq:";
 
     private final RedisClient                                   client;
     private final StatefulRedisConnection<String, String>       connection;
@@ -175,7 +177,13 @@ public final class RedisAttributeRepository implements AttributeRepository {
             fields.put(FIELD_ENTITY, ValueJsonMarshaller.toJsonString(key.entity()));
         }
 
+        boolean created = commands.exists(redisKey) == 0;
         commands.hset(redisKey, fields);
+
+        if (created) {
+            long sequence = commands.incr(getSequenceKKey());
+            commands.zadd(getOrderKey(), sequence, redisKey);
+        }
 
         if (ttl == null) {
             commands.persist(redisKey);
@@ -188,8 +196,11 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
     @Override
     public void remove(@NonNull RepositoryKey key) {
+        String redisKey = toRedisKey(key);
+
         commands.del(toRedisKey(key));
         commands.publish(CHANGES_CHANNEL_PREFIX + toRedisKey(key), UNDEFINED_STRING);
+        commands.zrem(getOrderKey(), redisKey);
     }
 
     @Override
@@ -272,5 +283,13 @@ public final class RedisAttributeRepository implements AttributeRepository {
                     : ValueJsonMarshaller.json(raw);
             notifyObservers(redisKey, value);
         }
+    }
+
+    private String getOrderKey() {
+        return ORDER_KEY_PREFIX + pdpId;
+    }
+
+    private String getSequenceKKey() {
+        return SEQ_KEY_PREFIX + pdpId;
     }
 }

@@ -42,6 +42,7 @@ public class PostgresAttributeStore implements AttributeStore {
     private static final String NOTIFY_SQL             = "SELECT pg_notify('attribute_changes', :payload)";
     private static final String CREATE_TABLE_SQL       = """
             CREATE TABLE IF NOT EXISTS %1$s (
+                  id         BIGINT      GENERATED ALWAYS AS IDENTITY,
                   pdp_id     TEXT        NOT NULL,
                   name       TEXT        NOT NULL,
                   entity     JSONB,
@@ -74,7 +75,7 @@ public class PostgresAttributeStore implements AttributeStore {
                 + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
                 + "AND arguments = CAST(:arguments AS jsonb) AND (expires_at IS NULL OR expires_at > NOW())";
         this.getAllSql = "SELECT name, entity, arguments, value FROM " + table + " WHERE pdp_id = :pdpId "
-                + "AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY name, entity, arguments LIMIT :limit OFFSET :offset";
+                + "AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY id LIMIT :limit OFFSET :offset";
         // ON CONFLICT triggers the unique constraint in the db if the value already
         // exists
         // Indexes:

@@ -19,14 +19,28 @@ package io.sapl.attributeapi.attributes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+
 import io.lettuce.core.RedisClient;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
 import io.sapl.attributeapi.attributes.backend.MongoAttributeStore;
 import io.sapl.attributeapi.attributes.backend.PostgresAttributeStore;
 
+@Testcontainers
+@DisabledOnOs(OS.WINDOWS)
 class AttributeStoreConfigurationTests {
+    @Container
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
+
+    @Container
+    static GenericContainer<?> redis = createRedisContainer();
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withInitializer(context -> context.addBeanFactoryPostProcessor(beanFactory -> {
@@ -39,7 +53,11 @@ class AttributeStoreConfigurationTests {
     @DisplayName("The configured Postgres attribute store is created and connected")
     void whenStoragePostgresThenPostgresAttributeStoreBeanExists() {
         contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attributes.storage=postgres",
-                "io.sapl.attributes.postgres.password=testsecret").run(context -> {
+                "io.sapl.attributes.postgres.host=" + postgres.getHost(),
+                "io.sapl.attributes.postgres.port=" + postgres.getMappedPort(5432),
+                "io.sapl.attributes.postgres.database=" + postgres.getDatabaseName(),
+                "io.sapl.attributes.postgres.username=" + postgres.getUsername(),
+                "io.sapl.attributes.postgres.password=" + postgres.getPassword()).run(context -> {
                     assertThat(context).hasSingleBean(AttributeStore.class);
                     assertThat(context.getBean(AttributeStore.class)).isInstanceOf(PostgresAttributeStore.class);
                 });
@@ -65,10 +83,17 @@ class AttributeStoreConfigurationTests {
     @Test
     @DisplayName("The configured Redis attribute store is created and connected")
     void whenStorageRedisThenRedisClientBeanExists() {
-        contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attributes.storage=redis")
-                .run(context -> {
+        contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attributes.storage=redis",
+                "io.sapl.attributes.redis.host=" + redis.getHost(),
+                "io.sapl.attributes.redis.port=" + redis.getMappedPort(6379)).run(context -> {
                     assertThat(context).hasBean("attributeApiRedisClient");
                     assertThat(context.getBean("attributeApiRedisClient", RedisClient.class)).isNotNull();
                 });
+    }
+
+    private static GenericContainer<?> createRedisContainer() {
+        GenericContainer<?> container = new GenericContainer<>("redis:8");
+        container.withExposedPorts(6379);
+        return container;
     }
 }

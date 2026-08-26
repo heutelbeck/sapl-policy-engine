@@ -26,9 +26,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.ValueJsonMarshaller;
+
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,7 +41,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -154,15 +158,16 @@ abstract class AbstractAttributeApiTests {
                     .andExpect(status().isCreated());
         }
 
-        List<String> expectedOrder  = new ArrayList<>(pushedNames);
+        // The list must be the exact insertion order
         List<String> collectedNames = new ArrayList<>();
-        Collections.sort(expectedOrder); // Sort lexical like in the backend
 
         for (int offset = 0; offset < 100; offset += 20) {
-            List<String> expectedPage = new ArrayList<>(expectedOrder.subList(offset, offset + 20));
+            List<String> expectedPage = pushedNames.subList(offset, offset + 20);
 
-            MvcResult firstRequest  = mockMvc.perform(get("/api/attributes?limit=20&offset=" + offset))
-                    .andExpect(status().isOk()).andExpect(jsonPath("$[*].name").value(expectedPage)).andReturn();
+            MvcResult firstRequest = mockMvc.perform(get("/api/attributes?limit=20&offset=" + offset))
+                    .andExpect(status().isOk()).andReturn();
+            assertThat(namesOf(firstRequest)).isEqualTo(expectedPage);
+
             MvcResult secondRequest = mockMvc.perform(get("/api/attributes?limit=20&offset=" + offset))
                     .andExpect(status().isOk()).andReturn();
 
@@ -174,7 +179,44 @@ abstract class AbstractAttributeApiTests {
             collectedNames.addAll(expectedPage);
         }
 
-        assertThat(collectedNames).containsExactlyElementsOf(pushedNames.stream().sorted().toList()).hasSize(100);
+        assertThat(collectedNames).containsExactlyElementsOf(pushedNames).hasSize(100);
+    }
+
+    @Test
+    @DisplayName("GET a set of attributes with limit and offset is not affected by a new attribute published between pagination")
+    void whenNewAttributeIsPublishedBetweenPaginationThenExistingPaginationIsNotAffected() throws Exception {
+        List<String> pushedNames = new ArrayList<>(20);
+
+        for (int i = 0; i < 20; i++) {
+            String name = "sapl.test.attribute" + i;
+            pushedNames.add(name);
+            mockMvc.perform(
+                    put("/api/attributes/sapl.test/" + name).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                            .content("{ \"value\": \"test_%d\", \"ttl\": 60 }".formatted(i)))
+                    .andExpect(status().isCreated());
+        }
+
+        MvcResult firstPage = mockMvc.perform(get("/api/attributes?limit=10&offset=0")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(namesOf(firstPage)).isEqualTo(pushedNames.subList(0, 10));
+
+        // Push an attribute that is by lexicographical order the first one but shouldn't show up because we expect
+        // insertion order
+        mockMvc.perform(put("/api/attributes/sapl.test/aaa.new.attribute").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "testValueOfNewAttribute", "ttl": 60 }
+                        """)).andExpect(status().isCreated());
+
+        // The next 10 entries, starting at position 10, are the same as before
+        MvcResult secondPage = mockMvc.perform(get("/api/attributes?limit=10&offset=10")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(namesOf(secondPage)).isEqualTo(pushedNames.subList(10, 20));
+
+        // The new attribute is expected as the last attribute. Start at position 20 and limit 10. Should return 1
+        // attribute
+        MvcResult thirdPage = mockMvc.perform(get("/api/attributes?limit=10&offset=20")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(namesOf(thirdPage)).isEqualTo(List.of("aaa.new.attribute"));
     }
 
     @Test
@@ -313,5 +355,10 @@ abstract class AbstractAttributeApiTests {
     void whenAttributeIsNonExistentAndDeleteIsRequestedThenReturnHttpNotFound() throws Exception {
         mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.deleteNonExisting").with(csrf()))
                 .andExpect(status().isNotFound());
+    }
+
+    private static List<String> namesOf(MvcResult result) throws Exception {
+        var parsed = (ArrayValue) ValueJsonMarshaller.json(result.getResponse().getContentAsString());
+        return parsed.stream().map(entry -> ((TextValue) ((ObjectValue) entry).get("name")).value()).toList();
     }
 }

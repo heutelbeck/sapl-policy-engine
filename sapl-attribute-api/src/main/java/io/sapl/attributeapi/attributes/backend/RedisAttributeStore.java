@@ -23,7 +23,7 @@ import io.lettuce.core.api.sync.RedisCommands;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import java.time.Duration;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +34,8 @@ import org.jspecify.annotations.Nullable;
 public class RedisAttributeStore implements AttributeStore {
     private static final String REDIS_NAMESPACE_PREFIX = "sapl:attribute:";
     private static final String REDIS_CHANGES_PREFIX   = "sapl:changes:";
+    private static final String REDIS_ORDER_PREFIX     = "sapl:attribute:order:";
+    private static final String REDIS_SEQ_PREFIX       = "sapl:attribute:seq:";
 
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
     private static final String UNDEFINED_STRING       = "UNDEFINED";
@@ -83,6 +85,12 @@ public class RedisAttributeStore implements AttributeStore {
         boolean created = commands.exists(redisKey) == 0;
         commands.hset(redisKey, fields);
 
+        // Increment the sequence number within Redis, stores it add the current key to the sorted set (ZSET)
+        if (created) {
+            long sequence = commands.incr(getSequenceKey(pdpId));
+            commands.zadd(getOrderKey(pdpId), sequence, redisKey);
+        }
+
         if (ttl == null) {
             commands.persist(redisKey);
         } else {
@@ -97,7 +105,10 @@ public class RedisAttributeStore implements AttributeStore {
     public boolean remove(AttributeKey key, String pdpId) {
         String redisKey = toRedisKey(key, pdpId);
         Long   deleted  = commands.del(redisKey);
+
         commands.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
+        commands.zrem(getOrderKey(pdpId), redisKey);
+
         return deleted != null && deleted > 0;
     }
 
@@ -115,23 +126,39 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        String pattern = REDIS_NAMESPACE_PREFIX + pdpId + ":*";
-
-        // Sort the list of entries to guarantee a deterministic output for limit/offset
-        List<AttributeEntry> entries = commands.keys(pattern).stream().map(commands::hgetall)
-                .filter(hash -> !hash.isEmpty()).map(RedisAttributeStore::toAttributeEntry)
-                .sorted(Comparator.comparing(entry -> entry.key().name())).toList();
-
-        // set the right offset as start point, check if the start exceeds the List limit and set the end point
-        int start = offset != null ? offset : 0;
-        if (start >= entries.size()) {
+        // Empty list if the limit is invalid or exactly 0 elements, limit == 0 included because Redis interprets it as
+        // no limit = get all
+        if (limit != null && limit <= 0) {
             return List.of();
         }
-        // long arithmetic avoids int overflow when start+limit is huge; the downcast
-        // is safe because Math.min caps the result at entries.size(), which is an int.
-        int end = limit != null ? (int) Math.min((long) start + limit, entries.size()) : entries.size();
 
-        return entries.subList(start, end);
+        String               orderKey = getOrderKey(pdpId);
+        long                 cursor   = offset != null ? offset : 0;
+        List<AttributeEntry> entries  = new ArrayList<>();
+
+        boolean keysRemaining = false;
+
+        // Run till there are keys remaining or no more keys to read
+        while (!keysRemaining && (limit == null || entries.size() < limit)) {
+            long         stop    = limit != null ? cursor + (limit - entries.size()) - 1 : -1;
+            List<String> current = commands.zrange(orderKey, cursor, stop);
+            keysRemaining = current.isEmpty() || limit == null;
+
+            int validInCurrentBatch = 0;
+            for (String redisKey : current) {
+                Map<String, String> hash = commands.hgetall(redisKey);
+
+                if (!hash.isEmpty()) {
+                    entries.add(toAttributeEntry(hash));
+                    validInCurrentBatch++;
+                } else {
+                    // Remove the entry from the sorted set if the entry is expired
+                    commands.zrem(orderKey, redisKey);
+                }
+            }
+            cursor += validInCurrentBatch;
+        }
+        return entries;
     }
 
     @Override
@@ -164,5 +191,13 @@ public class RedisAttributeStore implements AttributeStore {
         Value       value     = valueRaw != null ? ValueJsonMarshaller.json(valueRaw) : Value.UNDEFINED;
 
         return new AttributeEntry(new AttributeKey(entity, name, arguments), value);
+    }
+
+    private String getOrderKey(String pdpId) {
+        return REDIS_ORDER_PREFIX + pdpId;
+    }
+
+    private String getSequenceKey(String pdpId) {
+        return REDIS_SEQ_PREFIX + pdpId;
     }
 }
