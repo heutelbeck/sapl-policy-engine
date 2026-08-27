@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<!-- Show only own logs - <Datetime> <Log level> <Affected Class< <Message> -->
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="warn">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="org.springframework" level="error"/>
+    <logger name="org.hibernate" level="error"/>
+    <logger name="io.sapl" level="error"/>
+    <logger name="io.sapl.attributeapi" level="info"/>
+    <logger name="reactor.core.Exceptions" level="error"/>
+
+    <!-- Redis / Mongo / Postgres -->
+    <logger name="org.mongodb" level="error"/>
+    <logger name="io.lettuce" level="error"/>
+    <logger name="reactor.netty" level="error"/>
+
+    <!-- Testcontainers -->
+    <logger name="org.testcontainers" level="error"/>
+    <logger name="com.github.dockerjava" level="error"/>
+</configuration>

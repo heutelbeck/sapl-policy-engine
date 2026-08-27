@@ -28,6 +28,8 @@ import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ import java.util.NoSuchElementException;
 public class AttributeApiService {
     private static final String ERROR_LIMIT_NOT_POSITIVE  = "Limit must be strictly positive.";
     private static final String ERROR_OFFSET_NOT_POSITIVE = "Offset must be strictly positive.";
+    private static final String ERROR_ARGUMENTS_LIMIT     = "The amount of arguments within the request is greater than the configured maximum";
     private static final String NAME_FIELD                = "name";
     private static final String ENTITY_FIELD              = "entity";
     private static final String ARGUMENTS_FIELD           = "arguments";
@@ -59,6 +62,10 @@ public class AttributeApiService {
 
         var key = new AttributeKey(entityValue, attribute, arguments);
 
+        if (!checkArgumentsLimit(body.arguments())) {
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
+        }
+
         if (ttl == null || ttl <= 0) {
             return store.publish(key, value, resolvePdpId(pdpId));
         } else {
@@ -67,8 +74,13 @@ public class AttributeApiService {
     }
 
     public void delete(String entity, String attribute, List<String> rawArgs, @Nullable String pdpId) {
-        List<Value> arguments   = toArgumentValues(rawArgs);
-        Value       entityValue = toEntityValue(entity);
+        List<Value> arguments = toArgumentValues(rawArgs);
+
+        if (!checkArgumentsLimit(arguments)) {
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
+        }
+
+        Value entityValue = toEntityValue(entity);
 
         boolean removed = store.remove(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
 
@@ -77,9 +89,14 @@ public class AttributeApiService {
     }
 
     public JsonNode get(String entity, String attribute, List<String> rawArgs, @Nullable String pdpId) {
-        List<Value> arguments   = toArgumentValues(rawArgs);
-        Value       entityValue = toEntityValue(entity);
-        Value       value       = store.get(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
+        List<Value> arguments = toArgumentValues(rawArgs);
+
+        if (!checkArgumentsLimit(arguments)) {
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
+        }
+
+        Value entityValue = toEntityValue(entity);
+        Value value       = store.get(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
 
         if (value == Value.UNDEFINED)
             throw new NoSuchElementException();
@@ -129,7 +146,11 @@ public class AttributeApiService {
         return (entity != null && !entity.isBlank() ? Value.of(entity) : null);
     }
 
-    private List<Value> toArgumentValues(List<String> arguments) {
+    private @NonNull List<Value> toArgumentValues(List<String> arguments) {
         return (arguments == null ? List.of() : arguments.stream().map(this::fromString).toList());
+    }
+
+    private boolean checkArgumentsLimit(List<?> arguments) {
+        return arguments == null || arguments.size() <= securityProperties.getMaxArguments();
     }
 }

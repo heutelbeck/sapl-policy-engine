@@ -43,7 +43,9 @@ public class AttributeApiSecurityProperties implements InitializingBean {
     private boolean allowOAuth2Auth;
 
     private String defaultPdpId = "default";
-    private OAuth2 oauth2       = new OAuth2();
+    private int    maxArguments = 50;
+
+    private OAuth2 oauth2 = new OAuth2();
 
     // Users from the given configuration
     private List<UserEntry> users = new ArrayList<>();

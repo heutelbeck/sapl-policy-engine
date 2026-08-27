@@ -30,11 +30,13 @@ import org.springframework.test.web.servlet.MvcResult;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -359,6 +361,9 @@ abstract class AbstractAttributeApiTests {
 
     private static List<String> namesOf(MvcResult result) throws Exception {
         var parsed = (ArrayValue) ValueJsonMarshaller.json(result.getResponse().getContentAsString());
-        return parsed.stream().map(entry -> ((TextValue) ((ObjectValue) entry).get("name")).value()).toList();
+        return parsed.stream().map(entry -> {
+            Value name = ((ObjectValue) entry).get("name");
+            return ((TextValue) Objects.requireNonNull(name, "attribute entry missing 'name' field")).value();
+        }).toList();
     }
 }

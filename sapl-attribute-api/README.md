@@ -282,7 +282,7 @@ curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
 "test"
 ```
 
-Get all atributes for the authenticated user associated with a specific pdp id:
+Get all attributes for the authenticated user associated with a specific pdp id:
 ```bash
 curl -H "Authorization: Bearer sapl_a1b2c3_verySecretPartOfTheKey" \
   http://localhost:8090/api/attributes | jq
@@ -351,6 +351,7 @@ The API returns the following HTTP status codes:
 Publish (new key) | 201 | Created | Key didn't exist in the repository |
 Publish (overwrite) | 200 | OK | Key was overwritten in the repository |
 Publish (invalid request) | 400 | Bad request | The data in the body couldn't be parsed |
+Request used too many arguments | 400 | Bad request | The allowed maximum amount of arguments within a request was reached and is not allowed.
 Delete (attribute existed) | 204 | No content | The attribute was deleted from the repository |
 Delete (attribute didn't exist) | 404 | Not found | The attribute didn't exist in the repository |
 Get (single attribute) | 200 | OK | The attribute did exist and the value is returned |
@@ -413,6 +414,8 @@ curl -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt -b cookies.txt \
 |----------|------|---------|--------------|
 | `io.sapl.attribute-api.enabled` | boolean | — | Enables the attribute API module (required) |
 | `io.sapl.attribute-api.default-pdp-id` | string | `default` | The pdpId that is used when it can't be resolved from the request |
+| `io.sapl.attribute-api.max-arguments` | integer | 50 | The allowed maximum of arguments that can be sent for an attribute. The API server rejects requests above this limit with a HTTP 400 Bad Request. Prevents flooding with huge requests |
+
 
 #### No-Auth
 
@@ -501,7 +504,7 @@ To generate valid API keys, there are two ways:
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | string | *(empty)* | Required when `allow-oauth2-auth=true` |
 
 ### Backend
-
+figure maximum
 #### General
 
 | Property | Type | Default | Description |
