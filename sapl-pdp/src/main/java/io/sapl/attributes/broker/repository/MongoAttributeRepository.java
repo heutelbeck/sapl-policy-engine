@@ -32,12 +32,11 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
-
+import java.util.HashSet;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -175,7 +174,9 @@ public final class MongoAttributeRepository implements AttributeRepository {
     }
 
     private void loadFromDB() {
-        var query = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
+        var query    = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
+        var seenKeys = new HashSet<RepositoryKey>();
+
         mongo.find(query, Document.class, collection).toStream().forEach(doc -> {
             var entityJson = doc.getString(FIELD_ENTITY);
             var argsJson   = doc.getString(FIELD_ARGUMENTS);
@@ -194,13 +195,22 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
                 if (!remainingTTL.isNegative()) {
                     internalRepository.publish(key, value, remainingTTL);
+                    seenKeys.add(key);
                 } else {
                     deleteFromDB(key);
                 }
             } else {
                 internalRepository.publish(key, value);
+                seenKeys.add(key);
             }
         });
+
+        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
+        for (var staleKey : internalRepository.knownKeys()) {
+            if (!seenKeys.contains(staleKey)) {
+                internalRepository.remove(staleKey);
+            }
+        }
     }
 
     public void deleteFromDB(@NonNull RepositoryKey key) {

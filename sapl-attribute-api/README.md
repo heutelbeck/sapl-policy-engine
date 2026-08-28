@@ -48,7 +48,11 @@ Most of the backends require a minimal manual setup. To prepare the backend for 
 
 1. Create a database e.g. `CREATE DATABASE sapl_attributes;`
 
-2. The database table will be automatically created if missing during startup. If you want to create the table manually, you can use the following statement:
+2. Add the line `cron.database_name = 'sapl_attributes'` to the file `postgresql.conf`. This sets the default name for the cronjob database.
+
+3. Add the extension `shared_preload_libraries = 'pg_cron'` to the file `postgresql.conf`. A restart of Postgres is required to activate the extension.
+
+4. The database table will be automatically created if missing during startup. If you want to create the table manually, you can use the following statement:
 
     ```sql
     CREATE TABLE IF NOT EXISTS attributes (
@@ -62,6 +66,10 @@ Most of the backends require a minimal manual setup. To prepare the backend for 
           UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
     );
     ```
+
+5. Activate as a superuser, connected to `sapl_attributes` database the extension for the cronjobs `CREATE EXTENSION pg_cron;`
+
+6. Grant a PostgreSQL role privileges to use the schema `GRANT USAGE ON SCHEMA cron TO <role>;`.
 
 ### Docker
 
@@ -101,21 +109,37 @@ services:
 
 #### PostgreSQL
 
+For PostgreSQL you have to create a custom image because the official PostgreSQL image doesn't contain the needed extension `pg_cron`. A simple version of the Dockerfile is:
+
+```docker
+FROM postgres:18
+RUN apt-get update && apt-get install -y postgresql-18-cron && rm -rf /var/lib/apt/lists/*
+```
+
 The given `docker-postgres.yml` file contains a minimum version to run the api with a PostgreSQL attribute store. Adjust the file to your environment needs but make sure that the replicat sets are activated:
 
 ```yaml
 services:
   postgres:
-    image: postgres:17
+    build: ./postgres
     environment:
       POSTGRES_DB: sapl
       POSTGRES_USER: sapl
       POSTGRES_PASSWORD: sapl
     ports:
       - "5432:5432"
+    command: ["postgres", "-c", "shared_preload_libraries=pg_cron", "-c", "cron.database_name=sapl"]
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 ```
 
-The table within the database will automatically be created. 
+Create the init script `init.sql` and add:
+```sql
+CREATE EXTENSION pg_cron;
+GRANT USAGE ON SCHEMA cron TO sapl;
+```
+
+The attributes table within the database will automatically be created. Execute the following command and the image will be build and the container started:
 
 `docker compose -f docker-postgres.yml up -d`
 

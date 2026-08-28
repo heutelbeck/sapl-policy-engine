@@ -34,7 +34,7 @@ import io.sapl.api.model.Value;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 
-public class AttributeApiServiceTests {
+class AttributeApiServiceTests {
     private AttributeStore                 store;
     private AttributeApiSecurityProperties properties;
 

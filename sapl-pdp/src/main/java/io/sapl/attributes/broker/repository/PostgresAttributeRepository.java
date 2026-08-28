@@ -36,6 +36,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -52,8 +53,11 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String DEBUG_STALE_CONNECTION_CLOSE_FAILED = "Error closing stale connection for pdpId '{}': {}";
     private static final String DEBUG_RECONNECT_FAILED              = "Reconnect attempt failed for pdpId '{}': {}";
     private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
+    private static final String WARN_TTL_CLEANUP                    = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
+            + "or grant right to the user. Expired attributes will still be filtered"
+            + "at query time but Postgres-side cleanup will not happen";
     private static final String CREATE_TABLE_SQL                    = """
-            CREATE TABLE IF NOT EXISTS %1$s (
+            CREATE TABLE IF NOT EXISTS {table} (
                   id         BIGINT      GENERATED ALWAYS AS IDENTITY,
                   pdp_id     TEXT        NOT NULL,
                   name       TEXT        NOT NULL,
@@ -61,9 +65,33 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                   arguments  JSONB       NOT NULL DEFAULT '[]',
                   value      JSONB       NOT NULL,
                   expires_at TIMESTAMPTZ,
-                  CONSTRAINT %1$s_pdp_id_name_entity_arguments_key
+                  CONSTRAINT {table}_pdp_id_name_entity_arguments_key
                       UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
                   )
+            """;
+    private static final String SCHEDULE_TTL_CLEANUP_SQL            = """
+            SELECT cron.schedule_in_database(
+                'ttl-cleanup-{table}',
+                '* * * * *',
+                $$
+                WITH deleted AS (
+                    DELETE FROM {table}
+                    WHERE expires_at < now()
+                    RETURNING pdp_id, name, entity, arguments
+                )
+                SELECT pg_notify(
+                    'attribute_changes',
+                    json_build_object(
+                        'pdpId', pdp_id,
+                        'name', name,
+                        'entity', entity,
+                        'arguments', arguments
+                    )::text
+                )
+                FROM deleted
+                $$,
+                current_database()
+            )
             """;
 
     private static final String NOTIFY_SQL = "SELECT pg_notify('attribute_changes', :payload)";
@@ -110,7 +138,14 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         this.connectionFactory = connectionFactory;
         this.pdpId             = pdpId;
 
-        client.sql(CREATE_TABLE_SQL.formatted(table)).then().block();
+        client.sql(CREATE_TABLE_SQL.replace("{table}", table)).then().block();
+
+        // If the scheduler job already exists, it is handled as an upsert and updated in place, not duplicated
+        try {
+            client.sql(SCHEDULE_TTL_CLEANUP_SQL.replace("{table}", table)).then().block();
+        } catch (RuntimeException e) {
+            log.warn(WARN_TTL_CLEANUP, pdpId, e.getMessage());
+        }
 
         this.getAllSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " WHERE pdp_id = :pdpId";
         this.getSql    = "SELECT name, entity, arguments, value, expires_at FROM " + table + " "
@@ -223,6 +258,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             if (rows == null)
                 return;
 
+            var seenKeys = new HashSet<RepositoryKey>();
+
             for (var row : rows) {
                 var key       = new RepositoryKey(row.entity() != null ? ValueJsonMarshaller.json(row.entity()) : null,
                         row.name(), jsonToValues(row.arguments()), pdpId);
@@ -233,11 +270,20 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                     var remainingTTL = Duration.between(Instant.now(), expiresAt);
                     if (!remainingTTL.isNegative()) {
                         internalRepository.publish(key, value, remainingTTL);
+                        seenKeys.add(key);
                     } else {
                         deleteFromDB(key);
                     }
                 } else {
                     internalRepository.publish(key, value);
+                    seenKeys.add(key);
+                }
+            }
+
+            // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
+            for (var staleKey : internalRepository.knownKeys()) {
+                if (!seenKeys.contains(staleKey)) {
+                    internalRepository.remove(staleKey);
                 }
             }
         } finally {
@@ -301,13 +347,15 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         var node              = (ObjectValue) ValueJsonMarshaller.json(payload);
         var notificationPdpId = ((TextValue) Objects.requireNonNull(node.get(FIELD_PDP_ID))).value();
 
+        // Ignore notifications for other pdpIds
         if (!pdpId.equals(notificationPdpId)) {
-            return; // notification is for a different pdpId, not relevant to this repository
+            return;
         }
 
         var key        = payloadToKey(node);
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
 
+        // Query the key from the notification to decide if it's an update or delete
         var spec = client.sql(getSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name()).bind(FIELD_ARGUMENTS,
                 valuesToJson(key.arguments()));
 
@@ -317,6 +365,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                         r.get("expires_at", OffsetDateTime.class)))
                 .one().block();
 
+        // if: Key deleted, also delete in cache, else: Key is updated, publish key again in cache
         if (row == null) {
             internalRepository.remove(key);
         } else {

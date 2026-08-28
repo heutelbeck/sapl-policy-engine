@@ -23,6 +23,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.r2dbc.core.DatabaseClient;
 import java.time.Duration;
@@ -32,16 +33,20 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 public class PostgresAttributeStore implements AttributeStore {
-    private static final String PDP_ID_FIELD           = "pdpId";
-    private static final String NAME_FIELD             = "name";
-    private static final String ENTITY_FIELD           = "entity";
-    private static final String ARGUMENTS_FIELD        = "arguments";
-    private static final String VALUE_FIELD            = "value";
-    private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
-    private static final String NOTIFY_SQL             = "SELECT pg_notify('attribute_changes', :payload)";
-    private static final String CREATE_TABLE_SQL       = """
-            CREATE TABLE IF NOT EXISTS %1$s (
+    private static final String PDP_ID_FIELD             = "pdpId";
+    private static final String NAME_FIELD               = "name";
+    private static final String ENTITY_FIELD             = "entity";
+    private static final String ARGUMENTS_FIELD          = "arguments";
+    private static final String VALUE_FIELD              = "value";
+    private static final String ERROR_TTL_NOT_POSITIVE   = "TTL must be a strictly positive Duration.";
+    private static final String WARN_TTL_CLEANUP         = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
+            + "or grant right to the user. Expired attributes will still be filtered"
+            + "at query time but Postgres-side cleanup will not happen";
+    private static final String NOTIFY_SQL               = "SELECT pg_notify('attribute_changes', :payload)";
+    private static final String CREATE_TABLE_SQL         = """
+            CREATE TABLE IF NOT EXISTS {table} (
                   id         BIGINT      GENERATED ALWAYS AS IDENTITY,
                   pdp_id     TEXT        NOT NULL,
                   name       TEXT        NOT NULL,
@@ -49,9 +54,33 @@ public class PostgresAttributeStore implements AttributeStore {
                   arguments  JSONB       NOT NULL DEFAULT '[]',
                   value      JSONB       NOT NULL,
                   expires_at TIMESTAMPTZ,
-                  CONSTRAINT %1$s_pdp_id_name_entity_arguments_key
+                  CONSTRAINT {table}_pdp_id_name_entity_arguments_key
                       UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
                   )
+            """;
+    private static final String SCHEDULE_TTL_CLEANUP_SQL = """
+            SELECT cron.schedule_in_database(
+                'ttl-cleanup-{table}',
+                '* * * * *',
+                $$
+                WITH deleted AS (
+                    DELETE FROM {table}
+                    WHERE expires_at < now()
+                    RETURNING pdp_id, name, entity, arguments
+                )
+                SELECT pg_notify(
+                    'attribute_changes',
+                    json_build_object(
+                        'pdpId', pdp_id,
+                        'name', name,
+                        'entity', entity,
+                        'arguments', arguments
+                    )::text
+                )
+                FROM deleted
+                $$,
+                current_database()
+            )
             """;
 
     private final DatabaseClient client;
@@ -66,7 +95,14 @@ public class PostgresAttributeStore implements AttributeStore {
         this.client = client;
 
         if (autoCreateTable) {
-            client.sql(CREATE_TABLE_SQL.formatted(table)).then().block();
+            client.sql(CREATE_TABLE_SQL.replace("{table}", table)).then().block();
+
+            // If the scheduler job already exists, it is handled as upsert query and will be ignored
+            try {
+                client.sql(SCHEDULE_TTL_CLEANUP_SQL.replace("{table}", table)).then().block();
+            } catch (RuntimeException e) {
+                log.warn(WARN_TTL_CLEANUP, e.getMessage());
+            }
         }
 
         this.countSql  = "SELECT count(*) FROM " + table

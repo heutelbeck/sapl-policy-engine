@@ -251,6 +251,15 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
+    public Set<RepositoryKey> knownKeys() {
+        lock.lock();
+        try {
+            return new HashSet<>(entries.keySet());
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /**
      * Per-entry storage. {@code expiryTask} is settable so the
      * publisher can install it after constructing the entry record

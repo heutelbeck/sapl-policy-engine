@@ -27,6 +27,8 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.broker.AttributeRepository;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+
 import org.jspecify.annotations.Nullable;
 import java.time.Duration;
 import java.util.*;
@@ -40,12 +42,18 @@ import io.lettuce.core.RedisConnectionStateListener;
 import io.lettuce.core.RedisChannelHandler;
 import java.net.SocketAddress;
 
+@Slf4j
 public final class RedisAttributeRepository implements AttributeRepository {
     private static final String ERROR_TTL_NOT_POSITIVE           = "TTL must be a strictly positive Duration.";
     private static final String ERROR_CLOSED                     = "Repository is closed.";
     private static final String UNDEFINED_STRING                 = "UNDEFINED";
     private static final String NOTIFY_KEYSPACE_EVENTS_PARAM     = "notify-keyspace-events";
     private static final String ERROR_KEYSPACE_NOTIFICATIONS_OFF = "Configure Redis to publish expired key events.";
+    private static final String WARN_OBSERVER_THREW_EXCEPTION    = "Observere for key '{}' threw an exception during notification. "
+    		                                                     + "The value was not delivered to observer {}";
+    private static final String WARN_RESYNC_KEY_FAILED           = "Resync failed for key '{}' after reconnect. "
+    		                                                     + "The key may remain stale until the next reconnect {}";
+    private static final String ERROR_RESYNC_FAILED              = "Unexpected failure while resyncing observers afte a reconnect to Redis backend.";
 
     private static final String FIELD_NAME      = "name";
     private static final String FIELD_ENTITY    = "entity";
@@ -61,14 +69,11 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private final StatefulRedisConnection<String, String>       connection;
     private final RedisCommands<String, String>                 commands;
     private final StatefulRedisPubSubConnection<String, String> pubsub;
-    private final ExecutorService                               resyncExecutor = Executors
-            .newVirtualThreadPerTaskExecutor();
+    private final ExecutorService                               resyncExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final ReentrantLock                                 lock           = new ReentrantLock(true);
-
-    private final Map<String, Set<Consumer<Value>>> observersByKey = new HashMap<>();
+    private final Map<String, Set<Consumer<Value>>>             observersByKey = new HashMap<>();
 
     private final String pdpId;
-
     private boolean closed = false;
 
     public RedisAttributeRepository(RedisClient client, String pdpId, int database) {
@@ -106,9 +111,12 @@ public final class RedisAttributeRepository implements AttributeRepository {
         pubsub.addListener(new RedisConnectionStateListener() {
             @Override
             public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
-                // Creates a new thread that is executed by the resync executer. The main event loop threads doesn't
-                // block that way
-                CompletableFuture.runAsync(RedisAttributeRepository.this::resyncObservers, resyncExecutor);
+                // Creates a new thread that is executed by the re-sync executer. The main event loop threads doesn't block that way
+                CompletableFuture.runAsync(RedisAttributeRepository.this::resyncObservers, resyncExecutor)
+                	.exceptionally(e -> {
+                	log.error(ERROR_RESYNC_FAILED, e);
+                	return null;
+                });
             }
         });
     }
@@ -129,6 +137,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
                 return;
             }
             closed = true;
+            observersByKey.clear();
         } finally {
             lock.unlock();
         }
@@ -259,13 +268,23 @@ public final class RedisAttributeRepository implements AttributeRepository {
         List<Consumer<Value>> toFire;
         lock.lock();
         try {
+        	if(closed) {
+        		return;
+        	}
+        	
             var bucket = observersByKey.get(redisKey);
             toFire = bucket != null ? new ArrayList<>(bucket) : List.of();
         } finally {
             lock.unlock();
         }
-
-        toFire.forEach(callback -> callback.accept(value));
+        
+        for(Consumer<Value> callback : toFire) {
+        	try {
+        		callback.accept(value);
+        	} catch(RuntimeException e) {
+        		log.warn(WARN_OBSERVER_THREW_EXCEPTION, redisKey, e.getMessage(), e);
+        	}
+        }
     }
 
     private void resyncObservers() {
@@ -278,10 +297,14 @@ public final class RedisAttributeRepository implements AttributeRepository {
         }
 
         for (String redisKey : keysToResync) {
-            String raw   = commands.hget(redisKey, FIELD_VALUE);
-            Value  value = (raw == null || UNDEFINED_STRING.equals(raw)) ? Value.UNDEFINED
-                    : ValueJsonMarshaller.json(raw);
-            notifyObservers(redisKey, value);
+        	try {
+	            String raw   = commands.hget(redisKey, FIELD_VALUE);
+	            Value  value = (raw == null || UNDEFINED_STRING.equals(raw)) ? Value.UNDEFINED
+	                    : ValueJsonMarshaller.json(raw);
+	            notifyObservers(redisKey, value);
+        	} catch (RuntimeException e) {
+                log.warn(WARN_RESYNC_KEY_FAILED, redisKey, e.getMessage(), e);
+            }
         }
     }
 
