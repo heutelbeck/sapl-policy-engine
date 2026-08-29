@@ -37,6 +37,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,7 +56,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
     private static final String WARN_TTL_CLEANUP                    = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
             + "or grant right to the user. Expired attributes will still be filtered"
-            + "at query time but Postgres-side cleanup will not happen";
+            + "at query time but Postgres-side cleanup will not happen: {}";
     private static final String CREATE_TABLE_SQL                    = """
             CREATE TABLE IF NOT EXISTS {table} (
                   id         BIGINT      GENERATED ALWAYS AS IDENTITY,
@@ -261,31 +262,10 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             var seenKeys = new HashSet<RepositoryKey>();
 
             for (var row : rows) {
-                var key       = new RepositoryKey(row.entity() != null ? ValueJsonMarshaller.json(row.entity()) : null,
-                        row.name(), jsonToValues(row.arguments()), pdpId);
-                var value     = ValueJsonMarshaller.json(row.value());
-                var expiresAt = row.expiresAt() != null ? row.expiresAt().toInstant() : null;
-
-                if (expiresAt != null) {
-                    var remainingTTL = Duration.between(Instant.now(), expiresAt);
-                    if (!remainingTTL.isNegative()) {
-                        internalRepository.publish(key, value, remainingTTL);
-                        seenKeys.add(key);
-                    } else {
-                        deleteFromDB(key);
-                    }
-                } else {
-                    internalRepository.publish(key, value);
-                    seenKeys.add(key);
-                }
+                restoreKey(row, seenKeys);
             }
 
-            // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
-            for (var staleKey : internalRepository.knownKeys()) {
-                if (!seenKeys.contains(staleKey)) {
-                    internalRepository.remove(staleKey);
-                }
-            }
+            removeStaleKeys(seenKeys);
         } finally {
             reloadLock.unlock();
         }
@@ -396,5 +376,36 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         var arguments = ((ArrayValue) Objects.requireNonNull(node.get(FIELD_ARGUMENTS))).stream().toList();
 
         return new RepositoryKey(entity, name, arguments, pdpId);
+    }
+
+    private void removeStaleKeys(Set<RepositoryKey> seenKeys) {
+        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
+        for (var staleKey : internalRepository.knownKeys()) {
+            if (!seenKeys.contains(staleKey)) {
+                internalRepository.remove(staleKey);
+            }
+        }
+    }
+
+    private void restoreKey(DBEntry row, Set<RepositoryKey> seenKeys) {
+        var key       = new RepositoryKey(row.entity() != null ? ValueJsonMarshaller.json(row.entity()) : null,
+                row.name(), jsonToValues(row.arguments()), pdpId);
+        var value     = ValueJsonMarshaller.json(row.value());
+        var expiresAt = row.expiresAt() != null ? row.expiresAt().toInstant() : null;
+
+        if (expiresAt == null) {
+            internalRepository.publish(key, value);
+            seenKeys.add(key);
+            return;
+        }
+
+        var remainingTTL = Duration.between(Instant.now(), expiresAt);
+        if (remainingTTL.isNegative()) {
+            deleteFromDB(key);
+            return;
+        }
+
+        internalRepository.publish(key, value, remainingTTL);
+        seenKeys.add(key);
     }
 }

@@ -43,7 +43,7 @@ public class PostgresAttributeStore implements AttributeStore {
     private static final String ERROR_TTL_NOT_POSITIVE   = "TTL must be a strictly positive Duration.";
     private static final String WARN_TTL_CLEANUP         = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
             + "or grant right to the user. Expired attributes will still be filtered"
-            + "at query time but Postgres-side cleanup will not happen";
+            + "at query time but Postgres-side cleanup will not happen: {}";
     private static final String NOTIFY_SQL               = "SELECT pg_notify('attribute_changes', :payload)";
     private static final String CREATE_TABLE_SQL         = """
             CREATE TABLE IF NOT EXISTS {table} (

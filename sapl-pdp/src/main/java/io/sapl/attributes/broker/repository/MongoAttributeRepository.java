@@ -41,6 +41,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
@@ -177,40 +178,9 @@ public final class MongoAttributeRepository implements AttributeRepository {
         var query    = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
         var seenKeys = new HashSet<RepositoryKey>();
 
-        mongo.find(query, Document.class, collection).toStream().forEach(doc -> {
-            var entityJson = doc.getString(FIELD_ENTITY);
-            var argsJson   = doc.getString(FIELD_ARGUMENTS);
-            var valueJson  = doc.getString(FIELD_VALUE);
+        mongo.find(query, Document.class, collection).toStream().forEach(doc -> restoreDocument(doc, seenKeys));
 
-            if (valueJson == null)
-                return;
-
-            var key       = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
-                    doc.getString(FIELD_NAME), jsonToValues(argsJson), pdpId);
-            var value     = ValueJsonMarshaller.json(valueJson);
-            var expiresAt = expiryFromDocument(doc);
-
-            if (expiresAt != null) {
-                var remainingTTL = Duration.between(Instant.now(), expiresAt);
-
-                if (!remainingTTL.isNegative()) {
-                    internalRepository.publish(key, value, remainingTTL);
-                    seenKeys.add(key);
-                } else {
-                    deleteFromDB(key);
-                }
-            } else {
-                internalRepository.publish(key, value);
-                seenKeys.add(key);
-            }
-        });
-
-        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
-        for (var staleKey : internalRepository.knownKeys()) {
-            if (!seenKeys.contains(staleKey)) {
-                internalRepository.remove(staleKey);
-            }
-        }
+        removeStaleKeys(seenKeys);
     }
 
     public void deleteFromDB(@NonNull RepositoryKey key) {
@@ -264,5 +234,43 @@ public final class MongoAttributeRepository implements AttributeRepository {
             return List.of();
 
         return (ArrayValue) ValueJsonMarshaller.json(json);
+    }
+
+    private void restoreDocument(Document doc, Set<RepositoryKey> seenKeys) {
+        var entityJson = doc.getString(FIELD_ENTITY);
+        var argsJson   = doc.getString(FIELD_ARGUMENTS);
+        var valueJson  = doc.getString(FIELD_VALUE);
+
+        if (valueJson == null)
+            return;
+
+        var key       = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
+                doc.getString(FIELD_NAME), jsonToValues(argsJson), pdpId);
+        var value     = ValueJsonMarshaller.json(valueJson);
+        var expiresAt = expiryFromDocument(doc);
+
+        if (expiresAt == null) {
+            internalRepository.publish(key, value);
+            seenKeys.add(key);
+            return;
+        }
+
+        var remainingTTL = Duration.between(Instant.now(), expiresAt);
+        if (remainingTTL.isNegative()) {
+            deleteFromDB(key);
+            return;
+        }
+
+        internalRepository.publish(key, value, remainingTTL);
+        seenKeys.add(key);
+    }
+
+    private void removeStaleKeys(Set<RepositoryKey> seenKeys) {
+        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
+        for (var staleKey : internalRepository.knownKeys()) {
+            if (!seenKeys.contains(staleKey)) {
+                internalRepository.remove(staleKey);
+            }
+        }
     }
 }

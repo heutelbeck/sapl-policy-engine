@@ -182,9 +182,8 @@ public class AttributeApiClient {
     }
 
     private URI buildUri(String baseURL, String entity, String name, List<String> arguments) {
-        var builder = (entity == null || entity.isBlank())
-                ? UriComponentsBuilder.fromUriString(baseURL + API_GLOBAL_ATTRIBUTE)
-                : UriComponentsBuilder.fromUriString(baseURL + API_ATTRIBUTE_WITH_ENTITY);
+        var builder = UriComponentsBuilder.fromUriString(
+                baseURL + ((entity == null || entity.isBlank()) ? API_GLOBAL_ATTRIBUTE : API_ATTRIBUTE_WITH_ENTITY));
 
         if (arguments != null && !arguments.isEmpty()) {
             builder.queryParam("arg", arguments.toArray());
