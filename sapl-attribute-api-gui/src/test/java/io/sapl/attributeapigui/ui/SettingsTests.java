@@ -23,7 +23,7 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import io.sapl.attributeapigui.GuiApplication;
 import io.sapl.attributeapigui.connection.ConnectionMode;
-import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
+import io.sapl.attributeapigui.connection.ConnectionRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.autoconfigure.exclude=org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration" })
 class SettingsTests extends SpringBrowserlessTest {
     @Autowired
-    private ObjectProvider<ConnectionSettingsHolder> settingsHolderProvider;
+    private ObjectProvider<ConnectionRegistry> registryProvider;
 
     @Test
     @WithUserDetails("admin")
@@ -50,27 +50,34 @@ class SettingsTests extends SpringBrowserlessTest {
 
     @Test
     @WithUserDetails("admin")
-    @DisplayName("Settings are set to no authentication")
-    void whenAuthenticatedThenSettingsCanSetToNoAuth() {
-        var settingsView   = navigate(SettingsView.class);
-        var modeField      = settingsView.getModeField();
-        var saveButton     = find(Button.class).id("settings-save");
-        var settingsHolder = settingsHolderProvider.getObject();
+    @DisplayName("Saving a new connection with no authentication adds it to the registry")
+    void whenAuthenticatedThenNewConnectionCanBeSavedWithNoAuth() {
+        var settingsView = navigate(SettingsView.class);
+        var modeField    = settingsView.getModeField();
+        var nameField    = find(TextField.class).id("settings-connection-name");
+        var saveButton   = find(Button.class).id("settings-save");
+        var registry     = registryProvider.getObject();
 
+        test(nameField).setValue("No-Auth Connection");
         test(modeField).selectItem("No authentication");
         test(saveButton).click();
-        assertThat(settingsHolder.get().mode()).isEqualTo(ConnectionMode.NONE);
+
+        var saved = registry.getSavedConnection().stream().filter(c -> "No-Auth Connection".equals(c.name()))
+                .findFirst().orElseThrow();
+        assertThat(saved.settings().mode()).isEqualTo(ConnectionMode.NONE);
     }
 
     @Test
     @WithUserDetails("admin")
-    @DisplayName("Settings are set to basic authentication")
-    void whenAuthenticatedThenSettingsCanSetToBasicAuth() {
-        var settingsView   = navigate(SettingsView.class);
-        var modeField      = settingsView.getModeField();
-        var saveButton     = find(Button.class).id("settings-save");
-        var settingsHolder = settingsHolderProvider.getObject();
+    @DisplayName("Saving a new connection with basic authentication adds it to the registry")
+    void whenAuthenticatedThenNewConnectionCanBeSavedWithBasicAuth() {
+        var settingsView = navigate(SettingsView.class);
+        var modeField    = settingsView.getModeField();
+        var nameField    = find(TextField.class).id("settings-connection-name");
+        var saveButton   = find(Button.class).id("settings-save");
+        var registry     = registryProvider.getObject();
 
+        test(nameField).setValue("Basic-Auth Connection");
         test(modeField).selectItem("Username + Password");
 
         // Fields are only visible after clicking
@@ -80,25 +87,78 @@ class SettingsTests extends SpringBrowserlessTest {
         test(usernameField).setValue("api-user");
         test(passwordField).setValue("api-secret");
         test(saveButton).click();
-        assertThat(settingsHolder.get().mode()).isEqualTo(ConnectionMode.BASIC);
-        assertThat(settingsHolder.get().username()).isEqualTo("api-user");
+
+        var saved = registry.getSavedConnection().stream().filter(c -> "Basic-Auth Connection".equals(c.name()))
+                .findFirst().orElseThrow();
+        assertThat(saved.settings().mode()).isEqualTo(ConnectionMode.BASIC);
+        assertThat(saved.settings().username()).isEqualTo("api-user");
     }
 
     @Test
     @WithUserDetails("admin")
-    @DisplayName("Settings are set to api key authentication")
-    void whenAuthenticatedThenSettingsCanSetToApiKeyAuth() {
-        var settingsView   = navigate(SettingsView.class);
-        var modeField      = settingsView.getModeField();
-        var saveButton     = find(Button.class).id("settings-save");
-        var settingsHolder = settingsHolderProvider.getObject();
+    @DisplayName("Saving a new connection with api key authentication adds it to the registry")
+    void whenAuthenticatedThenNewConnectionCanBeSavedWithApiKeyAuth() {
+        var settingsView = navigate(SettingsView.class);
+        var modeField    = settingsView.getModeField();
+        var nameField    = find(TextField.class).id("settings-connection-name");
+        var saveButton   = find(Button.class).id("settings-save");
+        var registry     = registryProvider.getObject();
 
+        test(nameField).setValue("Api-Key Connection");
         test(modeField).selectItem("API key");
         var apiKeyField = find(PasswordField.class).id("settings-api-key");
 
         test(apiKeyField).setValue("sapl_12345xyz");
         test(saveButton).click();
-        assertThat(settingsHolder.get().mode()).isEqualTo(ConnectionMode.API);
-        assertThat(settingsHolder.get().apiKey()).isEqualTo("sapl_12345xyz");
+
+        var saved = registry.getSavedConnection().stream().filter(c -> "Api-Key Connection".equals(c.name()))
+                .findFirst().orElseThrow();
+        assertThat(saved.settings().mode()).isEqualTo(ConnectionMode.API);
+        assertThat(saved.settings().apiKey()).isEqualTo("sapl_12345xyz");
+    }
+
+    @Test
+    @WithUserDetails("admin")
+    @DisplayName("Saving a connection without a name shows a validation error and nothing is added")
+    void whenConnectionNameIsBlankThenValidationErrorIsShownAndNothingIsSaved() {
+        var settingsView = navigate(SettingsView.class);
+        var modeField    = settingsView.getModeField();
+        var saveButton   = find(Button.class).id("settings-save");
+        var registry     = registryProvider.getObject();
+        var before       = registry.getSavedConnection().size();
+
+        test(modeField).selectItem("No authentication");
+        test(saveButton).click();
+
+        var nameField = find(TextField.class).id("settings-connection-name");
+        assertThat(nameField.isInvalid()).isTrue();
+        assertThat(registry.getSavedConnection()).hasSize(before);
+    }
+
+    @Test
+    @WithUserDetails("admin")
+    @DisplayName("Deleting a connection causes an UI refresh and last connection is not possible")
+    void whenConnectionIsDeletedThenUIRefreshedAndDeleteLastConnectionNotPossible() {
+        var settingsView = navigate(SettingsView.class);
+        var registry     = registryProvider.getObject();
+
+        // Add a second connection to see if the refresh is working. Delete it afterwards
+        test(find(TextField.class).id("settings-connection-name")).setValue("delete-connection");
+        test(settingsView.getModeField()).selectItem("No authentication");
+        test(find(Button.class).id("settings-save")).click();
+
+        var grid = settingsView.getSavedConnections();
+        assertThat(test(grid).size()).isEqualTo(2);
+
+        // Delete the second connection by clicking into the right column and row
+        var deleteButton = (Button) test(grid).getCellComponent(1, 3);
+        test(deleteButton).click();
+
+        assertThat(test(grid).size()).isEqualTo(1);
+        assertThat(registry.getSavedConnection()).noneMatch(c -> "delete-connection".equals(c.name()));
+
+        // Now try to delete the last connection
+        deleteButton = (Button) test(grid).getCellComponent(0, 3);
+        assertThat(deleteButton.isEnabled()).isFalse();
     }
 }

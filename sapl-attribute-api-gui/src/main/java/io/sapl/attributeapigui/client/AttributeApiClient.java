@@ -17,9 +17,7 @@
  */
 package io.sapl.attributeapigui.client;
 
-import com.vaadin.flow.spring.annotation.VaadinSessionScope;
 import io.sapl.attributeapigui.connection.ConnectionSettings;
-import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -29,12 +27,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.JsonNode;
-
 import java.io.IOException;
 import java.net.CookieManager;
 import java.net.URI;
@@ -45,8 +41,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
-@Component
-@VaadinSessionScope
 public class AttributeApiClient {
     private static final String ERROR_NOT_CONNECTED_TO_BACKEND = "Not connected to attribute store. Configure a connection in the settings first.";
     private static final String ERROR_UNSUPPORTED_AUTH_MODE    = "Unsupported authentication mode.";
@@ -61,17 +55,17 @@ public class AttributeApiClient {
     private static final String TTL_FIELD                      = "ttl";
     private static final String ARGUMENTS_FIELD                = "arguments";
 
-    private final ConnectionSettingsHolder settingsHolder;
-    private final CookieManager            cookieManager = new CookieManager();
-    private final RestClient               client        = buildClient();
+    private final CookieManager      cookieManager = new CookieManager();
+    private final RestClient         client        = buildClient();
+    private final ConnectionSettings connectionSettings;
 
     public enum DeleteOutput {
         DELETED,
         NOT_FOUND
     }
 
-    public AttributeApiClient(ConnectionSettingsHolder settingsHolder) {
-        this.settingsHolder = settingsHolder;
+    public AttributeApiClient(ConnectionSettings connectionSettings) {
+        this.connectionSettings = connectionSettings;
     }
 
     private RestClient buildClient() {
@@ -103,7 +97,7 @@ public class AttributeApiClient {
     }
 
     public Optional<Object> getAttribute(String entity, String name, List<String> arguments) {
-        var settings = settingsHolder.get();
+        var settings = connectionSettings;
         checkConfiguration(settings);
 
         try {
@@ -117,7 +111,7 @@ public class AttributeApiClient {
     }
 
     public DeleteOutput deleteAttribute(String entity, String name, List<String> arguments) {
-        var settings = settingsHolder.get();
+        var settings = connectionSettings;
         checkConfiguration(settings);
 
         try {
@@ -131,7 +125,7 @@ public class AttributeApiClient {
     }
 
     public void publishAttribute(String entity, String name, JsonNode value, Long ttl, List<JsonNode> arguments) {
-        var settings = settingsHolder.get();
+        var settings = connectionSettings;
         checkConfiguration(settings);
 
         var body = Map.of(VALUE_FIELD, value, TTL_FIELD, Objects.requireNonNullElse(ttl, 0L), ARGUMENTS_FIELD,
@@ -146,7 +140,7 @@ public class AttributeApiClient {
     }
 
     public List<Map<String, Object>> getAllAttributes(int limit, int offset) {
-        var settings = settingsHolder.get();
+        var settings = connectionSettings;
         checkConfiguration(settings);
 
         return client.get().uri(settings.baseUrl() + API_GET_ALL_ATTRIBUTES, limit, offset)
@@ -154,7 +148,7 @@ public class AttributeApiClient {
     }
 
     public Long getAttributeCount() {
-        var settings = settingsHolder.get();
+        var settings = connectionSettings;
         checkConfiguration(settings);
 
         return client.get().uri(settings.baseUrl() + API_ATTRIBUTE_COUNT).headers(h -> addAuthorization(h, settings))

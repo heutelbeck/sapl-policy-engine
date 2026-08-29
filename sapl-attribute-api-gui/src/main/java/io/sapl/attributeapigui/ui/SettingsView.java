@@ -17,11 +17,15 @@
  */
 package io.sapl.attributeapigui.ui;
 
+import java.util.UUID;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -32,8 +36,9 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.attributeapigui.connection.ConnectionMode;
+import io.sapl.attributeapigui.connection.ConnectionRegistry;
 import io.sapl.attributeapigui.connection.ConnectionSettings;
-import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
+import io.sapl.attributeapigui.connection.SavedConnection;
 import jakarta.annotation.security.RolesAllowed;
 
 @Route(value = "settings", layout = MainLayout.class)
@@ -42,25 +47,31 @@ import jakarta.annotation.security.RolesAllowed;
 @RolesAllowed("ADMIN")
 public class SettingsView extends VerticalLayout {
     private static final String INFO_OAUTH2_NOT_AVAILABLE_YET = "OAuth2 authentication is not yet available in this GUI.";
+    private static final String ERROR_CONNECTION_NAME_NOT_SET = "A connection name is required to store the connection";
 
-    private final TextField                baseUrlField  = new TextField("API url");
-    private final ComboBox<ConnectionMode> modeField     = new ComboBox<>("Authentication");
-    private final TextField                usernameField = new TextField("Username");
-    private final PasswordField            passwordField = new PasswordField("Password");
-    private final PasswordField            apiKeyField   = new PasswordField("Api key");
+    private final TextField                connectionName = new TextField("Connection name");
+    private final TextField                baseUrlField   = new TextField("API url");
+    private final ComboBox<ConnectionMode> modeField      = new ComboBox<>("Authentication");
+    private final TextField                usernameField  = new TextField("Username");
+    private final PasswordField            passwordField  = new PasswordField("Password");
+    private final PasswordField            apiKeyField    = new PasswordField("Api key");
 
-    public SettingsView(ConnectionSettingsHolder settingsHolder) {
-        var settings = settingsHolder.get();
+    // View for saved connections
+    private final Grid<SavedConnection> savedConnections = new Grid<SavedConnection>();
 
+    public SettingsView(ConnectionRegistry registry) {
         // 1 rem = 16px -> 16pxx32rem = 512px
         setMaxWidth("32rem");
         add(new H2("Connection"));
         add(new Paragraph("Configure the settings needed for to access the SAPL attribute API"));
 
+        // Connection name
+        connectionName.setPlaceholder("New connection");
+        connectionName.setRequired(true);
+
         // Baser URL with preset settings
         baseUrlField.setPlaceholder("http://localhost:8090");
         baseUrlField.setWidthFull();
-        baseUrlField.setValue(settings.baseUrl() != null ? settings.baseUrl() : "");
 
         // Dropdown with available settings
         modeField.setItems(ConnectionMode.values());
@@ -74,7 +85,6 @@ public class SettingsView extends VerticalLayout {
             }
             return item;
         }));
-        modeField.setValue(settings.mode() == ConnectionMode.OIDC ? ConnectionMode.NONE : settings.mode());
         modeField.setWidthFull();
 
         // Switch the visible fields, OIDC cannot be selected (see renderer above)
@@ -89,13 +99,11 @@ public class SettingsView extends VerticalLayout {
 
         // Settings of the fields
         usernameField.setWidthFull();
-        usernameField.setValue(settings.username() != null ? settings.username() : "");
         passwordField.setWidthFull();
-        passwordField.setValue(settings.password() != null ? settings.password() : "");
         apiKeyField.setWidthFull();
-        apiKeyField.setValue(settings.apiKey() != null ? settings.apiKey() : "");
 
         // Set id's for the fields to find them easier in tests
+        connectionName.setId("settings-connection-name");
         baseUrlField.setId("settings-base-url");
         usernameField.setId("settings-username");
         passwordField.setId("settings-password");
@@ -103,18 +111,49 @@ public class SettingsView extends VerticalLayout {
 
         // Save button
         var saveButton = new Button("Save", event -> {
-            var updated = new ConnectionSettings(modeField.getValue(), baseUrlField.getValue().trim(),
-                    usernameField.getValue().trim(), passwordField.getValue(), apiKeyField.getValue());
-            settingsHolder.update(updated);
+            // Validate if a connection name is set
+            var name = connectionName.getValue().trim();
+
+            if (name.isBlank()) {
+                connectionName.setInvalid(true);
+                connectionName.setErrorMessage(ERROR_CONNECTION_NAME_NOT_SET);
+                return;
+            }
+
+            connectionName.setInvalid(false);
+
+            var connection = new SavedConnection(UUID.randomUUID().toString(), connectionName.getValue().trim(),
+                    new ConnectionSettings(modeField.getValue(), baseUrlField.getValue().trim(),
+                            usernameField.getValue().trim(), passwordField.getValue(), apiKeyField.getValue()));
+
+            registry.addConnection(connection);
+            savedConnections.setItems(registry.getSavedConnection());
 
             var notification = Notification.show("Connection settings saved.");
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         });
         saveButton.setId("settings-save");
 
-        add(baseUrlField, modeField, usernameField, passwordField, apiKeyField, saveButton);
+        // Build the grid view for saved connections
+        savedConnections.addColumn(SavedConnection::name).setHeader("Connection name");
+        savedConnections.addColumn(connection -> connection.settings().baseUrl()).setHeader("Base URL");
+        savedConnections.addColumn(connection -> connection.settings().mode()).setHeader("Mode");
+        savedConnections.addComponentColumn(connection -> {
+            var deleteConnection = new Button(VaadinIcon.TRASH.create());
+            deleteConnection.setTooltipText("Delete connection");
+            deleteConnection.setEnabled(registry.getSavedConnection().size() > 1);
+            deleteConnection.addClickListener(listener -> {
+                registry.removeConnection(connection.id());
+                savedConnections.setItems(registry.getSavedConnection());
+            });
+            return deleteConnection;
+        }).setHeader("Delete");
+        savedConnections.setItems(registry.getSavedConnection());
 
+        add(savedConnections, connectionName, baseUrlField, modeField, usernameField, passwordField, apiKeyField,
+                saveButton);
         updateVisibility(modeField.getValue());
+
     }
 
     private void updateVisibility(ConnectionMode mode) {
@@ -134,5 +173,9 @@ public class SettingsView extends VerticalLayout {
 
     ComboBox<ConnectionMode> getModeField() {
         return modeField;
+    }
+
+    Grid<SavedConnection> getSavedConnections() {
+        return savedConnections;
     }
 }

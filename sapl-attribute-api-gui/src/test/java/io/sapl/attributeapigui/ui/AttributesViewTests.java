@@ -26,6 +26,7 @@ import com.vaadin.browserless.BrowserlessTest;
 import com.vaadin.browserless.ViewPackages;
 import com.vaadin.browserless.internal.ShortcutsKt;
 import io.sapl.attributeapigui.client.AttributeApiClient;
+import io.sapl.attributeapigui.connection.ConnectionRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -56,11 +58,17 @@ class AttributesViewTests extends BrowserlessTest {
     @Mock
     private AttributeApiClient client;
 
+    @Mock
+    private ConnectionRegistry registry;
+
     private AttributesView view;
 
     @BeforeEach
     void setUp() {
-        view = new AttributesView(client);
+        // Not every test exercises a search/publish/delete action, so this shared
+        // stub is lenient to avoid Mockito's strict-stubbing "unused stub" failure.
+        lenient().when(registry.activeClient()).thenReturn(client);
+        view = new AttributesView(registry);
         UI.getCurrent().add(view);
     }
 

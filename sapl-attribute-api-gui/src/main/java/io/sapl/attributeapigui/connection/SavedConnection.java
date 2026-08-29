@@ -17,25 +17,6 @@
  */
 package io.sapl.attributeapigui.connection;
 
-import java.util.concurrent.atomic.AtomicReference;
-import org.springframework.stereotype.Component;
-import com.vaadin.flow.spring.annotation.VaadinSessionScope;
-import io.sapl.attributeapigui.config.AttributeApiConnectionProperties;
+import java.io.Serializable;
 
-@VaadinSessionScope
-@Component
-public class ConnectionSettingsHolder {
-    private final AtomicReference<ConnectionSettings> current;
-
-    public ConnectionSettingsHolder(AttributeApiConnectionProperties properties) {
-        this.current = new AtomicReference<>(ConnectionSettings.from(properties));
-    }
-
-    public ConnectionSettings get() {
-        return current.get();
-    }
-
-    public void update(ConnectionSettings next) {
-        current.set(next);
-    }
-}
+public record SavedConnection(String id, String name, ConnectionSettings settings) implements Serializable {}

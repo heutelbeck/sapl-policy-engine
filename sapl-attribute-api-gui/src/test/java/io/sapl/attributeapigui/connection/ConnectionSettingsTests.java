@@ -19,16 +19,19 @@ package io.sapl.attributeapigui.connection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.attributeapigui.config.AttributeApiConnectionProperties;
 
 class ConnectionSettingsTests {
-    private static final String DEFAULT_HOST     = "http://localhost:8090";
-    private static final String DEFAULT_USERNAME = "username";
-    private static final String DEFAULT_PASSWORD = "password";
-    private static final String DEFAULT_APIKEY   = "sapl_1111111111111111";
+    private static final String DEFAULT_CONNECTION_NAME = "CustomName";
+    private static final String DEFAULT_HOST            = "http://localhost:8090";
+    private static final String DEFAULT_USERNAME        = "username";
+    private static final String DEFAULT_PASSWORD        = "password";
+    private static final String DEFAULT_APIKEY          = "sapl_1111111111111111";
 
     @Test
     @DisplayName("Mode NONE is set in the settings")
@@ -66,6 +69,7 @@ class ConnectionSettingsTests {
     @DisplayName("from method maps properties with method none and base url")
     void whenFromMethodIsUsedWithNoneThenConnectionSettingsAreRight() {
         var properties = new AttributeApiConnectionProperties();
+        properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setMethod(ConnectionMode.NONE);
         properties.setBaseUrl(DEFAULT_HOST);
 
@@ -79,6 +83,7 @@ class ConnectionSettingsTests {
     @DisplayName("from method returns false with method none and missing url")
     void whenFromMethodWithNoneAndBlankURLIsUsedThenConnectionSettingsAreFalse() {
         var properties = new AttributeApiConnectionProperties();
+        properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setMethod(ConnectionMode.NONE);
         properties.setBaseUrl(null);
 
@@ -92,6 +97,7 @@ class ConnectionSettingsTests {
     void whenFromMethodWithBasicAndUserIsUsedThenConnectionSettingsAreRight() {
         var properties = new AttributeApiConnectionProperties();
         properties.setMethod(ConnectionMode.BASIC);
+        properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setBaseUrl(DEFAULT_HOST);
         properties.setUsername(DEFAULT_USERNAME);
         properties.setPassword(DEFAULT_PASSWORD);
@@ -108,6 +114,7 @@ class ConnectionSettingsTests {
     @DisplayName("from method maps properties with method basic and set user")
     void whenFromMethodWithApiAndApiKeyIsUsedThenConnectionSettingsAreRight() {
         var properties = new AttributeApiConnectionProperties();
+        properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setMethod(ConnectionMode.API);
         properties.setBaseUrl(DEFAULT_HOST);
         properties.setApiKey(DEFAULT_APIKEY);
@@ -120,20 +127,25 @@ class ConnectionSettingsTests {
     }
 
     @Test
-    @DisplayName("Connection settings are properly hold and updated in the holder class for the UI")
-    void whenConnectionSettingsHolderIsUsedThenConnectionRotationIsCorrect() {
+    @DisplayName("Connection settings are properly held and switched in the registry class for the UI")
+    void whenConnectionRegistryIsUsedThenConnectionRotationIsCorrect() {
         var properties = new AttributeApiConnectionProperties();
+        properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setMethod(ConnectionMode.NONE);
         properties.setBaseUrl(DEFAULT_HOST);
-        var holder = new ConnectionSettingsHolder(properties);
+        var registry = new ConnectionRegistry(properties);
+        assertThat(registry.getActiveConnection().name()).isEqualTo(DEFAULT_CONNECTION_NAME);
 
-        var basicSettings = new ConnectionSettings(ConnectionMode.BASIC, DEFAULT_HOST, DEFAULT_USERNAME,
-                DEFAULT_PASSWORD, null);
-        holder.update(basicSettings);
-        assertThat(holder.get()).isEqualTo(basicSettings);
+        var basicConnection = new SavedConnection(UUID.randomUUID().toString(), "Basic",
+                new ConnectionSettings(ConnectionMode.BASIC, DEFAULT_HOST, DEFAULT_USERNAME, DEFAULT_PASSWORD, null));
+        registry.addConnection(basicConnection);
+        registry.setActiveId(basicConnection.id());
+        assertThat(registry.getActiveConnection()).isEqualTo(basicConnection);
 
-        var apiSettings = new ConnectionSettings(ConnectionMode.API, DEFAULT_HOST, null, null, DEFAULT_APIKEY);
-        holder.update(apiSettings);
-        assertThat(holder.get()).isEqualTo(apiSettings);
+        var apiConnection = new SavedConnection(UUID.randomUUID().toString(), "Api",
+                new ConnectionSettings(ConnectionMode.API, DEFAULT_HOST, null, null, DEFAULT_APIKEY));
+        registry.addConnection(apiConnection);
+        registry.setActiveId(apiConnection.id());
+        assertThat(registry.getActiveConnection()).isEqualTo(apiConnection);
     }
 }

@@ -1,6 +1,6 @@
 # SAPL Attribute API GUI
 
-The SAPL Attribute API GUI project is a simple web interface for administrator to manage the attribute repository via the API server.
+The SAPL Attribute API GUI project is a simple web interface for administrator to manage the attribute repository via the API server. The Attribute API GUI can be configured to store a preset connection. It's also possible to add more connections during the runtime.
 
 ## Prerequisites
 
@@ -43,11 +43,11 @@ To build the JAR file from the source execute the following commands
 
 4. Open the browser and enter `http://localhost:8091` (or your configured URL) and login in with the admin credentials e.g. `admin`and `changeme`.
 
-5. The GUI starts up even if there is no SAPL Attribute API server configured yet. Please make sure that you can reach the API server from your host and configure the connection in the settings:
+5. The GUI starts up even if there is no SAPL Attribute API server configured yet. Please make sure that you can reach the API server from your host and configure a new connection in the settings:
 
    ![Settings](docs/images/attribute-api-gui-settings-01.png)
 
-6. After you clicked on save you can switch to the attributes view and search, publish, remove attributes for your tenants attributes:
+6. After you clicked on save you can switch to the attributes view and search, publish, remove attributes for the current active connection:
 
    ![Attributes](docs/images/attribute-api-gui-attributes-01.png)
 
@@ -60,11 +60,12 @@ The SAPL Attribute API GUI has few settings to setup the access to the Web UI an
 |server.port | int | 8091 | The default port to start the web server.
 io.sapl.attribute-api-gui.admin-username | string | admin | The name of the admin user to access the Web UI
 |io.sapl.attribute-api-gui.admin-password | string | - | The password for the given admin user to access the Web UI. Please be aware that the server won't start if the admin password is missing.
-|io.sapl.attribute-api-gui.connection.base-url | string | - | The URL of the Attribute API server to connect to
-|io.sapl.attribute-api-gui.connection.method | string | none | The connection method to connect to the Attribute API server. Must be one of {none, basic, api,oidc}
-|io.sapl.attribute-api-gui.connection.username | string | - | The username used if basic authentication is activated
-|io.sapl.attribute-api-gui.connection.password | string | - | The password used if basic authentication is activated
-|io.sapl.attribute-api-gui.connection.api-key | string | - | The API key used if api key authentication is used
+|io.sapl.attribute-api-gui.connection.name | string | Default | The default connection name |
+|io.sapl.attribute-api-gui.connection.base-url | string | - | The URL of the Attribute API server to connect to. Stored in the initial default connection.
+|io.sapl.attribute-api-gui.connection.method | string | none | The connection method to connect to the Attribute API server. Must be one of {none, basic, api,oidc}. Stored in the initial default connection.
+|io.sapl.attribute-api-gui.connection.username | string | - | The username used if basic authentication is activated. Stored in the initial default connection.
+|io.sapl.attribute-api-gui.connection.password | string | - | The password used if basic authentication is activated. Stored in the initial default connection.
+|io.sapl.attribute-api-gui.connection.api-key | string | - | The API key used if api key authentication is used. Stored in the initial default connection.
 
 An example configuration with environment variables and default fallback values is:
 

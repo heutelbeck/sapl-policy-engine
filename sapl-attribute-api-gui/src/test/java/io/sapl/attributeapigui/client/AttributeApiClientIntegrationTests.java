@@ -22,7 +22,6 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.sapl.attributeapi.AttributeApiApplication;
 import io.sapl.attributeapigui.connection.ConnectionMode;
 import io.sapl.attributeapigui.connection.ConnectionSettings;
-import io.sapl.attributeapigui.connection.ConnectionSettingsHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -40,8 +39,6 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AttributeApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true",
@@ -92,9 +89,7 @@ class AttributeApiClientIntegrationTests {
         dbClient.sql("TRUNCATE TABLE attributes").then().block();
 
         var settings = new ConnectionSettings(ConnectionMode.NONE, "http://localhost:" + port, null, null, null);
-        var holder   = mock(ConnectionSettingsHolder.class);
-        when(holder.get()).thenReturn(settings);
-        client = new AttributeApiClient(holder);
+        client = new AttributeApiClient(settings);
     }
 
     @Test

@@ -30,6 +30,7 @@ public class AttributeApiConnectionProperties implements InitializingBean {
     private static final String ERROR_BASE_URL_NOT_SET = "The base url is not set. Please set io.sapl.attribute-api-gui.connection.base-url via settings";
     private static final String ERROR_MALFORMED_URL    = "The given url is not a valid url.";
 
+    private String         name   = "Default";
     private String         baseUrl;
     private ConnectionMode method = ConnectionMode.NONE;
     private String         username;

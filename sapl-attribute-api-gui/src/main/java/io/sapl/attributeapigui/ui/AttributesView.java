@@ -20,6 +20,7 @@ package io.sapl.attributeapigui.ui;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -35,6 +36,8 @@ import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.sapl.attributeapigui.client.AttributeApiClient;
+import io.sapl.attributeapigui.connection.ConnectionRegistry;
+import io.sapl.attributeapigui.connection.SavedConnection;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
@@ -63,8 +66,8 @@ public class AttributesView extends VerticalLayout {
     private static final String MESSAGE_NO_ATTRIBUTES_FOUND                = "No attributes found.";
     private static final String MESSAGE_NO_ATTRIBUTE_FOUND_FOR_NAME_PREFIX = "No attribute found for name '";
 
-    // Internal http client, fixed SonarQube issue because client wasn't transient
-    private transient AttributeApiClient client;
+    // The registry of the stored connections for this session
+    private ConnectionRegistry registry;
 
     // Search fields
     private final TextField entityField    = new TextField();
@@ -78,13 +81,16 @@ public class AttributesView extends VerticalLayout {
     private final IntegerField publishTtlField       = new IntegerField();
     private final TextField    publishArgumentsField = new TextField();
 
+    // Connection fields
+    private final ComboBox<SavedConnection> savedConnectionComboBox = new ComboBox<SavedConnection>("Connection");
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // Grid to display the data
     private final Grid<Map<String, Object>> grid = new Grid<>();
 
-    public AttributesView(AttributeApiClient client) {
-        this.client = client;
+    public AttributesView(ConnectionRegistry registry) {
+        this.registry = registry;
 
         // Basic settings
         setSizeFull();
@@ -196,7 +202,18 @@ public class AttributesView extends VerticalLayout {
         deleteHint.getStyle().set("color", "var(--lumo-secondary-text-color)").set("font-size",
                 "var(--lumo-font-size-s)");
 
-        add(publishDetails, searchDetails, deleteHint, grid);
+        // Saved connections
+        savedConnectionComboBox.setItemLabelGenerator(SavedConnection::name);
+        savedConnectionComboBox.setItems(registry.getSavedConnection());
+        savedConnectionComboBox.setValue(registry.getActiveConnection());
+        savedConnectionComboBox.addValueChangeListener(event -> {
+            if (event.getValue() != null) {
+                registry.setActiveId(event.getValue().id());
+                grid.getDataProvider().refreshAll();
+            }
+        });
+
+        add(savedConnectionComboBox, publishDetails, searchDetails, deleteHint, grid);
         setFlexGrow(1, grid);
         // End search fields
     }
@@ -219,7 +236,7 @@ public class AttributesView extends VerticalLayout {
             var ttl       = publishTtlField.getValue() == null ? null : publishTtlField.getValue().longValue();
             var arguments = splitArguments(publishArgumentsField.getValue()).stream().map(this::toJsonNode).toList();
 
-            client.publishAttribute(entity, name.trim(), value, ttl, arguments);
+            registry.activeClient().publishAttribute(entity, name.trim(), value, ttl, arguments);
 
             publishNameField.clear();
             publishValueField.clear();
@@ -258,7 +275,7 @@ public class AttributesView extends VerticalLayout {
     private void searchAllAttributes() {
         grid.setItems(query -> {
             try {
-                var page = client.getAllAttributes(query.getLimit(), query.getOffset());
+                var page = registry.activeClient().getAllAttributes(query.getLimit(), query.getOffset());
                 if (query.getOffset() == 0 && page.isEmpty()) {
                     Notification.show(MESSAGE_NO_ATTRIBUTES_FOUND);
                 }
@@ -275,7 +292,7 @@ public class AttributesView extends VerticalLayout {
     private void searchByName(String entity, String name) {
         var arguments = splitArguments(argumentsField.getValue());
 
-        var value = client.getAttribute(entity, name.trim(), arguments);
+        var value = registry.activeClient().getAttribute(entity, name.trim(), arguments);
         if (value.isPresent()) {
             grid.setItems(List.of(Map.of(COLUMN_NAME_ENTITY, entity == null ? "" : entity, COLUMN_NAME_NAME,
                     name.trim(), COLUMN_NAME_ARGUMENTS, arguments, COLUMN_NAME_VALUE, value.get())));
@@ -287,7 +304,8 @@ public class AttributesView extends VerticalLayout {
 
     private void deleteItem(String entity, String name, List<String> arguments) {
         try {
-            if (client.deleteAttribute(entity, name, arguments) == AttributeApiClient.DeleteOutput.DELETED) {
+            if (registry.activeClient().deleteAttribute(entity, name,
+                    arguments) == AttributeApiClient.DeleteOutput.DELETED) {
                 search();
             }
         } catch (RuntimeException e) {
