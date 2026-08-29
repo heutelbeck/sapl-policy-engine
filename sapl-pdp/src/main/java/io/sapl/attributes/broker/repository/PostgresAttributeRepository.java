@@ -56,7 +56,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
     private static final String WARN_TTL_CLEANUP                    = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
             + "or grant right to the user. Expired attributes will still be filtered"
-            + "at query time but Postgres-side cleanup will not happen: {}";
+            + "at query time but Postgres-side cleanup will not happen for pdp with id {} : {}";
     private static final String CREATE_TABLE_SQL                    = """
             CREATE TABLE IF NOT EXISTS {table} (
                   id         BIGINT      GENERATED ALWAYS AS IDENTITY,
