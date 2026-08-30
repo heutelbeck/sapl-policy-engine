@@ -20,6 +20,7 @@ package io.sapl.pdp.configuration;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ObjectValue;
@@ -32,10 +33,20 @@ import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEven
 import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.retry.Retry;
 
 @Slf4j
 public class RoutingAttributeRepository implements AttributeRepository {
-    private static final String ERROR_ATTRIBUTE_REPOSITORY_CONFIG = "Failed to apply attributeRepository configuration for pdpId '{}' (configurationId '{}'): {}. The previous configuration for this pdpId, if any, remains active.";
+    private static final String ERROR_ATTRIBUTE_REPOSITORY_CONFIG  = "Failed to apply attributeRepository configuration for pdpId '{}' (configurationId '{}'): {}. The previous configuration for this pdpId, if any, remains active.";
+    private static final String ERROR_ATTRIBUTE_REPOSITORY_CLOSED  = "Couldn't connect to repository with pdp id {} and configuration id {}: {}.";
+    private static final String WARN_RETRYING_ATTRIBUTE_REPOSITORY = "Retrying to connect to the repository for pdp with id {} and configuration id {}: {}.";
+
+    // Retry Logic
+    private static final Duration RETRY_FIRST_BACKOFF = Duration.ofSeconds(1);
+    private static final Duration RETRY_MAX_BACKOFF   = Duration.ofSeconds(30);
 
     // Shared fallback for observe() on an unknown configId. One instance for the whole process
     // lifetime, not one per call - InMemoryAttributeRepository starts a scheduler thread in its
@@ -46,34 +57,31 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private final ConcurrentHashMap<String, AttributeRepository> cache       = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String>              pdpToConfig = new ConcurrentHashMap<>();
 
+    // Retry Logic
+    private final ConcurrentHashMap<String, Disposable> pendingBuilds = new ConcurrentHashMap<>();
+    private final AtomicBoolean                         closed        = new AtomicBoolean(false);
+
     public RoutingAttributeRepository(PDPConfigurationSource source) {
-        // Register the repository to the config change and removes the old repository
+        // Register the repository during a config change and removes the old repository
         source.subscribe(event -> {
             if (event instanceof ConfigurationEvent.NewConfiguration(io.sapl.api.pdp.configuration.PDPConfiguration configuration)) {
                 val pdpId    = configuration.pdpId();
                 val configId = configuration.configurationId();
                 val repoNode = configuration.data().secrets().get("attributeRepository");
 
-                // Build (or reuse) the repository for this configId BEFORE touching
-                // pdpToConfig/evicting the old entry. If construction fails (e.g. an
-                // unsupported attributeRepository.type), this pdpId must keep pointing
-                // at whatever it pointed at before - not silently fall back to the
-                // shared EMPTY_REPOSITORY, and not lose its previous, working repository.
                 try {
-                    cache.computeIfAbsent(configId, k -> createRepository(repoNode, pdpId));
+                    if (cache.containsKey(configId)) {
+                        route(pdpId, configId);
+                    } else if (!pendingBuilds.containsKey(configId)) {
+                        buildWithRetry(pdpId, configId, repoNode);
+                    }
                 } catch (RuntimeException failure) {
                     log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
                     return;
                 }
-
-                val oldConfigId = pdpToConfig.put(pdpId, configId);
-
-                if (oldConfigId != null && !oldConfigId.equals(configId)) {
-                    Optional.ofNullable(cache.remove(oldConfigId)).ifPresent(AttributeRepository::close);
-                }
             } else if (event instanceof ConfigurationEvent.ConfigurationRemoved(String pdpId)) {
-
                 val configId = pdpToConfig.remove(pdpId);
+                Optional.ofNullable(pendingBuilds.remove(configId)).ifPresent(Disposable::dispose);
                 Optional.ofNullable(cache.remove(configId)).ifPresent(AttributeRepository::close);
             }
         });
@@ -111,6 +119,41 @@ public class RoutingAttributeRepository implements AttributeRepository {
 
     @Override
     public void close() {
+        closed.set(true);
+        pendingBuilds.values().forEach(Disposable::dispose);
+        pendingBuilds.clear();
         cache.values().forEach(AttributeRepository::close);
+    }
+
+    // Retries to connect the repository if the configuration is still loading
+    private void buildWithRetry(String pdpId, String configId, Value repoNode) {
+        val disposable = Mono.fromCallable(() -> createRepository(repoNode, pdpId))
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, RETRY_FIRST_BACKOFF).maxBackoff(RETRY_MAX_BACKOFF)
+                        .scheduler(Schedulers.boundedElastic()).filter(failure -> !closed.get())
+                        .doBeforeRetry(signal -> log.warn(WARN_RETRYING_ATTRIBUTE_REPOSITORY, pdpId, configId,
+                                signal.failure().getMessage())))
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(repository -> onRepositoryBuilt(pdpId, configId, repository),
+                        failure -> log.error(ERROR_ATTRIBUTE_REPOSITORY_CLOSED, pdpId, configId, failure.getMessage()));
+        pendingBuilds.put(configId, disposable);
+    }
+
+    // Repository creation was successful
+    private void onRepositoryBuilt(String pdpId, String configId, AttributeRepository repository) {
+        pendingBuilds.remove(configId);
+        if (closed.get()) {
+            repository.close();
+            return;
+        }
+        cache.put(configId, repository);
+        route(pdpId, configId);
+    }
+
+    // Route to the right configuration id and clean up old ones
+    private void route(String pdpId, String configId) {
+        val oldConfigId = pdpToConfig.put(pdpId, configId);
+        if (oldConfigId != null && !oldConfigId.equals(configId)) {
+            Optional.ofNullable(cache.remove(oldConfigId)).ifPresent(AttributeRepository::close);
+        }
     }
 }
