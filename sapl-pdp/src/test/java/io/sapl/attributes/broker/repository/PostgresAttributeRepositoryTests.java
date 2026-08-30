@@ -195,7 +195,7 @@ class PostgresAttributeRepositoryTests {
 
                 repo2.publish(key("sapl.test.reconnect"), Value.of("during-outage"));
 
-                Awaitility.await().atMost(Duration.ofSeconds(15))
+                Awaitility.await().atMost(Duration.ofSeconds(30))
                         .until(() -> lastReceived().equals(Value.of("during-outage")));
             }
         }

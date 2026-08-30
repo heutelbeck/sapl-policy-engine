@@ -67,7 +67,7 @@ public class AttributesView extends VerticalLayout {
     private static final String MESSAGE_NO_ATTRIBUTE_FOUND_FOR_NAME_PREFIX = "No attribute found for name '";
 
     // The registry of the stored connections for this session
-    private ConnectionRegistry registry;
+    private transient ConnectionRegistry registry;
 
     // Search fields
     private final TextField entityField    = new TextField();
@@ -80,9 +80,6 @@ public class AttributesView extends VerticalLayout {
     private final TextField    publishValueField     = new TextField();
     private final IntegerField publishTtlField       = new IntegerField();
     private final TextField    publishArgumentsField = new TextField();
-
-    // Connection fields
-    private final ComboBox<SavedConnection> savedConnectionComboBox = new ComboBox<SavedConnection>("Connection");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -203,6 +200,7 @@ public class AttributesView extends VerticalLayout {
                 "var(--lumo-font-size-s)");
 
         // Saved connections
+        ComboBox<SavedConnection> savedConnectionComboBox = new ComboBox<SavedConnection>("Connection");
         savedConnectionComboBox.setItemLabelGenerator(SavedConnection::name);
         savedConnectionComboBox.setItems(registry.getSavedConnection());
         savedConnectionComboBox.setValue(registry.getActiveConnection());
