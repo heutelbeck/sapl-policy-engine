@@ -19,8 +19,10 @@ package io.sapl.pdp.configuration;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ObjectValue;
@@ -43,48 +45,29 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private static final String ERROR_ATTRIBUTE_REPOSITORY_CONFIG  = "Failed to apply attributeRepository configuration for pdpId '{}' (configurationId '{}'): {}. The previous configuration for this pdpId, if any, remains active.";
     private static final String ERROR_ATTRIBUTE_REPOSITORY_CLOSED  = "Couldn't connect to repository with pdp id {} and configuration id {}: {}.";
     private static final String WARN_RETRYING_ATTRIBUTE_REPOSITORY = "Retrying to connect to the repository for pdp with id {} and configuration id {}: {}.";
+    private static final String ERROR_REPOSITORY_STILL_BUILDING    = "Attribute Repository for configuration with id '%s' is still connecting.";
+    private static final String ERROR_REPOSITORY_UNKNOWN           = "Attribute Repository for configuration with id '%s' is unknown.";
 
-    // Retry Logic
+    // Retry logic timeouts
     private static final Duration RETRY_FIRST_BACKOFF = Duration.ofSeconds(1);
     private static final Duration RETRY_MAX_BACKOFF   = Duration.ofSeconds(30);
-
-    // Shared fallback for observe() on an unknown configId. One instance for the whole process
-    // lifetime, not one per call - InMemoryAttributeRepository starts a scheduler thread in its
-    // constructor, so Map.getOrDefault(..., new InMemoryAttributeRepository()) would leak a
-    // thread on every call because getOrDefault evaluates its default argument eagerly.
-    private static final AttributeRepository EMPTY_REPOSITORY = new InMemoryAttributeRepository();
 
     private final ConcurrentHashMap<String, AttributeRepository> cache       = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String>              pdpToConfig = new ConcurrentHashMap<>();
 
     // Retry Logic
-    private final ConcurrentHashMap<String, Disposable> pendingBuilds = new ConcurrentHashMap<>();
-    private final AtomicBoolean                         closed        = new AtomicBoolean(false);
+    private final ConcurrentHashMap<String, Disposable>              pendingBuilds       = new ConcurrentHashMap<>();
+    private final AtomicBoolean                                      closed              = new AtomicBoolean(false);
+    private final ConcurrentHashMap<String, Set<PendingObservation>> waitingObservations = new ConcurrentHashMap<>();
+
+    private record PendingObservation(
+            AttributeFinderInvocation inv,
+            Consumer<Value> onValue,
+            AtomicReference<Registration> liveRegistration) {}
 
     public RoutingAttributeRepository(PDPConfigurationSource source) {
         // Register the repository during a config change and removes the old repository
-        source.subscribe(event -> {
-            if (event instanceof ConfigurationEvent.NewConfiguration(io.sapl.api.pdp.configuration.PDPConfiguration configuration)) {
-                val pdpId    = configuration.pdpId();
-                val configId = configuration.configurationId();
-                val repoNode = configuration.data().secrets().get("attributeRepository");
-
-                try {
-                    if (cache.containsKey(configId)) {
-                        route(pdpId, configId);
-                    } else if (!pendingBuilds.containsKey(configId)) {
-                        buildWithRetry(pdpId, configId, repoNode);
-                    }
-                } catch (RuntimeException failure) {
-                    log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
-                    return;
-                }
-            } else if (event instanceof ConfigurationEvent.ConfigurationRemoved(String pdpId)) {
-                val configId = pdpToConfig.remove(pdpId);
-                Optional.ofNullable(pendingBuilds.remove(configId)).ifPresent(Disposable::dispose);
-                Optional.ofNullable(cache.remove(configId)).ifPresent(AttributeRepository::close);
-            }
-        });
+        source.subscribe(this::handleConfigurationEvent);
     }
 
     private static AttributeRepository createRepository(Value repoNode, String pdpId) {
@@ -96,24 +79,39 @@ public class RoutingAttributeRepository implements AttributeRepository {
 
     @Override
     public Registration observe(@NonNull AttributeFinderInvocation inv, @NonNull Consumer<Value> onValue) {
-        return cache.getOrDefault(inv.configurationId(), EMPTY_REPOSITORY).observe(inv, onValue);
+        val configId   = inv.configurationId();
+        val repository = cache.get(configId);
+        if (repository != null) {
+            return repository.observe(inv, onValue);
+        }
+
+        val message = pendingBuilds.containsKey(configId) ? ERROR_REPOSITORY_STILL_BUILDING.formatted(configId)
+                : ERROR_REPOSITORY_UNKNOWN.formatted(configId);
+        onValue.accept(Value.error(message));
+
+        val liveRegistration = new AtomicReference<Registration>();
+        val pending          = new PendingObservation(inv, onValue, liveRegistration);
+        waitingObservations.computeIfAbsent(configId, k -> ConcurrentHashMap.newKeySet()).add(pending);
+
+        return () -> {
+            Optional.ofNullable(waitingObservations.get(configId)).ifPresent(set -> set.remove(pending));
+            Optional.ofNullable(liveRegistration.getAndSet(null)).ifPresent(Registration::close);
+        };
     }
 
+    // RoutingAttributeRepository is only there to support routing for observe
     @Override
     public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
-        // RoutingAttributeRepository is only there to support routing for observe
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
-        // RoutingAttributeRepository is only there to support routing for observe
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void remove(@NonNull RepositoryKey key) {
-        // RoutingAttributeRepository is only there to support routing for observe
         throw new UnsupportedOperationException();
     }
 
@@ -147,6 +145,12 @@ public class RoutingAttributeRepository implements AttributeRepository {
         }
         cache.put(configId, repository);
         route(pdpId, configId);
+
+        val waiting = waitingObservations.remove(configId);
+        if (waiting != null) {
+            waiting.forEach(
+                    pending -> pending.liveRegistration().set(repository.observe(pending.inv(), pending.onValue())));
+        }
     }
 
     // Route to the right configuration id and clean up old ones
@@ -154,6 +158,37 @@ public class RoutingAttributeRepository implements AttributeRepository {
         val oldConfigId = pdpToConfig.put(pdpId, configId);
         if (oldConfigId != null && !oldConfigId.equals(configId)) {
             Optional.ofNullable(cache.remove(oldConfigId)).ifPresent(AttributeRepository::close);
+        }
+    }
+
+    private void handleConfigurationEvent(ConfigurationEvent event) {
+        switch (event) {
+        case ConfigurationEvent.NewConfiguration(var configuration) -> {
+            val pdpId    = configuration.pdpId();
+            val configId = configuration.configurationId();
+            val repoNode = configuration.data().secrets().get("attributeRepository");
+
+            try {
+                if (cache.containsKey(configId)) {
+                    route(pdpId, configId);
+                } else if (!pendingBuilds.containsKey(configId)) {
+                    buildWithRetry(pdpId, configId, repoNode);
+                }
+            } catch (RuntimeException failure) {
+                log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
+            }
+        }
+
+        case ConfigurationEvent.ConfigurationRemoved(var pdpId) -> {
+            val configId = pdpToConfig.remove(pdpId);
+            Optional.ofNullable(pendingBuilds.remove(configId)).ifPresent(Disposable::dispose);
+            Optional.ofNullable(cache.remove(configId)).ifPresent(AttributeRepository::close);
+        }
+
+        case ConfigurationEvent.ConfigurationError(var pdpId, var reason) -> { /* ignored during startup / building */ }
+
+        case ConfigurationEvent.ConfigurationExpired(var pdpId, var reason) ->
+            { /* ignored during startup / building */ }
         }
     }
 }

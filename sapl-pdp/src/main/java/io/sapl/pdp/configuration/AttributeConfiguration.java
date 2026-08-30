@@ -23,8 +23,10 @@ import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
+import io.sapl.pdp.configuration.source.ReplayingPDPConfigurationSource;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +38,33 @@ import java.util.Arrays;
 @Slf4j
 @Configuration
 public class AttributeConfiguration {
+
+    private static final String PDP_CONFIGURATION_SOURCE_BEAN_NAME = "pdpConfigurationSource";
+
+    // Ensures every subscriber of the shared pdpConfigurationSource bean - not only
+    // the first one to call subscribe() - sees at least the last known configuration
+    // per pdpId. Without this, PdpVoterSource (upstream, PDPAutoConfiguration) and
+    // RoutingAttributeRepository race for the replay-once-to-first-subscriber slot
+    // that all PDPConfigurationSource implementations grant; whichever loses stays
+    // empty until an unrelated file-system/bundle change fires a fresh event.
+    //
+    // static is required: BeanPostProcessor @Bean methods are processed specially
+    // early by Spring. Without static, this @Configuration class itself would be
+    // instantiated too early, before other BeanPostProcessors are registered correctly.
+    @Bean
+    static BeanPostProcessor pdpConfigurationSourceReplayPostProcessor() {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) {
+                if (PDP_CONFIGURATION_SOURCE_BEAN_NAME.equals(beanName)
+                        && bean instanceof PDPConfigurationSource source) {
+                    return new ReplayingPDPConfigurationSource(source);
+                }
+                return bean;
+            }
+        };
+    }
+
     @Bean
     @Primary
     AttributeRepository attributeRepository(PDPConfigurationSource source) {
