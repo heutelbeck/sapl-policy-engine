@@ -46,11 +46,13 @@ import java.util.concurrent.TimeUnit;
 import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 
 /**
- * Factory class to build a specific attribute repository using the interface {@link io.sapl.attributes.broker.AttributeRepository}.
+ * Factory class to build a specific attribute repository using the interface
+ * {@link io.sapl.attributes.broker.AttributeRepository}.
  * The current versions supports are MongoDB, Postgres or Redis supporting repository. This class is called by
  * {@link RoutingAttributeRepository} once per pdp id (tenant) whenever a new configuration for that tenant arrives.
  * <p>
  * The class validates all fields to build the repository that are given in the configuration block of a pdp.
+ *
  * @since 4.2.0
  */
 @UtilityClass
@@ -85,16 +87,17 @@ public class AttributeRepositoryFactory {
 
     /**
      * Creates the specific {@code AttributeRepository} from a configuration for a specific pdp id.
+     *
      * @param config The given configuration block to build the attribute repository.
      * @param pdpId The pdp id that the repository is built for.
      * @return a {@code PostgresAttributeRepository}, {@code MongoAttributeRepository},
-	 * or {@code RedisAttributeRepository}, chosen by {@code config} {@code type}
-	 * field ({@code postgres}/{@code mongo}/{@code redis}).
-	 * @throws IllegalStateException if {@code type} is missing or not one of the
-	 * supported values, or if a name field (e.g. {@code tableName}) does not
-	 * match the required identifier pattern.
-	 * @throws NullPointerException if a required field for the resolved backend
-	 * type (e.g. {@code host}, {@code port}, {@code username}) is missing.
+     * or {@code RedisAttributeRepository}, chosen by {@code config} {@code type}
+     * field ({@code postgres}/{@code mongo}/{@code redis}).
+     * @throws IllegalStateException if {@code type} is missing or not one of the
+     * supported values, or if a name field (e.g. {@code tableName}) does not
+     * match the required identifier pattern.
+     * @throws NullPointerException if a required field for the resolved backend
+     * type (e.g. {@code host}, {@code port}, {@code username}) is missing.
      */
     public AttributeRepository create(ObjectValue config, String pdpId) {
         PdpIdValidator.validatePdpId(pdpId);
@@ -108,9 +111,9 @@ public class AttributeRepositoryFactory {
         }
 
         return switch (repositoryType) {
-        	case POSTGRES -> createPostgresRepository(config, pdpId);
-        	case MONGO    -> createMongoRepository(config, pdpId);
-        	case REDIS    -> createRedisRepository(config, pdpId);
+        case POSTGRES -> createPostgresRepository(config, pdpId);
+        case MONGO    -> createMongoRepository(config, pdpId);
+        case REDIS    -> createRedisRepository(config, pdpId);
         };
     }
 

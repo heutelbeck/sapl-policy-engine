@@ -48,7 +48,7 @@ import java.util.Arrays;
 public class AttributeConfiguration {
 
     private static final String PDP_CONFIGURATION_SOURCE_BEAN_NAME = "pdpConfigurationSource";
-    
+
     /**
      * @Primay because the {@code PDPAutoConfiguration} also defines an AttributeRepository bean.
      * Without @Primary, injecting an AttributeRepository would be ambiguous.
@@ -62,11 +62,13 @@ public class AttributeConfiguration {
     }
 
     /**
-     * Wires all Spring beans that are annotated with @PolicyInformationPoint and wires them 
+     * Wires all Spring beans that are annotated with @PolicyInformationPoint and wires them
      * also into the broker with the RoutingAttributeRepository as fallback.
+     *
      * @param repository The fallback repository
-     * @param ctx 
-     * @return The concrete PoliyInformationPointAttributeBroker to override the bean from the auto configuration and avoid duplicates.
+     * @param ctx
+     * @return The concrete PoliyInformationPointAttributeBroker to override the bean from the auto configuration and
+     * avoid duplicates.
      */
     @Bean
     PolicyInformationPointAttributeBroker attributeBroker(AttributeRepository repository, ApplicationContext ctx) {
@@ -76,11 +78,12 @@ public class AttributeConfiguration {
         return PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker(Clock.systemUTC(),
                 JsonMapper.builder().build(), true, pipBeans, repository);
     }
-    
+
     /**
      * Wraps the shared pdpConfigurationSource bean so every subscriber sees atleas the last known event per pdp id.
      * Avoids that the first subscriber only sees the event. Static is needed because @Bean methods by BeanPostProcessor
      * are built early by Spring. Without static this config class would be instantiated too early.
+     *
      * @return The BeanPostProcessor used by this configuration
      */
     @Bean
@@ -96,7 +99,7 @@ public class AttributeConfiguration {
             }
         };
     }
-    
+
     // Builds an own object mapper for Spring that is missed because of the
     // @ConditionalOnMissingBean override.
     @Bean
