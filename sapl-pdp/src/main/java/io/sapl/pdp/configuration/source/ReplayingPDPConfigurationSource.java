@@ -26,9 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
- * Decorator that wraps a {@link io.sapl.pdp.configuration.PDPConfigurationSource
- * PDPConfigurationSource} and replays the last known configuration event for every
- * {@code pdpId} to each new subscriber.
+ * Decorator that wraps a {@link io.sapl.pdp.configuration.source.PDPConfigurationSource}
+ * and replays the last known configuration event for every {@code pdpId} to each new subscriber.
  * <p>
  * Every {@code PDPConfigurationSource} grants a guarantee to replay all events on the
  * first subscribe. Without this decorator, two independent consumers of the shared
@@ -52,7 +51,7 @@ public final class ReplayingPDPConfigurationSource implements PDPConfigurationSo
      * decorator is constructed. This happens before any of it's own subscriber can register
      * themselves to this class.
      *
-     * @param Delegate the source to wrap.
+     * @param delegate the source to wrap.
      */
     public ReplayingPDPConfigurationSource(@NonNull PDPConfigurationSource delegate) {
         this.delegate = delegate;
@@ -74,7 +73,7 @@ public final class ReplayingPDPConfigurationSource implements PDPConfigurationSo
     /**
      * Removes a previously registered listener.
      *
-     * @param The listener to remove.
+     * @param listener The listener to remove.
      */
     @Override
     public void unsubscribe(@NonNull Consumer<ConfigurationEvent> listener) {
@@ -82,7 +81,7 @@ public final class ReplayingPDPConfigurationSource implements PDPConfigurationSo
     }
 
     /**
-     * Delegates to the wrapped {@link PDPConfigurationSource}
+     * Delegates to the wrapped {@link io.sapl.pdp.configuration.source.PDPConfigurationSource}
      *
      * @return {@code true} if the wrapped source is already closed.
      */
@@ -92,7 +91,7 @@ public final class ReplayingPDPConfigurationSource implements PDPConfigurationSo
     }
 
     /**
-     * Closes the wrapped {@link PDPConfigurationSource}
+     * Closes the wrapped {@link io.sapl.pdp.configuration.source.PDPConfigurationSource}
      */
     @Override
     public void close() throws Exception {
