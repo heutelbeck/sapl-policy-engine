@@ -40,14 +40,20 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-// Using R2DBC because it's reactive. JPA/Hibernate would block
-// R2DBC offers persistent DB connections. A consistent connection
-// is necessary because we need Postgres Pub/Sub
+/**
+ * Repository implementation that persists attributes in PostgreSQL and maintains an In-Memory representation
+ * by using the {@link InMemoryAttributeRepository} synchronized with PostgreSQL LISTEN/NOTIFY mechanism.
+ *
+ * The implementation sets all attribute to the state INDETERMINATE when a disconnect happens because LISTEN/NOTIFY
+ * needs a constant connection for the event stream. The current implementation performs a full re-sync when
+ * the connection is established again.
+ */
 @Slf4j
-
 public final class PostgresAttributeRepository implements AttributeRepository {
+    private static final String ERROR_BACKEND_DISCONNECTED          = "The backend is currently disconnected for pdp with id %s.";
     private static final String ERROR_HANDLE_NOTIFICATION           = "Error while handling attribute_changes notification for pdpId '{}'";
     private static final String WARN_RECONNECTING                   = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
     private static final String ERROR_RECONNECT_GIVEN_UP            = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
@@ -113,11 +119,9 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private final ConnectionFactory                     connectionFactory;
     private final ReentrantLock                         reloadLock = new ReentrantLock();
     private volatile boolean                            closed     = false;
-    // Set on the first failure of a reconnect episode, cleared on the next successful
-    // reconnect. RetryBackoffSpec has no elapsed-time cutoff of its own (only maxAttempts,
-    // which does not map cleanly onto "give up after 10 minutes"), so the deadline is
-    // tracked here and enforced via the filter below.
-    private final AtomicReference<Instant> reconnectDeadline = new AtomicReference<>();
+
+    // Set to true when trying to reconnect to the backend
+    private final AtomicBoolean disconnected = new AtomicBoolean(false);
 
     private final DatabaseClient client;
     private final String         pdpId;
@@ -177,16 +181,18 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private void connectAndListen() {
         establishConnection();
         Flux.defer(() -> connection.get().getNotifications()).mapNotNull(Notification::getParameter)
-                .publishOn(Schedulers.boundedElastic())
-                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
-                        .filter(throwable -> !closed
-                                && (reconnectDeadline.get() == null || Instant.now().isBefore(reconnectDeadline.get())))
-                        .doBeforeRetry(signal -> {
+                .publishOn(Schedulers.boundedElastic()).retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
+                        .maxBackoff(Duration.ofSeconds(30)).filter(throwable -> !closed).doBeforeRetry(signal -> {
                             log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-                            reconnectDeadline.compareAndSet(null, Instant.now().plus(Duration.ofMinutes(10)));
+                            if (disconnected.compareAndSet(false, true)) {
+                                for (var key : internalRepository.knownKeys()) {
+                                    internalRepository.publish(key,
+                                            Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
+                                }
+                            }
                             try {
                                 establishConnection();
-                                reconnectDeadline.set(null);
+                                disconnected.set(false);
                                 loadFromDB();
                             } catch (Exception e) {
                                 log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());

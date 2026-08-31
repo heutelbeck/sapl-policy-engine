@@ -40,6 +40,16 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
+/**
+ * A multi-tenant {@link AttributeRepository} that routes observe request's to the
+ * right backend repository configured for the pdp id (tenant). The repositories
+ * are built lazy during startup with a tolerance using a retry-with-backoff
+ * logic to reconnect. The class is just a routing facade and not a concrete
+ * repository implementation itself and only observe requests are routed to
+ * the concrete {@code AttributeRepository}.
+ * 
+ * @since 4.2.0
+ */
 @Slf4j
 public class RoutingAttributeRepository implements AttributeRepository {
     private static final String ERROR_ATTRIBUTE_REPOSITORY_CONFIG  = "Failed to apply attributeRepository configuration for pdpId '{}' (configurationId '{}'): {}. The previous configuration for this pdpId, if any, remains active.";
@@ -55,7 +65,9 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private final ConcurrentHashMap<String, AttributeRepository> cache       = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String>              pdpToConfig = new ConcurrentHashMap<>();
 
-    // Retry Logic
+    // Retry Logic: pendingBuild = not build yet, 
+    // closed = thread-safe indicator for an open/closed repository
+    // waitingObservations = cache request in case a repository is not done yet
     private final ConcurrentHashMap<String, Disposable>              pendingBuilds       = new ConcurrentHashMap<>();
     private final AtomicBoolean                                      closed              = new AtomicBoolean(false);
     private final ConcurrentHashMap<String, Set<PendingObservation>> waitingObservations = new ConcurrentHashMap<>();
@@ -65,18 +77,32 @@ public class RoutingAttributeRepository implements AttributeRepository {
             Consumer<Value> onValue,
             AtomicReference<Registration> liveRegistration) {}
 
+    /**
+     * Subscribes to {@code source} to get the pdp id (tenant) configuration
+     * as they are published. Building the actual backend repositories happens
+     * asynchronously as {@link PDPConfigurationSource.ConfigurationEvent}
+     * are received.
+     * @param source The configuration source to subscribe to.
+     */
     public RoutingAttributeRepository(PDPConfigurationSource source) {
-        // Register the repository during a config change and removes the old repository
         source.subscribe(this::handleConfigurationEvent);
     }
-
+    
+    // Builds the concrete repository from the given config block for the pdp id. Falls
+    // back to an InMemoryAttributeRepository if the tenant has no such block configured.
     private static AttributeRepository createRepository(Value repoNode, String pdpId) {
         if (repoNode instanceof ObjectValue obj) {
             return AttributeRepositoryFactory.create(obj, pdpId);
         }
         return new InMemoryAttributeRepository();
     }
-
+    
+    
+    /**
+     * Routes the invocation {@code inv} to the repository built for the right
+     * configuration id {@code inv.configurationId()}. Queues the invocation
+     * if the repository is unknown or not connected.
+     */
     @Override
     public Registration observe(@NonNull AttributeFinderInvocation inv, @NonNull Consumer<Value> onValue) {
         val configId   = inv.configurationId();
@@ -99,22 +125,37 @@ public class RoutingAttributeRepository implements AttributeRepository {
         };
     }
 
-    // RoutingAttributeRepository is only there to support routing for observe
+    /**
+     * Not supported. This class only routes {@link #observe} calls.
+     * @throws UnsupportedOperationException
+     */
     @Override
     public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
         throw new UnsupportedOperationException();
     }
-
+    
+    /**
+     * Not supported. This class only routes {@link #observe} calls.
+     * @throws UnsupportedOperationException
+     */
     @Override
     public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
         throw new UnsupportedOperationException();
     }
-
+    
+    /**
+     * Not supported. This class only routes {@link #observe} calls.
+     * @throws UnsupportedOperationException
+     */
     @Override
     public void remove(@NonNull RepositoryKey key) {
         throw new UnsupportedOperationException();
     }
-
+    
+    /**
+     * Set this router as closed and cancels every pending repository build
+     * and closes every cached backend repository.
+     */
     @Override
     public void close() {
         closed.set(true);
@@ -123,7 +164,9 @@ public class RoutingAttributeRepository implements AttributeRepository {
         cache.values().forEach(AttributeRepository::close);
     }
 
-    // Retries to connect the repository if the configuration is still loading
+    // Builds the repository aynchronously, using a retry-with-backoff to tolerate
+    // transient connection failures, that a slow connection never blocks  the
+    // configuration event processing.
     private void buildWithRetry(String pdpId, String configId, Value repoNode) {
         val disposable = Mono.fromCallable(() -> createRepository(repoNode, pdpId))
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, RETRY_FIRST_BACKOFF).maxBackoff(RETRY_MAX_BACKOFF)
@@ -136,13 +179,19 @@ public class RoutingAttributeRepository implements AttributeRepository {
         pendingBuilds.put(configId, disposable);
     }
 
-    // Repository creation was successful
+    // After the repository is built this method is called. Remove it from the pending builds, mark it as
+    // active, put it in the repository cache, route pdp id and config id and replays all observe calls
+    // that were missed during build time.
     private void onRepositoryBuilt(String pdpId, String configId, AttributeRepository repository) {
         pendingBuilds.remove(configId);
+        
+        // Closed the repository immediately if a closed() did run in the meantime.
+        // Discards the freshly built repository immediately instead of caching it.
         if (closed.get()) {
             repository.close();
             return;
         }
+        
         cache.put(configId, repository);
         route(pdpId, configId);
 
@@ -153,14 +202,20 @@ public class RoutingAttributeRepository implements AttributeRepository {
         }
     }
 
-    // Route to the right configuration id and clean up old ones
+    // Updates the routing information in case of configuration id change 
+    // e.g. secret changed. Closes the repository with the old config id
+    // and updates to the new one.
     private void route(String pdpId, String configId) {
         val oldConfigId = pdpToConfig.put(pdpId, configId);
         if (oldConfigId != null && !oldConfigId.equals(configId)) {
             Optional.ofNullable(cache.remove(oldConfigId)).ifPresent(AttributeRepository::close);
         }
     }
-
+    
+    // Reacts to the events received by the PDPConfigurationSource events. New configurations
+    // are either re-routed to an already built repository or a fresh build is started when
+    // the configuration id is seen the first time. Error or expired events are ignored on
+    // purpose to not tear down a repository working repository in case of a wrong configuration.
     private void handleConfigurationEvent(ConfigurationEvent event) {
         switch (event) {
         case ConfigurationEvent.NewConfiguration(var configuration) -> {

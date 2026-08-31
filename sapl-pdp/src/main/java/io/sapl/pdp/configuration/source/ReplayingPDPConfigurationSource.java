@@ -17,60 +17,85 @@
  */
 package io.sapl.pdp.configuration.source;
 
-import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
- * Wraps another {@link PDPConfigurationSource} and replays the last known
- * event for every pdpId to each new subscriber, not only the first one. The
- * wrapped source activates and starts monitoring exactly once - this
- * decorator is its sole subscriber - so every listener registered here sees
- * at least the most recently emitted state immediately upon subscribing,
- * regardless of registration order.
+ * Decorator that wraps a {@link io.sapl.pdp.configuration.PDPConfigurationSource
+ * PDPConfigurationSource} and replays the last known configuration event for every
+ * {@code pdpId} to each new subscriber.
+ * <p>
+ * Every {@code PDPConfigurationSource} grants a guarantee to replay all events on the
+ * first subscribe. Without this decorator, two independent consumers of the shared
+ * source bean {@code PdpVoterSource} and the {@code RoutingAttributeRepository} race
+ * for that single slot. Whoever loses the face stays empty until an unrelated file-system
+ * change or bundle change happens and fires a fresh event. This class avoids the race 
+ * problem by caching the event and replaying the event to every subscriber.
  */
 @Slf4j
 public final class ReplayingPDPConfigurationSource implements PDPConfigurationSource {
 
     private static final String WARN_LISTENER_THREW = "Configuration listener threw on event {}: {}.";
 
+    // The object that will be decorated
     private final PDPConfigurationSource delegate;
-
     private final Map<String, ConfigurationEvent>   lastEventByPdpId = new ConcurrentHashMap<>();
     private final Set<Consumer<ConfigurationEvent>> listeners        = ConcurrentHashMap.newKeySet();
-
+    
+    /**
+     * Subscribes to the {@code delegate}, so the replay cache can be filled as soon as this
+     * decorator is constructed. This happens before any of it's own subscriber can register
+     * themselves to this class.
+     * @param Delegate the source to wrap.
+     */
     public ReplayingPDPConfigurationSource(@NonNull PDPConfigurationSource delegate) {
         this.delegate = delegate;
         delegate.subscribe(this::onRawEvent);
     }
-
+    
+    /**
+     * Registers a listener and immediately replays the last known event for
+     * every PDP ID, allowing the listener to initialize its state.
+     * @param listener The listener to subscribe. Immediately receives a replay of every currently known event.
+     */
     @Override
     public void subscribe(@NonNull Consumer<ConfigurationEvent> listener) {
         listeners.add(listener);
         lastEventByPdpId.values().forEach(event -> safeAccept(listener, event));
     }
-
+    
+    /**
+     * Removes a previously registered listener.
+     * @param The listener to remove.
+     */
     @Override
     public void unsubscribe(@NonNull Consumer<ConfigurationEvent> listener) {
         listeners.remove(listener);
     }
-
+    
+    /**
+     * Delegates to the wrapped {@link PDPConfigurationSource}
+     * @return {@code true} if the wrapped source is already closed.
+     */
     @Override
     public boolean isClosed() {
         return delegate.isClosed();
     }
-
+    
+    /**
+     * Closes the wrapped {@link PDPConfigurationSource}
+     */
     @Override
     public void close() throws Exception {
         delegate.close();
     }
-
+    
+    // Saves the event that happened last and removes if it was a removed configuration.
     private void onRawEvent(ConfigurationEvent event) {
         val pdpId = pdpIdOf(event);
         if (event instanceof ConfigurationEvent.ConfigurationRemoved) {
@@ -80,23 +105,23 @@ public final class ReplayingPDPConfigurationSource implements PDPConfigurationSo
         }
         listeners.forEach(listener -> safeAccept(listener, event));
     }
-
+    
+    // Ensures that a failed event on one listener does not cause a failure for the others.
     private static void safeAccept(Consumer<ConfigurationEvent> listener, ConfigurationEvent event) {
         try {
             listener.accept(event);
         } catch (Exception e) {
-            // Isolate listeners: a throwing one must not skip the others or
-            // escape onto the delegate's monitoring thread.
             log.warn(WARN_LISTENER_THREW, event, e.getMessage());
         }
     }
-
+    
+    // Get the PDP id's for every event type.
     private static String pdpIdOf(ConfigurationEvent event) {
         return switch (event) {
-        case ConfigurationEvent.NewConfiguration(var configuration)          -> configuration.pdpId();
-        case ConfigurationEvent.ConfigurationRemoved(var pdpId)              -> pdpId;
-        case ConfigurationEvent.ConfigurationError(var pdpId, var ignored)   -> pdpId;
-        case ConfigurationEvent.ConfigurationExpired(var pdpId, var ignored) -> pdpId;
+	        case ConfigurationEvent.NewConfiguration(var configuration)          -> configuration.pdpId();
+	        case ConfigurationEvent.ConfigurationRemoved(var pdpId)              -> pdpId;
+	        case ConfigurationEvent.ConfigurationError(var pdpId, var ignored)   -> pdpId;
+	        case ConfigurationEvent.ConfigurationExpired(var pdpId, var ignored) -> pdpId;
         };
     }
 }

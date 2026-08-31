@@ -34,6 +34,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 import java.util.HashSet;
@@ -42,13 +43,23 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Repository implementation that persists attributes in MongoDB and maintains an In-Memory representation
+ * by using the {@link InMemoryAttributeRepository} synchronized with MongoDB change streams.
+ *
+ * The implementation sets all attribute to the state INDETERMINATE when a disconnect happens because the
+ * change streams need a constant connection for the event stream. The current implementation performs a full
+ * re-sync when the connection is established again.
+ */
 @Slf4j
-
 public final class MongoAttributeRepository implements AttributeRepository {
-    private static final String WARN_RECONNECTING        = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
-    private static final String ERROR_RECONNECT_GIVEN_UP = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
+    private static final String WARN_RECONNECTING          = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
+    private static final String ERROR_RECONNECT_GIVEN_UP   = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
+    private static final String ERROR_BACKEND_DISCONNECTED = "The backend is currently disconnected for pdp with id %s.";
+    private static final String ERROR_RESYNC_FAILED        = "Resync attempt failed for pdp with id '{}' : {}";
 
     private static final String FIELD_PDP_ID     = "pdpId";
     private static final String FIELD_NAME       = "name";
@@ -75,12 +86,11 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private final String                collection;
     private final String                pdpId;
 
-    // Set on the first failure of a reconnect episode, cleared on the next successful
-    // reconnect. RetryBackoffSpec has no elapsed-time cutoff of its own (only maxAttempts,
-    // which does not map cleanly onto "give up after 10 minutes"), so the deadline is
-    // tracked here and enforced via the filter below.
-    private final AtomicReference<Instant>    reconnectDeadline        = new AtomicReference<>();
+    // Used to mark cached attributes as unavailable while disconnected
+    private final AtomicBoolean               disconnected             = new AtomicBoolean(false);
     private final AtomicReference<Disposable> changeStreamSubscription = new AtomicReference<>();
+    private final AtomicReference<Disposable> resyncSubscription       = new AtomicReference<>();
+    private volatile boolean                  closed                   = false;
 
     public MongoAttributeRepository(ReactiveMongoTemplate mongo, String pdpId, String collection) {
         this.mongo              = mongo;
@@ -93,30 +103,45 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
     @Override
     public void close() {
+        closed = true;
         var subscription = changeStreamSubscription.get();
         if (subscription != null) {
             subscription.dispose();
         }
+        var resync = resyncSubscription.get();
+        if (resync != null) {
+            resync.dispose();
+        }
         internalRepository.close();
     }
 
-    // Requires MongoDB replica set (even a single-node rs works: --replSet rs0)
+    // The subscription to the change streams needs a MongoDB replica set activated.
+    // Replica sets are also working with a single and are used together with change streams
     private void subscribeToChangeStream() {
-        changeStreamSubscription.set(
-                openChangeStream().filter(this::matchesPdpId).publishOn(Schedulers.boundedElastic()).doOnNext(event -> {
-                    if (reconnectDeadline.getAndSet(null) != null) {
-                        loadFromDB();
-                    }
-                }).retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
-                        .filter(throwable -> reconnectDeadline.get() == null
-                                || Instant.now().isBefore(reconnectDeadline.get()))
-                        .doBeforeRetry(signal -> {
+        changeStreamSubscription.set(openChangeStream().filter(this::matchesPdpId)
+                .publishOn(Schedulers.boundedElastic()).retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
+                        .maxBackoff(Duration.ofSeconds(30)).filter(throwable -> !closed).doBeforeRetry(signal -> {
                             log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-                            reconnectDeadline.compareAndSet(null, Instant.now().plus(Duration.ofMinutes(10)));
-                        })).subscribe(this::handleChangeStreamEvent,
-                                error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
+                            if (disconnected.compareAndSet(false, true)) {
+                                for (var key : internalRepository.knownKeys()) {
+                                    internalRepository.publish(key,
+                                            Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
+                                }
+                                resyncWithRetry();
+                            }
+                        }))
+                .subscribe(this::handleChangeStreamEvent, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
     }
 
+    private void resyncWithRetry() {
+        resyncSubscription.set(Mono.fromRunnable(this::loadFromDB)
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
+                        .scheduler(Schedulers.boundedElastic()).filter(throwable -> !closed))
+                .doOnSuccess(v -> disconnected.set(false)).subscribeOn(Schedulers.boundedElastic())
+                .subscribe(v -> {}, error -> log.error(ERROR_RESYNC_FAILED, pdpId, error.getMessage())));
+    }
+
+    // Opens the change stream when the first subscription is happening
     private Flux<ChangeStreamEvent<Document>> openChangeStream() {
         return Flux.defer(() -> mongo.changeStream(Document.class)
                 .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP))
@@ -174,6 +199,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
         return dateField != null ? dateField.toInstant() : null;
     }
 
+    // Loads all attributes from the backend again. Adds current keys and removes stale keys
     private void loadFromDB() {
         var query    = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
         var seenKeys = new HashSet<RepositoryKey>();

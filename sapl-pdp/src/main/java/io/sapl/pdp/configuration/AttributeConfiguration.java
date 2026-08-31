@@ -19,8 +19,8 @@ package io.sapl.pdp.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.attributes.PolicyInformationPoint;
-import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import io.sapl.pdp.configuration.source.ReplayingPDPConfigurationSource;
@@ -35,22 +35,54 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Clock;
 import java.util.Arrays;
 
+/**
+ * Configuration for the attribute repository layer withing the PDP. Overrides
+ * three beans that {@code PDPAutoconfiguration} ({@code sapl-spring-pdp}) would
+ * provide by default. Ensures that the {@code sapl-node} is using this multi-tenant
+ * and multi-backend configuration instead of a single InMemoryRepository.
+ * <p>
+ * This class can be replaced or set as default as soon as it's accepted into master.
+ */
 @Slf4j
 @Configuration
 public class AttributeConfiguration {
 
     private static final String PDP_CONFIGURATION_SOURCE_BEAN_NAME = "pdpConfigurationSource";
+    
+    /**
+     * @Primay because the {@code PDPAutoConfiguration} also defines an AttributeRepository bean.
+     * Without @Primary, injecting an AttributeRepository would be ambiguous.
+     * @param source The given configuration source.
+     * @return An attribute repository.
+     */
+    @Bean
+    @Primary
+    AttributeRepository attributeRepository(PDPConfigurationSource source) {
+        return new RoutingAttributeRepository(source);
+    }
 
-    // Ensures every subscriber of the shared pdpConfigurationSource bean - not only
-    // the first one to call subscribe() - sees at least the last known configuration
-    // per pdpId. Without this, PdpVoterSource (upstream, PDPAutoConfiguration) and
-    // RoutingAttributeRepository race for the replay-once-to-first-subscriber slot
-    // that all PDPConfigurationSource implementations grant; whichever loses stays
-    // empty until an unrelated file-system/bundle change fires a fresh event.
-    //
-    // static is required: BeanPostProcessor @Bean methods are processed specially
-    // early by Spring. Without static, this @Configuration class itself would be
-    // instantiated too early, before other BeanPostProcessors are registered correctly.
+    /**
+     * Wires all Spring beans that are annotated with @PolicyInformationPoint and wires them 
+     * also into the broker with the RoutingAttributeRepository as fallback.
+     * @param repository The fallback repository
+     * @param ctx 
+     * @return The concrete PoliyInformationPointAttributeBroker to override the bean from the auto configuration and avoid duplicates.
+     */
+    @Bean
+    PolicyInformationPointAttributeBroker attributeBroker(AttributeRepository repository, ApplicationContext ctx) {
+        val pipBeans = Arrays.stream(ctx.getBeanNamesForAnnotation(PolicyInformationPoint.class)).map(ctx::getBean)
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+
+        return PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker(Clock.systemUTC(),
+                JsonMapper.builder().build(), true, pipBeans, repository);
+    }
+    
+    /**
+     * Wraps the shared pdpConfigurationSource bean so every subscriber sees atleas the last known event per pdp id.
+     * Avoids that the first subscriber only sees the event. Static is needed because @Bean methods by BeanPostProcessor
+     * are built early by Spring. Without static this config class would be instantiated too early.
+     * @return The BeanPostProcessor used by this configuration
+     */
     @Bean
     static BeanPostProcessor pdpConfigurationSourceReplayPostProcessor() {
         return new BeanPostProcessor() {
@@ -64,23 +96,9 @@ public class AttributeConfiguration {
             }
         };
     }
-
-    @Bean
-    @Primary
-    AttributeRepository attributeRepository(PDPConfigurationSource source) {
-        return new RoutingAttributeRepository(source);
-    }
-
-    // the broker bean to load all PIP's annotated with PolicyInformationPoint
-    @Bean
-    AttributeBroker attributeBroker(AttributeRepository repository, ApplicationContext ctx) {
-        val pipBeans = Arrays.stream(ctx.getBeanNamesForAnnotation(PolicyInformationPoint.class)).map(ctx::getBean)
-                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
-
-        return PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker(Clock.systemUTC(),
-                JsonMapper.builder().build(), true, pipBeans, repository);
-    }
-
+    
+    // Builds an own object mapper for Spring that is missed because of the
+    // @ConditionalOnMissingBean override.
     @Bean
     ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();

@@ -18,6 +18,7 @@
 package io.sapl.pdp.configuration;
 
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.reactivestreams.client.MongoClients;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
@@ -40,9 +41,18 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static io.r2dbc.spi.ConnectionFactoryOptions.*;
 
+/**
+ * Factory class to build a specific attribute repository using the interface {@link io.sapl.attributes.broker.AttributeRepository}.
+ * The current versions supports are MongoDB, Postgres or Redis supporting repository. This class is called by
+ * {@link RoutingAttributeRepository} once per pdp id (tenant) whenever a new configuration for that tenant arrives.
+ * <p>
+ * The class validates all fields to build the repository that are given in the configuration block of a pdp.
+ * @since 4.2.0
+ */
 @UtilityClass
 public class AttributeRepositoryFactory {
     private static final String ERROR_INVALID_IDENTIFIER        = "attributeRepository.%s='%s' for pdpId '%s' is invalid. "
@@ -73,8 +83,19 @@ public class AttributeRepositoryFactory {
         REDIS;
     }
 
-    // yield --> value goes back from a case to the switch expression and not "outside" the method like a return.
-    // config, pdpId parameter is set via AttributeConfiguration class
+    /**
+     * Creates the specific {@code AttributeRepository} from a configuration for a specific pdp id.
+     * @param config The given configuration block to build the attribute repository.
+     * @param pdpId The pdp id that the repository is built for.
+     * @return a {@code PostgresAttributeRepository}, {@code MongoAttributeRepository},
+	 * or {@code RedisAttributeRepository}, chosen by {@code config} {@code type}
+	 * field ({@code postgres}/{@code mongo}/{@code redis}).
+	 * @throws IllegalStateException if {@code type} is missing or not one of the
+	 * supported values, or if a name field (e.g. {@code tableName}) does not
+	 * match the required identifier pattern.
+	 * @throws NullPointerException if a required field for the resolved backend
+	 * type (e.g. {@code host}, {@code port}, {@code username}) is missing.
+     */
     public AttributeRepository create(ObjectValue config, String pdpId) {
         PdpIdValidator.validatePdpId(pdpId);
         val type = stringValue(config, TYPE_FIELD);
@@ -87,9 +108,9 @@ public class AttributeRepositoryFactory {
         }
 
         return switch (repositoryType) {
-        case POSTGRES -> createPostgresRepository(config, pdpId);
-        case MONGO    -> createMongoRepository(config, pdpId);
-        case REDIS    -> createRedisRepository(config, pdpId);
+        	case POSTGRES -> createPostgresRepository(config, pdpId);
+        	case MONGO    -> createMongoRepository(config, pdpId);
+        	case REDIS    -> createRedisRepository(config, pdpId);
         };
     }
 
@@ -134,10 +155,11 @@ public class AttributeRepositoryFactory {
         val authSourceQuery = hasCredentials ? "?authSource=" + effectiveAuthDb : "";
         val cs              = new ConnectionString(
                 "mongodb://" + credentials + host + ":" + port + "/" + database + authSourceQuery);
+        val clientSettings  = MongoClientSettings.builder().applyConnectionString(cs)
+                .applyToClusterSettings(b -> b.serverSelectionTimeout(5, TimeUnit.SECONDS)).build();
 
-        return new MongoAttributeRepository(
-                new ReactiveMongoTemplate(MongoClients.create(cs), Objects.requireNonNull(cs.getDatabase())), pdpId,
-                collection);
+        return new MongoAttributeRepository(new ReactiveMongoTemplate(MongoClients.create(clientSettings),
+                Objects.requireNonNull(cs.getDatabase())), pdpId, collection);
     }
 
     private AttributeRepository createRedisRepository(ObjectValue config, String pdpId) {

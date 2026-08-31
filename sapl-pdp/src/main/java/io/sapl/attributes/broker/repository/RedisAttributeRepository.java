@@ -42,8 +42,17 @@ import io.lettuce.core.RedisConnectionStateListener;
 import io.lettuce.core.RedisChannelHandler;
 import java.net.SocketAddress;
 
+/**
+ * Repository implementation that persists attributes in Redis and handles change event happening in the repository
+ * by using Redis Pub/Sub.
+ *
+ * The implementation sets all attribute to the state INDETERMINATE when a disconnect happens because
+ * Redis Pub/Sub need a constant connection for the event stream and Redis keys are always requested
+ * online.
+ */
 @Slf4j
 public final class RedisAttributeRepository implements AttributeRepository {
+    private static final String ERROR_BACKEND_DISCONNECTED       = "The backend is currently disconnected for pdp with id %s.";
     private static final String ERROR_TTL_NOT_POSITIVE           = "TTL must be a strictly positive Duration.";
     private static final String ERROR_CLOSED                     = "Repository is closed.";
     private static final String UNDEFINED_STRING                 = "UNDEFINED";
@@ -93,13 +102,12 @@ public final class RedisAttributeRepository implements AttributeRepository {
         pubsub.addListener(new RedisPubSubAdapter<>() {
             @Override
             public void message(String channel, String message) {
-                // expired-Events: message = der abgelaufene Redis-Key
                 notifyObservers(message, Value.UNDEFINED);
             }
 
             @Override
             public void message(String pattern, String channel, String message) {
-                // sapl:changes:* → Wertänderungen
+                // Regex: sapl:changes:* -> All change events that are made on attributes
                 String redisKey = channel.substring(CHANGES_CHANNEL_PREFIX.length());
                 Value  value    = UNDEFINED_STRING.equals(message) ? Value.UNDEFINED
                         : ValueJsonMarshaller.json(message);
@@ -113,12 +121,26 @@ public final class RedisAttributeRepository implements AttributeRepository {
             @Override
             public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
                 // Creates a new thread that is executed by the re-sync executer. The main event loop threads doesn't
-                // block that way
+                // block that way.
                 CompletableFuture.runAsync(RedisAttributeRepository.this::resyncObservers, resyncExecutor)
                         .exceptionally(e -> {
                             log.error(ERROR_RESYNC_FAILED, e);
                             return null;
                         });
+            }
+
+            @Override
+            public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
+                List<String> keys;
+                lock.lock();
+                try {
+                    keys = new ArrayList<>(observersByKey.keySet());
+                } finally {
+                    lock.unlock();
+                }
+                for (String redisKey : keys) {
+                    notifyObservers(redisKey, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
+                }
             }
         });
     }
