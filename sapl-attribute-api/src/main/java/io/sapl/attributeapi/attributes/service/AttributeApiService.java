@@ -53,16 +53,16 @@ public class AttributeApiService {
     private final AttributeStore                 store;
     private final AttributeApiSecurityProperties securityProperties;
 
-    public boolean publish(String entity, String attribute, AttributePublishRequest body, @Nullable String pdpId) {
-        List<Value> arguments   = body.arguments() == null ? List.of()
-                : body.arguments().stream().map(ValueJsonMarshaller::fromJsonNode).toList();
+    public boolean publish(String entity, String attribute, List<String> requestArgs, AttributePublishRequest body,
+            @Nullable String pdpId) {
+        List<Value> arguments   = toArgumentValues(requestArgs);
         Value       entityValue = toEntityValue(entity);
         Value       value       = ValueJsonMarshaller.fromJsonNode(body.value());
         Long        ttl         = body.ttl();
 
         var key = new AttributeKey(entityValue, attribute, arguments);
 
-        if (!checkArgumentsLimit(body.arguments())) {
+        if (!checkArgumentsLimit(arguments)) {
             throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
         }
 

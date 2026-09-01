@@ -33,6 +33,9 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Implementation of the attribute store for a Postgres backend.
+ */
 @Slf4j
 public class PostgresAttributeStore implements AttributeStore {
     private static final String PDP_ID_FIELD             = "pdpId";

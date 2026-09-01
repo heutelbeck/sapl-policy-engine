@@ -37,6 +37,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Implementation of the attribute store for a MongoDB backend.
+ */
 public class MongoAttributeStore implements AttributeStore {
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
 

@@ -184,7 +184,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 .publishOn(Schedulers.boundedElastic()).retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
                         .maxBackoff(Duration.ofSeconds(30)).filter(throwable -> !closed).doBeforeRetry(signal -> {
                             log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-                            if (disconnected.compareAndSet(false, true)) {
+                            if (signal.totalRetries() > 0 && disconnected.compareAndSet(false, true)) {
                                 for (var key : internalRepository.knownKeys()) {
                                     internalRepository.publish(key,
                                             Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));

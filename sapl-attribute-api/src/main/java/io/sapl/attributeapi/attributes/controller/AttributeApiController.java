@@ -32,40 +32,69 @@ import java.net.URI;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+/**
+ * The API controller to serve the endpoints of the API and receive and answer
+ * requests via HTTP. Forwards the requests to the API service layer.
+ */
 @Slf4j
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
 @RestController
 @RequestMapping("/api/attributes")
-
 public class AttributeApiController {
     private static final String NO_PDP_ID = "";
 
     private final AttributeApiService service;
 
+    /**
+     * Endpoint to publish an attribute into the store that contains an entity and attribute name. The arguments
+     * are part of the request body because arguments can vary.
+     *
+     * @param entity The name of the entity.
+     * @param name The name of the attribute.
+     * @param request The request body that was sent. The body contains the value and the TTL.
+     * @return {@code HTTP 201} if the attribute didn't exist before and {@code HTTP 200} if the attribute was updated.
+     * See also RFC 9110 Section 9.3.
+     */
     @PutMapping("/{entity}/{name}")
     public ResponseEntity<Void> publish(@PathVariable String entity, @PathVariable String name,
+            @RequestParam(value = "arg", required = false) List<String> args,
             @RequestBody AttributePublishRequest request) {
-        boolean created = service.publish(entity, name, request, currentPdpId());
+        boolean created = service.publish(entity, name, args, request, currentPdpId());
 
         return created ? ResponseEntity.created(URI.create("/api/attributes/" + entity + "/" + name)).build()
                 : ResponseEntity.ok().build();
     }
 
+    /**
+     * Endpoint to publish an attribute into the store that contains no entity but the mandatory attribute name.
+     * The arguments are part of the request body because arguments can vary.
+     *
+     * @param name The name of the attribute.
+     * @param request The request body that was sent. The body contains the value and the TTL.
+     * @return {@code HTTP 201} if the attribute didn't exist before and {@code HTTP 200} if the attribute was updated.
+     * See also RFC 9110 Section 9.3.
+     */
     @PutMapping("/{name}")
     public ResponseEntity<Void> publishGlobalAttribute(@PathVariable String name,
+            @RequestParam(value = "arg", required = false) List<String> args,
             @RequestBody AttributePublishRequest request) {
-        boolean created = service.publish(null, name, request, currentPdpId());
+        boolean created = service.publish(null, name, args, request, currentPdpId());
 
         return created ? ResponseEntity.created(URI.create("/api/attributes/" + name)).build()
                 : ResponseEntity.ok().build();
     }
 
-    // RFC 7231, Section 4.3.5: A payload within a DELETE request message has no
-    // defined semantics;
-    // sending a payload body on a DELETE request might cause some existing
-    // implementations to reject the request
-    // Some clients may ignore in Delete-Request the body, so it's an URL parameter
+    /**
+     * Endpoint to delete an attribute from the attribute store. Regarding to {@code RFC 7231 Section 4.3.5}
+     * a payload within a Delete has no defined semantics. Depending on the implementation a delete request
+     * with a body may be rejected or ignored. The recommend way is to sent it as URL parameter.
+     *
+     * @param entity The name of the entity.
+     * @param name The attribute name.
+     * @param args The arguments of the attribute
+     * @return {@code HTTP 204} - no content if the resource was deleted.
+     */
     @DeleteMapping("/{entity}/{name}")
     public ResponseEntity<Void> deleteAttribute(@PathVariable String entity, @PathVariable String name,
             @RequestParam(value = "arg", required = false) List<String> args) {
@@ -73,6 +102,15 @@ public class AttributeApiController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Endpoint to delete an attribute from the attribute store. Regarding to {@code RFC 7231 Section 4.3.5}
+     * a payload within a Delete has no defined semantics. Depending on the implementation a delete request
+     * with a body may be rejected or ignored. The recommend way is to sent it as URL parameter.
+     *
+     * @param name The attribute name.
+     * @param args The arguments of the attribute
+     * @return {@code HTTP 204} - no content if the resource was deleted.
+     */
     @DeleteMapping("/{name}")
     public ResponseEntity<Void> deleteGlobalAttribute(@PathVariable String name,
             @RequestParam(value = "arg", required = false) List<String> args) {
@@ -80,18 +118,45 @@ public class AttributeApiController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Get an attribute from the attribute store.
+     *
+     * @param entity The name of the entity.
+     * @param name The name of the attribute.
+     * @param args The arguments of the attribute.
+     * @return {@code HTTP 200} and the value of the attribute.
+     */
     @GetMapping("/{entity}/{name}")
     public ResponseEntity<JsonNode> getAttribute(@PathVariable String entity, @PathVariable String name,
             @RequestParam(value = "arg", required = false) List<String> args) {
         return ResponseEntity.ok(service.get(entity, name, args, currentPdpId()));
     }
 
+    /**
+     * Get an attribute from the attribute store.
+     *
+     * @param name The name of the attribute.
+     * @param args The arguments of the attribute.
+     * @return {@code HTTP 200} and the value of the attribute.
+     */
     @GetMapping("/{name}")
     public ResponseEntity<JsonNode> getGlobalAttribute(@PathVariable String name,
             @RequestParam(value = "arg", required = false) List<String> args) {
         return ResponseEntity.ok(service.get(null, name, args, currentPdpId()));
     }
 
+    /**
+     * Get all attributes for a given pdp id from the attribute store. Supports limit and offset
+     * to split requests and control the amount of output. Attribute will be in the order they
+     * were inserted into the attribute store.
+     *
+     * @param limit The number of attributes that are put into the response.
+     * @param offset The position to start within the list. Used together with limit.
+     * @param count Instead of sending a list of attributes just return the amount of attributes found.
+     * @return {@code HTTP 200}. Without the count parameter a list of all attributes is returned that
+     * contains for each entry the {@code AttributeKey} and the {@Value} of an attribute. With the count
+     * paremter the amount of attributes will be returned.
+     */
     @GetMapping
     public ResponseEntity<Object> getAllAttributesFromPdp(@RequestParam(required = false) Integer limit,
             @RequestParam(required = false) Integer offset,
@@ -103,12 +168,24 @@ public class AttributeApiController {
         return ResponseEntity.ok(service.getAll(currentPdpId(), limit, offset));
     }
 
+    /**
+     * Returns an exception if the given request was invalid
+     *
+     * @param e
+     * @return {@code HTTP 400} - bad request with the exception message.
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleInvalidArgument(IllegalArgumentException e) {
         log.warn(e.getMessage());
         return ResponseEntity.badRequest().body(e.getMessage());
     }
 
+    /**
+     * Return a {@code HTTP 404} - not found, if the given resource was not found in the store.
+     *
+     * @param e
+     * @return {@code HTTP 404} - not found.
+     */
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Void> handleNotFound(NoSuchElementException e) {
         return ResponseEntity.notFound().build();

@@ -31,6 +31,9 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 
+/**
+ * Implementation of the attribute store for a Redis backend.
+ */
 public class RedisAttributeStore implements AttributeStore {
     private static final String REDIS_NAMESPACE_PREFIX = "sapl:attribute:";
     private static final String REDIS_CHANGES_PREFIX   = "sapl:changes:";

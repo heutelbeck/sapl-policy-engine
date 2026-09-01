@@ -53,7 +53,6 @@ public class AttributeApiClient {
     private static final String CSRF_HEADER_NAME               = "X-XSRF-TOKEN";
     private static final String VALUE_FIELD                    = "value";
     private static final String TTL_FIELD                      = "ttl";
-    private static final String ARGUMENTS_FIELD                = "arguments";
 
     private final CookieManager      cookieManager = new CookieManager();
     private final RestClient         client        = buildClient();
@@ -128,15 +127,12 @@ public class AttributeApiClient {
         var settings = connectionSettings;
         checkConfiguration(settings);
 
-        var body = Map.of(VALUE_FIELD, value, TTL_FIELD, Objects.requireNonNullElse(ttl, 0L), ARGUMENTS_FIELD,
-                arguments == null ? List.of() : arguments);
+        var body = Map.of(VALUE_FIELD, value, TTL_FIELD, Objects.requireNonNullElse(ttl, 0L));
+        var args = arguments == null ? null : arguments.stream().map(JsonNode::toString).toList();
+        var uri  = buildUri(settings.baseUrl(), entity, name, args);
 
-        var request = (entity == null || entity.isBlank())
-                ? client.put().uri(settings.baseUrl() + API_GLOBAL_ATTRIBUTE, name)
-                : client.put().uri(settings.baseUrl() + API_ATTRIBUTE_WITH_ENTITY, entity, name);
-
-        request.headers(h -> addAuthorization(h, settings)).contentType(MediaType.APPLICATION_JSON).body(body)
-                .retrieve().toBodilessEntity();
+        client.put().uri(uri).headers(h -> addAuthorization(h, settings)).contentType(MediaType.APPLICATION_JSON)
+                .body(body).retrieve().toBodilessEntity();
     }
 
     public List<Map<String, Object>> getAllAttributes(int limit, int offset) {

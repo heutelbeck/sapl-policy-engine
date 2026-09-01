@@ -24,6 +24,11 @@ import java.util.Set;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * A storage class thats keeps the default properties for the Redis, Mongo or Postgres
+ * attribute store. The default configuration is used when one of this configuration
+ * items is missing in the configuration.
+ */
 @Data
 @ConfigurationProperties(prefix = "io.sapl.attributes")
 public class AttributeStorageProperties implements InitializingBean {
@@ -52,6 +57,9 @@ public class AttributeStorageProperties implements InitializingBean {
     private static final String ERROR_UNKNOWN_STORAGE           = "io.sapl.attributes.storage='%s' is not a supported value. Set it to one of: postgres, mongo, redis, none.";
     private static final String ERROR_MISSING_POSTGRES_PASSWORD = "io.sapl.attributes.storage=postgres but io.sapl.attributes.postgres.password is not set. Set it explicitly.";
 
+    /**
+     * Static class with Postgres default configuration
+     */
     @Data
     public static class Postgres {
         private String host      = POSTGRES_DEFAULT_HOSTNAME;
@@ -62,6 +70,9 @@ public class AttributeStorageProperties implements InitializingBean {
         private String tableName = POSTGRES_DEFAULT_TABLENAME;
     }
 
+    /**
+     * Static class with Mongo default configuration
+     */
     @Data
     public static class Mongo {
         private String host           = MONGO_DEFAULT_HOSTNAME;
@@ -73,6 +84,9 @@ public class AttributeStorageProperties implements InitializingBean {
         private String collectionName = MONGO_DEFAULT_COLLECTION;
     }
 
+    /**
+     * Static class with Redis default configuration
+     */
     @Data
     public static class Redis {
         private String host     = REDIS_DEFAULT_HOSTNAME;
@@ -81,6 +95,12 @@ public class AttributeStorageProperties implements InitializingBean {
         private int    database = REDIS_DEFAULT_DB;
     }
 
+    /**
+     * Checks that are performed after the properties are set. Throws exceptions for an
+     * unknown storage type or a missing Postgres password.
+     *
+     * @throws IllegalStateException
+     */
     @Override
     public void afterPropertiesSet() throws Exception {
         if (storage == null || !Set.of("postgres", "mongo", "redis", "none").contains(storage)) {

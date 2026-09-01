@@ -18,6 +18,8 @@
 package io.sapl.attributeapi.attributes.dto;
 
 import tools.jackson.databind.JsonNode;
-import java.util.List;
 
-public record AttributePublishRequest(Long ttl, JsonNode value, List<JsonNode> arguments) {}
+/*
+ * The attribute publish request that is used in the HTTP body.
+ */
+public record AttributePublishRequest(Long ttl, JsonNode value) {}

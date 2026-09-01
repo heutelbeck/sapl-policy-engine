@@ -24,6 +24,11 @@ import java.util.List;
 
 import static io.sapl.api.shared.NameValidator.requireValidName;
 
+/**
+ * Record to set a {@code AttributeKey} used within the API and is part of {@link AttributeEntry}.
+ * Checks if {@code name} has a valid attribute name for the SAPL engine and {@code arguments}
+ * returns an immutable list of arguments.
+ */
 public record AttributeKey(@Nullable Value entity, @NonNull String name, @NonNull List<Value> arguments) {
     public AttributeKey {
         requireValidName(name);

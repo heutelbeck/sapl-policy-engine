@@ -316,9 +316,9 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/{name}?arg=X converts the number argument properly and returns the right value")
     void whenGetAttributeWithNumberArgumentThenHttpAnswerIsInExpectedFormat() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.arguments").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        { "value": "aValue", "ttl": 60, "arguments": [42] }
+        mockMvc.perform(put("/api/attributes/sapl.test.arguments?arg=42").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "aValue", "ttl": 60 }
                         """)).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.arguments?arg=42")).andExpect(status().isOk())
@@ -329,9 +329,9 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/{name}?arg=X converts the text argument properly and returns the right value")
     void whenGetAttributeWithTextArgumentThenHttpAnswerIsInExpectedFormat() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.arguments").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        { "value": "bValue", "ttl": 60, "arguments": ["this-is-text"] }
+        mockMvc.perform(put("/api/attributes/sapl.test.arguments?arg=this-is-text").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        { "value": "bValue", "ttl": 60 }
                         """)).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.arguments?arg=this-is-text"))
@@ -342,9 +342,9 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/{name}?arg=X&arg= converts multiple arguments properly and returns the right value")
     void whenGetAttributeWithMultipleArgumentsThenReturnArgumentsInExpectedFormat() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.multi.arguments").with(csrf())
+        mockMvc.perform(put("/api/attributes/sapl.test.multi.arguments?arg=42&arg=this-is-text").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content("""
-                        { "value": "cValue", "ttl": 60, "arguments": [42, "this-is-text"] }
+                        { "value": "cValue", "ttl": 60 }
                         """)).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.multi.arguments?arg=42&arg=this-is-text"))
