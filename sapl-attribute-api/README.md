@@ -187,10 +187,14 @@ io:
       enabled: true
       allow-no-auth: true
     attributes:
-      storage: redis
-      redis:
-        host: localhost
-        port: 6379
+      backends:
+        redis-1:
+          type: redis
+          redis:
+            host: localhost
+            port: 6379
+      tenants:
+        default: redis-1
 ```
 Then start the API server:
 ```bash
@@ -385,6 +389,8 @@ Get all (limit/offset invalid) | 400 | Bad request | The given limit or offset w
 Count | 200 | OK | Returns always 200. If a repository is empty it return a count of 0 |
 Authentication failed | 401 | Unauthorized | The given credentials were incorrect or the used authentication method is not active |
 Basic authentication failed (CSRF) | 403 | Forbidden | Basic authentication required a CSRF cookie/header on state changing requests. API key and OIDC are exempt.
+| pdp id not mapped / unknown | 400 | Bad request | The pdp id could not be resolved to a configured backend. Must be configured under `io.sapl.attributes.tenants` |
+| Backend unavailable | 500 | Internal server error | An unexpected error occured while processing the request | 
 
 ### Using basic auth with CSRF
 
@@ -436,7 +442,7 @@ curl -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt -b cookies.txt \
 
 | Property | Type | Default | Description |
 |----------|------|---------|--------------|
-| `io.sapl.attribute-api.enabled` | boolean | — | Enables the attribute API module (required) |
+| `io.sapl.attribute-api.enabled` | boolean | - | Enables the attribute API module (required) |
 | `io.sapl.attribute-api.default-pdp-id` | string | `default` | The pdpId that is used when it can't be resolved from the request |
 | `io.sapl.attribute-api.max-arguments` | integer | 50 | The allowed maximum of arguments that can be sent for an attribute. The API server rejects requests above this limit with a HTTP 400 Bad Request. Prevents flooding with huge requests |
 
@@ -452,9 +458,9 @@ curl -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt -b cookies.txt \
 | Property | Type | Default | Description |
 |----------|------|---------|--------------|
 | `io.sapl.attribute-api.allow-basic-auth` | boolean | `false` | Enables basic authentication with an username and a password |
-| `io.sapl.attribute-api.users[].pdp-id` | string | — | The pdp id of the given user |
-| `io.sapl.attribute-api.users[].username` | string | — | The username of the given user |
-| `io.sapl.attribute-api.users[].secret` | string | — | The basic auth and argon2 decrypted password of the user |
+| `io.sapl.attribute-api.users[].pdp-id` | string | - | The pdp id of the given user |
+| `io.sapl.attribute-api.users[].username` | string | - | The username of the given user |
+| `io.sapl.attribute-api.users[].secret` | string | - | The basic auth and argon2 decrypted password of the user |
 
 An example of a single user setup:
 
@@ -506,9 +512,9 @@ To generate a valid password, there are two ways:
 | Property | Type | Default | Description |
 |----------|------|---------|--------------|
 | `io.sapl.attribute-api.allow-api-key-auth` | boolean | `false` | Enables API key authentication |
-| `io.sapl.attribute-api.users[].id` | string | — | The identifier for the API key |
-| `io.sapl.attribute-api.users[].pdp-id` | string | — | The pdp id for the given API key |
-| `io.sapl.attribute-api.users[].api-key-hash` | string | — | The API key as a hash value |
+| `io.sapl.attribute-api.users[].id` | string | - | The identifier for the API key |
+| `io.sapl.attribute-api.users[].pdp-id` | string | - | The pdp id for the given API key |
+| `io.sapl.attribute-api.users[].api-key-hash` | string | - | The API key as a hash value |
 
 To generate valid API keys, there are two ways:
 
@@ -528,41 +534,61 @@ To generate valid API keys, there are two ways:
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | string | *(empty)* | Required when `allow-oauth2-auth=true` |
 
 ### Backend
-figure maximum
-#### General
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `io.sapl.attributes.backends.<name>.type` | string | - | Backend type for the named backend config. Name is a identifier for one backend instance, so that multiple backends of the same type can be configured. Supported types are: `postgres`, `mongo` or `redis`. |
+| `io.sapl.attributes.tenants.<pdpId>` | string | - | Maps a pdp id to one of the backend configs defined under `io.sapl.attributes.backends`. A tenant without a proper config is rejected by `HTTP 400 Bad Request` after startup. |
+
+An example configuration with two different backends type and three tenants. Two tenants share the same backend:
+```yaml
+io:
+  sapl:
+    attributes:
+      backends:
+        pg-1:
+          type: postgres
+          postgres:
+            host: localhost
+            password: sapl
+        redis-1:
+          type: redis
+          redis:
+            host: localhost
+      tenants:
+        tenant-01: pg-1
+        tenant-02: redis-1
+        tenant-03: redis-1
+```
+
+#### PostgreSQL (`io.sapl.attributes.backends.<name>.postgres.*`)
 
 | Property | Type | Default | Description |
 |----------|------|---------|--------------|
-| `io.sapl.attributes.storage` | string | — | `postgres`, `mongo`, `redis`, or `none` (required) |
+| `io.sapl.attributes.backends.<name>.postgres.host` | string | `localhost` | The IP, host or domain name of the Postgres host|
+| `io.sapl.attributes.backends.<name>.postgres.port` | int | `5432` | The port to connect to the Postgres database |
+| `io.sapl.attributes.backends.<name>.postgres.database` | string | `sapl` | The database name of the attribute store|
+| `io.sapl.attributes.backends.<name>.postgres.username` | string | `sapl` | The Postgres user to connect to the given database|
+| `io.sapl.attributes.backends.<name>.postgres.password` | string | - | The password for the Postgres database user |
+| `io.sapl.attributes.backends.<name>.postgres.table-name` | string | `attributes` | The table name for the attributes schema |
 
-#### PostgreSQL (`io.sapl.attributes.postgres.*`)
-
-| Property | Type | Default | Description |
-|----------|------|---------|--------------|
-| `io.sapl.attributes.postgres.host` | string | `localhost` | The IP, host or domain name of the Postgres host|
-| `io.sapl.attributes.postgres.port` | int | `5432` | The port to connect to the Postgres database |
-| `io.sapl.attributes.postgres.database` | string | `sapl` | The database name of the attribute store|
-| `io.sapl.attributes.postgres.username` | string | `sapl` | The Postgres user to connect to the given database|
-| `io.sapl.attributes.postgres.password` | string | — | The password for the Postgres database user |
-| `io.sapl.attributes.postgres.table-name` | string | `attributes` | The table name for the attributes schema |
-
-#### MongoDB (`io.sapl.attributes.mongo.*`)
+#### MongoDB (`io.sapl.attributes.backends.<name>.mongo.*`)
 
 | Property | Type | Default | Description |
 |----------|------|---------|--------------|
-| `io.sapl.attributes.mongo.host` | string | `localhost` | The IP, host or domain name of the MongoDB host |
-| `io.sapl.attributes.mongo.port` | int | `27017` | The port to connect to the Mongo database|
-| `io.sapl.attributes.mongo.database` | string | `sapl` | The database name of the attribute store |
-| `io.sapl.attributes.mongo.username` | string | — | The MongoDB user to connect to the given database |
-| `io.sapl.attributes.mongo.password` | string | — | The MongoDB user's password to connect to the given database |
-| `io.sapl.attributes.mongo.auth-database` | string | `admin` | The name of the auth database to find the given user |
-| `io.sapl.attributes.mongo.collection-name` | string | `attributes` | The name of the collection within the MongoDB|
+| `io.sapl.attributes.backends.<name>.mongo.host` | string | `localhost` | The IP, host or domain name of the MongoDB host |
+| `io.sapl.attributes.backends.<name>.mongo.port` | int | `27017` | The port to connect to the Mongo database|
+| `io.sapl.attributes.backends.<name>.mongo.database` | string | `sapl` | The database name of the attribute store |
+| `io.sapl.attributes.backends.<name>.mongo.username` | string | - | The MongoDB user to connect to the given database |
+| `io.sapl.attributes.backends.<name>.mongo.password` | string | - | The MongoDB user's password to connect to the given database |
+| `io.sapl.attributes.backends.<name>.mongo.auth-database` | string | `admin` | The name of the auth database to find the given user |
+| `io.sapl.attributes.backends.<name>.mongo.collection-name` | string | `attributes` | The name of the collection within the MongoDB|
 
-#### Redis (`io.sapl.attributes.redis.*`)
+#### Redis (`io.sapl.attributes.backends.<name>.redis.*`)
 
 | Property | Type | Default | Description |
 |----------|------|---------|--------------|
-| `io.sapl.attributes.redis.host` | string | `localhost` | The IP, host or domain name of the Redis host |
-| `io.sapl.attributes.redis.port` | int | `6379` | The port to connect to the Redis store |
-| `io.sapl.attributes.redis.password` | string | — | The password to connect to the Redis store|
-| `io.sapl.attributes.redis.database` | int | `0` | The id of the Redis database |
+| `io.sapl.attributes.backends.<name>.redis.host` | string | `localhost` | The IP, host or domain name of the Redis host |
+| `io.sapl.attributes.backends.<name>.redis.port` | int | `6379` | The port to connect to the Redis store |
+| `io.sapl.attributes.backends.<name>.redis.password` | string | - | The password to connect to the Redis store|
+| `io.sapl.attributes.backends.<name>.redis.database` | int | `0` | The id of the Redis database |

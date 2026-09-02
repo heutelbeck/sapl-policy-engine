@@ -19,7 +19,6 @@ package io.sapl.attributeapi.attributes.backend;
 
 import io.sapl.api.model.Value;
 import org.jspecify.annotations.Nullable;
-
 import java.time.Duration;
 import java.util.List;
 
