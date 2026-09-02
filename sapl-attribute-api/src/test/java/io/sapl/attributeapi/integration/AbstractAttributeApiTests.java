@@ -45,10 +45,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Backend-agnostic API tests. Each subclass wires a different
- * AttributeRepository implementation and runs this full test suite against it.
- */
 @AutoConfigureMockMvc
 abstract class AbstractAttributeApiTests {
 

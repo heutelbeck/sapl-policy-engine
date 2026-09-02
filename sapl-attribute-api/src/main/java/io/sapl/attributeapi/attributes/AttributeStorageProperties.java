@@ -18,9 +18,8 @@
 package io.sapl.attributeapi.attributes;
 
 import lombok.Data;
-
-import java.util.Set;
-
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -48,14 +47,13 @@ public class AttributeStorageProperties implements InitializingBean {
     private static final int    REDIS_DEFAULT_PORT     = 6379;
     private static final int    REDIS_DEFAULT_DB       = 0;
 
-    private String storage;
+    // Used for the multi-tenant routing within the attribute api
+    private Map<String, BackendConfig> backends = new HashMap<>();
+    private Map<String, String>        tenants  = new HashMap<>();
 
-    private Postgres postgres = new Postgres();
-    private Mongo    mongo    = new Mongo();
-    private Redis    redis    = new Redis();
-
-    private static final String ERROR_UNKNOWN_STORAGE           = "io.sapl.attributes.storage='%s' is not a supported value. Set it to one of: postgres, mongo, redis, none.";
     private static final String ERROR_MISSING_POSTGRES_PASSWORD = "io.sapl.attributes.storage=postgres but io.sapl.attributes.postgres.password is not set. Set it explicitly.";
+    private static final String ERROR_UNKNOWN_TENANT_BACKEND    = "io.sapl.attributes.tenants.%s='%s' does not match any entry under io.sapl.attributes.backends.";
+    private static final String ERROR_MISSING_BACKEND_TYPE      = "io.sapl.attributes.backends.%s.type is missing. Set it to one of: postgres, mongo, redis.";
 
     /**
      * Static class with Postgres default configuration
@@ -103,11 +101,38 @@ public class AttributeStorageProperties implements InitializingBean {
      */
     @Override
     public void afterPropertiesSet() throws Exception {
-        if (storage == null || !Set.of("postgres", "mongo", "redis", "none").contains(storage)) {
-            throw new IllegalStateException(ERROR_UNKNOWN_STORAGE.formatted(storage));
+        for (var entry : backends.entrySet()) {
+            var name   = entry.getKey();
+            var config = entry.getValue();
+
+            if (config.getType() == null) {
+                throw new IllegalStateException(ERROR_MISSING_BACKEND_TYPE.formatted(name));
+            }
+            if (config.getType() == BackendType.POSTGRES
+                    && (config.getPostgres().getPassword() == null || config.getPostgres().getPassword().isBlank())) {
+                throw new IllegalStateException(ERROR_MISSING_POSTGRES_PASSWORD.formatted(name, name));
+            }
         }
-        if ("postgres".equals(storage) && (postgres.getPassword() == null || postgres.getPassword().isBlank())) {
-            throw new IllegalStateException(ERROR_MISSING_POSTGRES_PASSWORD);
+
+        for (var entry : tenants.entrySet()) {
+            if (!backends.containsKey(entry.getValue())) {
+                throw new IllegalStateException(
+                        ERROR_UNKNOWN_TENANT_BACKEND.formatted(entry.getKey(), entry.getValue()));
+            }
         }
+    }
+
+    @Data
+    public static class BackendConfig {
+        private BackendType type;
+        private Postgres    postgres = new Postgres();
+        private Mongo       mongo    = new Mongo();
+        private Redis       redis    = new Redis();
+    }
+
+    public enum BackendType {
+        POSTGRES,
+        MONGO,
+        REDIS
     }
 }

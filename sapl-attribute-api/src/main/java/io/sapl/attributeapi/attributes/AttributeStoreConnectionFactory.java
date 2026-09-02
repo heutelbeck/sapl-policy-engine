@@ -49,9 +49,10 @@ class AttributeStoreConnectionFactory {
                 : null;
         val credentials    = hasCredentials ? encode(properties.getUsername()) + ":" + encode(password) + "@" : "";
         val authSource     = hasCredentials ? "?authSource=" + properties.getAuthDatabase() : "";
+        val timeoutParams  = (authSource.isEmpty() ? "?" : "&") + "serverSelectionTimeoutMS=3000&connectTimeoutMS=3000";
 
         return "mongodb://" + credentials + properties.getHost() + ":" + properties.getPort() + "/"
-                + properties.getDatabase() + authSource;
+                + properties.getDatabase() + authSource + timeoutParams;
     }
 
     RedisURI buildRedisUri(AttributeStorageProperties.Redis properties) {

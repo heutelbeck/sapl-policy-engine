@@ -17,12 +17,15 @@
  */
 package io.sapl.attributeapi.attributes.controller;
 
+import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableException;
 import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.attributes.service.AttributeApiService;
 import io.sapl.attributeapi.auth.AttributeApiUserDetails;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -201,5 +204,31 @@ public class AttributeApiController {
         }
         var pdpId = principal.getPdpId();
         return pdpId != null ? pdpId : NO_PDP_ID;
+    }
+
+    /**
+     * Exception thrown when the backend storage isn't available. Only show a generic message to avoid
+     * leaking internal information.
+     *
+     * @param e The exception message
+     * @return {@code HTTP 503} - service unavailable. The current backend storage couldn't be reached.
+     */
+    @ExceptionHandler(AttributeBackendUnavailableException.class)
+    public ResponseEntity<String> handleBackendUnavailable(AttributeBackendUnavailableException e) {
+        log.warn(e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
+    }
+
+    /**
+     * Exception thrown when the backend isn't available but the it's not marked as service down.
+     * Only show a generic message to avoid leaking internal information.
+     *
+     * @param e
+     * @return
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleUnexpected(Exception e) {
+        log.error("Unexpected error", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
     }
 }

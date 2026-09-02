@@ -35,7 +35,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
         "io.sapl.attribute-api.allow-no-auth=true", "io.sapl.attribute-api.allow-basic-auth=false",
         "io.sapl.attribute-api.allow-api-key-auth=false", "io.sapl.attribute-api.allow-oauth2-auth=false",
-        "io.sapl.attributes.storage=mongo" })
+        "io.sapl.attributes.backends.mongo-test.type=mongo", "io.sapl.attributes.tenants.default=mongo-test" })
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
 class AttributeApiMongoTests extends AbstractAttributeApiTests {
@@ -45,8 +45,8 @@ class AttributeApiMongoTests extends AbstractAttributeApiTests {
 
     @DynamicPropertySource
     static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("io.sapl.attributes.mongo.host", mongo::getHost);
-        registry.add("io.sapl.attributes.mongo.port", () -> mongo.getMappedPort(27017));
+        registry.add("io.sapl.attributes.backends.mongo-test.mongo.host", mongo::getHost);
+        registry.add("io.sapl.attributes.backends.mongo-test.mongo.port", () -> mongo.getMappedPort(27017));
     }
 
     @Override

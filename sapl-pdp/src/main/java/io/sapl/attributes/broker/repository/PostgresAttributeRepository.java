@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import reactor.core.Disposable;
 
 /**
  * Repository implementation that persists attributes in PostgreSQL and maintains an In-Memory representation
@@ -110,12 +111,17 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String FIELD_ARGUMENTS = "arguments";
     private static final String FIELD_VALUE     = "value";
 
+    private static final Duration LIVENESS_TIMEOUT   = Duration.ofSeconds(15);
+    private static final Duration HEARTBEAT_INTERVAL = Duration.ofSeconds(5);
+    private static final String   HEARTBEAT_PDP_ID   = "__heartbeat__";
+
     // Delegate Pattern . observer(), close() etc are generated
     @Delegate(excludes = ExcludedMethods.class)
     private final InMemoryAttributeRepository internalRepository;
 
     // Connection may be interrupted and needs to be replaced immediately
     private final AtomicReference<PostgresqlConnection> connection = new AtomicReference<>();
+    private final AtomicReference<Disposable>           heartbeat  = new AtomicReference<>();
     private final ConnectionFactory                     connectionFactory;
     private final ReentrantLock                         reloadLock = new ReentrantLock();
     private volatile boolean                            closed     = false;
@@ -181,8 +187,9 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private void connectAndListen() {
         establishConnection();
         Flux.defer(() -> connection.get().getNotifications()).mapNotNull(Notification::getParameter)
-                .publishOn(Schedulers.boundedElastic()).retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
-                        .maxBackoff(Duration.ofSeconds(30)).filter(throwable -> !closed).doBeforeRetry(signal -> {
+                .timeout(LIVENESS_TIMEOUT).publishOn(Schedulers.boundedElastic())
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
+                        .filter(throwable -> !closed).doBeforeRetry(signal -> {
                             log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
                             if (signal.totalRetries() > 0 && disconnected.compareAndSet(false, true)) {
                                 for (var key : internalRepository.knownKeys()) {
@@ -199,6 +206,15 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                             }
                         }))
                 .subscribe(this::handleNotification, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error));
+
+        // Start the heartbeat subscription to monitor on a different subscription channel if a disconnect did happen
+        heartbeat.set(Flux.interval(HEARTBEAT_INTERVAL, Schedulers.boundedElastic()).filter(tick -> !closed)
+                .concatMap(tick -> client.sql(NOTIFY_SQL)
+                        .bind("payload",
+                                ValueJsonMarshaller.toJsonString(
+                                        ObjectValue.builder().put(FIELD_PDP_ID, Value.of(HEARTBEAT_PDP_ID)).build()))
+                        .then().onErrorResume(e -> Mono.empty()))
+                .subscribe());
     }
 
     private void establishConnection() {
@@ -250,6 +266,11 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     public void close() {
         closed = true;
         internalRepository.close();
+        var heartbeatStatus = heartbeat.get();
+        if (heartbeatStatus != null) {
+            heartbeatStatus.dispose();
+        }
+
         Mono.from(connection.get().close()).block();
     }
 

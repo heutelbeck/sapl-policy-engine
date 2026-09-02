@@ -21,13 +21,20 @@ import com.mongodb.ConnectionString;
 import com.mongodb.reactivestreams.client.MongoClients;
 import io.lettuce.core.RedisClient;
 import io.r2dbc.spi.ConnectionFactories;
-import io.r2dbc.spi.ConnectionFactory;
+import io.sapl.attributeapi.attributes.AttributeStorageProperties.BackendConfig;
+import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableException;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
 import io.sapl.attributeapi.attributes.backend.MongoAttributeStore;
 import io.sapl.attributeapi.attributes.backend.PostgresAttributeStore;
 import io.sapl.attributeapi.attributes.backend.RedisAttributeStore;
+import io.sapl.attributeapi.attributes.backend.RoutingAttributeStore;
 import lombok.val;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -36,54 +43,65 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.r2dbc.core.DatabaseClient;
 
 @Configuration
+@Slf4j
 @EnableConfigurationProperties(AttributeStorageProperties.class)
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
 public class AttributeStoreConfiguration {
+    private static final String WARN_REPOSITORY_BACKEND_UNAVAILABLE = "The attribute backend '{}' is unavailable at startup. Reconnect will be tried again later on first request: {}";
 
-    @Bean("attributeApiConnectionFactory")
-    @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "postgres")
-    ConnectionFactory attributeApiConnectionFactory(AttributeStorageProperties properties) {
-        return ConnectionFactories.get(AttributeStoreConnectionFactory.buildPostgresOptions(properties.getPostgres()));
-    }
+    @Bean
+    Map<String, BackendHandle> attributeStoreByBackendConfig(AttributeStorageProperties properties) {
+        var handles = new HashMap<String, BackendHandle>();
 
-    @Bean("attributeApiDatabaseClient")
-    @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "postgres")
-    DatabaseClient attributeApiDatabaseClient(
-            @Qualifier("attributeApiConnectionFactory") ConnectionFactory connectionFactory) {
-        return DatabaseClient.create(connectionFactory);
+        // Create the backend stores
+        for (var entry : properties.getBackends().entrySet()) {
+            var name   = entry.getKey();
+            var config = entry.getValue();
+            var handle = new BackendHandle(() -> buildStore(config));
+
+            try {
+                handle.resolveOrThrow(name);
+            } catch (AttributeBackendUnavailableException e) {
+                log.warn(WARN_REPOSITORY_BACKEND_UNAVAILABLE, name, e.getMessage());
+            }
+            handles.put(name, handle);
+        }
+        return handles;
     }
 
     @Bean
-    @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "postgres")
-    AttributeStore postgresAttributeStore(@Qualifier("attributeApiDatabaseClient") DatabaseClient client,
+    @ConditionalOnMissingBean(AttributeStore.class)
+    AttributeStore routingAttributeStore(Map<String, BackendHandle> attributeBackendHandlesByName,
             AttributeStorageProperties properties) {
-        return new PostgresAttributeStore(client, properties.getPostgres().getTableName(), true);
+        return new RoutingAttributeStore(attributeBackendHandlesByName, properties.getTenants());
     }
 
-    @Bean("attributeApiMongoTemplate")
-    @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "mongo")
-    ReactiveMongoTemplate attributeApiMongoTemplate(AttributeStorageProperties properties) {
-        val connection = new ConnectionString(
-                AttributeStoreConnectionFactory.buildMongoConnectionUri(properties.getMongo()));
-        return new ReactiveMongoTemplate(MongoClients.create(connection), connection.getDatabase());
+    private AttributeStore buildStore(BackendConfig config) {
+        return switch (config.getType()) {
+        case POSTGRES -> buildPostgresStore(config.getPostgres());
+        case MONGO    -> buildMongoStore(config.getMongo());
+        case REDIS    -> buildRedisStore(config.getRedis());
+        };
     }
 
-    @Bean
-    @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "mongo")
-    AttributeStore mongoAttributeStore(@Qualifier("attributeApiMongoTemplate") ReactiveMongoTemplate template,
-            AttributeStorageProperties properties) {
-        return new MongoAttributeStore(template, properties.getMongo().getCollectionName());
+    private AttributeStore buildPostgresStore(AttributeStorageProperties.Postgres postgres) {
+        val connectionFactory = ConnectionFactories.get(AttributeStoreConnectionFactory.buildPostgresOptions(postgres));
+        val client            = DatabaseClient.create(connectionFactory);
+        return new PostgresAttributeStore(client, postgres.getTableName(), true);
     }
 
-    @Bean("attributeApiRedisClient")
-    @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "redis")
-    RedisClient attributeApiRedisClient(AttributeStorageProperties properties) {
-        return RedisClient.create(AttributeStoreConnectionFactory.buildRedisUri(properties.getRedis()));
+    private AttributeStore buildMongoStore(AttributeStorageProperties.Mongo mongo) {
+        val connection = new ConnectionString(AttributeStoreConnectionFactory.buildMongoConnectionUri(mongo));
+        val template   = new ReactiveMongoTemplate(MongoClients.create(connection), connection.getDatabase());
+
+        // Quick ping to check if if the backend is available because the MongoDB driver never does it by it's own
+        template.executeCommand("{ ping: 1 }").block();
+
+        return new MongoAttributeStore(template, mongo.getCollectionName());
     }
 
-    @Bean
-    @ConditionalOnProperty(name = "io.sapl.attributes.storage", havingValue = "redis")
-    AttributeStore redisAttributeStore(@Qualifier("attributeApiRedisClient") RedisClient client) {
+    private AttributeStore buildRedisStore(AttributeStorageProperties.Redis redis) {
+        val client = RedisClient.create(AttributeStoreConnectionFactory.buildRedisUri(redis));
         return new RedisAttributeStore(client);
     }
 }

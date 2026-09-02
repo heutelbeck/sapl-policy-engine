@@ -22,7 +22,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.stereotype.Component;
 import com.vaadin.flow.spring.annotation.VaadinSessionScope;
@@ -34,7 +33,6 @@ import io.sapl.attributeapigui.config.AttributeApiConnectionProperties;
 public class ConnectionRegistry {
     private final Map<String, SavedConnection>    connections = new LinkedHashMap<>();
     private final Map<String, AttributeApiClient> clients     = new HashMap<>();
-    private final ReentrantLock                   lock        = new ReentrantLock();
     private String                                activeId;
 
     public ConnectionRegistry(AttributeApiConnectionProperties properties) {
@@ -45,67 +43,37 @@ public class ConnectionRegistry {
     }
 
     // Return only a copy of the connection to prevent that someone can overwrite it
-    public List<SavedConnection> getSavedConnection() {
-        lock.lock();
-        try {
-            return List.copyOf(connections.values());
-        } finally {
-            lock.unlock();
+    public synchronized List<SavedConnection> getSavedConnection() {
+        return List.copyOf(connections.values());
+    }
+
+    public synchronized SavedConnection getActiveConnection() {
+        return connections.get(activeId);
+    }
+
+    public synchronized void setActiveId(String id) {
+        if (connections.containsKey(id))
+            activeId = id;
+    }
+
+    public synchronized void addConnection(SavedConnection connection) {
+        connections.put(connection.id(), connection);
+    }
+
+    public synchronized void removeConnection(String id) {
+        if (connections.size() <= 1)
+            return;
+
+        connections.remove(id);
+        clients.remove(id);
+
+        // Set a new active connection if the removed connection is currently active
+        if (id.equals(activeId)) {
+            activeId = connections.keySet().iterator().next();
         }
     }
 
-    public SavedConnection getActiveConnection() {
-        lock.lock();
-        try {
-            return connections.get(activeId);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public void setActiveId(String id) {
-        lock.lock();
-        try {
-            if (connections.containsKey(id))
-                activeId = id;
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public void addConnection(SavedConnection connection) {
-        lock.lock();
-        try {
-            connections.put(connection.id(), connection);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public void removeConnection(String id) {
-        lock.lock();
-        try {
-            if (connections.size() <= 1)
-                return;
-
-            connections.remove(id);
-            clients.remove(id);
-
-            // Set a new active connection if the removed connection is currently active
-            if (id.equals(activeId)) {
-                activeId = connections.keySet().iterator().next();
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public AttributeApiClient activeClient() {
-        lock.lock();
-        try {
-            return clients.computeIfAbsent(activeId, key -> new AttributeApiClient(connections.get(key).settings()));
-        } finally {
-            lock.unlock();
-        }
+    public synchronized AttributeApiClient activeClient() {
+        return clients.computeIfAbsent(activeId, key -> new AttributeApiClient(connections.get(key).settings()));
     }
 }

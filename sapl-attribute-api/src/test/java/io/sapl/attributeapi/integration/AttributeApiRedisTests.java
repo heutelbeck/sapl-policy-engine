@@ -33,7 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
         "io.sapl.attribute-api.allow-no-auth=true", "io.sapl.attribute-api.allow-basic-auth=false",
         "io.sapl.attribute-api.allow-api-key-auth=false", "io.sapl.attribute-api.allow-oauth2-auth=false",
-        "io.sapl.attributes.storage=redis" })
+        "io.sapl.attributes.backends.redis-test.type=redis", "io.sapl.attributes.tenants.default=redis-test" })
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
 class AttributeApiRedisTests extends AbstractAttributeApiTests {
@@ -43,8 +43,8 @@ class AttributeApiRedisTests extends AbstractAttributeApiTests {
 
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("io.sapl.attributes.redis.host", redis::getHost);
-        registry.add("io.sapl.attributes.redis.port", () -> redis.getMappedPort(6379));
+        registry.add("io.sapl.attributes.backends.redis-test.redis.host", redis::getHost);
+        registry.add("io.sapl.attributes.backends.redis-test.redis.port", () -> redis.getMappedPort(6379));
     }
 
     @Override

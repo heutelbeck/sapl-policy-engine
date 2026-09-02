@@ -34,7 +34,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(classes = AttributeApiApplication.class, properties = { "io.sapl.attribute-api.enabled=true",
         "io.sapl.attribute-api.allow-no-auth=true", "io.sapl.attribute-api.allow-basic-auth=false",
         "io.sapl.attribute-api.allow-api-key-auth=false", "io.sapl.attribute-api.allow-oauth2-auth=false",
-        "io.sapl.attributes.storage=postgres" })
+        "io.sapl.attributes.backends.postgres-test.type=postgres", "io.sapl.attributes.tenants.default=postgres-test" })
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
 class AttributeApiPostgresTests extends AbstractAttributeApiTests {
@@ -43,11 +43,11 @@ class AttributeApiPostgresTests extends AbstractAttributeApiTests {
 
     @DynamicPropertySource
     static void postgresProperties(DynamicPropertyRegistry registry) {
-        registry.add("io.sapl.attributes.postgres.host", postgres::getHost);
-        registry.add("io.sapl.attributes.postgres.port", () -> postgres.getMappedPort(5432));
-        registry.add("io.sapl.attributes.postgres.database", postgres::getDatabaseName);
-        registry.add("io.sapl.attributes.postgres.username", postgres::getUsername);
-        registry.add("io.sapl.attributes.postgres.password", postgres::getPassword);
+        registry.add("io.sapl.attributes.backends.postgres-test.postgres.host", postgres::getHost);
+        registry.add("io.sapl.attributes.backends.postgres-test.postgres.port", () -> postgres.getMappedPort(5432));
+        registry.add("io.sapl.attributes.backends.postgres-test.postgres.database", postgres::getDatabaseName);
+        registry.add("io.sapl.attributes.backends.postgres-test.postgres.username", postgres::getUsername);
+        registry.add("io.sapl.attributes.backends.postgres-test.postgres.password", postgres::getPassword);
     }
 
     @Override
