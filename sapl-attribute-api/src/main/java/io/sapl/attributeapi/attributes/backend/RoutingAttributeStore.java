@@ -64,7 +64,7 @@ public final class RoutingAttributeStore implements AttributeStore {
             return resolve(pdpId).publish(key, value, pdpId);
         } catch (DataAccessException | RedisConnectionException | RedisCommandTimeoutException e) {
             invalidate(pdpId);
-            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
         }
     }
 
@@ -74,7 +74,7 @@ public final class RoutingAttributeStore implements AttributeStore {
             return resolve(pdpId).publish(key, value, ttl, pdpId);
         } catch (DataAccessException | RedisConnectionException | RedisCommandTimeoutException e) {
             invalidate(pdpId);
-            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
         }
     }
 
@@ -84,7 +84,7 @@ public final class RoutingAttributeStore implements AttributeStore {
             return resolve(pdpId).remove(key, pdpId);
         } catch (DataAccessException | RedisConnectionException | RedisCommandTimeoutException e) {
             invalidate(pdpId);
-            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
         }
     }
 
@@ -94,7 +94,7 @@ public final class RoutingAttributeStore implements AttributeStore {
             return resolve(pdpId).count(pdpId);
         } catch (DataAccessException | RedisConnectionException | RedisCommandTimeoutException e) {
             invalidate(pdpId);
-            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
         }
     }
 
@@ -104,7 +104,7 @@ public final class RoutingAttributeStore implements AttributeStore {
             return resolve(pdpId).get(key, pdpId);
         } catch (DataAccessException | RedisConnectionException | RedisCommandTimeoutException e) {
             invalidate(pdpId);
-            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
         }
     }
 
@@ -114,7 +114,7 @@ public final class RoutingAttributeStore implements AttributeStore {
             return resolve(pdpId).getAll(pdpId, limit, offset);
         } catch (DataAccessException | RedisConnectionException | RedisCommandTimeoutException e) {
             invalidate(pdpId);
-            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
         }
     }
 

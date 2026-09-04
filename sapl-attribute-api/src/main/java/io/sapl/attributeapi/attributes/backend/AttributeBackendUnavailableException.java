@@ -24,4 +24,8 @@ public class AttributeBackendUnavailableException extends RuntimeException {
     public AttributeBackendUnavailableException(String message) {
         super(message);
     }
+
+    public AttributeBackendUnavailableException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
