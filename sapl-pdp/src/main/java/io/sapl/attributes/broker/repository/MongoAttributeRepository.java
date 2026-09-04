@@ -32,6 +32,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.dao.DataAccessException;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -45,6 +46,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
+import org.springframework.data.mongodb.core.CollectionOptions;
+import reactor.util.retry.Retry.RetrySignal;
 
 /**
  * Repository implementation that persists attributes in MongoDB and maintains an In-Memory representation
@@ -57,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public final class MongoAttributeRepository implements AttributeRepository {
     private static final String WARN_RECONNECTING          = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
+    private static final String WARN_PRE_POST_IMAGES       = "Could not activate changeStreamPreAndPostImages for pdp id '{}' : {}. Activate it manually.";
     private static final String ERROR_RECONNECT_GIVEN_UP   = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
     private static final String ERROR_BACKEND_DISCONNECTED = "The backend is currently disconnected for pdp with id %s.";
     private static final String ERROR_RESYNC_FAILED        = "Resync attempt failed for pdp with id '{}' : {}";
@@ -97,6 +102,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
         this.pdpId              = pdpId;
         this.collection         = collection;
         this.internalRepository = new InMemoryAttributeRepository(this::deleteFromDB);
+        configureChangeStreamPrePostImages();
         loadFromDB();
         subscribeToChangeStream();
     }
@@ -118,22 +124,26 @@ public final class MongoAttributeRepository implements AttributeRepository {
     // The subscription to the change streams needs a MongoDB replica set activated.
     // Replica sets are also working with a single node and are used together with change streams.
     private void subscribeToChangeStream() {
-        changeStreamSubscription.set(openChangeStream().filter(this::matchesPdpId)
-                .publishOn(Schedulers.boundedElastic()).retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
-                        .maxBackoff(Duration.ofSeconds(30)).filter(throwable -> !closed).doBeforeRetry(signal -> {
-                            log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-                            if (signal.totalRetries() > 0 && disconnected.compareAndSet(false, true)) {
-                                for (var key : internalRepository.knownKeys()) {
-                                    internalRepository.publish(key,
-                                            Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
-                                }
-                                resyncWithRetry();
-                            }
-                        }))
-                .subscribe(this::handleChangeStreamEvent, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
+        changeStreamSubscription.set(openChangeStream().filter(this::belongsToPdpId)
+                .publishOn(Schedulers.boundedElastic())
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
+                        .filter(throwable -> !closed).doBeforeRetry(this::handleChangeStreamRetry))
+                .subscribe(this::processChangeStreamEvent, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
     }
 
-    private void resyncWithRetry() {
+    // Handle the re-try logic on a detected disconnect. Invalidates the cache and resync the cache again.
+    private void handleChangeStreamRetry(RetrySignal signal) {
+        log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
+        if (signal.totalRetries() > 0 && disconnected.compareAndSet(false, true)) {
+            for (var key : internalRepository.knownKeys()) {
+                internalRepository.publish(key, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
+            }
+            resyncFromMongoWithRetry();
+        }
+    }
+
+    // Reconnects with a retry-backoff logic and loads all attributes from the backend if successful
+    private void resyncFromMongoWithRetry() {
         resyncSubscription.set(Mono.fromRunnable(this::loadFromDB)
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
                         .scheduler(Schedulers.boundedElastic()).filter(throwable -> !closed))
@@ -141,48 +151,58 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .subscribe(v -> {}, error -> log.error(ERROR_RESYNC_FAILED, pdpId, error.getMessage())));
     }
 
-    // Opens the change stream when the first subscription is happening
+    // Opens the change stream when the first subscription is happening and activated pre-image for deletes on the
+    // change stream
     private Flux<ChangeStreamEvent<Document>> openChangeStream() {
         return Flux.defer(() -> mongo.changeStream(Document.class)
-                .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP))
+                .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP)
+                        .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.WHEN_AVAILABLE))
                 .watchCollection(collection).listen());
     }
 
-    private boolean matchesPdpId(ChangeStreamEvent<Document> event) {
-        var body = event.getBody();
+    // Filters events, so that events are only handled when the pdp id matches with the config of this object
+    private boolean belongsToPdpId(ChangeStreamEvent<Document> event) {
+        var body = isDeleteEvent(event) ? event.getBodyBeforeChange() : event.getBody();
         return body != null && pdpId.equals(body.getString(FIELD_PDP_ID));
     }
 
-    private void handleChangeStreamEvent(ChangeStreamEvent<Document> event) {
-        var doc = Objects.requireNonNull(event.getBody());
-        var key = keyFromDocument(doc);
-
+    // Handles the change stream event on a publish and delete case. Delete needs to read the attribute before deleting
+    // it
+    private void processChangeStreamEvent(ChangeStreamEvent<Document> event) {
+        // Handle the delete events first because the body is always null on delete events
         if (isDeleteEvent(event)) {
-            internalRepository.remove(key);
+            var doc = Objects.requireNonNull(event.getBodyBeforeChange());
+            internalRepository.remove(repositoryKeyFromDocument(doc));
             return;
         }
 
-        publishFromDocument(key, doc);
+        var doc = Objects.requireNonNull(event.getBody());
+        var key = repositoryKeyFromDocument(doc);
+
+        updateCacheFromDocument(key, doc);
     }
 
+    // Check if the event is a delete event to distinguish the behaviour in handling
     private static boolean isDeleteEvent(ChangeStreamEvent<Document> event) {
         var opType = event.getOperationType();
         return opType != null && "delete".equals(opType.getValue());
     }
 
-    private RepositoryKey keyFromDocument(Document doc) {
+    // Converter to convert a Mongo document into an repository key object
+    private RepositoryKey repositoryKeyFromDocument(Document doc) {
         var entityJson = doc.getString(FIELD_ENTITY);
         return new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
-                doc.getString(FIELD_NAME), jsonToValues(doc.getString(FIELD_ARGUMENTS)), pdpId);
+                doc.getString(FIELD_NAME), jsonArrayToValues(doc.getString(FIELD_ARGUMENTS)), pdpId);
     }
 
-    private void publishFromDocument(RepositoryKey key, Document doc) {
+    // Publish the repository key from a Mongo document
+    private void updateCacheFromDocument(RepositoryKey key, Document doc) {
         var valueJson = doc.getString(FIELD_VALUE);
         if (valueJson == null)
             return;
 
         var value     = ValueJsonMarshaller.json(valueJson);
-        var expiresAt = expiryFromDocument(doc);
+        var expiresAt = expirationFromDocument(doc);
 
         if (expiresAt == null) {
             internalRepository.publish(key, value);
@@ -194,7 +214,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
             internalRepository.publish(key, value, remaining);
     }
 
-    private static Instant expiryFromDocument(Document doc) {
+    // Extract the expiry from a Mongo document to use it for the change stream handling
+    private static Instant expirationFromDocument(Document doc) {
         var dateField = doc.getDate(FIELD_EXPIRES_AT);
         return dateField != null ? dateField.toInstant() : null;
     }
@@ -204,13 +225,13 @@ public final class MongoAttributeRepository implements AttributeRepository {
         var query    = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
         var seenKeys = new HashSet<RepositoryKey>();
 
-        mongo.find(query, Document.class, collection).toStream().forEach(doc -> restoreDocument(doc, seenKeys));
+        mongo.find(query, Document.class, collection).toStream().forEach(doc -> restoreDocumentToCache(doc, seenKeys));
 
-        removeStaleKeys(seenKeys);
+        removeStaleCacheEntries(seenKeys);
     }
 
     public void deleteFromDB(@NonNull RepositoryKey key) {
-        mongo.remove(doMongoQuery(key), collection).block();
+        mongo.remove(buildMongoQuery(key), collection).block();
     }
 
     @Override
@@ -225,15 +246,16 @@ public final class MongoAttributeRepository implements AttributeRepository {
         upsertToDB(key, value, Instant.now().plus(ttl));
     }
 
+    // Upsert (update+insert) a repository key + value with optional ttl to the Mongo collection for the pdp
     private void upsertToDB(@NonNull RepositoryKey key, Value value, @Nullable Instant expiresAt) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
-        var argsJson   = valuesToJson(key.arguments());
+        var argsJson   = valuesToJsonArray(key.arguments());
         var valueJson  = ValueJsonMarshaller.toJsonString(value);
 
         var update = new Update().set(FIELD_PDP_ID, pdpId).set(FIELD_NAME, key.name()).set(FIELD_ENTITY, entityJson)
                 .set(FIELD_ARGUMENTS, argsJson).set(FIELD_VALUE, valueJson).set(FIELD_EXPIRES_AT, expiresAt);
 
-        mongo.upsert(doMongoQuery(key), update, collection).block();
+        mongo.upsert(buildMongoQuery(key), update, collection).block();
     }
 
     @Override
@@ -242,27 +264,28 @@ public final class MongoAttributeRepository implements AttributeRepository {
         deleteFromDB(key);
     }
 
-    private Query doMongoQuery(RepositoryKey key) {
+    // Builder for the correct Mongo query
+    private Query buildMongoQuery(RepositoryKey key) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
-        var argsJson   = valuesToJson(key.arguments());
+        var argsJson   = valuesToJsonArray(key.arguments());
         var criteria   = Criteria.where(FIELD_PDP_ID).is(pdpId).and(FIELD_NAME).is(key.name()).and(FIELD_ENTITY)
                 .is(entityJson).and(FIELD_ARGUMENTS).is(argsJson);
 
         return new Query(criteria);
     }
 
-    private static String valuesToJson(List<Value> values) {
+    private static String valuesToJsonArray(List<Value> values) {
         return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
     }
 
-    private static List<Value> jsonToValues(String json) {
+    private static List<Value> jsonArrayToValues(String json) {
         if (json == null || json.isBlank())
             return List.of();
 
         return (ArrayValue) ValueJsonMarshaller.json(json);
     }
 
-    private void restoreDocument(Document doc, Set<RepositoryKey> seenKeys) {
+    private void restoreDocumentToCache(Document doc, Set<RepositoryKey> seenKeys) {
         var entityJson = doc.getString(FIELD_ENTITY);
         var argsJson   = doc.getString(FIELD_ARGUMENTS);
         var valueJson  = doc.getString(FIELD_VALUE);
@@ -271,9 +294,9 @@ public final class MongoAttributeRepository implements AttributeRepository {
             return;
 
         var key       = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
-                doc.getString(FIELD_NAME), jsonToValues(argsJson), pdpId);
+                doc.getString(FIELD_NAME), jsonArrayToValues(argsJson), pdpId);
         var value     = ValueJsonMarshaller.json(valueJson);
-        var expiresAt = expiryFromDocument(doc);
+        var expiresAt = expirationFromDocument(doc);
 
         if (expiresAt == null) {
             internalRepository.publish(key, value);
@@ -291,12 +314,36 @@ public final class MongoAttributeRepository implements AttributeRepository {
         seenKeys.add(key);
     }
 
-    private void removeStaleKeys(Set<RepositoryKey> seenKeys) {
+    // Removes stale keys from the internal cache. Important after a resync with disconnect because
+    // change events could have been missed
+    private void removeStaleCacheEntries(Set<RepositoryKey> seenKeys) {
         // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
         for (var staleKey : internalRepository.knownKeys()) {
             if (!seenKeys.contains(staleKey)) {
                 internalRepository.remove(staleKey);
             }
+        }
+    }
+
+    // Check if the Mongo collection exists with the right configuration
+    private void configureChangeStreamPrePostImages() {
+        try {
+            var exists = Boolean.TRUE.equals(mongo.collectionExists(collection).block());
+
+            if (exists) {
+                // The db command collMod adds the changeStreamPreAndPostImages to the collection.
+                // In other words: create a snapshot before and after an change stream event
+                mongo.executeCommand(new Document("collMod", collection).append("changeStreamPreAndPostImages",
+                        new Document("enabled", true))).block();
+            } else {
+                // If the collection does not exist: create it.
+                mongo.createCollection(collection,
+                        CollectionOptions.empty()
+                                .changeStream(CollectionOptions.CollectionChangeStreamOptions.preAndPostImages(true)))
+                        .block();
+            }
+        } catch (DataAccessException e) {
+            log.warn(WARN_PRE_POST_IMAGES, pdpId, e.getMessage());
         }
     }
 }

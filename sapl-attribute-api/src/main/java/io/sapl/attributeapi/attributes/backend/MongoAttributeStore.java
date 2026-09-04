@@ -21,9 +21,13 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+
 import org.bson.Document;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.CollectionOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -40,8 +44,10 @@ import java.util.Objects;
 /**
  * Implementation of the attribute store for a MongoDB backend.
  */
+@Slf4j
 public class MongoAttributeStore implements AttributeStore {
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
+    private static final String WARN_PRE_POST_IMAGES   = "Could not activate changeStreamPreAndPostImages for collection '{}' : {}. Activate it manually.";
 
     private static final String PDP_ID_FIELD     = "pdpId";
     private static final String NAME_FIELD       = "name";
@@ -57,6 +63,7 @@ public class MongoAttributeStore implements AttributeStore {
     public MongoAttributeStore(ReactiveMongoTemplate mongo, String collection) {
         this.mongo      = mongo;
         this.collection = collection;
+        configureChangeStreamPrePostImages();
     }
 
     @Override
@@ -171,5 +178,27 @@ public class MongoAttributeStore implements AttributeStore {
         Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
         return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);
+    }
+
+    // Check if the Mongo collection exists with the right configuration
+    private void configureChangeStreamPrePostImages() {
+        try {
+            var exists = Boolean.TRUE.equals(mongo.collectionExists(collection).block());
+
+            if (exists) {
+                // The db command collMod adds the changeStreamPreAndPostImages to the collection.
+                // In other words: create a snapshot before and after an change stream event
+                mongo.executeCommand(new Document("collMod", collection).append("changeStreamPreAndPostImages",
+                        new Document("enabled", true))).block();
+            } else {
+                // If the collection does not exist: create it.
+                mongo.createCollection(collection,
+                        CollectionOptions.empty()
+                                .changeStream(CollectionOptions.CollectionChangeStreamOptions.preAndPostImages(true)))
+                        .block();
+            }
+        } catch (DataAccessException e) {
+            log.warn(WARN_PRE_POST_IMAGES, collection, e.getMessage());
+        }
     }
 }

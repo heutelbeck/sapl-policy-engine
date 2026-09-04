@@ -59,7 +59,7 @@ public final class BackendHandle {
 
         var lastFailureAt = lastFailure.get();
         if (lastFailureAt != null && Duration.between(lastFailureAt, Instant.now()).compareTo(RETRY_COOLDOWN) < 0) {
-            throw unavailable();
+        	throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
         }
 
         lock.lock();
@@ -77,7 +77,7 @@ public final class BackendHandle {
             } catch (RuntimeException e) {
                 lastFailure.set(Instant.now());
                 log.debug("Backend '{}' failed to connect: {}", name, e.getMessage(), e);
-                throw unavailable();
+                throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
             }
         } finally {
             lock.unlock();
@@ -98,9 +98,5 @@ public final class BackendHandle {
     public void invalidate() {
         store.set(null);
         lastFailure.set(Instant.now());
-    }
-
-    private AttributeBackendUnavailableException unavailable() {
-        return new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
     }
 }

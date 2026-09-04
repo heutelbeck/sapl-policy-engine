@@ -18,20 +18,28 @@
 package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.bson.Document;
 import io.sapl.api.model.Value;
+import reactor.core.publisher.Mono;
 
 class MongoAttributeStoreTests {
 
     @Test
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
     void whenPublishedWithNegativeTTLExceptionIsThrown() {
-        var store = new MongoAttributeStore(mock(ReactiveMongoTemplate.class), "attributes");
+        var mongo = mock(ReactiveMongoTemplate.class);
+        when(mongo.collectionExists("attributes")).thenReturn(Mono.just(true));
+        when(mongo.executeCommand(any(Document.class))).thenReturn(Mono.just(new Document()));
+
+        var store = new MongoAttributeStore(mongo, "attributes");
         var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
         var value = Value.of("negative");
         var ttl   = Duration.ofSeconds(-1);

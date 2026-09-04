@@ -119,6 +119,24 @@ class MongoAttributeRepositoryTests {
 
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
+
+        @Test
+        @DisplayName("then another node also observes UNDEFINED")
+        void thenAnotherNodeObserverIsUndefined() {
+            repository.publish(key("sapl.test.remove.two.nodes"), Value.of("deleteIt"));
+
+            val client2   = MongoClients.create(mongo.getConnectionString());
+            var template2 = new ReactiveMongoTemplate(new SimpleReactiveMongoDatabaseFactory(client2, "sapl"));
+
+            try (val repo2 = new MongoAttributeRepository(template2, "test-tenant", "attributes")) {
+                repo2.observe(invocation("sapl.test.remove.two.nodes"), received::add);
+                assertThat(firstReceived()).isEqualTo(Value.of("deleteIt"));
+
+                // Delete the attribute and wait a short period
+                repository.remove(key("sapl.test.remove.two.nodes"));
+                Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
+            }
+        }
     }
 
     @Nested

@@ -29,7 +29,17 @@ Most of the backends require a minimal manual setup. To prepare the backend for 
 
 ### MongoDB
 
-1. The collection will be created automatically. For larger setups you should increase the performance by adding indices:
+The collection and the pre- and post-images for the collection will be created automatically. The following step needs to be done manually:
+
+1. Add a replica set config to the `mongod.conf`:
+    ```
+    replication:
+      replSetName: rs0
+    ```
+
+The other two steps are optional but should be considered depending on your environment:
+
+1. For larger setups you should increase the performance by adding indices:
 
     ```js
     db.attributes.createIndex(
@@ -38,10 +48,9 @@ Most of the backends require a minimal manual setup. To prepare the backend for 
     )
     ```
 
-2. Add a replica set config to the `mongod.conf`:
-   ```
-   replication:
-     replSetName: rs0
+2. You can set an expiry for pre- and post-images. The settings are cluster-wide and need to be adjusted to your Cluster setting. The attribute repository for Mongo only needs a short period of pre and post images. A shorter period keeps the used space on disk low. You can set it within `mongosh`:
+   ```js
+   db.adminCommand({ setClusterParameter: { changeStreamOptions: { preAndPostImages: { expireAfterSeconds: 120 } } } })
    ```
 
 ### PostgreSQL
@@ -99,7 +108,11 @@ services:
     ports:
       - "27017:27017"
     healthcheck:
-      test: mongosh --eval "try { rs.status() } catch (e) { rs.initiate() }" --quiet
+      test: >
+        mongosh --eval "
+          try { rs.status() } catch (e) { rs.initiate() };
+          db.adminCommand({ setClusterParameter: { changeStreamOptions: { preAndPostImages: { expireAfterSeconds: 120 } } } })
+        " --quiet
       interval: 5s
       timeout: 5s
       retries: 10

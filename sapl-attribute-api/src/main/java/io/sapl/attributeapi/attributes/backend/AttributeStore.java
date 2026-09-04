@@ -88,5 +88,8 @@ public interface AttributeStore {
      */
     List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset);
 
+    /**
+     * Safely closes all the connections to the backend storage.
+     */
     void close();
 }
