@@ -17,6 +17,7 @@
  */
 package io.sapl.attributeapi.attributes.controller;
 
+import io.sapl.attributeapi.attributes.BackendHandle;
 import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableException;
 import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.attributes.service.AttributeApiService;
@@ -25,6 +26,7 @@ import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
@@ -208,7 +210,8 @@ public class AttributeApiController {
 
     /**
      * Exception thrown when the backend storage isn't available. Only show a generic message to avoid
-     * leaking internal information.
+     * leaking internal information. Sends a {@code Retry-After:} header. 
+     * Also see {@link https://datatracker.ietf.org/doc/html/rfc9110#name-503-service-unavailable}
      *
      * @param e The exception message
      * @return {@code HTTP 503} - service unavailable. The current backend storage couldn't be reached.
@@ -216,7 +219,10 @@ public class AttributeApiController {
     @ExceptionHandler(AttributeBackendUnavailableException.class)
     public ResponseEntity<String> handleBackendUnavailable(AttributeBackendUnavailableException e) {
         log.warn(e.getMessage());
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
+        return ResponseEntity
+        		.status(HttpStatus.SERVICE_UNAVAILABLE)
+        		.header(HttpHeaders.RETRY_AFTER, String.valueOf(BackendHandle.RETRY_COOLDOWN.toSeconds()))
+        		.body(e.getMessage());
     }
 
     /**

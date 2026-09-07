@@ -31,7 +31,7 @@ public final class BackendHandle {
     private static final String ERROR_UNAVAILABLE = "The service is currently unavailable";
 
     // To avoid reconnect burst when the backend is down
-    private static final Duration RETRY_COOLDOWN = Duration.ofSeconds(5);
+    public static final Duration RETRY_COOLDOWN = Duration.ofSeconds(5);
 
     // Supplier defines how to create something but the creation happens later
     private final Supplier<AttributeStore>        builder;
