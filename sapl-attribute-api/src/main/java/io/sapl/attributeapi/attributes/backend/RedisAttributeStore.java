@@ -30,6 +30,8 @@ import java.util.Map;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
+import io.lettuce.core.KeyScanCursor;
+import io.lettuce.core.ScanArgs;
 
 /**
  * Implementation of the attribute store for a Redis backend.
@@ -117,7 +119,19 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public Long count(String pdpId) {
-        return (long) commands.keys(REDIS_NAMESPACE_PREFIX + pdpId + ":*").size();
+        ScanArgs arguments = ScanArgs.Builder.matches(REDIS_NAMESPACE_PREFIX + pdpId + ":*");
+        long     keys      = 0L;
+
+        // Use Redis SCAN instead of KEYS. KEYS is a blocking command while the keys are loading
+        // and SCAN is non-blocking because it's using a cursor logic and is recommend by Redis.
+        // Keys is not for production code made and ruins performance.
+        KeyScanCursor<String> cursor = commands.scan(arguments);
+        keys += cursor.getKeys().size();
+        while (!cursor.isFinished()) {
+            cursor  = commands.scan(cursor, arguments);
+            keys   += cursor.getKeys().size();
+        }
+        return keys;
     }
 
     @Override

@@ -59,7 +59,7 @@ public final class BackendHandle {
 
         var lastFailureAt = lastFailure.get();
         if (lastFailureAt != null && Duration.between(lastFailureAt, Instant.now()).compareTo(RETRY_COOLDOWN) < 0) {
-        	throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE);
         }
 
         lock.lock();
