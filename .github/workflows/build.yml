@@ -655,7 +655,7 @@ jobs:
           sha256sum ./* > SHA256SUMS.txt
 
       - name: Attest SAPL Node release artifact provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: release/*
 
@@ -825,7 +825,7 @@ jobs:
           sha256sum ./* > SHA256SUMS.txt
 
       - name: Attest SAPL Language Server release artifact provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: release/*
 
@@ -941,7 +941,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Attest Maven artifact provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             pom.xml
@@ -1079,7 +1079,7 @@ jobs:
           cosign sign --yes ghcr.io/heutelbeck/sapl-playground@${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
 
       - name: Attest SAPL Node image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
@@ -1094,7 +1094,7 @@ jobs:
           push-to-registry: true
 
       - name: Attest Playground image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-playground
           subject-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
@@ -1233,7 +1233,7 @@ jobs:
           cosign sign --yes ghcr.io/heutelbeck/sapl-node@${{ steps.min-manifest-digest.outputs.manifest_digest }}
 
       - name: Attest Minimal Native amd64 image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-digests.outputs.amd64_digest }}
@@ -1248,7 +1248,7 @@ jobs:
           push-to-registry: true
 
       - name: Attest Minimal Native arm64 image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-digests.outputs.arm64_digest }}
@@ -1263,7 +1263,7 @@ jobs:
           push-to-registry: true
 
       - name: Attest Minimal Native manifest provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-manifest-digest.outputs.manifest_digest }}
@@ -1615,7 +1615,7 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Attest final release checksums
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: sums-staging/SHA256SUMS.txt
 
