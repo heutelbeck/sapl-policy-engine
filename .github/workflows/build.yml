@@ -1678,6 +1678,8 @@ jobs:
               -p 9003:8080 \
               -e SAPL_PLAYGROUND_BASEURL=https://playground.sapl.io \
               -e SAPL_EMBED_CORS_ALLOWEDORIGINS_0=https://sapl.io \
+              -e SAPL_EDITOR_LSP_ALLOWEDORIGINS_0=https://playground.sapl.io \
+              -e SAPL_EDITOR_LSP_ALLOWEDORIGINS_1=https://sapl.io \
               ghcr.io/heutelbeck/sapl-playground@${{ needs.publish-docker.outputs.sapl-playground-docker-digest }}
 
             echo "Verifying deployment..."
