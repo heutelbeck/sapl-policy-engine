@@ -85,9 +85,16 @@ public class RedisAttributeStore implements AttributeStore {
             fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(key.entity()));
         }
 
-        // Redis + hset lacks a function to return if a key was new or not new. It just return how many fields are there
-        // It causes two connections for now and should be considered. It's not an atomic action!!
-        boolean created = commands.exists(redisKey) == 0;
+        /*
+         * HSETNX sets a field only if it does not exist yet, and does so atomically. Redis does process
+         * commands strictly sequentially. Two concurrent calls can't get both created = true because of
+         * the sequential processing. The HSET just writes the fields into the (now) existing key.
+         * The HSET is not critical and last write wins.
+         * The command EXISTS was removed because it could cause a bug if two parallel requests tried to
+         * set the same attribute key. The counter would have been increased twice and both would return
+         * a HTTP 201 CREATED instead of a HTTP 200 OK and HTTP 201.
+         */
+        boolean created = commands.hsetnx(redisKey, NAME_FIELD, key.name());
         commands.hset(redisKey, fields);
 
         // Increment the sequence number within Redis, stores it add the current key to the sorted set (ZSET)

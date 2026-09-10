@@ -210,7 +210,7 @@ public class AttributeApiController {
 
     /**
      * Exception thrown when the backend storage isn't available. Only show a generic message to avoid
-     * leaking internal information. Sends a {@code Retry-After:} header. 
+     * leaking internal information. Sends a {@code Retry-After:} header.
      * Also see {@link https://datatracker.ietf.org/doc/html/rfc9110#name-503-service-unavailable}
      *
      * @param e The exception message
@@ -219,10 +219,9 @@ public class AttributeApiController {
     @ExceptionHandler(AttributeBackendUnavailableException.class)
     public ResponseEntity<String> handleBackendUnavailable(AttributeBackendUnavailableException e) {
         log.warn(e.getMessage());
-        return ResponseEntity
-        		.status(HttpStatus.SERVICE_UNAVAILABLE)
-        		.header(HttpHeaders.RETRY_AFTER, String.valueOf(BackendHandle.RETRY_COOLDOWN.toSeconds()))
-        		.body(e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(BackendHandle.RETRY_COOLDOWN.toSeconds()))
+                .body(e.getMessage());
     }
 
     /**
