@@ -40,6 +40,7 @@ import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.Optional;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -58,7 +59,7 @@ class RSocketSecurityConfigurationTests {
     }
 
     private static ConnectionSetupPayload setupWith(io.netty.buffer.ByteBuf metadata) {
-        val setup = org.mockito.Mockito.mock(ConnectionSetupPayload.class);
+        val setup = mock(ConnectionSetupPayload.class);
         when(setup.metadata()).thenReturn(metadata);
         return setup;
     }

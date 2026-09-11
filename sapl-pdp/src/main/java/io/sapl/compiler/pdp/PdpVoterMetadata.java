@@ -22,10 +22,22 @@ import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import lombok.NonNull;
 
+import static java.util.Objects.requireNonNull;
+
 public record PdpVoterMetadata(
         @NonNull String name,
         @NonNull String pdpId,
         @NonNull String configurationId,
         CombiningAlgorithm combiningAlgorithm,
         @NonNull Outcome outcome,
-        boolean hasConstraints) implements VoterMetadata {}
+        boolean hasConstraints) implements VoterMetadata {
+
+    private static final String ERROR_CONFIGURATION_ID_BLANK = "A voter requires a non-blank configurationId.";
+
+    public PdpVoterMetadata {
+        requireNonNull(configurationId, ERROR_CONFIGURATION_ID_BLANK);
+        if (configurationId.isBlank()) {
+            throw new IllegalArgumentException(ERROR_CONFIGURATION_ID_BLANK);
+        }
+    }
+}

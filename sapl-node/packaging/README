@@ -58,11 +58,9 @@ Writing Your Own Policies
 Replace the example with your own policies:
 
 1. Create a directory with your .sapl files and a pdp.json.
-   The pdp.json must contain a "configurationId" field that
-   uniquely identifies this configuration version. Example:
+   Example:
 
    {
-     "configurationId": "my-app-v1",
      "algorithm": {
        "votingMode": "PRIORITY_DENY",
        "defaultDecision": "DENY",
@@ -71,6 +69,9 @@ Replace the example with your own policies:
    }
 
 2. Build and sign: sapl bundle create -i ./my-policies -o /var/lib/sapl/default.saplbundle -k /etc/sapl/signing.pem
+   The configuration id identifying this publication is recorded in
+   the bundle manifest and printed on success. Set it explicitly with
+   --configuration-id, or a content-derived id is used.
 3. The PDP reloads automatically
 
 See /var/lib/sapl/example/ for a starting point.

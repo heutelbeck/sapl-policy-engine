@@ -141,8 +141,8 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
         val normalizedPath = normalizeResourcePath(resourcePath);
         val scannedData    = scanResources(normalizedPath);
 
-        var loaded = emitRootConfiguration(normalizedPath, scannedData);
-        loaded += emitSubdirectoryConfigurations(normalizedPath, scannedData);
+        var loaded = emitRootConfiguration(scannedData);
+        loaded += emitSubdirectoryConfigurations(scannedData);
 
         log.info("Loaded {} PDP configurations from resources.", loaded);
         if (loaded == 0) {
@@ -196,20 +196,19 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
         }
     }
 
-    private int emitRootConfiguration(String normalizedPath, ScannedResourceData data) {
+    private int emitRootConfiguration(ScannedResourceData data) {
         if (data.rootPdpJson() == null && data.rootSaplFiles().isEmpty()) {
             return 0;
         }
 
-        val sourcePath    = "/" + normalizedPath;
         val defaultConfig = PDPConfigurationLoader.loadFromContent(data.rootPdpJson(), data.rootSaplFiles(),
-                StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, sourcePath);
+                StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, "root");
         emit(defaultConfig);
         log.debug("Loaded default PDP configuration with {} SAPL documents.", data.rootSaplFiles().size());
         return 1;
     }
 
-    private int emitSubdirectoryConfigurations(String normalizedPath, ScannedResourceData data) {
+    private int emitSubdirectoryConfigurations(ScannedResourceData data) {
         var count = 0;
 
         for (val entry : data.subDirectoryData().entrySet()) {
@@ -225,8 +224,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
             val saplFiles  = extractSaplFiles(subdirData);
 
             if (pdpJson != null || !saplFiles.isEmpty()) {
-                val sourcePath = "/" + normalizedPath + "/" + subdirName;
-                val config     = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, subdirName, sourcePath);
+                val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, subdirName, subdirName);
                 emit(config);
                 count++;
                 log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", subdirName, saplFiles.size());

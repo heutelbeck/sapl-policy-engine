@@ -28,5 +28,7 @@ public class JsonEditorConfiguration {
     private boolean readOnly;
     private boolean hasLineNumbers = true;
     private boolean lint           = true;
+    private boolean lineWrapping;
+    private boolean followColorScheme;
 
 }

@@ -26,7 +26,7 @@ The health endpoint returns detail fields for each PDP instance:
 | Field | Description |
 |-------|-------------|
 | `state` | Current operational state (`LOADED`, `STALE`, or `ERROR`). |
-| `configurationId` | Identifier of the active configuration. Absent in `ERROR` state. |
+| `configurationId` | Identifier of the active publication: the bundle manifest's configuration id, or a content-derived id (`dir:<dirName>@<hash16>`, `res:<name>@<hash16>`, `embedded@<hash16>`) for non-bundle sources. Absent in `ERROR` state. |
 | `combiningAlgorithm` | The combining algorithm in use, with `votingMode`, `defaultDecision`, and `errorHandling` fields. Absent in `ERROR` state. |
 | `documentCount` | Number of SAPL documents in the active configuration. |
 | `lastSuccessfulLoad` | Timestamp of the last successful configuration load. |
@@ -46,7 +46,7 @@ Example health response with one loaded and one stale PDP:
         "pdps": {
           "default": {
             "state": "LOADED",
-            "configurationId": "v42",
+            "configurationId": "release-42",
             "combiningAlgorithm": {
               "votingMode": "PRIORITY_PERMIT",
               "defaultDecision": "DENY",
@@ -57,7 +57,7 @@ Example health response with one loaded and one stale PDP:
           },
           "staging": {
             "state": "STALE",
-            "configurationId": "v5",
+            "configurationId": "dir:staging@4f1e9a2b6c8d0e37",
             "combiningAlgorithm": {
               "votingMode": "PRIORITY_DENY",
               "defaultDecision": "DENY",

@@ -65,7 +65,7 @@ public class SaplPluginManager implements AutoCloseable {
     /**
      * Creates a manager over the configured plugins directory, backed by a
      * {@link JarPluginManager}. Pins the PF4J system version to
-     * {@link SaplVersion#SEMANTIC_VERSION} so that a plugin declaring an
+     * {@link SaplVersion#VERSION} so that a plugin declaring an
      * incompatible {@code Plugin-Requires} range is rejected at load time.
      *
      * @param pluginsPath
@@ -73,7 +73,7 @@ public class SaplPluginManager implements AutoCloseable {
      */
     public SaplPluginManager(Path pluginsPath) {
         this(new JarPluginManager(pluginsPath), pluginsPath);
-        pluginManager.setSystemVersion(SaplVersion.SEMANTIC_VERSION);
+        pluginManager.setSystemVersion(SaplVersion.VERSION);
     }
 
     /**

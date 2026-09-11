@@ -996,6 +996,37 @@ When using `BUNDLES` or `REMOTE_BUNDLES`, you can configure signature verificati
 | `io.sapl.pdp.embedded.bundle-security.keys.<key-id>` | empty map | Named key catalogue mapping key identifiers to Base64-encoded Ed25519 public keys. |
 | `io.sapl.pdp.embedded.bundle-security.tenants.<pdpId>` | empty map | Per-tenant key binding. Maps a tenant identifier to a list of trusted key identifiers from the catalogue. |
 
+#### Sealed Bundle Secrets
+
+An embedded PDP can unseal bundle secrets with one or more X25519 recipient
+private keys:
+
+```yaml
+io:
+  sapl:
+    pdp:
+      embedded:
+        secrets:
+          private-key-paths:
+            - /run/secrets/bundle-recipient-current.jwk
+            - /run/secrets/bundle-recipient-previous.jwk
+          accept-unencrypted: false
+```
+
+| Property | Default | Description |
+|---|---|---|
+| `io.sapl.pdp.embedded.secrets.private-key-paths` | empty | Paths to all accepted X25519 private JWKs. |
+| `io.sapl.pdp.embedded.secrets.private-keys` | empty | Inline private JWKs added to the accepted keyring. Prefer file-based secrets in production. |
+| `io.sapl.pdp.embedded.secrets.accept-unencrypted` | `false` | Accept cleartext bundle secrets. Keep disabled outside trusted development environments. |
+
+Every key must contain private X25519 material and have a unique, non-blank
+`kid`. Every sealed leaf is routed only to the key named by its JWE header. To
+rotate a recipient, add the new private key beside the previous key and restart
+the application. The publisher can then reseal bundles one by one. Remove the
+previous key only after all configured bundles name the new recipient, then
+restart again. An invalid or unknown-recipient update does not replace the
+last-good configuration.
+
 #### Remote Bundle Fetching
 
 When `pdp-config-type=REMOTE_BUNDLES`, bundles are fetched from a remote HTTP server. Change detection uses HTTP conditional requests (ETag and `If-None-Match`).

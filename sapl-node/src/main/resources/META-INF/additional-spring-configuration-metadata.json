@@ -65,6 +65,21 @@
     "description": "Path to folder containing pdp.json."
   },
   {
+    "name": "io.sapl.pdp.embedded.secrets.private-key-paths",
+    "type": "java.util.List<java.lang.String>",
+    "description": "Paths to all X25519 private recipient JWKs accepted during bundle-key rotation."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.secrets.private-keys",
+    "type": "java.util.List<java.lang.String>",
+    "description": "Inline X25519 private recipient JWKs accepted during bundle-key rotation."
+  },
+  {
+    "name": "io.sapl.pdp.embedded.secrets.accept-unencrypted",
+    "type": "java.lang.Boolean",
+    "description": "Accept cleartext bundle secrets. Disabled by default."
+  },
+  {
     "name": "io.sapl.pdp.embedded.print-text-report",
     "type": "java.lang.Boolean",
     "description": "This flag turns on a textual report in the logs for each decision made."

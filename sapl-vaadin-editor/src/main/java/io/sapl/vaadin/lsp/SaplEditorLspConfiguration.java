@@ -76,4 +76,16 @@ public class SaplEditorLspConfiguration {
      * Defaults to 300ms. Only applies when autocompleteTrigger is ON_TYPING.
      */
     private int autocompleteDelay = 300;
+
+    /**
+     * Whether long lines wrap at the editor width instead of scrolling
+     * horizontally.
+     */
+    private boolean lineWrapping = false;
+
+    /**
+     * Whether the editor follows the host page's color scheme (light or dark)
+     * automatically instead of using the fixed {@code darkTheme} value.
+     */
+    private boolean followColorScheme = false;
 }

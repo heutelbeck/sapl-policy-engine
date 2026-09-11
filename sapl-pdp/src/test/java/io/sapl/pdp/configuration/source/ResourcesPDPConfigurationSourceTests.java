@@ -115,13 +115,12 @@ class ResourcesPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenNoPdpJsonConfigurationIdThenAutoGeneratesResourceId() {
+    void whenLoadingResourcesThenContentDerivedResourceIdIsAssigned() {
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies");
 
         val configs = captureConfigurations(source);
         assertThat(configs).hasSize(1);
-        // Auto-generated format: res:<path>
-        assertThat(configs.getFirst().configurationId()).startsWith("res:").doesNotContain("sha256");
+        assertThat(configs.getFirst().configurationId()).matches("^res:root@[0-9a-f]{16}$");
 
         source.close();
     }

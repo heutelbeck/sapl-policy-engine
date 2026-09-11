@@ -28,7 +28,13 @@ import lombok.val;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -105,8 +111,8 @@ public class PdpTestHelper {
 
     /**
      * Creates a SAPL bundle (zip file) containing the given policy content. The
-     * bundle includes a pdp.json with a
-     * generated configurationId.
+     * bundle includes a pdp.json and an unsigned manifest carrying a generated
+     * configurationId.
      *
      * @param policyContent
      * the policy document text
@@ -122,8 +128,7 @@ public class PdpTestHelper {
 
     /**
      * Creates a SAPL bundle containing multiple policies. The bundle includes a
-     * pdp.json with a generated
-     * configurationId.
+     * pdp.json and an unsigned manifest carrying a generated configurationId.
      *
      * @param policies
      * the policy documents
@@ -138,7 +143,9 @@ public class PdpTestHelper {
     }
 
     /**
-     * Creates a SAPL bundle with a specific configurationId.
+     * Creates a SAPL bundle with a specific configurationId. The configurationId
+     * is recorded in an unsigned {@code .sapl-manifest.json} entry; pdp.json
+     * carries only the combining algorithm.
      *
      * @param configurationId
      * the configuration identifier
@@ -152,24 +159,51 @@ public class PdpTestHelper {
      */
     public static byte[] createBundleWithConfigurationId(String configurationId, String... policies)
             throws IOException {
+        val pdpJson = """
+                {"algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"}}
+                """;
+        val files   = new LinkedHashMap<String, String>();
+        files.put("pdp.json", pdpJson);
+        for (int i = 0; i < policies.length; i++) {
+            files.put("policy" + i + ".sapl", policies[i]);
+        }
+
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
-            // Add pdp.json with configurationId (required for bundles)
-            val pdpJson = """
-                    {"configurationId":"%s","algorithm":{"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"PROPAGATE"}}
-                    """
-                    .formatted(configurationId);
-            zos.putNextEntry(new ZipEntry("pdp.json"));
-            zos.write(pdpJson.getBytes(StandardCharsets.UTF_8));
-            zos.closeEntry();
-
-            // Add policy files
-            for (int i = 0; i < policies.length; i++) {
-                zos.putNextEntry(new ZipEntry("policy" + i + ".sapl"));
-                zos.write(policies[i].getBytes(StandardCharsets.UTF_8));
+            for (val entry : files.entrySet()) {
+                zos.putNextEntry(new ZipEntry(entry.getKey()));
+                zos.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
             }
+            zos.putNextEntry(new ZipEntry(".sapl-manifest.json"));
+            zos.write(manifestJson(configurationId, files).getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
         }
         return baos.toByteArray();
+    }
+
+    private static String manifestJson(String configurationId, Map<String, String> files) {
+        val fileEntries = new StringBuilder();
+        var first       = true;
+        for (val entry : files.entrySet()) {
+            if (!first) {
+                fileEntries.append(',');
+            }
+            fileEntries.append("\"%s\":\"%s\"".formatted(entry.getKey(), sha256Hash(entry.getValue())));
+            first = false;
+        }
+        return """
+                {"version":"test","hashAlgorithm":"SHA-256","created":"%s","configurationId":"%s",\
+                "attribution":"sapl-api-test","files":{%s}}""".formatted(Instant.now(), configurationId, fileEntries);
+    }
+
+    private static String sha256Hash(String content) {
+        try {
+            val digest = MessageDigest.getInstance("SHA-256");
+            return "sha256:"
+                    + Base64.getEncoder().encodeToString(digest.digest(content.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available.", e);
+        }
     }
 }

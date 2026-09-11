@@ -474,12 +474,10 @@ class RemoteBundlePDPConfigurationSourceTests {
         }
 
         private byte[] buildBundle(String configId) {
-            return BundleBuilder.create()
-                    .withPdpJson(
-                            """
-                                    { "configurationId": "%s", "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }"""
-                                    .formatted(configId))
-                    .withPolicy("test.sapl", "policy \"p\" permit true;")
+            return BundleBuilder.create().withPdpJson(
+                    """
+                            { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }""")
+                    .withConfigurationId(configId).withPolicy("test.sapl", "policy \"p\" permit true;")
                     .signWith(elderKeyPair.getPrivate(), "test-key").build();
         }
 

@@ -1,5 +1,4 @@
 {
-	"configurationId": "staging-v1",
 	"algorithm": {
 		"votingMode": "PRIORITY_PERMIT",
 		"defaultDecision": "DENY",

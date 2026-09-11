@@ -732,10 +732,6 @@ class HttpPolicyInformationPointTests {
         return new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
     }
 
-    private static AttributeAccessContext subscriptionContext(ObjectValue subscriptionSecrets) {
-        return new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, subscriptionSecrets);
-    }
-
     @FunctionalInterface
     interface EnvironmentAttributeInvoker {
         Stream<Value> invoke(HttpPolicyInformationPoint pip, AttributeAccessContext ctx, ObjectValue requestSettings);

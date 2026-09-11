@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static org.mockito.Mockito.never;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -530,7 +531,7 @@ class X509FunctionLibraryTests {
                 val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(pem),
                         (TextValue) Value.of(maliciousIp));
 
-                inetAddressMock.verify(() -> InetAddress.getByName(maliciousIp), Mockito.never());
+                inetAddressMock.verify(() -> InetAddress.getByName(maliciousIp), never());
                 assertThat(result).isEqualTo(Value.FALSE);
             }
         }

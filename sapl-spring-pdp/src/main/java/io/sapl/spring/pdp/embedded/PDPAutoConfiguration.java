@@ -21,7 +21,6 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED255
 import static io.sapl.pdp.PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker;
 import static io.sapl.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
 
-import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.OctetKeyPair;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
@@ -35,7 +34,6 @@ import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
-import io.sapl.pdp.SecretsUnsealing;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.CoarseClock;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
@@ -50,11 +48,17 @@ import io.sapl.pdp.configuration.source.PdpIdValidator;
 import io.sapl.pdp.configuration.source.RemoteBundlePDPConfigurationSource;
 import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
 import io.sapl.pdp.configuration.source.ResourcesPDPConfigurationSource;
-import io.sapl.pdp.plugins.*;
+import io.sapl.pdp.configuration.source.SecretsUnsealingSource;
+import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSource;
+import io.sapl.pdp.plugins.StaticPluginsSource;
+import io.sapl.pdp.plugins.SaplPluginManager;
+import io.sapl.pdp.plugins.HotReloadingPluginsSource;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.SecretsProperties;
+import io.sapl.secrets.Keyring;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.ObjectProvider;
@@ -139,8 +143,8 @@ public class PDPAutoConfiguration {
     private static final String ERROR_FAILED_TO_PARSE_KEY_IN_CATALOGUE = "Failed to parse public key '%s' in key catalogue.";
     private static final String ERROR_FAILED_TO_PARSE_PUBLIC_KEY       = "Failed to parse Ed25519 public key.";
     private static final String ERROR_FAILED_TO_READ_PUBLIC_KEY        = "Failed to read public key from: ";
-    private static final String ERROR_FAILED_TO_READ_SECRETS_KEY       = "Failed to read the secrets decryption key.";
-    private static final String ERROR_INVALID_SECRETS_KEY              = "Secrets decryption key must be an X25519 private key.";
+    private static final String ERROR_FAILED_TO_READ_SECRETS_KEY       = "Failed to read a secrets decryption key.";
+    private static final String ERROR_INVALID_SECRETS_KEY_ENTRY        = "Secrets decryption key lists must not contain null or blank entries.";
 
     @Bean
     @ConditionalOnMissingBean
@@ -188,9 +192,16 @@ public class PDPAutoConfiguration {
     }
 
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    SecretsKeyringConfiguration secretsKeyringConfiguration(EmbeddedPDPProperties properties) {
+        return loadSecretsKeyringConfiguration(properties.getSecrets());
+    }
+
+    @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PDPConfigurationSource pdpConfigurationSource(EmbeddedPDPProperties properties) {
+    PDPConfigurationSource pdpConfigurationSource(EmbeddedPDPProperties properties,
+            SecretsKeyringConfiguration secretsConfiguration) {
         val rawPath      = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPoliciesPath());
         val resolvedPath = rawPath.toAbsolutePath().normalize();
 
@@ -205,12 +216,14 @@ public class PDPAutoConfiguration {
         }
         case BUNDLES         -> {
             log.info("Loading policies from bundles: {}", resolvedPath);
-            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), resolvedPath);
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), secretsConfiguration,
+                    resolvedPath);
             yield new BundlePDPConfigurationSource(rawPath, securityPolicy);
         }
         case REMOTE_BUNDLES  -> {
             val props          = properties.getRemoteBundles();
-            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), resolvedPath);
+            val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), secretsConfiguration,
+                    resolvedPath);
             val sourceConfig   = new RemoteBundleSourceConfig(props.getBaseUrl(), props.getPdpIds(),
                     RemoteBundleSourceConfig.FetchMode.valueOf(props.getMode().name()), props.getPollInterval(),
                     props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
@@ -247,9 +260,10 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PdpVoterSource pdpVoterSource(EmbeddedPDPProperties properties, PluginsSource pluginsSource, Clock clock,
+    PdpVoterSource pdpVoterSource(PluginsSource pluginsSource, Clock clock,
             ObjectProvider<PDPConfigurationSource> sourceProvider,
-            ObjectProvider<ExtensionsProcessor> extensionsProcessorProvider) {
+            ObjectProvider<ExtensionsProcessor> extensionsProcessorProvider,
+            SecretsKeyringConfiguration secretsConfiguration) {
         // An ExtensionsProcessor bean, when the host provides one, coordinates the deployment of host
         // extensions declared in a configuration with the configuration's activation.
         val extensionsProcessor = extensionsProcessorProvider.getIfAvailable();
@@ -258,11 +272,9 @@ public class PDPAutoConfiguration {
                 : new PdpVoterSource(pluginsSource, clock);
         val source              = sourceProvider.getIfAvailable();
         if (source != null) {
-            val decryptionKey = loadSecretsDecryptionKey(properties.getSecrets());
-            if (decryptionKey != null) {
-                val acceptUnencrypted = properties.getSecrets().isAcceptUnencrypted();
-                source.subscribe(event -> voterSource
-                        .handle(SecretsUnsealing.processEvent(decryptionKey, acceptUnencrypted, event)));
+            if (secretsConfiguration.hasKeys()) {
+                new SecretsUnsealingSource(source, secretsConfiguration.keyring(),
+                        secretsConfiguration.acceptUnencrypted()).subscribe(voterSource::handle);
             } else {
                 source.subscribe(voterSource::handle);
             }
@@ -332,23 +344,25 @@ public class PDPAutoConfiguration {
         return policyInformationPointAttributeBroker;
     }
 
-    private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {
+    private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps,
+            SecretsKeyringConfiguration secretsConfiguration, Path policiesPath) {
         val publicKey       = loadPublicKey(securityProps);
         val keyCatalogue    = buildKeyCatalogue(securityProps.getKeys());
         val tenantTrust     = buildTenantTrust(securityProps.getTenants());
         val unsignedTenants = new HashSet<>(securityProps.getUnsignedTenants());
+        val sealingKeyIds   = secretsConfiguration.keyIds();
 
         if (publicKey != null || !keyCatalogue.isEmpty()) {
             log.info("Bundle signature verification enabled. Global key: {}, catalogue keys: {}, tenant bindings: {}",
                     publicKey != null, keyCatalogue.size(), tenantTrust.size());
             val builder = publicKey != null ? BundleSecurityPolicy.builder(publicKey) : BundleSecurityPolicy.builder();
             return builder.withKeyCatalogue(keyCatalogue).withTenantTrust(tenantTrust)
-                    .withUnsignedTenants(unsignedTenants).build();
+                    .withUnsignedTenants(unsignedTenants).withSealingKeyIds(sealingKeyIds).build();
         }
 
         if (securityProps.isAllowUnsigned()) {
             return BundleSecurityPolicy.builder().disableSignatureVerification().withUnsignedTenants(unsignedTenants)
-                    .build();
+                    .withSealingKeyIds(sealingKeyIds).build();
         }
 
         throw new BundleSecurityNotConfiguredException(policiesPath.toString());
@@ -364,29 +378,33 @@ public class PDPAutoConfiguration {
         return null;
     }
 
-    private OctetKeyPair loadSecretsDecryptionKey(SecretsProperties secrets) {
-        val key = readSecretsDecryptionKey(secrets);
-        if (key == null) {
-            return null;
-        }
-        if (!Curve.X25519.equals(key.getCurve()) || !key.isPrivate()) {
-            throw new IllegalStateException(ERROR_INVALID_SECRETS_KEY);
-        }
-        log.info("Bundle secrets decryption ENABLED with an X25519 recipient key.");
-        return key;
-    }
-
-    private OctetKeyPair readSecretsDecryptionKey(SecretsProperties secrets) {
+    private SecretsKeyringConfiguration loadSecretsKeyringConfiguration(SecretsProperties secrets) {
         try {
-            if (secrets.getPrivateKeyPath() != null && !secrets.getPrivateKeyPath().isBlank()) {
-                return OctetKeyPair.parse(Files.readString(Path.of(secrets.getPrivateKeyPath())));
+            val keys = new ArrayList<OctetKeyPair>();
+            if (secrets.getPrivateKeyPaths() == null || secrets.getPrivateKeys() == null) {
+                throw new IllegalStateException(ERROR_INVALID_SECRETS_KEY_ENTRY);
             }
-            if (secrets.getPrivateKey() != null && !secrets.getPrivateKey().isBlank()) {
-                return OctetKeyPair.parse(secrets.getPrivateKey());
+            for (val keyPath : secrets.getPrivateKeyPaths()) {
+                requireKeyEntry(keyPath);
+                keys.add(OctetKeyPair.parse(Files.readString(Path.of(keyPath))));
             }
-            return null;
+            for (val key : secrets.getPrivateKeys()) {
+                requireKeyEntry(key);
+                keys.add(OctetKeyPair.parse(key));
+            }
+            val keyring = Keyring.of(keys);
+            if (!keys.isEmpty()) {
+                log.info("Bundle secrets decryption ENABLED with {} X25519 recipient key(s).", keys.size());
+            }
+            return new SecretsKeyringConfiguration(keyring, secrets.isAcceptUnencrypted());
         } catch (IOException | ParseException e) {
             throw new IllegalStateException(ERROR_FAILED_TO_READ_SECRETS_KEY, e);
+        }
+    }
+
+    private static void requireKeyEntry(String key) {
+        if (key == null || key.isBlank()) {
+            throw new IllegalStateException(ERROR_INVALID_SECRETS_KEY_ENTRY);
         }
     }
 
@@ -487,7 +505,7 @@ public class PDPAutoConfiguration {
 
     /**
      * Hot-reloading plugin support, only present when {@code sapl-plugin-engine}
-     * is on the classpath. Excluded e.g. in native-image builds. 
+     * is on the classpath. Excluded e.g. in native-image builds.
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "io.sapl.pdp.plugins.HotReloadingPluginsSource")

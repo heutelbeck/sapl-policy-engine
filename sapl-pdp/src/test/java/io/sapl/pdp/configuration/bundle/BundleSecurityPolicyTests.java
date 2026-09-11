@@ -423,6 +423,34 @@ class BundleSecurityPolicyTests {
 
     }
 
+    @Test
+    @DisplayName("sealing key ids default to empty")
+    void whenSealingKeyIdsNotSetThenDefaultIsEmpty() {
+        val defaultPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+
+        assertThat(defaultPolicy.sealingKeyIds()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("sealing key ids are copied defensively")
+    void whenSettingSealingKeyIdsThenCopiedDefensively() {
+        val mutableKeyIds = new HashSet<String>();
+        mutableKeyIds.add("recipient-a");
+        val policy = BundleSecurityPolicy.builder().disableSignatureVerification().withSealingKeyIds(mutableKeyIds)
+                .build();
+        mutableKeyIds.add("recipient-b");
+
+        assertThat(policy.sealingKeyIds()).containsExactly("recipient-a");
+    }
+
+    @Test
+    @DisplayName("null sealing key ids are treated as empty")
+    void whenSettingNullSealingKeyIdsThenTreatedAsEmpty() {
+        val nullPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().withSealingKeyIds(null).build();
+
+        assertThat(nullPolicy.sealingKeyIds()).isEmpty();
+    }
+
     private KeyPair generateEd25519KeyPair() {
         try {
             val generator = KeyPairGenerator.getInstance("Ed25519");

@@ -42,10 +42,10 @@ import java.util.zip.ZipInputStream;
 /**
  * Parser for SAPL bundle files (.saplbundle).
  * <p>
- * A SAPL bundle is a ZIP archive containing policy documents and an optional
- * pdp.json configuration file. This parser
- * extracts bundle contents from various input sources while enforcing security
- * constraints.
+ * A SAPL bundle is a ZIP archive containing policy documents, a pdp.json
+ * configuration file, and a manifest carrying the required configurationId.
+ * This parser extracts bundle contents from various input sources while
+ * enforcing security constraints.
  * </p>
  * <h2>Security Model</h2>
  * <p>
@@ -59,8 +59,8 @@ import java.util.zip.ZipInputStream;
  *
  * <pre>
  * my-policies.saplbundle (ZIP archive):
- *   .sapl-manifest.json               (signature and file hashes)
- *   pdp.json                          (configuration, never secrets)
+ *   .sapl-manifest.json               (required: configurationId, file hashes, optional signature)
+ *   pdp.json                          (configuration, never secrets, no configurationId)
  *   secrets.sealed.json               (optional, sealed PDP-level secrets)
  *   access-control.sapl
  *   audit.sapl
@@ -167,7 +167,9 @@ public class BundleParser {
     /**
      * Parses a bundle from a filesystem path with security policy enforcement.
      * <p>
-     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * The bundle must contain a pdp.json file (which must not carry a
+     * {@code configurationId}) and a {@code .sapl-manifest.json} recording the
+     * required {@code configurationId}.
      * </p>
      *
      * @param bundlePath
@@ -180,7 +182,7 @@ public class BundleParser {
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * if parsing fails, pdp.json is missing, or the manifest is missing or invalid
      * @throws BundleSignatureException
      * if signature verification fails or security policy is violated
      */
@@ -204,7 +206,9 @@ public class BundleParser {
      * active.
      * </p>
      * <p>
-     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * The bundle must contain a pdp.json file (which must not carry a
+     * {@code configurationId}) and a {@code .sapl-manifest.json} recording the
+     * required {@code configurationId}.
      * </p>
      *
      * @param inputStream
@@ -217,7 +221,7 @@ public class BundleParser {
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * if parsing fails, pdp.json is missing, or the manifest is missing or invalid
      * @throws BundleSignatureException
      * if signature verification fails or security policy is violated
      */
@@ -234,7 +238,9 @@ public class BundleParser {
      * ZIP bomb protection.
      * </p>
      * <p>
-     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * The bundle must contain a pdp.json file (which must not carry a
+     * {@code configurationId}) and a {@code .sapl-manifest.json} recording the
+     * required {@code configurationId}.
      * </p>
      *
      * @param inputStream
@@ -249,7 +255,7 @@ public class BundleParser {
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * if parsing fails, pdp.json is missing, or the manifest is missing or invalid
      * @throws BundleSignatureException
      * if signature verification fails or security policy is violated
      */
@@ -262,7 +268,9 @@ public class BundleParser {
     /**
      * Parses a bundle from a byte array with security policy enforcement.
      * <p>
-     * The bundle must contain a pdp.json file with a {@code configurationId} field.
+     * The bundle must contain a pdp.json file (which must not carry a
+     * {@code configurationId}) and a {@code .sapl-manifest.json} recording the
+     * required {@code configurationId}.
      * </p>
      *
      * @param bundleBytes
@@ -275,7 +283,7 @@ public class BundleParser {
      * @return the PDP configuration
      *
      * @throws PDPConfigurationException
-     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * if parsing fails, pdp.json is missing, or the manifest is missing or invalid
      * @throws BundleSignatureException
      * if signature verification fails or security policy is violated
      */
@@ -309,7 +317,7 @@ public class BundleParser {
      * @return the PDP configuration together with the signing time
      *
      * @throws PDPConfigurationException
-     * if parsing fails, pdp.json is missing, or configurationId is not specified
+     * if parsing fails, pdp.json is missing, or the manifest is missing or invalid
      * @throws BundleSignatureException
      * if signature verification fails or security policy is violated
      */

@@ -57,7 +57,7 @@ import java.util.function.Consumer;
  *
  * <pre>
  * /policies/
- *   pdp.json        (required - combining algorithm and configurationId)
+ *   pdp.json        (optional - combining algorithm, defaults apply when absent)
  *   access.sapl
  *   audit.sapl
  * </pre>
@@ -65,10 +65,11 @@ import java.util.function.Consumer;
  * <h2>Configuration ID</h2>
  * <p>
  * The configuration ID is used for audit and correlation of authorization
- * decisions with the exact policy set. If
- * pdp.json contains a {@code configurationId} field, that value is used.
- * Otherwise, an ID is auto-generated in the
- * format: {@code dir:<path>@<timestamp>}
+ * decisions with the exact policy set. It is derived from the directory
+ * content on every (re)load in the format {@code dir:<dirName>@<hash16>},
+ * covering all files the loader reads. It is recomputed, never persisted:
+ * identical content always yields the identical ID. A pdp.json still
+ * containing a {@code configurationId} field is rejected fail-closed.
  * </p>
  * <h2>Thread Safety</h2>
  * <p>

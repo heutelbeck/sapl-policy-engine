@@ -20,10 +20,15 @@ package io.sapl.pdp.configuration.bundle;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.sapl.api.SaplVersion;
+import io.sapl.pdp.configuration.ConfigurationIds;
 import lombok.val;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -34,25 +39,30 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Manifest containing file hashes and cryptographic signature for a SAPL
- * bundle.
+ * Manifest carrying the packaging metadata, file hashes, and cryptographic
+ * signature for a SAPL bundle.
  * <p>
- * The manifest provides integrity verification for bundle contents by recording
- * SHA-256 hashes of all files and an
- * Ed25519 signature over the canonical JSON representation. This ensures that
- * any modification to bundle contents can
- * be detected during verification.
+ * The manifest is the carrier of the bundle's {@code configurationId} (its
+ * publication identity) and provides integrity verification for bundle contents
+ * by recording SHA-256 hashes of all files and an Ed25519 signature over the
+ * canonical JSON representation. This ensures that any modification to bundle
+ * contents can be detected during verification.
  * </p>
  * <h2>Manifest Structure</h2>
  *
  * <pre>{@code
  * {
- *   "version": "1.0",
+ *   "version": "4.2.0",
  *   "hashAlgorithm": "SHA-256",
  *   "created": "2024-01-15T10:30:00Z",
+ *   "configurationId": "release-77",
+ *   "attribution": "sapl-node/4.2.0",
+ *   "audience": {
+ *     "sealingRecipient": "recipient-key-2024"
+ *   },
  *   "files": {
- *     "access-control.sapl": "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
- *     "pdp.json": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ *     "access-control.sapl": "sha256:f4OxZX/x/FO5LcGBSKHWXfwtSx+j1ncoSt3SABJtkGk=",
+ *     "pdp.json": "sha256:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
  *   },
  *   "signature": {
  *     "algorithm": "Ed25519",
@@ -61,7 +71,15 @@ import java.util.TreeMap;
  *   }
  * }
  * }</pre>
- *
+ * <p>
+ * The {@code version} field is recorded provenance: it is minted at build time
+ * from the engine library version that wrote the manifest and is not validated
+ * on load. The {@code attribution} field is an arbitrary JSON string or object,
+ * never interpreted by the engine. The {@code audience.sealingRecipient} field
+ * names the single recipient key id of the bundle's sealed content and is
+ * required exactly when sealed content is present. Parsing is strict: unknown
+ * top-level fields and missing required fields are rejected fail-closed.
+ * </p>
  * <h2>Signing Process</h2>
  * <ol>
  * <li>Compute SHA-256 hash for each file in the bundle</li>
@@ -83,19 +101,23 @@ import java.util.TreeMap;
  * @see BundleParser
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "version", "hashAlgorithm", "created", "files", "signature" })
+@JsonPropertyOrder({ "version", "hashAlgorithm", "created", "configurationId", "attribution", "audience", "files",
+        "signature" })
 public record BundleManifest(
         @JsonProperty("version") String version,
         @JsonProperty("hashAlgorithm") String hashAlgorithm,
         @JsonProperty("created") Instant created,
+        @JsonProperty("configurationId") String configurationId,
+        @JsonProperty("attribution") JsonNode attribution,
+        @JsonProperty("audience") Audience audience,
         @JsonProperty("files") Map<String, String> files,
         @JsonProperty("signature") Signature signature) {
 
-    /** Current manifest format version. */
-    public static final String MANIFEST_VERSION = "1.0";
-
     /** Hash algorithm used for file integrity. */
     public static final String HASH_ALGORITHM = "SHA-256";
+
+    /** Maximum serialized size of the attribution value in bytes. */
+    public static final int MAX_ATTRIBUTION_BYTES = 16 * 1024;
 
     /** Signature algorithm. */
     public static final String SIGNATURE_ALGORITHM = "Ed25519";
@@ -103,10 +125,33 @@ public record BundleManifest(
     /** Filename for the manifest within the bundle. */
     public static final String MANIFEST_FILENAME = ".sapl-manifest.json";
 
+    private static final String MIGRATION_GUIDANCE = "The configurationId moved to the bundle manifest; rebuild the bundle with SAPL 4.2.0 or later.";
+
+    private static final String ERROR_ATTRIBUTION_MISSING = "Manifest is missing required field 'attribution'. "
+            + MIGRATION_GUIDANCE;
+    private static final String ERROR_ATTRIBUTION_NOT_STRING_OR_OBJECT = "Manifest field 'attribution' must be a JSON string or object.";
+    private static final String ERROR_ATTRIBUTION_TOO_LARGE = "Manifest field 'attribution' exceeds the maximum serialized size of %d bytes.";
+    private static final String ERROR_AUDIENCE_SEALING_RECIPIENT_BLANK = "Manifest field 'audience.sealingRecipient' must not be blank when the audience block is present.";
+    private static final String ERROR_CONFIGURATION_ID_INVALID = "Manifest field 'configurationId' with value '%s' is invalid. "
+            + ConfigurationIds.VALIDITY_RULE;
+    private static final String ERROR_CONFIGURATION_ID_MISSING = "Manifest is missing required field 'configurationId'. "
+            + MIGRATION_GUIDANCE;
+    private static final String ERROR_CREATED_MISSING = "Manifest is missing required field 'created'. "
+            + MIGRATION_GUIDANCE;
     private static final String ERROR_FAILED_TO_PARSE_MANIFEST = "Failed to parse manifest: %s.";
     private static final String ERROR_FAILED_TO_SERIALIZE_MANIFEST = "Failed to serialize manifest.";
+    private static final String ERROR_FILES_MISSING = "Manifest is missing required field 'files'.";
+    private static final String ERROR_UNSUPPORTED_MANIFEST_HASH = "Manifest field 'hashAlgorithm' must be '%s', got: '%s'.";
 
     private static final JsonMapper CANONICAL_MAPPER = createCanonicalMapper();
+
+    /**
+     * Audience block naming the single recipient of the bundle's sealed content.
+     *
+     * @param sealingRecipient
+     * the key id of the X25519 recipient key the sealed content is sealed to
+     */
+    public record Audience(@JsonProperty("sealingRecipient") String sealingRecipient) {}
 
     /**
      * Signature block containing the cryptographic signature and metadata.
@@ -200,7 +245,18 @@ public record BundleManifest(
      * @return manifest without signature
      */
     public BundleManifest withoutSignature() {
-        return new BundleManifest(version, hashAlgorithm, created, files, null);
+        return new BundleManifest(version, hashAlgorithm, created, configurationId, attribution, audience, files, null);
+    }
+
+    /**
+     * Creates a copy of this manifest with the given signature.
+     *
+     * @param newSignature the signature block
+     * @return manifest with the signature
+     */
+    BundleManifest withSignature(Signature newSignature) {
+        return new BundleManifest(version, hashAlgorithm, created, configurationId, attribution, audience, files,
+                newSignature);
     }
 
     /**
@@ -217,7 +273,8 @@ public record BundleManifest(
     }
 
     /**
-     * Parses a manifest from JSON.
+     * Parses a manifest from JSON with strict validation: unknown top-level fields
+     * and missing required fields are rejected fail-closed.
      *
      * @param json
      * the JSON string
@@ -225,27 +282,80 @@ public record BundleManifest(
      * @return parsed manifest
      *
      * @throws BundleSignatureException
-     * if parsing fails
+     * if parsing or validation fails
      */
     public static BundleManifest fromJson(String json) {
+        BundleManifest manifest;
         try {
-            return CANONICAL_MAPPER.readValue(json, BundleManifest.class);
+            manifest = CANONICAL_MAPPER.readValue(json, BundleManifest.class);
         } catch (JacksonException e) {
             throw new BundleSignatureException(ERROR_FAILED_TO_PARSE_MANIFEST.formatted(e.getMessage()), e);
+        }
+        validate(manifest);
+        return manifest;
+    }
+
+    static JsonNode attributionOfText(String attributionTag) {
+        return JsonNodeFactory.instance.stringNode(attributionTag);
+    }
+
+    static JsonNode parseAttributionJson(String attributionJson) {
+        return CANONICAL_MAPPER.readTree(attributionJson);
+    }
+
+    private static void validate(BundleManifest manifest) {
+        if (manifest.created() == null) {
+            throw new BundleSignatureException(ERROR_CREATED_MISSING);
+        }
+        if (manifest.configurationId() == null) {
+            throw new BundleSignatureException(ERROR_CONFIGURATION_ID_MISSING);
+        }
+        if (!ConfigurationIds.isValid(manifest.configurationId())) {
+            throw new BundleSignatureException(ERROR_CONFIGURATION_ID_INVALID.formatted(manifest.configurationId()));
+        }
+        validateAttribution(manifest.attribution());
+        if (manifest.audience() != null && (manifest.audience().sealingRecipient() == null
+                || manifest.audience().sealingRecipient().isBlank())) {
+            throw new BundleSignatureException(ERROR_AUDIENCE_SEALING_RECIPIENT_BLANK);
+        }
+        if (!HASH_ALGORITHM.equals(manifest.hashAlgorithm())) {
+            throw new BundleSignatureException(
+                    ERROR_UNSUPPORTED_MANIFEST_HASH.formatted(HASH_ALGORITHM, manifest.hashAlgorithm()));
+        }
+        if (manifest.files() == null) {
+            throw new BundleSignatureException(ERROR_FILES_MISSING);
+        }
+    }
+
+    private static void validateAttribution(JsonNode attribution) {
+        if (attribution == null || attribution.isNull()) {
+            throw new BundleSignatureException(ERROR_ATTRIBUTION_MISSING);
+        }
+        if (!attribution.isString() && !attribution.isObject()) {
+            throw new BundleSignatureException(ERROR_ATTRIBUTION_NOT_STRING_OR_OBJECT);
+        }
+        val serializedSize = CANONICAL_MAPPER.writeValueAsBytes(attribution).length;
+        if (serializedSize > MAX_ATTRIBUTION_BYTES) {
+            throw new BundleSignatureException(ERROR_ATTRIBUTION_TOO_LARGE.formatted(MAX_ATTRIBUTION_BYTES));
         }
     }
 
     private static JsonMapper createCanonicalMapper() {
-        return JsonMapper.builder().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true).findAndAddModules()
-                .build();
+        return JsonMapper.builder().configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).findAndAddModules().build();
     }
 
     /**
-     * Builder for creating manifest instances.
+     * Builder for creating manifest instances. The manifest {@code version} is
+     * minted at build time from the engine library version and cannot be set by
+     * publishers.
      */
     public static class Builder {
 
         private Instant             created = Instant.now();
+        private String              configurationId;
+        private JsonNode            attribution;
+        private Audience            audience;
         private Map<String, String> files   = new TreeMap<>();
         private Signature           signature;
 
@@ -259,6 +369,46 @@ public record BundleManifest(
          */
         public Builder created(Instant created) {
             this.created = created;
+            return this;
+        }
+
+        /**
+         * Sets the configuration id recorded in the manifest.
+         *
+         * @param configurationId
+         * the configuration id
+         *
+         * @return this builder
+         */
+        public Builder configurationId(String configurationId) {
+            this.configurationId = configurationId;
+            return this;
+        }
+
+        /**
+         * Sets the attribution value, an arbitrary JSON string or object that the
+         * engine never interprets.
+         *
+         * @param attribution
+         * the attribution JSON value
+         *
+         * @return this builder
+         */
+        public Builder attribution(JsonNode attribution) {
+            this.attribution = attribution;
+            return this;
+        }
+
+        /**
+         * Sets the audience block naming the sealing recipient key id.
+         *
+         * @param sealingRecipient
+         * the recipient key id, or null for no audience block
+         *
+         * @return this builder
+         */
+        public Builder audience(String sealingRecipient) {
+            this.audience = sealingRecipient != null ? new Audience(sealingRecipient) : null;
             return this;
         }
 
@@ -353,18 +503,31 @@ public record BundleManifest(
          * manifest for signing.
          *
          * @return unsigned manifest
+         *
+         * @throws BundleSignatureException
+         * if a required field is missing or invalid
          */
         public BundleManifest buildUnsigned() {
-            return new BundleManifest(MANIFEST_VERSION, HASH_ALGORITHM, created, new TreeMap<>(files), null);
+            return validated(null);
         }
 
         /**
          * Builds the manifest with signature.
          *
          * @return signed manifest
+         *
+         * @throws BundleSignatureException
+         * if a required field is missing or invalid
          */
         public BundleManifest build() {
-            return new BundleManifest(MANIFEST_VERSION, HASH_ALGORITHM, created, new TreeMap<>(files), signature);
+            return validated(signature);
+        }
+
+        private BundleManifest validated(Signature manifestSignature) {
+            val manifest = new BundleManifest(SaplVersion.VERSION, HASH_ALGORITHM, created, configurationId,
+                    attribution, audience, new TreeMap<>(files), manifestSignature);
+            validate(manifest);
+            return manifest;
         }
     }
 }

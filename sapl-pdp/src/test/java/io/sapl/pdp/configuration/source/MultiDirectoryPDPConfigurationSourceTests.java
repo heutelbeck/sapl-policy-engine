@@ -309,7 +309,8 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenChildPdpJsonHasConfigurationIdThenUsesExplicitId() throws IOException {
+    @DisplayName("a child pdp.json still carrying configurationId is rejected with the migration message")
+    void whenChildPdpJsonHasConfigurationIdThenNoConfigurationEmitted() throws IOException {
         val cultistDir = tempDir.resolve("cultist");
         Files.createDirectories(cultistDir);
         createFile(cultistDir.resolve("ritual.sapl"), "policy \"ritual\" permit true;");
@@ -317,22 +318,18 @@ class MultiDirectoryPDPConfigurationSourceTests {
                 "{\"algorithm\":{\"votingMode\":\"PRIORITY_DENY\",\"defaultDecision\":\"DENY\",\"errorHandling\":\"PROPAGATE\"},\"configurationId\":\"eldritch-v1\"}");
         source = new MultiDirectoryPDPConfigurationSource(tempDir, false);
 
-        val configs = captureConfigurations(source);
-
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().configurationId()).isEqualTo("eldritch-v1");
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
-    void whenChildPdpJsonHasNoConfigurationIdThenAutoGeneratesId() throws IOException {
+    void whenLoadingChildDirectoryThenContentDerivedIdIsAssigned() throws IOException {
         createSubdirectoryWithPolicy("cultist", DENY_OVERRIDES, "ritual.sapl", "policy \"ritual\" permit true;");
         source = new MultiDirectoryPDPConfigurationSource(tempDir, false);
 
         val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
-        // Auto-generated format: dir:<path>@<timestamp>
-        assertThat(configs.getFirst().configurationId()).startsWith("dir:").doesNotContain("sha256");
+        assertThat(configs.getFirst().configurationId()).matches("^dir:cultist@[0-9a-f]{16}$");
     }
 
     @Test

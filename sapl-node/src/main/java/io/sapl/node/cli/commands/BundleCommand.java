@@ -19,10 +19,14 @@ package io.sapl.node.cli.commands;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.libraries.crypto.PemUtils;
+import io.sapl.secrets.Keyring;
 import io.sapl.secrets.SecretSealing;
+import io.sapl.secrets.SecretSealingException;
 import io.sapl.secrets.ValueSealer;
 import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
@@ -42,6 +46,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
@@ -101,7 +106,8 @@ import static java.util.Objects.requireNonNull;
         """ },
     subcommands = {
         BundleCommand.Create.class, BundleCommand.Unpack.class,
-        BundleCommand.Seal.class, BundleCommand.Unseal.class, BundleCommand.Sign.class,
+        BundleCommand.Seal.class, BundleCommand.Unseal.class, BundleCommand.Reseal.class,
+        BundleCommand.Sign.class,
         BundleCommand.Verify.class, BundleCommand.Inspect.class,
         BundleCommand.Keygen.class, BundleCommand.SecretsKeygen.class
     }
@@ -109,8 +115,10 @@ import static java.util.Objects.requireNonNull;
 // @formatter:on
 public class BundleCommand {
 
-    private static final String PDP_JSON       = "pdp.json";
-    private static final String SAPL_EXTENSION = ".sapl";
+    private static final String CONFIGURATION_ID_DETAIL_LINE = "  Configuration ID: %s%n";
+    private static final String CONFIGURATION_ID_LINE        = "Configuration ID: %s%n";
+    private static final String PDP_JSON                     = "pdp.json";
+    private static final String SAPL_EXTENSION               = ".sapl";
 
     private static final String ERROR_ALREADY_SEALED             = "Error: The input folder is already sealed. Omit --seal-to to bundle it verbatim.";
     public static final String  ERROR_BUNDLE_NOT_FOUND           = "Error: Bundle file not found: %s.";
@@ -125,6 +133,9 @@ public class BundleCommand {
     private static final String ERROR_NOT_A_DIRECTORY            = "Error: Input path is not a directory: %s.";
     private static final String ERROR_NO_POLICIES_FOUND          = "Error: No .sapl files found in: %s.";
     private static final String ERROR_PLAINTEXT_SECRETS_UNSEALED = "Error: The input folder has plaintext secrets. Provide --seal-to to seal them, or pre-seal the folder.";
+    private static final String ERROR_RESEALING_DIRECTORY        = "Error resealing directory: %s.";
+    private static final String ERROR_RESEAL_PLAINTEXT_SECRETS   = "Error: The input folder has plaintext secrets. Reseal rekeys only sealed secrets. Seal the folder first.";
+    private static final String ERROR_RESEAL_UNSEALED_LEAVES     = "Error: The sealed secrets file %s contains unsealed cleartext leaves. Reseal rekeys only sealed leaves. Seal the folder first.";
     private static final String ERROR_SEALING_DIRECTORY          = "Error sealing directory: %s.";
     private static final String ERROR_SIGNING_BUNDLE             = "Error signing bundle: %s.";
     private static final String ERROR_SIGN_PLAINTEXT_SECRETS     = "Error: The bundle contains plaintext secrets. Unpack, seal the directory, and re-create before signing.";
@@ -158,6 +169,12 @@ public class BundleCommand {
             secrets is rejected. Plaintext secrets are never written into a
             bundle. Generate the recipient keypair with
             'sapl bundle keygen-secrets'.
+
+            Every bundle carries a .sapl-manifest.json recording the
+            configurationId of the publication. Set it explicitly with
+            --configuration-id, or a content-derived id of the form
+            bundle@<hash16> is recorded. The resulting configuration id is
+            printed on success for CI or agent capture.
 
             Optionally signs the bundle when a private key is provided.
             This is equivalent to creating then running 'sapl bundle sign'.
@@ -193,6 +210,10 @@ public class BundleCommand {
         @Option(names = { "-i", "--input" }, required = true, description = "Input directory containing policies")
         private Path inputDir;
 
+        @Option(names = {
+                "--configuration-id" }, description = "Configuration id recorded in the bundle manifest (defaults to a content-derived id)")
+        private String configurationId;
+
         @Option(names = { "-k", "--key" }, description = "Ed25519 private key file (PEM format) for signing")
         private Path keyFile;
 
@@ -219,6 +240,10 @@ public class BundleCommand {
                 requireOverwritable(force, outputFile);
 
                 val builder = BundleBuilder.create();
+                if (configurationId != null) {
+                    builder.withConfigurationId(configurationId);
+                }
+                builder.withAttribution("sapl-node/" + SaplVersion.VERSION);
                 addPdpConfiguration(builder);
                 val policies = addPolicies(builder);
                 addExtensionConfigs(builder);
@@ -230,15 +255,17 @@ public class BundleCommand {
                 if (keyFile != null) {
                     builder.signWith(loadEd25519PrivateKey(keyFile), keyId);
                 }
-                builder.writeTo(outputFile);
+                val manifest = builder.writeTo(outputFile);
 
                 printSuccess(out, policies);
+                out.printf(CONFIGURATION_ID_LINE, manifest.configurationId());
                 return 0;
 
             } catch (CommandFailedException e) {
                 e.printTo(err);
                 return 1;
-            } catch (IOException | GeneralSecurityException | ParseException | PDPConfigurationException e) {
+            } catch (IOException | GeneralSecurityException | ParseException | PDPConfigurationException
+                    | BundleSignatureException | IllegalArgumentException e) {
                 err.println(ERROR_CREATING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
@@ -337,6 +364,8 @@ public class BundleCommand {
             pdp.json, .sapl policies, secrets files, extension files, and
             critical-extensions.json. The manifest is not written, so the
             directory can be edited and repackaged with 'sapl bundle create'.
+            The manifest's configuration id is printed; the unpacked sources
+            carry none.
 
             With -k the signature is verified before unpacking and a mismatch
             aborts. With --unseal-with, secrets.sealed.json and every
@@ -410,6 +439,9 @@ public class BundleCommand {
                 writeUnpackedFiles(base, unpacked);
 
                 out.printf("Unpacked bundle: %s (%d files) to %s%n", bundleFile, unpacked.size(), outputDir);
+                if (manifestJson != null) {
+                    out.printf(CONFIGURATION_ID_LINE, manifestConfigurationId(manifestJson));
+                }
                 return 0;
 
             } catch (CommandFailedException e) {
@@ -518,7 +550,7 @@ public class BundleCommand {
         footer = { """
               sapl bundle seal -i ./policies --seal-to recipient.pub.jwk
 
-            See Also: sapl-bundle-unseal(1), sapl-bundle-keygen-secrets(1)
+            See Also: sapl-bundle-unseal(1), sapl-bundle-reseal(1), sapl-bundle-keygen-secrets(1)
             """ }
     )
     // @formatter:on
@@ -596,7 +628,7 @@ public class BundleCommand {
         footer = { """
               sapl bundle unseal -i ./policies --unseal-with recipient.jwk
 
-            See Also: sapl-bundle-seal(1), sapl-bundle-keygen-secrets(1)
+            See Also: sapl-bundle-seal(1), sapl-bundle-reseal(1), sapl-bundle-keygen-secrets(1)
             """ }
     )
     // @formatter:on
@@ -655,6 +687,129 @@ public class BundleCommand {
 
     // @formatter:off
     @Command(
+        name = "reseal",
+        mixinStandardHelpOptions = true,
+        header = "Reseal a policy directory's secrets from one recipient to another.",
+        description = { """
+            Rekeys every sealed secrets file in the directory from a source
+            X25519 recipient private key to a target X25519 recipient public
+            key, in place and under the same names: secrets.sealed.json stays
+            secrets.sealed.json and each ext-<name>-secrets.sealed.json keeps
+            its name, while their sealed leaves are decrypted with the source
+            key and re-encrypted to the target key. The plaintext exists only
+            transiently in memory; no cleartext is ever written.
+
+            A single source key rekeys a uniformly sealed folder: every sealed
+            leaf must have been sealed to the source key's id. A folder whose
+            leaves are sealed under mixed key ids is out of scope for this
+            command and fails closed. Plaintext secrets are rejected; seal the
+            folder first. A folder mixing sealed and plaintext secrets is
+            rejected. A sealed secrets file that actually holds cleartext leaves
+            is rejected rather than passed through as a false success.
+
+            Because the sealed files are rewritten where they already exist,
+            --force is required to confirm overwriting them.
+            """ },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+            " 0:Secrets resealed (or none found)",
+            " 1:Error (directory or key not found, sealed files present without --force, plaintext or mixed secrets, wrong source key, or I/O error)"
+        },
+        footerHeading = "%nExamples:%n",
+        footer = { """
+              sapl bundle reseal -i ./policies --unseal-with old.jwk --seal-to new.pub.jwk --force
+
+            See Also: sapl-bundle-seal(1), sapl-bundle-unseal(1), sapl-bundle-keygen-secrets(1)
+            """ }
+    )
+    // @formatter:on
+    static class Reseal implements Callable<Integer> {
+
+        @Spec
+        private CommandSpec spec;
+
+        @Option(names = { "-i",
+                "--input" }, required = true, description = "Directory whose sealed secrets are resealed")
+        private Path inputDir;
+
+        @Option(names = {
+                "--unseal-with" }, required = true, description = "X25519 source recipient private key (JWK file) the secrets are currently sealed to")
+        private Path unsealWithFile;
+
+        @Option(names = {
+                "--seal-to" }, required = true, description = "X25519 target recipient public key (JWK file) to reseal the secrets to")
+        private Path sealToFile;
+
+        @Option(names = { "--force" }, description = "Overwrite the existing sealed secrets files in place")
+        private boolean force;
+
+        @Override
+        public Integer call() {
+            val out = spec.commandLine().getOut();
+            val err = spec.commandLine().getErr();
+            try {
+                requireDirectory(inputDir);
+                requireKeyFile(unsealWithFile);
+                requireKeyFile(sealToFile);
+                val source      = Keyring.of(loadX25519PrivateKey(unsealWithFile));
+                val target      = loadX25519PublicKey(sealToFile);
+                val sealedFiles = sealedSecretsFiles(scanAndCheckSecrets());
+                if (sealedFiles.isEmpty()) {
+                    out.println("No sealed secrets found.");
+                    return 0;
+                }
+                for (val file : sealedFiles) {
+                    requireOverwritable(force, file);
+                }
+                val resealed = new LinkedHashMap<Path, String>();
+                for (val file : sealedFiles) {
+                    val document = Value.ofJson(Files.readString(file));
+                    if (!ValueSealer.hasSealedShape(document)) {
+                        throw new CommandFailedException(ERROR_RESEAL_UNSEALED_LEAVES.formatted(file));
+                    }
+                    resealed.put(file, resealDocument(document, source, target));
+                }
+                writeAllAtomically(resealed);
+                out.printf("Resealed %d secrets file(s) in %s%n", sealedFiles.size(), inputDir);
+                return 0;
+
+            } catch (CommandFailedException e) {
+                e.printTo(err);
+                return 1;
+            } catch (IOException | ParseException | SecretSealingException e) {
+                err.println(ERROR_RESEALING_DIRECTORY.formatted(e.getMessage()));
+                return 1;
+            }
+        }
+
+        private SecretsFiles scanAndCheckSecrets() throws IOException, CommandFailedException {
+            val secretsFiles = SecretsFiles.scan(inputDir);
+            if (secretsFiles.hasPlaintext() && secretsFiles.hasSealed()) {
+                throw new CommandFailedException(ERROR_MIXED_SEALING);
+            }
+            if (secretsFiles.hasPlaintext()) {
+                throw new CommandFailedException(ERROR_RESEAL_PLAINTEXT_SECRETS);
+            }
+            return secretsFiles;
+        }
+
+        private static List<Path> sealedSecretsFiles(SecretsFiles secretsFiles) {
+            val files = new ArrayList<Path>();
+            if (secretsFiles.sealedSecrets() != null) {
+                files.add(secretsFiles.sealedSecrets());
+            }
+            files.addAll(secretsFiles.sealedExtensionSecrets());
+            return files;
+        }
+
+        private static String resealDocument(Value document, Keyring source, OctetKeyPair targetPublicKey) {
+            return ValueJsonMarshaller.toJsonString(ValueSealer.reseal(source, targetPublicKey, document));
+        }
+
+    }
+
+    // @formatter:off
+    @Command(
         name = "sign",
         mixinStandardHelpOptions = true,
         header = "Sign a policy bundle with an Ed25519 private key.",
@@ -668,6 +823,11 @@ public class BundleCommand {
 
             A bundle containing plaintext secrets is refused. Unpack it,
             seal the directory, and re-create it before signing.
+
+            When the input bundle carries a manifest, its configurationId,
+            attribution, and audience are carried over into the signed
+            bundle; the creation timestamp and engine version are re-minted
+            because re-signing is a build event.
 
             By default, the input bundle is overwritten with the signed
             version. Use -o to write to a different file.
@@ -718,7 +878,7 @@ public class BundleCommand {
                 val contents   = extractBundleContents(bundleFile);
                 val builder    = BundleBuilder.create();
 
-                contents.remove(BundleManifest.MANIFEST_FILENAME);
+                carryOverManifestMetadata(builder, contents.remove(BundleManifest.MANIFEST_FILENAME));
                 val pdpJson = contents.remove(PDP_JSON);
                 if (pdpJson != null) {
                     builder.withPdpJson(pdpJson);
@@ -744,18 +904,36 @@ public class BundleCommand {
 
                 builder.signWith(privateKey, keyId);
 
-                val target = outputFile != null ? outputFile : bundleFile;
-                builder.writeTo(target);
+                val target   = outputFile != null ? outputFile : bundleFile;
+                val manifest = builder.writeTo(target);
 
                 out.printf("Signed bundle: %s (key-id: %s)%n", target, keyId);
+                out.printf(CONFIGURATION_ID_LINE, manifest.configurationId());
                 return 0;
 
             } catch (CommandFailedException e) {
                 e.printTo(err);
                 return 1;
-            } catch (IOException | GeneralSecurityException | PDPConfigurationException e) {
+            } catch (IOException | GeneralSecurityException | PDPConfigurationException | BundleSignatureException e) {
                 err.println(ERROR_SIGNING_BUNDLE.formatted(e.getMessage()));
                 return 1;
+            }
+        }
+
+        // Re-signing is a build event: the configurationId, attribution, and
+        // audience travel with the content, while created and version are re-minted.
+        // A bundle without a manifest gets this tool's attribution, not the engine
+        // library default.
+        private static void carryOverManifestMetadata(BundleBuilder builder, @Nullable String manifestJson) {
+            if (manifestJson == null) {
+                builder.withAttribution("sapl-node/" + SaplVersion.VERSION);
+                return;
+            }
+            val manifest = BundleManifest.fromJson(manifestJson);
+            builder.withConfigurationId(manifest.configurationId());
+            builder.withAttributionJson(manifest.attribution().toString());
+            if (manifest.audience() != null) {
+                builder.withSealingRecipient(manifest.audience().sealingRecipient());
             }
         }
 
@@ -832,6 +1010,7 @@ public class BundleCommand {
                 out.println("Verification successful");
                 out.printf("  Key ID: %s%n", manifest.signature().keyId());
                 out.printf("  Created: %s%n", manifest.created());
+                out.printf(CONFIGURATION_ID_DETAIL_LINE, manifest.configurationId());
                 out.printf("  Files verified: %d%n", manifest.files().size());
                 return 0;
 
@@ -855,11 +1034,13 @@ public class BundleCommand {
         mixinStandardHelpOptions = true,
         header = "Show bundle contents and metadata.",
         description = { """
-            Displays the signature status, PDP configuration (pdp.json),
-            all policies with their sizes, the secrets files with their
-            sealing state, and the extensions with their payloads and
-            critical markers. Secret values are never printed, only file
-            names and sizes. Useful for auditing bundles before deployment.
+            Displays the signature status, the manifest metadata
+            (configuration id and attribution), PDP configuration
+            (pdp.json), all policies with their sizes, the secrets files
+            with their sealing state, and the extensions with their
+            payloads and critical markers. Secret values are never
+            printed, only file names and sizes. Useful for auditing
+            bundles before deployment.
 
             The Integrity line is always explicit. With -k the signature
             and all file hashes are checked and reported as VERIFIED or
@@ -915,19 +1096,11 @@ public class BundleCommand {
                 out.println();
 
                 val manifestJson = contents.get(BundleManifest.MANIFEST_FILENAME);
-                if (manifestJson != null) {
-                    val manifest = BundleManifest.fromJson(manifestJson);
-                    out.println("Signature:");
-                    out.printf("  Status: SIGNED%n");
-                    out.printf("  Algorithm: %s%n", manifest.signature().algorithm());
-                    out.printf("  Key ID: %s%n", manifest.signature().keyId());
-                    out.printf("  Created: %s%n", manifest.created());
-                } else {
-                    out.println("Signature:");
-                    out.printf("  Status: UNSIGNED%n");
-                }
-                val integrityOk = printIntegrity(out, contents, manifestJson);
+                val reading      = readManifestLeniently(manifestJson);
+                printSignature(out, reading);
+                val integrityOk = printIntegrity(out, contents, reading.manifest(), reading.unreadable());
                 out.println();
+                printManifestSection(out, reading, manifestJson);
 
                 val pdpJson = contents.get(PDP_JSON);
                 if (pdpJson != null) {
@@ -938,17 +1111,7 @@ public class BundleCommand {
                 }
                 out.println();
 
-                out.println("Policies:");
-                var policyCount = 0;
-                for (val entry : contents.entrySet()) {
-                    if (entry.getKey().endsWith(SAPL_EXTENSION)) {
-                        out.printf("  - %s (%d bytes)%n", entry.getKey(), byteSize(entry.getValue()));
-                        policyCount++;
-                    }
-                }
-                if (policyCount == 0) {
-                    out.println(NONE_LISTED);
-                }
+                printPolicies(out, contents);
                 out.println();
 
                 printSecrets(out, contents);
@@ -960,26 +1123,91 @@ public class BundleCommand {
             } catch (CommandFailedException e) {
                 e.printTo(err);
                 return 1;
-            } catch (IOException e) {
+            } catch (IOException | BundleSignatureException e) {
                 err.println(ERROR_INSPECTING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
         }
 
-        private boolean printIntegrity(PrintWriter out, Map<String, String> contents, String manifestJson) {
+        private record ManifestReading(@Nullable BundleManifest manifest, boolean unreadable) {}
+
+        /**
+         * Inspection degrades on a legacy or malformed manifest instead of
+         * aborting, so pre-4.2 bundles can still be audited before rebuilding.
+         */
+        private static ManifestReading readManifestLeniently(@Nullable String manifestJson) {
+            if (manifestJson == null) {
+                return new ManifestReading(null, false);
+            }
+            try {
+                return new ManifestReading(BundleManifest.fromJson(manifestJson), false);
+            } catch (BundleSignatureException e) {
+                return new ManifestReading(null, true);
+            }
+        }
+
+        private static void printSignature(PrintWriter out, ManifestReading reading) {
+            out.println("Signature:");
+            val manifest = reading.manifest();
+            if (manifest != null && manifest.signature() != null) {
+                out.printf("  Status: SIGNED%n");
+                out.printf("  Algorithm: %s%n", manifest.signature().algorithm());
+                out.printf("  Key ID: %s%n", manifest.signature().keyId());
+                out.printf("  Created: %s%n", manifest.created());
+            } else if (reading.unreadable()) {
+                out.printf("  Status: UNKNOWN (manifest predates SAPL 4.2.0 or is malformed)%n");
+            } else {
+                out.printf("  Status: UNSIGNED%n");
+            }
+        }
+
+        private static void printManifestSection(PrintWriter out, ManifestReading reading,
+                @Nullable String manifestJson) {
+            val manifest = reading.manifest();
+            if (manifest != null) {
+                out.println("Manifest:");
+                out.printf(CONFIGURATION_ID_DETAIL_LINE, manifest.configurationId());
+                out.printf("  Attribution: %s%n", manifest.attribution());
+                out.println();
+            } else if (reading.unreadable()) {
+                out.println("Manifest:");
+                out.printf(CONFIGURATION_ID_DETAIL_LINE, manifestConfigurationId(manifestJson));
+                out.println();
+            }
+        }
+
+        private static void printPolicies(PrintWriter out, Map<String, String> contents) {
+            out.println("Policies:");
+            var policyCount = 0;
+            for (val entry : contents.entrySet()) {
+                if (entry.getKey().endsWith(SAPL_EXTENSION)) {
+                    out.printf("  - %s (%d bytes)%n", entry.getKey(), byteSize(entry.getValue()));
+                    policyCount++;
+                }
+            }
+            if (policyCount == 0) {
+                out.println(NONE_LISTED);
+            }
+        }
+
+        private boolean printIntegrity(PrintWriter out, Map<String, String> contents, @Nullable BundleManifest manifest,
+                boolean manifestUnreadable) {
+            val signed         = manifest != null && manifest.signature() != null;
+            val unsignedReason = manifestUnreadable ? "manifest predates SAPL 4.2.0 or is malformed"
+                    : "bundle is not signed";
             if (keyFile == null) {
-                val reason = manifestJson != null ? "no key provided" : "bundle is not signed";
+                val reason = signed ? "no key provided" : unsignedReason;
                 out.printf("  Integrity: NOT CHECKED (%s)%n", reason);
                 return true;
             }
-            if (manifestJson == null) {
-                out.println("  Integrity: FAILED (bundle is not signed)");
+            if (!signed) {
+                out.printf("  Integrity: FAILED (%s)%n", unsignedReason);
                 return false;
             }
             try {
                 val files = new HashMap<>(contents);
                 files.remove(BundleManifest.MANIFEST_FILENAME);
-                BundleSigner.verify(BundleManifest.fromJson(manifestJson), files, loadEd25519PublicKey(keyFile));
+                BundleSigner.verify(manifest, files, loadEd25519PublicKey(keyFile));
                 out.println("  Integrity: VERIFIED");
                 return true;
             } catch (BundleSignatureException | IOException | GeneralSecurityException e) {
@@ -1251,6 +1479,16 @@ public class BundleCommand {
         return OctetKeyPair.parse(Files.readString(keyFile));
     }
 
+    // Lenient manifest read for display only: legacy pre-4.2 manifests carry no
+    // configurationId and must still be unpackable and inspectable for migration.
+    private static String manifestConfigurationId(String manifestJson) {
+        if (Value.ofJson(manifestJson) instanceof ObjectValue manifest
+                && manifest.get("configurationId") instanceof TextValue(var configurationId)) {
+            return configurationId;
+        }
+        return "(none recorded; manifest predates SAPL 4.2.0)";
+    }
+
     private static String sealDocument(String jsonContent, OctetKeyPair recipientPublicKey) {
         return ValueJsonMarshaller.toJsonString(ValueSealer.seal(recipientPublicKey, Value.ofJson(jsonContent)));
     }
@@ -1312,6 +1550,44 @@ public class BundleCommand {
             err.println(getMessage());
             if (hint != null) {
                 err.println(hint);
+            }
+        }
+    }
+
+    /**
+     * Writes each target file by staging its content to a sibling temporary file
+     * (owner-only, same directory so the rename stays on one filesystem) and then
+     * atomically moving it onto the target. No target is ever left half-written: a
+     * failure before the move phase leaves every target untouched, and each move is
+     * atomic, so a fault during the move phase can only leave earlier targets fully
+     * replaced and later ones fully intact, never a truncated file. Staged files
+     * that were not moved are always cleaned up.
+     *
+     * @param contentByTarget the content to write, keyed by its target file
+     *
+     * @throws IOException if staging or moving a file fails
+     */
+    private static void writeAllAtomically(Map<Path, String> contentByTarget) throws IOException {
+        val staged = new LinkedHashMap<Path, Path>();
+        try {
+            for (val entry : contentByTarget.entrySet()) {
+                val target = entry.getKey();
+                val temp   = Files.createTempFile(requireNonNull(target.getParent()), fileNameOf(target), ".tmp");
+                staged.put(target, temp);
+                Files.writeString(temp, entry.getValue());
+                restrictToOwner(temp);
+            }
+            for (val entry : staged.entrySet()) {
+                Files.move(entry.getValue(), entry.getKey(), StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            for (val temp : staged.values()) {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException cleanupFailure) {
+                    // Best effort: a leftover temporary file is harmless and must not mask the outcome.
+                }
             }
         }
     }

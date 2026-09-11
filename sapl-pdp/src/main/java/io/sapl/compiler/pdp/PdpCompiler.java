@@ -61,8 +61,9 @@ public class PdpCompiler {
      */
     public static CompiledPdp createErrorVoter(PDPConfiguration pdpConfiguration, SaplCompilerException exception,
             PluginsBundle plugins) {
-        val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
-                pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
+        val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(),
+                pdpConfiguration.configurationId(), pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY,
+                true);
         val error         = Value.error(exception.getMessage());
         val errorVote     = Vote.error(error, voterMetadata);
         val coverageVoter = new ErrorPdpCoverageVoter(voterMetadata, errorVote);
@@ -116,8 +117,8 @@ public class PdpCompiler {
 
         val outcome       = Outcome.union(defaultDecision,
                 compiledDocuments.stream().map(CompiledDocument::outcome).toList());
-        val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
-                algorithm, outcome, true);
+        val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(),
+                pdpConfiguration.configurationId(), algorithm, outcome, true);
 
         val voter = switch (algorithm.votingMode()) {
         case FIRST            ->

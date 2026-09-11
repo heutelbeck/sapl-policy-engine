@@ -52,7 +52,6 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 
 ```json
 {
-  "configurationId": "my-app-v1",
   "algorithm": {
     "votingMode": "PRIORITY_DENY",
     "defaultDecision": "DENY",
@@ -90,6 +89,6 @@ The `compilerFlags` object is optional. All fields within it are optional and de
 
 The key `compilerOptions` is accepted as a synonym for `compilerFlags`; both name the same options object.
 
-The `configurationId` is a version identifier for the configuration. It appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact policy set that produced them. For bundles, this field is **required**. For directory and resource sources, it is optional and auto-generated from the source path and content hash when absent.
+The configuration id identifying a publication is not part of `pdp.json`. Since SAPL 4.2.0, a `pdp.json` containing a `configurationId` field is rejected fail-closed with a migration message: the configurationId moved to the bundle manifest and is derived from content for directory and resource sources. For bundles, the id is recorded in the signed `.sapl-manifest.json` (explicit or content-derived `bundle@<hash16>`). For directory sources, it is derived on every load as `dir:<dirName>@<hash16>`; for classpath resources as `res:<name>@<hash16>`; for embedded builder configurations as `embedded@<hash16>`. Identical content always yields the identical id. The id appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact publication that produced them.
 
 For deployment details, see [SAPL Node](../7_0_SaplNode/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../7_5_BundleWireProtocol/).

@@ -43,6 +43,9 @@ import io.sapl.api.model.Value;
  * name (sealed in transit, unsealed by the recipient)
  * @param criticalExtensions names of extensions the consumer must be able to
  * process, else the configuration is rejected
+ * @param provenance where this configuration originated. Descriptive metadata
+ * only: it never influences policy decisions and never enters the
+ * content-derived configuration id
  */
 public record PDPConfiguration(
         String pdpId,
@@ -53,7 +56,8 @@ public record PDPConfiguration(
         PdpData data,
         Map<String, Value> extensions,
         Map<String, Value> extensionSecrets,
-        Set<String> criticalExtensions) implements Serializable {
+        Set<String> criticalExtensions,
+        ConfigurationProvenance provenance) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
@@ -61,6 +65,24 @@ public record PDPConfiguration(
         extensions         = extensions == null ? Map.of() : Map.copyOf(extensions);
         extensionSecrets   = extensionSecrets == null ? Map.of() : Map.copyOf(extensionSecrets);
         criticalExtensions = criticalExtensions == null ? Set.of() : Set.copyOf(criticalExtensions);
+        provenance         = provenance == null ? UnknownProvenance.INSTANCE : provenance;
+    }
+
+    /**
+     * Convenience constructor defaulting the provenance to
+     * {@link UnknownProvenance#INSTANCE}.
+     */
+    public PDPConfiguration(String pdpId,
+            String configurationId,
+            CombiningAlgorithm combiningAlgorithm,
+            ObjectValue compilerOptions,
+            List<String> saplDocuments,
+            PdpData data,
+            Map<String, Value> extensions,
+            Map<String, Value> extensionSecrets,
+            Set<String> criticalExtensions) {
+        this(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data, extensions,
+                extensionSecrets, criticalExtensions, UnknownProvenance.INSTANCE);
     }
 
     /**
@@ -115,7 +137,7 @@ public record PDPConfiguration(
     public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets,
             Set<String> criticalExtensions) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets, criticalExtensions);
+                extensions, extensionSecrets, criticalExtensions, provenance);
     }
 
     @Override
@@ -124,6 +146,6 @@ public record PDPConfiguration(
                 + combiningAlgorithm + ", compilerOptions=" + compilerOptions + ", saplDocuments=" + saplDocuments
                 + ", data=" + data + ", extensions=" + extensions.keySet() + ", extensionSecrets="
                 + (extensionSecrets.isEmpty() ? "NO EXTENSION SECRETS" : "EXTENSION SECRETS REDACTED")
-                + ", criticalExtensions=" + criticalExtensions + "]";
+                + ", criticalExtensions=" + criticalExtensions + ", provenance=" + provenance + "]";
     }
 }

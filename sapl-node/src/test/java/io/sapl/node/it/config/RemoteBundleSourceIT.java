@@ -36,8 +36,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
+import com.nimbusds.jose.jwk.OctetKeyPair;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -45,6 +48,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.node.it.BaseIntegrationTest;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.secrets.SecretSealing;
 import lombok.val;
 import reactor.test.StepVerifier;
 import tools.jackson.databind.json.JsonMapper;
@@ -135,6 +139,46 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
                             .expectNextMatches(
                                     decision -> decision.decision() == AuthorizationDecision.PERMIT.decision())
                             .thenCancel().verify(Duration.ofSeconds(60));
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("accepts bundles resealed from a previous recipient to the current recipient")
+        void whenPublisherRotatesRecipientThenNodeKeepsServingValidUpdates() {
+            val previous  = SecretSealing.generateRecipientKey("recipient-previous");
+            val current   = SecretSealing.generateRecipientKey("recipient-current");
+            val unknown   = SecretSealing.generateRecipientKey("recipient-unknown");
+            val oldBundle = sealedBundle(DENY_POLICY, previous);
+            val newBundle = sealedBundle(PERMIT_POLICY, current);
+            val badBundle = sealedBundle(DENY_POLICY, unknown);
+
+            try (val network = Network.newNetwork(); val wiremock = createWireMockContainer(network)) {
+                wiremock.start();
+                configureBundleStub(wiremock, DEFAULT_PDP_ID, oldBundle, "\"recipient-v1\"");
+
+                try (val saplNode = createRemoteBundleNode(network, current.toJSONString(), previous.toJSONString())) {
+                    saplNode.start();
+
+                    val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(saplNode)).build();
+                    StepVerifier.create(pdp.decide(TEST_SUBSCRIPTION)).expectNext(AuthorizationDecision.DENY)
+                            .then(() -> {
+                                clearAllStubs(wiremock);
+                                configureBundleStub(wiremock, DEFAULT_PDP_ID, newBundle, "\"recipient-v2\"");
+                            })
+                            .expectNextMatches(
+                                    decision -> decision.decision() == AuthorizationDecision.PERMIT.decision())
+                            .thenCancel().verify(Duration.ofSeconds(60));
+
+                    clearAllStubs(wiremock);
+                    configureBundleStub(wiremock, DEFAULT_PDP_ID, badBundle, "\"recipient-v3\"");
+
+                    await().pollDelay(Duration.ofSeconds(5)).atMost(Duration.ofSeconds(20))
+                            .pollInterval(Duration.ofMillis(500)).untilAsserted(() -> {
+                                val decision = pdp.decide(TEST_SUBSCRIPTION).blockFirst(Duration.ofSeconds(5));
+                                assertThat(decision).isNotNull().extracting(AuthorizationDecision::decision)
+                                        .isEqualTo(AuthorizationDecision.PERMIT.decision());
+                            });
                 }
             }
         }
@@ -271,6 +315,21 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
                 .withEnv("IO_SAPL_PDP_EMBEDDED_REMOTEBUNDLES_MAXBACKOFF", "1s")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED", "true")
                 .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true").withEnv("SERVER_SSL_ENABLED", "false");
+    }
+
+    private GenericContainer<?> createRemoteBundleNode(Network network, String currentKey, String previousKey) {
+        return createRemoteBundleNode(network)
+                .withCopyToContainer(Transferable.of(currentKey), "/run/secrets/recipient-current.jwk")
+                .withCopyToContainer(Transferable.of(previousKey), "/run/secrets/recipient-previous.jwk")
+                .withEnv("IO_SAPL_PDP_EMBEDDED_SECRETS_PRIVATEKEYPATHS_0", "/run/secrets/recipient-current.jwk")
+                .withEnv("IO_SAPL_PDP_EMBEDDED_SECRETS_PRIVATEKEYPATHS_1", "/run/secrets/recipient-previous.jwk");
+    }
+
+    private byte[] sealedBundle(String policy, OctetKeyPair recipient) {
+        return BundleBuilder.create().withCombiningAlgorithm(CombiningAlgorithm.DEFAULT).withPolicy("policy", policy)
+                .withSecrets("""
+                        { "credential": "test-secret" }
+                        """).sealSecretsWith(recipient.toPublicJWK()).build();
     }
 
     private void configureBundleStub(GenericContainer<?> wiremock, String pdpId, byte[] bundle, String etag) {
