@@ -17,7 +17,9 @@
  */
 package io.sapl.attributeapi.attributes.backend;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.List;
@@ -54,5 +56,16 @@ class RedisAttributeStoreTests {
 
         assertThatThrownBy(() -> store.publish(key, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("TTL must be a strictly positive Duration.");
+    }
+    
+    @Test
+    @DisplayName("A negative limit in the getAll() methods returns an empty list")
+    void whenLimitIsNegativeThenReturnAnEmptyList() {
+        when(client.connect()).thenReturn(connection);
+        when(connection.sync()).thenReturn(commands);
+
+        var store = new RedisAttributeStore(client);
+        assertThat(() -> store.getAll("default", -1, 10)).isEmpty();
+        verifyNoInteractions(commands);
     }
 }

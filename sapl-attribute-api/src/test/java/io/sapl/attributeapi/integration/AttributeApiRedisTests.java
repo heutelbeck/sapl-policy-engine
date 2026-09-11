@@ -20,12 +20,27 @@ package io.sapl.attributeapi.integration;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.sapl.attributeapi.AttributeApiApplication;
+import jakarta.ws.rs.core.MediaType;
 
+import java.util.concurrent.Executors;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.stream.IntStream;
+import org.springframework.http.HttpStatus;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -62,5 +77,38 @@ class AttributeApiRedisTests extends AbstractAttributeApiTests {
         GenericContainer<?> container = new GenericContainer<>("redis:8");
         container.withExposedPorts(6379);
         return container;
+    }
+    
+    @Test
+    @DisplayName("Concurrent PUT requests to create the same new attribute result in excatly one HTTP 201 created. HSETNX works properly.")
+    void whenNewAttributeIsPublishedParallelThenOnlyOneRequestReportsCreated() throws Exception {
+    	// ThreadPool with tasks to avoid creating them manually
+    	int             parallelRequests = 15;
+    	ExecutorService executor         = Executors.newFixedThreadPool(parallelRequests);
+    	CountDownLatch  startSignal      = new CountDownLatch(1);
+    	
+    	// Create the tasks and let the threads waits till the countdown is done
+    	List<Callable<Integer>> tasks = IntStream.range(0, parallelRequests)
+    			.<Callable<Integer>>mapToObj(i -> () -> {
+            startSignal.await();
+            MvcResult result = mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.parallel").with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content("{ \"value\": \"request-%d\", \"ttl\": 600 }".formatted(i)))
+                    .andReturn();
+            return result.getResponse().getStatus();
+        }).toList();
+    	
+    	List<Future<Integer>> futures = tasks.stream().map(executor::submit).toList();
+    	
+    	// Start the parallel requests. The above counter goes down from 1 to 0
+    	startSignal.countDown();
+    	
+    	List<Integer> httpCodes = new ArrayList<>();
+    	for(Future<Integer> future : futures) {
+    		httpCodes.add(future.get(10, TimeUnit.SECONDS));
+    	}
+    	executor.shutdown();
+    	
+    	assertThat(httpCodes).filteredOn(code -> code == HttpStatus.CREATED.value()).hasSize(1);
+    	assertThat(httpCodes).filteredOn(code -> code == HttpStatus.OK.value()).hasSize(parallelRequests - 1);
     }
 }

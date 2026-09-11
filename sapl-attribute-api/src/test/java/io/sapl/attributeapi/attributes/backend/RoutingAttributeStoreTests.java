@@ -19,6 +19,7 @@ package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -26,6 +27,8 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+
+import io.lettuce.core.RedisConnectionException;
 import io.sapl.api.model.Value;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -164,5 +167,44 @@ class RoutingAttributeStoreTests {
 
         verify(handle).close();
         verify(otherHandle).close();
+    }
+    
+    @Test
+    @DisplayName("A connection that was refused throws an exception")
+    void whenGetAllInvalidThenExceptionIsThrown() {
+    	AttributeKey key   = new AttributeKey(Value.of("test"), "sapl.test", List.of());
+    	Value        value = Value.of("just a value");
+    	String       pdpId = "test-pdp";
+    	
+    	var handleByBackendName = Map.of("redis-backend", handle);
+    	var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");
+    	
+    	when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
+    	when(store.getAll("test-pdp", null, null)).thenThrow(new RedisConnectionException("The connection was refused"));
+    	when(store.remove(key, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+    	when(store.publish(key, value, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+    	when(store.count(pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+    	
+    	var router = new RoutingAttributeStore(handleByBackendName, pdpIdToBackendName);
+    	
+    	assertThatThrownBy(() -> router.getAll("test-pdp", null, null))
+    	.isInstanceOf(AttributeBackendUnavailableException.class)
+    	.hasMessage("The service is currently unavailable");
+    	verify(handle, times(1)).invalidate();
+    	
+    	assertThatThrownBy(() -> router.publish(key, value, pdpId))
+    	.isInstanceOf(AttributeBackendUnavailableException.class)
+    	.hasMessage("The service is currently unavailable");
+    	verify(handle, times(2)).invalidate();
+    	
+    	assertThatThrownBy(() -> router.remove(key, pdpId))
+    	.isInstanceOf(AttributeBackendUnavailableException.class)
+    	.hasMessage("The service is currently unavailable");
+    	verify(handle, times(3)).invalidate();
+    	
+    	assertThatThrownBy(() -> router.count(pdpId))
+    	.isInstanceOf(AttributeBackendUnavailableException.class)
+    	.hasMessage("The service is currently unavailable");
+    	verify(handle, times(4)).invalidate();
     }
 }
