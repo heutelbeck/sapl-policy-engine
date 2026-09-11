@@ -78,37 +78,36 @@ class AttributeApiRedisTests extends AbstractAttributeApiTests {
         container.withExposedPorts(6379);
         return container;
     }
-    
+
     @Test
     @DisplayName("Concurrent PUT requests to create the same new attribute result in excatly one HTTP 201 created. HSETNX works properly.")
     void whenNewAttributeIsPublishedParallelThenOnlyOneRequestReportsCreated() throws Exception {
-    	// ThreadPool with tasks to avoid creating them manually
-    	int             parallelRequests = 15;
-    	ExecutorService executor         = Executors.newFixedThreadPool(parallelRequests);
-    	CountDownLatch  startSignal      = new CountDownLatch(1);
-    	
-    	// Create the tasks and let the threads waits till the countdown is done
-    	List<Callable<Integer>> tasks = IntStream.range(0, parallelRequests)
-    			.<Callable<Integer>>mapToObj(i -> () -> {
+        // ThreadPool with tasks to avoid creating them manually
+        int             parallelRequests = 15;
+        ExecutorService executor         = Executors.newFixedThreadPool(parallelRequests);
+        CountDownLatch  startSignal      = new CountDownLatch(1);
+
+        // Create the tasks and let the threads waits till the countdown is done
+        List<Callable<Integer>> tasks = IntStream.range(0, parallelRequests).<Callable<Integer>>mapToObj(i -> () -> {
             startSignal.await();
             MvcResult result = mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.parallel").with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON).content("{ \"value\": \"request-%d\", \"ttl\": 600 }".formatted(i)))
-                    .andReturn();
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{ \"value\": \"request-%d\", \"ttl\": 600 }".formatted(i))).andReturn();
             return result.getResponse().getStatus();
         }).toList();
-    	
-    	List<Future<Integer>> futures = tasks.stream().map(executor::submit).toList();
-    	
-    	// Start the parallel requests. The above counter goes down from 1 to 0
-    	startSignal.countDown();
-    	
-    	List<Integer> httpCodes = new ArrayList<>();
-    	for(Future<Integer> future : futures) {
-    		httpCodes.add(future.get(10, TimeUnit.SECONDS));
-    	}
-    	executor.shutdown();
-    	
-    	assertThat(httpCodes).filteredOn(code -> code == HttpStatus.CREATED.value()).hasSize(1);
-    	assertThat(httpCodes).filteredOn(code -> code == HttpStatus.OK.value()).hasSize(parallelRequests - 1);
+
+        List<Future<Integer>> futures = tasks.stream().map(executor::submit).toList();
+
+        // Start the parallel requests. The above counter goes down from 1 to 0
+        startSignal.countDown();
+
+        List<Integer> httpCodes = new ArrayList<>();
+        for (Future<Integer> future : futures) {
+            httpCodes.add(future.get(10, TimeUnit.SECONDS));
+        }
+        executor.shutdown();
+
+        assertThat(httpCodes).filteredOn(code -> code == HttpStatus.CREATED.value()).hasSize(1);
+        assertThat(httpCodes).filteredOn(code -> code == HttpStatus.OK.value()).hasSize(parallelRequests - 1);
     }
 }

@@ -57,7 +57,7 @@ class RedisAttributeStoreTests {
         assertThatThrownBy(() -> store.publish(key, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("TTL must be a strictly positive Duration.");
     }
-    
+
     @Test
     @DisplayName("A negative limit in the getAll() methods returns an empty list")
     void whenLimitIsNegativeThenReturnAnEmptyList() {
@@ -65,7 +65,7 @@ class RedisAttributeStoreTests {
         when(connection.sync()).thenReturn(commands);
 
         var store = new RedisAttributeStore(client);
-        assertThat(() -> store.getAll("default", -1, 10)).isEmpty();
+        assertThat(store.getAll("default", -1, 10)).isEmpty();
         verifyNoInteractions(commands);
     }
 }

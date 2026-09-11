@@ -168,43 +168,42 @@ class RoutingAttributeStoreTests {
         verify(handle).close();
         verify(otherHandle).close();
     }
-    
+
     @Test
     @DisplayName("A connection that was refused throws an exception")
     void whenGetAllInvalidThenExceptionIsThrown() {
-    	AttributeKey key   = new AttributeKey(Value.of("test"), "sapl.test", List.of());
-    	Value        value = Value.of("just a value");
-    	String       pdpId = "test-pdp";
-    	
-    	var handleByBackendName = Map.of("redis-backend", handle);
-    	var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");
-    	
-    	when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
-    	when(store.getAll("test-pdp", null, null)).thenThrow(new RedisConnectionException("The connection was refused"));
-    	when(store.remove(key, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
-    	when(store.publish(key, value, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
-    	when(store.count(pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
-    	
-    	var router = new RoutingAttributeStore(handleByBackendName, pdpIdToBackendName);
-    	
-    	assertThatThrownBy(() -> router.getAll("test-pdp", null, null))
-    	.isInstanceOf(AttributeBackendUnavailableException.class)
-    	.hasMessage("The service is currently unavailable");
-    	verify(handle, times(1)).invalidate();
-    	
-    	assertThatThrownBy(() -> router.publish(key, value, pdpId))
-    	.isInstanceOf(AttributeBackendUnavailableException.class)
-    	.hasMessage("The service is currently unavailable");
-    	verify(handle, times(2)).invalidate();
-    	
-    	assertThatThrownBy(() -> router.remove(key, pdpId))
-    	.isInstanceOf(AttributeBackendUnavailableException.class)
-    	.hasMessage("The service is currently unavailable");
-    	verify(handle, times(3)).invalidate();
-    	
-    	assertThatThrownBy(() -> router.count(pdpId))
-    	.isInstanceOf(AttributeBackendUnavailableException.class)
-    	.hasMessage("The service is currently unavailable");
-    	verify(handle, times(4)).invalidate();
+        AttributeKey key   = new AttributeKey(Value.of("test"), "sapl.test", List.of());
+        Value        value = Value.of("just a value");
+        String       pdpId = "test-pdp";
+
+        var handleByBackendName = Map.of("redis-backend", handle);
+        var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");
+
+        when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
+        when(store.getAll("test-pdp", null, null))
+                .thenThrow(new RedisConnectionException("The connection was refused"));
+        when(store.remove(key, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+        when(store.publish(key, value, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+        when(store.count(pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+
+        var router = new RoutingAttributeStore(handleByBackendName, pdpIdToBackendName);
+
+        assertThatThrownBy(() -> router.getAll("test-pdp", null, null))
+                .isInstanceOf(AttributeBackendUnavailableException.class)
+                .hasMessage("The service is currently unavailable");
+        verify(handle, times(1)).invalidate();
+
+        assertThatThrownBy(() -> router.publish(key, value, pdpId))
+                .isInstanceOf(AttributeBackendUnavailableException.class)
+                .hasMessage("The service is currently unavailable");
+        verify(handle, times(2)).invalidate();
+
+        assertThatThrownBy(() -> router.remove(key, pdpId)).isInstanceOf(AttributeBackendUnavailableException.class)
+                .hasMessage("The service is currently unavailable");
+        verify(handle, times(3)).invalidate();
+
+        assertThatThrownBy(() -> router.count(pdpId)).isInstanceOf(AttributeBackendUnavailableException.class)
+                .hasMessage("The service is currently unavailable");
+        verify(handle, times(4)).invalidate();
     }
 }
