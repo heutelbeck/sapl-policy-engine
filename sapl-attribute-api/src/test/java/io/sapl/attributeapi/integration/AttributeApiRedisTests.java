@@ -101,7 +101,7 @@ class AttributeApiRedisTests extends AbstractAttributeApiTests {
         // Start the parallel requests. The above counter goes down from 1 to 0
         startSignal.countDown();
 
-        List<Integer> httpCodes = new ArrayList<>();
+        List<Integer> httpCodes = new ArrayList<>(futures.size());
         for (Future<Integer> future : futures) {
             httpCodes.add(future.get(10, TimeUnit.SECONDS));
         }

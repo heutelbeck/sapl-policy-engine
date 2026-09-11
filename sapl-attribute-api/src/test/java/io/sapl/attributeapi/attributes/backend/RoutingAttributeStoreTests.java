@@ -172,9 +172,10 @@ class RoutingAttributeStoreTests {
     @Test
     @DisplayName("A connection that was refused throws an exception")
     void whenGetAllInvalidThenExceptionIsThrown() {
-        AttributeKey key   = new AttributeKey(Value.of("test"), "sapl.test", List.of());
-        Value        value = Value.of("just a value");
-        String       pdpId = "test-pdp";
+        Value  value = Value.of("just a value");
+        String pdpId = "test-pdp";
+
+        key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
 
         var handleByBackendName = Map.of("redis-backend", handle);
         var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");

@@ -218,7 +218,7 @@ public class AttributeApiController {
      */
     @ExceptionHandler(AttributeBackendUnavailableException.class)
     public ResponseEntity<String> handleBackendUnavailable(AttributeBackendUnavailableException e) {
-        log.warn(e.getMessage(), e);
+        log.warn("The attribute backend is unavailable", e);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(BackendHandle.RETRY_COOLDOWN.toSeconds()))
                 .body(e.getMessage());
