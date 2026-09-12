@@ -48,7 +48,9 @@ The other two steps are optional but should be considered depending on your envi
     )
     ```
 
-2. You can set an expiry for pre- and post-images. The settings are cluster-wide and need to be adjusted to your Cluster setting. The attribute repository for Mongo only needs a short period of pre and post images. A shorter period keeps the used space on disk low. You can set it within `mongosh`:
+2. You can set an expiry for pre- and post-images. This setting is cluster-wide, not per collection.  If the cluster is shared with other application that also rely on change stream pre- and post-images coordinate this value with them before changing it.
+  
+   The attribute repository for Mongo only needs a short period of pre- and post-images. A shorter period keeps the used space on disk low. You can set it within `mongosh`:
    ```js
    db.adminCommand({ setClusterParameter: { changeStreamOptions: { preAndPostImages: { expireAfterSeconds: 120 } } } })
    ```

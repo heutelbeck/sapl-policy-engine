@@ -25,6 +25,7 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Pre;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -32,6 +33,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -46,6 +48,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -66,6 +69,10 @@ public class AttributesView extends VerticalLayout {
     private static final String MESSAGE_NO_ATTRIBUTES_FOUND                = "No attributes found.";
     private static final String MESSAGE_NO_ATTRIBUTE_FOUND_FOR_NAME_PREFIX = "No attribute found for name '";
 
+    private static final String PATH_SEPARATOR           = "/";
+    private static final String PUBLISH_BODY_FIELD_VALUE = "value";
+    private static final String PUBLISH_BODY_FIELD_TTL   = "ttl";
+
     // The registry of the stored connections for this session
     private transient ConnectionRegistry registry;
 
@@ -83,6 +90,9 @@ public class AttributesView extends VerticalLayout {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private final Pre previewRequestLine = new Pre();
+    private final Pre previewBody        = new Pre();
+
     // Grid to display the data
     private final Grid<Map<String, Object>> grid = new Grid<>();
 
@@ -91,6 +101,7 @@ public class AttributesView extends VerticalLayout {
 
         // Basic settings
         setSizeFull();
+        getStyle().set("overflow-y", "auto");
         add(new H2("Repository overview"));
 
         grid.addColumn(entry -> String.valueOf(entry.get(COLUMN_NAME_ENTITY))).setHeader("Entity").setAutoWidth(true);
@@ -98,7 +109,8 @@ public class AttributesView extends VerticalLayout {
         grid.addColumn(entry -> String.valueOf(entry.get(COLUMN_NAME_ARGUMENTS))).setHeader("Arguments")
                 .setAutoWidth(true);
         grid.addColumn(entry -> String.valueOf(entry.get(COLUMN_NAME_VALUE))).setHeader("Value").setAutoWidth(true);
-        grid.setSizeFull();
+        grid.setWidthFull();
+        grid.setHeight("600px");
         grid.setItems(List.of());
 
         // Key events for the grid - Grid does not implement KeyNotifier, so a
@@ -174,15 +186,30 @@ public class AttributesView extends VerticalLayout {
         publishTtlField.setId("publish-ttl");
         publishArgumentsField.setId("publish-arguments");
 
+        // Set all the input fields to EAGER to fire change events immediately to preview them
+        publishEntityField.setValueChangeMode(ValueChangeMode.EAGER);
+        publishNameField.setValueChangeMode(ValueChangeMode.EAGER);
+        publishValueField.setValueChangeMode(ValueChangeMode.EAGER);
+        publishTtlField.setValueChangeMode(ValueChangeMode.EAGER);
+        publishArgumentsField.setValueChangeMode(ValueChangeMode.EAGER);
+
+        publishEntityField.addValueChangeListener(e -> updateRequestPreview());
+        publishNameField.addValueChangeListener(e -> updateRequestPreview());
+        publishValueField.addValueChangeListener(e -> updateRequestPreview());
+        publishTtlField.addValueChangeListener(e -> updateRequestPreview());
+        publishArgumentsField.addValueChangeListener(e -> updateRequestPreview());
+
+        updateRequestPreview();
+
         var publishButton = new Button("Publish", event -> publish());
         publishButton.setId("publish-button");
         publishButton.setEnabled(false);
         publishNameField.addValueChangeListener(event -> updatePublishButtonState(publishButton));
         publishValueField.addValueChangeListener(event -> updatePublishButtonState(publishButton));
 
-        // collapsable form to show the publish fields when needed
-        var publishForm = new FormLayout(publishEntityField, publishNameField, publishValueField,
-                publishArgumentsField);
+        // Collapsable form to show the publish fields when needed
+        var publishForm = new FormLayout(publishEntityField, publishNameField, publishArgumentsField, publishValueField,
+                publishTtlField);
 
         // Prevents a break in the layout by dynamically sizing the elements
         publishForm.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("30em", 2),
@@ -199,6 +226,17 @@ public class AttributesView extends VerticalLayout {
         deleteHint.getStyle().set("color", "var(--lumo-secondary-text-color)").set("font-size",
                 "var(--lumo-font-size-s)");
 
+        // Group the search and publish form in one layout to have space for the preview layout
+        var formsColumn = new VerticalLayout(publishDetails, searchDetails);
+        formsColumn.setPadding(false);
+        formsColumn.setSpacing(true);
+        formsColumn.setWidth("60%");
+
+        var previewPanel = buildPreviewPanel();
+        previewPanel.setWidth("40%");
+        var topRow = new HorizontalLayout(formsColumn, previewPanel);
+        topRow.setWidthFull();
+
         // Saved connections
         ComboBox<SavedConnection> savedConnectionComboBox = new ComboBox<SavedConnection>("Connection");
         savedConnectionComboBox.setItemLabelGenerator(SavedConnection::name);
@@ -211,9 +249,7 @@ public class AttributesView extends VerticalLayout {
             }
         });
 
-        add(savedConnectionComboBox, publishDetails, searchDetails, deleteHint, grid);
-        setFlexGrow(1, grid);
-        // End search fields
+        add(savedConnectionComboBox, topRow, deleteHint, grid);
     }
 
     private JsonNode toJsonNode(String raw) {
@@ -252,7 +288,6 @@ public class AttributesView extends VerticalLayout {
         }
     }
 
-    // SonarQube : Refactored
     private void search() {
         var name   = nameField.getValue();
         var entity = entityField.getValue();
@@ -327,5 +362,54 @@ public class AttributesView extends VerticalLayout {
         var name  = publishNameField.getValue();
         var value = publishValueField.getValue();
         publishButton.setEnabled(name != null && !name.isBlank() && value != null && !value.isBlank());
+    }
+
+    private VerticalLayout buildPreviewPanel() {
+        // Layout to show the attribute key in the HTTP URI and the HTTP body
+        previewRequestLine.getStyle().set("font-family", "monospace").set("font-weight", "bold")
+                .set("white-space", "pre-wrap").set("overflow-wrap", "anywhere");
+
+        previewBody.getStyle().set("font-family", "monospace").set("white-space", "pre-wrap").set("overflow-wrap",
+                "anywhere");
+
+        var panel = new VerticalLayout(previewRequestLine, previewBody);
+        panel.getStyle().set("border", "none").set("background", "var(--lumo-contrast-5pct)").set("border-radius",
+                "var(--lumo-border-radius-m)");
+
+        panel.setPadding(true);
+        panel.setSpacing(false);
+        return panel;
+    }
+
+    // Update the preview view to show a live view of the current request
+    private void updateRequestPreview() {
+        var entity    = publishEntityField.getValue();
+        var name      = publishNameField.getValue();
+        var arguments = splitArguments(publishArgumentsField.getValue());
+
+        var displayName = (name == null || name.isBlank()) ? "{name}" : name;
+
+        var path = (entity == null || entity.isBlank()) ? "/api/attributes/" + displayName
+                : "/api/attributes/" + entity + PATH_SEPARATOR + displayName;
+
+        // Put all arguments together to one string to display them
+        var query = arguments.isEmpty() ? ""
+                : "?" + arguments.stream().map(args -> "arg=" + args).collect(Collectors.joining("&"));
+
+        var connection = registry.getActiveConnection();
+        var baseUrl    = connection == null ? "{connection}" : connection.settings().baseUrl();
+
+        previewRequestLine.setText("PUT " + baseUrl + path + query);
+
+        var raw   = publishValueField.getValue();
+        var value = (raw == null || raw.isBlank()) ? objectMapper.getNodeFactory().stringNode("...") : toJsonNode(raw);
+        var ttl   = publishTtlField.getValue() == null ? 0L : publishTtlField.getValue().longValue();
+        var body  = Map.of(PUBLISH_BODY_FIELD_VALUE, value, PUBLISH_BODY_FIELD_TTL, ttl);
+
+        try {
+            previewBody.setText(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(body));
+        } catch (JacksonException e) {
+            previewBody.setText("(invalid JSON)");
+        }
     }
 }
