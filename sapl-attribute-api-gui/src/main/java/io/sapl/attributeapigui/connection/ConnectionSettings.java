@@ -23,9 +23,9 @@ import java.io.Serializable;
 public record ConnectionSettings(ConnectionMode mode, String baseUrl, String username, String password, String apiKey)
         implements Serializable {
 
-    static ConnectionSettings from(AttributeApiConnectionProperties properties) {
-        return new ConnectionSettings(properties.getMethod(), properties.getBaseUrl(), properties.getUsername(),
-                properties.getPassword(), properties.getApiKey());
+    static ConnectionSettings from(AttributeApiConnectionProperties.ConnectionEntry entry) {
+        return new ConnectionSettings(entry.getMethod(), entry.getBaseUrl(), entry.getUsername(), entry.getPassword(),
+                entry.getApiKey());
     }
 
     public boolean isConfigured() {

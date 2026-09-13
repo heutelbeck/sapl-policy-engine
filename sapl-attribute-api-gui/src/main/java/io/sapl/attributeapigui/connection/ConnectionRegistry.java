@@ -31,15 +31,19 @@ import io.sapl.attributeapigui.config.AttributeApiConnectionProperties;
 @VaadinSessionScope
 @Component
 public class ConnectionRegistry {
+    private static final String ERROR_NO_CONNECTION_CONFIGURED = "No connection configured. Add one via Settings first.";
+
     private final Map<String, SavedConnection>    connections = new LinkedHashMap<>();
     private final Map<String, AttributeApiClient> clients     = new HashMap<>();
     private String                                activeId;
 
     public ConnectionRegistry(AttributeApiConnectionProperties properties) {
-        var initialConnection = new SavedConnection(UUID.randomUUID().toString(), properties.getName(),
-                ConnectionSettings.from(properties));
-        connections.put(initialConnection.id(), initialConnection);
-        activeId = initialConnection.id();
+        for (var entry : properties.getConnections()) {
+            var connection = new SavedConnection(UUID.randomUUID().toString(), entry.getName(),
+                    ConnectionSettings.from(entry));
+            connections.put(connection.id(), connection);
+        }
+        activeId = connections.isEmpty() ? null : connections.keySet().iterator().next();
     }
 
     // Return only a copy of the connection to prevent that someone can overwrite it
@@ -74,6 +78,9 @@ public class ConnectionRegistry {
     }
 
     public synchronized AttributeApiClient activeClient() {
+        if (activeId == null) {
+            throw new IllegalStateException(ERROR_NO_CONNECTION_CONFIGURED);
+        }
         return clients.computeIfAbsent(activeId, key -> new AttributeApiClient(connections.get(key).settings()));
     }
 }

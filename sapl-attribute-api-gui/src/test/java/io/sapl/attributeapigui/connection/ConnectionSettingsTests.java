@@ -19,6 +19,7 @@ package io.sapl.attributeapigui.connection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
@@ -68,7 +69,7 @@ class ConnectionSettingsTests {
     @Test
     @DisplayName("from method maps properties with method none and base url")
     void whenFromMethodIsUsedWithNoneThenConnectionSettingsAreRight() {
-        var properties = new AttributeApiConnectionProperties();
+        var properties = new AttributeApiConnectionProperties.ConnectionEntry();
         properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setMethod(ConnectionMode.NONE);
         properties.setBaseUrl(DEFAULT_HOST);
@@ -82,7 +83,7 @@ class ConnectionSettingsTests {
     @Test
     @DisplayName("from method returns false with method none and missing url")
     void whenFromMethodWithNoneAndBlankURLIsUsedThenConnectionSettingsAreFalse() {
-        var properties = new AttributeApiConnectionProperties();
+        var properties = new AttributeApiConnectionProperties.ConnectionEntry();
         properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setMethod(ConnectionMode.NONE);
         properties.setBaseUrl(null);
@@ -95,7 +96,7 @@ class ConnectionSettingsTests {
     @Test
     @DisplayName("from method maps properties with method basic and set user")
     void whenFromMethodWithBasicAndUserIsUsedThenConnectionSettingsAreRight() {
-        var properties = new AttributeApiConnectionProperties();
+        var properties = new AttributeApiConnectionProperties.ConnectionEntry();
         properties.setMethod(ConnectionMode.BASIC);
         properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setBaseUrl(DEFAULT_HOST);
@@ -113,7 +114,7 @@ class ConnectionSettingsTests {
     @Test
     @DisplayName("from method maps properties with method basic and set user")
     void whenFromMethodWithApiAndApiKeyIsUsedThenConnectionSettingsAreRight() {
-        var properties = new AttributeApiConnectionProperties();
+        var properties = new AttributeApiConnectionProperties.ConnectionEntry();
         properties.setName(DEFAULT_CONNECTION_NAME);
         properties.setMethod(ConnectionMode.API);
         properties.setBaseUrl(DEFAULT_HOST);
@@ -130,9 +131,12 @@ class ConnectionSettingsTests {
     @DisplayName("Connection settings are properly held and switched in the registry class for the UI")
     void whenConnectionRegistryIsUsedThenConnectionRotationIsCorrect() {
         var properties = new AttributeApiConnectionProperties();
-        properties.setName(DEFAULT_CONNECTION_NAME);
-        properties.setMethod(ConnectionMode.NONE);
-        properties.setBaseUrl(DEFAULT_HOST);
+        var entry      = new AttributeApiConnectionProperties.ConnectionEntry();
+        entry.setName(DEFAULT_CONNECTION_NAME);
+        entry.setMethod(ConnectionMode.NONE);
+        entry.setBaseUrl(DEFAULT_HOST);
+        properties.setConnections(List.of(entry));
+
         var registry = new ConnectionRegistry(properties);
         assertThat(registry.getActiveConnection().name()).isEqualTo(DEFAULT_CONNECTION_NAME);
 
