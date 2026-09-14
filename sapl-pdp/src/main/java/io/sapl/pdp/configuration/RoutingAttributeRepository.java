@@ -27,11 +27,10 @@ import java.util.function.Consumer;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
-import io.sapl.pdp.configuration.source.PDPConfigurationSource;
-import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +56,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private static final String WARN_RETRYING_ATTRIBUTE_REPOSITORY = "Retrying to connect to the repository for pdp with id {} and configuration id {}: {}.";
     private static final String ERROR_REPOSITORY_STILL_BUILDING    = "Attribute Repository for configuration with id '%s' is still connecting.";
     private static final String ERROR_REPOSITORY_UNKNOWN           = "Attribute Repository for configuration with id '%s' is unknown.";
+    private static final String ATTRIBUTE_REPOSITORY_EXTENSION     = "attributeRepository";
 
     // Retry logic timeouts
     private static final Duration RETRY_FIRST_BACKOFF = Duration.ofSeconds(1);
@@ -76,18 +76,6 @@ public class RoutingAttributeRepository implements AttributeRepository {
             AttributeFinderInvocation inv,
             Consumer<Value> onValue,
             AtomicReference<Registration> liveRegistration) {}
-
-    /**
-     * Subscribes to {@code source} to get the pdp id (tenant) configuration
-     * as they are published. Building the actual backend repositories happens
-     * asynchronously as {@link PDPConfigurationSource.ConfigurationEvent}
-     * are received.
-     *
-     * @param source The configuration source to subscribe to.
-     */
-    public RoutingAttributeRepository(PDPConfigurationSource source) {
-        source.subscribe(this::handleConfigurationEvent);
-    }
 
     // Builds the concrete repository from the given config block for the pdp id. Falls
     // back to an InMemoryAttributeRepository if the tenant has no such block configured.
@@ -167,7 +155,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
         cache.values().forEach(AttributeRepository::close);
     }
 
-    // Builds the repository aynchronously, using a retry-with-backoff to tolerate
+    // Builds the repository asynchronously, using a retry-with-backoff to tolerate
     // transient connection failures, that a slow connection never blocks the
     // configuration event processing.
     private void buildWithRetry(String pdpId, String configId, Value repoNode) {
@@ -205,9 +193,11 @@ public class RoutingAttributeRepository implements AttributeRepository {
         }
     }
 
-    // Updates the routing information in case of configuration id change
-    // e.g. secret changed. Closes the repository with the old config id
-    // and updates to the new one.
+    /*
+     * Updates the routing information in case of configuration id change
+     * e.g. secret changed. Closes the repository with the old config id
+     * and updates to the new one.
+     */
     private void route(String pdpId, String configId) {
         val oldConfigId = pdpToConfig.put(pdpId, configId);
         if (oldConfigId != null && !oldConfigId.equals(configId)) {
@@ -215,38 +205,69 @@ public class RoutingAttributeRepository implements AttributeRepository {
         }
     }
 
-    // Reacts to the events received by the PDPConfigurationSource events. New configurations
-    // are either re-routed to an already built repository or a fresh build is started when
-    // the configuration id is seen the first time. Error or expired events are ignored on
-    // purpose to not tear down a repository working repository in case of a wrong configuration.
-    private void handleConfigurationEvent(ConfigurationEvent event) {
-        switch (event) {
-        case ConfigurationEvent.NewConfiguration(var configuration) -> {
-            val pdpId    = configuration.pdpId();
-            val configId = configuration.configurationId();
-            val repoNode = configuration.data().secrets().get("attributeRepository");
+    /*
+     * Extracts the clear text part (extConfig) and secret part (extSecret) of the attributeRepository
+     * extension into a single ObjectValue to match with the format AttributeRepositoryFactory expects.
+     * Fallback is InMemoryAttributeRepository.
+     */
+    private static Value extractAttributeRepositoryNode(PDPConfiguration configuration) {
+        val extConfig  = configuration.extensions().get(ATTRIBUTE_REPOSITORY_EXTENSION);
+        val extSecrets = configuration.extensionSecrets().get(ATTRIBUTE_REPOSITORY_EXTENSION);
 
-            try {
-                if (cache.containsKey(configId)) {
-                    route(pdpId, configId);
-                } else if (!pendingBuilds.containsKey(configId)) {
-                    buildWithRetry(pdpId, configId, repoNode);
-                }
-            } catch (RuntimeException failure) {
-                log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
+        if (extConfig == null && extSecrets == null) {
+            return Value.UNDEFINED;
+        }
+
+        val builder = ObjectValue.builder();
+        if (extConfig instanceof ObjectValue obj) {
+            builder.putAll(obj);
+        }
+        if (extSecrets instanceof ObjectValue obj) {
+            builder.putAll(obj);
+        }
+        return builder.build();
+    }
+
+    /*
+     * Validation of the the method prepare() of the extension process. If no extension
+     * is configure then the InMemoryAttributeRepository is the fallback. A present but
+     * structurally invalid extension will be rejected instead of a silent fallback.
+     */
+    boolean canPrepare(String pdpId, PDPConfiguration configuration) {
+        val node = extractAttributeRepositoryNode(configuration);
+        if (!(node instanceof ObjectValue obj)) {
+            return true;
+        }
+        return AttributeRepositoryFactory.validate(obj, pdpId);
+    }
+
+    /*
+     * Reacts to the commit() method of the extension processor New configurations will be
+     * re-routed to an already existing repository object or a repository object will be built
+     * fresh when the configuration is seen the first time.
+     */
+    void buildOrRoute(String pdpId, PDPConfiguration configuration) {
+        val configId = configuration.configurationId();
+        val repoNode = extractAttributeRepositoryNode(configuration);
+
+        try {
+            if (cache.containsKey(configId)) {
+                route(pdpId, configId);
+            } else if (!pendingBuilds.containsKey(configId)) {
+                buildWithRetry(pdpId, configId, repoNode);
             }
+        } catch (RuntimeException failure) {
+            log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
         }
+    }
 
-        case ConfigurationEvent.ConfigurationRemoved(var pdpId) -> {
-            val configId = pdpToConfig.remove(pdpId);
-            Optional.ofNullable(pendingBuilds.remove(configId)).ifPresent(Disposable::dispose);
-            Optional.ofNullable(cache.remove(configId)).ifPresent(AttributeRepository::close);
-        }
-
-        case ConfigurationEvent.ConfigurationError(var pdpId, var reason) -> { /* ignored during startup / building */ }
-
-        case ConfigurationEvent.ConfigurationExpired(var pdpId, var reason) ->
-            { /* ignored during startup / building */ }
-        }
+    /*
+     * Reacts to the remove() method of the extension processor and removes the configuration
+     * for the current pdp.
+     */
+    void removeForPdp(String pdpId) {
+        val configId = pdpToConfig.remove(pdpId);
+        Optional.ofNullable(pendingBuilds.remove(configId)).ifPresent(Disposable::dispose);
+        Optional.ofNullable(cache.remove(configId)).ifPresent(AttributeRepository::close);
     }
 }

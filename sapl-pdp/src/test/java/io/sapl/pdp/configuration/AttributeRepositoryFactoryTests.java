@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("AttributeRepositoryFactory")
@@ -79,6 +80,75 @@ class AttributeRepositoryFactoryTests {
             assertThatThrownBy(() -> AttributeRepositoryFactory.create(config, "test-tenant"))
                     .isInstanceOf(IllegalStateException.class).hasMessageContaining("collectionName")
                     .hasMessageContaining("test-tenant");
+        }
+    }
+
+    @Nested
+    @DisplayName("when validate() is called")
+    class WhenValidateIsCalled {
+        @Test
+        @DisplayName("then a complete Postgres config returns true")
+        void whenPostgresConfigIsValidThenValidateReturnsTrue() {
+            val config = ObjectValue.builder().put("type", Value.of("postgres")).put("host", Value.of("localhost"))
+                    .put("port", Value.of(5432)).put("username", Value.of("sapl")).put("password", Value.of("secret"))
+                    .put("database", Value.of("sapl")).build();
+
+            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isTrue();
+        }
+
+        @Test
+        @DisplayName("then a invalid Postgres config returns false")
+        void whenPostgresConfigIsInvalidThenValidateReturnsFalse() {
+            val config = ObjectValue.builder().put("type", Value.of("postgres")).put("host", Value.of("localhost"))
+                    .put("port", Value.of(5432)).put("username", Value.of("sapl")).put("database", Value.of("sapl"))
+                    .build();
+
+            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
+        }
+
+        @Test
+        @DisplayName("then a complete Mongo config returns true")
+        void whenMongoConfigHasNoCredentialsThenValidateReturnsTrue() {
+            val config = ObjectValue.builder().put("type", Value.of("mongo")).put("host", Value.of("localhost"))
+                    .put("port", Value.of(27017)).put("database", Value.of("sapl")).build();
+
+            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isTrue();
+        }
+
+        @Test
+        @DisplayName("then a invalid Mongo config returns false")
+        void whenMongoConfigHasUsernameButNoPasswordThenValidateReturnsFalse() {
+            val config = ObjectValue.builder().put("type", Value.of("mongo")).put("host", Value.of("localhost"))
+                    .put("port", Value.of(27017)).put("database", Value.of("sapl")).put("username", Value.of("root"))
+                    .build();
+
+            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
+        }
+
+        @Test
+        @DisplayName("then a complete Redis config returns true")
+        void whenRedisConfigHasOnlyHostAndPortThenValidateReturnsTrue() {
+            val config = ObjectValue.builder().put("type", Value.of("redis")).put("host", Value.of("localhost"))
+                    .put("port", Value.of(6379)).build();
+
+            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isTrue();
+        }
+
+        @Test
+        @DisplayName("then a invalid Redis config returns false")
+        void whenRedisConfigIsMissingPortThenValidateReturnsFalse() {
+            val config = ObjectValue.builder().put("type", Value.of("redis")).put("host", Value.of("localhost"))
+                    .build();
+
+            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
+        }
+
+        @Test
+        @DisplayName("an unknown type repository type is invalid")
+        void whenTypeIsUnknownThenValidateReturnsFalse() {
+            val config = ObjectValue.builder().put("type", Value.of("fake-backend")).build();
+
+            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
         }
     }
 }

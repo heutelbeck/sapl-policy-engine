@@ -22,11 +22,8 @@ import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
-import io.sapl.pdp.configuration.source.PDPConfigurationSource;
-import io.sapl.pdp.configuration.source.ReplayingPDPConfigurationSource;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,19 +43,26 @@ import java.util.Arrays;
 @Slf4j
 @Configuration
 public class AttributeConfiguration {
-
-    private static final String PDP_CONFIGURATION_SOURCE_BEAN_NAME = "pdpConfigurationSource";
-
     /**
      * @Primay because the {@code PDPAutoConfiguration} also defines an AttributeRepository bean.
-     * Without @Primary, injecting an AttributeRepository would be ambiguous.
-     * @param source The given configuration source.
+     * Without @Primary, injecting an AttributeRepository would be ambiguous. Declared with the
+     * concrete return type (not AttributeRepository) so attributeRepositoryExtensionsProcessor()
+     * below can inject it by its concrete type.
      * @return An attribute repository.
      */
     @Bean
     @Primary
-    AttributeRepository attributeRepository(PDPConfigurationSource source) {
-        return new RoutingAttributeRepository(source);
+    RoutingAttributeRepository attributeRepository() {
+        return new RoutingAttributeRepository();
+    }
+
+    // Replaces the former raw subscription to the shared pdpConfigurationSource bean.
+    // PdpVoterSource picks this bean up automatically (see PDPAutoConfiguration,
+    // ObjectProvider<ExtensionsProcessor>) and calls prepare()/commit()/remove() on it
+    // as part of its own, already race-free configuration handling.
+    @Bean
+    ExtensionsProcessor attributeRepositoryExtensionsProcessor(RoutingAttributeRepository repository) {
+        return new AttributeRepositoryExtensionsProcessor(repository);
     }
 
     /**
@@ -77,27 +81,6 @@ public class AttributeConfiguration {
 
         return PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker(Clock.systemUTC(),
                 JsonMapper.builder().build(), true, pipBeans, repository);
-    }
-
-    /**
-     * Wraps the shared pdpConfigurationSource bean so every subscriber sees atleas the last known event per pdp id.
-     * Avoids that the first subscriber only sees the event. Static is needed because @Bean methods by BeanPostProcessor
-     * are built early by Spring. Without static this config class would be instantiated too early.
-     *
-     * @return The BeanPostProcessor used by this configuration
-     */
-    @Bean
-    static BeanPostProcessor pdpConfigurationSourceReplayPostProcessor() {
-        return new BeanPostProcessor() {
-            @Override
-            public Object postProcessAfterInitialization(Object bean, String beanName) {
-                if (PDP_CONFIGURATION_SOURCE_BEAN_NAME.equals(beanName)
-                        && bean instanceof PDPConfigurationSource source) {
-                    return new ReplayingPDPConfigurationSource(source);
-                }
-                return bean;
-            }
-        };
     }
 
     // Builds an own object mapper for Spring that is missed because of the

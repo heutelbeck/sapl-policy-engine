@@ -22,28 +22,20 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import ch.qos.logback.core.spi.ConfigurationEvent;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.pdp.configuration.source.PDPConfigurationSource;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+import lombok.val;
 
-@ExtendWith(MockitoExtension.class)
 class RoutingAttributeRepositoryTests {
-    @Mock
-    private PDPConfigurationSource source;
-
-    @Captor
-    private ArgumentCaptor<Consumer<ConfigurationEvent>> captor;
-
     @Test
     @DisplayName("An observer with an unknown configId triggers an error and quetes the observation")
     void whenObserveCalledForUnknownConfigThenErrorTriggeredAndQueued() {
@@ -53,12 +45,56 @@ class RoutingAttributeRepositoryTests {
         AttributeFinderInvocation invocation = new AttributeFinderInvocation("pdp-1", "unknown-config", "sapl.test",
                 List.of(), Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, false, context);
 
-        try (var router = new RoutingAttributeRepository(source)) {
+        try (var router = new RoutingAttributeRepository()) {
             List<Value> received     = new ArrayList<>();
             var         registration = router.observe(invocation, received::add);
 
             assertThat(received).hasSize(1);
             registration.close();
+        }
+    }
+
+    @Test
+    @DisplayName("canPrepare method accepts a configuration with an attributeRepository extension (fallback)")
+    void whenExtensionIsMissingThenCanPrepareAccpets() {
+        val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
+                List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+        try (var router = new RoutingAttributeRepository()) {
+            assertThat(router.canPrepare("tenant-1", configuration)).isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("canPrepare method merges cleartext and secrets config into a valid combination")
+    void whenExtensionIsSplitThenCanPrepareAccepts() {
+        val config = ObjectValue.builder().put("type", Value.of("postgres")).put("host", Value.of("localhost"))
+                .put("port", Value.of(5432)).put("database", Value.of("sapl")).build();
+
+        val secrets = ObjectValue.builder().put("username", Value.of("sapl")).put("password", Value.of("secret"))
+                .build();
+
+        val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
+                List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
+                .withExtensions(Map.of("attributeRepository", config), Map.of("attributeRepository", secrets),
+                        Set.of());
+
+        try (var router = new RoutingAttributeRepository()) {
+            assertThat(router.canPrepare("tenant-1", configuration)).isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("canPrepare method rejects an existing config that is invalid but existing for the attribute repository")
+    void whenExtensionExistsButIsInvalidThenCanPrepareRejcts() {
+        val config = ObjectValue.builder().put("type", Value.of("postgres")).put("host", Value.of("localhost"))
+                .put("port", Value.of(5432)).put("database", Value.of("sapl")).build();
+
+        val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
+                List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
+                .withExtensions(Map.of("attributeRepository", config), Map.of(), Set.of());
+
+        try (var router = new RoutingAttributeRepository()) {
+            assertThat(router.canPrepare("tenant-1", configuration)).isFalse();
         }
     }
 }

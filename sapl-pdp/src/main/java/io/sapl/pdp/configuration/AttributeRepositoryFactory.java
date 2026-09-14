@@ -117,6 +117,65 @@ public class AttributeRepositoryFactory {
         };
     }
 
+    /**
+     * Validates if a given config for a pdp id is valid and matches one of the
+     * supported attribute repository types.
+     *
+     * @param config The configuration id that is sent by the extension processor
+     * @param pdpId The pdp id for the sent configuration id
+     * @return {@code true} if the repository type is supported and the required fields exist.
+     */
+    public boolean validate(ObjectValue config, String pdpId) {
+        val            type = stringValue(config, TYPE_FIELD);
+        RepositoryType repositoryType;
+
+        try {
+            repositoryType = RepositoryType.valueOf(type.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return false;
+        }
+
+        return switch (repositoryType) {
+        case POSTGRES -> hasRequiredPostgresFields(config);
+        case MONGO    -> hasRequiredMongoFields(config);
+        case REDIS    -> hasRequiredRedisFields(config);
+        };
+    }
+
+    /*
+     * Checks if the required fields for PostgreSQL exist. In our case it's the host + port, the
+     * username, a password and the database to connect to.
+     */
+    private boolean hasRequiredPostgresFields(ObjectValue config) {
+        return stringValue(config, HOST_FIELD) != null && numberValue(config, PORT_FIELD) != null
+                && stringValue(config, USERNAME_FIELD) != null && stringValue(config, PASSWORD_FIELD) != null
+                && stringValue(config, DATABASE_FIELD) != null;
+    }
+
+    /*
+     * Checks if t he required fields for MongoDB exist. In our case it's the host + port and the name of the collection
+     * (database).
+     */
+    private boolean hasRequiredMongoFields(ObjectValue config) {
+        if (stringValue(config, HOST_FIELD) == null || numberValue(config, PORT_FIELD) == null
+                || stringValue(config, DATABASE_FIELD) == null) {
+            return false;
+        }
+        val username       = stringValue(config, USERNAME_FIELD);
+        val hasCredentials = username != null && !username.isBlank();
+        return !hasCredentials || stringValue(config, PASSWORD_FIELD) != null;
+    }
+
+    /*
+     * Checks if t he required fields for Redis exist. In our case it's the host + port.
+     */
+    private boolean hasRequiredRedisFields(ObjectValue config) {
+        return stringValue(config, HOST_FIELD) != null && numberValue(config, PORT_FIELD) != null;
+    }
+
+    /*
+     * Creates the PostgreSQL object with the given fields and the set driver.
+     */
     private AttributeRepository createPostgresRepository(ObjectValue config, String pdpId) {
         val host     = Objects.requireNonNull(stringValue(config, HOST_FIELD),
                 () -> ERROR_MISSING_STRING.formatted(HOST_FIELD, pdpId));
@@ -139,6 +198,10 @@ public class AttributeRepositoryFactory {
                 table);
     }
 
+    /*
+     * Creates the MongoDB object with the given fields and a shorter server selection time of 5 seconds
+     * and a heartbeat frequency of 500ms to react to connection interruptions faster than 30s.
+     */
     private AttributeRepository createMongoRepository(ObjectValue config, String pdpId) {
         val host       = Objects.requireNonNull(stringValue(config, HOST_FIELD),
                 () -> ERROR_MISSING_STRING.formatted(HOST_FIELD, pdpId));
@@ -159,12 +222,16 @@ public class AttributeRepositoryFactory {
         val cs              = new ConnectionString(
                 "mongodb://" + credentials + host + ":" + port + "/" + database + authSourceQuery);
         val clientSettings  = MongoClientSettings.builder().applyConnectionString(cs)
-                .applyToClusterSettings(b -> b.serverSelectionTimeout(5, TimeUnit.SECONDS)).build();
+                .applyToClusterSettings(b -> b.serverSelectionTimeout(5, TimeUnit.SECONDS))
+                .applyToServerSettings(b -> b.heartbeatFrequency(500, TimeUnit.MILLISECONDS)).build();
 
         return new MongoAttributeRepository(new ReactiveMongoTemplate(MongoClients.create(clientSettings),
                 Objects.requireNonNull(cs.getDatabase())), pdpId, collection);
     }
 
+    /*
+     * Create the Redis object with the given fields. Select Redis default db 0 if no db is given.
+     */
     private AttributeRepository createRedisRepository(ObjectValue config, String pdpId) {
         val host     = Objects.requireNonNull(stringValue(config, HOST_FIELD),
                 () -> ERROR_MISSING_STRING.formatted(HOST_FIELD, pdpId));
