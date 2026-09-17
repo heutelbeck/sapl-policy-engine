@@ -17,13 +17,9 @@ public class DeleteAttributeCommand extends BaseAttributeCommand {
     @CommandLine.Option(names = "--arguments", description = "Comma-separated list of arguments", defaultValue = "", split = ",")
     List<String> arguments;
 
-    @CommandLine.Option(names = "--pdpid", description = "The id of the PDP the attribute is used for", defaultValue = "default")
-    String pdpId;
-
     @Override
     public Integer call() {
-        var uriBuilder = UriComponentsBuilder.fromUriString(url + attributePath(entity, name)).queryParam("pdpid",
-                pdpId);
+        var uriBuilder = UriComponentsBuilder.fromUriString(url + attributePath(entity, name));
         arguments.stream().filter(s -> !s.isEmpty()).forEach(arg -> uriBuilder.queryParam("arg", arg));
 
         var response = webClient.delete().uri(uriBuilder.build().toUri()).retrieve().toEntity(Void.class).block();

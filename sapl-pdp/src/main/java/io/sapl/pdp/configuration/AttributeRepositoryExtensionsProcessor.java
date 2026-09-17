@@ -38,7 +38,7 @@ public final class AttributeRepositoryExtensionsProcessor implements ExtensionsP
      */
     @Override
     public boolean prepare(String pdpId, PDPConfiguration configuration) {
-        return repository.canPrepare(pdpId, configuration);
+        return repository.canPrepare(configuration);
     }
 
     /**

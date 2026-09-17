@@ -27,22 +27,17 @@ public class PublishAttributeCommand extends BaseAttributeCommand {
     @Option(names = "--ttl", description = "Time to live in seconds. Omit or use -1 for permanent attributes.", defaultValue = "-1")
     Long ttl;
 
-    @Option(names = "--pdpid", description = "The id of the PDP the attribute is used for", defaultValue = "default")
-    String pdpId;
-
     @Override
     public Integer call() {
-        var argumentValues = arguments.stream().filter(s -> !s.isEmpty()).map(this::parseLiteral).toList();
+        var uriBuilder = UriComponentsBuilder.fromUriString(url + attributePath(entity, name));
+        arguments.stream().filter(s -> !s.isEmpty()).forEach(arg -> uriBuilder.queryParam("arg", arg));
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("value", parseLiteral(value));
-        body.put("arguments", argumentValues);
         body.put("ttl", ttl >= 0 ? ttl : null);
-        body.put("pdpid", pdpId);
 
-        var uri      = UriComponentsBuilder.fromUriString(url + attributePath(entity, name)).build().toUri();
-        var response = webClient.put().uri(uri).contentType(MediaType.APPLICATION_JSON).bodyValue(body).retrieve()
-                .toEntity(String.class).block();
+        var response = webClient.put().uri(uriBuilder.build().toUri()).contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body).retrieve().toEntity(String.class).block();
 
         return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;
     }

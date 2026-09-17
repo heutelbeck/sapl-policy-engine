@@ -33,11 +33,14 @@ import io.sapl.attributeapigui.config.AttributeApiConnectionProperties;
 public class ConnectionRegistry {
     private static final String ERROR_NO_CONNECTION_CONFIGURED = "No connection configured. Add one via Settings first.";
 
-    private final Map<String, SavedConnection>    connections = new LinkedHashMap<>();
-    private final Map<String, AttributeApiClient> clients     = new HashMap<>();
+    private final Map<String, SavedConnection>    connections;
+    private final Map<String, AttributeApiClient> clients;
     private String                                activeId;
 
     public ConnectionRegistry(AttributeApiConnectionProperties properties) {
+        connections = LinkedHashMap.newLinkedHashMap(properties.getConnections().size());
+        clients     = HashMap.newHashMap(properties.getConnections().size());
+
         for (var entry : properties.getConnections()) {
             var connection = new SavedConnection(UUID.randomUUID().toString(), entry.getName(),
                     ConnectionSettings.from(entry));

@@ -118,14 +118,13 @@ public class AttributeRepositoryFactory {
     }
 
     /**
-     * Validates if a given config for a pdp id is valid and matches one of the
-     * supported attribute repository types.
+     * Validates if a given config is valid and matches one of the supported
+     * attribute repository types.
      *
      * @param config The configuration id that is sent by the extension processor
-     * @param pdpId The pdp id for the sent configuration id
      * @return {@code true} if the repository type is supported and the required fields exist.
      */
-    public boolean validate(ObjectValue config, String pdpId) {
+    public boolean validate(ObjectValue config) {
         val            type = stringValue(config, TYPE_FIELD);
         RepositoryType repositoryType;
 

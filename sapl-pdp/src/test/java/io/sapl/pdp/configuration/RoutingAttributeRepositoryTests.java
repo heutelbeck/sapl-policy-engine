@@ -60,7 +60,7 @@ class RoutingAttributeRepositoryTests {
         val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
                 List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         try (var router = new RoutingAttributeRepository()) {
-            assertThat(router.canPrepare("tenant-1", configuration)).isTrue();
+            assertThat(router.canPrepare(configuration)).isTrue();
         }
     }
 
@@ -79,7 +79,7 @@ class RoutingAttributeRepositoryTests {
                         Set.of());
 
         try (var router = new RoutingAttributeRepository()) {
-            assertThat(router.canPrepare("tenant-1", configuration)).isTrue();
+            assertThat(router.canPrepare(configuration)).isTrue();
         }
     }
 
@@ -94,7 +94,7 @@ class RoutingAttributeRepositoryTests {
                 .withExtensions(Map.of("attributeRepository", config), Map.of(), Set.of());
 
         try (var router = new RoutingAttributeRepository()) {
-            assertThat(router.canPrepare("tenant-1", configuration)).isFalse();
+            assertThat(router.canPrepare(configuration)).isFalse();
         }
     }
 }

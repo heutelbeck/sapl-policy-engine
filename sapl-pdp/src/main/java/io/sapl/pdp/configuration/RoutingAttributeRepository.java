@@ -233,12 +233,12 @@ public class RoutingAttributeRepository implements AttributeRepository {
      * is configure then the InMemoryAttributeRepository is the fallback. A present but
      * structurally invalid extension will be rejected instead of a silent fallback.
      */
-    boolean canPrepare(String pdpId, PDPConfiguration configuration) {
+    boolean canPrepare(PDPConfiguration configuration) {
         val node = extractAttributeRepositoryNode(configuration);
         if (!(node instanceof ObjectValue obj)) {
             return true;
         }
-        return AttributeRepositoryFactory.validate(obj, pdpId);
+        return AttributeRepositoryFactory.validate(obj);
     }
 
     /*

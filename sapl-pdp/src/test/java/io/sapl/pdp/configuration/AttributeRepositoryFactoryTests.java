@@ -93,7 +93,7 @@ class AttributeRepositoryFactoryTests {
                     .put("port", Value.of(5432)).put("username", Value.of("sapl")).put("password", Value.of("secret"))
                     .put("database", Value.of("sapl")).build();
 
-            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isTrue();
+            assertThat(AttributeRepositoryFactory.validate(config)).isTrue();
         }
 
         @Test
@@ -103,7 +103,7 @@ class AttributeRepositoryFactoryTests {
                     .put("port", Value.of(5432)).put("username", Value.of("sapl")).put("database", Value.of("sapl"))
                     .build();
 
-            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
+            assertThat(AttributeRepositoryFactory.validate(config)).isFalse();
         }
 
         @Test
@@ -112,7 +112,7 @@ class AttributeRepositoryFactoryTests {
             val config = ObjectValue.builder().put("type", Value.of("mongo")).put("host", Value.of("localhost"))
                     .put("port", Value.of(27017)).put("database", Value.of("sapl")).build();
 
-            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isTrue();
+            assertThat(AttributeRepositoryFactory.validate(config)).isTrue();
         }
 
         @Test
@@ -122,7 +122,7 @@ class AttributeRepositoryFactoryTests {
                     .put("port", Value.of(27017)).put("database", Value.of("sapl")).put("username", Value.of("root"))
                     .build();
 
-            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
+            assertThat(AttributeRepositoryFactory.validate(config)).isFalse();
         }
 
         @Test
@@ -131,7 +131,7 @@ class AttributeRepositoryFactoryTests {
             val config = ObjectValue.builder().put("type", Value.of("redis")).put("host", Value.of("localhost"))
                     .put("port", Value.of(6379)).build();
 
-            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isTrue();
+            assertThat(AttributeRepositoryFactory.validate(config)).isTrue();
         }
 
         @Test
@@ -140,7 +140,7 @@ class AttributeRepositoryFactoryTests {
             val config = ObjectValue.builder().put("type", Value.of("redis")).put("host", Value.of("localhost"))
                     .build();
 
-            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
+            assertThat(AttributeRepositoryFactory.validate(config)).isFalse();
         }
 
         @Test
@@ -148,7 +148,7 @@ class AttributeRepositoryFactoryTests {
         void whenTypeIsUnknownThenValidateReturnsFalse() {
             val config = ObjectValue.builder().put("type", Value.of("fake-backend")).build();
 
-            assertThat(AttributeRepositoryFactory.validate(config, "test-tenant")).isFalse();
+            assertThat(AttributeRepositoryFactory.validate(config)).isFalse();
         }
     }
 }
