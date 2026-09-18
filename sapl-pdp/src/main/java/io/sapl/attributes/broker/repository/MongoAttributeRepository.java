@@ -124,18 +124,22 @@ public final class MongoAttributeRepository implements AttributeRepository {
     // The subscription to the change streams needs a MongoDB replica set activated.
     // Replica sets are also working with a single node and are used together with change streams.
     private void subscribeToChangeStream() {
-        changeStreamSubscription.set(openChangeStream().filter(this::belongsToPdpId)
-                .publishOn(Schedulers.boundedElastic())
-                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
-                        .filter(throwable -> !closed).doBeforeRetry(this::handleChangeStreamRetry))
-                .subscribe(this::processChangeStreamEvent, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
+        changeStreamSubscription
+                .set(openChangeStream().filter(this::belongsToPdpId).publishOn(Schedulers.boundedElastic())
+                        .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
+                                .maxBackoff(Duration.ofSeconds(30)).transientErrors(true).filter(throwable -> !closed)
+                                .doBeforeRetry(this::handleChangeStreamRetry))
+                        .subscribe(this::processChangeStreamEvent,
+                                error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
     }
 
     // Handle the re-try logic on a detected disconnect. Invalidates the cache and resync the cache again.
     private void handleChangeStreamRetry(RetrySignal signal) {
         log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-        if (signal.totalRetries() > 0 && disconnected.compareAndSet(false, true)) {
-            for (var key : internalRepository.knownKeys()) {
+        if (disconnected.compareAndSet(false, true)) {
+            var keys = new HashSet<>(internalRepository.knownKeys());
+            keys.addAll(internalRepository.observedKeys());
+            for (var key : keys) {
                 internalRepository.publish(key, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
             }
             resyncFromMongoWithRetry();

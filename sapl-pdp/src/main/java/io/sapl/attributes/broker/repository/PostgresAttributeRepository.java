@@ -64,7 +64,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String WARN_TTL_CLEANUP                    = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
             + "or grant right to the user. Expired attributes will still be filtered"
             + "at query time but Postgres-side cleanup will not happen for pdp with id {} : {}";
-    private static final String CREATE_TABLE_SQL                    = """
+
+    private static final String CREATE_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS {table} (
                   id         BIGINT      GENERATED ALWAYS AS IDENTITY,
                   pdp_id     TEXT        NOT NULL,
@@ -77,7 +78,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                       UNIQUE NULLS NOT DISTINCT (pdp_id, name, entity, arguments)
                   )
             """;
-    private static final String SCHEDULE_TTL_CLEANUP_SQL            = """
+
+    private static final String SCHEDULE_TTL_CLEANUP_SQL = """
             SELECT cron.schedule_in_database(
                 'ttl-cleanup-{table}',
                 '* * * * *',
@@ -111,20 +113,26 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String FIELD_ARGUMENTS = "arguments";
     private static final String FIELD_VALUE     = "value";
 
-    private static final Duration LIVENESS_TIMEOUT   = Duration.ofSeconds(15);
-    private static final Duration HEARTBEAT_INTERVAL = Duration.ofSeconds(5);
-    private static final String   HEARTBEAT_PDP_ID   = "__heartbeat__";
+    private static final Duration LIVENESS_TIMEOUT         = Duration.ofSeconds(15);
+    private static final Duration HEARTBEAT_INTERVAL       = Duration.ofSeconds(5);
+    private static final Duration CONNECT_TIMEOUT          = Duration.ofSeconds(5);
+    private static final Duration QUERY_TIMEOUT            = Duration.ofSeconds(30);
+    private static final Duration LOAD_TIMEOUT             = Duration.ofMinutes(2);
+    private static final String   HEARTBEAT_PDP_ID         = "__heartbeat__";
+    private static final Duration RECONNECT_RETRY_INTERVAL = Duration.ofSeconds(1);
 
     // Delegate Pattern . observer(), close() etc are generated
     @Delegate(excludes = ExcludedMethods.class)
     private final InMemoryAttributeRepository internalRepository;
 
     // Connection may be interrupted and needs to be replaced immediately
-    private final AtomicReference<PostgresqlConnection> connection = new AtomicReference<>();
-    private final AtomicReference<Disposable>           heartbeat  = new AtomicReference<>();
+    private final AtomicReference<PostgresqlConnection> connection               = new AtomicReference<>();
+    private final AtomicReference<Disposable>           heartbeat                = new AtomicReference<>();
+    private final AtomicReference<Disposable>           notificationSubscription = new AtomicReference<>();
     private final ConnectionFactory                     connectionFactory;
-    private final ReentrantLock                         reloadLock = new ReentrantLock();
-    private volatile boolean                            closed     = false;
+    private final ReentrantLock                         reloadLock               = new ReentrantLock();
+    private volatile boolean                            closed                   = false;
+    private final AtomicBoolean                         resyncPending            = new AtomicBoolean(false);
 
     // Set to true when trying to reconnect to the backend
     private final AtomicBoolean disconnected = new AtomicBoolean(false);
@@ -186,26 +194,22 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     // during start time
     private void connectAndListen() {
         establishConnection();
-        Flux.defer(() -> connection.get().getNotifications()).mapNotNull(Notification::getParameter)
-                .timeout(LIVENESS_TIMEOUT).publishOn(Schedulers.boundedElastic())
+        notificationSubscription.set(Flux.defer(() -> connection.get().getNotifications())
+                .mapNotNull(Notification::getParameter).timeout(LIVENESS_TIMEOUT).publishOn(Schedulers.boundedElastic())
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
-                        .filter(throwable -> !closed).doBeforeRetry(signal -> {
+                        .transientErrors(true).filter(throwable -> !closed).doBeforeRetry(signal -> {
                             log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-                            if (signal.totalRetries() > 0 && disconnected.compareAndSet(false, true)) {
-                                for (var key : internalRepository.knownKeys()) {
+                            if (disconnected.compareAndSet(false, true)) {
+                                var keys = new HashSet<>(internalRepository.knownKeys());
+                                keys.addAll(internalRepository.observedKeys());
+                                for (var key : keys) {
                                     internalRepository.publish(key,
                                             Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
                                 }
                             }
-                            try {
-                                establishConnection();
-                                disconnected.set(false);
-                                loadFromDB();
-                            } catch (Exception e) {
-                                log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());
-                            }
+                            reconnectUntilSuccessfulOrClosed();
                         }))
-                .subscribe(this::handleNotification, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error));
+                .subscribe(this::handleNotification, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
 
         // Start the heartbeat subscription to monitor on a different subscription channel if a disconnect did happen
         heartbeat.set(Flux.interval(HEARTBEAT_INTERVAL, Schedulers.boundedElastic()).filter(tick -> !closed)
@@ -213,15 +217,15 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                         .bind("payload",
                                 ValueJsonMarshaller.toJsonString(
                                         ObjectValue.builder().put(FIELD_PDP_ID, Value.of(HEARTBEAT_PDP_ID)).build()))
-                        .then().onErrorResume(e -> Mono.empty()))
+                        .then().timeout(CONNECT_TIMEOUT).onErrorResume(e -> Mono.empty()))
                 .subscribe());
     }
 
     private void establishConnection() {
         PostgresqlConnection newConnection = Objects.requireNonNull(
-                Mono.from(connectionFactory.create()).cast(PostgresqlConnection.class).block(),
+                Mono.from(connectionFactory.create()).cast(PostgresqlConnection.class).timeout(CONNECT_TIMEOUT).block(),
                 ERROR_NO_CONNECTION_FROM_FACTORY + pdpId + "'");
-        Mono.from(newConnection.createStatement(LISTEN_SQL).execute()).block();
+        Mono.from(newConnection.createStatement(LISTEN_SQL).execute()).timeout(CONNECT_TIMEOUT).block();
 
         PostgresqlConnection previous = this.connection.getAndSet(newConnection);
 
@@ -270,8 +274,12 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         if (heartbeatStatus != null) {
             heartbeatStatus.dispose();
         }
+        var notificationStatus = notificationSubscription.get();
+        if (notificationStatus != null) {
+            notificationStatus.dispose();
+        }
 
-        Mono.from(connection.get().close()).block();
+        Mono.from(connection.get().close()).timeout(QUERY_TIMEOUT).block();
     }
 
     private void loadFromDB() {
@@ -281,7 +289,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                     .map(row -> new DBEntry(row.get(FIELD_NAME, String.class), row.get(FIELD_ENTITY, String.class),
                             row.get(FIELD_ARGUMENTS, String.class), row.get(FIELD_VALUE, String.class),
                             row.get("expires_at", OffsetDateTime.class)))
-                    .all().collectList().block();
+                    .all().collectList().timeout(LOAD_TIMEOUT).block();
 
             if (rows == null)
                 return;
@@ -310,7 +318,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
 
         (entityJson != null ? upsertSpec.bind(FIELD_ENTITY, entityJson)
-                : upsertSpec.bindNull(FIELD_ENTITY, String.class)).then().block();
+                : upsertSpec.bindNull(FIELD_ENTITY, String.class)).then().timeout(QUERY_TIMEOUT).block();
     }
 
     public void deleteFromDB(@NonNull RepositoryKey key) {
@@ -320,7 +328,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         var spec = client.sql(deleteSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name()).bind(FIELD_ARGUMENTS,
                 argumentsJson);
         (entityJson != null ? spec.bind(FIELD_ENTITY, entityJson) : spec.bindNull(FIELD_ENTITY, String.class)).then()
-                .block();
+                .timeout(QUERY_TIMEOUT).block();
     }
 
     private static String valuesToJson(List<Value> values) {
@@ -336,7 +344,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private void notifyOthers(RepositoryKey key) {
         // The select is an alternative way to trigger the NOTIFY attribute_changes
         // 'payload' or pg_notify function in Postgres
-        client.sql(NOTIFY_SQL).bind("payload", keyToPayload(key)).then().block();
+        client.sql(NOTIFY_SQL).bind("payload", keyToPayload(key)).then().timeout(QUERY_TIMEOUT).block();
     }
 
     private void handleNotification(String payload) {
@@ -370,7 +378,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 .map(r -> new DBEntry(r.get(FIELD_NAME, String.class), r.get(FIELD_ENTITY, String.class),
                         r.get(FIELD_ARGUMENTS, String.class), r.get(FIELD_VALUE, String.class),
                         r.get("expires_at", OffsetDateTime.class)))
-                .one().block();
+                .one().timeout(CONNECT_TIMEOUT).block();
 
         // if: Key deleted, also delete in cache, else: Key is updated, publish key again in cache
         if (row == null) {
@@ -434,5 +442,25 @@ public final class PostgresAttributeRepository implements AttributeRepository {
 
         internalRepository.publish(key, value, remainingTTL);
         seenKeys.add(key);
+    }
+
+    private void reconnectUntilSuccessfulOrClosed() {
+        while (!closed) {
+            try {
+                establishConnection();
+                disconnected.set(false);
+                loadFromDB();
+                resyncPending.set(true);
+                return;
+            } catch (Exception e) {
+                log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());
+                try {
+                    Thread.sleep(RECONNECT_RETRY_INTERVAL.toMillis());
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
     }
 }

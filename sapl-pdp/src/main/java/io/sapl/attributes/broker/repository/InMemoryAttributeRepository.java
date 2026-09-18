@@ -343,4 +343,13 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             }
         }
     }
+
+    Set<RepositoryKey> observedKeys() {
+        lock.lock();
+        try {
+            return new HashSet<>(observersByKey.keySet());
+        } finally {
+            lock.unlock();
+        }
+    }
 }

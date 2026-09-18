@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MongoAttributeRepositoryTests {
 
     @Container
-    static MongoDBContainer          mongo    = new MongoDBContainer("mongo:8.0");
+    static MongoDBContainer          mongo    = new MongoDBContainer("mongo:8.0").withReplicaSet();
     private MongoAttributeRepository repository;
     private final List<Value>        received = new CopyOnWriteArrayList<>();
 
