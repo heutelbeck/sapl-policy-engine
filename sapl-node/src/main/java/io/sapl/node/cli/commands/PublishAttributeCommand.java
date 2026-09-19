@@ -29,15 +29,15 @@ public class PublishAttributeCommand extends BaseAttributeCommand {
 
     @Override
     public Integer call() {
-        var uriBuilder = UriComponentsBuilder.fromUriString(url + attributePath(entity, name));
+        var uriBuilder = UriComponentsBuilder.fromUriString(resolvedURL() + attributePath(entity, name));
         arguments.stream().filter(s -> !s.isEmpty()).forEach(arg -> uriBuilder.queryParam("arg", arg));
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("value", parseLiteral(value));
         body.put("ttl", ttl >= 0 ? ttl : null);
 
-        var response = webClient.put().uri(uriBuilder.build().toUri()).contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body).retrieve().toEntity(String.class).block();
+        var response = webClient.put().uri(uriBuilder.build().toUri()).headers(authHeaders())
+                .contentType(MediaType.APPLICATION_JSON).bodyValue(body).retrieve().toEntity(String.class).block();
 
         return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;
     }

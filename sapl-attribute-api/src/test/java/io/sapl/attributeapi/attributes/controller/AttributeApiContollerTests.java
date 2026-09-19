@@ -41,6 +41,7 @@ import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.HttpHeaders
 import io.lettuce.core.RedisConnectionException;
 import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableException;
 import io.sapl.attributeapi.attributes.service.AttributeApiService;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 
 @WebMvcTest(AttributeApiController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -51,6 +52,9 @@ class AttributeApiContollerTests {
 
     @MockitoBean
     private AttributeApiService service;
+
+    @MockitoBean
+    private BlockingTenantResolver tenantResolver;
 
     @Test
     @DisplayName("When the backend is missing then a GET will return a 503 - service unavailble with a generic message")

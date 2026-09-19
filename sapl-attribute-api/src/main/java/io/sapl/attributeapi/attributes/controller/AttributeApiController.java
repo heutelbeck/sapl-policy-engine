@@ -21,16 +21,14 @@ import io.sapl.attributeapi.attributes.BackendHandle;
 import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableException;
 import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.attributes.service.AttributeApiService;
-import io.sapl.attributeapi.auth.AttributeApiUserDetails;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -49,7 +47,8 @@ import java.util.NoSuchElementException;
 public class AttributeApiController {
     private static final String NO_PDP_ID = "";
 
-    private final AttributeApiService service;
+    private final AttributeApiService    service;
+    private final BlockingTenantResolver tenantResolver;
 
     /**
      * Endpoint to publish an attribute into the store that contains an entity and attribute name. The arguments
@@ -200,11 +199,7 @@ public class AttributeApiController {
     // NO_PDP_ID (which AttributeApiService treats the same as null) when
     // no AttributeApiUserDetails is present, e.g. in no-auth mode.
     private String currentPdpId() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof AttributeApiUserDetails principal)) {
-            return NO_PDP_ID;
-        }
-        var pdpId = principal.getPdpId();
+        var pdpId = tenantResolver.resolve();
         return pdpId != null ? pdpId : NO_PDP_ID;
     }
 

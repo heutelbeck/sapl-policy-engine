@@ -31,6 +31,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -244,6 +245,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
+    @Order(0)
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // CSRF disabled. Stateless API, Bearer auth headers are not
         // browser-auto-attached. Basic is the exception and emits a WARN.

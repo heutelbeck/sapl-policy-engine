@@ -25,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,6 +36,7 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,13 +49,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Slf4j
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties(AttributeApiSecurityProperties.class)
-@ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
+@ConditionalOnExpression("${io.sapl.attribute-api.enabled:false} && !${io.sapl.attribute-api.embedded:false}")
 @RequiredArgsConstructor
 public class AttributeSecurityConfiguration {
     private static final String BEARER_PREFIX             = "Bearer ";
@@ -92,6 +94,14 @@ public class AttributeSecurityConfiguration {
                 }).ignoringRequestMatchers(request -> {
                     String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
                     return authHeader == null || authHeader.startsWith(BEARER_PREFIX);
+                })
+                // Exception for the SAPL CLI client
+                .ignoringRequestMatchers(request -> {
+                    String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+                    if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+                        return true;
+                    }
+                    return request.getHeader("X-SAPL-Client") != null;
                 }));
 
         if (noAuthenticationMechanismIsDefined()) {
@@ -195,5 +205,22 @@ public class AttributeSecurityConfiguration {
             throw new IllegalStateException(ERROR_MISSING_ISSUER_URI);
         }
         return JwtDecoders.fromIssuerLocation(jwtIssuerUri);
+    }
+
+    // Resolves the pdpId of the authenticated principal. Falls back to
+    // NO_PDP_ID (which AttributeApiService treats the same as null) when
+    // no AttributeApiUserDetails is present, e.g. in no-auth mode.
+    @Bean
+    @ConditionalOnMissingBean(BlockingTenantResolver.class)
+    BlockingTenantResolver attributeApiBlockingTenantResolver() {
+        return () -> {
+            var authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null
+                    || !(authentication.getPrincipal() instanceof AttributeApiUserDetails principal)) {
+                return "";
+            }
+            var pdpId = principal.getPdpId();
+            return pdpId != null ? pdpId : "";
+        };
     }
 }

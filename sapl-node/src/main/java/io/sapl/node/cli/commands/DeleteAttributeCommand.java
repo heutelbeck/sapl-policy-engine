@@ -19,10 +19,11 @@ public class DeleteAttributeCommand extends BaseAttributeCommand {
 
     @Override
     public Integer call() {
-        var uriBuilder = UriComponentsBuilder.fromUriString(url + attributePath(entity, name));
+        var uriBuilder = UriComponentsBuilder.fromUriString(resolvedURL() + attributePath(entity, name));
         arguments.stream().filter(s -> !s.isEmpty()).forEach(arg -> uriBuilder.queryParam("arg", arg));
 
-        var response = webClient.delete().uri(uriBuilder.build().toUri()).retrieve().toEntity(Void.class).block();
+        var response = webClient.delete().uri(uriBuilder.build().toUri()).headers(authHeaders()).retrieve()
+                .toEntity(Void.class).block();
 
         return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;
     }

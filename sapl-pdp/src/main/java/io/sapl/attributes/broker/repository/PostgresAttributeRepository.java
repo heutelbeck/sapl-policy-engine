@@ -196,8 +196,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         establishConnection();
         notificationSubscription.set(Flux.defer(() -> connection.get().getNotifications())
                 .mapNotNull(Notification::getParameter).timeout(LIVENESS_TIMEOUT).publishOn(Schedulers.boundedElastic())
-                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
-                        .transientErrors(true).filter(throwable -> !closed).doBeforeRetry(signal -> {
+                .retryWhen(Retry.fixedDelay(Long.MAX_VALUE, Duration.ofSeconds(0)).filter(throwable -> !closed)
+                        .doBeforeRetry(signal -> {
                             log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
                             if (disconnected.compareAndSet(false, true)) {
                                 var keys = new HashSet<>(internalRepository.knownKeys());

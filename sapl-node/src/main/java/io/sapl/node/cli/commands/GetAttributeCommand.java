@@ -23,10 +23,11 @@ public class GetAttributeCommand extends BaseAttributeCommand {
 
     @Override
     public Integer call() throws Exception {
-        var uriBuilder = UriComponentsBuilder.fromUriString(url + attributePath(entity, name));
+        var uriBuilder = UriComponentsBuilder.fromUriString(resolvedURL() + attributePath(entity, name));
         arguments.stream().filter(s -> !s.isEmpty()).forEach(arg -> uriBuilder.queryParam("arg", arg));
 
-        var response = webClient.get().uri(uriBuilder.build().toUri()).retrieve().toEntity(String.class).block();
+        var response = webClient.get().uri(uriBuilder.build().toUri()).headers(authHeaders()).retrieve()
+                .toEntity(String.class).block();
 
         print(response != null ? response.getBody() : "");
         return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;
