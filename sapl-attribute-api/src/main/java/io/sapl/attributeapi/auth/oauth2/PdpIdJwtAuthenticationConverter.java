@@ -24,6 +24,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 
+import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import io.sapl.attributeapi.auth.AttributeApiUserDetails;
 
 /**
@@ -34,7 +35,9 @@ import io.sapl.attributeapi.auth.AttributeApiUserDetails;
  */
 public class PdpIdJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
     private static final String ERROR_MISSING_PDP_ID = "JWT token missing required claim: %s.";
-    private final String        claimName;
+    private static final String ERROR_INVALID_PDP_ID = "JWT token claim '%s' contains an invalid pdpId value.";
+
+    private final String claimName;
 
     public PdpIdJwtAuthenticationConverter(String claimName) {
         this.claimName = claimName;
@@ -47,6 +50,10 @@ public class PdpIdJwtAuthenticationConverter implements Converter<Jwt, AbstractA
 
         if (pdpIdClaim == null || pdpIdClaim.isBlank()) {
             throw new InvalidBearerTokenException(ERROR_MISSING_PDP_ID.formatted(claimName));
+        }
+
+        if (!AttributeApiSecurityProperties.isValidPdpId(pdpIdClaim)) {
+            throw new InvalidBearerTokenException(ERROR_INVALID_PDP_ID.formatted(claimName));
         }
 
         var principal = new AttributeApiUserDetails(subject, null, pdpIdClaim);

@@ -19,14 +19,13 @@ package io.sapl.attributeapi.attributes;
 
 import io.lettuce.core.RedisURI;
 import io.r2dbc.spi.ConnectionFactoryOptions;
+import io.sapl.attributeapi.attributes.AttributeStorageProperties.Mongo;
 import lombok.val;
 import lombok.experimental.UtilityClass;
-
 import static io.r2dbc.spi.ConnectionFactoryOptions.*;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
+import com.mongodb.MongoCredential;
 
 @UtilityClass
 class AttributeStoreConnectionFactory {
@@ -44,15 +43,24 @@ class AttributeStoreConnectionFactory {
 
     String buildMongoConnectionUri(AttributeStorageProperties.Mongo properties) {
         val hasCredentials = properties.getUsername() != null && !properties.getUsername().isBlank();
-        val password       = hasCredentials
-                ? Objects.requireNonNull(properties.getPassword(), ERROR_MONGO_PASSWORD_REQUIRED)
-                : null;
-        val credentials    = hasCredentials ? encode(properties.getUsername()) + ":" + encode(password) + "@" : "";
         val authSource     = hasCredentials ? "?authSource=" + properties.getAuthDatabase() : "";
         val timeoutParams  = (authSource.isEmpty() ? "?" : "&") + "serverSelectionTimeoutMS=3000&connectTimeoutMS=3000";
 
-        return "mongodb://" + credentials + properties.getHost() + ":" + properties.getPort() + "/"
-                + properties.getDatabase() + authSource + timeoutParams;
+        return "mongodb://" + properties.getHost() + ":" + properties.getPort() + "/" + properties.getDatabase()
+                + authSource + timeoutParams;
+    }
+
+    @Nullable
+    MongoCredential buildMongoCredential(Mongo properties) {
+        val hasCredentials = properties.getUsername() != null && !properties.getUsername().isBlank();
+
+        if (!hasCredentials) {
+            return null;
+        }
+
+        val password = Objects.requireNonNull(properties.getPassword(), ERROR_MONGO_PASSWORD_REQUIRED);
+        return MongoCredential.createCredential(properties.getUsername(), properties.getAuthDatabase(),
+                password.toCharArray());
     }
 
     RedisURI buildRedisUri(AttributeStorageProperties.Redis properties) {
@@ -62,9 +70,5 @@ class AttributeStoreConnectionFactory {
             builder.withPassword(properties.getPassword().toCharArray());
         }
         return builder.build();
-    }
-
-    private String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

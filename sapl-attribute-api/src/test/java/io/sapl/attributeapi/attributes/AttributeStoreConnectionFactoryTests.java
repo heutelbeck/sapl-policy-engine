@@ -62,8 +62,8 @@ class AttributeStoreConnectionFactoryTests {
     }
 
     @Test
-    @DisplayName("Mongo URI with username,password and authdb encodes it properly in the connection string")
-    void whenCredentialsGivenThenMongoUriIsEncodedProperly() {
+    @DisplayName("Mongo URI with credentials configured does not embed them in the connection string")
+    void whenCredentialsGivenThenMongoUriContainsNoCredentials() {
         var properties = new AttributeStorageProperties.Mongo();
         properties.setHost(DEFAULT_HOSTNAME);
         properties.setPort(27017);
@@ -74,17 +74,43 @@ class AttributeStoreConnectionFactoryTests {
 
         var uri = AttributeStoreConnectionFactory.buildMongoConnectionUri(properties);
 
-        assertThat(uri).isEqualTo("mongodb://" + DEFAULT_USERNAME + ":" + DEFAULT_PASSWORD
-                + "@localhost:27017/saplDb?authSource=admin&serverSelectionTimeoutMS=3000&connectTimeoutMS=3000");
+        assertThat(uri).isEqualTo("mongodb://" + DEFAULT_HOSTNAME
+                + ":27017/saplDb?authSource=admin&serverSelectionTimeoutMS=3000&connectTimeoutMS=3000");
+        assertThat(uri).doesNotContain(DEFAULT_PASSWORD);
     }
 
     @Test
-    @DisplayName("MongoDB without a password fails")
-    void whenUsernameSetWithoutPasswordThenMongoFails() {
+    @DisplayName("Mongo credential object carries username, password and auth database separately from the URI")
+    void whenCredentialsGivenThenBuildMongoCredentialReturnsThem() {
+        var properties = new AttributeStorageProperties.Mongo();
+        properties.setUsername(DEFAULT_USERNAME);
+        properties.setPassword(DEFAULT_PASSWORD);
+        properties.setAuthDatabase("admin");
+
+        var credential = AttributeStoreConnectionFactory.buildMongoCredential(properties);
+
+        assertThat(credential).isNotNull();
+        assertThat(credential.getUserName()).isEqualTo(DEFAULT_USERNAME);
+        assertThat(credential.getSource()).isEqualTo("admin");
+        assertThat(credential.getPassword()).isEqualTo(DEFAULT_PASSWORD.toCharArray());
+    }
+
+    @Test
+    @DisplayName("No username configured means no Mongo credential is built")
+    void whenNoUsernameThenBuildMongoCredentialReturnsNull() {
+        var properties = new AttributeStorageProperties.Mongo();
+        properties.setHost(DEFAULT_HOSTNAME);
+
+        assertThat(AttributeStoreConnectionFactory.buildMongoCredential(properties)).isNull();
+    }
+
+    @Test
+    @DisplayName("MongoDB credential building without a password fails")
+    void whenUsernameSetWithoutPasswordThenMongoCredentialFails() {
         var properties = new AttributeStorageProperties.Mongo();
         properties.setUsername(DEFAULT_USERNAME);
 
-        assertThatThrownBy(() -> AttributeStoreConnectionFactory.buildMongoConnectionUri(properties))
+        assertThatThrownBy(() -> AttributeStoreConnectionFactory.buildMongoCredential(properties))
                 .isInstanceOf(NullPointerException.class).hasMessageContaining("io.sapl.attributes.mongo.password");
     }
 

@@ -55,16 +55,15 @@ public class AttributeApiService {
 
     public boolean publish(String entity, String attribute, List<String> requestArgs, AttributePublishRequest body,
             @Nullable String pdpId) {
+        if (!checkArgumentsLimit(requestArgs)) {
+            throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
+        }
+
         List<Value> arguments   = toArgumentValues(requestArgs);
         Value       entityValue = toEntityValue(entity);
         Value       value       = ValueJsonMarshaller.fromJsonNode(body.value());
         Long        ttl         = body.ttl();
-
-        var key = new AttributeKey(entityValue, attribute, arguments);
-
-        if (!checkArgumentsLimit(arguments)) {
-            throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
-        }
+        var         key         = new AttributeKey(entityValue, attribute, arguments);
 
         if (ttl == null || ttl <= 0) {
             return store.publish(key, value, resolvePdpId(pdpId));
@@ -74,13 +73,12 @@ public class AttributeApiService {
     }
 
     public void delete(String entity, String attribute, List<String> rawArgs, @Nullable String pdpId) {
-        List<Value> arguments = toArgumentValues(rawArgs);
-
-        if (!checkArgumentsLimit(arguments)) {
+        if (!checkArgumentsLimit(rawArgs)) {
             throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
         }
 
-        Value entityValue = toEntityValue(entity);
+        List<Value> arguments   = toArgumentValues(rawArgs);
+        Value       entityValue = toEntityValue(entity);
 
         boolean removed = store.remove(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
 
@@ -89,14 +87,13 @@ public class AttributeApiService {
     }
 
     public JsonNode get(String entity, String attribute, List<String> rawArgs, @Nullable String pdpId) {
-        List<Value> arguments = toArgumentValues(rawArgs);
-
-        if (!checkArgumentsLimit(arguments)) {
+        if (!checkArgumentsLimit(rawArgs)) {
             throw new IllegalArgumentException(ERROR_ARGUMENTS_LIMIT);
         }
 
-        Value entityValue = toEntityValue(entity);
-        Value value       = store.get(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
+        List<Value> arguments   = toArgumentValues(rawArgs);
+        Value       entityValue = toEntityValue(entity);
+        Value       value       = store.get(new AttributeKey(entityValue, attribute, arguments), resolvePdpId(pdpId));
 
         if (value == Value.UNDEFINED)
             throw new NoSuchElementException();

@@ -545,7 +545,7 @@ To generate valid API keys, there are two ways:
 | Property | Type | Default | Description |
 |----------|------|---------|--------------|
 | `io.sapl.attribute-api.allow-oauth2-auth` | boolean | `false` | |
-| `io.sapl.attribute-api.oauth2.oidc-pdp-id-claim` | string | `tenantId` | JWT claim used as pdpId |
+| `io.sapl.attribute-api.oauth2.oidc-pdp-id-claim` | string | `pdp_id` | JWT claim used as pdpId |
 | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | string | *(empty)* | Required when `allow-oauth2-auth=true` |
 
 ### Backend

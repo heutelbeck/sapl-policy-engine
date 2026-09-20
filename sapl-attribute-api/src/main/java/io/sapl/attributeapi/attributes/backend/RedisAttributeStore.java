@@ -124,9 +124,15 @@ public class RedisAttributeStore implements AttributeStore {
         return deleted != null && deleted > 0;
     }
 
+    // Escape special characters before adding them to the Redis Keys. Avoids mistakes by characters like *
+    private static String escapePattern(String value) {
+        return value.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?").replace("[", "\\[").replace("]",
+                "\\]");
+    }
+
     @Override
     public Long count(String pdpId) {
-        ScanArgs arguments = ScanArgs.Builder.matches(REDIS_NAMESPACE_PREFIX + pdpId + ":*");
+        ScanArgs arguments = ScanArgs.Builder.matches(REDIS_NAMESPACE_PREFIX + escapePattern(pdpId) + ":*");
         long     keys      = 0L;
 
         // Use Redis SCAN instead of KEYS. KEYS is a blocking command while the keys are loading

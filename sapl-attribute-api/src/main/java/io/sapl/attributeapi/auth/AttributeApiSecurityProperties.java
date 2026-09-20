@@ -18,6 +18,7 @@
 package io.sapl.attributeapi.auth;
 
 import lombok.Data;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.InitializingBean;
@@ -28,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Data
@@ -35,7 +37,13 @@ import java.util.Map;
 public class AttributeApiSecurityProperties implements InitializingBean {
     private static final String ERROR_DUPLICATE_API_KEY_ID = "Attribute API failed to start. A duplicate api-key-id '%s' was found in the configuration.";
     private static final String ERROR_MISSING_API_KEY_ID   = "Attribute API failed to start. User '%s' has set an api-key but no api-key-id configured.";
-    private static final String WARN_KEY_IS_NOT_ENCODED    = "The given api key for user '%s' does not look encoded. Please set the argon2 encoded value.";
+    private static final String ERROR_KEY_IS_NOT_ENCODED   = "Attribute API failed to start. The given api key for user '%s' does not look encoded. "
+            + "Please set the argon2 encoded value.";
+    private static final String ERROR_INVALID_PDP_ID       = "Attribute API failed to start. User '%s' has an invalid pdp-id '%s'. "
+            + "Only alphanumeric characters, hyphens, underscores, and dots are allowed.";
+
+    private static final Pattern VALID_PDP_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
+    private static final int     MAX_PDP_ID_LENGTH    = 255;
 
     private boolean allowNoAuth;
     private boolean allowBasicAuth;
@@ -72,6 +80,10 @@ public class AttributeApiSecurityProperties implements InitializingBean {
         val nextIndex = new HashMap<String, UserEntry>();
 
         for (UserEntry user : users) {
+            if (user.getPdpId() != null && !isValidPdpId(user.getPdpId())) {
+                throw new IllegalStateException(ERROR_INVALID_PDP_ID.formatted(user.getId(), user.getPdpId()));
+            }
+
             if (user.getApiKey() != null) {
                 apiKeyCheck(user);
             }
@@ -99,8 +111,13 @@ public class AttributeApiSecurityProperties implements InitializingBean {
                 || key.startsWith("$argon2d$");
 
         if (!isEncoded) {
-            log.warn(WARN_KEY_IS_NOT_ENCODED.formatted(user.getId()));
+            throw new IllegalStateException(ERROR_KEY_IS_NOT_ENCODED.formatted(user.getId()));
         }
+    }
+
+    public static boolean isValidPdpId(String pdpId) {
+        return pdpId != null && !pdpId.isEmpty() && pdpId.length() <= MAX_PDP_ID_LENGTH
+                && VALID_PDP_ID_PATTERN.matcher(pdpId).matches();
     }
 
     @Data
@@ -108,8 +125,10 @@ public class AttributeApiSecurityProperties implements InitializingBean {
         private String id;
         private String pdpId;
         private String username;
+        @ToString.Exclude
         private String secret;
         private String apiKeyId;
+        @ToString.Exclude
         private String apiKey;
     }
 

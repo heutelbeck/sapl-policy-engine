@@ -23,9 +23,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-
 import java.security.NoSuchAlgorithmException;
-import java.util.Objects;
 import java.util.Optional;
 
 public class ApiKeyAuthenticationProvider implements AuthenticationProvider {
@@ -38,7 +36,15 @@ public class ApiKeyAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String key = Objects.requireNonNull(authentication.getCredentials()).toString();
+        Object credentials = authentication.getCredentials();
+
+        // Throw a BadCredentialsException instead of a NPE to filter it properly and response a 401
+        if (credentials == null) {
+            throw new BadCredentialsException(ERROR_NO_API_KEY);
+        }
+
+        String key = credentials.toString();
+
         try {
             Optional<AttributeApiUserDetails> user = service.findByApiKey(key);
 

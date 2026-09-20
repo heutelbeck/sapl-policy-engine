@@ -18,6 +18,7 @@
 package io.sapl.attributeapi.attributes;
 
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.reactivestreams.client.MongoClients;
 import io.lettuce.core.RedisClient;
 import io.r2dbc.spi.ConnectionFactories;
@@ -91,8 +92,16 @@ public class AttributeStoreConfiguration {
     }
 
     private AttributeStore buildMongoStore(AttributeStorageProperties.Mongo mongo) {
-        val connection = new ConnectionString(AttributeStoreConnectionFactory.buildMongoConnectionUri(mongo));
-        val template   = new ReactiveMongoTemplate(MongoClients.create(connection), connection.getDatabase());
+        val connectionString = new ConnectionString(AttributeStoreConnectionFactory.buildMongoConnectionUri(mongo));
+        val credential       = AttributeStoreConnectionFactory.buildMongoCredential(mongo);
+        val settingsBuilder  = MongoClientSettings.builder().applyConnectionString(connectionString);
+
+        if (credential != null) {
+            settingsBuilder.credential(credential);
+        }
+
+        val template = new ReactiveMongoTemplate(MongoClients.create(settingsBuilder.build()),
+                connectionString.getDatabase());
 
         // Quick ping to check if if the backend is available because the MongoDB driver never does it by it's own
         template.executeCommand("{ ping: 1 }").block();

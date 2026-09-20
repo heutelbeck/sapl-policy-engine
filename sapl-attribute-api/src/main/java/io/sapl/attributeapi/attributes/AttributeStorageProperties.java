@@ -18,6 +18,8 @@
 package io.sapl.attributeapi.attributes;
 
 import lombok.Data;
+import lombok.ToString;
+
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.InitializingBean;
@@ -64,8 +66,9 @@ public class AttributeStorageProperties implements InitializingBean {
         private int    port      = POSTGRES_DEFAULT_PORT;
         private String database  = POSTGRES_DEFAULT_DB;
         private String username  = POSTGRES_DEFAULT_USERNAME;
-        private String password;
         private String tableName = POSTGRES_DEFAULT_TABLENAME;
+        @ToString.Exclude
+        private String password;
     }
 
     /**
@@ -77,9 +80,10 @@ public class AttributeStorageProperties implements InitializingBean {
         private int    port           = MONGO_DEFAULT_PORT;
         private String database       = MONGO_DEFAULT_DB;
         private String username;
-        private String password;
         private String authDatabase   = MONGO_DEFAULT_AUTH_DB;
         private String collectionName = MONGO_DEFAULT_COLLECTION;
+        @ToString.Exclude
+        private String password;
     }
 
     /**
@@ -89,8 +93,9 @@ public class AttributeStorageProperties implements InitializingBean {
     public static class Redis {
         private String host     = REDIS_DEFAULT_HOSTNAME;
         private int    port     = REDIS_DEFAULT_PORT;
-        private String password;
         private int    database = REDIS_DEFAULT_DB;
+        @ToString.Exclude
+        private String password;
     }
 
     /**
