@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -41,6 +42,7 @@ import java.util.NoSuchElementException;
 @Service
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
+@EnableConfigurationProperties(AttributeApiSecurityProperties.class)
 public class AttributeApiService {
     private static final String ERROR_LIMIT_NOT_POSITIVE  = "Limit must be strictly positive.";
     private static final String ERROR_OFFSET_NOT_POSITIVE = "Offset must be strictly positive.";
