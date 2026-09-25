@@ -32,6 +32,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
+import reactor.util.retry.Retry.RetrySignal;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -167,19 +169,18 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         }
 
         this.getAllSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " WHERE pdp_id = :pdpId";
-        this.getSql    = "SELECT name, entity, arguments, value, expires_at FROM " + table + " "
+
+        this.getSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " "
                 + "WHERE pdp_id = :pdpId AND name = :name AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
                 + "AND arguments = CAST(:arguments AS jsonb)";
-        // ON CONFLICT triggers the unique constraint in the db if the value already exists.
-        // Indexes: "attributes_pdp_id_name_entity_arguments_key" UNIQUE CONSTRAINT, btree
-        // (pdp_id, name, entity, arguments) NULLS NOT DISTINCT
-        // DO UPDATE executes an update statement instead. This logic implements a real
-        // upsert and an atomic execution. The atomic execution is important to have the
-        // same Decision if a multi node setup is used.
+
+        // ON CONFLICT is used for an atomic upsert operation. (NULLS NOT DISTINCT) is important because parts of the
+        // attribute key may be empty. They're seen as a unique key
         this.upsertSql = "INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
                 + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
                 + "ON CONFLICT (pdp_id, name, entity, arguments) "
                 + "DO UPDATE SET value = EXCLUDED.value, expires_at = EXCLUDED.expires_at";
+
         this.deleteSql = "DELETE FROM " + table + " WHERE pdp_id = :pdpId AND name = :name "
                 + "AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
                 + "AND arguments = CAST(:arguments AS jsonb)";
@@ -194,21 +195,11 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     // during start time
     private void connectAndListen() {
         establishConnection();
+
         notificationSubscription.set(Flux.defer(() -> connection.get().getNotifications())
                 .mapNotNull(Notification::getParameter).timeout(LIVENESS_TIMEOUT).publishOn(Schedulers.boundedElastic())
                 .retryWhen(Retry.fixedDelay(Long.MAX_VALUE, Duration.ofSeconds(0)).filter(throwable -> !closed)
-                        .doBeforeRetry(signal -> {
-                            log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-                            if (disconnected.compareAndSet(false, true)) {
-                                var keys = new HashSet<>(internalRepository.knownKeys());
-                                keys.addAll(internalRepository.observedKeys());
-                                for (var key : keys) {
-                                    internalRepository.publish(key,
-                                            Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
-                                }
-                            }
-                            reconnectUntilSuccessfulOrClosed();
-                        }))
+                        .doBeforeRetry(this::handleNotificationStreamRetry))
                 .subscribe(this::handleNotification, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
 
         // Start the heartbeat subscription to monitor on a different subscription channel if a disconnect did happen
@@ -449,8 +440,10 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             try {
                 establishConnection();
                 disconnected.set(false);
+
                 loadFromDB();
                 resyncPending.set(true);
+
                 return;
             } catch (Exception e) {
                 log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());
@@ -462,5 +455,17 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 }
             }
         }
+    }
+
+    private void handleNotificationStreamRetry(RetrySignal signal) {
+        log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
+        if (disconnected.compareAndSet(false, true)) {
+            var keys = new HashSet<>(internalRepository.knownKeys());
+            keys.addAll(internalRepository.observedKeys());
+            for (var key : keys) {
+                internalRepository.publish(key, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
+            }
+        }
+        reconnectUntilSuccessfulOrClosed();
     }
 }

@@ -98,51 +98,8 @@ public final class RedisAttributeRepository implements AttributeRepository {
         // Subscribe to needed channels
         pubsub.sync().psubscribe(CHANGES_CHANNEL_PREFIX + "*");
         pubsub.sync().subscribe("__keyevent@" + database + "__:expired");
-
-        pubsub.addListener(new RedisPubSubAdapter<>() {
-            @Override
-            public void message(String channel, String message) {
-                notifyObservers(message, Value.UNDEFINED);
-            }
-
-            @Override
-            public void message(String pattern, String channel, String message) {
-                // Regex: sapl:changes:* -> All change events that are made on attributes
-                String redisKey = channel.substring(CHANGES_CHANNEL_PREFIX.length());
-                Value  value    = UNDEFINED_STRING.equals(message) ? Value.UNDEFINED
-                        : ValueJsonMarshaller.json(message);
-
-                notifyObservers(redisKey, value);
-            }
-        });
-
-        // Monitor the current connection and reconnect if the connection was interrupted
-        pubsub.addListener(new RedisConnectionStateListener() {
-            @Override
-            public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
-                // Creates a new thread that is executed by the re-sync executer. The main event loop threads doesn't
-                // block that way.
-                CompletableFuture.runAsync(RedisAttributeRepository.this::resyncObservers, resyncExecutor)
-                        .exceptionally(e -> {
-                            log.error(ERROR_RESYNC_FAILED, e);
-                            return null;
-                        });
-            }
-
-            @Override
-            public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
-                List<String> keys;
-                lock.lock();
-                try {
-                    keys = new ArrayList<>(observersByKey.keySet());
-                } finally {
-                    lock.unlock();
-                }
-                for (String redisKey : keys) {
-                    notifyObservers(redisKey, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
-                }
-            }
-        });
+        registerAttributeMessageListener();
+        registerConnectionStateListener();
     }
 
     private void requireKeyspaceNotificationsEnabled() {
@@ -338,5 +295,54 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
     private String getSequenceKKey() {
         return SEQ_KEY_PREFIX + pdpId;
+    }
+
+    private void registerAttributeMessageListener() {
+        pubsub.addListener(new RedisPubSubAdapter<>() {
+            @Override
+            public void message(String channel, String message) {
+                notifyObservers(message, Value.UNDEFINED);
+            }
+
+            @Override
+            public void message(String pattern, String channel, String message) {
+                // Regex: sapl:changes:* -> All change events that are made on attributes
+                String redisKey = channel.substring(CHANGES_CHANNEL_PREFIX.length());
+                Value  value    = UNDEFINED_STRING.equals(message) ? Value.UNDEFINED
+                        : ValueJsonMarshaller.json(message);
+
+                notifyObservers(redisKey, value);
+            }
+        });
+    }
+
+    private void registerConnectionStateListener() {
+        // Monitor the current connection and reconnect if the connection was interrupted
+        pubsub.addListener(new RedisConnectionStateListener() {
+            @Override
+            public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
+                // Creates a new thread that is executed by the re-sync executer. The main event loop threads doesn't
+                // block that way.
+                CompletableFuture.runAsync(RedisAttributeRepository.this::resyncObservers, resyncExecutor)
+                        .exceptionally(e -> {
+                            log.error(ERROR_RESYNC_FAILED, e);
+                            return null;
+                        });
+            }
+
+            @Override
+            public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
+                List<String> keys;
+                lock.lock();
+                try {
+                    keys = new ArrayList<>(observersByKey.keySet());
+                } finally {
+                    lock.unlock();
+                }
+                for (String redisKey : keys) {
+                    notifyObservers(redisKey, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
+                }
+            }
+        });
     }
 }
