@@ -88,6 +88,38 @@ public record EnforcementPlan(
     }
 
     /**
+     * Compares the ordered input entries by original constraint value, priority,
+     * obligation/advice tag, and handler kind, ignoring executable identity and
+     * other signals. Order and multiplicity are preserved.
+     * <p>
+     * For plans from the same deterministic providers with unchanged configuration
+     * and supported signals, a match is sufficient for equivalent input enforcement.
+     * A mismatch does not prove
+     * different behavior, for example when a schema default is made explicit.
+     * This method does not execute handlers or change record equality.
+     *
+     * @param other
+     * the plan to compare with
+     * @return whether the input descriptions match, or {@code false} for null
+     */
+    public boolean matchesInputPlan(@Nullable EnforcementPlan other) {
+        if (other == null) {
+            return false;
+        }
+        val inputEntries = entriesFor(InputSignal.SIGNAL_TYPE);
+        val otherEntries = other.entriesFor(InputSignal.SIGNAL_TYPE);
+        if (inputEntries.size() != otherEntries.size()) {
+            return false;
+        }
+        for (var index = 0; index < inputEntries.size(); index++) {
+            if (!inputEntries.get(index).matches(otherEntries.get(index))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Discharges the entries scheduled for {@code signal} in plan order, applying
      * mappers, consumers, and runners
      * best-effort: a handler that throws is logged and skipped. Only

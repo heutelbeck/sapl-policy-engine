@@ -798,6 +798,7 @@
 		<!-- Web endpoints -->
 		<module>sapl-vaadin-theme</module>
 		<module>sapl-vaadin-editor</module>
+		<module>sapl-vaadin</module>
 
 		<!-- Server applications -->
 		<module>sapl-node</module>

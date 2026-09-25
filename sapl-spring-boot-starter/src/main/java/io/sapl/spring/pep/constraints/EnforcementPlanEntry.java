@@ -20,6 +20,7 @@ package io.sapl.spring.pep.constraints;
 import java.util.Comparator;
 
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.model.Value;
 
@@ -48,6 +49,12 @@ public record EnforcementPlanEntry<T>(
     @Override
     public int compareTo(@NonNull EnforcementPlanEntry<?> other) {
         return COMPARATOR.compare(this, other);
+    }
+
+    /** Compares the recorded handler description, not executable identity. */
+    boolean matches(@Nullable EnforcementPlanEntry<?> other) {
+        return other != null && priority == other.priority && constraintType == other.constraintType
+                && constraint.equals(other.constraint) && handlerOrdinal(handler) == handlerOrdinal(other.handler);
     }
 
     private static int handlerOrdinal(ConstraintHandler<?> handler) {
