@@ -17,9 +17,15 @@
  */
 package io.sapl.attributeapi.attributes.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import tools.jackson.databind.JsonNode;
 
 /*
  * The attribute publish request that is used in the HTTP body.
  */
-public record AttributePublishRequest(Long ttl, JsonNode value) {}
+public record AttributePublishRequest(
+        @Schema(description = DESC_TTL, example = "600") Long ttl,
+        @Schema(description = DESC_VALUE, type = "string", example = "\"IT\"") JsonNode value) {
+    private static final String DESC_VALUE = "The value to publish or update the attribute as a JSON literal.";
+    private static final String DESC_TTL = "The time to live (TTL) in seconds for the attribute. If not set, the attribute's lifetime is unlimited.";
+}

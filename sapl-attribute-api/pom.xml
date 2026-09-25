@@ -105,6 +105,17 @@
 			<groupId>io.lettuce</groupId>
 			<artifactId>lettuce-core</artifactId>
 		</dependency>
+		
+		<!-- Scalar -->
+		<dependency>
+			<groupId>com.scalar.maven</groupId>
+			<artifactId>scalar-webmvc</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+		</dependency>
 
 		<!-- Testing -->
 		<dependency>

@@ -22,6 +22,8 @@ import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableExcept
 import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.attributes.service.AttributeApiService;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +32,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.net.URI;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -39,6 +45,10 @@ import java.util.NoSuchElementException;
  * The API controller to serve the endpoints of the API and receive and answer
  * requests via HTTP. Forwards the requests to the API service layer.
  */
+@Tag(name = "Attribute API", description = "REST API for managing attribute in the attribute store. Attributes can"
+        + "be published, updated, deleted or queried. The attribute can be set with an optional time to live (TTL)"
+        + "after which they expire automatically. The attributes are routed per tenant (pdpId) and the tenant is resolved"
+        + "from the authenticated principal.")
 @Slf4j
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
@@ -46,6 +56,16 @@ import java.util.NoSuchElementException;
 @RequestMapping("/api/attributes")
 public class AttributeApiController {
     private static final String NO_PDP_ID = "";
+
+    private static final String DESC_ATTRIBUTE_NAME = "The fully qualified attribute name. At least two dot-separated segments, e.g. attribute.name.";
+    private static final String DESC_ENTITY         = "The subject or resource the attribute belongs to.";
+    private static final String DESC_ARGUMENTS      = "Optional attributes for the attribute. Repeat the parameter to pass multiple arguments, e.g. ?arg=X&arg=Y.";
+    private static final String DESC_COUNT          = "If set to true, return the number of attributes for the tenant instead of an attribute list.";
+    private static final String DESC_LIMIT          = "Maximum number of attributes to return. Must be a positive number greater than 0.";
+    private static final String DESC_OFFSET         = "Number of attributes to skip before returning results. Must be zero or a positive number.";
+    private static final String DESC_HTTP_400       = "The request was invalid, e.g. the attribute name is not fully qualified or too many arguments were provided.";
+    private static final String DESC_HTTP_503       = "The attribute store is currently unavailable. Retry should be done after the duration given in the Retry-After header.";
+    private static final String DESC_HTTP_404       = "The attribute was not found in the attribute store.";
 
     private final AttributeApiService    service;
     private final BlockingTenantResolver tenantResolver;
@@ -60,9 +80,16 @@ public class AttributeApiController {
      * @return {@code HTTP 201} if the attribute didn't exist before and {@code HTTP 200} if the attribute was updated.
      * See also RFC 9110 Section 9.3.
      */
+    @Operation(summary = "Publish an attribute with an entity, attribute name and optional arguments", responses = {
+            @ApiResponse(responseCode = "200", description = "The attribute already existed and was updated."),
+            @ApiResponse(responseCode = "201", description = "The attribute did not exist and was created."),
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The attribute value to publish with an optional time to live (TTL)")
     @PutMapping("/{entity}/{name}")
-    public ResponseEntity<Void> publish(@PathVariable String entity, @PathVariable String name,
-            @RequestParam(value = "arg", required = false) List<String> args,
+    public ResponseEntity<Void> publish(@Parameter(description = DESC_ENTITY) @PathVariable String entity,
+            @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,
+            @Parameter(description = DESC_ARGUMENTS) @RequestParam(value = "arg", required = false) List<String> args,
             @RequestBody AttributePublishRequest request) {
         boolean created = service.publish(entity, name, args, request, currentPdpId());
 
@@ -79,9 +106,16 @@ public class AttributeApiController {
      * @return {@code HTTP 201} if the attribute didn't exist before and {@code HTTP 200} if the attribute was updated.
      * See also RFC 9110 Section 9.3.
      */
+    @Operation(summary = "Publish an attribute with an attribute name and optional arguments", responses = {
+            @ApiResponse(responseCode = "200", description = "The attribute already existed and was updated."),
+            @ApiResponse(responseCode = "201", description = "The attribute did not exist and was created."),
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The attribute value to publish with an optional time to live (TTL)")
     @PutMapping("/{name}")
-    public ResponseEntity<Void> publishGlobalAttribute(@PathVariable String name,
-            @RequestParam(value = "arg", required = false) List<String> args,
+    public ResponseEntity<Void> publishGlobalAttribute(
+            @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,
+            @Parameter(description = DESC_ARGUMENTS) @RequestParam(value = "arg", required = false) List<String> args,
             @RequestBody AttributePublishRequest request) {
         boolean created = service.publish(null, name, args, request, currentPdpId());
 
@@ -99,9 +133,15 @@ public class AttributeApiController {
      * @param args The arguments of the attribute
      * @return {@code HTTP 204} - no content if the resource was deleted.
      */
+    @Operation(summary = "Delete an attribute with an entity, attribute name and optional arguments", responses = {
+            @ApiResponse(responseCode = "204", description = "The attribute was deleted"),
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
+            @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
     @DeleteMapping("/{entity}/{name}")
-    public ResponseEntity<Void> deleteAttribute(@PathVariable String entity, @PathVariable String name,
-            @RequestParam(value = "arg", required = false) List<String> args) {
+    public ResponseEntity<Void> deleteAttribute(@Parameter(description = DESC_ENTITY) @PathVariable String entity,
+            @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,
+            @Parameter(description = DESC_ARGUMENTS) @RequestParam(value = "arg", required = false) List<String> args) {
         service.delete(entity, name, args, currentPdpId());
         return ResponseEntity.noContent().build();
     }
@@ -115,9 +155,15 @@ public class AttributeApiController {
      * @param args The arguments of the attribute
      * @return {@code HTTP 204} - no content if the resource was deleted.
      */
+    @Operation(summary = "Delete an attribute with an entity, attribute name and optional arguments", responses = {
+            @ApiResponse(responseCode = "204", description = "The attribute was deleted"),
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
+            @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
     @DeleteMapping("/{name}")
-    public ResponseEntity<Void> deleteGlobalAttribute(@PathVariable String name,
-            @RequestParam(value = "arg", required = false) List<String> args) {
+    public ResponseEntity<Void> deleteGlobalAttribute(
+            @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,
+            @Parameter(description = DESC_ARGUMENTS) @RequestParam(value = "arg", required = false) List<String> args) {
         service.delete(null, name, args, currentPdpId());
         return ResponseEntity.noContent().build();
     }
@@ -130,9 +176,15 @@ public class AttributeApiController {
      * @param args The arguments of the attribute.
      * @return {@code HTTP 200} and the value of the attribute.
      */
+    @Operation(summary = "Get a single attribute with an entity, attribute name and optional arguments", responses = {
+            @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "\"IT\""))),
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
+            @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
     @GetMapping("/{entity}/{name}")
-    public ResponseEntity<JsonNode> getAttribute(@PathVariable String entity, @PathVariable String name,
-            @RequestParam(value = "arg", required = false) List<String> args) {
+    public ResponseEntity<JsonNode> getAttribute(@Parameter(description = DESC_ENTITY) @PathVariable String entity,
+            @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,
+            @Parameter(description = DESC_ARGUMENTS) @RequestParam(value = "arg", required = false) List<String> args) {
         return ResponseEntity.ok(service.get(entity, name, args, currentPdpId()));
     }
 
@@ -143,9 +195,15 @@ public class AttributeApiController {
      * @param args The arguments of the attribute.
      * @return {@code HTTP 200} and the value of the attribute.
      */
+    @Operation(summary = "Get a single attribute with an attribute name and optional arguments", responses = {
+            @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "\"IT\""))),
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
+            @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
     @GetMapping("/{name}")
-    public ResponseEntity<JsonNode> getGlobalAttribute(@PathVariable String name,
-            @RequestParam(value = "arg", required = false) List<String> args) {
+    public ResponseEntity<JsonNode> getGlobalAttribute(
+            @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,
+            @Parameter(description = DESC_ARGUMENTS) @RequestParam(value = "arg", required = false) List<String> args) {
         return ResponseEntity.ok(service.get(null, name, args, currentPdpId()));
     }
 
@@ -159,12 +217,17 @@ public class AttributeApiController {
      * @param count Instead of sending a list of attributes just return the amount of attributes found.
      * @return {@code HTTP 200}. Without the count parameter a list of all attributes is returned that
      * contains for each entry the {@code AttributeKey} and the {@Value} of an attribute. With the count
-     * paremter the amount of attributes will be returned.
+     * parameter the amount of attributes will be returned.
      */
     @GetMapping
-    public ResponseEntity<Object> getAllAttributesFromPdp(@RequestParam(required = false) Integer limit,
-            @RequestParam(required = false) Integer offset,
-            @RequestParam(required = false, defaultValue = "false") boolean count) {
+    @Operation(summary = "Get all attributes from the attribute store as JSON. The response contains the attribute key and value for each entry", responses = {
+            @ApiResponse(responseCode = "200", description = "The list of attributes, or the total count if the count parameter is set to true.", content = @Content(examples = @ExampleObject(value = "[{\"entity\":\"faythe\",\"name\":\"company.department\",\"arguments\":[\"Intern\"],\"value\":\"IT\"}]"))),
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
+    public ResponseEntity<Object> getAllAttributesFromPdp(
+            @Parameter(description = DESC_LIMIT) @RequestParam(required = false) Integer limit,
+            @Parameter(description = DESC_OFFSET) @RequestParam(required = false) Integer offset,
+            @Parameter(description = DESC_COUNT) @RequestParam(required = false, defaultValue = "false") boolean count) {
 
         if (count) {
             return ResponseEntity.ok(service.count(currentPdpId()));
