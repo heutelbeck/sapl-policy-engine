@@ -139,12 +139,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         try {
             if (closed) {
                 initial = Value.error(ERROR_CLOSED);
-                seqInit = sequenceCounter;
             } else {
                 observersByKey.computeIfAbsent(repoKey, k -> new HashSet<>()).add(observer);
                 val entry = entries.get(repoKey);
                 initial = entry != null ? entry.value : Value.UNDEFINED;
-                seqInit = sequenceCounter;
             }
             seqInit = sequenceCounter;
         } finally {
