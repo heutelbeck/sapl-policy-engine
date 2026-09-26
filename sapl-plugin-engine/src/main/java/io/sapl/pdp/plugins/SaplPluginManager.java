@@ -30,8 +30,7 @@ import org.pf4j.PluginManager;
 import org.pf4j.PluginWrapper;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -68,8 +67,7 @@ public class SaplPluginManager implements AutoCloseable {
      * {@link SaplVersion#VERSION} so that a plugin declaring an
      * incompatible {@code Plugin-Requires} range is rejected at load time.
      *
-     * @param pluginsPath
-     * the directory scanned for plugin JARs
+     * @param pluginsPath the directory scanned for plugin JARs
      */
     public SaplPluginManager(Path pluginsPath) {
         this(new JarPluginManager(pluginsPath), pluginsPath);
@@ -82,10 +80,8 @@ public class SaplPluginManager implements AutoCloseable {
      * {@link #SaplPluginManager(Path)} this does not pin the
      * system version; the caller configures the supplied manager.
      *
-     * @param pluginManager
-     * the PF4J plugin manager to delegate to
-     * @param pluginsPath
-     * the directory scanned for plugin JARs
+     * @param pluginManager the PF4J plugin manager to delegate to
+     * @param pluginsPath the directory scanned for plugin JARs
      */
     public SaplPluginManager(PluginManager pluginManager, Path pluginsPath) {
         this.pluginManager = pluginManager;
@@ -120,6 +116,25 @@ public class SaplPluginManager implements AutoCloseable {
             pluginManager.loadPlugins();
             pluginManager.startPlugins();
             log.info("Reloaded SAPL plugins; {} plugin(s) now active.", pluginManager.getStartedPlugins().size());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public Map<String, LoadedPlugin> loadedPlugins() {
+        lock.lock();
+        try {
+            ensureOpen();
+            val result = new HashMap<String, LoadedPlugin>();
+            for (val wrapper : pluginManager.getStartedPlugins()) {
+                val pluginId = wrapper.getPluginId();
+                try {
+                    result.put(pluginId, collect(pluginId));
+                } catch (RuntimeException e) {
+                    log.error("Plugin '{}' failed while providing its extensions and is not available.", pluginId, e);
+                }
+            }
+            return Collections.unmodifiableMap(result);
         } finally {
             lock.unlock();
         }
@@ -165,6 +180,25 @@ public class SaplPluginManager implements AutoCloseable {
         } finally {
             lock.unlock();
         }
+    }
+
+    private LoadedPlugin collect(String pluginId) {
+        List<Object>              functionLibraries       = new ArrayList<>();
+        List<Object>              policyInformationPoints = new ArrayList<>();
+        List<DecisionInterceptor> decisionInterceptors    = new ArrayList<>();
+
+        for (val extension : pluginManager.getExtensions(pluginId)) {
+            if (extension instanceof SaplFunctionLibraryPlugin functionLibraryPlugin) {
+                functionLibraries.addAll(functionLibraryPlugin.functionLibraries());
+            }
+            if (extension instanceof SaplPolicyInformationPointPlugin pipPlugin) {
+                policyInformationPoints.addAll(pipPlugin.policyInformationPoints());
+            }
+            if (extension instanceof SaplDecisionInterceptorPlugin interceptorPlugin) {
+                decisionInterceptors.addAll(interceptorPlugin.decisionInterceptors());
+            }
+        }
+        return new LoadedPlugin(pluginId, functionLibraries, policyInformationPoints, decisionInterceptors);
     }
 
     /**

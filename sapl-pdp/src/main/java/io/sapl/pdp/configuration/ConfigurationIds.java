@@ -70,9 +70,9 @@ public final class ConfigurationIds {
      * that influences PDP behavior - combining algorithm, compiler options,
      * variables, secrets, all documents as a sorted multiset (PDP-level
      * voting modes are order-independent), extensions, extension secrets,
-     * and the critical extension set. The pdpId and configurationId are
-     * excluded: they are instance and publication identity, never content.
-     * No call site may hand-roll its own entry assembly.
+     * the critical extension set, and the enabled plugins. The pdpId and
+     * configurationId are excluded: they are instance and publication
+     * identity, never content. No call site may hand-roll its own entry assembly.
      *
      * @param configuration the assembled configuration
      * @return the canonical, name-sorted entry set for {@link #derive}
@@ -93,6 +93,7 @@ public final class ConfigurationIds {
                 utf8(ValueJsonMarshaller.toJsonString(value))));
         entries.put("criticalExtensions",
                 utf8(String.join("\n", configuration.criticalExtensions().stream().sorted().toList())));
+        entries.put("plugins", utf8(String.join("\n", configuration.plugins().stream().sorted().toList())));
         return entries;
     }
 

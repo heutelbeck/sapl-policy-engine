@@ -56,7 +56,8 @@ import lombok.val;
  *   },
  *   "secrets": {
  *     "apiKey": "secret-value"
- *   }
+ *   },
+ *   "plugins": ["sapl-plugins-example"]
  * }
  * }</pre>
  */
@@ -103,6 +104,11 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         if (!configuration.criticalExtensions().isEmpty()) {
             generator.writeName("criticalExtensions");
             serializeStringList(List.copyOf(configuration.criticalExtensions()), generator);
+        }
+
+        if (!configuration.plugins().isEmpty()) {
+            generator.writeName("plugins");
+            serializeStringList(List.copyOf(configuration.plugins()), generator);
         }
 
         generator.writeEndObject();

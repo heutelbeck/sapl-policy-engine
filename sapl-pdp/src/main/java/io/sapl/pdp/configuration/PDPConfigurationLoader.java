@@ -181,7 +181,7 @@ public class PDPConfigurationLoader {
 
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
                 new PdpData(pdpJson.variables(), supplements.secrets()), supplements.extensions(),
-                supplements.extensionSecrets(), supplements.criticalExtensions(), provenance);
+                supplements.extensionSecrets(), supplements.criticalExtensions(), pdpJson.plugins(), provenance);
     }
 
     private static void putUtf8(Map<String, byte[]> contents, Map<String, String> textByName) {
@@ -314,7 +314,7 @@ public class PDPConfigurationLoader {
         val configurationId = ConfigurationIds.derive("res:" + sourceName, contents);
 
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
-                new PdpData(pdpJson.variables(), Value.EMPTY_OBJECT));
+                new PdpData(pdpJson.variables(), Value.EMPTY_OBJECT)).withPlugins(pdpJson.plugins());
     }
 
     /**
@@ -359,14 +359,14 @@ public class PDPConfigurationLoader {
         enforceDocumentCount(saplDocuments.size(), maxDocuments);
         val documents = new ArrayList<>(saplDocuments.values());
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
-                new PdpData(pdpJson.variables(), secrets));
+                new PdpData(pdpJson.variables(), secrets)).withPlugins(pdpJson.plugins());
     }
 
     private static PdpJsonFile loadPdpJson(Path pdpJsonPath) {
         if (!Files.exists(pdpJsonPath)) {
             log.warn(WARN_PDP_JSON_NOT_FOUND, pdpJsonPath, CombiningAlgorithm.DEFAULT.toCanonicalString());
             return new PdpJsonFile(null,
-                    new PdpJsonContent(CombiningAlgorithm.DEFAULT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+                    new PdpJsonContent(CombiningAlgorithm.DEFAULT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Set.of()));
         }
         try {
             val content = readCappedText(pdpJsonPath);
@@ -411,7 +411,9 @@ public class PDPConfigurationLoader {
 
             val variables = parseValueSection(node, "variables");
 
-            return new PdpJsonContent(algorithm, compilerOptions, variables);
+            val plugins = parsePlugins(node);
+
+            return new PdpJsonContent(algorithm, compilerOptions, variables, plugins);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
@@ -425,6 +427,22 @@ public class PDPConfigurationLoader {
             return parseValueSection(node, "compilerFlags");
         }
         return Value.EMPTY_OBJECT;
+    }
+
+    private static Set<String> parsePlugins(JsonNode node) {
+        if (node.has("plugins")) {
+            val pluginsNode = node.get("plugins");
+            if (pluginsNode.isArray()) {
+                val plugins = new HashSet<String>();
+                for (val pluginNode : pluginsNode) {
+                    if (pluginNode.isString()) {
+                        plugins.add(pluginNode.asString());
+                    }
+                }
+                return plugins;
+            }
+        }
+        return Set.of();
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {
@@ -516,7 +534,11 @@ public class PDPConfigurationLoader {
         }
     }
 
-    private record PdpJsonContent(CombiningAlgorithm algorithm, ObjectValue compilerOptions, ObjectValue variables) {}
+    private record PdpJsonContent(
+            CombiningAlgorithm algorithm,
+            ObjectValue compilerOptions,
+            ObjectValue variables,
+            Set<String> plugins) {}
 
     private record PdpJsonFile(String raw, PdpJsonContent parsed) {}
 

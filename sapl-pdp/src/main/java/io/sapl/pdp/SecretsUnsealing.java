@@ -141,10 +141,7 @@ public class SecretsUnsealing {
         for (val entry : configuration.extensionSecrets().entrySet()) {
             unsealedExtras.put(entry.getKey(), ValueSealer.unseal(keyring, entry.getValue()));
         }
-        return new PDPConfiguration(configuration.pdpId(), configuration.configurationId(),
-                configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
-                new PdpData(data.variables(), unsealedSecrets), configuration.extensions(), unsealedExtras,
-                configuration.criticalExtensions(), configuration.provenance());
+        return configuration.withSecrets(new PdpData(data.variables(), unsealedSecrets), unsealedExtras);
     }
 
     private static void requireSealed(PDPConfiguration configuration) {

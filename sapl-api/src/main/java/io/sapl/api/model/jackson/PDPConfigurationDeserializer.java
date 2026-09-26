@@ -54,6 +54,7 @@ import lombok.val;
  * <ul>
  * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.).
  * Defaults to an empty ObjectValue</li>
+ * <li>plugins - array of plugin ids enabled for this PDP. Defaults to empty</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {
@@ -92,6 +93,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         ObjectValue        extensions         = Value.EMPTY_OBJECT;
         ObjectValue        extensionSecrets   = Value.EMPTY_OBJECT;
         Set<String>        criticalExtensions = Set.of();
+        Set<String>        plugins            = Set.of();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val fieldName = parser.currentName();
@@ -110,6 +112,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             case "extensionSecrets"                 -> extensionSecrets = deserializeObjectValue(parser, context);
             case "criticalExtensions"               ->
                 criticalExtensions = Set.copyOf(deserializeStringList(parser, context));
+            case "plugins"                          -> plugins = Set.copyOf(deserializeStringList(parser, context));
             default                                 -> parser.skipChildren();
             }
         }
@@ -125,7 +128,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         }
 
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments,
-                new PdpData(variables, secrets), extensions, extensionSecrets, criticalExtensions);
+                new PdpData(variables, secrets), extensions, extensionSecrets, criticalExtensions, plugins, null);
     }
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {

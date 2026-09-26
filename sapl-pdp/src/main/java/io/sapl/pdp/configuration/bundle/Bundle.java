@@ -83,10 +83,7 @@ record Bundle(
                 manifest.configurationId());
         val provenance     = new BundleProvenance(pdpId, saplDocuments, pdpJson, extensions, criticalExtensionsJson,
                 manifest);
-        val withProvenance = new PDPConfiguration(configuration.pdpId(), configuration.configurationId(),
-                configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
-                configuration.data(), configuration.extensions(), configuration.extensionSecrets(),
-                configuration.criticalExtensions(), provenance);
+        val withProvenance = configuration.withProvenance(provenance);
         val allSecrets     = toValues(extensionSecrets);
         allSecrets.putAll(toValues(sealedExtensionSecrets));
         return withProvenance.withExtensions(toValues(extensions), allSecrets, criticalExtensions);

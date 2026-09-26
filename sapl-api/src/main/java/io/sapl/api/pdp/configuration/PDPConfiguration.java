@@ -43,6 +43,10 @@ import io.sapl.api.model.Value;
  * name (sealed in transit, unsealed by the recipient)
  * @param criticalExtensions names of extensions the consumer must be able to
  * process, else the configuration is rejected
+ * @param plugins ids of the plugins enabled for this PDP, as declared by the
+ * {@code Plugin-Id} in each plugin's manifest. Only these plugins contribute
+ * function libraries, policy information points and decision interceptors to
+ * this PDP. Empty means no plugins
  * @param provenance where this configuration originated. Descriptive metadata
  * only: it never influences policy decisions and never enters the
  * content-derived configuration id
@@ -57,6 +61,7 @@ public record PDPConfiguration(
         Map<String, Value> extensions,
         Map<String, Value> extensionSecrets,
         Set<String> criticalExtensions,
+        Set<String> plugins,
         ConfigurationProvenance provenance) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
@@ -65,12 +70,30 @@ public record PDPConfiguration(
         extensions         = extensions == null ? Map.of() : Map.copyOf(extensions);
         extensionSecrets   = extensionSecrets == null ? Map.of() : Map.copyOf(extensionSecrets);
         criticalExtensions = criticalExtensions == null ? Set.of() : Set.copyOf(criticalExtensions);
+        plugins            = plugins == null ? Set.of() : Set.copyOf(plugins);
         provenance         = provenance == null ? UnknownProvenance.INSTANCE : provenance;
     }
 
     /**
-     * Convenience constructor defaulting the provenance to
-     * {@link UnknownProvenance#INSTANCE}.
+     * Convenience constructor defaulting the plugins to empty.
+     */
+    public PDPConfiguration(String pdpId,
+            String configurationId,
+            CombiningAlgorithm combiningAlgorithm,
+            ObjectValue compilerOptions,
+            List<String> saplDocuments,
+            PdpData data,
+            Map<String, Value> extensions,
+            Map<String, Value> extensionSecrets,
+            Set<String> criticalExtensions,
+            ConfigurationProvenance provenance) {
+        this(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data, extensions,
+                extensionSecrets, criticalExtensions, Set.of(), provenance);
+    }
+
+    /**
+     * Convenience constructor defaulting the plugins to empty and the provenance
+     * to {@link UnknownProvenance#INSTANCE}.
      */
     public PDPConfiguration(String pdpId,
             String configurationId,
@@ -137,7 +160,45 @@ public record PDPConfiguration(
     public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets,
             Set<String> criticalExtensions) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets, criticalExtensions, provenance);
+                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
+    }
+
+    /**
+     * Returns a copy of this configuration with the given set of enabled plugins.
+     *
+     * @param plugins ids of the plugins enabled for this PDP
+     *
+     * @return a copy carrying the plugin ids
+     */
+    public PDPConfiguration withPlugins(Set<String> plugins) {
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
+                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
+    }
+
+    /**
+     * Returns a copy of this configuration with the given provenance.
+     *
+     * @param provenance where this configuration originated
+     *
+     * @return a copy carrying the provenance
+     */
+    public PDPConfiguration withProvenance(ConfigurationProvenance provenance) {
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
+                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
+    }
+
+    /**
+     * Returns a copy of this configuration with the given PDP data and extension
+     * secrets, for example after unsealing.
+     *
+     * @param data PDP-level variables and secrets
+     * @param extensionSecrets extension secrets, keyed by extension name
+     *
+     * @return a copy carrying the given data and extension secrets
+     */
+    public PDPConfiguration withSecrets(PdpData data, Map<String, Value> extensionSecrets) {
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
+                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
     }
 
     @Override
@@ -146,6 +207,7 @@ public record PDPConfiguration(
                 + combiningAlgorithm + ", compilerOptions=" + compilerOptions + ", saplDocuments=" + saplDocuments
                 + ", data=" + data + ", extensions=" + extensions.keySet() + ", extensionSecrets="
                 + (extensionSecrets.isEmpty() ? "NO EXTENSION SECRETS" : "EXTENSION SECRETS REDACTED")
-                + ", criticalExtensions=" + criticalExtensions + ", provenance=" + provenance + "]";
+                + ", criticalExtensions=" + criticalExtensions + ", plugins=" + plugins + ", provenance=" + provenance
+                + "]";
     }
 }
