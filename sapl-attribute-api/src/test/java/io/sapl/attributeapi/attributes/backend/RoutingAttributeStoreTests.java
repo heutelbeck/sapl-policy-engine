@@ -56,7 +56,7 @@ class RoutingAttributeStoreTests {
 
     @BeforeEach
     void setUp() {
-        routingStore = new RoutingAttributeStore(Map.of("backend-1", handle), Map.of("tenant-01", "backend-1"));
+        routingStore = RoutingAttributeStore.forBackends(Map.of("backend-1", handle), Map.of("tenant-01", "backend-1"));
 
         // Just a key with an attribute name. No entity or arguments.
         key = new AttributeKey(null, "test.attribute", List.of());
@@ -160,7 +160,7 @@ class RoutingAttributeStoreTests {
     @Test
     @DisplayName("A close() call closes every BackendHandle in the map")
     void whenCloseIsCalledThenEveryBackendHandleIsClosed() {
-        var multiBackendStore = new RoutingAttributeStore(Map.of("backend-1", handle, "backend-2", otherHandle),
+        var multiBackendStore = RoutingAttributeStore.forBackends(Map.of("backend-1", handle, "backend-2", otherHandle),
                 Map.of("tenant-01", "backend-1"));
 
         multiBackendStore.close();
@@ -187,7 +187,7 @@ class RoutingAttributeStoreTests {
         when(store.publish(key, value, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
         when(store.count(pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
 
-        var router = new RoutingAttributeStore(handleByBackendName, pdpIdToBackendName);
+        var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
 
         assertThatThrownBy(() -> router.getAll("test-pdp", null, null))
                 .isInstanceOf(AttributeBackendUnavailableException.class)

@@ -22,6 +22,10 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.reactivestreams.client.MongoClients;
 import io.lettuce.core.RedisClient;
 import io.r2dbc.spi.ConnectionFactories;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.NumberValue;
 import io.sapl.attributeapi.attributes.AttributeStorageProperties.BackendConfig;
 import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableException;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
@@ -29,12 +33,20 @@ import io.sapl.attributeapi.attributes.backend.MongoAttributeStore;
 import io.sapl.attributeapi.attributes.backend.PostgresAttributeStore;
 import io.sapl.attributeapi.attributes.backend.RedisAttributeStore;
 import io.sapl.attributeapi.attributes.backend.RoutingAttributeStore;
+import jakarta.annotation.Nullable;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -49,6 +61,19 @@ import org.springframework.r2dbc.core.DatabaseClient;
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
 public class AttributeStoreConfiguration {
     private static final String WARN_REPOSITORY_BACKEND_UNAVAILABLE = "The attribute backend '{}' is unavailable at startup. Reconnect will be tried again later on first request: {}";
+
+    private static final String ERROR_UNKNOWN_PDPID = "No attribute backend configured for pdpId '%s'.";
+    private static final String FIELD_TYPE          = "type";
+    private static final String FIELD_HOST          = "host";
+    private static final String FIELD_PORT          = "port";
+    private static final String FIELD_DATABASE      = "database";
+    private static final String FIELD_USERNAME      = "username";
+    private static final String FIELD_PASSWORD      = "password";
+    private static final String FIELD_TABLE_NAME    = "tableName";
+    private static final String FIELD_AUTH_DATABASE = "authDatabase";
+    private static final String FIELD_COLLECTION    = "collectionName";
+
+    private record CachedEntry(Value config, AttributeStore store) {}
 
     @Bean
     Map<String, BackendHandle> attributeStoreByBackendConfig(AttributeStorageProperties properties) {
@@ -72,9 +97,43 @@ public class AttributeStoreConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(AttributeStore.class)
+    @ConditionalOnProperty(name = "io.sapl.attribute-api.embedded", havingValue = "false", matchIfMissing = true)
     AttributeStore routingAttributeStore(Map<String, BackendHandle> attributeBackendHandlesByName,
             AttributeStorageProperties properties) {
-        return new RoutingAttributeStore(attributeBackendHandlesByName, properties.getTenants());
+        return RoutingAttributeStore.forBackends(attributeBackendHandlesByName, properties.getTenants());
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "io.sapl.attribute-api.embedded", havingValue = "true")
+    AttributeStore embeddedRoutingAttributeStore(
+            @Qualifier("attributeRepositoryConfigResolver") Function<String, Optional<Value>> configResolver) {
+        var cache = new ConcurrentHashMap<String, CachedEntry>();
+
+        Function<String, AttributeStore> resolver = pdpId -> {
+            // 1. Get the current configuration via the bridge bean in the SAPL node. If missing, exception.
+            var node = configResolver.apply(pdpId)
+                    .orElseThrow(() -> new IllegalArgumentException(ERROR_UNKNOWN_PDPID.formatted(pdpId)));
+
+            // 2. If store for this configuration exists and configuration didn't change: ignore!
+            var cached = cache.get(pdpId);
+
+            if (cached != null && cached.config().equals(node)) {
+                return cached.store();
+            }
+
+            // 3. Otherwise: Build new store with the give configuration
+            var store    = buildStore(toBackendConfig((ObjectValue) node));
+            var previous = cache.put(pdpId, new CachedEntry(node, store));
+
+            // 4. Close old stores if they are not existing anymore
+            if (previous != null) {
+                previous.store().close();
+            }
+            return store;
+        };
+
+        // Apply logic to the current RoutingAttributeStore class
+        return new RoutingAttributeStore(resolver, pdpId -> {}, () -> cache.values().forEach(e -> e.store().close()));
     }
 
     private AttributeStore buildStore(BackendConfig config) {
@@ -112,5 +171,53 @@ public class AttributeStoreConfiguration {
     private AttributeStore buildRedisStore(AttributeStorageProperties.Redis redis) {
         val client = RedisClient.create(AttributeStoreConnectionFactory.buildRedisUri(redis));
         return new RedisAttributeStore(client);
+    }
+
+    // Generated the backend configuration for the right backend
+    private BackendConfig toBackendConfig(ObjectValue node) {
+        var type   = Objects.requireNonNull(text(node, FIELD_TYPE));
+        var config = new BackendConfig();
+        config.setType(AttributeStorageProperties.BackendType.valueOf(type.toUpperCase(Locale.ROOT)));
+
+        switch (config.getType()) {
+        case POSTGRES -> {
+            var postgres = new AttributeStorageProperties.Postgres();
+            postgres.setHost(text(node, FIELD_HOST));
+            postgres.setPort(Objects.requireNonNull(number(node, FIELD_PORT)));
+            postgres.setDatabase(text(node, FIELD_DATABASE));
+            postgres.setUsername(text(node, FIELD_USERNAME));
+            postgres.setPassword(text(node, FIELD_PASSWORD));
+            postgres.setTableName(text(node, FIELD_TABLE_NAME));
+            config.setPostgres(postgres);
+        }
+        case MONGO    -> {
+            var mongo = new AttributeStorageProperties.Mongo();
+            mongo.setHost(text(node, FIELD_HOST));
+            mongo.setPort(Objects.requireNonNull(number(node, FIELD_PORT)));
+            mongo.setDatabase(text(node, FIELD_DATABASE));
+            mongo.setUsername(text(node, FIELD_USERNAME));
+            mongo.setAuthDatabase(text(node, FIELD_AUTH_DATABASE));
+            mongo.setCollectionName(text(node, FIELD_COLLECTION));
+            mongo.setPassword(text(node, FIELD_PASSWORD));
+            config.setMongo(mongo);
+        }
+        case REDIS    -> {
+            var redis = new AttributeStorageProperties.Redis();
+            redis.setHost(text(node, FIELD_HOST));
+            redis.setPort(Objects.requireNonNull(number(node, FIELD_PORT)));
+            redis.setDatabase(Objects.requireNonNullElse(number(node, FIELD_DATABASE), 0));
+            redis.setPassword(text(node, FIELD_PASSWORD));
+            config.setRedis(redis);
+        }
+        }
+        return config;
+    }
+
+    private static @Nullable String text(ObjectValue node, String key) {
+        return node.get(key) instanceof TextValue(String value) ? value : null;
+    }
+
+    private static @Nullable Integer number(ObjectValue node, String key) {
+        return node.get(key) instanceof NumberValue(BigDecimal value) ? value.intValue() : null;
     }
 }

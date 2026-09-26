@@ -74,8 +74,10 @@ class AttributeStoreConnectionFactoryTests {
 
         var uri = AttributeStoreConnectionFactory.buildMongoConnectionUri(properties);
 
-        assertThat(uri).isEqualTo("mongodb://" + DEFAULT_HOSTNAME
-                + ":27017/saplDb?authSource=admin&serverSelectionTimeoutMS=3000&connectTimeoutMS=3000").doesNotContain(DEFAULT_PASSWORD);
+        assertThat(uri)
+                .isEqualTo("mongodb://" + DEFAULT_HOSTNAME
+                        + ":27017/saplDb?authSource=admin&serverSelectionTimeoutMS=3000&connectTimeoutMS=3000")
+                .doesNotContain(DEFAULT_PASSWORD);
     }
 
     @Test

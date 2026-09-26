@@ -64,6 +64,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
 
     private final ConcurrentHashMap<String, AttributeRepository> cache       = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String>              pdpToConfig = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Value>               rawConfig   = new ConcurrentHashMap<>();
 
     // Retry Logic: pendingBuild = not build yet,
     // closed = thread-safe indicator for an open/closed repository
@@ -202,6 +203,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
         val oldConfigId = pdpToConfig.put(pdpId, configId);
         if (oldConfigId != null && !oldConfigId.equals(configId)) {
             Optional.ofNullable(cache.remove(oldConfigId)).ifPresent(AttributeRepository::close);
+            rawConfig.remove(oldConfigId);
         }
     }
 
@@ -251,6 +253,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
         val repoNode = extractAttributeRepositoryNode(configuration);
 
         try {
+            rawConfig.put(configId, repoNode);
+
             if (cache.containsKey(configId)) {
                 route(pdpId, configId);
             } else if (!pendingBuilds.containsKey(configId)) {
@@ -269,5 +273,17 @@ public class RoutingAttributeRepository implements AttributeRepository {
         val configId = pdpToConfig.remove(pdpId);
         Optional.ofNullable(pendingBuilds.remove(configId)).ifPresent(Disposable::dispose);
         Optional.ofNullable(cache.remove(configId)).ifPresent(AttributeRepository::close);
+        rawConfig.remove(configId);
+    }
+
+    /**
+     * The current raw configuration the router knows for the given pdp id. The last configuration
+     * is set by {@link #buildOrRoute(String, PDPConfiguration)}.
+     *
+     * @param pdpId The pdp id to return the raw configuration for
+     * @return The raw configuration
+     */
+    public Optional<Value> currentRawConfig(String pdpId) {
+        return Optional.ofNullable(pdpToConfig.get(pdpId)).map(rawConfig::get);
     }
 }

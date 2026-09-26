@@ -20,6 +20,9 @@ package io.sapl.attributeapi.attributes.backend;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
 
@@ -32,30 +35,25 @@ public final class RoutingAttributeStore implements AttributeStore {
     private static final String ERROR_UNAVAILABLE   = "The service is currently unavailable";
     private static final String ERROR_UNKNOWN_PDPID = "No attribute backend configured for pdpId '%s'.";
 
-    private final Map<String, BackendHandle> handlesByBackendName;
-    private final Map<String, String>        pdpIdToBackendName;
+    // Embedded case: load the backend configuration of the pdp through the node bean
+    private final Function<String, AttributeStore> resolver;
+    private final Consumer<String>                 invalidator;
+    private final Runnable                         closeAll;
 
-    public RoutingAttributeStore(Map<String, BackendHandle> handlesByBackendName,
-            Map<String, String> pdpIdToBackendName) {
-        this.handlesByBackendName = handlesByBackendName;
-        this.pdpIdToBackendName   = pdpIdToBackendName;
+    public RoutingAttributeStore(Function<String, AttributeStore> resolver,
+            Consumer<String> invalidator,
+            Runnable closeAll) {
+        this.resolver    = resolver;
+        this.invalidator = invalidator;
+        this.closeAll    = closeAll;
     }
 
     private AttributeStore resolve(String pdpId) {
-        var backendName = pdpIdToBackendName.get(pdpId);
-
-        if (backendName == null) {
-            throw new IllegalArgumentException(ERROR_UNKNOWN_PDPID.formatted(pdpId));
-        }
-
-        return handlesByBackendName.get(backendName).resolveOrThrow(backendName);
+        return resolver.apply(pdpId);
     }
 
     private void invalidate(String pdpId) {
-        var backendName = pdpIdToBackendName.get(pdpId);
-        if (backendName != null) {
-            handlesByBackendName.get(backendName).invalidate();
-        }
+        invalidator.accept(pdpId);
     }
 
     @Override
@@ -120,7 +118,46 @@ public final class RoutingAttributeStore implements AttributeStore {
 
     @Override
     public void close() {
-        handlesByBackendName.values().forEach(BackendHandle::close);
+        closeAll.run();
+    }
+    
+    /**
+     * Constructs the store if the api server runs in a standalone mode with the SAPL Node.
+     * @param handlesByBackendName The connection settings
+     * @param pdpIdToBackendName The registration of pdp id to backend name
+     * @return The router object for the given configuration
+     */
+    public static RoutingAttributeStore forBackends(Map<String, BackendHandle> handlesByBackendName,
+            Map<String, String> pdpIdToBackendName) {
+        Function<String, AttributeStore> resolver    = pdpId -> resolveViaBackendName(pdpId, handlesByBackendName,
+                pdpIdToBackendName);
+        Consumer<String>                 invalidator = pdpId -> invalidateViaBackendName(pdpId, handlesByBackendName,
+                pdpIdToBackendName);
+
+        return new RoutingAttributeStore(resolver, invalidator,
+                () -> handlesByBackendName.values().forEach(BackendHandle::close));
+    }
+    
+    // Helper method to resolve the backend name for the given pdp id
+    private static AttributeStore resolveViaBackendName(String pdpId, Map<String, BackendHandle> handlesByBackendName,
+            Map<String, String> pdpIdToBackendName) {
+        var backendName = pdpIdToBackendName.get(pdpId);
+
+        if (backendName == null) {
+            throw new IllegalArgumentException(ERROR_UNKNOWN_PDPID.formatted(pdpId));
+        }
+
+        return handlesByBackendName.get(backendName).resolveOrThrow(backendName);
+    }
+    
+    // Helper method to marks the connection as interrupted, so that a reconnect is tried instead of using a dead connection
+    private static void invalidateViaBackendName(String pdpId, Map<String, BackendHandle> handlesByBackendName,
+            Map<String, String> pdpIdToBackendName) {
+        var backendName = pdpIdToBackendName.get(pdpId);
+
+        if (backendName != null) {
+            handlesByBackendName.get(backendName).invalidate();
+        }
     }
 
 }

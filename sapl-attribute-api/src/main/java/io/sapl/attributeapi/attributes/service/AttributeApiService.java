@@ -108,18 +108,18 @@ public class AttributeApiService {
         if (limit != null && limit <= 0) {
             throw new IllegalArgumentException(ERROR_LIMIT_NOT_POSITIVE);
         }
-        
+
         if (limit != null && limit > securityProperties.getMaxLimit()) {
-        	throw new IllegalArgumentException(ERROR_LIMIT_TOO_HIGH);
+            throw new IllegalArgumentException(ERROR_LIMIT_TOO_HIGH);
         }
-        
+
         if (offset != null && offset < 0) {
             throw new IllegalArgumentException(ERROR_OFFSET_NOT_POSITIVE);
         }
 
         String  resolvedPdpId = resolvePdpId(pdpId);
         Integer queryLimit    = limit != null ? limit : securityProperties.getMaxLimit();
-        
+
         return store.getAll(resolvedPdpId, queryLimit, offset).stream().map(this::toJsonNode).toList();
     }
 
