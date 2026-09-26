@@ -47,6 +47,7 @@ public class AttributeApiService {
     private static final String ERROR_LIMIT_NOT_POSITIVE  = "Limit must be strictly positive.";
     private static final String ERROR_OFFSET_NOT_POSITIVE = "Offset must be strictly positive.";
     private static final String ERROR_ARGUMENTS_LIMIT     = "The amount of arguments within the request is greater than the configured maximum";
+    private static final String ERROR_LIMIT_TOO_HIGH      = "The set limit within the request is greater than the configure maximum";
     private static final String NAME_FIELD                = "name";
     private static final String ENTITY_FIELD              = "entity";
     private static final String ARGUMENTS_FIELD           = "arguments";
@@ -107,13 +108,19 @@ public class AttributeApiService {
         if (limit != null && limit <= 0) {
             throw new IllegalArgumentException(ERROR_LIMIT_NOT_POSITIVE);
         }
+        
+        if (limit != null && limit > securityProperties.getMaxLimit()) {
+        	throw new IllegalArgumentException(ERROR_LIMIT_TOO_HIGH);
+        }
+        
         if (offset != null && offset < 0) {
             throw new IllegalArgumentException(ERROR_OFFSET_NOT_POSITIVE);
         }
 
-        String resolvedPdpId = resolvePdpId(pdpId);
-
-        return store.getAll(resolvedPdpId, limit, offset).stream().map(this::toJsonNode).toList();
+        String  resolvedPdpId = resolvePdpId(pdpId);
+        Integer queryLimit    = limit != null ? limit : securityProperties.getMaxLimit();
+        
+        return store.getAll(resolvedPdpId, queryLimit, offset).stream().map(this::toJsonNode).toList();
     }
 
     public long count(@Nullable String pdpId) {

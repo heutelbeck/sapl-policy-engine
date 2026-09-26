@@ -460,6 +460,7 @@ curl -u sapl-api-user-01:sapl-api-user-01 -c cookies.txt -b cookies.txt \
 | `io.sapl.attribute-api.enabled` | boolean | - | Enables the attribute API module (required) |
 | `io.sapl.attribute-api.default-pdp-id` | string | `default` | The pdpId that is used when it can't be resolved from the request |
 | `io.sapl.attribute-api.max-arguments` | integer | 50 | The allowed maximum of arguments that can be sent for an attribute. The API server rejects requests above this limit with a HTTP 400 Bad Request. Prevents flooding with huge requests |
+| `io.sapl.attribute-api.max-limit` | integer | 1000 | The allowed maximum of entries that will be sent for a get all request. If omitted, defaults to the configured maximum (default 1000). The API server rejects requests above this limit with a 400 Bad Request. Prevents flooding with huge requests | 
 
 
 #### No-Auth

@@ -61,7 +61,7 @@ public class AttributeApiController {
     private static final String DESC_ENTITY         = "The subject or resource the attribute belongs to.";
     private static final String DESC_ARGUMENTS      = "Optional attributes for the attribute. Repeat the parameter to pass multiple arguments, e.g. ?arg=X&arg=Y.";
     private static final String DESC_COUNT          = "If set to true, return the number of attributes for the tenant instead of an attribute list.";
-    private static final String DESC_LIMIT          = "Maximum number of attributes to return. Must be a positive number greater than 0.";
+    private static final String DESC_LIMIT          = "Maximum number of attributes to return. Must be a positive number greater than 0. Limited by 1000 entries per default.";
     private static final String DESC_OFFSET         = "Number of attributes to skip before returning results. Must be zero or a positive number.";
     private static final String DESC_HTTP_400       = "The request was invalid, e.g. the attribute name is not fully qualified or too many arguments were provided.";
     private static final String DESC_HTTP_503       = "The attribute store is currently unavailable. Retry should be done after the duration given in the Retry-After header.";

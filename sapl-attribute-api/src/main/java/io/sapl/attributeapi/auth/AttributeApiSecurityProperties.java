@@ -52,6 +52,7 @@ public class AttributeApiSecurityProperties implements InitializingBean {
 
     private String defaultPdpId = "default";
     private int    maxArguments = 50;
+    private int    maxLimit     = 1000;
 
     private OAuth2 oauth2 = new OAuth2();
 
