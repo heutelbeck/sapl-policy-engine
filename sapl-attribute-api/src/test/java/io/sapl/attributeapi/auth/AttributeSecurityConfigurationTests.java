@@ -70,7 +70,8 @@ class AttributeSecurityConfigurationTests {
                         "io.sapl.attribute-api.users[0].secret=testsecret")
 
                 .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
-                        .containsExactly("Basic authentication activated."));
+                        .containsExactly("Basic authentication activated.",
+                                "Basic authentication is enabled. Browsers auto-attach Basic credentials, which exposes a CSRF surface that API key and OAuth2 JWT do not. Prefer Bearer auth for production. See https://sapl.io/docs/latest/7_6_Security."));
     }
 
     @Test
@@ -80,6 +81,7 @@ class AttributeSecurityConfigurationTests {
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-basic-auth=true")
                 .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
                         .containsExactly("Basic authentication activated.",
+                                "Basic authentication is enabled. Browsers auto-attach Basic credentials, which exposes a CSRF surface that API key and OAuth2 JWT do not. Prefer Bearer auth for production. See https://sapl.io/docs/latest/7_6_Security.",
                                 "Basic authentication is enabled but no users with basic credentials are configured."));
     }
 
@@ -101,7 +103,7 @@ class AttributeSecurityConfigurationTests {
                 "io.sapl.attribute-api.allow-oauth2-auth=true").run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
-                            .contains("OAuth2 authentication activated");
+                            .contains("OAuth2 authentication activated.");
                 });
     }
 

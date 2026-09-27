@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -62,19 +61,18 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("PUT /api/attributes/{name} returns 201")
     void whenGlobalAttributePublishedThenHttpCreated() throws Exception {
-        mockMvc.perform(
-                put("/api/attributes/sapl.test.role").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
-                        { "value": "test_1",
-                          "ttl": 60
-                         }
-                        """)).andExpect(status().isCreated());
+        mockMvc.perform(put("/api/attributes/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_1",
+                  "ttl": 60
+                 }
+                """)).andExpect(status().isCreated());
     }
 
     @Test
     @DisplayName("PUT /api/attributes/sapl.test/{name} returns 201")
     void whenAttributeWithEntityIsPublishedThenHttpCreated() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.role").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(
+                put("/api/attributes/sapl.test/sapl.test.role").contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_2",
                           "ttl": 60
                           }
@@ -84,10 +82,9 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("PUT global attribute to /api/attributes/{name} without a ttl field returns 201 and never expires")
     void whenGlobalAttributeWithoutTtlIsPublishedThenHttpCreated() throws Exception {
-        mockMvc.perform(
-                put("/api/attributes/sapl.test.no.ttl").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
-                        { "value": "no_ttl" }
-                        	""")).andExpect(status().isCreated());
+        mockMvc.perform(put("/api/attributes/sapl.test.no.ttl").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "no_ttl" }
+                	""")).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.no.ttl")).andExpect(status().isOk())
                 .andReturn();
@@ -97,13 +94,12 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("DELETE global attribute /api/attributes/{name} returns 204 and removes the global attribute")
     void whenGlobalAttributeIsDeletedThenHttpNoContent() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.global.attribute").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(
+                put("/api/attributes/sapl.test.global.attribute").contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "justAValue", "ttl": 60 }
                         """)).andExpect(status().isCreated());
 
-        mockMvc.perform(delete("/api/attributes/sapl.test.global.attribute").with(csrf()))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/attributes/sapl.test.global.attribute")).andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/attributes/sapl.test.global.attribute")).andExpect(status().isNotFound());
     }
@@ -111,12 +107,12 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("PUT attributes twice on /api/attributes/{entity}/{name} returns 201 on create, 200 on update")
     void whenAttributeIsPublishedTwiceThenFirstHttpCreatedAndSecondHttpOk() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.createandupdate").with(csrf())
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.createandupdate")
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "created", "ttl": 60 }
                         """)).andExpect(status().isCreated());
 
-        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.createandupdate").with(csrf())
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.createandupdate")
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "updated", "ttl": 60 }
                         """)).andExpect(status().isOk());
@@ -130,8 +126,7 @@ abstract class AbstractAttributeApiTests {
         long      countBefore = Long.parseLong(before.getResponse().getContentAsString());
 
         for (int i = 0; i < 100; i++) {
-            mockMvc.perform(put("/api/attributes/sapl.test/test.attribute" + i).with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
+            mockMvc.perform(put("/api/attributes/sapl.test/test.attribute" + i).contentType(MediaType.APPLICATION_JSON)
                     .content("{ \"value\": \"limitOffset_%d\", \"ttl\": 60 }".formatted(i)))
                     .andExpect(status().isCreated());
         }
@@ -150,10 +145,8 @@ abstract class AbstractAttributeApiTests {
         for (int i = 0; i < 100; i++) {
             String name = "limit.offset" + i;
             pushedNames.add(name);
-            mockMvc.perform(
-                    put("/api/attributes/sapl.test/" + name).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                            .content("{ \"value\": \"test_%d\", \"ttl\": 60 }".formatted(i)))
-                    .andExpect(status().isCreated());
+            mockMvc.perform(put("/api/attributes/sapl.test/" + name).contentType(MediaType.APPLICATION_JSON)
+                    .content("{ \"value\": \"test_%d\", \"ttl\": 60 }".formatted(i))).andExpect(status().isCreated());
         }
 
         // The list must be the exact insertion order
@@ -188,10 +181,8 @@ abstract class AbstractAttributeApiTests {
         for (int i = 0; i < 20; i++) {
             String name = "sapl.test.attribute" + i;
             pushedNames.add(name);
-            mockMvc.perform(
-                    put("/api/attributes/sapl.test/" + name).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                            .content("{ \"value\": \"test_%d\", \"ttl\": 60 }".formatted(i)))
-                    .andExpect(status().isCreated());
+            mockMvc.perform(put("/api/attributes/sapl.test/" + name).contentType(MediaType.APPLICATION_JSON)
+                    .content("{ \"value\": \"test_%d\", \"ttl\": 60 }".formatted(i))).andExpect(status().isCreated());
         }
 
         MvcResult firstPage = mockMvc.perform(get("/api/attributes?limit=10&offset=0")).andExpect(status().isOk())
@@ -200,8 +191,8 @@ abstract class AbstractAttributeApiTests {
 
         // Push an attribute that is by lexicographical order the first one but shouldn't show up because we expect
         // insertion order
-        mockMvc.perform(put("/api/attributes/sapl.test/aaa.new.attribute").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(
+                put("/api/attributes/sapl.test/aaa.new.attribute").contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "testValueOfNewAttribute", "ttl": 60 }
                         """)).andExpect(status().isCreated());
 
@@ -220,8 +211,8 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("PUT /api/attributes/sapl.test/{name} returns error for unqualified name")
     void whenPublishAnAttributeWithInvalidNameThenReturnHttpBadRequest() throws Exception {
-        MvcResult result = mockMvc.perform(
-                put("/api/attributes/sapl.test/sapl").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
+        MvcResult result = mockMvc
+                .perform(put("/api/attributes/sapl.test/sapl").contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_3",
                           "ttl": 60
                          }
@@ -233,12 +224,11 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/sapl.test/{name} returns test_4 value")
     void whenGetSentForAGlobalAttributeThenReturnTheExpectedValue() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.deletion").with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        { "value": "test_4",
-                          "ttl": 60
-                          }
-                        """)).andExpect(status().isCreated());
+        mockMvc.perform(put("/api/attributes/sapl.test.deletion").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_4",
+                  "ttl": 60
+                  }
+                """)).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.deletion")).andExpect(status().isOk())
                 .andReturn();
@@ -248,7 +238,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("DELETE /api/attributes/sapl.test/{name} returns 201")
     void whenPublishAndDeleteAndAttributeThenHttpCreatedAndHttpNoContent() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.publishAndDelete").with(csrf())
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.publishAndDelete")
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "test_5",
                           "ttl": 60
@@ -259,15 +249,15 @@ abstract class AbstractAttributeApiTests {
                 .andExpect(status().isOk()).andReturn();
         assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test_5\"");
 
-        mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.publishAndDelete").with(csrf()))
+        mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.publishAndDelete"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("TTL expires for /api/attributes/sapl.test/{name} and shows no content")
     void whenTtlExpiredThenHttpNotFound() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.ttlExpired").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.ttlExpired").contentType(MediaType.APPLICATION_JSON)
+                .content("""
                         { "value": "test_6",
                           "ttl": 1
                           }
@@ -280,30 +270,27 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("PUT /api/attributes/{name} returns 201 on create, 200 on update")
     void whenAttributePublishedTwiceThenFirstHttpCreatedSecondHttpOk() throws Exception {
-        mockMvc.perform(
-                put("/api/attributes/sapl.test.upsert").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
-                        { "value": "test_7",
-                          "ttl": 60
-                         }
-                        """)).andExpect(status().isCreated());
+        mockMvc.perform(put("/api/attributes/sapl.test.upsert").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_7",
+                  "ttl": 60
+                 }
+                """)).andExpect(status().isCreated());
 
-        mockMvc.perform(
-                put("/api/attributes/sapl.test.upsert").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
-                        { "value": "test_7_updated",
-                          "ttl": 60
-                         }
-                        """)).andExpect(status().isOk());
+        mockMvc.perform(put("/api/attributes/sapl.test.upsert").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_7_updated",
+                  "ttl": 60
+                 }
+                """)).andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("GET /api/attributes?count=true returns the number of published attributes")
     void whenAttributesAreCountedThenReturnTheExpectedValue() throws Exception {
-        mockMvc.perform(
-                put("/api/attributes/sapl.test.count").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("""
-                        { "value": "test_8",
-                          "ttl": 60
-                         }
-                        """)).andExpect(status().isCreated());
+        mockMvc.perform(put("/api/attributes/sapl.test.count").contentType(MediaType.APPLICATION_JSON).content("""
+                { "value": "test_8",
+                  "ttl": 60
+                 }
+                """)).andExpect(status().isCreated());
 
         MvcResult result = mockMvc.perform(get("/api/attributes?count=true")).andExpect(status().isOk()).andReturn();
         assertThat(result.getResponse().getContentAsString()).isEqualTo("1");
@@ -312,8 +299,8 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/{name}?arg=X converts the number argument properly and returns the right value")
     void whenGetAttributeWithNumberArgumentThenHttpAnswerIsInExpectedFormat() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.arguments?arg=42").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON).content("""
+        mockMvc.perform(
+                put("/api/attributes/sapl.test.arguments?arg=42").contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "aValue", "ttl": 60 }
                         """)).andExpect(status().isCreated());
 
@@ -325,7 +312,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/{name}?arg=X converts the text argument properly and returns the right value")
     void whenGetAttributeWithTextArgumentThenHttpAnswerIsInExpectedFormat() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.arguments?arg=this-is-text").with(csrf())
+        mockMvc.perform(put("/api/attributes/sapl.test.arguments?arg=this-is-text")
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "bValue", "ttl": 60 }
                         """)).andExpect(status().isCreated());
@@ -338,7 +325,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("GET /api/attributes/{name}?arg=X&arg= converts multiple arguments properly and returns the right value")
     void whenGetAttributeWithMultipleArgumentsThenReturnArgumentsInExpectedFormat() throws Exception {
-        mockMvc.perform(put("/api/attributes/sapl.test.multi.arguments?arg=42&arg=this-is-text").with(csrf())
+        mockMvc.perform(put("/api/attributes/sapl.test.multi.arguments?arg=42&arg=this-is-text")
                 .contentType(MediaType.APPLICATION_JSON).content("""
                         { "value": "cValue", "ttl": 60 }
                         """)).andExpect(status().isCreated());
@@ -351,7 +338,7 @@ abstract class AbstractAttributeApiTests {
     @Test
     @DisplayName("DELETE an non existing attribute returns HTTP NOT_FOUND")
     void whenAttributeIsNonExistentAndDeleteIsRequestedThenReturnHttpNotFound() throws Exception {
-        mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.deleteNonExisting").with(csrf()))
+        mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.deleteNonExisting"))
                 .andExpect(status().isNotFound());
     }
 

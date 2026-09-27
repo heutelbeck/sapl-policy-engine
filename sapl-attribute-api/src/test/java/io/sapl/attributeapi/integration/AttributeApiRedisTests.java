@@ -25,9 +25,7 @@ import jakarta.ws.rs.core.MediaType;
 import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -90,9 +88,10 @@ class AttributeApiRedisTests extends AbstractAttributeApiTests {
         // Create the tasks and let the threads waits till the countdown is done
         List<Callable<Integer>> tasks = IntStream.range(0, parallelRequests).<Callable<Integer>>mapToObj(i -> () -> {
             startSignal.await();
-            MvcResult result = mockMvc.perform(put("/api/attributes/sapl.test/sapl.test.parallel").with(csrf())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{ \"value\": \"request-%d\", \"ttl\": 600 }".formatted(i))).andReturn();
+            MvcResult result = mockMvc
+                    .perform(put("/api/attributes/sapl.test/sapl.test.parallel").contentType(MediaType.APPLICATION_JSON)
+                            .content("{ \"value\": \"request-%d\", \"ttl\": 600 }".formatted(i)))
+                    .andReturn();
             return result.getResponse().getStatus();
         }).toList();
 

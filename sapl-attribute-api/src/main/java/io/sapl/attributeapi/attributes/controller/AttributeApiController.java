@@ -177,7 +177,7 @@ public class AttributeApiController {
      * @return {@code HTTP 200} and the value of the attribute.
      */
     @Operation(summary = "Get a single attribute with an entity, attribute name and optional arguments", responses = {
-            @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "\"IT\""))),
+            @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "IT"))),
             @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
             @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
             @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
@@ -196,7 +196,7 @@ public class AttributeApiController {
      * @return {@code HTTP 200} and the value of the attribute.
      */
     @Operation(summary = "Get a single attribute with an attribute name and optional arguments", responses = {
-            @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "\"IT\""))),
+            @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "IT"))),
             @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
             @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
             @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })

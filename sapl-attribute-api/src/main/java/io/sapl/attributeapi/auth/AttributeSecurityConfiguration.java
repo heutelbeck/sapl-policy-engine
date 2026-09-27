@@ -46,8 +46,6 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
@@ -60,15 +58,15 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @ConditionalOnExpression("${io.sapl.attribute-api.enabled:false} && !${io.sapl.attribute-api.embedded:false}")
 @RequiredArgsConstructor
 public class AttributeSecurityConfiguration {
-    private static final String BEARER_PREFIX             = "Bearer ";
-    private static final String ERROR_NO_AUTH_METHOD_SET  = "No authentication method is set";
+    private static final String ERROR_NO_AUTH_METHOD_SET  = "No authentication method is set.";
     private static final String WARN_NO_AUTH_CONFIGURED   = "Server has been configured to reply to requests without authentication.";
     private static final String INFO_BASIC_AUTH_ACTIVATED = "Basic authentication activated.";
     private static final String WARN_BASIC_NO_USERS       = "Basic authentication is enabled but no users with basic credentials are configured.";
     private static final String INFO_API_KEY_ACTIVATED    = "API key authentication activated.";
     private static final String WARN_API_KEY_NO_USERS     = "API key authentication is enabled but no api key is defined.";
-    private static final String INFO_OAUTH2_ACTIVATED     = "OAuth2 authentication activated";
+    private static final String INFO_OAUTH2_ACTIVATED     = "OAuth2 authentication activated.";
     private static final String ERROR_MISSING_ISSUER_URI  = "OAuth2 authentication is enabled but 'spring.security.oauth2.resourceserver.jwt.issuer-uri' is not set.";
+    private static final String WARN_BASIC_AUTH_CSRF      = "Basic authentication is enabled. Browsers auto-attach Basic credentials, which exposes a CSRF surface that API key and OAuth2 JWT do not. Prefer Bearer auth for production. See https://sapl.io/docs/latest/7_6_Security.";
 
     private final AttributeApiSecurityProperties properties;
     private final PasswordEncoder                encoder;
@@ -79,30 +77,11 @@ public class AttributeSecurityConfiguration {
     @Bean
     @Order(1)
     SecurityFilterChain attributeApiSecurityFilterChain(HttpSecurity http) throws Exception {
-        // Scoped to this module's endpoints only, so it can coexist with a
-        // host application's own catch-all SecurityFilterChain (e.g. when
-        // embedded inside sapl-node).
+        // Scoped to this module's endpoint's only, so it can coexist with a
+        // host application's own catch-all SecurityFilterChain (e.g. when embedded inside sapl-node).
         http.securityMatcher("/api/attributes/**");
-
+        http.csrf(AbstractHttpConfigurer::disable);
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        // Set the CSRF token for basic auth and deactivates the lazy creation. Deactivates CSRF for bearer token
-        http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .csrfTokenRequestHandler((request, response, csrfToken) -> {
-                    csrfToken.get();
-                    new CsrfTokenRequestAttributeHandler().handle(request, response, csrfToken);
-                }).ignoringRequestMatchers(request -> {
-                    String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-                    return authHeader == null || authHeader.startsWith(BEARER_PREFIX);
-                })
-                // Exception for the SAPL CLI client
-                .ignoringRequestMatchers(request -> {
-                    String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-                    if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-                        return true;
-                    }
-                    return request.getHeader("X-SAPL-Client") != null;
-                }));
 
         if (noAuthenticationMechanismIsDefined()) {
             throw new IllegalStateException(ERROR_NO_AUTH_METHOD_SET);
@@ -135,6 +114,7 @@ public class AttributeSecurityConfiguration {
 
     private void httpBasicAllowed(HttpSecurity http) {
         log.info(INFO_BASIC_AUTH_ACTIVATED);
+        log.warn(WARN_BASIC_AUTH_CSRF);
         if (!hasBasicAuthUsers()) {
             log.warn(WARN_BASIC_NO_USERS);
         }
