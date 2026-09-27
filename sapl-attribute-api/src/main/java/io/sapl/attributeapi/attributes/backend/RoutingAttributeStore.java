@@ -120,9 +120,10 @@ public final class RoutingAttributeStore implements AttributeStore {
     public void close() {
         closeAll.run();
     }
-    
+
     /**
      * Constructs the store if the api server runs in a standalone mode with the SAPL Node.
+     *
      * @param handlesByBackendName The connection settings
      * @param pdpIdToBackendName The registration of pdp id to backend name
      * @return The router object for the given configuration
@@ -137,7 +138,7 @@ public final class RoutingAttributeStore implements AttributeStore {
         return new RoutingAttributeStore(resolver, invalidator,
                 () -> handlesByBackendName.values().forEach(BackendHandle::close));
     }
-    
+
     // Helper method to resolve the backend name for the given pdp id
     private static AttributeStore resolveViaBackendName(String pdpId, Map<String, BackendHandle> handlesByBackendName,
             Map<String, String> pdpIdToBackendName) {
@@ -149,8 +150,9 @@ public final class RoutingAttributeStore implements AttributeStore {
 
         return handlesByBackendName.get(backendName).resolveOrThrow(backendName);
     }
-    
-    // Helper method to marks the connection as interrupted, so that a reconnect is tried instead of using a dead connection
+
+    // Helper method to marks the connection as interrupted, so that a reconnect is tried instead of using a dead
+    // connection
     private static void invalidateViaBackendName(String pdpId, Map<String, BackendHandle> handlesByBackendName,
             Map<String, String> pdpIdToBackendName) {
         var backendName = pdpIdToBackendName.get(pdpId);

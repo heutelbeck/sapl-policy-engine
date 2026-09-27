@@ -187,17 +187,19 @@ public class AttributeStoreConfiguration {
             postgres.setDatabase(text(node, FIELD_DATABASE));
             postgres.setUsername(text(node, FIELD_USERNAME));
             postgres.setPassword(text(node, FIELD_PASSWORD));
-            postgres.setTableName(text(node, FIELD_TABLE_NAME));
+            Optional.ofNullable(text(node, FIELD_TABLE_NAME)).ifPresent(postgres::setTableName);
             config.setPostgres(postgres);
         }
         case MONGO    -> {
-            var mongo = new AttributeStorageProperties.Mongo();
+            var mongo    = new AttributeStorageProperties.Mongo();
+            var database = text(node, FIELD_DATABASE);
+
             mongo.setHost(text(node, FIELD_HOST));
             mongo.setPort(Objects.requireNonNull(number(node, FIELD_PORT)));
-            mongo.setDatabase(text(node, FIELD_DATABASE));
             mongo.setUsername(text(node, FIELD_USERNAME));
-            mongo.setAuthDatabase(text(node, FIELD_AUTH_DATABASE));
-            mongo.setCollectionName(text(node, FIELD_COLLECTION));
+            mongo.setDatabase(database);
+            mongo.setAuthDatabase(Objects.requireNonNullElse(text(node, FIELD_AUTH_DATABASE), database));
+            Optional.ofNullable(text(node, FIELD_COLLECTION)).ifPresent(mongo::setCollectionName);
             mongo.setPassword(text(node, FIELD_PASSWORD));
             config.setMongo(mongo);
         }
