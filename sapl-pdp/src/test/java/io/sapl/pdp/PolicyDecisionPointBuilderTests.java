@@ -30,7 +30,7 @@ import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
-import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSnapshot;
 import io.sapl.pdp.plugins.PluginsSource;
 import io.sapl.secrets.SecretSealing;
 import lombok.val;
@@ -52,17 +52,17 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class PolicyDecisionPointBuilderTests {
 
     @Test
-    @DisplayName("build fails fast with a clear error when the plugins source never delivers a bundle")
+    @DisplayName("build fails fast with a clear error when the plugins source never delivers a snapshot")
     void whenPluginsSourceNeverDeliversThenBuildFailsClosed() {
         val nonDeliveringSource = new PluginsSource() {
                                     @Override
-                                    public void subscribe(Consumer<PluginsBundle> listener) {
+                                    public void subscribe(Consumer<PluginsSnapshot> listener) {
                                         // Violates deliver-on-subscribe, leaving the voter source without a plugins
-                                        // bundle.
+                                        // snapshot.
                                     }
 
                                     @Override
-                                    public void unsubscribe(Consumer<PluginsBundle> listener) {
+                                    public void unsubscribe(Consumer<PluginsSnapshot> listener) {
                                         // no-op
                                     }
 
@@ -78,7 +78,7 @@ class PolicyDecisionPointBuilderTests {
                                 };
         val builder             = PolicyDecisionPointBuilder.withDefaults().withPluginsSource(nonDeliveringSource);
         assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("no plugins bundle is available");
+                .hasMessageContaining("no plugins snapshot is available");
     }
 
     @Test
@@ -135,12 +135,12 @@ class PolicyDecisionPointBuilderTests {
         val configurationSource  = new TrackingConfigurationSource();
         val nonDeliveringPlugins = new PluginsSource() {
                                      @Override
-                                     public void subscribe(Consumer<PluginsBundle> listener) {
+                                     public void subscribe(Consumer<PluginsSnapshot> listener) {
                                          // Never delivers, so build() fails.
                                      }
 
                                      @Override
-                                     public void unsubscribe(Consumer<PluginsBundle> listener) {
+                                     public void unsubscribe(Consumer<PluginsSnapshot> listener) {
                                          // no-op
                                      }
 

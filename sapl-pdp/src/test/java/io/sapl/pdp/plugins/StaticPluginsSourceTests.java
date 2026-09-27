@@ -37,10 +37,10 @@ class StaticPluginsSourceTests {
     }
 
     @Test
-    @DisplayName("a subscriber receives the bundle on subscribe")
-    void whenSubscribeThenReceivesBundle() {
+    @DisplayName("a subscriber receives the snapshot on subscribe")
+    void whenSubscribeThenReceivesSnapshot() {
         val source   = new StaticPluginsSource(bundle());
-        val received = new AtomicReference<PluginsBundle>();
+        val received = new AtomicReference<PluginsSnapshot>();
 
         source.subscribe(received::set);
 
@@ -52,7 +52,7 @@ class StaticPluginsSourceTests {
     @DisplayName("subscribe after close is a no-op and registers nothing")
     void whenClosedThenSubscribeIsNoOp() {
         val source   = new StaticPluginsSource(bundle());
-        val received = new AtomicReference<PluginsBundle>();
+        val received = new AtomicReference<PluginsSnapshot>();
         source.close();
 
         source.subscribe(received::set);
@@ -69,17 +69,17 @@ class StaticPluginsSourceTests {
         var leaked = 0;
 
         for (int i = 0; i < 20000; i++) {
-            val                     source     = new StaticPluginsSource(bundle);
-            val                     start      = new CountDownLatch(1);
-            Consumer<PluginsBundle> listener   = b -> {};
-            val                     subscriber = Thread.ofVirtual().unstarted(() -> {
-                                                   awaitQuietly(start);
-                                                   source.subscribe(listener);
-                                               });
-            val                     closer     = Thread.ofVirtual().unstarted(() -> {
-                                                   awaitQuietly(start);
-                                                   source.close();
-                                               });
+            val                       source     = new StaticPluginsSource(bundle);
+            val                       start      = new CountDownLatch(1);
+            Consumer<PluginsSnapshot> listener   = b -> {};
+            val                       subscriber = Thread.ofVirtual().unstarted(() -> {
+                                                     awaitQuietly(start);
+                                                     source.subscribe(listener);
+                                                 });
+            val                       closer     = Thread.ofVirtual().unstarted(() -> {
+                                                     awaitQuietly(start);
+                                                     source.close();
+                                                 });
             subscriber.start();
             closer.start();
             start.countDown();

@@ -17,7 +17,9 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.pdp.plugins.PluginSelectionException;
 import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSnapshot;
 import io.sapl.pdp.plugins.PluginsSource;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -71,10 +73,10 @@ public class PdpVoterSource implements AutoCloseable {
     private final PluginsSource       pluginsSource;
     private final ExtensionsProcessor extensionsProcessor;
 
-    private final ReentrantLock           stateLock      = new ReentrantLock();
-    private final Consumer<PluginsBundle> pluginListener = this::onPluginsSnapshot;
-    private volatile PluginsBundle        currentPlugins;
-    private volatile boolean              closed         = false;
+    private final ReentrantLock             stateLock      = new ReentrantLock();
+    private final Consumer<PluginsSnapshot> pluginListener = this::onPluginsSnapshot;
+    private volatile PluginsSnapshot        currentSnapshot;
+    private volatile boolean                closed         = false;
 
     /**
      * Per-pdpId most recently submitted source configuration. A plugins snapshot
@@ -127,19 +129,25 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     /**
-     * @return the plugins bundle currently in effect, or {@code null}
-     * if the plugins source has not delivered a snapshot yet
+     * @return the base bundle of the current plugins snapshot, carrying only
+     * contributions that are not from plugins, or {@code null} if the plugins
+     * source has not delivered a snapshot yet
      */
-    public PluginsBundle getPlugins() {
-        return currentPlugins;
+    public PluginsBundle getBasePlugins() {
+        val snapshot = currentSnapshot;
+        return snapshot == null ? null : snapshot.baseBundle();
     }
 
-    private void onPluginsSnapshot(PluginsBundle newPlugins) {
+    private static Set<String> effectivePlugins(PDPConfiguration configuration, PluginsSnapshot snapshot) {
+        return snapshot.availablePluginIds();
+    }
+
+    private void onPluginsSnapshot(PluginsSnapshot newSnapshot) {
         long         targetGeneration;
         List<String> pdpIds;
         stateLock.lock();
         try {
-            currentPlugins   = newPlugins;
+            currentSnapshot  = newSnapshot;
             targetGeneration = ++pluginGeneration;
             pdpIds           = new ArrayList<>(retainedConfigurations.keySet());
         } finally {
@@ -164,9 +172,9 @@ public class PdpVoterSource implements AutoCloseable {
                 // generation, or the source is closing.
                 return;
             }
-            val config  = retainedConfigurations.get(pdpId);
-            val plugins = currentPlugins;
-            if (config == null || plugins == null) {
+            val config   = retainedConfigurations.get(pdpId);
+            val snapshot = currentSnapshot;
+            if (config == null || snapshot == null) {
                 return;
             }
             val wasLoaded = getStatusRef(pdpId).get().state() == PdpState.LOADED;
@@ -176,9 +184,9 @@ public class PdpVoterSource implements AutoCloseable {
                 // fails closed to an error voter rather than retaining the old one (STALE).
                 // Keeping the last-good voter is meaningful only for config updates, where
                 // the runtime is unchanged.
-                loadConfigurationLocked(config, OnCompileError.FAIL_CLOSED, plugins);
+                loadConfigurationLocked(config, OnCompileError.FAIL_CLOSED, snapshot);
                 // Stamp the generation actually compiled against. This is the live
-                // pluginGeneration (the generation of currentPlugins read above), which under
+                // pluginGeneration (the generation of currentSnapshot read above), which under
                 // a concurrent newer snapshot may exceed targetGeneration. Both were read
                 // under this single lock hold, so they are consistent.
                 servedGeneration.put(pdpId, pluginGeneration);
@@ -224,8 +232,8 @@ public class PdpVoterSource implements AutoCloseable {
                 reportConfigurationErrorLocked(pdpId, ERROR_EXTENSIONS_REJECTED.formatted(pdpId));
                 return;
             }
-            val plugins = currentPlugins;
-            if (plugins == null) {
+            val snapshot = currentSnapshot;
+            if (snapshot == null) {
                 retainedConfigurations.put(pdpId, pdpConfiguration);
                 getStatusRef(pdpId).set(new PdpStatus(PdpState.AWAITING_PLUGINS, pdpConfiguration.configurationId(),
                         pdpConfiguration.combiningAlgorithm(), pdpConfiguration.saplDocuments().size(), null, null,
@@ -233,7 +241,7 @@ public class PdpVoterSource implements AutoCloseable {
                 log.warn(WARN_DEFERRED_CONFIGURATION, pdpId);
                 return;
             }
-            loadConfigurationLocked(pdpConfiguration, OnCompileError.RETAIN_LAST_GOOD, plugins);
+            loadConfigurationLocked(pdpConfiguration, OnCompileError.RETAIN_LAST_GOOD, snapshot);
             servedGeneration.put(pdpId, pluginGeneration);
             // Ordering invariant: the served voter is swapped inside loadConfigurationLocked, and
             // it reaches LOADED only after that swap, so gating the commit on LOADED enables the
@@ -259,23 +267,29 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     private void loadConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
-            PluginsBundle plugins) {
+            PluginsSnapshot snapshot) {
         retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
-        val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
-                pdpConfiguration.data(), plugins.functionBroker());
-        compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
+        val         requested = effectivePlugins(pdpConfiguration, snapshot);
         CompiledPdp newConfiguration;
         try {
-            newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext, plugins);
+            val bundle             = snapshot.bundleFor(pdpConfiguration.pdpId(), requested);
+            val compilationContext = new CompilationContext(pdpConfiguration.pdpId(),
+                    pdpConfiguration.configurationId(), pdpConfiguration.data(), bundle.functionBroker());
+            compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
+            newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext, bundle);
         } catch (SaplCompilerException compilerException) {
-            handleCompileFailure(pdpConfiguration, onCompileError, plugins, compilerException);
+            handleCompileFailure(pdpConfiguration, onCompileError, snapshot, compilerException);
+            return;
+        } catch (PluginSelectionException selectionException) {
+            handleCompileFailure(pdpConfiguration, onCompileError, snapshot,
+                    new SaplCompilerException(selectionException.getMessage(), selectionException));
             return;
         } catch (RuntimeException unexpected) {
             // A compile-time hook (e.g. a plugin function broker invoked during constant
             // folding) violated the never-throw contract. Treat any compile fault as a
             // compile failure so the swap path fails closed rather than stranding a voter
             // bound to the retired bundle.
-            handleCompileFailure(pdpConfiguration, onCompileError, plugins,
+            handleCompileFailure(pdpConfiguration, onCompileError, snapshot,
                     new SaplCompilerException(ERROR_RECOMPILE_FAILED.formatted(unexpected.getMessage()), unexpected));
             return;
         }
@@ -289,7 +303,7 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     private void handleCompileFailure(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
-            PluginsBundle plugins, SaplCompilerException compilerException) {
+            PluginsSnapshot snapshot, SaplCompilerException compilerException) {
         val formattedError = CompilationErrorFormatter.format(compilerException);
         val now            = clock.instant();
         val pdpId          = pdpConfiguration.pdpId();
@@ -299,7 +313,7 @@ public class PdpVoterSource implements AutoCloseable {
         if (onCompileError == OnCompileError.RETAIN_LAST_GOOD && hasLastGood(getStatusRef(pdpId).get().state())) {
             markStale(pdpId, now, formattedError);
         } else {
-            val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException, plugins);
+            val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException, snapshot.baseBundle());
             getConfigRef(pdpId).set(Optional.of(errorVoter));
             notifyListeners(pdpId, new PdpUpdateEvent.Voter(pdpId, errorVoter));
             markError(pdpId, now, formattedError);

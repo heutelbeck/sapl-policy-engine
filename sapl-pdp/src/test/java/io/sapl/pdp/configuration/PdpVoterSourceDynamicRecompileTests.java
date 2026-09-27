@@ -30,9 +30,12 @@ import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.StandardFunctionLibrary;
 import io.sapl.pdp.plugins.MutablePluginsSource;
+import io.sapl.pdp.plugins.PluginSelectionException;
 import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSnapshot;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -41,10 +44,16 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @DisplayName("PdpVoterSource dynamic recompile")
 class PdpVoterSourceDynamicRecompileTests {
@@ -308,14 +317,14 @@ class PdpVoterSourceDynamicRecompileTests {
 
     @Test
     @DisplayName("subscribe lifecycle listeners come from the bundle currently in effect")
-    void whenLifecycleListenersChangeThenGetPluginsReturnsLatest() {
+    void whenLifecycleListenersChangeThenGetBasePluginsReturnsLatest() {
         val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
         try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
             voterSource.loadConfiguration(policyConfig(CONFIG_A));
             val listener = new RecordingLifecycleListener();
             pluginsSource.publish(new PluginsBundle(brokerWithStandard(), List.of(), List.of(listener)));
 
-            assertThat(voterSource.getPlugins().lifecycleListeners()).containsExactly(listener);
+            assertThat(voterSource.getBasePlugins().lifecycleListeners()).containsExactly(listener);
         }
     }
 
@@ -434,6 +443,87 @@ class PdpVoterSourceDynamicRecompileTests {
         public void onDecision(TracedDecision decision, Instant timestamp, String subscriptionId,
                 AuthorizationSubscription authorizationSubscription) {
             calls.incrementAndGet();
+        }
+    }
+
+    @Nested
+    @DisplayName("when the requested plugins cannot be provided")
+    class PluginSelectionFailure {
+
+        private static final String REQUESTED_PLUGIN = "requested-plugin";
+
+        private final PluginsBundle baseBundle = pluginsOf(brokerWithStandard());
+
+        private PluginsSnapshot failingSnapshot() {
+            val snapshot = mock(PluginsSnapshot.class);
+            when(snapshot.availablePluginIds()).thenReturn(Set.of(REQUESTED_PLUGIN));
+            when(snapshot.baseBundle()).thenReturn(baseBundle);
+            when(snapshot.bundleFor(anyString(), anySet()))
+                    .thenThrow(new PluginSelectionException(PDP_ID, Set.of(REQUESTED_PLUGIN)));
+            return snapshot;
+        }
+
+        @Test
+        @DisplayName("a first load fails closed with the selection message and no recompilation prefix")
+        void whenSelectionFailsOnFirstLoadThenErrorWithSelectionMessage() {
+            val pluginsSource = new MutablePluginsSource();
+            pluginsSource.publish(failingSnapshot());
+            try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
+                    assertThat(status.state()).isEqualTo(PdpState.ERROR);
+                    assertThat(status.lastError()).contains(REQUESTED_PLUGIN).doesNotContain("Recompilation failed");
+                });
+            }
+        }
+
+        @Test
+        @DisplayName("the error voter of a failed selection carries the base bundle")
+        void whenSelectionFailsThenErrorVoterCarriesBaseBundle() {
+            val pluginsSource = new MutablePluginsSource();
+            pluginsSource.publish(failingSnapshot());
+            try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                        .hasValueSatisfying(voter -> assertThat(voter.plugins()).isSameAs(baseBundle));
+            }
+        }
+
+        @Test
+        @DisplayName("a failed selection on a configuration update keeps the last good voter serving")
+        void whenSelectionFailsOnUpdateThenLastGoodVoterKeepsServing() {
+            val snapshot = mock(PluginsSnapshot.class);
+            when(snapshot.availablePluginIds()).thenReturn(Set.of(REQUESTED_PLUGIN));
+            when(snapshot.baseBundle()).thenReturn(baseBundle);
+            when(snapshot.bundleFor(anyString(), anySet())).thenReturn(baseBundle)
+                    .thenThrow(new PluginSelectionException(PDP_ID, Set.of(REQUESTED_PLUGIN)));
+            val pluginsSource = new MutablePluginsSource();
+            pluginsSource.publish(snapshot);
+            try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+                voterSource.loadConfiguration(policyConfig("config-B"));
+
+                assertThat(voterSource.getPdpStatus(PDP_ID))
+                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.STALE));
+                assertThat(voterSource.getCurrentConfiguration(PDP_ID)).containsSame(lastGood);
+            }
+        }
+
+        @Test
+        @DisplayName("a configuration is compiled against all available plugins")
+        void whenCompilingThenAllAvailablePluginsAreRequested() {
+            val snapshot      = failingSnapshot();
+            val pluginsSource = new MutablePluginsSource();
+            pluginsSource.publish(snapshot);
+            try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                verify(snapshot).bundleFor(PDP_ID, Set.of(REQUESTED_PLUGIN));
+            }
         }
     }
 

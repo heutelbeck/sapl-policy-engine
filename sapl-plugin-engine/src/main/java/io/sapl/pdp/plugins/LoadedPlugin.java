@@ -21,6 +21,19 @@ import io.sapl.api.pdp.DecisionInterceptor;
 
 import java.util.List;
 
+/**
+ * What one started plugin provides, keyed by its PF4J {@code Plugin-Id}: its
+ * function libraries, Policy Information Points and decision interceptors.
+ * The lists are immutable copies.
+ *
+ * @param pluginId the {@code Plugin-Id} from the plugin manifest
+ * @param functionLibraries the function library instances of the plugin
+ * @param policyInformationPoints the Policy Information Point instances of the
+ * plugin
+ * @param decisionInterceptors the decision interceptors of the plugin
+ *
+ * @since 4.2.0
+ */
 public record LoadedPlugin(
         String pluginId,
         List<Object> functionLibraries,

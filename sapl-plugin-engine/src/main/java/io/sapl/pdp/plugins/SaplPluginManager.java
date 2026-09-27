@@ -27,30 +27,25 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.pf4j.JarPluginManager;
 import org.pf4j.PluginManager;
-import org.pf4j.PluginWrapper;
 
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Loads SAPL plugins from a directory of JAR files using PF4J and exposes their
- * contributions as the function libraries
- * and Policy Information Points they declare through
- * {@link SaplFunctionLibraryPlugin} and
- * {@link SaplPolicyInformationPointPlugin} extensions.
+ * Loads SAPL plugins from a directory of JAR files using PF4J and exposes what
+ * each started plugin provides through {@link SaplFunctionLibraryPlugin},
+ * {@link SaplPolicyInformationPointPlugin} and
+ * {@link SaplDecisionInterceptorPlugin} extensions.
  * <p>
- * The manager exposes the plugin contributions through accessor methods
- * ({@link #functionLibraries()}, {@link #policyInformationPoints()}, and
- * {@link #decisionInterceptors()}) so a host application (for example the
- * Spring Boot auto-configuration) can pick them up at startup with no extra
- * wiring. For runtime hot-reloading, drive a
- * {@link HotReloadingPluginsSource} from this manager.
+ * {@link #loadedPlugins()} returns these contributions grouped by plugin id.
+ * For runtime hot-reloading, drive a {@link HotReloadingPluginsSource} from
+ * this manager.
  * <p>
  * All public methods are guarded by a single {@link ReentrantLock}, in line
  * with the engine's thread-safety convention.
  *
- * @since 4.1.0
+ * @since 4.2.0
  */
 @Slf4j
 @Getter
@@ -121,6 +116,15 @@ public class SaplPluginManager implements AutoCloseable {
         }
     }
 
+    /**
+     * Collects what each started plugin provides, keyed by plugin id. A plugin
+     * whose extensions throw while providing their contributions is logged and
+     * omitted; the other plugins are unaffected.
+     *
+     * @return an immutable map from plugin id to the plugin's contributions
+     *
+     * @since 4.2.0
+     */
     public Map<String, LoadedPlugin> loadedPlugins() {
         lock.lock();
         try {
@@ -135,48 +139,6 @@ public class SaplPluginManager implements AutoCloseable {
                 }
             }
             return Collections.unmodifiableMap(result);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public List<Object> functionLibraries() {
-        lock.lock();
-        try {
-            ensureOpen();
-            val libraries = new ArrayList<>();
-            for (val extension : pluginManager.getExtensions(SaplFunctionLibraryPlugin.class)) {
-                libraries.addAll(extension.functionLibraries());
-            }
-            return List.copyOf(libraries);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public List<Object> policyInformationPoints() {
-        lock.lock();
-        try {
-            ensureOpen();
-            val pips = new ArrayList<>();
-            for (val extension : pluginManager.getExtensions(SaplPolicyInformationPointPlugin.class)) {
-                pips.addAll(extension.policyInformationPoints());
-            }
-            return List.copyOf(pips);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public List<DecisionInterceptor> decisionInterceptors() {
-        lock.lock();
-        try {
-            ensureOpen();
-            val interceptors = new ArrayList<DecisionInterceptor>();
-            for (val extension : pluginManager.getExtensions(SaplDecisionInterceptorPlugin.class)) {
-                interceptors.addAll(extension.decisionInterceptors());
-            }
-            return List.copyOf(interceptors);
         } finally {
             lock.unlock();
         }
@@ -199,19 +161,6 @@ public class SaplPluginManager implements AutoCloseable {
             }
         }
         return new LoadedPlugin(pluginId, functionLibraries, policyInformationPoints, decisionInterceptors);
-    }
-
-    /**
-     * @return an immutable snapshot of the currently loaded plugins
-     */
-    public List<PluginWrapper> plugins() {
-        lock.lock();
-        try {
-            ensureOpen();
-            return List.copyOf(pluginManager.getPlugins());
-        } finally {
-            lock.unlock();
-        }
     }
 
     /**

@@ -190,7 +190,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
         @DisplayName("decideOnce degrades to INDETERMINATE when configuration lookup throws")
         void whenConfigurationLookupThrowsThenDecideOnceReturnsIndeterminate() {
             val source = mock(PdpVoterSource.class);
-            when(source.getPlugins()).thenReturn(new PluginsBundle(mock(FunctionBroker.class)));
+            when(source.getBasePlugins()).thenReturn(new PluginsBundle(mock(FunctionBroker.class)));
             when(source.getCurrentConfiguration(anyString())).thenThrow(new RuntimeException("boom"));
             val pdp = new BlockingPolicyDecisionPoint(source, mock(AttributeBroker.class),
                     new ThreadLocalRandomIdFactory());
@@ -213,7 +213,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
                     new PluginsBundle(mock(FunctionBroker.class)));
 
             val source = mock(PdpVoterSource.class);
-            when(source.getPlugins()).thenReturn(new PluginsBundle(mock(FunctionBroker.class)));
+            when(source.getBasePlugins()).thenReturn(new PluginsBundle(mock(FunctionBroker.class)));
             doAnswer(invocation -> {
                 Consumer<PdpUpdateEvent> listener = invocation.getArgument(1);
                 listener.accept(new PdpUpdateEvent.Voter(pdpId, compiled));

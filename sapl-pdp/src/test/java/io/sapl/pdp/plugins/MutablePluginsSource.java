@@ -18,6 +18,7 @@
 package io.sapl.pdp.plugins;
 
 import lombok.NonNull;
+import lombok.val;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,38 +28,55 @@ import java.util.function.Consumer;
 
 /**
  * Test fixture standing in for the future plugin engine. Each
- * {@link #publish(PluginsBundle)} call emits one atomic snapshot to
- * every subscriber.
+ * {@link #publish(PluginsBundle)} call emits one atomic snapshot, carrying the
+ * given bundle as its base bundle, to every subscriber.
  */
 public final class MutablePluginsSource implements PluginsSource {
 
-    private final AtomicReference<PluginsBundle> current   = new AtomicReference<>();
-    private final Set<Consumer<PluginsBundle>>   listeners = ConcurrentHashMap.newKeySet();
-    private final AtomicBoolean                  closed    = new AtomicBoolean(false);
+    private final AtomicReference<PluginsSnapshot> current   = new AtomicReference<>();
+    private final Set<Consumer<PluginsSnapshot>>   listeners = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean                    closed    = new AtomicBoolean(false);
 
     public MutablePluginsSource() {
     }
 
     public MutablePluginsSource(@NonNull PluginsBundle initial) {
-        current.set(initial);
+        current.set(new StaticPluginsSnapshot(initial));
     }
 
     public void publish(@NonNull PluginsBundle bundle) {
         if (closed.get()) {
             return;
         }
-        current.set(bundle);
+        val snapshot = new StaticPluginsSnapshot(bundle);
+        current.set(snapshot);
         for (var l : listeners) {
-            l.accept(bundle);
+            l.accept(snapshot);
         }
     }
 
-    public PluginsBundle current() {
+    /**
+     * Emits the given snapshot as is, for tests that need a snapshot other than
+     * one carrying only a base bundle.
+     *
+     * @param snapshot the snapshot to publish
+     */
+    public void publish(@NonNull PluginsSnapshot snapshot) {
+        if (closed.get()) {
+            return;
+        }
+        current.set(snapshot);
+        for (var l : listeners) {
+            l.accept(snapshot);
+        }
+    }
+
+    public PluginsSnapshot current() {
         return current.get();
     }
 
     @Override
-    public void subscribe(@NonNull Consumer<PluginsBundle> listener) {
+    public void subscribe(@NonNull Consumer<PluginsSnapshot> listener) {
         if (closed.get()) {
             return;
         }
@@ -71,7 +89,7 @@ public final class MutablePluginsSource implements PluginsSource {
     }
 
     @Override
-    public void unsubscribe(@NonNull Consumer<PluginsBundle> listener) {
+    public void unsubscribe(@NonNull Consumer<PluginsSnapshot> listener) {
         listeners.remove(listener);
     }
 

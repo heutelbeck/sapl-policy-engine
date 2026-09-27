@@ -20,10 +20,10 @@ package io.sapl.pdp.plugins;
 import java.util.function.Consumer;
 
 /**
- * A source of {@link PluginsBundle} snapshots. Each emitted bundle is
- * an immutable value representing the plugin contributions in effect.
- * Subscribers receive the current bundle synchronously on subscribe
- * and any further bundles as the producer emits them.
+ * A source of {@link PluginsSnapshot}s. Each emitted snapshot is an
+ * immutable view of the plugins in effect.
+ * Subscribers receive the current snapshot synchronously on subscribe
+ * and any further snapshots as the producer emits them.
  * <p>
  * Trivial implementations emit once at construction and stand idle.
  * Plugin-engine implementations emit again on every catalog change.
@@ -33,19 +33,19 @@ import java.util.function.Consumer;
 public interface PluginsSource extends AutoCloseable {
 
     /**
-     * Registers {@code listener} and delivers the current bundle to it
+     * Registers {@code listener} and delivers the current snapshot to it
      * synchronously if one has been published.
      *
      * @param listener the listener to add
      */
-    void subscribe(Consumer<PluginsBundle> listener);
+    void subscribe(Consumer<PluginsSnapshot> listener);
 
     /**
      * Removes a previously registered listener.
      *
      * @param listener the listener to remove
      */
-    void unsubscribe(Consumer<PluginsBundle> listener);
+    void unsubscribe(Consumer<PluginsSnapshot> listener);
 
     /**
      * @return {@code true} after {@link #close()} has been called

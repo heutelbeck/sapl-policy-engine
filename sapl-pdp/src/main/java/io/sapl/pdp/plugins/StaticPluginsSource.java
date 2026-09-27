@@ -25,37 +25,38 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
- * Single-snapshot {@link PluginsSource}. Holds one
- * {@link PluginsBundle} for the lifetime of the source. Subscribers
- * receive it synchronously on subscribe.
+ * Single-snapshot {@link PluginsSource} for setups without a plugin engine.
+ * Holds one snapshot carrying only the given base {@link PluginsBundle} for
+ * the lifetime of the source; configurations cannot request plugins from it.
+ * Subscribers receive the snapshot synchronously on subscribe.
  *
  * @since 4.1.0
  */
 public final class StaticPluginsSource implements PluginsSource {
 
-    private final PluginsBundle                bundle;
-    private final Set<Consumer<PluginsBundle>> listeners = ConcurrentHashMap.newKeySet();
-    private final AtomicBoolean                closed    = new AtomicBoolean(false);
-    private final Object                       lock      = new Object();
+    private final PluginsSnapshot                snapshot;
+    private final Set<Consumer<PluginsSnapshot>> listeners = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean                  closed    = new AtomicBoolean(false);
+    private final Object                         lock      = new Object();
 
     public StaticPluginsSource(@NonNull PluginsBundle bundle) {
-        this.bundle = bundle;
+        this.snapshot = new StaticPluginsSnapshot(bundle);
     }
 
     @Override
-    public void subscribe(@NonNull Consumer<PluginsBundle> listener) {
+    public void subscribe(@NonNull Consumer<PluginsSnapshot> listener) {
         synchronized (lock) {
             if (closed.get()) {
                 return;
             }
             if (listeners.add(listener)) {
-                listener.accept(bundle);
+                listener.accept(snapshot);
             }
         }
     }
 
     @Override
-    public void unsubscribe(@NonNull Consumer<PluginsBundle> listener) {
+    public void unsubscribe(@NonNull Consumer<PluginsSnapshot> listener) {
         listeners.remove(listener);
     }
 

@@ -37,6 +37,10 @@ import java.util.List;
  * Holds the blocking-engine PDP plus the broker, attribute broker,
  * voter source, and any configured interceptors/listeners.
  * <p>
+ * The function broker, decision interceptors and lifecycle listeners held here
+ * are the base contributions only. Plugin contributions are scoped per PDP
+ * configuration and are carried by its compiled configuration instead.
+ * <p>
  * Reactor-free by design: this record is the foundation for
  * Reactor-flavoured wrappers (see
  * {@code ReactivePDPComponents}/{@code ReactivePolicyDecisionPointBuilder}

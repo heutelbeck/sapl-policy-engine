@@ -22,7 +22,6 @@ import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.attributes.broker.pip.PipHandle;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -32,9 +31,7 @@ import org.apache.commons.io.monitor.FileAlterationObserver;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -49,17 +46,20 @@ import java.util.function.Consumer;
  * Two kinds of contribution reload through two different mechanisms, matching
  * how the engine treats each:
  * <ul>
- * <li><b>Function libraries</b> &mdash; a fresh {@link FunctionBroker} is built
- * (host base libraries plus the current
- * plugin libraries) and emitted inside a new {@link PluginsBundle}. The
- * {@code PdpVoterSource} recompiles every
- * retained configuration against the new broker.</li>
+ * <li><b>Function libraries</b> &mdash; a new {@link PluginsSnapshot} is
+ * emitted. The {@code PdpVoterSource} recompiles every retained configuration
+ * against it; each configuration's {@link FunctionBroker} is built from the
+ * base libraries plus the libraries of the plugins that configuration
+ * requests.</li>
  * <li><b>Policy Information Points</b> &mdash; reconciled directly against the
  * live
  * {@link PolicyInformationPointAttributeBroker}: the previously loaded plugin
  * PIPs are unloaded and the current set is
  * loaded, since the broker is fixed for the lifetime of the PDP but supports
- * runtime mutation.</li>
+ * runtime mutation. A plugin whose PIPs cannot be loaded, for example because
+ * an attribute collides with an already registered one, is excluded from the
+ * snapshot with all of its contributions; the other plugins remain
+ * available.</li>
  * </ul>
  * A {@link FileAlterationMonitor} polls the plugins directory for {@code *.jar}
  * changes. All create, modify, and delete events of a single poll cycle are
@@ -83,31 +83,28 @@ public final class HotReloadingPluginsSource implements PluginsSource {
     private final List<DecisionInterceptor>             decisionInterceptors;
     private final List<SubscriptionLifecycleListener>   lifecycleListeners;
 
-    private final ReentrantLock                  stateLock  = new ReentrantLock();
-    private final Set<Consumer<PluginsBundle>>   listeners  = ConcurrentHashMap.newKeySet();
-    private final AtomicReference<PluginsBundle> bundle     = new AtomicReference<>();
-    private final List<PipHandle>                loadedPips = new ArrayList<>();
-    private final AtomicBoolean                  closed     = new AtomicBoolean(false);
+    private final ReentrantLock                    stateLock  = new ReentrantLock();
+    private final Set<Consumer<PluginsSnapshot>>   listeners  = ConcurrentHashMap.newKeySet();
+    private final AtomicReference<PluginsSnapshot> snapshot   = new AtomicReference<>();
+    private final List<PipHandle>                  loadedPips = new ArrayList<>();
+    private final AtomicBoolean                    closed     = new AtomicBoolean(false);
 
     private final FileAlterationMonitor monitor;
 
     /**
-     * Builds the source, starts the plugin manager, publishes the initial bundle,
+     * Builds the source, starts the plugin manager, publishes the initial snapshot,
      * registers the initial plugin PIPs,
      * and begins watching the plugins directory.
      *
-     * @param manager
-     * the plugin manager providing the contributions
-     * @param attributeBroker
-     * the live broker plugin PIPs are loaded into
-     * @param functionCacheSize
-     * function result cache size for the rebuilt broker
-     * @param includeDefaultFunctionLibraries
-     * whether to include the SAPL default function libraries in the rebuilt broker
-     * @param decisionInterceptors
-     * decision interceptors carried in every bundle
-     * @param lifecycleListeners
-     * lifecycle listeners carried in every bundle
+     * @param manager the plugin manager providing the contributions
+     * @param baseFunctionLibraries function libraries that are not from plugins, available to every
+     * configuration
+     * @param attributeBroker the live broker plugin PIPs are loaded into
+     * @param functionCacheSize function result cache size for the function brokers built per
+     * configuration
+     * @param includeDefaultFunctionLibraries whether to include the SAPL default function libraries in the base
+     * @param decisionInterceptors base decision interceptors, carried in every bundle
+     * @param lifecycleListeners base lifecycle listeners, carried in every bundle
      */
     public HotReloadingPluginsSource(@NonNull SaplPluginManager manager,
             List<Object> baseFunctionLibraries,
@@ -136,9 +133,8 @@ public final class HotReloadingPluginsSource implements PluginsSource {
     }
 
     /**
-     * Rebuilds the {@link FunctionBroker}, reconciles plugin PIPs against the live
-     * attribute broker, and notifies
-     * subscribers with the new bundle.
+     * Reconciles plugin PIPs against the live attribute broker, builds a new
+     * snapshot of the available plugins, and notifies subscribers with it.
      */
     public void republish() {
         stateLock.lock();
@@ -146,34 +142,39 @@ public final class HotReloadingPluginsSource implements PluginsSource {
             if (closed.get()) {
                 return;
             }
-            reconcilePips();
-
-            val libraries = new ArrayList<>(baseFunctionLibraries);
-            libraries.addAll(manager.functionLibraries());
-            val functionBroker = PolicyDecisionPointBuilder.buildFunctionBroker(functionCacheSize,
-                    includeDefaultFunctionLibraries, libraries);
-
-            val interceptors = new ArrayList<>(decisionInterceptors);
-            interceptors.addAll(manager.decisionInterceptors());
-
-            val bundle = new PluginsBundle(functionBroker, interceptors, lifecycleListeners);
-            this.bundle.set(bundle);
+            val available = reconcilePips(manager.loadedPlugins());
+            val snapshot  = new PluginEngineSnapshot(available, baseFunctionLibraries, includeDefaultFunctionLibraries,
+                    functionCacheSize, decisionInterceptors, lifecycleListeners);
+            this.snapshot.set(snapshot);
             for (val listener : listeners) {
-                notify(listener, bundle);
+                notify(listener, snapshot);
             }
         } finally {
             stateLock.unlock();
         }
     }
 
-    private void reconcilePips() {
+    private Map<String, LoadedPlugin> reconcilePips(Map<String, LoadedPlugin> loadedPlugins) {
         for (val handle : loadedPips) {
             handle.unload();
         }
         loadedPips.clear();
-        for (val pip : manager.policyInformationPoints()) {
-            loadedPips.add(attributeBroker.load(pip));
+        val available = new HashMap<String, LoadedPlugin>();
+        for (val plugin : loadedPlugins.values()) {
+            val handles = new ArrayList<PipHandle>();
+            try {
+                for (val pip : plugin.policyInformationPoints()) {
+                    handles.add(attributeBroker.load(pip));
+                }
+                loadedPips.addAll(handles);
+                available.put(plugin.pluginId(), plugin);
+            } catch (RuntimeException e) {
+                handles.forEach(PipHandle::unload);
+                log.error("PIPs of plugin '{}' could not be loaded. Plugin is not available.", plugin.pluginId(), e);
+            }
         }
+
+        return available;
     }
 
     private FileAlterationMonitor startDirectoryMonitor(Path pluginsRoot) {
@@ -206,12 +207,12 @@ public final class HotReloadingPluginsSource implements PluginsSource {
     }
 
     @Override
-    public void subscribe(@NonNull Consumer<PluginsBundle> listener) {
+    public void subscribe(@NonNull Consumer<PluginsSnapshot> listener) {
         if (closed.get()) {
             return;
         }
         if (listeners.add(listener)) {
-            val snapshot = bundle.get();
+            val snapshot = this.snapshot.get();
             if (snapshot != null) {
                 notify(listener, snapshot);
             }
@@ -219,7 +220,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
     }
 
     @Override
-    public void unsubscribe(@NonNull Consumer<PluginsBundle> listener) {
+    public void unsubscribe(@NonNull Consumer<PluginsSnapshot> listener) {
         listeners.remove(listener);
     }
 
@@ -246,11 +247,11 @@ public final class HotReloadingPluginsSource implements PluginsSource {
         manager.close();
     }
 
-    private void notify(Consumer<PluginsBundle> listener, PluginsBundle bundle) {
+    private void notify(Consumer<PluginsSnapshot> listener, PluginsSnapshot snapshot) {
         try {
-            listener.accept(bundle);
+            listener.accept(snapshot);
         } catch (Exception e) {
-            log.warn("Plugins bundle listener threw: {}", e.getMessage());
+            log.warn("Plugins snapshot listener threw: {}", e.getMessage());
         }
     }
 

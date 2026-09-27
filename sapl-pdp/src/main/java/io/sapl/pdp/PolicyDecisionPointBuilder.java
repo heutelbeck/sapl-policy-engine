@@ -156,7 +156,7 @@ public class PolicyDecisionPointBuilder {
     private static final String ERROR_DECRYPTION_KEY_MUST_NOT_BE_NULL      = "Secrets decryption key must not be null.";
     private static final String ERROR_DECRYPTION_KEYRING_MUST_NOT_BE_EMPTY = "Secrets decryption keyring must not be empty.";
     private static final String ERROR_INITIAL_CONFIGURATION_FAILED         = "The initial configuration for pdpId '%s' failed to compile: %s";
-    private static final String ERROR_NO_PLUGINS_AVAILABLE                 = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
+    private static final String ERROR_NO_PLUGINS_AVAILABLE                 = "Cannot build the PDP: no plugins snapshot is available from the plugins source.";
     private static final String ERROR_SOURCE_ALREADY_REGISTERED            = "A configuration source has already been registered. Only one source is allowed.";
     private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS         = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
     private static final String WARN_ERROR_CLOSING_RESOURCE                = "Error closing {} during failed PDP build: {}.";
@@ -915,7 +915,7 @@ public class PolicyDecisionPointBuilder {
             // Fail-fast validation of the initial configurations requires the plugins to
             // be available, so they compile synchronously here rather than being deferred.
             // A PDP cannot be built before its plugins source has delivered a snapshot.
-            val plugins = voterSource.getPlugins();
+            val plugins = voterSource.getBasePlugins();
             if (plugins == null) {
                 throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
             }
