@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.aop.ProxyMethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
 
@@ -40,6 +41,7 @@ import io.sapl.spring.pep.constraints.Signal.CancelSignal;
 import io.sapl.spring.pep.constraints.Signal.CompleteSignal;
 import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.ErrorSignal;
+import io.sapl.spring.pep.constraints.Signal.InputSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.Signal.SubscriptionSignal;
 import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
@@ -52,6 +54,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
+import org.springframework.security.access.AccessDeniedException;
+import io.sapl.spring.util.Maybe.Present;
 
 /**
  * Reactive PEP for {@link StreamEnforce}. Builds a {@link StreamingPipeline}
@@ -67,6 +71,8 @@ import reactor.core.publisher.Flux;
 public final class StreamEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE = "@StreamEnforce reactive PEP supports Flux only at this time. Found return type %s.";
+    private static final String ERROR_UNSUPPORTED_INVOCATION = "@StreamEnforce requires a cloneable Spring proxy invocation.";
+    private static final String ERROR_INPUT_OBLIGATION_FAILED = "Access denied. Input enforcement failed. The protected method was not invoked.";
 
     private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
     private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
@@ -91,6 +97,10 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
     }
 
     private Flux<Object> buildPipeline(MethodInvocation methodInvocation, SaplAttribute attribute) {
+        if (!(methodInvocation instanceof ProxyMethodInvocation proxyInvocation)) {
+            return Flux.error(new IllegalStateException(ERROR_UNSUPPORTED_INVOCATION));
+        }
+        val originalArguments = methodInvocation.getArguments().clone();
         val publisherType    = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
         val supportedSignals = collectSupportedSignals(publisherType);
         val planner          = enforcementPlannerProvider.getObject();
@@ -104,15 +114,26 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
 
         Function<AuthorizationDecision, EnforcementPlan> planFor     = decision -> planner.plan(decision,
                 supportedSignals);
-        Supplier<Flux<?>>                                rapSupplier = () -> invokeProtected(methodInvocation);
-
-        return StreamingPipeline.create(attribute.pauseRapDuringSuspend(), decisions, planFor, rapSupplier,
+        return StreamingPipeline.createPrepared(decisions, planFor,
+                plan -> prepareInvocation(proxyInvocation, originalArguments, plan),
                 attribute.signalTransitions());
+    }
+
+    private static Supplier<? extends Flux<?>> prepareInvocation(ProxyMethodInvocation original,
+            Object[] arguments, EnforcementPlan plan) {
+        val invocation = original.invocableClone(arguments.clone());
+        val result = plan.execute(InputSignal.of(invocation), false);
+        if (result.failureState() || !(result.value() instanceof Present<Object>(var value)) ||
+                !(value instanceof MethodInvocation prepared)) {
+            throw new AccessDeniedException(ERROR_INPUT_OBLIGATION_FAILED);
+        }
+        return () -> invokeProtected(prepared);
     }
 
     private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {
         val signals = new HashSet<SignalType>();
         signals.add(DecisionSignal.SIGNAL_TYPE);
+        signals.add(InputSignal.SIGNAL_TYPE);
         signals.add(ErrorSignal.SIGNAL_TYPE);
         signals.add(OutputSignal.typeFor(outputType.getGeneric(0)));
         signals.add(SubscriptionSignal.SIGNAL_TYPE);

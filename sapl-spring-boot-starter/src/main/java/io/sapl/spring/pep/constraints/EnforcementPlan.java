@@ -139,8 +139,24 @@ public record EnforcementPlan(
      * @return the (possibly transformed) value carried through the entries together
      * with the updated failure state
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public EnforcementResult<Object> execute(Signal signal, boolean priorFailureState) {
+        return execute(signal, priorFailureState, false);
+    }
+
+    /**
+     * Executes an item chain. A null mapper result drops the item and stops its
+     * remaining handlers. A failed mapper supplies an access-denied value to later
+     * handlers without clearing the sticky obligation failure.
+     *
+     * @param value the non-null stream item
+     * @return the mapped or absent item and its obligation failure state
+     */
+    public EnforcementResult<Object> executeStreamingOutput(Object value) {
+        return execute(OutputSignal.ofUnchecked(outputType, value), false, true);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private EnforcementResult<Object> execute(Signal signal, boolean priorFailureState, boolean streamingItem) {
         val           signalEntries = entriesFor(signal.type());
         Maybe<Object> currentValue  = switch (signal) {
                                     case Signal.OutputSignal<?>(var ignoredType, var maybeValue) -> (Maybe) maybeValue;
@@ -153,12 +169,20 @@ public record EnforcementPlan(
         for (val entry : signalEntries) {
             try {
                 currentValue = apply(entry.handler(), currentValue);
+                if (streamingItem && currentValue instanceof Present<Object>(var value) && value == null) {
+                    currentValue = Maybe.absent();
+                    break;
+                }
             } catch (Throwable throwable) {
                 throwIfFatal(throwable);
                 log.warn(WARN_HANDLER_FAILED, signal.type(), entry.constraintType(), entry.constraint(),
                         throwable.toString());
                 if (entry.constraintType() == ConstraintType.OBLIGATION) {
                     failureState = true;
+                    if (streamingItem) {
+                        currentValue = Maybe.of(new AccessDeniedException(
+                                ERROR_ACCESS_DENIED_AT_SIGNAL.formatted(signal.type()), throwable));
+                    }
                 }
             }
         }

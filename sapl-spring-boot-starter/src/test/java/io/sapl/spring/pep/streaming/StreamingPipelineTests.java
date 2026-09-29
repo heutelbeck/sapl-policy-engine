@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +35,10 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -64,7 +68,12 @@ import reactor.test.StepVerifier;
  * subscription lazy / pause-and-resume.</li>
  * </ul>
  */
+@Timeout(10)
+@ExtendWith(MockitoExtension.class)
 class StreamingPipelineTests {
+
+    @Mock
+    EnforcementPlan mockedPlan;
 
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
 
@@ -75,7 +84,6 @@ class StreamingPipelineTests {
         Sinks.Many<Object>                rap                        = Sinks.many().unicast().onBackpressureBuffer();
         EnforcementPlan                   plan                       = new EnforcementPlan(java.util.Map.of());
         AtomicInteger                     rapSupplierInvocationCount = new AtomicInteger();
-        boolean                           pauseRapDuringSuspend;
         boolean                           signalTransitions;
 
         Flux<Object> create() {
@@ -83,11 +91,14 @@ class StreamingPipelineTests {
                 rapSupplierInvocationCount.incrementAndGet();
                 return rap.asFlux();
             };
-            return StreamingPipeline.create(pauseRapDuringSuspend, pdp.asFlux(), d -> plan, supplier,
+            return StreamingPipeline.create(pdp.asFlux(), d -> plan, supplier,
                     signalTransitions);
         }
 
         void emitPermit() {
+            if (rapSupplierInvocationCount.get() > 0 && rap.currentSubscriberCount() == 0) {
+                rap = Sinks.many().unicast().onBackpressureBuffer();
+            }
             pdp.tryEmitNext(AuthorizationDecision.PERMIT);
         }
 
@@ -179,10 +190,10 @@ class StreamingPipelineTests {
         @Test
         void perItemFailureErrorsTheSubscription() {
             Harness         h           = new Harness();
-            EnforcementPlan failingPlan = mock(EnforcementPlan.class);
+            EnforcementPlan failingPlan = mockedPlan;
             when(failingPlan.enforceDecisionConstraints(any())).thenReturn(false);
-            when(failingPlan.execute(any(Signal.class), anyBoolean()))
-                    .thenReturn(new EnforcementResult<>(Maybe.absent(), true));
+            when(failingPlan.executeStreamingOutput(any()))
+                    .thenReturn(new EnforcementResult<>(Maybe.of(new AccessDeniedException("Obligation failed")), true));
             h.plan = failingPlan;
             Flux<Object> out = h.create();
 
@@ -193,26 +204,26 @@ class StreamingPipelineTests {
         @Test
         void planExecuteIsInvokedOncePerRapItemWhilePermitting() {
             Harness         h   = new Harness();
-            EnforcementPlan spy = mock(EnforcementPlan.class);
+            EnforcementPlan spy = mockedPlan;
             when(spy.enforceDecisionConstraints(any())).thenReturn(false);
-            when(spy.execute(any(Signal.class), anyBoolean()))
-                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(extractValue(inv.getArgument(0))), false));
+            when(spy.executeStreamingOutput(any()))
+                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(inv.getArgument(0)), false));
             h.plan = spy;
             Flux<Object> out = h.create();
 
             StepVerifier.create(out.take(3)).then(h::emitPermit).then(() -> h.emitRap("a")).then(() -> h.emitRap("b"))
                     .then(() -> h.emitRap("c")).expectNext("a", "b", "c").verifyComplete();
 
-            verify(spy, times(3)).execute(any(Signal.class), anyBoolean());
+            verify(spy, times(3)).executeStreamingOutput(any());
         }
 
         @Test
         void planExecuteIsNotInvokedForSuspendedItems() {
             Harness         h   = new Harness();
-            EnforcementPlan spy = mock(EnforcementPlan.class);
+            EnforcementPlan spy = mockedPlan;
             when(spy.enforceDecisionConstraints(any())).thenReturn(false);
-            when(spy.execute(any(Signal.class), anyBoolean()))
-                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(extractValue(inv.getArgument(0))), false));
+            when(spy.executeStreamingOutput(any()))
+                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(inv.getArgument(0)), false));
             h.plan = spy;
             Flux<Object> out = h.create();
 
@@ -221,7 +232,7 @@ class StreamingPipelineTests {
                     .then(() -> h.emitRap("suspended-b")).verifyComplete();
 
             // Only the one permitted item should have been executed.
-            verify(spy, times(1)).execute(any(Signal.class), anyBoolean());
+            verify(spy, times(1)).executeStreamingOutput(any());
         }
     }
 
@@ -312,27 +323,23 @@ class StreamingPipelineTests {
         }
 
         @Test
-        void rapSupplierIsInvokedOncePerPermitWhenPauseRapDuringSuspendIsTrue() {
+        void whenResumedThenRapSupplierIsInvokedAgain() {
             Harness h = new Harness();
-            h.pauseRapDuringSuspend = true;
             Flux<Object> out = h.create();
 
-            StepVerifier.create(out.take(Duration.ofMillis(500))).then(h::emitPermit).then(h::emitSuspend).then(() -> {
-                // Replace the RAP sink so the next PERMIT subscribes a fresh source.
-                h.rap = Sinks.many().unicast().onBackpressureBuffer();
-            }).then(h::emitPermit).verifyComplete();
+            StepVerifier.create(out).then(h::emitPermit).then(h::emitSuspend)
+                    .then(h::emitPermit).thenCancel().verify(TIMEOUT);
 
             assertThat(h.rapSupplierInvocationCount.get()).isEqualTo(2);
         }
 
         @Test
-        void rapSupplierIsInvokedOnceWhenPauseRapDuringSuspendIsFalse() {
+        void whenEquivalentPermitsArriveThenRapSupplierIsInvokedOnce() {
             Harness h = new Harness();
-            h.pauseRapDuringSuspend = false;
             Flux<Object> out = h.create();
 
-            StepVerifier.create(out.take(Duration.ofMillis(500))).then(h::emitPermit).then(h::emitSuspend)
-                    .then(h::emitPermit).verifyComplete();
+            StepVerifier.create(out).then(h::emitPermit).then(h::emitPermit).then(h::emitPermit)
+                    .thenCancel().verify(TIMEOUT);
 
             assertThat(h.rapSupplierInvocationCount.get()).isEqualTo(1);
         }
@@ -448,7 +455,7 @@ class StreamingPipelineTests {
             // items flow again.
             StepVerifier.create(out, 1).then(h::emitPermit).then(() -> h.emitRap("a")).expectNext("a")
                     .then(h::emitSuspend).thenRequest(1).then(h::emitPermit).then(() -> h.emitRap("b")).expectNext("b")
-                    .thenCancel().verify(TIMEOUT);
+                    .thenRequest(1).expectError(AccessDeniedException.class).verify(TIMEOUT);
         }
 
         @Test
@@ -479,11 +486,11 @@ class StreamingPipelineTests {
                     .verify(TIMEOUT);
         }
 
-        private static EnforcementPlan permittingPlanWithoutFailures() {
-            EnforcementPlan plan = mock(EnforcementPlan.class);
+        private EnforcementPlan permittingPlanWithoutFailures() {
+            EnforcementPlan plan = mockedPlan;
             when(plan.enforceDecisionConstraints(any())).thenReturn(false);
-            when(plan.execute(any(Signal.class), anyBoolean()))
-                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(extractValue(inv.getArgument(0))), false));
+            lenient().when(plan.executeStreamingOutput(any()))
+                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(inv.getArgument(0)), false));
             return plan;
         }
     }
