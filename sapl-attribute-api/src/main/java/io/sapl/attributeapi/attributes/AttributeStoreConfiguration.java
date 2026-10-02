@@ -36,7 +36,6 @@ import io.sapl.attributeapi.attributes.backend.RoutingAttributeStore;
 import jakarta.annotation.Nullable;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Locale;
@@ -136,7 +135,7 @@ public class AttributeStoreConfiguration {
         return new RoutingAttributeStore(resolver, pdpId -> {}, () -> cache.values().forEach(e -> e.store().close()));
     }
 
-    private AttributeStore buildStore(BackendConfig config) {
+    AttributeStore buildStore(BackendConfig config) {
         return switch (config.getType()) {
         case POSTGRES -> buildPostgresStore(config.getPostgres());
         case MONGO    -> buildMongoStore(config.getMongo());
@@ -174,7 +173,7 @@ public class AttributeStoreConfiguration {
     }
 
     // Generated the backend configuration for the right backend
-    private BackendConfig toBackendConfig(ObjectValue node) {
+    BackendConfig toBackendConfig(ObjectValue node) {
         var type   = Objects.requireNonNull(text(node, FIELD_TYPE));
         var config = new BackendConfig();
         config.setType(AttributeStorageProperties.BackendType.valueOf(type.toUpperCase(Locale.ROOT)));

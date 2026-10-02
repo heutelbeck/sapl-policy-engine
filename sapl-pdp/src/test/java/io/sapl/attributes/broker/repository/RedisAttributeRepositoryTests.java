@@ -50,9 +50,6 @@ class RedisAttributeRepositoryTests {
 
     @BeforeAll
     static void enableKeyspaceNotifications() {
-        // Off by default on a fresh Redis server; RedisAttributeRepository itself
-        // refuses to start without it (see requireKeyspaceNotificationsEnabled()),
-        // so every test in this class needs it enabled once, up front.
         val setupClient = RedisClient.create(redis.getRedisURI());
         setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
         setupClient.shutdown();
@@ -158,8 +155,6 @@ class RedisAttributeRepositoryTests {
         @DisplayName("after TTL expires, a fresh observe returns UNDEFINED")
         void thenObserverReceivesUndefinedAfterExpiry() {
             repository.publish(key("sapl.test.ttl"), Value.of("temp"), Duration.ofSeconds(1));
-            // Redis expires keys natively without notifying existing observers, so
-            // poll via fresh observe calls until the server-side expiry has happened.
             Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                 received.clear();
                 repository.observe(invocation("sapl.test.ttl"), received::add);
@@ -173,10 +168,10 @@ class RedisAttributeRepositoryTests {
     class PubSubObserver {
 
         @Test
-        @DisplayName("observer is notified when value is published from another instance")
+        @DisplayName("when value is publihed from another instance then observer is notified")
         void observerNotifiedFromOtherInstance() {
             repository.observe(invocation("sapl.test.observe"), received::add);
-            received.clear(); // discard initial UNDEFINED
+            received.clear();
 
             val client2 = RedisClient.create(redis.getRedisURI());
             try (val repo2 = new RedisAttributeRepository(client2, "test-tenant", 0)) {
@@ -224,7 +219,6 @@ class RedisAttributeRepositoryTests {
     @Nested
     @DisplayName("when notify-keyspace-events is not configured on the Redis server")
     class WhenKeyspaceNotificationsAreDisabled {
-
         @Test
         @DisplayName("construction fails fast with a clear error instead of starting up silently")
         void constructorRejectsMissingKeyspaceNotifications() {
@@ -235,12 +229,55 @@ class RedisAttributeRepositoryTests {
                 try {
                     assertThatThrownBy(() -> createRepository(testClient)).isInstanceOf(IllegalStateException.class);
                 } finally {
-                    // Restore for the other tests in this class — notify-keyspace-events is
-                    // server-wide, not per connection/database.
                     setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
                 }
             }
         }
+        
+        @Test
+    	@DisplayName("construction fails when then flag for keyevents(E) is missing")
+    	void keyeventFlagIsMissing() {
+    		try (val setupClient = RedisClient.create(redis.getRedisURI());
+                    val testClient = RedisClient.create(redis.getRedisURI())) {
+                setupClient.connect().sync().configSet("notify-keyspace-events", "x");
+                
+                try {
+                    assertThatThrownBy(() -> createRepository(testClient)).isInstanceOf(IllegalStateException.class);
+                } finally {
+                    setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
+                }
+            }
+    	}
+        
+        @Test
+    	@DisplayName("construction fails when then flag for for expired events (x) is missing")
+    	void expiredEventFlagIsMissing() {
+    		try (val setupClient = RedisClient.create(redis.getRedisURI());
+                    val testClient = RedisClient.create(redis.getRedisURI())) {
+                setupClient.connect().sync().configSet("notify-keyspace-events", "E");
+                
+                try {
+                    assertThatThrownBy(() -> createRepository(testClient)).isInstanceOf(IllegalStateException.class);
+                } finally {
+                    setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
+                }
+            }
+    	}
+        
+        @Test
+    	@DisplayName("construction is sucessfull when the generic flag (A) is used with the keyevent flag (E)")
+    	void genericFlagIsUsed() {
+    		try (val setupClient = RedisClient.create(redis.getRedisURI());
+                    val testClient = RedisClient.create(redis.getRedisURI())) {
+                setupClient.connect().sync().configSet("notify-keyspace-events", "EA");
+                
+                try {
+                    assertThat(createRepository(testClient)).isInstanceOf(RedisAttributeRepository.class);
+                } finally {
+                    setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
+                }
+            }
+    	}
 
         private static RedisAttributeRepository createRepository(RedisClient client) {
             return new RedisAttributeRepository(client, "test-tenant", 0);

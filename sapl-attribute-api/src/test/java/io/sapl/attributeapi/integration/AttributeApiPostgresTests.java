@@ -39,7 +39,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @DisabledOnOs(OS.WINDOWS)
 class AttributeApiPostgresTests extends AbstractAttributeApiTests {
     @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.6");
 
     @DynamicPropertySource
     static void postgresProperties(DynamicPropertyRegistry registry) {
