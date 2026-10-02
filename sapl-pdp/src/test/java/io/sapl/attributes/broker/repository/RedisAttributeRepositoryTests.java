@@ -233,51 +233,51 @@ class RedisAttributeRepositoryTests {
                 }
             }
         }
-        
+
         @Test
-    	@DisplayName("construction fails when then flag for keyevents(E) is missing")
-    	void keyeventFlagIsMissing() {
-    		try (val setupClient = RedisClient.create(redis.getRedisURI());
+        @DisplayName("construction fails when then flag for keyevents(E) is missing")
+        void keyeventFlagIsMissing() {
+            try (val setupClient = RedisClient.create(redis.getRedisURI());
                     val testClient = RedisClient.create(redis.getRedisURI())) {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "x");
-                
+
                 try {
                     assertThatThrownBy(() -> createRepository(testClient)).isInstanceOf(IllegalStateException.class);
                 } finally {
                     setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
                 }
             }
-    	}
-        
+        }
+
         @Test
-    	@DisplayName("construction fails when then flag for for expired events (x) is missing")
-    	void expiredEventFlagIsMissing() {
-    		try (val setupClient = RedisClient.create(redis.getRedisURI());
+        @DisplayName("construction fails when then flag for for expired events (x) is missing")
+        void expiredEventFlagIsMissing() {
+            try (val setupClient = RedisClient.create(redis.getRedisURI());
                     val testClient = RedisClient.create(redis.getRedisURI())) {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "E");
-                
+
                 try {
                     assertThatThrownBy(() -> createRepository(testClient)).isInstanceOf(IllegalStateException.class);
                 } finally {
                     setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
                 }
             }
-    	}
-        
+        }
+
         @Test
-    	@DisplayName("construction is sucessfull when the generic flag (A) is used with the keyevent flag (E)")
-    	void genericFlagIsUsed() {
-    		try (val setupClient = RedisClient.create(redis.getRedisURI());
+        @DisplayName("construction is sucessfull when the generic flag (A) is used with the keyevent flag (E)")
+        void genericFlagIsUsed() {
+            try (val setupClient = RedisClient.create(redis.getRedisURI());
                     val testClient = RedisClient.create(redis.getRedisURI())) {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "EA");
-                
+
                 try {
                     assertThat(createRepository(testClient)).isInstanceOf(RedisAttributeRepository.class);
                 } finally {
                     setupClient.connect().sync().configSet("notify-keyspace-events", "Ex");
                 }
             }
-    	}
+        }
 
         private static RedisAttributeRepository createRepository(RedisClient client) {
             return new RedisAttributeRepository(client, "test-tenant", 0);
