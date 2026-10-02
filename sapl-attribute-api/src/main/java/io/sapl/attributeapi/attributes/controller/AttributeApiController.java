@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
- * The API controller to serve the endpoints of the API and receive and answer
+ * The API controller to serve the endpoint's of the API and receive and answer
  * requests via HTTP. Forwards the requests to the API service layer.
  */
 @Tag(name = "Attribute API", description = "REST API for managing attribute in the attribute store. Attributes can"
@@ -178,9 +178,9 @@ public class AttributeApiController {
      */
     @Operation(summary = "Get a single attribute with an entity, attribute name and optional arguments", responses = {
             @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "IT"))),
-            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
-            @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
-            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400, content = @Content(schema = @Schema(type = "string", example = "The attribute name is not fully qualified"))),
+            @ApiResponse(responseCode = "404", description = DESC_HTTP_404, content = @Content(schema = @Schema(type = "string"))),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503, content = @Content(schema = @Schema(type = "string", example = "The service is currently unavailable"))) })
     @GetMapping("/{entity}/{name}")
     public ResponseEntity<JsonNode> getAttribute(@Parameter(description = DESC_ENTITY) @PathVariable String entity,
             @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,
@@ -197,9 +197,9 @@ public class AttributeApiController {
      */
     @Operation(summary = "Get a single attribute with an attribute name and optional arguments", responses = {
             @ApiResponse(responseCode = "200", description = "The attribute did exist in the attribute store.", content = @Content(schema = @Schema(type = "string", example = "IT"))),
-            @ApiResponse(responseCode = "400", description = DESC_HTTP_400),
-            @ApiResponse(responseCode = "404", description = DESC_HTTP_404),
-            @ApiResponse(responseCode = "503", description = DESC_HTTP_503) })
+            @ApiResponse(responseCode = "400", description = DESC_HTTP_400, content = @Content(schema = @Schema(type = "string", example = "The attribute name is not fully qualified"))),
+            @ApiResponse(responseCode = "404", description = DESC_HTTP_404, content = @Content(schema = @Schema(type = "string"))),
+            @ApiResponse(responseCode = "503", description = DESC_HTTP_503, content = @Content(schema = @Schema(type = "string", example = "The service is currently unavailable"))) })
     @GetMapping("/{name}")
     public ResponseEntity<JsonNode> getGlobalAttribute(
             @Parameter(description = DESC_ATTRIBUTE_NAME) @PathVariable String name,

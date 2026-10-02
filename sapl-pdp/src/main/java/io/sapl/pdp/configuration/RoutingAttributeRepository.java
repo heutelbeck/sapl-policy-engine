@@ -201,6 +201,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
      */
     private void route(String pdpId, String configId) {
         val oldConfigId = pdpToConfig.put(pdpId, configId);
+
         if (oldConfigId != null && !oldConfigId.equals(configId)) {
             Optional.ofNullable(cache.remove(oldConfigId)).ifPresent(AttributeRepository::close);
             rawConfig.remove(oldConfigId);
@@ -221,12 +222,15 @@ public class RoutingAttributeRepository implements AttributeRepository {
         }
 
         val builder = ObjectValue.builder();
+
         if (extConfig instanceof ObjectValue obj) {
             builder.putAll(obj);
         }
+
         if (extSecrets instanceof ObjectValue obj) {
             builder.putAll(obj);
         }
+
         return builder.build();
     }
 

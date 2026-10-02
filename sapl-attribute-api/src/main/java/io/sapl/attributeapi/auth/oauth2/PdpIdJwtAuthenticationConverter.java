@@ -23,7 +23,6 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
-
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import io.sapl.attributeapi.auth.AttributeApiUserDetails;
 

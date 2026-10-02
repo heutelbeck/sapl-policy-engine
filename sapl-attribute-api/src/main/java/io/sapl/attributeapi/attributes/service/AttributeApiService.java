@@ -28,13 +28,11 @@ import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
-
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.NoSuchElementException;
