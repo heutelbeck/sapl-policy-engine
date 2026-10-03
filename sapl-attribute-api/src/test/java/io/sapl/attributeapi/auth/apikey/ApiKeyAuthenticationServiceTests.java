@@ -73,8 +73,8 @@ class ApiKeyAuthenticationServiceTests {
         }
 
         @Test
-        @DisplayName("An empty key should return nothing")
-        void whenKeyIdIsUnknownThenDummyVerficationRunsOnce() throws Exception {
+        @DisplayName("When the key id is unknown then the dummy verification runs once")
+        void whenKeyIdIsUnknownThenDummyVerificationRunsOnce() throws Exception {
             // Spy wrapper to see what calls are made
             var fakeEncoder = spy(realEncoder);
             var service     = new ApiKeyAuthenticationService(properties, fakeEncoder);

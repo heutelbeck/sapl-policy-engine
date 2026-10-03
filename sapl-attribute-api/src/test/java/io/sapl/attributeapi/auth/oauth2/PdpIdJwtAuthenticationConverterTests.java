@@ -55,6 +55,15 @@ class PdpIdJwtAuthenticationConverterTests {
     }
 
     @Test
+    @DisplayName("when a claim has a invalid pdp id then throw an InvalidBearerTokenException")
+    void whenPdpIdIsInvalidThenThrowInvalidBearerTokenException() {
+        var jwt = Jwt.withTokenValue("token").header("alg", "RS256").subject("user").claim(CLAIM_NAME, "a pdpId")
+                .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(60)).build();
+
+        assertThatThrownBy(() -> converter.convert(jwt)).isInstanceOf(InvalidBearerTokenException.class);
+    }
+
+    @Test
     @DisplayName("reject if a JWT has a blank pdpId claim")
     void whenClaimBlankThenInvalidBearerTokenExceptionThrown() {
         var jwt = Jwt.withTokenValue("token").header("alg", "RS256").subject("user-1").claim(CLAIM_NAME, "  ")

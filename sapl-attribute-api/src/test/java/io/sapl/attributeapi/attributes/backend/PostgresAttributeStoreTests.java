@@ -19,24 +19,35 @@ package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+
 import java.time.Duration;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.r2dbc.core.DatabaseClient;
 import io.sapl.api.model.Value;
 
 class PostgresAttributeStoreTests {
+    private static final String       TABLE = "attributes";
+    private static final AttributeKey KEY   = new AttributeKey(null, "sapl.test.attribute", List.of());
+
+    private DatabaseClient         client;
+    private PostgresAttributeStore store;
+
+    @BeforeEach
+    void setUp() {
+        client = mock(DatabaseClient.class);
+        store  = new PostgresAttributeStore(client, TABLE, false);
+    }
 
     @Test
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
     void whenPublishedWithNegativeTTLExceptionIsThrown() {
-        var store = new PostgresAttributeStore(mock(DatabaseClient.class), "attributes", false);
-        var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
         var value = Value.of("negative");
         var ttl   = Duration.ofSeconds(-1);
 
-        assertThatThrownBy(() -> store.publish(key, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> store.publish(KEY, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("TTL must be a strictly positive Duration.");
     }
 }

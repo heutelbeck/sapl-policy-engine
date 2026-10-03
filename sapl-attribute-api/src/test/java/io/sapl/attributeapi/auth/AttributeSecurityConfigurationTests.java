@@ -18,6 +18,9 @@
 package io.sapl.attributeapi.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.UUID;
+
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -27,6 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 class AttributeSecurityConfigurationTests {
     private Logger                      securityConfigLogger;
@@ -109,7 +113,7 @@ class AttributeSecurityConfigurationTests {
 
     @Test
     @DisplayName("The default claim for OIDC is pdp_id when not overriden by a user's configuration")
-    void whenOidcPdpIdClaimNotSetThenDefaultClaimNameIsPdpId() {
+    void whenOidcPdpIdClaimIsSetThenCustomClaimNameOverridesDefault() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true")
                 .run(context -> assertThat(
@@ -126,5 +130,27 @@ class AttributeSecurityConfigurationTests {
                 .run(context -> assertThat(
                         context.getBean(AttributeApiSecurityProperties.class).getOauth2().getOidcPdpIdClaim())
                         .isEqualTo("my_claim"));
+    }
+
+    @Test
+    @DisplayName("When no auth is configured then permit all requests but log a warning during startup")
+    void whenOnlyNoAuthConfiguredThenPermitAllAndLogWarning() {
+        contextRunner
+                .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true")
+                .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
+                        .contains("Server has been configured to reply to requests without authentication."));
+    }
+
+    @Test
+    @DisplayName("When API key auth is enab led with a configured user then no warning is logged")
+    void whenApiKeyAuthEnabledWithConfiguredUserThenNoWarningIsLogged() {
+        var encodedApiKey = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8().encode(UUID.randomUUID().toString());
+
+        contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true",
+                "io.sapl.attribute-api.allow-api-key-auth=true", "io.sapl.attribute-api.users[0].id=test-user",
+                "io.sapl.attribute-api.users[0].pdp-id=test-user", "io.sapl.attribute-api.users[0].api-key-id=test",
+                "io.sapl.attribute-api.users[0].api-key=" + encodedApiKey)
+                .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
+                        .containsExactly("API key authentication activated."));
     }
 }

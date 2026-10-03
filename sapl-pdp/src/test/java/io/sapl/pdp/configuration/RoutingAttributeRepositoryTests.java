@@ -37,7 +37,7 @@ import lombok.val;
 
 class RoutingAttributeRepositoryTests {
     @Test
-    @DisplayName("An observer with an unknown configId triggers an error and quetes the observation")
+    @DisplayName("An observer with an unknown configId triggers an error and queues the observation")
     void whenObserveCalledForUnknownConfigThenErrorTriggeredAndQueued() {
         AttributeAccessContext context = new AttributeAccessContext(Value.ofObject(Map.of()), Value.ofObject(Map.of()),
                 Value.ofObject(Map.of()));
@@ -56,7 +56,7 @@ class RoutingAttributeRepositoryTests {
 
     @Test
     @DisplayName("canPrepare method accepts a configuration with an attributeRepository extension (fallback)")
-    void whenExtensionIsMissingThenCanPrepareAccpets() {
+    void whenExtensionIsMissingThenCanPrepareAccepts() {
         val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
                 List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         try (var router = new RoutingAttributeRepository()) {
@@ -85,7 +85,7 @@ class RoutingAttributeRepositoryTests {
 
     @Test
     @DisplayName("canPrepare method rejects an existing config that is invalid but existing for the attribute repository")
-    void whenExtensionExistsButIsInvalidThenCanPrepareRejcts() {
+    void whenExtensionExistsButIsInvalidThenCanPrepareRejects() {
         val config = ObjectValue.builder().put("type", Value.of("postgres")).put("host", Value.of("localhost"))
                 .put("port", Value.of(5432)).put("database", Value.of("sapl")).build();
 

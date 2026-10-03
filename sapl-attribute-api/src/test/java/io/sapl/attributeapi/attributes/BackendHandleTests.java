@@ -58,7 +58,7 @@ class BackendHandleTests {
     }
 
     @Test
-    @DisplayName("A builder that failds throws an exception that the backend is unavailable")
+    @DisplayName("A builder that fails throws an exception that the backend is unavailable")
     void whenBuilderFailedThenThrowsAttributeBackendUnavailableException() {
         when(builder.get()).thenThrow(new RuntimeException("connection refused"));
 

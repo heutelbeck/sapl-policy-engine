@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,20 +44,40 @@ class AttributeStoreConfigurationIT {
     @Test
     @DisplayName("When using an embedded store and Postgres as backend then publish an attribute and validate the value")
     void whenEmbeddedConfigHasPostgresThenPublishAnAttributeAndGetTheValue() {
-        var config = new AttributeStoreConfiguration();
+        var                               config         = new AttributeStoreConfiguration();
+        var                               nodeConfig     = new AtomicReference<Value>(postgresNode("attributes"));
+        Function<String, Optional<Value>> configResolver = pdpId -> Optional.of(nodeConfig.get());
 
-        var nodeConfig = ObjectValue.builder().put("type", Value.of("postgres"))
-                .put("host", Value.of(postgres.getHost())).put("port", Value.of(postgres.getMappedPort(5432)))
-                .put("database", Value.of(postgres.getDatabaseName())).put("username", Value.of(postgres.getUsername()))
-                .put("password", Value.of(postgres.getPassword())).build();
-
-        Function<String, Optional<Value>> configResolver = pdpId -> Optional.of(nodeConfig);
-        var                               attributeStore = config.embeddedRoutingAttributeStore(configResolver);
-        var                               key            = new AttributeKey(Value.of("alice"), "test.attribute",
-                List.of());
+        var attributeStore = config.embeddedRoutingAttributeStore(configResolver);
+        var key            = new AttributeKey(Value.of("alice"), "test.attribute", List.of());
 
         attributeStore.publish(key, Value.of("aValue"), "aTenant");
 
         assertThat(attributeStore.get(key, "aTenant")).isEqualTo(Value.of("aValue"));
+    }
+
+    @Test
+    @DisplayName("When using an embedded store and Postgres as backend then publish an attribute and validate the value")
+    void whenEmbeddedConfigHasChangedThenCacheIsInvalidatedAndNextRequestIsDoneWithNewConfig() {
+        var                               config         = new AttributeStoreConfiguration();
+        var                               currentNode    = new AtomicReference<Value>(postgresNode("attributes"));
+        Function<String, Optional<Value>> configResolver = pdpId -> Optional.of(currentNode.get());
+
+        var attributeStore = config.embeddedRoutingAttributeStore(configResolver);
+        var key            = new AttributeKey(Value.of("alice"), "test.attribute", List.of());
+
+        attributeStore.publish(key, Value.of("aValue"), "aTenant");
+        assertThat(attributeStore.get(key, "aTenant")).isEqualTo(Value.of("aValue"));
+
+        currentNode.set(postgresNode("attributes_v2"));
+
+        assertThat(attributeStore.get(key, "aTenant")).isEqualTo(Value.UNDEFINED);
+    }
+
+    private Value postgresNode(String tableName) {
+        return ObjectValue.builder().put("type", Value.of("postgres")).put("host", Value.of(postgres.getHost()))
+                .put("port", Value.of(postgres.getMappedPort(5432)))
+                .put("database", Value.of(postgres.getDatabaseName())).put("username", Value.of(postgres.getUsername()))
+                .put("password", Value.of(postgres.getPassword())).put("tableName", Value.of(tableName)).build();
     }
 }

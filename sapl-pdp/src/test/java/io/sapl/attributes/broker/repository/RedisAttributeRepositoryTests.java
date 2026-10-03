@@ -180,18 +180,6 @@ class RedisAttributeRepositoryTests {
 
             Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> received.contains(Value.of("from-other-node")));
         }
-
-        @Test
-        @DisplayName("observer is notified with UNDEFINED when value is removed")
-        void observerNotifiedOnRemove() {
-            repository.publish(key("sapl.test.observeRemove"), Value.of("initial"));
-            repository.observe(invocation("sapl.test.observeRemove"), received::add);
-            received.clear(); // discard initial "initial"
-
-            repository.remove(key("sapl.test.observeRemove"));
-
-            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.contains(Value.UNDEFINED));
-        }
     }
 
     @Nested

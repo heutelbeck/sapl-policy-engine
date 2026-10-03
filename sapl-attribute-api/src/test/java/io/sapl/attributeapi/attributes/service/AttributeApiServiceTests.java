@@ -79,6 +79,28 @@ class AttributeApiServiceTests {
                 .isInstanceOf(NoSuchElementException.class);
     }
 
+    @Test
+    @DisplayName("When a getall() is called with a negative limit then exception is thrown")
+    void whenLimitIsZeroOrNegativeThenThrows() {
+        var service = new AttributeApiService(store, properties);
+        assertThatThrownBy(() -> service.getAll("aTenant", -1, 5)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("When a getall() is called with a limit greater than the configured maximum then exception is thrown")
+    void whenLimitExceedsMaxThenThrows() {
+        var service = new AttributeApiService(store, properties);
+        assertThatThrownBy(() -> service.getAll("aTenant", 1001, 5)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("When a getall() is called with a negative offset then exception is thrown")
+    void whenOffsetIsNegativeThenThrows() {
+        var service = new AttributeApiService(store, properties);
+        assertThatThrownBy(() -> service.getAll("aTenant", 5, -1)).isInstanceOf(IllegalArgumentException.class);
+
+    }
+
     // Return a list of arguments like ["1","2",...,"n"]
     private static List<String> generateXArguments(int count) {
         return IntStream.rangeClosed(1, count).mapToObj(String::valueOf).toList();
