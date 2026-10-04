@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -98,29 +99,37 @@ import java.util.function.Supplier;
  * @since 4.1.0
  */
 @Slf4j
-public final class PolicyInformationPointAttributeBroker implements AttributeBroker {
+public final class PolicyInformationPointAttributeBroker implements AttributeBroker, PolicyInformationPointVisibility {
 
-    private static final String ERROR_ANNOTATION_MISSING      = "PIP class %s is not annotated with @PolicyInformationPoint.";
-    private static final String ERROR_BROKER_CLOSED           = "Cannot open a subscription: the attribute broker is closed.";
-    private static final String ERROR_CATALOG_INVARIANT       = "Catalog invariant violated. Multiple exact matches for '{}'. Falling back to UNDEFINED or repository. The collision rule should have prevented this. Indicates an engine bug.";
-    private static final String ERROR_DEPS_EMPTY              = "initialDependencies must not be empty";
-    private static final String ERROR_GRACE_DURATION_NEGATIVE = "gracePeriodDuration must not be negative";
-    private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
-    private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
-    private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw); ignoring this fire: {}";
-    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set); ignoring this fire and keeping the current dependency set.";
-    private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
-    private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
-    private static final String ERROR_SUBSCRIPTION_ID_IN_USE  = "subscriptionId already open: %s";
+    private static final String ERROR_ANNOTATION_MISSING        = "PIP class %s is not annotated with @PolicyInformationPoint.";
+    private static final String ERROR_BROKER_CLOSED             = "Cannot open a subscription: the attribute broker is closed.";
+    private static final String ERROR_DEPS_EMPTY                = "initialDependencies must not be empty";
+    private static final String ERROR_GRACE_DURATION_NEGATIVE   = "gracePeriodDuration must not be negative";
+    private static final String ERROR_HANDLE_NOT_LOADED         = "Cannot swap PIP: handle for '%s' is not currently loaded.";
+    private static final String ERROR_LOAD_PROCESSOR_FAILED     = "Failed to register PIP '%s': %s";
+    private static final String ERROR_ONUPDATE_THREW            = "Subscription {} onUpdate callback threw (engine invariant: it must never throw); ignoring this fire: {}";
+    private static final String ERROR_PLUGIN_ATTRIBUTE_CONFLICT = "Attribute '%s' (parameter shape %s) is provided by both plugins '%s' and '%s'.";
+    private static final String ERROR_RETURNED_DEPS_INVALID     = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set); ignoring this fire and keeping the current dependency set.";
+    private static final String ERROR_SPEC_COLLISION            = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
+    private static final String ERROR_SUBSCRIPTION_ID_BLANK     = "subscriptionId must not be blank";
+    private static final String ERROR_SUBSCRIPTION_ID_IN_USE    = "subscriptionId already open: %s";
+    private static final String WARN_AMBIGUOUS_RESOLUTION       = "Attribute '{}' is ambiguous for PDP '{}': several visible PIPs provide it. Treating it as unresolved.";
 
     private static final long LOG_INTERVAL_NANOS = Duration.ofMinutes(1).toNanos();
 
     private final ReentrantLock                                                lock                          = new ReentrantLock(
             true);
+    /**
+     * Serializes catalog and visibility changes including their migrations, so two
+     * changes never interleave. Always acquired before {@link #lock}, never while
+     * holding it.
+     */
+    private final ReentrantLock                                                catalogLock                   = new ReentrantLock();
     private final Map<PipHandleImpl, List<StreamAttributeFinderSpecification>> handleSpecs                   = new LinkedHashMap<>();
     private final Map<AttributeFinderInvocation, List<ActiveInvocation>>       activeInvocationsByInvocation = new HashMap<>();
     private final Map<ActiveInvocation, ScheduledFuture<?>>                    pendingTeardowns              = new HashMap<>();
     private final Map<String, BrokerSubscription>                              consumerSubscriptions         = new HashMap<>();
+    private final Map<String, Set<String>>                                     visiblePluginsByTenant        = new HashMap<>();
 
     private final Duration                      gracePeriodDuration;
     private final ScheduledExecutorService      teardownScheduler;
@@ -130,7 +139,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     // Set in close(). Guards open() and teardown scheduling.
     private volatile boolean closed = false;
 
-    /** No grace period, no fallback. */
+    /**
+     * No grace period, no fallback.
+     */
     public PolicyInformationPointAttributeBroker() {
         this(Duration.ZERO, null);
     }
@@ -140,8 +151,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * Refcount-to-zero leads to teardown after the
      * grace duration, or immediately if the duration is {@link Duration#ZERO}.
      *
-     * @param gracePeriodDuration
-     * teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
+     * @param gracePeriodDuration teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
      */
     public PolicyInformationPointAttributeBroker(@NonNull Duration gracePeriodDuration) {
         this(gracePeriodDuration, null);
@@ -160,10 +170,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * only on catalog mutations ({@link #load}, {@link #swap},
      * {@link PipHandle#unload}).
      *
-     * @param gracePeriodDuration
-     * teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
-     * @param fallback
-     * repository that serves invocations with no matching PIP; {@code null} means
+     * @param gracePeriodDuration teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
+     * @param fallback repository that serves invocations with no matching PIP; {@code null} means
      * consumers see UNDEFINED
      * for unmatched invocations
      */
@@ -180,14 +188,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * enters an active invocation's mailbox, so
      * the snapshot timestamp reflects arrival time, not read time.
      *
-     * @param gracePeriodDuration
-     * teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
-     * @param fallback
-     * repository that serves invocations with no matching PIP; {@code null} means
+     * @param gracePeriodDuration teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
+     * @param fallback repository that serves invocations with no matching PIP; {@code null} means
      * consumers see UNDEFINED
      * for unmatched invocations
-     * @param timestampSource
-     * source for value-arrival timestamps
+     * @param timestampSource source for value-arrival timestamps
      */
     public PolicyInformationPointAttributeBroker(@NonNull Duration gracePeriodDuration,
             @Nullable AttributeRepository fallback,
@@ -205,48 +210,80 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                                  });
     }
 
+    private boolean isVisible(PipHandleImpl handle, String pdpId) {
+        return handle.pluginId == null
+                || visiblePluginsByTenant.getOrDefault(pdpId, Set.of()).contains(handle.pluginId);
+    }
+
     /**
      * Loads the given PIP instance and registers all of its annotated attribute
      * methods. Atomic: either every spec the
      * instance contributes is registered and a handle is returned, or the call
      * throws {@link PipLoadException} and the
      * catalog is unchanged.
+     * <p>
+     * The PIP is loaded as a base PIP, visible to every PDP. Equivalent to
+     * {@link #load(Object, String)} without a plugin id.
      *
-     * @param pipInstance
-     * a fully-constructed PIP instance whose class is annotated with
+     * @param pipInstance a fully-constructed PIP instance whose class is annotated with
      * {@link PolicyInformationPoint}
-     *
      * @return a handle the caller may use to unload or swap this PIP
-     *
-     * @throws PipLoadException
-     * if the class is not annotated, if any annotated method has an invalid
+     * @throws PipLoadException if the class is not annotated, if any annotated method has an invalid
      * signature, or if any of the
      * instance's specs collides with an already-registered spec
      */
     public PipHandle load(@NonNull Object pipInstance) {
-        val namespace = readNamespace(pipInstance);
-        log.debug("Loading PIP '{}' from class {}", namespace, pipInstance.getClass().getName());
+        return load(pipInstance, null);
+    }
 
-        val newSpecs      = extractSpecs(pipInstance, namespace);
-        val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(pipInstance.getClass());
-
-        PipHandleImpl handle;
-        val           promotions = new LinkedHashMap<ActiveInvocation, StreamAttributeFinderSpecification>();
-        lock.lock();
-
+    /**
+     * Loads the given PIP instance and registers all of its annotated attribute
+     * methods. Atomic: either every spec the
+     * instance contributes is registered and a handle is returned, or the call
+     * throws {@link PipLoadException} and the
+     * catalog is unchanged.
+     * <p>
+     * A PIP with a plugin id is visible only to PDPs for which that plugin is
+     * enabled. Its specs may collide with specs of a different plugin, since a
+     * PDP enabling both is rejected when its configuration is compiled. A
+     * collision with a base PIP or within the same plugin is still rejected.
+     *
+     * @param pipInstance a fully-constructed PIP instance whose class is annotated with
+     * {@link PolicyInformationPoint}
+     * @param pluginId the id of the plugin the PIP comes from, or {@code null} for a base PIP
+     * that is visible to every PDP
+     * @return a handle the caller may use to unload or swap this PIP
+     * @throws PipLoadException if the class is not annotated, if any annotated method has an invalid
+     * signature, or if any of the
+     * instance's specs collides with an already-registered spec
+     */
+    public PipHandle load(@NonNull Object pipInstance, @Nullable String pluginId) {
+        catalogLock.lock();
         try {
-            checkCollisions(namespace, newSpecs, null);
-            handle = new PipHandleImpl(namespace, documentation);
-            handleSpecs.put(handle, List.copyOf(newSpecs));
-            promotions.putAll(collectPromotions());
-            log.debug("Loaded PIP '{}' with {} attribute(s)", namespace, newSpecs.size());
+            val namespace = readNamespace(pipInstance);
+            log.debug("Loading PIP '{}' from class {}", namespace, pipInstance.getClass().getName());
+
+            val newSpecs      = extractSpecs(pipInstance, namespace);
+            val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(pipInstance.getClass());
+
+            PipHandleImpl handle;
+            val           promotions = new LinkedHashMap<ActiveInvocation, StreamAttributeFinderSpecification>();
+            lock.lock();
+
+            try {
+                checkCollisions(namespace, newSpecs, null, pluginId);
+                handle = new PipHandleImpl(namespace, documentation, pluginId);
+                handleSpecs.put(handle, List.copyOf(newSpecs));
+                promotions.putAll(collectPromotions());
+                log.debug("Loaded PIP '{}' with {} attribute(s)", namespace, newSpecs.size());
+            } finally {
+                lock.unlock();
+            }
+            applyPromotions(promotions);
+            return handle;
         } finally {
-
-            lock.unlock();
-
+            catalogLock.unlock();
         }
-        applyPromotions(promotions);
-        return handle;
     }
 
     /**
@@ -294,78 +331,73 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * Atomic: either the swap completes or the call throws and the catalog still
      * reflects {@code oldHandle}.
      *
-     * @param oldHandle
-     * the handle to replace (must currently be loaded)
-     * @param newInstance
-     * the replacement PIP instance
-     *
+     * @param oldHandle the handle to replace (must currently be loaded)
+     * @param newInstance the replacement PIP instance
      * @return a fresh handle for {@code newInstance}; {@code oldHandle} is marked
      * unloaded
-     *
-     * @throws PipLoadException
-     * on the same conditions as {@link #load}, plus when {@code oldHandle} is not
+     * @throws PipLoadException on the same conditions as {@link #load}, plus when {@code oldHandle} is not
      * currently loaded
      */
     public PipHandle swap(@NonNull PipHandle oldHandle, @NonNull Object newInstance) {
-        if (!(oldHandle instanceof PipHandleImpl existingHandle) || existingHandle.broker() != this) {
-            throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(oldHandle.pipName()));
-        }
-        val newNamespace = readNamespace(newInstance);
-        log.debug("Swapping PIP '{}' -> '{}' (new class {})", existingHandle.pipName(), newNamespace,
-                newInstance.getClass().getName());
-
-        val newSpecs         = extractSpecs(newInstance, newNamespace);
-        val newDocumentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(newInstance.getClass());
-
-        SwapPlan                                                  plan;
-        Affected                                                  affected;
-        PipHandleImpl                                             newHandle;
-        Map<ActiveInvocation, StreamAttributeFinderSpecification> promotions;
-
-        lock.lock();
-
+        catalogLock.lock();
         try {
-            val oldSpecs = handleSpecs.get(existingHandle);
-            if (oldSpecs == null || !existingHandle.loaded.get()) {
-                throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(existingHandle.pipName()));
+            if (!(oldHandle instanceof PipHandleImpl existingHandle) || existingHandle.broker() != this) {
+                throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(oldHandle.pipName()));
             }
-            checkCollisions(newNamespace, newSpecs, oldSpecs);
+            val newNamespace = readNamespace(newInstance);
+            log.debug("Swapping PIP '{}' -> '{}' (new class {})", existingHandle.pipName(), newNamespace,
+                    newInstance.getClass().getName());
 
-            plan = buildSwapPlan(oldSpecs, newSpecs);
+            val newSpecs         = extractSpecs(newInstance, newNamespace);
+            val newDocumentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(newInstance.getClass());
 
-            handleSpecs.remove(existingHandle);
-            existingHandle.loaded.set(false);
-            newHandle = new PipHandleImpl(newNamespace, newDocumentation);
-            handleSpecs.put(newHandle, List.copyOf(newSpecs));
+            SwapPlan                                                  plan;
+            Affected                                                  affected;
+            PipHandleImpl                                             newHandle;
+            Map<ActiveInvocation, StreamAttributeFinderSpecification> promotions;
 
-            affected = collectAffected(plan);
-            // New specs are installed. Promote any fallback/terminal invocation that now
-            // resolves to one of them, mirroring load(). Migration runs outside the lock.
-            promotions = collectPromotions();
+            lock.lock();
+
+            try {
+                val oldSpecs = handleSpecs.get(existingHandle);
+                if (oldSpecs == null || !existingHandle.loaded.get()) {
+                    throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(existingHandle.pipName()));
+                }
+                checkCollisions(newNamespace, newSpecs, oldSpecs, existingHandle.pluginId);
+
+                plan = buildSwapPlan(oldSpecs, newSpecs);
+
+                handleSpecs.remove(existingHandle);
+                existingHandle.loaded.set(false);
+                newHandle = new PipHandleImpl(newNamespace, newDocumentation, existingHandle.pluginId);
+                handleSpecs.put(newHandle, List.copyOf(newSpecs));
+
+                affected = collectAffected(plan);
+                // New specs are installed. Promote any fallback/terminal invocation that now
+                // resolves to one of them, mirroring load(). Migration runs outside the lock.
+                promotions = collectPromotions();
+            } finally {
+
+                lock.unlock();
+
+            }
+
+            // Outside the lock: rebind / evict. invoke(...) on the new spec may throw or
+            // block.
+            for (val entry : affected.swapped.entrySet()) {
+                rebind(entry.getKey(), entry.getValue());
+            }
+            for (val active : affected.evicted) {
+                demote(active);
+            }
+            applyPromotions(promotions);
+
+            log.debug("Swapped PIP '{}': {} attribute(s) rebound, {} evicted, {} added", newNamespace,
+                    plan.swapped.size(), plan.evictedOnly.size(), plan.addedOnly.size());
+            return newHandle;
         } finally {
-
-            lock.unlock();
-
+            catalogLock.unlock();
         }
-
-        // Outside the lock: rebind / evict. invoke(...) on the new spec may throw or
-        // block.
-        val fallbackRepository = fallback;
-        for (val entry : affected.swapped.entrySet()) {
-            rebind(entry.getKey(), entry.getValue());
-        }
-        for (val active : affected.evicted) {
-            if (fallbackRepository != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
-            } else {
-                discard(active);
-            }
-        }
-        applyPromotions(promotions);
-
-        log.debug("Swapped PIP '{}': {} attribute(s) rebound, {} evicted, {} added", newNamespace, plan.swapped.size(),
-                plan.evictedOnly.size(), plan.addedOnly.size());
-        return newHandle;
     }
 
     private static SwapPlan buildSwapPlan(List<StreamAttributeFinderSpecification> oldSpecs,
@@ -404,6 +436,101 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
         }
         return new Affected(swapped, evicted);
+    }
+
+    @Override
+    public void setVisiblePlugins(@NonNull String pdpId, @NonNull Set<String> pluginIds) {
+        catalogLock.lock();
+        try {
+            Map<ActiveInvocation, Optional<StreamAttributeFinderSpecification>> reroutes;
+            lock.lock();
+            try {
+                val next = Set.copyOf(pluginIds);
+                if (next.equals(visiblePluginsByTenant.getOrDefault(pdpId, Set.of()))) {
+                    return;
+                }
+                if (next.isEmpty()) {
+                    visiblePluginsByTenant.remove(pdpId);
+                } else {
+                    visiblePluginsByTenant.put(pdpId, next);
+                }
+                reroutes = collectReroutes(pdpId);
+            } finally {
+                lock.unlock();
+            }
+            reroutes.forEach(this::reroute);
+        } finally {
+            catalogLock.unlock();
+        }
+    }
+
+    @Override
+    public void clearVisiblePlugins(@NonNull String pdpId) {
+        setVisiblePlugins(pdpId, Set.of());
+    }
+
+    @Override
+    public List<String> conflictsAmong(@NonNull Set<String> pluginIds) {
+        lock.lock();
+        try {
+            val handles = new ArrayList<Map.Entry<PipHandleImpl, List<StreamAttributeFinderSpecification>>>();
+            for (val entry : handleSpecs.entrySet()) {
+                if (entry.getKey().pluginId != null && pluginIds.contains(entry.getKey().pluginId)) {
+                    handles.add(entry);
+                }
+            }
+
+            val conflicts = new ArrayList<String>();
+            for (var i = 0; i < handles.size(); i++) {
+                for (var j = i + 1; j < handles.size(); j++) {
+                    val first  = handles.get(i);
+                    val second = handles.get(j);
+                    if (first.getKey().pluginId.equals(second.getKey().pluginId)) {
+                        continue;
+                    }
+                    for (val a : first.getValue()) {
+                        for (val b : second.getValue()) {
+                            if (a.collidesWith(b)) {
+                                conflicts.add(ERROR_PLUGIN_ATTRIBUTE_CONFLICT.formatted(a.fullyQualifiedName(),
+                                        shapeOf(a), first.getKey().pluginId, second.getKey().pluginId));
+                            }
+                        }
+                    }
+                }
+            }
+            return List.copyOf(conflicts);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Active invocations of the PDP whose resolved spec changed. Call under lock.
+     */
+    private Map<ActiveInvocation, Optional<StreamAttributeFinderSpecification>> collectReroutes(String pdpId) {
+        val reroutes = new LinkedHashMap<ActiveInvocation, Optional<StreamAttributeFinderSpecification>>();
+        for (val active : allActive()) {
+            if (!pdpId.equals(active.invocation().pdpId())) {
+                continue;
+            }
+            val target = resolve(active.invocation());
+            if (!Objects.equals(target.orElse(null), active.sourceSpec())) {
+                reroutes.put(active, target);
+            }
+        }
+        return reroutes;
+    }
+
+    /**
+     * Moves an invocation to its new spec, or demotes it when no visible spec serves it.
+     * Call outside lock.
+     */
+    private void reroute(ActiveInvocation active, Optional<StreamAttributeFinderSpecification> target) {
+        if (target.isPresent()) {
+            migrate(active, newActivePipInvocation(active.invocation(), target.get()));
+        } else if (active instanceof ActivePolicyInformationPointInvocation pip) {
+            demote(pip);
+        }
     }
 
     private record SwapPlan(
@@ -454,39 +581,50 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Resolves an invocation to its serving spec. By the catalog's collision rule,
-     * at most one spec matches. Visible
-     * mainly for tests. Consumers normally exercise resolution implicitly via
-     * {@link #open}.
+     * Resolves an invocation to its serving spec. Only PIPs visible to the PDP of
+     * the invocation are considered; an exact match takes precedence over a
+     * varargs match. Visible mainly for tests. Consumers normally exercise
+     * resolution implicitly via {@link #open}.
      *
-     * @param invocation
-     * the policy-driven invocation
-     *
-     * @return the matching spec, or {@link Optional#empty()} if no loaded PIP
-     * serves this invocation
+     * @param invocation the policy-driven invocation
+     * @return the matching spec, or {@link Optional#empty()} if no visible PIP
+     * serves this invocation or the resolution is ambiguous because several
+     * visible PIPs provide the attribute
      */
     public Optional<StreamAttributeFinderSpecification> resolve(@NonNull AttributeFinderInvocation invocation) {
         lock.lock();
 
         try {
-            StreamAttributeFinderSpecification exact   = null;
-            StreamAttributeFinderSpecification varargs = null;
-            for (val specs : handleSpecs.values()) {
-                for (val spec : specs) {
+            StreamAttributeFinderSpecification exact            = null;
+            StreamAttributeFinderSpecification varargs          = null;
+            var                                varargsAmbiguous = false;
+            for (val entry : handleSpecs.entrySet()) {
+                if (!isVisible(entry.getKey(), invocation.pdpId())) {
+                    continue;
+                }
+                for (val spec : entry.getValue()) {
                     val match = spec.matches(invocation);
                     if (match == Match.EXACT_MATCH) {
                         if (exact != null) {
-                            log.error(ERROR_CATALOG_INVARIANT, invocation.attributeName());
+                            log.warn(WARN_AMBIGUOUS_RESOLUTION, invocation.attributeName(), invocation.pdpId());
                             return Optional.empty();
                         }
                         exact = spec;
-                    } else if (match == Match.VARARGS_MATCH && varargs == null) {
-                        varargs = spec;
+                    } else if (match == Match.VARARGS_MATCH) {
+                        if (varargs == null) {
+                            varargs = spec;
+                        } else {
+                            varargsAmbiguous = true;
+                        }
                     }
                 }
             }
             if (exact != null) {
                 return Optional.of(exact);
+            }
+            if (varargsAmbiguous) {
+                log.warn(WARN_AMBIGUOUS_RESOLUTION, invocation.attributeName(), invocation.pdpId());
+                return Optional.empty();
             }
             return Optional.ofNullable(varargs);
         } finally {
@@ -619,11 +757,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * Caller holds the broker lock.
      */
     private void checkCollisions(String namespace, List<StreamAttributeFinderSpecification> newSpecs,
-            List<StreamAttributeFinderSpecification> excludeFromCheck) {
+            List<StreamAttributeFinderSpecification> excludeFromCheck, @Nullable String pluginId) {
         for (val candidate : newSpecs) {
             for (val entry : handleSpecs.entrySet()) {
                 val existingSpecs = entry.getValue();
-                if (existingSpecs == excludeFromCheck) {
+                if (existingSpecs == excludeFromCheck || mayCoexist(pluginId, entry.getKey().pluginId)) {
                     continue;
                 }
                 for (val existing : existingSpecs) {
@@ -634,6 +772,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 }
             }
         }
+    }
+
+    private static boolean mayCoexist(@Nullable String candidatePluginId, @Nullable String existingPluginId) {
+        return candidatePluginId != null && existingPluginId != null && !candidatePluginId.equals(existingPluginId);
     }
 
     private static StreamAttributeFinderSpecification findShapeMatch(StreamAttributeFinderSpecification needle,
@@ -1074,41 +1216,54 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     void unloadHandle(PipHandleImpl handle) {
-        List<StreamAttributeFinderSpecification>     evicted;
-        List<ActivePolicyInformationPointInvocation> evictedActive;
-        lock.lock();
-
+        catalogLock.lock();
         try {
-            evicted = handleSpecs.remove(handle);
-            if (evicted == null) {
-                return;
-            }
-            handle.loaded.set(false);
+            List<StreamAttributeFinderSpecification>     evicted;
+            List<ActivePolicyInformationPointInvocation> evictedActive;
+            lock.lock();
 
-            evictedActive = new ArrayList<>();
-            for (val active : allActive()) {
-                if (!(active instanceof ActivePolicyInformationPointInvocation pip)) {
-                    continue;
+            try {
+                evicted = handleSpecs.remove(handle);
+                if (evicted == null) {
+                    return;
                 }
-                val oldSpec = pip.sourceSpec();
-                if (oldSpec != null && evicted.contains(oldSpec)) {
-                    evictedActive.add(pip);
+                handle.loaded.set(false);
+
+                evictedActive = new ArrayList<>();
+                for (val active : allActive()) {
+                    if (!(active instanceof ActivePolicyInformationPointInvocation pip)) {
+                        continue;
+                    }
+                    val oldSpec = pip.sourceSpec();
+                    if (oldSpec != null && evicted.contains(oldSpec)) {
+                        evictedActive.add(pip);
+                    }
                 }
+            } finally {
+
+                lock.unlock();
+
             }
+            for (val active : evictedActive) {
+                demote(active);
+            }
+            log.debug("Unloaded PIP '{}' ({} attribute(s) removed)", handle.pipName(), evicted.size());
         } finally {
-
-            lock.unlock();
-
+            catalogLock.unlock();
         }
+    }
+
+    /**
+     * Moves a PIP-backed invocation to the repository, or ends it with UNDEFINED when there
+     * is none. Call outside lock.
+     */
+    private void demote(ActivePolicyInformationPointInvocation active) {
         val fallbackRepository = fallback;
-        for (val active : evictedActive) {
-            if (fallbackRepository != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
-            } else {
-                discard(active);
-            }
+        if (fallbackRepository != null) {
+            migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
+        } else {
+            discard(active);
         }
-        log.debug("Unloaded PIP '{}' ({} attribute(s) removed)", handle.pipName(), evicted.size());
     }
 
     /**
@@ -1377,10 +1532,12 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         private final String               pipName;
         private final LibraryDocumentation documentation;
         private final AtomicBoolean        loaded = new AtomicBoolean(true);
+        private final @Nullable String     pluginId;
 
-        PipHandleImpl(String pipName, LibraryDocumentation documentation) {
+        PipHandleImpl(String pipName, LibraryDocumentation documentation, @Nullable String pluginId) {
             this.pipName       = pipName;
             this.documentation = documentation;
+            this.pluginId      = pluginId;
         }
 
         @Override
