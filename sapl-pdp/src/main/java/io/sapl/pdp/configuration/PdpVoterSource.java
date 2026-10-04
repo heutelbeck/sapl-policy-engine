@@ -149,8 +149,8 @@ public class PdpVoterSource implements AutoCloseable {
         return snapshot == null ? null : snapshot.baseBundle();
     }
 
-    private static Set<String> effectivePlugins(PDPConfiguration configuration, PluginsSnapshot snapshot) {
-        return snapshot.availablePluginIds();
+    private static Set<String> effectivePlugins(PDPConfiguration configuration) {
+        return configuration.plugins();
     }
 
     private void onPluginsSnapshot(PluginsSnapshot newSnapshot) {
@@ -280,7 +280,7 @@ public class PdpVoterSource implements AutoCloseable {
     private void loadConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
             PluginsSnapshot snapshot) {
         retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
-        val         requested = effectivePlugins(pdpConfiguration, snapshot);
+        val         requested = effectivePlugins(pdpConfiguration);
         CompiledPdp newConfiguration;
         try {
             val conflicts = pipVisibility.conflictsAmong(requested);

@@ -452,6 +452,14 @@ class PdpVoterSourceDynamicRecompileTests {
         private final PluginsBundle                    bundle     = pluginsOf(brokerWithStandard());
         private final PolicyInformationPointVisibility visibility = mock(PolicyInformationPointVisibility.class);
 
+        private PDPConfiguration enablingPlugin(String configId) {
+            return policyConfig(configId).withPlugins(Set.of(ENABLED_PLUGIN));
+        }
+
+        private PDPConfiguration brokenEnablingPlugin() {
+            return brokenConfig().withPlugins(Set.of(ENABLED_PLUGIN));
+        }
+
         private PdpVoterSource voterSource() {
             val snapshot = mock(PluginsSnapshot.class);
             when(snapshot.availablePluginIds()).thenReturn(Set.of(ENABLED_PLUGIN));
@@ -470,7 +478,7 @@ class PdpVoterSourceDynamicRecompileTests {
             try (val voterSource = voterSource()) {
                 voterSource.subscribeToUpdates(PDP_ID, listener);
 
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(enablingPlugin(CONFIG_A));
 
                 val inOrder = inOrder(visibility, listener);
                 inOrder.verify(visibility).setVisiblePlugins(PDP_ID, Set.of(ENABLED_PLUGIN));
@@ -479,12 +487,22 @@ class PdpVoterSourceDynamicRecompileTests {
         }
 
         @Test
-        @DisplayName("an update that fails to compile leaves the visibility of the last good voter unchanged")
-        void whenUpdateFailsToCompileThenVisibilityIsUnchanged() {
+        @DisplayName("a configuration without plugins makes no plugins visible")
+        void whenNoPluginsConfiguredThenNoPluginsAreVisible() {
             try (val voterSource = voterSource()) {
                 voterSource.loadConfiguration(policyConfig(CONFIG_A));
 
-                voterSource.loadConfiguration(brokenConfig());
+                verify(visibility).setVisiblePlugins(PDP_ID, Set.of());
+            }
+        }
+
+        @Test
+        @DisplayName("an update that fails to compile leaves the visibility of the last good voter unchanged")
+        void whenUpdateFailsToCompileThenVisibilityIsUnchanged() {
+            try (val voterSource = voterSource()) {
+                voterSource.loadConfiguration(enablingPlugin(CONFIG_A));
+
+                voterSource.loadConfiguration(brokenEnablingPlugin());
 
                 assertThat(voterSource.getPdpStatus(PDP_ID))
                         .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.STALE));
@@ -497,7 +515,7 @@ class PdpVoterSourceDynamicRecompileTests {
         @DisplayName("an error voter clears the visibility")
         void whenErrorVoterPublishedThenVisibilityIsCleared() {
             try (val voterSource = voterSource()) {
-                voterSource.loadConfiguration(brokenConfig());
+                voterSource.loadConfiguration(brokenEnablingPlugin());
 
                 verify(visibility).clearVisiblePlugins(PDP_ID);
                 verify(visibility, never()).setVisiblePlugins(anyString(), anySet());
@@ -508,7 +526,7 @@ class PdpVoterSourceDynamicRecompileTests {
         @DisplayName("an expired configuration clears the visibility")
         void whenConfigurationExpiredThenVisibilityIsCleared() {
             try (val voterSource = voterSource()) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(enablingPlugin(CONFIG_A));
 
                 voterSource.handle(new ConfigurationEvent.ConfigurationExpired(PDP_ID, "expired"));
 
@@ -520,7 +538,7 @@ class PdpVoterSourceDynamicRecompileTests {
         @DisplayName("a removed configuration clears the visibility")
         void whenConfigurationRemovedThenVisibilityIsCleared() {
             try (val voterSource = voterSource()) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(enablingPlugin(CONFIG_A));
 
                 voterSource.removeConfigurationForPdp(PDP_ID);
 
@@ -532,7 +550,7 @@ class PdpVoterSourceDynamicRecompileTests {
         @DisplayName("closing the voter source clears the visibility of every retained configuration")
         void whenClosedThenVisibilityIsCleared() {
             val voterSource = voterSource();
-            voterSource.loadConfiguration(policyConfig(CONFIG_A));
+            voterSource.loadConfiguration(enablingPlugin(CONFIG_A));
 
             voterSource.close();
 
@@ -544,7 +562,7 @@ class PdpVoterSourceDynamicRecompileTests {
         void whenPluginsConflictOnFirstLoadThenErrorWithConflict() {
             when(visibility.conflictsAmong(anySet())).thenReturn(List.of(CONFLICT));
             try (val voterSource = voterSource()) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(enablingPlugin(CONFIG_A));
 
                 assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
                     assertThat(status.state()).isEqualTo(PdpState.ERROR);
@@ -559,9 +577,9 @@ class PdpVoterSourceDynamicRecompileTests {
         void whenPluginsConflictOnUpdateThenLastGoodVoterKeepsServing() {
             when(visibility.conflictsAmong(anySet())).thenReturn(List.of()).thenReturn(List.of(CONFLICT));
             try (val voterSource = voterSource()) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(enablingPlugin(CONFIG_A));
 
-                voterSource.loadConfiguration(policyConfig("config-B"));
+                voterSource.loadConfiguration(enablingPlugin("config-B"));
 
                 assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
                     assertThat(status.state()).isEqualTo(PdpState.STALE);
@@ -590,6 +608,10 @@ class PdpVoterSourceDynamicRecompileTests {
 
         private final PluginsBundle baseBundle = pluginsOf(brokerWithStandard());
 
+        private PDPConfiguration requestingPlugin(String configId) {
+            return policyConfig(configId).withPlugins(Set.of(REQUESTED_PLUGIN));
+        }
+
         private PluginsSnapshot failingSnapshot() {
             val snapshot = mock(PluginsSnapshot.class);
             when(snapshot.availablePluginIds()).thenReturn(Set.of(REQUESTED_PLUGIN));
@@ -605,7 +627,7 @@ class PdpVoterSourceDynamicRecompileTests {
             val pluginsSource = new MutablePluginsSource();
             pluginsSource.publish(failingSnapshot());
             try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(requestingPlugin(CONFIG_A));
 
                 assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
                     assertThat(status.state()).isEqualTo(PdpState.ERROR);
@@ -620,7 +642,7 @@ class PdpVoterSourceDynamicRecompileTests {
             val pluginsSource = new MutablePluginsSource();
             pluginsSource.publish(failingSnapshot());
             try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(requestingPlugin(CONFIG_A));
 
                 assertThat(voterSource.getCurrentConfiguration(PDP_ID))
                         .hasValueSatisfying(voter -> assertThat(voter.plugins()).isSameAs(baseBundle));
@@ -638,10 +660,10 @@ class PdpVoterSourceDynamicRecompileTests {
             val pluginsSource = new MutablePluginsSource();
             pluginsSource.publish(snapshot);
             try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(requestingPlugin(CONFIG_A));
                 val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
 
-                voterSource.loadConfiguration(policyConfig("config-B"));
+                voterSource.loadConfiguration(requestingPlugin("config-B"));
 
                 assertThat(voterSource.getPdpStatus(PDP_ID))
                         .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.STALE));
@@ -650,13 +672,27 @@ class PdpVoterSourceDynamicRecompileTests {
         }
 
         @Test
-        @DisplayName("a configuration is compiled against all available plugins")
-        void whenCompilingThenAllAvailablePluginsAreRequested() {
+        @DisplayName("a plugin that is not available fails the configuration, naming the plugin")
+        void whenConfiguredPluginIsUnavailableThenConfigurationFailsNamingIt() {
+            val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+            try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+                voterSource.loadConfiguration(requestingPlugin(CONFIG_A));
+
+                assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
+                    assertThat(status.state()).isEqualTo(PdpState.ERROR);
+                    assertThat(status.lastError()).contains(REQUESTED_PLUGIN);
+                });
+            }
+        }
+
+        @Test
+        @DisplayName("a configuration is compiled against the plugins it requests")
+        void whenCompilingThenConfiguredPluginsAreRequested() {
             val snapshot      = failingSnapshot();
             val pluginsSource = new MutablePluginsSource();
             pluginsSource.publish(snapshot);
             try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
-                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                voterSource.loadConfiguration(requestingPlugin(CONFIG_A));
 
                 verify(snapshot).bundleFor(PDP_ID, Set.of(REQUESTED_PLUGIN));
             }
