@@ -27,8 +27,10 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.attributes.broker.pip.PolicyInformationPointVisibility;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.StandardFunctionLibrary;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import io.sapl.pdp.plugins.MutablePluginsSource;
 import io.sapl.pdp.plugins.PluginSelectionException;
 import io.sapl.pdp.plugins.PluginsBundle;
@@ -51,7 +53,11 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -433,6 +439,136 @@ class PdpVoterSourceDynamicRecompileTests {
                     .hasValueSatisfying(v -> assertThat(v.plugins().functionBroker()).isSameAs(newBroker));
             assertThat(voterSource.getCurrentConfiguration("pdp-2"))
                     .hasValueSatisfying(v -> assertThat(v.plugins().functionBroker()).isSameAs(newBroker));
+        }
+    }
+
+    @Nested
+    @DisplayName("when the PIP visibility is managed")
+    class PipVisibility {
+
+        private static final String ENABLED_PLUGIN = "enabled-plugin";
+        private static final String CONFLICT       = "Attribute 'test.value' is provided by both plugins.";
+
+        private final PluginsBundle                    bundle     = pluginsOf(brokerWithStandard());
+        private final PolicyInformationPointVisibility visibility = mock(PolicyInformationPointVisibility.class);
+
+        private PdpVoterSource voterSource() {
+            val snapshot = mock(PluginsSnapshot.class);
+            when(snapshot.availablePluginIds()).thenReturn(Set.of(ENABLED_PLUGIN));
+            when(snapshot.baseBundle()).thenReturn(bundle);
+            when(snapshot.bundleFor(anyString(), anySet())).thenReturn(bundle);
+            val pluginsSource = new MutablePluginsSource();
+            pluginsSource.publish(snapshot);
+            return new PdpVoterSource(pluginsSource, CLOCK, new EmptyExtensionsProcessor(), visibility);
+        }
+
+        @Test
+        @DisplayName("a loaded configuration makes its plugins visible before its voter is published")
+        void whenConfigurationLoadedThenPluginsVisibleBeforeVoterIsPublished() {
+            @SuppressWarnings("unchecked")
+            Consumer<PdpUpdateEvent> listener = mock(Consumer.class);
+            try (val voterSource = voterSource()) {
+                voterSource.subscribeToUpdates(PDP_ID, listener);
+
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                val inOrder = inOrder(visibility, listener);
+                inOrder.verify(visibility).setVisiblePlugins(PDP_ID, Set.of(ENABLED_PLUGIN));
+                inOrder.verify(listener).accept(isA(PdpUpdateEvent.Voter.class));
+            }
+        }
+
+        @Test
+        @DisplayName("an update that fails to compile leaves the visibility of the last good voter unchanged")
+        void whenUpdateFailsToCompileThenVisibilityIsUnchanged() {
+            try (val voterSource = voterSource()) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                voterSource.loadConfiguration(brokenConfig());
+
+                assertThat(voterSource.getPdpStatus(PDP_ID))
+                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.STALE));
+                verify(visibility, times(1)).setVisiblePlugins(PDP_ID, Set.of(ENABLED_PLUGIN));
+                verify(visibility, never()).clearVisiblePlugins(PDP_ID);
+            }
+        }
+
+        @Test
+        @DisplayName("an error voter clears the visibility")
+        void whenErrorVoterPublishedThenVisibilityIsCleared() {
+            try (val voterSource = voterSource()) {
+                voterSource.loadConfiguration(brokenConfig());
+
+                verify(visibility).clearVisiblePlugins(PDP_ID);
+                verify(visibility, never()).setVisiblePlugins(anyString(), anySet());
+            }
+        }
+
+        @Test
+        @DisplayName("an expired configuration clears the visibility")
+        void whenConfigurationExpiredThenVisibilityIsCleared() {
+            try (val voterSource = voterSource()) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                voterSource.handle(new ConfigurationEvent.ConfigurationExpired(PDP_ID, "expired"));
+
+                verify(visibility).clearVisiblePlugins(PDP_ID);
+            }
+        }
+
+        @Test
+        @DisplayName("a removed configuration clears the visibility")
+        void whenConfigurationRemovedThenVisibilityIsCleared() {
+            try (val voterSource = voterSource()) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                voterSource.removeConfigurationForPdp(PDP_ID);
+
+                verify(visibility).clearVisiblePlugins(PDP_ID);
+            }
+        }
+
+        @Test
+        @DisplayName("closing the voter source clears the visibility of every retained configuration")
+        void whenClosedThenVisibilityIsCleared() {
+            val voterSource = voterSource();
+            voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+            voterSource.close();
+
+            verify(visibility).clearVisiblePlugins(PDP_ID);
+        }
+
+        @Test
+        @DisplayName("conflicting plugins fail a first load with the conflict and make nothing visible")
+        void whenPluginsConflictOnFirstLoadThenErrorWithConflict() {
+            when(visibility.conflictsAmong(anySet())).thenReturn(List.of(CONFLICT));
+            try (val voterSource = voterSource()) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
+                    assertThat(status.state()).isEqualTo(PdpState.ERROR);
+                    assertThat(status.lastError()).contains(CONFLICT);
+                });
+                verify(visibility, never()).setVisiblePlugins(anyString(), anySet());
+            }
+        }
+
+        @Test
+        @DisplayName("conflicting plugins on an update keep the last good voter and its visibility")
+        void whenPluginsConflictOnUpdateThenLastGoodVoterKeepsServing() {
+            when(visibility.conflictsAmong(anySet())).thenReturn(List.of()).thenReturn(List.of(CONFLICT));
+            try (val voterSource = voterSource()) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+
+                voterSource.loadConfiguration(policyConfig("config-B"));
+
+                assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
+                    assertThat(status.state()).isEqualTo(PdpState.STALE);
+                    assertThat(status.lastError()).contains(CONFLICT);
+                });
+                verify(visibility, times(1)).setVisiblePlugins(PDP_ID, Set.of(ENABLED_PLUGIN));
+            }
         }
     }
 

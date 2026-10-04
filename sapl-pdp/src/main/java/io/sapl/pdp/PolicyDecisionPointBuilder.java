@@ -24,6 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.attributes.broker.pip.PolicyInformationPointVisibility;
 import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.stream.TimeScheduler;
@@ -897,7 +898,10 @@ public class PolicyDecisionPointBuilder {
         val attributeBroker         = resolvedBroker.broker();
         val pluginsSource           = resolvePluginsSource();
         val ownsPluginsSource       = externalPluginsSource == null;
-        val voterSource             = new PdpVoterSource(pluginsSource, clock, extensionsProcessor);
+        val pipVisibility           = attributeBroker instanceof PolicyInformationPointVisibility visibility
+                ? visibility
+                : PolicyInformationPointVisibility.NOOP;
+        val voterSource             = new PdpVoterSource(pluginsSource, clock, extensionsProcessor, pipVisibility);
         // Wrap the configured source so secrets are unsealed at the source
         // boundary. Downstream, the compiler included, only ever sees cleartext.
         val effectiveSource = secretsDecryptionKeyring != null && configurationSource != null

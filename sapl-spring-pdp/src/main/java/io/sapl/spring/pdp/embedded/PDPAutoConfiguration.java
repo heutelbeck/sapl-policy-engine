@@ -31,12 +31,14 @@ import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.pip.PolicyInformationPointVisibility;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.CoarseClock;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
+import io.sapl.pdp.configuration.EmptyExtensionsProcessor;
 import io.sapl.pdp.configuration.ExtensionsProcessor;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -263,13 +265,13 @@ public class PDPAutoConfiguration {
     PdpVoterSource pdpVoterSource(PluginsSource pluginsSource, Clock clock,
             ObjectProvider<PDPConfigurationSource> sourceProvider,
             ObjectProvider<ExtensionsProcessor> extensionsProcessorProvider,
-            SecretsKeyringConfiguration secretsConfiguration) {
+            SecretsKeyringConfiguration secretsConfiguration,
+            ObjectProvider<PolicyInformationPointVisibility> visibilityProvider) {
         // An ExtensionsProcessor bean, when the host provides one, coordinates the deployment of host
         // extensions declared in a configuration with the configuration's activation.
-        val extensionsProcessor = extensionsProcessorProvider.getIfAvailable();
-        val voterSource         = extensionsProcessor != null
-                ? new PdpVoterSource(pluginsSource, clock, extensionsProcessor)
-                : new PdpVoterSource(pluginsSource, clock);
+        val extensionsProcessor = extensionsProcessorProvider.getIfAvailable(EmptyExtensionsProcessor::new);
+        val voterSource         = new PdpVoterSource(pluginsSource, clock, extensionsProcessor,
+                visibilityProvider.getIfAvailable(() -> PolicyInformationPointVisibility.NOOP));
         val source              = sourceProvider.getIfAvailable();
         if (source != null) {
             if (secretsConfiguration.hasKeys()) {

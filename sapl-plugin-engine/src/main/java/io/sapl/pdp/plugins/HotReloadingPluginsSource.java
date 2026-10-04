@@ -56,10 +56,12 @@ import java.util.function.Consumer;
  * {@link PolicyInformationPointAttributeBroker}: the previously loaded plugin
  * PIPs are unloaded and the current set is
  * loaded, since the broker is fixed for the lifetime of the PDP but supports
- * runtime mutation. A plugin whose PIPs cannot be loaded, for example because
- * an attribute collides with an already registered one, is excluded from the
- * snapshot with all of its contributions; the other plugins remain
- * available.</li>
+ * runtime mutation. Plugin PIPs are loaded with their plugin id, so they are
+ * visible only to PDPs that enable the plugin, and PIPs of different plugins
+ * may provide the same attribute. A plugin whose PIPs cannot be loaded, for
+ * example because an attribute collides with a base PIP or with another PIP of
+ * the same plugin, is excluded from the snapshot with all of its contributions;
+ * the other plugins remain available.</li>
  * </ul>
  * A {@link FileAlterationMonitor} polls the plugins directory for {@code *.jar}
  * changes. All create, modify, and delete events of a single poll cycle are
@@ -164,7 +166,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
             val handles = new ArrayList<PipHandle>();
             try {
                 for (val pip : plugin.policyInformationPoints()) {
-                    handles.add(attributeBroker.load(pip));
+                    handles.add(attributeBroker.load(pip, plugin.pluginId()));
                 }
                 loadedPips.addAll(handles);
                 available.put(plugin.pluginId(), plugin);

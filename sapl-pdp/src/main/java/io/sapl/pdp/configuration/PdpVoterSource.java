@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.attributes.broker.pip.PolicyInformationPointVisibility;
 import io.sapl.pdp.plugins.PluginSelectionException;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSnapshot;
@@ -62,6 +63,7 @@ import java.util.function.Consumer;
 public class PdpVoterSource implements AutoCloseable {
 
     private static final String ERROR_EXTENSIONS_REJECTED      = "The runtime environment rejected the extension data for pdpId '%s'.";
+    private static final String ERROR_PLUGIN_CONFLICTS         = "Plugins requested by PDP '%s' cannot be enabled together: %s";
     private static final String ERROR_RECOMPILE_FAILED         = "Recompilation failed: %s";
     private static final String WARN_CONFIGURATION_EXPIRED     = "Configuration expired, failing closed:\n{}";
     private static final String WARN_CONFIGURATION_REJECTED    = "Configuration rejected:\n{}";
@@ -69,9 +71,10 @@ public class PdpVoterSource implements AutoCloseable {
     private static final String WARN_EXTENSION_PROCESSOR_THREW = "The extension processor threw while handling the configuration for pdpId '{}': {}";
     private static final String WARN_LISTENER_THREW            = "Update listener for pdpId '{}' threw: {}";
 
-    private final Clock               clock;
-    private final PluginsSource       pluginsSource;
-    private final ExtensionsProcessor extensionsProcessor;
+    private final Clock                            clock;
+    private final PluginsSource                    pluginsSource;
+    private final ExtensionsProcessor              extensionsProcessor;
+    private final PolicyInformationPointVisibility pipVisibility;
 
     private final ReentrantLock             stateLock      = new ReentrantLock();
     private final Consumer<PluginsSnapshot> pluginListener = this::onPluginsSnapshot;
@@ -118,13 +121,21 @@ public class PdpVoterSource implements AutoCloseable {
     private final Map<String, AtomicReference<PdpStatus>> statusCache = new ConcurrentHashMap<>();
 
     public PdpVoterSource(PluginsSource pluginsSource, Clock clock) {
-        this(pluginsSource, clock, new EmptyExtensionsProcessor());
+        this(pluginsSource, clock, new EmptyExtensionsProcessor(), PolicyInformationPointVisibility.NOOP);
     }
 
     public PdpVoterSource(PluginsSource pluginsSource, Clock clock, ExtensionsProcessor extensionsProcessor) {
+        this(pluginsSource, clock, extensionsProcessor, PolicyInformationPointVisibility.NOOP);
+    }
+
+    public PdpVoterSource(PluginsSource pluginsSource,
+            Clock clock,
+            ExtensionsProcessor extensionsProcessor,
+            PolicyInformationPointVisibility pipVisibility) {
         this.clock               = clock;
         this.pluginsSource       = pluginsSource;
         this.extensionsProcessor = extensionsProcessor;
+        this.pipVisibility       = pipVisibility;
         pluginsSource.subscribe(pluginListener);
     }
 
@@ -272,6 +283,11 @@ public class PdpVoterSource implements AutoCloseable {
         val         requested = effectivePlugins(pdpConfiguration, snapshot);
         CompiledPdp newConfiguration;
         try {
+            val conflicts = pipVisibility.conflictsAmong(requested);
+            if (!conflicts.isEmpty()) {
+                throw new PluginSelectionException(
+                        ERROR_PLUGIN_CONFLICTS.formatted(pdpConfiguration.pdpId(), String.join(" ", conflicts)));
+            }
             val bundle             = snapshot.bundleFor(pdpConfiguration.pdpId(), requested);
             val compilationContext = new CompilationContext(pdpConfiguration.pdpId(),
                     pdpConfiguration.configurationId(), pdpConfiguration.data(), bundle.functionBroker());
@@ -294,6 +310,7 @@ public class PdpVoterSource implements AutoCloseable {
             return;
         }
 
+        pipVisibility.setVisiblePlugins(pdpConfiguration.pdpId(), requested);
         getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(newConfiguration));
         notifyListeners(pdpConfiguration.pdpId(), new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), newConfiguration));
 
@@ -314,6 +331,7 @@ public class PdpVoterSource implements AutoCloseable {
             markStale(pdpId, now, formattedError);
         } else {
             val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException, snapshot.baseBundle());
+            pipVisibility.clearVisiblePlugins(pdpId);
             getConfigRef(pdpId).set(Optional.of(errorVoter));
             notifyListeners(pdpId, new PdpUpdateEvent.Voter(pdpId, errorVoter));
             markError(pdpId, now, formattedError);
@@ -335,6 +353,7 @@ public class PdpVoterSource implements AutoCloseable {
         case ConfigurationEvent.ConfigurationError(var pdpId, var reason)   -> reportConfigurationError(pdpId, reason);
         case ConfigurationEvent.ConfigurationExpired(var pdpId, var reason) -> expireConfigurationForPdp(pdpId, reason);
         }
+
     }
 
     /**
@@ -406,6 +425,7 @@ public class PdpVoterSource implements AutoCloseable {
             retainedConfigurations.remove(pdpId);
             servedGeneration.remove(pdpId);
             getConfigRef(pdpId).set(Optional.empty());
+            pipVisibility.clearVisiblePlugins(pdpId);
             markError(pdpId, now, reason);
             notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
             removeExtensions(pdpId);
@@ -442,6 +462,7 @@ public class PdpVoterSource implements AutoCloseable {
             retainedConfigurations.remove(pdpId);
             servedGeneration.remove(pdpId);
             getConfigRef(pdpId).set(Optional.empty());
+            pipVisibility.clearVisiblePlugins(pdpId);
             notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
             statusCache.remove(pdpId);
             configCache.remove(pdpId);
@@ -571,6 +592,9 @@ public class PdpVoterSource implements AutoCloseable {
             updateListeners.clear();
             configCache.clear();
             statusCache.clear();
+            for (val pdpId : retainedConfigurations.keySet()) {
+                pipVisibility.clearVisiblePlugins(pdpId);
+            }
             retainedConfigurations.clear();
             servedGeneration.clear();
         } finally {
