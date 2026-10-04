@@ -23,16 +23,21 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.awaitility.Awaitility;
+import org.bson.Document;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -70,6 +75,13 @@ class MongoAttributeRepositoryTests {
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
+    
+    private static AttributeFinderInvocation invocation(String pdpId, Value entity, String name, List<Value> args) {
+        return new AttributeFinderInvocation(pdpId, pdpId, name, entity, args, Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
+                new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+    }
+
 
     private Value firstReceived() {
         return received.getFirst();
@@ -77,6 +89,23 @@ class MongoAttributeRepositoryTests {
 
     private Value lastReceived() {
         return received.getLast();
+    }
+    
+    private MongoAttributeRepository newRepository(String pdpId, String collection) {
+        return new MongoAttributeRepository(newTemplate(), pdpId, collection);
+    }
+    
+    private boolean preAndPostImagesEnabled(String collection) {
+        val result = newTemplate().executeCommand(new Document("listCollections", 1)
+                .append("filter", new Document("name", collection))).block();
+        val first  = result.get("cursor", Document.class).getList("firstBatch", Document.class).getFirst();
+        val images = first.get("options", Document.class).get("changeStreamPreAndPostImages", Document.class);
+        return images != null && images.getBoolean("enabled", false);
+    }
+    
+    private ReactiveMongoTemplate newTemplate() {
+        return new ReactiveMongoTemplate(
+                new SimpleReactiveMongoDatabaseFactory(MongoClients.create(mongo.getConnectionString()), "sapl"));
     }
 
     @Nested
@@ -166,6 +195,169 @@ class MongoAttributeRepositoryTests {
             repository.publish(key("sapl.test.ttl"), Value.of("temp"), Duration.ofSeconds(1));
 
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
+        }
+    }
+    
+    @Nested
+    @DisplayName("when the collection is prepared on startup")
+    class WhenCollectionIsPrepared {
+    	private final String pdpId       = "test-tenant";
+    	private final String collection1 = "collection1";
+    	private final String collection2 = "collection2";
+    	
+    	@Test
+    	@DisplayName("then a missing collection on startup is created with the pre- and post-images activated")
+    	void thenMissingCollectionIsCreatedWithPreAndPostImages() {
+    		try (val repo = newRepository(pdpId, collection1)) {
+                assertThat(preAndPostImagesEnabled(collection1)).isTrue();
+            }
+    	}
+    	
+    	@Test
+    	@DisplayName("then an existing collection will be extended with pre- and post-images")
+    	void thenExistingCollectionIsUpgraded() {
+    		newTemplate().createCollection(collection2).block();
+    		try (val repo = newRepository(pdpId, collection2)) {
+                assertThat(preAndPostImagesEnabled(collection2)).isTrue();
+            }
+    	}
+    }
+    
+    @Nested
+    @DisplayName("when another pdp id uses the same collection")
+    class WhenAnotherPdpIDUsesTheSameCollection{
+    	private final String        collection = "attributes";
+        private final String        pdpId1     = "tenant1";
+        private final String        pdpId2     = "tenant2";
+        private final String        name1      = "sapl.test.attribute1";
+        private final String        name2      = "sapl.test.attribute2";
+        private final RepositoryKey key1       = new RepositoryKey(null, name1, List.of(), pdpId1);
+        private final RepositoryKey key2       = new RepositoryKey(null, name1, List.of(), pdpId2);
+        private final RepositoryKey key3       = new RepositoryKey(null, name2, List.of(), pdpId1);
+        private final Value         value1     = Value.of("foreign");
+        private final Value         value2     = Value.of("own");
+        
+        @Test
+        @DisplayName("then change events of another pdp id are ignored")
+        void thenChangeEventsOfOtherPdpIdAreIgnored() {
+        	try (val repo2 = newRepository(pdpId2, collection)){
+        		repo2.observe(invocation(pdpId2, null, name1, List.of()), received::add);
+        		repository.publish(key1, value1);
+        		repo2.publish(key2, value2);
+        		Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value2));
+        		assertThat(received).doesNotContain(value1);
+        	}
+        }
+        
+        @Test
+        @DisplayName("then a restart only loads values of it's own pdp id")
+        void thenRestartOnlyLoadsOwnValues() {
+        	repository.publish(key3, value1);
+        	try (val repo2 = newRepository(pdpId2, collection)){
+        		repo2.observe(invocation(pdpId2, null, name2, List.of()), received::add);
+        		assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
+        	}
+        }
+    }
+    
+    @Nested
+    @DisplayName("When a repository key has an entity and arguments")
+    class WhenKeyHasEntityAndArguments{ 	
+    	private final Value         entity = Value.of("alice");
+    	private final List<Value>   args   = List.of(Value.of(1), Value.of("test"));
+    	private final String        name   = "sapl.test.attribute";
+    	private final String        pdpId  = "test-tenant";
+    	private final String        table  = "attributes";
+    	
+    	private final RepositoryKey key    = new RepositoryKey(entity, name, args, pdpId);
+    	private final Value         value  = Value.of("test");
+    	
+    	@Test
+    	@DisplayName("then another node restores the value with entity and arguments")
+    	void thenAnotherNodeReadsValueWithEntityAndArguments() {
+    		repository.publish(key, value);
+    		try (val repo2 = newRepository(pdpId, table)) {
+    	        repo2.observe(invocation(pdpId, entity, name, args), received::add);
+    	        assertThat(firstReceived()).isEqualTo(value);
+    	    }
+    	}
+    	
+    	@Test
+    	@DisplayName("then keys with different arguments are distinct")
+    	void thenKeysWithDifferentArgumentsAreDistinct() {
+    		repository.publish(key, value);
+    		repository.observe(invocation(pdpId, entity, name, List.of(Value.of("other"))), received::add);
+    		assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
+    	}
+    	
+    	@Test
+    	@DisplayName("then another node received updates for the same key")
+    	void thenAnotherNodeReceivesUpdatesForTheSameKey() {
+    		try (val repo2 = newRepository(pdpId, table)){
+    			repo2.observe(invocation(pdpId, entity, name, args), received::add);
+    			repository.publish(key, value);
+    			Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value));
+    		}
+    	}
+    }
+    
+    @Nested
+    @DisplayName("when restoring the keys from a database")
+    class WhenRestoringKeysFromADatabase {
+    	private final String        pdpId      = "test-tenant";
+        private final String        collection = "attributes";
+        private final String        attribute1 = "sapl.test.attribute1";
+        private final String        attribute2 = "sapl.test.attribute2";
+        private final RepositoryKey key1       = new RepositoryKey(null, attribute1, List.of(), pdpId);
+        private final RepositoryKey key2       = new RepositoryKey(null, attribute2, List.of(), pdpId);
+        private final Value         value      = Value.of("test");
+        
+        @Test
+        @DisplayName("then the remaining TTL is applied after a restart")
+        void thenRemainingTTLIsAppliedToKey() {
+        	repository.publish(key1, value, Duration.ofSeconds(3));
+        	try(val repo2 = newRepository(pdpId, collection)){
+        		repo2.observe(invocation(pdpId, null, attribute1, List.of()), received::add);
+        		assertThat(firstReceived()).isEqualTo(value);
+        		Awaitility.await().atMost(Duration.ofSeconds(8)).until(() -> lastReceived().equals(Value.UNDEFINED));
+        	}
+        }
+        
+        @Test
+        @DisplayName("then expired rows are deleted from the table while reloading")
+        void thenExpiredRowsAreDeletedWhileReloading() {
+        	newTemplate().insert(new Document("pdpId", pdpId)
+        			.append("name", attribute1)
+        			.append("entity", null)
+        			.append("arguments", "[]")
+        			.append("value", "\"old\"")
+        			.append("expiresAt", Date.from(Instant.now().minusSeconds(60))), collection).block();
+        	
+        	try (val repo2 = newRepository(pdpId, collection)) {
+        		Long count = newTemplate().count(new Query(Criteria.where("name").is(attribute1)), collection).block();
+                assertThat(count).isZero();
+            }
+        }
+    }
+    
+    @Nested
+    @DisplayName("when a value with ttl is published on another node")
+    class WhenTtlIsPublishedOnAnotherNode{
+    	private final String        pdpId      = "test-tenant";
+        private final String        collection = "attributes";
+        private final String        name       = "sapl.test.mongo.remote.ttl";
+        private final RepositoryKey key        = new RepositoryKey(null, name, List.of(), pdpId);
+        private final Value         value      = Value.of("temp");
+        
+        @Test
+        @DisplayName("then the other node applies the ttl from the change event")
+        void thenOtherNodeAppliesTtlFromChangeEvent() {
+            try (val repo2 = newRepository(pdpId, collection)) {
+                repo2.observe(invocation(pdpId, null, name, List.of()), received::add);
+                repository.publish(key, value, Duration.ofSeconds(2));
+                Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.contains(value));
+                Awaitility.await().atMost(Duration.ofSeconds(8)).until(() -> lastReceived().equals(Value.UNDEFINED));
+            }
         }
     }
 }
