@@ -99,8 +99,8 @@ public class RedisAttributeStore implements AttributeStore {
 
         // Increment the sequence number within Redis, stores it add the current key to the sorted set (ZSET)
         if (created) {
-            long sequence = commands.incr(getSequenceKey(pdpId));
-            commands.zadd(getOrderKey(pdpId), sequence, redisKey);
+            Long sequence = commands.incr(getSequenceKey(pdpId));
+            commands.zadd(getOrderKey(pdpId), sequence.doubleValue(), redisKey);
         }
 
         if (ttl == null) {

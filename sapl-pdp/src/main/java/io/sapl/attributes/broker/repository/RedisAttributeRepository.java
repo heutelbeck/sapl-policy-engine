@@ -171,8 +171,8 @@ public final class RedisAttributeRepository implements AttributeRepository {
         commands.hset(redisKey, fields);
 
         if (created) {
-            long sequence = commands.incr(getSequenceKKey());
-            commands.zadd(getOrderKey(), sequence, redisKey);
+            Long sequence = commands.incr(getSequenceKKey());
+            commands.zadd(getOrderKey(), sequence.doubleValue(), redisKey);
         }
 
         if (ttl == null) {

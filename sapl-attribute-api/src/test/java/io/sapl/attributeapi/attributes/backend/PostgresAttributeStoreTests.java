@@ -32,12 +32,11 @@ class PostgresAttributeStoreTests {
     private static final String       TABLE = "attributes";
     private static final AttributeKey KEY   = new AttributeKey(null, "sapl.test.attribute", List.of());
 
-    private DatabaseClient         client;
     private PostgresAttributeStore store;
 
     @BeforeEach
     void setUp() {
-        client = mock(DatabaseClient.class);
+        DatabaseClient client = mock(DatabaseClient.class);
         store  = new PostgresAttributeStore(client, TABLE, false);
     }
 
