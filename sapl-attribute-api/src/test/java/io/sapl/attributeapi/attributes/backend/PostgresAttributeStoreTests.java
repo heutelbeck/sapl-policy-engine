@@ -37,7 +37,7 @@ class PostgresAttributeStoreTests {
     @BeforeEach
     void setUp() {
         DatabaseClient client = mock(DatabaseClient.class);
-        store  = new PostgresAttributeStore(client, TABLE, false);
+        store = new PostgresAttributeStore(client, TABLE, false);
     }
 
     @Test
