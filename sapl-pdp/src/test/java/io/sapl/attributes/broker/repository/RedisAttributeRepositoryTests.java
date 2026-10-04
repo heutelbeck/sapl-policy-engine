@@ -18,24 +18,31 @@
 package io.sapl.attributes.broker.repository;
 
 import com.redis.testcontainers.RedisContainer;
+
+import io.lettuce.core.KillArgs;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.sync.RedisCommands;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -81,6 +88,12 @@ class RedisAttributeRepositoryTests {
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
+    
+    private static AttributeFinderInvocation invocation(String pdpId, Value entity, String name, List<Value> args) {
+        return new AttributeFinderInvocation(pdpId, pdpId, name, entity, args, Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
+                new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+    }
 
     private Value firstReceived() {
         return received.getFirst();
@@ -88,6 +101,14 @@ class RedisAttributeRepositoryTests {
 
     private Value lastReceived() {
         return received.getLast();
+    }
+    
+    private RedisAttributeRepository newRepository(String pdpId) {
+        return new RedisAttributeRepository(RedisClient.create(redis.getRedisURI()), pdpId, 0);
+    }
+    
+    private static String redisKey(String pdpId, String name) {
+        return "sapl:attribute:" + pdpId + ":null:" + name + ":[]";
     }
 
     @Nested
@@ -269,6 +290,160 @@ class RedisAttributeRepositoryTests {
 
         private static RedisAttributeRepository createRepository(RedisClient client) {
             return new RedisAttributeRepository(client, "test-tenant", 0);
+        }
+    }
+    
+    @Nested
+    @DisplayName("when TTL is zero or negative")
+    class WhenTtlIsInvalid{
+    	private final String        pdpId = "test-tenant";
+        private final String        name  = "sapl.test.attribute";
+        private final RepositoryKey key   = new RepositoryKey(null, name, List.of(), pdpId);
+        private final Value         value = Value.of("test");
+        
+        @ParameterizedTest
+        @ValueSource(longs = {0, -1})
+        @DisplayName("then publishing ist rejected")
+        void thenPublishingIsRejected(long seconds){
+        	val ttl = Duration.ofSeconds(seconds);
+        	assertThatThrownBy(() -> repository.publish(key, value, ttl)).isInstanceOf(IllegalArgumentException.class).hasMessage("TTL must be a strictly positive Duration.");
+        }
+    }
+    
+    @Nested
+    @DisplayName("when the repository is closed")
+    class WhenRepositoryIsClosed{
+    	private final String pdpId = "test-tenant";
+    	private final String name  = "sapl.test.attribute";
+    	
+    	@Test
+    	@DisplayName("then observe delivers an error")
+    	void thenObserveDeliversError() {
+    		val closedRepo = newRepository(pdpId);
+    		closedRepo.close();
+    		closedRepo.observe(invocation(pdpId, null, name, List.of()), received::add);
+            assertThat(firstReceived()).isInstanceOf(ErrorValue.class);
+    	}
+    }
+    
+    @Nested
+    @DisplayName("When a repository key has an entity and arguments")
+    class WhenKeyHasEntityAndArguments {
+        private final Value       entity = Value.of("alice");
+        private final List<Value> args   = List.of(Value.of(1), Value.of("test"));
+        private final String      name   = "sapl.test.attribute";
+        private final String      pdpId  = "test-tenant";
+
+        private final RepositoryKey key   = new RepositoryKey(entity, name, args, pdpId);
+        private final Value         value = Value.of("test");
+
+        @Test
+        @DisplayName("then another node restores the value with entity and arguments")
+        void thenAnotherNodeReadsValueWithEntityAndArguments() {
+            repository.publish(key, value);
+            try (val repo2 = newRepository(pdpId)) {
+                repo2.observe(invocation(pdpId, entity, name, args), received::add);
+                assertThat(firstReceived()).isEqualTo(value);
+            }
+        }
+
+        @Test
+        @DisplayName("then keys with different arguments are distinct")
+        void thenKeysWithDifferentArgumentsAreDistinct() {
+            repository.publish(key, value);
+            repository.observe(invocation(pdpId, entity, name, List.of(Value.of("other"))), received::add);
+            assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
+        }
+
+        @Test
+        @DisplayName("then another node received updates for the same key")
+        void thenAnotherNodeReceivesUpdatesForTheSameKey() {
+            try (val repo2 = newRepository(pdpId)) {
+                repo2.observe(invocation(pdpId, entity, name, args), received::add);
+                repository.publish(key, value);
+                Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("when the pub/sub connection is killed")
+    class WhenPubSubConnectionIsKilled {
+    	private final String        pdpId      = "test-tenant";
+        private final String        name       = "sapl.test.attribute";
+        private final String        redisKey   = redisKey(pdpId, name);
+        private final RepositoryKey key        = new RepositoryKey(null, name, List.of(), pdpId);
+        private final Value         value1     = Value.of("value1");
+        private final Value         value2     = Value.of("value2");
+        
+        @Test
+        @DisplayName("then observer receives an error and is updated after a resync")
+        void thenObserverReceivesErrorAndUpdatedAfterResync() {
+        	repository.publish(key, value1);
+        	repository.observe(invocation(pdpId, null, name, List.of()), received::add);
+        	abortConnection(commands -> commands.hset(redisKey, "value", ValueJsonMarshaller.toJsonString(value2)));
+        	Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> lastReceived().equals(value2));
+            assertThat(received).anyMatch(ErrorValue.class::isInstance);
+        }
+        
+        @Test
+        @DisplayName("then a key that was deleted during downtime is undefined after resync")
+        void thenDeletedKeyDuringDowntimeIsUndefined() {
+        	repository.publish(key, value1);
+        	repository.observe(invocation(pdpId, null, name, List.of()), received::add);
+        	abortConnection(commands -> commands.del(redisKey));
+        	Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> lastReceived().equals(Value.UNDEFINED));
+        }
+        
+        private void abortConnection(Consumer<RedisCommands<String, String>> command) {
+        	val adminCLI = RedisClient.create(redis.getRedisURI());
+        	try (val connection = adminCLI.connect()){
+        		command.accept(connection.sync());
+        		connection.sync().clientKill(KillArgs.Builder.typePubsub());
+        	} finally {
+        		adminCLI.shutdown();
+        	}
+        }
+    }
+    
+    @Nested
+    @DisplayName("when the order index is maintained")
+    class WhenOrderIndexIsMaintained {
+    	private final String        pdpId    = "test-tenant";
+        private final String        orderKey = "sapl:attribute:order:" + pdpId;
+        private final String        name1    = "sapl.test.attribute1";
+        private final String        name2    = "sapl.test.attribute2";
+        private final RepositoryKey key1     = new RepositoryKey(null, name1, List.of(), pdpId);
+        private final RepositoryKey key2     = new RepositoryKey(null, name2, List.of(), pdpId);
+        
+        @Test
+        @DisplayName("then new keys are in insertion order")
+        void thenNewKeysAreInInsertionOrder() {
+        	repository.publish(key1, Value.of(1));
+        	repository.publish(key2, Value.of(2));
+        	assertThat(order()).containsExactly(redisKey(pdpId, name1), redisKey(pdpId, name2));
+        }
+        
+        @Test
+        @DisplayName("then republishing keeps the original position")
+        void thenRepublishingKeepsTheOriginalPosition() {
+        	repository.publish(key1, Value.of(1));
+            repository.publish(key2, Value.of(2));
+            repository.publish(key1, Value.of(3));
+            assertThat(order()).containsExactly(redisKey(pdpId, name1), redisKey(pdpId, name2));
+        }
+        
+        @Test
+        @DisplayName("then removed keys leave the order index")
+        void thenRemovedKeysLeaveTheOrderIndexCorrect() {
+        	repository.publish(key1, Value.of(1));
+            repository.publish(key2, Value.of(2));
+            repository.remove(key1);
+            assertThat(order()).containsExactly(redisKey(pdpId, name2));
+        }
+
+        private List<String> order() {
+            return client.connect().sync().zrange(orderKey, 0, -1);
         }
     }
 }
