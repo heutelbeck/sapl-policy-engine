@@ -21,6 +21,7 @@ import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.awaitility.Awaitility;
@@ -85,6 +86,20 @@ class PostgresAttributeRepositoryTests {
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
+    
+    private static AttributeFinderInvocation invocation(String pdpId, Value entity, String name, List<Value> args) {
+        return new AttributeFinderInvocation(pdpId, pdpId, name, entity, args, Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
+                new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+    }
+    
+    private PostgresAttributeRepository newRepository(String pdpId, String tableName) {
+    	val config = PostgresqlConnectionConfiguration.builder().host(postgres.getHost())
+                .port(postgres.getMappedPort(5432)).database(postgres.getDatabaseName())
+                .username(postgres.getUsername()).password(postgres.getPassword()).build();
+    	val factory = new PostgresqlConnectionFactory(config);
+    	return new PostgresAttributeRepository(DatabaseClient.create(factory), factory, pdpId, tableName);
+    }
 
     private Value firstReceived() {
         return received.getFirst();
@@ -113,13 +128,7 @@ class PostgresAttributeRepositoryTests {
             repository.publish(key("sapl.test.persist"), Value.of(42L));
             repository.close();
 
-            val config2  = PostgresqlConnectionConfiguration.builder().host(postgres.getHost())
-                    .port(postgres.getMappedPort(5432)).database(postgres.getDatabaseName())
-                    .username(postgres.getUsername()).password(postgres.getPassword()).build();
-            val factory2 = new PostgresqlConnectionFactory(config2);
-            val client2  = DatabaseClient.create(factory2);
-
-            try (val repo2 = new PostgresAttributeRepository(client2, factory2, "test-tenant", "attributes")) {
+            try (val repo2 = newRepository("test-tenant", "attributes")) {
                 repo2.observe(invocation("sapl.test.persist"), received::add);
                 assertThat(firstReceived()).isEqualTo(Value.of(42L));
             }
@@ -174,30 +183,48 @@ class PostgresAttributeRepositoryTests {
     @Nested
     @DisplayName("when the notification connection is interrupted")
     class WhenConnectionIsInterrupted {
-
+    	private final String        name       = "sapl.test.attribute";
+        private final String        pdpId      = "test-tenant";
+        private final RepositoryKey key        = new RepositoryKey(null, name, List.of(), pdpId);
+        private final Value         value      = Value.of("test");
+        private final String        disconnect = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE query LIKE 'LISTEN%' AND pid <> pg_backend_pid()";
+        
         @Test
-        @DisplayName("repository reconnects and catches up on changes missed during the outage")
-        void thenObserverEventuallyReceivesChangesMissedDuringOutage() {
-            val config2  = PostgresqlConnectionConfiguration.builder().host(postgres.getHost())
-                    .port(postgres.getMappedPort(5432)).database(postgres.getDatabaseName())
-                    .username(postgres.getUsername()).password(postgres.getPassword()).build();
-            val factory2 = new PostgresqlConnectionFactory(config2);
-            val client2  = DatabaseClient.create(factory2);
-
-            try (val repo2 = new PostgresAttributeRepository(client2, factory2, "test-tenant", "attributes")) {
+        @DisplayName("then repository reconnects and catches up on changes missed during the downtime")
+        void thenObserverEventuallyReceivesChangesMissedDuringdowntime() {
+            try (val repo2 = newRepository("test-tenant", "attributes")) {
                 repository.observe(invocation("sapl.test.reconnect"), received::add);
-                repo2.publish(key("sapl.test.reconnect"), Value.of("before-outage"));
+                repo2.publish(key("sapl.test.reconnect"), Value.of("before-downtime"));
                 Awaitility.await().atMost(Duration.ofSeconds(5))
-                        .until(() -> lastReceived().equals(Value.of("before-outage")));
+                        .until(() -> lastReceived().equals(Value.of("before-downtime")));
 
                 client.sql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
                         + "WHERE query LIKE 'LISTEN%' AND pid <> pg_backend_pid()").then().block();
 
-                repo2.publish(key("sapl.test.reconnect"), Value.of("during-outage"));
+                repo2.publish(key("sapl.test.reconnect"), Value.of("during-downtime"));
 
                 Awaitility.await().atMost(Duration.ofSeconds(60))
-                        .until(() -> lastReceived().equals(Value.of("during-outage")));
+                        .until(() -> lastReceived().equals(Value.of("during-downtime")));
             }
+        }
+        
+        @Test
+        @DisplayName("then the observers received an error while the backend is disconnected")
+        void thenObserversReceivedErrorWhileBackendIsDisconnected() {
+        	repository.publish(key, value);
+        	repository.observe(invocation(pdpId, null, name, List.of()), received::add);
+        	client.sql(disconnect).then().block();
+        	Awaitility.await().atMost(Duration.ofSeconds(60)).until(() -> received.stream().anyMatch(ErrorValue.class::isInstance));
+        }
+        
+        @Test
+        @DisplayName("then a deleted row without a pub/sub notification is deleted after the reconnect resync")
+        void thenRowWithoutNotificationIsDeletedAfterReconnectResync() {
+        	repository.publish(key, value);
+        	repository.observe(invocation(pdpId, null, name, List.of()), received::add);
+        	client.sql("DELETE FROM attributes WHERE name = :name").bind("name", name).then().block();
+        	client.sql(disconnect).then().block();
+        	Awaitility.await().atMost(Duration.ofSeconds(60)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
     }
 
@@ -224,6 +251,9 @@ class PostgresAttributeRepositoryTests {
                 )
                 FROM deleted
                 """;
+        
+        private final String pdpId = "tenant1";
+        private final String table = "attributes";
 
         @Test
         @DisplayName("then cronjob is registered on construction")
@@ -253,16 +283,10 @@ class PostgresAttributeRepositoryTests {
         @Test
         @DisplayName("then an observer of a second pdp received an Value.UNDEFINED")
         void thenAnObserverOfASecondNodeReceivesUndefinedAfterCleanup() {
-            val config2  = PostgresqlConnectionConfiguration.builder().host(postgres.getHost())
-                    .port(postgres.getMappedPort(5432)).database(postgres.getDatabaseName())
-                    .username(postgres.getUsername()).password(postgres.getPassword()).build();
-            val factory2 = new PostgresqlConnectionFactory(config2);
-            val client2  = DatabaseClient.create(factory2);
-
             // Publish a key without a TTL, so that no cleanup task is created internally
             repository.publish(key("sapl.test.cron"), Value.of("crontest"));
 
-            try (val repo2 = new PostgresAttributeRepository(client2, factory2, "test-tenant", "attributes")) {
+            try (val repo2 = newRepository("test-tenant", "attributes")) {
                 // The second repository never added the key above but knows it through the loadFromDB
                 repo2.observe(invocation("sapl.test.cron"), received::add);
                 assertThat(firstReceived()).isEqualTo(Value.of("crontest"));
@@ -298,8 +322,127 @@ class PostgresAttributeRepositoryTests {
                 }
             }
         }
+        
+        @Test
+        @DisplayName("then a repated construction doesn't duplicate the cron job")
+        void thenRepeatedConstructionDoesNotDuplicateCronJob() {
+        	newRepository(pdpId, table).close();
+            val jobs = client.sql("SELECT count(*) FROM cron.job WHERE jobname = 'ttl-cleanup-attributes'")
+                    .map(row -> row.get(0, Long.class)).one().block();
+            assertThat(jobs).isEqualTo(1L);
+        }
     }
-
+    
+    @Nested
+    @DisplayName("When a repository key has an entity and arguments")
+    class WhenKeyHasEntityAndArguments{ 	
+    	private final Value         entity = Value.of("alice");
+    	private final List<Value>   args   = List.of(Value.of(1), Value.of("test"));
+    	private final String        name   = "sapl.test.attribute";
+    	private final String        pdpId  = "test-tenant";
+    	private final String        table  = "attributes";
+    	
+    	private final RepositoryKey key    = new RepositoryKey(entity, name, args, pdpId);
+    	private final Value         value  = Value.of("test");
+    	
+    	@Test
+    	@DisplayName("then another node restores the value with entity and arguments")
+    	void thenAnotherNodeReadsValueWithEntityAndArguments() {
+    		repository.publish(key, value);
+    		try (val repo2 = newRepository(pdpId, table)) {
+    	        repo2.observe(invocation(pdpId, entity, name, args), received::add);
+    	        assertThat(firstReceived()).isEqualTo(value);
+    	    }
+    	}
+    	
+    	@Test
+    	@DisplayName("then keys with different arguments are distinct")
+    	void thenKeysWithDifferentArgumentsAreDistinct() {
+    		repository.publish(key, value);
+    		repository.observe(invocation(pdpId, entity, name, List.of(Value.of("other"))), received::add);
+    		assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
+    	}
+    	
+    	@Test
+    	@DisplayName("then another node received updates for the same key")
+    	void thenAnotherNodeReceivesUpdatesForTheSameKey() {
+    		try (val repo2 = newRepository(pdpId, table)){
+    			repo2.observe(invocation(pdpId, entity, name, args), received::add);
+    			repository.publish(key, value);
+    			Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value));
+    		}
+    	}
+    }
+    
+    @Nested
+    @DisplayName("when another pdp id uses the same table")
+    class WhenAnotherPdpIdUsesTheSameTable {
+    	private final String        name       = "sapl.test.attribute";
+        private final String        pdpId1     = "tenant01";
+        private final String        pdpId2     = "tenant02";
+        private final String        table      = "attributes";
+        private final RepositoryKey key1       = new RepositoryKey(null, name, List.of(), pdpId1);
+        private final RepositoryKey key2       = new RepositoryKey(null, name, List.of(), pdpId2);
+        private final Value         value1     = Value.of("value1");
+        private final Value         value2     = Value.of("value2");
+        
+        @Test
+        @DisplayName("then notifications of another pdp id are ignored")
+        void thenNotificationsOfOtherPdpIdAreIgnored() {
+        	try (val repo2 = newRepository(pdpId2, table)){
+        		repo2.observe(invocation(pdpId2, null, name, List.of()), received::add);
+        		repository.publish(key1, value1);
+        		repo2.publish(key2, value2);
+        		Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value2));
+        		assertThat(received).doesNotContain(value1);
+        	}
+        }
+        
+        @Test
+        @DisplayName("then a restart of a repository only restores values of it's own pdp id")
+        void thenRestartOnlyLoadsOwnKeys() {
+        	repository.publish(key1, value1);
+        	try(val repo2 = newRepository(pdpId2, table)){
+        		repo2.observe(invocation(pdpId2, null, name, List.of()), received::add);
+        		assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
+        	}
+        }
+    }
+    
+    @Nested
+    @DisplayName("when restoring the keys from a database")
+    class WhenRestoringKeysFromADatabase {
+    	private final String        pdpId      = "test-tenant";
+        private final String        table      = "attributes";
+        private final String        attribute1 = "sapl.test.attribute1";
+        private final String        attribute2 = "sapl.test.attribute2";
+        private final RepositoryKey key1       = new RepositoryKey(null, attribute1, List.of(), pdpId);
+        private final RepositoryKey key2       = new RepositoryKey(null, attribute2, List.of(), pdpId);
+        private final Value         value      = Value.of("test");
+        
+        @Test
+        @DisplayName("then the remaining TTL is applied after a restart")
+        void thenRemainingTTLIsAppliedToKey() {
+        	repository.publish(key1, value, Duration.ofSeconds(3));
+        	try(val repo2 = newRepository(pdpId, table)){
+        		repo2.observe(invocation(pdpId, null, attribute1, List.of()), received::add);
+        		assertThat(firstReceived()).isEqualTo(value);
+        		Awaitility.await().atMost(Duration.ofSeconds(8)).until(() -> lastReceived().equals(Value.UNDEFINED));
+        	}
+        }
+        
+        @Test
+        @DisplayName("then expired rows are deleted from the table while reloading")
+        void thenExpiredRowsAreDeletedWhileReloading() {
+        	repository.publish(key2, value, Duration.ofSeconds(60));
+        	client.sql("UPDATE attributes SET expires_at = now() - interval '1 minute' WHERE name = :name").bind("name", attribute2).then().block();
+        	try(val repo2 = newRepository(pdpId, table)){
+        		long rows = client.sql("SELECT count(*) FROM attributes WHERE name = :name").bind("name", attribute2).map(row -> row.get(0, Long.class)).one().block();
+        		assertThat(rows).isZero();
+        	}
+        }
+    }
+    
     static {
         try {
             PostgreSQLContainer container = new PostgreSQLContainer(
