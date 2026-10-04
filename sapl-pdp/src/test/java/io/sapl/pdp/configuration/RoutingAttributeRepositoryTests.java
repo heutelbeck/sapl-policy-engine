@@ -30,7 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
+import org.awaitility.Awaitility;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
@@ -108,16 +108,16 @@ class RoutingAttributeRepositoryTests {
     @Nested
     @DisplayName("when an observation arrives before the repository is built")
     class WhenObservationArrivesBeforeBuild {
-        private final String                     pdpId    = "tenant-1";
-        private final String                     configId = "config-1";
-        private final RoutingAttributeRepository router   = new RoutingAttributeRepository();
-        private final List<Value>                received = new CopyOnWriteArrayList<>();
+        private static final String              PDP_ID    = "tenant-1";
+        private static final String              CONFIG_ID = "config-1";
+        private final RoutingAttributeRepository router    = new RoutingAttributeRepository();
+        private final List<Value>                received  = new CopyOnWriteArrayList<>();
 
         @Test
         @DisplayName("then the queued observation is replayed after the build is finished")
         void thenQueuedObservationIsReplayedAfterBuild() {
-            router.observe(invocation(pdpId, configId), received::add);
-            router.buildOrRoute(pdpId, configForInMemory(pdpId, configId));
+            router.observe(invocation(PDP_ID, CONFIG_ID), received::add);
+            router.buildOrRoute(PDP_ID, configForInMemory(PDP_ID, CONFIG_ID));
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.size() == 2);
             assertThat(received.getLast()).isEqualTo(Value.UNDEFINED);
         }
@@ -127,9 +127,9 @@ class RoutingAttributeRepositoryTests {
         void thenClosedQueueRegistrationIsNotReplayed() {
             val closedObserver = new CopyOnWriteArrayList<Value>();
 
-            router.observe(invocation(pdpId, configId), closedObserver::add).close();
-            router.observe(invocation(pdpId, configId), received::add);
-            router.buildOrRoute(pdpId, configForInMemory(pdpId, configId));
+            router.observe(invocation(PDP_ID, CONFIG_ID), closedObserver::add).close();
+            router.observe(invocation(PDP_ID, CONFIG_ID), received::add);
+            router.buildOrRoute(PDP_ID, configForInMemory(PDP_ID, CONFIG_ID));
 
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.size() == 2);
             assertThat(closedObserver).hasSize(1);
@@ -144,16 +144,16 @@ class RoutingAttributeRepositoryTests {
     @Nested
     @DisplayName("when the repository is built")
     class WhenRepositoryIsBuilt {
-        private final String                     pdpId     = "tenant-1";
-        private final String                     configId1 = "config-1";
-        private final String                     configId2 = "config-2";
-        private final RoutingAttributeRepository router    = new RoutingAttributeRepository();
-        private final List<Value>                received  = new CopyOnWriteArrayList<>();
+        private static final String              PDP_ID     = "tenant-1";
+        private static final String              CONFIG_ID1 = "config-1";
+        private static final String              CONFIG_ID2 = "config-2";
+        private final RoutingAttributeRepository router     = new RoutingAttributeRepository();
+        private final List<Value>                received   = new CopyOnWriteArrayList<>();
 
         @BeforeEach
         void build() {
-            router.buildOrRoute(pdpId, configForInMemory(pdpId, configId1));
-            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> router.currentRawConfig(pdpId).isPresent());
+            router.buildOrRoute(PDP_ID, configForInMemory(PDP_ID, CONFIG_ID1));
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> router.currentRawConfig(PDP_ID).isPresent());
         }
 
         @AfterEach
@@ -163,38 +163,38 @@ class RoutingAttributeRepositoryTests {
 
         private Value firstValueFor(String configId) {
             val values = new CopyOnWriteArrayList<Value>();
-            router.observe(invocation(pdpId, configId), values::add).close();
+            router.observe(invocation(PDP_ID, configId), values::add).close();
             return values.getFirst();
         }
 
         @Test
         @DisplayName("then new observations are delegated directly")
         void thenNewObservationsAreDelegatedDirectly() {
-            router.observe(invocation(pdpId, configId1), received::add);
+            router.observe(invocation(PDP_ID, CONFIG_ID1), received::add);
             assertThat(received).containsExactly(Value.UNDEFINED);
         }
 
         @Test
         @DisplayName("then a changed configuration id makes the old one unroutable")
         void thenChangedConfigurationIdMakesOldOneUnroutable() {
-            router.buildOrRoute(pdpId, configForInMemory(pdpId, configId2));
+            router.buildOrRoute(PDP_ID, configForInMemory(PDP_ID, CONFIG_ID2));
             Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .until(() -> firstValueFor(configId1) instanceof ErrorValue);
+                    .until(() -> firstValueFor(CONFIG_ID1) instanceof ErrorValue);
         }
 
         @Test
         @DisplayName("then removing the pdp from the router removes also the raw config")
         void thenRemovingThePdpAlsoRemovesRoutingAndRawConfiguration() {
-            router.removeForPdp(pdpId);
-            assertThat(router.currentRawConfig(pdpId)).isEmpty();
-            assertThat(firstValueFor(configId1)).isInstanceOf(ErrorValue.class);
+            router.removeForPdp(PDP_ID);
+            assertThat(router.currentRawConfig(PDP_ID)).isEmpty();
+            assertThat(firstValueFor(CONFIG_ID1)).isInstanceOf(ErrorValue.class);
         }
 
         @Test
         @DisplayName("then closing the router also closes the cached repositories")
         void thenClosingRouterClosedCachedRepositories() {
             router.close();
-            assertThat(firstValueFor(configId1)).isInstanceOf(ErrorValue.class);
+            assertThat(firstValueFor(CONFIG_ID1)).isInstanceOf(ErrorValue.class);
         }
     }
 

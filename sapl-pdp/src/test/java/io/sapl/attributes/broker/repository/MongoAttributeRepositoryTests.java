@@ -39,6 +39,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -96,9 +97,9 @@ class MongoAttributeRepositoryTests {
     }
 
     private boolean preAndPostImagesEnabled(String collection) {
-        val result = newTemplate()
+        val result = Objects.requireNonNull(newTemplate()
                 .executeCommand(new Document("listCollections", 1).append("filter", new Document("name", collection)))
-                .block();
+                .block());
         val first  = result.get("cursor", Document.class).getList("firstBatch", Document.class).getFirst();
         val images = first.get("options", Document.class).get("changeStreamPreAndPostImages", Document.class);
         return images != null && images.getBoolean("enabled", false);
@@ -202,24 +203,24 @@ class MongoAttributeRepositoryTests {
     @Nested
     @DisplayName("when the collection is prepared on startup")
     class WhenCollectionIsPrepared {
-        private final String pdpId       = "test-tenant";
-        private final String collection1 = "collection1";
-        private final String collection2 = "collection2";
+        private static final String PDP_ID      = "test-tenant";
+        private static final String COLLECTION1 = "collection1";
+        private static final String COLLECTION2 = "collection2";
 
         @Test
         @DisplayName("then a missing collection on startup is created with the pre- and post-images activated")
         void thenMissingCollectionIsCreatedWithPreAndPostImages() {
-            try (val repo = newRepository(pdpId, collection1)) {
-                assertThat(preAndPostImagesEnabled(collection1)).isTrue();
+            try (val repo = newRepository(PDP_ID, COLLECTION1)) {
+                assertThat(preAndPostImagesEnabled(COLLECTION1)).isTrue();
             }
         }
 
         @Test
         @DisplayName("then an existing collection will be extended with pre- and post-images")
         void thenExistingCollectionIsUpgraded() {
-            newTemplate().createCollection(collection2).block();
-            try (val repo = newRepository(pdpId, collection2)) {
-                assertThat(preAndPostImagesEnabled(collection2)).isTrue();
+            newTemplate().createCollection(COLLECTION2).block();
+            try (val repo = newRepository(PDP_ID, COLLECTION2)) {
+                assertThat(preAndPostImagesEnabled(COLLECTION2)).isTrue();
             }
         }
     }
@@ -227,22 +228,22 @@ class MongoAttributeRepositoryTests {
     @Nested
     @DisplayName("when another pdp id uses the same collection")
     class WhenAnotherPdpIDUsesTheSameCollection {
-        private final String        collection = "attributes";
-        private final String        pdpId1     = "test-tenant";
-        private final String        pdpId2     = "tenant2";
-        private final String        name1      = "sapl.test.attribute1";
-        private final String        name2      = "sapl.test.attribute2";
-        private final RepositoryKey key1       = new RepositoryKey(null, name1, List.of(), pdpId1);
-        private final RepositoryKey key2       = new RepositoryKey(null, name1, List.of(), pdpId2);
-        private final RepositoryKey key3       = new RepositoryKey(null, name2, List.of(), pdpId1);
+        private static final String COLLECTION = "attributes";
+        private static final String PDP_ID1    = "test-tenant";
+        private static final String PDP_ID2    = "tenant2";
+        private static final String NAME1      = "sapl.test.attribute1";
+        private static final String NAME2      = "sapl.test.attribute2";
+        private final RepositoryKey key1       = new RepositoryKey(null, NAME1, List.of(), PDP_ID1);
+        private final RepositoryKey key2       = new RepositoryKey(null, NAME1, List.of(), PDP_ID2);
+        private final RepositoryKey key3       = new RepositoryKey(null, NAME2, List.of(), PDP_ID1);
         private final Value         value1     = Value.of("foreign");
         private final Value         value2     = Value.of("own");
 
         @Test
         @DisplayName("then change events of another pdp id are ignored")
         void thenChangeEventsOfOtherPdpIdAreIgnored() {
-            try (val repo2 = newRepository(pdpId2, collection); val repo3 = newRepository(pdpId2, collection)) {
-                repo2.observe(invocation(pdpId2, null, name1, List.of()), received::add);
+            try (val repo2 = newRepository(PDP_ID2, COLLECTION); val repo3 = newRepository(PDP_ID2, COLLECTION)) {
+                repo2.observe(invocation(PDP_ID2, null, NAME1, List.of()), received::add);
                 repository.publish(key1, value1);
                 repo3.publish(key2, value2);
                 Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value2));
@@ -254,8 +255,8 @@ class MongoAttributeRepositoryTests {
         @DisplayName("then a restart only loads values of it's own pdp id")
         void thenRestartOnlyLoadsOwnValues() {
             repository.publish(key3, value1);
-            try (val repo2 = newRepository(pdpId2, collection)) {
-                repo2.observe(invocation(pdpId2, null, name2, List.of()), received::add);
+            try (val repo2 = newRepository(PDP_ID2, COLLECTION)) {
+                repo2.observe(invocation(PDP_ID2, null, NAME2, List.of()), received::add);
                 assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
             }
         }
@@ -264,21 +265,21 @@ class MongoAttributeRepositoryTests {
     @Nested
     @DisplayName("When a repository key has an entity and arguments")
     class WhenKeyHasEntityAndArguments {
-        private final Value       entity = Value.of("alice");
-        private final List<Value> args   = List.of(Value.of(1), Value.of("test"));
-        private final String      name   = "sapl.test.attribute";
-        private final String      pdpId  = "test-tenant";
-        private final String      table  = "attributes";
+        private final Value         entity = Value.of("alice");
+        private final List<Value>   args   = List.of(Value.of(1), Value.of("test"));
+        private static final String NAME   = "sapl.test.attribute";
+        private static final String PDP_ID = "test-tenant";
+        private static final String TABLE  = "attributes";
 
-        private final RepositoryKey key   = new RepositoryKey(entity, name, args, pdpId);
+        private final RepositoryKey key   = new RepositoryKey(entity, NAME, args, PDP_ID);
         private final Value         value = Value.of("test");
 
         @Test
         @DisplayName("then another node restores the value with entity and arguments")
         void thenAnotherNodeReadsValueWithEntityAndArguments() {
             repository.publish(key, value);
-            try (val repo2 = newRepository(pdpId, table)) {
-                repo2.observe(invocation(pdpId, entity, name, args), received::add);
+            try (val repo2 = newRepository(PDP_ID, TABLE)) {
+                repo2.observe(invocation(PDP_ID, entity, NAME, args), received::add);
                 assertThat(firstReceived()).isEqualTo(value);
             }
         }
@@ -287,15 +288,15 @@ class MongoAttributeRepositoryTests {
         @DisplayName("then keys with different arguments are distinct")
         void thenKeysWithDifferentArgumentsAreDistinct() {
             repository.publish(key, value);
-            repository.observe(invocation(pdpId, entity, name, List.of(Value.of("other"))), received::add);
+            repository.observe(invocation(PDP_ID, entity, NAME, List.of(Value.of("other"))), received::add);
             assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
         }
 
         @Test
         @DisplayName("then another node received updates for the same key")
         void thenAnotherNodeReceivesUpdatesForTheSameKey() {
-            try (val repo2 = newRepository(pdpId, table)) {
-                repo2.observe(invocation(pdpId, entity, name, args), received::add);
+            try (val repo2 = newRepository(PDP_ID, TABLE)) {
+                repo2.observe(invocation(PDP_ID, entity, NAME, args), received::add);
                 repository.publish(key, value);
                 Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value));
             }
@@ -305,19 +306,19 @@ class MongoAttributeRepositoryTests {
     @Nested
     @DisplayName("when restoring the keys from a database")
     class WhenRestoringKeysFromADatabase {
-        private final String        pdpId      = "test-tenant";
-        private final String        collection = "attributes";
-        private final String        attribute1 = "sapl.test.attribute1";
-        private final String        attribute2 = "sapl.test.attribute2";
-        private final RepositoryKey key1       = new RepositoryKey(null, attribute1, List.of(), pdpId);
+        private static final String PDP_ID     = "test-tenant";
+        private static final String COLLECTION = "attributes";
+        private static final String ATTRIBUTE1 = "sapl.test.attribute1";
+        private static final String ATTRIBUTE2 = "sapl.test.attribute2";
+        private final RepositoryKey key1       = new RepositoryKey(null, ATTRIBUTE1, List.of(), PDP_ID);
         private final Value         value      = Value.of("test");
 
         @Test
         @DisplayName("then the remaining TTL is applied after a restart")
         void thenRemainingTTLIsAppliedToKey() {
             repository.publish(key1, value, Duration.ofSeconds(3));
-            try (val repo2 = newRepository(pdpId, collection)) {
-                repo2.observe(invocation(pdpId, null, attribute1, List.of()), received::add);
+            try (val repo2 = newRepository(PDP_ID, COLLECTION)) {
+                repo2.observe(invocation(PDP_ID, null, ATTRIBUTE1, List.of()), received::add);
                 assertThat(firstReceived()).isEqualTo(value);
                 Awaitility.await().atMost(Duration.ofSeconds(8)).until(() -> lastReceived().equals(Value.UNDEFINED));
             }
@@ -326,13 +327,13 @@ class MongoAttributeRepositoryTests {
         @Test
         @DisplayName("then expired rows are deleted from the table while reloading")
         void thenExpiredRowsAreDeletedWhileReloading() {
-            newTemplate().insert(new Document("pdpId", pdpId).append("name", attribute2).append("entity", null)
+            newTemplate().insert(new Document("pdpId", PDP_ID).append("name", ATTRIBUTE2).append("entity", null)
                     .append("arguments", "[]").append("value", "\"old\"")
-                    .append("expiresAt", Date.from(Instant.now().minusSeconds(60))), collection).block();
+                    .append("expiresAt", Date.from(Instant.now().minusSeconds(60))), COLLECTION).block();
 
-            try (val repo2 = newRepository(pdpId, collection)) {
+            try (val repo2 = newRepository(PDP_ID, COLLECTION)) {
                 Long count = newTemplate()
-                        .count(new Query(Criteria.where("pdpId").is(pdpId).and("name").is(attribute2)), collection)
+                        .count(new Query(Criteria.where("pdpId").is(PDP_ID).and("name").is(ATTRIBUTE2)), COLLECTION)
                         .block();
                 assertThat(count).isZero();
             }
@@ -342,17 +343,17 @@ class MongoAttributeRepositoryTests {
     @Nested
     @DisplayName("when a value with ttl is published on another node")
     class WhenTtlIsPublishedOnAnotherNode {
-        private final String        pdpId      = "test-tenant";
-        private final String        collection = "attributes";
-        private final String        name       = "sapl.test.mongo.remote.ttl";
-        private final RepositoryKey key        = new RepositoryKey(null, name, List.of(), pdpId);
+        private static final String PDP_ID     = "test-tenant";
+        private static final String COLLECTION = "attributes";
+        private static final String NAME       = "sapl.test.mongo.remote.ttl";
+        private final RepositoryKey key        = new RepositoryKey(null, NAME, List.of(), PDP_ID);
         private final Value         value      = Value.of("temp");
 
         @Test
         @DisplayName("then the other node applies the ttl from the change event")
         void thenOtherNodeAppliesTtlFromChangeEvent() {
-            try (val repo2 = newRepository(pdpId, collection)) {
-                repo2.observe(invocation(pdpId, null, name, List.of()), received::add);
+            try (val repo2 = newRepository(PDP_ID, COLLECTION)) {
+                repo2.observe(invocation(PDP_ID, null, NAME, List.of()), received::add);
                 repository.publish(key, value, Duration.ofSeconds(2));
                 Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.contains(value));
                 Awaitility.await().atMost(Duration.ofSeconds(8)).until(() -> lastReceived().equals(Value.UNDEFINED));
