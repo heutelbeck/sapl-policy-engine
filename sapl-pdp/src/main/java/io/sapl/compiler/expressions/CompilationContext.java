@@ -75,6 +75,7 @@ public class CompilationContext {
     private final Map<Value, Value>         valueDedup               = new HashMap<>();
     private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
     private Map<IndexPredicate, Value>      foldingCache             = new HashMap<>();
+    private boolean                         rejectUnknownFunctions   = false;
 
     public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;

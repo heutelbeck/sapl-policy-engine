@@ -292,6 +292,7 @@ public class PdpVoterSource implements AutoCloseable {
             val compilationContext = new CompilationContext(pdpConfiguration.pdpId(),
                     pdpConfiguration.configurationId(), pdpConfiguration.data(), bundle.functionBroker());
             compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
+            compilationContext.setRejectUnknownFunctions(true);
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext, bundle);
         } catch (SaplCompilerException compilerException) {
             handleCompileFailure(pdpConfiguration, onCompileError, snapshot, compilerException);

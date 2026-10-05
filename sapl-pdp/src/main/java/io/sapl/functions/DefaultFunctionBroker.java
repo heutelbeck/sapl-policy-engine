@@ -208,4 +208,8 @@ public class DefaultFunctionBroker implements FunctionBroker {
         return Value.error(ERROR_NO_MATCHING_FUNCTION_FOUND, invocation);
     }
 
+    @Override
+    public boolean isRegistered(String functionName) {
+        return functionIndex.containsKey(functionName);
+    }
 }

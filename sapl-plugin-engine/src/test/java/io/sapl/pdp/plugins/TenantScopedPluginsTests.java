@@ -68,6 +68,7 @@ class TenantScopedPluginsTests {
     private static final String ENABLING_PDP  = "enabling-pdp";
     private static final String OTHER_PDP     = "other-pdp";
 
+    private static final String PLAIN_POLICY     = "policy \"plain\" permit";
     private static final String FUNCTION_POLICY  = "policy \"function\" permit first.value() == \"first\";";
     private static final String ATTRIBUTE_POLICY = "policy \"attribute\" permit <firstpip.value> == \"first-pip\";";
 
@@ -156,6 +157,13 @@ class TenantScopedPluginsTests {
                 List.of(policy), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT)).withPlugins(plugins));
     }
 
+    private void assertRejectedForUnknownFunction(String pdpId) {
+        assertThat(voterSource.getPdpStatus(pdpId)).hasValueSatisfying(status -> {
+            assertThat(status.state()).isEqualTo(PdpState.ERROR);
+            assertThat(status.lastError()).contains("Unknown function 'first.value'");
+        });
+    }
+
     private Decision decide(String pdpId) {
         return pdp.decideOnce(SUBSCRIPTION, pdpId).decision();
     }
@@ -171,14 +179,14 @@ class TenantScopedPluginsTests {
             load(OTHER_PDP, FUNCTION_POLICY, Set.of());
 
             assertThat(decide(ENABLING_PDP)).isEqualTo(Decision.PERMIT);
-            assertThat(decide(OTHER_PDP)).isNotEqualTo(Decision.PERMIT);
+            assertRejectedForUnknownFunction(OTHER_PDP);
         }
 
         @Test
         @DisplayName("enabling a plugin in an updated configuration makes its function available")
         void whenPluginEnabledByUpdateThenItsFunctionBecomesAvailable() {
             load(ENABLING_PDP, FUNCTION_POLICY, Set.of());
-            assertThat(decide(ENABLING_PDP)).isNotEqualTo(Decision.PERMIT);
+            assertRejectedForUnknownFunction(ENABLING_PDP);
 
             load(ENABLING_PDP, FUNCTION_POLICY, Set.of(FIRST_PLUGIN));
 
@@ -222,7 +230,7 @@ class TenantScopedPluginsTests {
         @Test
         @DisplayName("a plugin interceptor sees no decisions of a PDP that does not enable the plugin")
         void whenPluginNotEnabledThenItsInterceptorSeesNoDecisions() {
-            load(OTHER_PDP, FUNCTION_POLICY, Set.of());
+            load(OTHER_PDP, PLAIN_POLICY, Set.of());
 
             decide(OTHER_PDP);
 
@@ -232,7 +240,7 @@ class TenantScopedPluginsTests {
         @Test
         @DisplayName("a plugin interceptor sees the decisions of a PDP that enables the plugin")
         void whenPluginEnabledThenItsInterceptorSeesDecisions() {
-            load(ENABLING_PDP, FUNCTION_POLICY, Set.of(FIRST_PLUGIN));
+            load(ENABLING_PDP, PLAIN_POLICY, Set.of(FIRST_PLUGIN));
 
             decide(ENABLING_PDP);
 
@@ -247,18 +255,17 @@ class TenantScopedPluginsTests {
         @Test
         @DisplayName("a configuration that lists no plugins gets none of them")
         void whenNoPluginsListedThenNoPluginContributesAnything() {
-            load(OTHER_PDP, FUNCTION_POLICY, Set.of());
+            load(OTHER_PDP, PLAIN_POLICY, Set.of());
 
             assertThat(voterSource.getPdpStatus(OTHER_PDP))
                     .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.LOADED));
-            assertThat(decide(OTHER_PDP)).isNotEqualTo(Decision.PERMIT);
             verify(firstInterceptor, never()).onDecision(any(), any(), anyString(), any());
         }
 
         @Test
         @DisplayName("listing a plugin that is not available invalidates the configuration")
         void whenUnavailablePluginListedThenConfigurationIsInvalid() {
-            load(OTHER_PDP, FUNCTION_POLICY, Set.of("missing-plugin"));
+            load(OTHER_PDP, PLAIN_POLICY, Set.of("missing-plugin"));
 
             assertThat(voterSource.getPdpStatus(OTHER_PDP)).hasValueSatisfying(status -> {
                 assertThat(status.state()).isEqualTo(PdpState.ERROR);

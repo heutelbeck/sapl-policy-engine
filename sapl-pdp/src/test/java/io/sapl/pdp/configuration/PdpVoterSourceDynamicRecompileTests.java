@@ -443,6 +443,60 @@ class PdpVoterSourceDynamicRecompileTests {
     }
 
     @Nested
+    @DisplayName("when a configuration calls an unknown function")
+    class UnknownFunction {
+
+        private PDPConfiguration callingUnknownFunction(String configId) {
+            return new PDPConfiguration(PDP_ID, configId, CombiningAlgorithm.DEFAULT,
+                    List.of("policy \"p\" permit standard.unknown(\"abc\") == 3;"), EMPTY);
+        }
+
+        @Test
+        @DisplayName("a first load fails to compile, naming the function")
+        void whenFirstLoadCallsUnknownFunctionThenErrorNamingIt() {
+            try (val voterSource = new PdpVoterSource(new MutablePluginsSource(pluginsOf(brokerWithStandard())),
+                    CLOCK)) {
+                voterSource.loadConfiguration(callingUnknownFunction(CONFIG_A));
+
+                assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
+                    assertThat(status.state()).isEqualTo(PdpState.ERROR);
+                    assertThat(status.lastError()).contains("standard.unknown");
+                });
+            }
+        }
+
+        @Test
+        @DisplayName("an update fails to compile and keeps the last good voter")
+        void whenUpdateCallsUnknownFunctionThenLastGoodVoterKeepsServing() {
+            try (val voterSource = new PdpVoterSource(new MutablePluginsSource(pluginsOf(brokerWithStandard())),
+                    CLOCK)) {
+                voterSource.loadConfiguration(policyConfig(CONFIG_A));
+                val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+                voterSource.loadConfiguration(callingUnknownFunction("config-B"));
+
+                assertThat(voterSource.getPdpStatus(PDP_ID))
+                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.STALE));
+                assertThat(voterSource.getCurrentConfiguration(PDP_ID)).containsSame(lastGood);
+            }
+        }
+
+        @Test
+        @DisplayName("an imported function is resolved to its library and compiles")
+        void whenImportedFunctionIsKnownThenConfigurationLoads() {
+            val imported = new PDPConfiguration(PDP_ID, CONFIG_A, CombiningAlgorithm.DEFAULT,
+                    List.of("import standard.length\npolicy \"p\" permit length(\"abc\") == 3;"), EMPTY);
+            try (val voterSource = new PdpVoterSource(new MutablePluginsSource(pluginsOf(brokerWithStandard())),
+                    CLOCK)) {
+                voterSource.loadConfiguration(imported);
+
+                assertThat(voterSource.getPdpStatus(PDP_ID))
+                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.LOADED));
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("when the PIP visibility is managed")
     class PipVisibility {
 

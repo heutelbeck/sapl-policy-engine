@@ -414,6 +414,24 @@ class DefaultFunctionBrokerTests {
                 arguments("cthulhu.awakeDreamer", List.of()), arguments("wrong.library", List.of()));
     }
 
+    @Test
+    @DisplayName("a loaded function is registered under its fully qualified name, regardless of arity")
+    void whenLibraryLoadedThenItsFunctionsAreRegistered() {
+        broker.load(new CthulhuLibrary());
+
+        assertThat(broker.isRegistered("cthulhu.summonEntity")).isTrue();
+        assertThat(broker.isRegistered("cthulhu.awakeDreamer")).isTrue();
+    }
+
+    @Test
+    @DisplayName("an unknown function or a name without its library is not registered")
+    void whenFunctionUnknownThenNotRegistered() {
+        broker.load(new CthulhuLibrary());
+
+        assertThat(broker.isRegistered("cthulhu.unknown")).isFalse();
+        assertThat(broker.isRegistered("summonEntity")).isFalse();
+    }
+
     @FunctionLibrary(name = "cthulhu", description = "Functions for summoning Great Old Ones from Rlyeh")
     public static class CthulhuLibrary {
 

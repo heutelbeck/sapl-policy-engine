@@ -33,4 +33,16 @@ public interface FunctionBroker {
     Value evaluateFunction(FunctionInvocation invocation);
 
     List<Class<?>> getRegisteredLibraries();
+
+    /**
+     * Whether at least one function, of any arity, is registered under the fully
+     * qualified name. The default returns true, so implementations that do not
+     * override it keep the previous behavior and skip the compile-time check.
+     *
+     * @param functionName the function name including its library
+     * @return true if a function with this name is registered
+     */
+    default boolean isRegistered(String functionName) {
+        return true;
+    }
 }

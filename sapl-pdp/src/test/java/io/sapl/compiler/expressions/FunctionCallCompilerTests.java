@@ -20,6 +20,8 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.util.SimpleFunctionLibrary;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -261,4 +263,51 @@ class FunctionCallCompilerTests {
         assertThat(eval.onlyInvocation().attributeName()).isEqualTo("test.attr");
     }
 
+    private static CompilationContext rejectingUnknownFunctions() {
+        var broker = new DefaultFunctionBroker();
+        broker.load(new SimpleFunctionLibrary());
+        var ctx = compilationContext(broker);
+        ctx.setRejectUnknownFunctions(true);
+        return ctx;
+    }
+
+    @Test
+    void whenRejectingUnknownFunctionsAndFunctionIsUnknownThenCompilerExceptionPointsToTheCall() {
+        var                    ctx     = rejectingUnknownFunctions();
+        final ThrowingCallable compile = () -> compileExpression("simple.unknown(1)", ctx);
+
+        assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class).hasMessageContaining("simple.unknown")
+                .satisfies(e -> assertThat(((SaplCompilerException) e).getLocation()).isNotNull());
+    }
+
+    @Test
+    void whenRejectingUnknownFunctionsAndFunctionIsKnownThenCompiles() {
+        var result = compileExpression("simple.length(\"abc\")", rejectingUnknownFunctions());
+
+        assertThat(result).isEqualTo(Value.of(3));
+    }
+
+    @Test
+    void whenRejectingUnknownFunctionsAndKnownFunctionHasWrongArityThenCompilesToRuntimeError() {
+        var result = compileExpression("simple.negate(true, false)", rejectingUnknownFunctions());
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void whenRejectingUnknownFunctionsAndFilterFunctionIsUnknownThenCompilerException() {
+        var                    ctx     = rejectingUnknownFunctions();
+        final ThrowingCallable compile = () -> compileExpression("42 |- simple.unknown", ctx);
+
+        assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class).hasMessageContaining("simple.unknown");
+    }
+
+    @Test
+    void whenNotRejectingUnknownFunctionsThenUnknownFunctionCompilesToRuntimeError() {
+        var broker = new DefaultFunctionBroker();
+        broker.load(new SimpleFunctionLibrary());
+        var result = compileExpression("simple.unknown(1)", compilationContext(broker));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
 }

@@ -51,6 +51,7 @@ public class FunctionCallCompiler {
 
     private static final String ERROR_INVALID_FUNCTION_NAME                  = "Invalid function name '%s'.";
     private static final String ERROR_PURE_FUNCTION_RECEIVED_STREAM_OPERATOR = "PureFunction cannot contain StreamOperator. Indicates an implementation bug.";
+    private static final String ERROR_UNKNOWN_FUNCTION                       = "Unknown function '%s'. It is neither built in nor provided by a plugin enabled for this PDP.";
 
     public static CompiledExpression compile(FunctionCall call, CompilationContext ctx) {
         return compile(call.name().full(), call.arguments(), call.location(), ctx);
@@ -62,6 +63,9 @@ public class FunctionCallCompiler {
             requireValidName(functionName);
         } catch (IllegalArgumentException e) {
             throw new SaplCompilerException(ERROR_INVALID_FUNCTION_NAME.formatted(functionName), e, location);
+        }
+        if (ctx.isRejectUnknownFunctions() && !ctx.getFunctionBroker().isRegistered(functionName)) {
+            throw new SaplCompilerException(ERROR_UNKNOWN_FUNCTION.formatted(functionName), location);
         }
         if (arguments.isEmpty()) {
             return new NoArgsFunction(functionName, location);
