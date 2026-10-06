@@ -83,6 +83,7 @@ import java.util.stream.Stream;
 public class PDPConfigurationLoader {
 
     private static final String FIELD_COMPILER_OPTIONS = "compilerOptions";
+    private static final String FIELD_PLUGINS          = "plugins";
     private static final String PDP_JSON               = "pdp.json";
     private static final String SAPL_EXTENSION         = ".sapl";
     private static final String SECRETS_SECTION        = "secrets";
@@ -109,6 +110,8 @@ public class PDPConfigurationLoader {
     private static final String ERROR_PDP_JSON_CONFIGURATION_ID_REMOVED = "pdp.json must not contain a 'configurationId' field. The configurationId moved to the bundle manifest and is derived from content for directory and resource sources. Remove the field.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED         = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED        = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
+    private static final String ERROR_PDP_JSON_PLUGIN_ID_INVALID        = "pdp.json field 'plugins' must contain only non-blank plugin ids, found: %s.";
+    private static final String ERROR_PDP_JSON_PLUGINS_NOT_ARRAY        = "pdp.json field 'plugins' must be an array of plugin ids.";
     private static final String ERROR_PDP_JSON_SECRETS_NOT_ALLOWED      = "pdp.json must not contain a 'secrets' section. Move the secrets object to 'secrets.json' (sealed: 'secrets.sealed.json').";
     private static final String ERROR_SEALED_CONTENT_NOT_SEALED         = "File '%s' is named sealed but its content is not sealed.";
     private static final String ERROR_SECRETS_FILE_NOT_OBJECT           = "Secrets file '%s' must contain a JSON object.";
@@ -430,19 +433,21 @@ public class PDPConfigurationLoader {
     }
 
     private static Set<String> parsePlugins(JsonNode node) {
-        if (node.has("plugins")) {
-            val pluginsNode = node.get("plugins");
-            if (pluginsNode.isArray()) {
-                val plugins = new HashSet<String>();
-                for (val pluginNode : pluginsNode) {
-                    if (pluginNode.isString()) {
-                        plugins.add(pluginNode.asString());
-                    }
-                }
-                return plugins;
-            }
+        val pluginsNode = node.get(FIELD_PLUGINS);
+        if (pluginsNode == null || pluginsNode.isNull()) {
+            return Set.of();
         }
-        return Set.of();
+        if (!pluginsNode.isArray()) {
+            throw new PDPConfigurationException(ERROR_PDP_JSON_PLUGINS_NOT_ARRAY);
+        }
+        val plugins = new HashSet<String>();
+        for (val pluginNode : pluginsNode) {
+            if (!pluginNode.isString() || pluginNode.asString().isBlank()) {
+                throw new PDPConfigurationException(ERROR_PDP_JSON_PLUGIN_ID_INVALID.formatted(pluginNode));
+            }
+            plugins.add(pluginNode.asString());
+        }
+        return plugins;
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {

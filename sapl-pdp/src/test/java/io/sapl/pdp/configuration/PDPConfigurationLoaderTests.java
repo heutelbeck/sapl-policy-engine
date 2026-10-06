@@ -631,6 +631,87 @@ class PDPConfigurationLoaderTests {
         }
     }
 
+    @Nested
+    @DisplayName("plugins in pdp.json")
+    class PluginsInPdpJson {
+
+        @Test
+        @DisplayName("the listed plugins are enabled")
+        void whenPluginsListedThenConfigurationEnablesThem() throws IOException {
+            Files.writeString(tempDir.resolve("pdp.json"), """
+                    { "plugins": ["first-plugin", "second-plugin"] }""");
+
+            val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            assertThat(config.plugins()).containsExactlyInAnyOrder("first-plugin", "second-plugin");
+        }
+
+        @Test
+        @DisplayName("without a plugins field no plugins are enabled")
+        void whenPluginsAbsentThenNoPluginsEnabled() throws IOException {
+            Files.writeString(tempDir.resolve("pdp.json"), "{}");
+
+            val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            assertThat(config.plugins()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("a null plugins field enables no plugins")
+        void whenPluginsNullThenNoPluginsEnabled() throws IOException {
+            Files.writeString(tempDir.resolve("pdp.json"), """
+                    { "plugins": null }""");
+
+            val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            assertThat(config.plugins()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("a plugin id with surrounding whitespace is kept unchanged")
+        void whenPluginIdHasSurroundingWhitespaceThenItIsKeptUnchanged() throws IOException {
+            Files.writeString(tempDir.resolve("pdp.json"), """
+                    { "plugins": [" first-plugin "] }""");
+
+            val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+            assertThat(config.plugins()).containsExactly(" first-plugin ");
+        }
+
+        @ParameterizedTest(name = "plugins = {0}")
+        @ValueSource(strings = { "\"first-plugin\"", "{}", "1", "true" })
+        @DisplayName("a plugins field that is not an array is rejected")
+        void whenPluginsNotAnArrayThenThrows(String plugins) throws IOException {
+            Files.writeString(tempDir.resolve("pdp.json"), """
+                    { "plugins": %s }""".formatted(plugins));
+
+            assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("must be an array");
+        }
+
+        @ParameterizedTest(name = "plugin id = {0}")
+        @ValueSource(strings = { "1", "\"\"", "\"   \"", "null", "[]" })
+        @DisplayName("a plugin id that is not a non-blank string is rejected")
+        void whenPluginIdInvalidThenThrows(String pluginId) throws IOException {
+            Files.writeString(tempDir.resolve("pdp.json"), """
+                    { "plugins": ["first-plugin", %s] }""".formatted(pluginId));
+
+            assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("non-blank plugin ids");
+        }
+
+        @Test
+        @DisplayName("plugins are parsed when loading from content")
+        void whenLoadedFromContentThenPluginsAreParsed() {
+            val emptyMap = Map.<String, String>of();
+
+            val config = PDPConfigurationLoader.loadFromContent("""
+                    { "plugins": ["first-plugin"] }""", emptyMap, "test-pdp", "test");
+
+            assertThat(config.plugins()).containsExactly("first-plugin");
+        }
+    }
+
     @ParameterizedTest(name = "configurationId = \"{0}\" is rejected")
     @NullAndEmptySource
     @ValueSource(strings = "   ")
