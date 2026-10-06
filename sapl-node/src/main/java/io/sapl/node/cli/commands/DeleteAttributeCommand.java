@@ -4,6 +4,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import picocli.CommandLine;
 
 import java.util.List;
+import java.util.Objects;
 
 @CommandLine.Command(name = "delete", mixinStandardHelpOptions = true, description = "Removes an attribute from the attribute repository of a running SAPL node")
 public class DeleteAttributeCommand extends BaseAttributeCommand {
@@ -22,9 +23,9 @@ public class DeleteAttributeCommand extends BaseAttributeCommand {
         var uriBuilder = UriComponentsBuilder.fromUriString(resolvedURL() + attributePath(entity, name));
         arguments.stream().filter(s -> !s.isEmpty()).forEach(arg -> uriBuilder.queryParam("arg", arg));
 
-        var response = webClient.delete().uri(uriBuilder.build().toUri()).headers(authHeaders()).retrieve()
-                .toEntity(Void.class).block();
+        var response = Objects.requireNonNull(webClient.delete().uri(uriBuilder.build().toUri()).headers(authHeaders())
+                .retrieve().toEntity(Void.class).block());
 
-        return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;
+        return response.getStatusCode().is2xxSuccessful() ? 0 : 1;
     }
 }

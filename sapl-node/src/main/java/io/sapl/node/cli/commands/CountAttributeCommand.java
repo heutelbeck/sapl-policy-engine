@@ -1,6 +1,8 @@
 package io.sapl.node.cli.commands;
 
 import java.io.IOException;
+import java.util.Objects;
+
 import org.springframework.web.util.UriComponentsBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.Mixin;
@@ -14,11 +16,11 @@ public class CountAttributeCommand extends BaseAttributeCommand {
     public Integer call() throws Exception {
         var uriBuilder = UriComponentsBuilder.fromUriString(resolvedURL() + "/api/attributes").queryParam("count",
                 "true");
-        var response   = webClient.get().uri(uriBuilder.build().toUri()).headers(authHeaders()).retrieve()
-                .toEntity(String.class).block();
+        var response   = Objects.requireNonNull(webClient.get().uri(uriBuilder.build().toUri()).headers(authHeaders())
+                .retrieve().toEntity(String.class).block());
 
-        print(response != null ? response.getBody() : "");
-        return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;
+        print(Objects.requireNonNullElse(response.getBody(), ""));
+        return response.getStatusCode().is2xxSuccessful() ? 0 : 1;
     }
 
     private void print(String content) throws IOException {

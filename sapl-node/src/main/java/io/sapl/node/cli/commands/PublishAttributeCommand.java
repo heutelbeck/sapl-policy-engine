@@ -8,6 +8,7 @@ import picocli.CommandLine.Option;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Command(name = "publish", mixinStandardHelpOptions = true, description = "Publish an attribute into the attribute repository of a running SAPL node")
 public class PublishAttributeCommand extends BaseAttributeCommand {
@@ -36,9 +37,9 @@ public class PublishAttributeCommand extends BaseAttributeCommand {
         body.put("value", parseLiteral(value));
         body.put("ttl", ttl >= 0 ? ttl : null);
 
-        var response = webClient.put().uri(uriBuilder.build().toUri()).headers(authHeaders())
-                .contentType(MediaType.APPLICATION_JSON).bodyValue(body).retrieve().toEntity(String.class).block();
+        var response = Objects.requireNonNull(webClient.put().uri(uriBuilder.build().toUri()).headers(authHeaders())
+                .contentType(MediaType.APPLICATION_JSON).bodyValue(body).retrieve().toEntity(String.class).block());
 
-        return response != null && response.getStatusCode().is2xxSuccessful() ? 0 : 1;
+        return response.getStatusCode().is2xxSuccessful() ? 0 : 1;
     }
 }

@@ -15,9 +15,11 @@ import reactor.netty.http.HttpProtocol;
 import java.io.Serializable;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class BaseAttributeCommand implements Callable<Integer> {
-    private static final String DEFAULT_URL = "http://localhost:8080";
+    private static final String        DEFAULT_URL = "http://localhost:8080";
+    protected Function<String, String> environment = System::getenv;
 
     @Spec
     protected CommandSpec spec;
@@ -68,7 +70,7 @@ public abstract class BaseAttributeCommand implements Callable<Integer> {
         if (url != null) {
             return url;
         }
-        var env = System.getenv("SAPL_URL");
+        var env = environment.apply("SAPL_URL");
         return env != null ? env : DEFAULT_URL;
     }
 
@@ -92,13 +94,13 @@ public abstract class BaseAttributeCommand implements Callable<Integer> {
             return headers -> headers.setBearerAuth(auth.token);
         }
 
-        var envBasicAuth = System.getenv("SAPL_BASIC_AUTH");
+        var envBasicAuth = environment.apply("SAPL_BASIC_AUTH");
         if (envBasicAuth != null) {
             var parsed = PdpSetup.parseBasicAuth(envBasicAuth);
             return headers -> headers.setBasicAuth(parsed.username(), parsed.password());
         }
 
-        var envToken = System.getenv("SAPL_BEARER_TOKEN");
+        var envToken = environment.apply("SAPL_BEARER_TOKEN");
         if (envToken != null) {
             return headers -> headers.setBearerAuth(envToken);
         }

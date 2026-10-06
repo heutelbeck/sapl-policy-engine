@@ -18,11 +18,14 @@
 package io.sapl.node.cli.commands;
 
 import lombok.val;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
-
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -44,6 +47,52 @@ class PublishAttributeCommandTests {
             val exitCode = cmd.execute("--help");
             assertThat(exitCode).isZero();
             assertThat(out.toString()).contains("publish", "--url", "--name", "--value");
+        }
+    }
+
+    @Nested
+    @DisplayName("when the attribute api responds")
+    class WhenAttributeApiResponds {
+        private static final String NAME   = "attribute.test";
+        private static final String ENTITY = "alice";
+        private static final String VALUE  = "test";
+
+        private final StringWriter out = new StringWriter();
+        private final CommandLine  cmd = new CommandLine(new PublishAttributeCommand());
+        private AttributeApiStub   apiServer;
+
+        @BeforeEach
+        void setUp() throws IOException {
+            apiServer = new AttributeApiStub();
+            cmd.setOut(new PrintWriter(out));
+        }
+
+        @AfterEach
+        void tearDown() {
+            apiServer.close();
+        }
+
+        @Test
+        @DisplayName("then a request with entity, arguments and the attribute name is 201 created")
+        void thenRequestForAttributeIsPublished() {
+            apiServer.respondWith(201, "");
+            val exitCode = cmd.execute("--url", apiServer.url(), "--entity", ENTITY, "--name", NAME, "--arguments",
+                    "1,x", "--value", VALUE);
+
+            assertThat(exitCode).isZero();
+            assertThat(apiServer.lastRequest().method()).isEqualTo("PUT");
+            assertThat(apiServer.lastRequest().uri()).hasToString("/api/attributes/alice/attribute.test?arg=1&arg=x");
+        }
+
+        @Test
+        @DisplayName("then a global attribute is requested without entity path")
+        void thenRequestForGlobalAttributeIsPublished() {
+            apiServer.respondWith(201, "");
+            val exitCode = cmd.execute("--url", apiServer.url(), "--name", NAME, "--value", VALUE);
+
+            assertThat(exitCode).isZero();
+            assertThat(apiServer.lastRequest().method()).isEqualTo("PUT");
+            assertThat(apiServer.lastRequest().uri()).hasToString("/api/attributes/attribute.test");
         }
     }
 }
