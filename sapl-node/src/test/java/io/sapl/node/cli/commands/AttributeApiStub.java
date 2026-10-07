@@ -12,7 +12,7 @@ import com.sun.net.httpserver.HttpServer;
 import lombok.val;
 
 final class AttributeApiStub implements AutoCloseable {
-    record ApiRequest(String method, URI uri, Headers headers, String body) {};
+    record ApiRequest(String method, URI uri, Headers headers, String body) {}
 
     private final HttpServer       apiServer;
     private final List<ApiRequest> requests     = new CopyOnWriteArrayList<>();

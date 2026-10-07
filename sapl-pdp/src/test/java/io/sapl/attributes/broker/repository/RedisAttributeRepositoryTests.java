@@ -18,7 +18,6 @@
 package io.sapl.attributes.broker.repository;
 
 import com.redis.testcontainers.RedisContainer;
-
 import io.lettuce.core.KillArgs;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
@@ -43,7 +42,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -445,6 +443,29 @@ class RedisAttributeRepositoryTests {
 
         private List<String> order() {
             return client.connect().sync().zrange(ORDER_KEY, 0, -1);
+        }
+    }
+
+    @Nested
+    @DisplayName("when the registration is closed")
+    class WhenRegistrationIsClosed {
+        private static final String NAME  = "sapl.test";
+        private final Value         value = Value.of("test");
+
+        @Test
+        @DisplayName("")
+        void thenClosedObserverReceivesNoFurtherValues() {
+            val closedObserver = new CopyOnWriteArrayList<Value>();
+            repository.observe(invocation(NAME), closedObserver::add).close();
+            repository.observe(invocation(NAME), received::add);
+
+            val client2 = RedisClient.create(redis.getRedisURI());
+            try (val repo2 = new RedisAttributeRepository(client2, "test-tenant", 0)) {
+                repo2.publish(key(NAME), value);
+                Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value));
+            }
+
+            assertThat(closedObserver).containsExactly(Value.UNDEFINED);
         }
     }
 }

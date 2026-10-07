@@ -18,20 +18,19 @@
 package io.sapl.pdp.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.awaitility.Awaitility;
-
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
@@ -40,6 +39,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.val;
 
 class RoutingAttributeRepositoryTests {
@@ -147,6 +147,10 @@ class RoutingAttributeRepositoryTests {
         private static final String              PDP_ID     = "tenant-1";
         private static final String              CONFIG_ID1 = "config-1";
         private static final String              CONFIG_ID2 = "config-2";
+        private static final RepositoryKey       KEY        = new RepositoryKey(Value.of("alice"), "test.attribute",
+                List.of(), "testPdp");
+        private static final Value               VALUE      = Value.of("test");
+        private static final Duration            TTL        = Duration.ofSeconds(60);
         private final RoutingAttributeRepository router     = new RoutingAttributeRepository();
         private final List<Value>                received   = new CopyOnWriteArrayList<>();
 
@@ -196,6 +200,41 @@ class RoutingAttributeRepositoryTests {
             router.close();
             assertThat(firstValueFor(CONFIG_ID1)).isInstanceOf(ErrorValue.class);
         }
+
+        @Test
+        @DisplayName("then publish without ttl throws an exception on that layer")
+        void thenPublishWithoutTtlThrowsExceptionOnRoutingLayer() {
+            assertThatThrownBy(() -> router.publish(KEY, VALUE)).isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> router.publish(null, VALUE)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> router.publish(KEY, null)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then publish with ttl throws an exception on that layer")
+        void thenPublishWitTtlThrowsExceptionOnRoutingLayer() {
+            assertThatThrownBy(() -> router.publish(KEY, VALUE, TTL)).isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> router.publish(null, VALUE, TTL)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> router.publish(KEY, VALUE, null)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> router.publish(KEY, null, TTL)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then publish without ttl throws an exception on that layer")
+        void thenRemoveThrowsExceptionOnRoutingLayer() {
+            assertThatThrownBy(() -> router.remove(KEY)).isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> router.remove(null)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then building the same configuration again only routes it")
+        void thenBuildingSameConfigurationAgainOnlyRoutesIt() {
+            router.observe(invocation(PDP_ID, CONFIG_ID1), received::add);
+            router.buildOrRoute(PDP_ID, configForInMemory(PDP_ID, CONFIG_ID1));
+
+            assertThat(router.currentRawConfig(PDP_ID)).isPresent();
+            assertThat(received).containsExactly(Value.UNDEFINED);
+        }
+
     }
 
     private static PDPConfiguration configForInMemory(String pdpId, String configId) {
@@ -207,5 +246,49 @@ class RoutingAttributeRepositoryTests {
         return new AttributeFinderInvocation(pdpId, configId, "sapl.test", List.of(), Duration.ofSeconds(1),
                 Duration.ofSeconds(1), Duration.ofSeconds(1), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+    }
+
+    @Nested
+    @DisplayName("when the repository build is still pending")
+    class WhenBuildIsPending {
+        private static final String              PDP_ID    = "tenant-1";
+        private static final String              CONFIG_ID = "config-pg";
+        private final RoutingAttributeRepository router    = new RoutingAttributeRepository();
+        private final List<Value>                received  = new CopyOnWriteArrayList<>();
+
+        @AfterEach
+        void closeRouter() {
+            router.close();
+        }
+
+        private static PDPConfiguration configForUnreachablePostgres(String pdpId, String configId) {
+            val config  = ObjectValue.builder().put("type", Value.of("postgres")).put("host", Value.of("localhost"))
+                    .put("port", Value.of(1)).put("database", Value.of("sapl")).build();
+            val secrets = ObjectValue.builder().put("username", Value.of("sapl")).put("password", Value.of("secret"))
+                    .build();
+            return configForInMemory(pdpId, configId).withExtensions(Map.of("attributeRepository", config),
+                    Map.of("attributeRepository", secrets), Set.of());
+        }
+
+        @Test
+        @DisplayName("then observe reports that the repository is still connecting")
+        void thenObserveReportsThatRepositoryIsStillConnecting() {
+            router.buildOrRoute(PDP_ID, configForUnreachablePostgres(PDP_ID, CONFIG_ID));
+            router.observe(invocation(PDP_ID, CONFIG_ID), received::add);
+
+            assertThat(received.getFirst()).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).contains("still connecting"));
+        }
+
+        @Test
+        @DisplayName("then a second build request for the same configuration does not fail")
+        void thenSecondBuildRequestForSameConfigurationDoesNotFail() {
+            router.buildOrRoute(PDP_ID, configForUnreachablePostgres(PDP_ID, CONFIG_ID));
+            router.buildOrRoute(PDP_ID, configForUnreachablePostgres(PDP_ID, CONFIG_ID));
+            router.observe(invocation(PDP_ID, CONFIG_ID), received::add);
+
+            assertThat(received.getFirst()).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).contains("still connecting"));
+        }
     }
 }

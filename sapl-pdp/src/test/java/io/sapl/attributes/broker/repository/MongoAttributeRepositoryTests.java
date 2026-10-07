@@ -20,8 +20,11 @@ package io.sapl.attributes.broker.repository;
 import com.mongodb.reactivestreams.client.MongoClients;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import lombok.val;
+import reactor.core.publisher.Mono;
+
 import org.awaitility.Awaitility;
 import org.bson.Document;
 import org.junit.jupiter.api.*;
@@ -50,7 +53,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MongoAttributeRepositoryTests {
 
     @Container
-    static MongoDBContainer          mongo    = new MongoDBContainer("mongo:8.0").withReplicaSet();
+    static MongoDBContainer          mongo    = new MongoDBContainer("mongo:8.0").withReplicaSet()
+            .withCommand("--replSet", "docker-rs", "--setParameter", "enableTestCommands=1");
     private MongoAttributeRepository repository;
     private final List<Value>        received = new CopyOnWriteArrayList<>();
 
@@ -66,6 +70,7 @@ class MongoAttributeRepositoryTests {
     void tearDown() {
         repository.close();
         newTemplate().remove(new Query(), "attributes").block();
+        runAdminCommand(new Document("configureFailPoint", "failCommand").append("mode", "off"));
     }
 
     private static RepositoryKey key(String name) {
@@ -108,6 +113,12 @@ class MongoAttributeRepositoryTests {
     private ReactiveMongoTemplate newTemplate() {
         return new ReactiveMongoTemplate(
                 new SimpleReactiveMongoDatabaseFactory(MongoClients.create(mongo.getConnectionString()), "sapl"));
+    }
+
+    private static void runAdminCommand(Document command) {
+        try (val client = MongoClients.create(mongo.getConnectionString())) {
+            Mono.from(client.getDatabase("admin").runCommand(command)).block();
+        }
     }
 
     @Nested
@@ -358,6 +369,31 @@ class MongoAttributeRepositoryTests {
                 Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.contains(value));
                 Awaitility.await().atMost(Duration.ofSeconds(8)).until(() -> lastReceived().equals(Value.UNDEFINED));
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("when the change stream fails")
+    class WhenChangeStreamsFails {
+        private static final String PDP_ID = "test-tenant";
+        private static final String NAME   = "attribute.test";
+        private final RepositoryKey key    = new RepositoryKey(null, NAME, List.of(), PDP_ID);
+        private final Value         value  = Value.of("test");
+
+        @Test
+        @DisplayName("then observers receive an error and the resync restores the value after a failed first attempt")
+        void thenObserversReceiveErrorAndResyncRestoresValue() {
+            repository.publish(key, value);
+            repository.observe(invocation(PDP_ID, null, NAME, List.of()), received::add);
+
+            // Execute the fail point on the mongo server directly to simulate a failure. 11601 = interrupted, no error
+            // label
+            runAdminCommand(new Document("configureFailPoint", "failCommand").append("mode", new Document("times", 2))
+                    .append("data", new Document("failCommands", List.of("getMore", "find")).append("errorCode", 11601)
+                            .append("errorLabels", List.of())));
+
+            Awaitility.await().atMost(Duration.ofSeconds(15)).until(
+                    () -> received.stream().anyMatch(ErrorValue.class::isInstance) && lastReceived().equals(value));
         }
     }
 }
