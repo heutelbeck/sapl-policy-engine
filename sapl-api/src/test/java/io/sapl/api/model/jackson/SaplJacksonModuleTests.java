@@ -612,6 +612,33 @@ class SaplJacksonModuleTests {
         assertThat(restored.criticalExtensions()).containsExactly("upstreams");
     }
 
+    @Test
+    @DisplayName("when round tripping pdp configuration with plugins then plugins preserved")
+    void whenRoundTrippingPDPConfigurationWithPluginsThenPluginsPreserved() throws JacksonException {
+        val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.ABSTAIN);
+        val original  = new PDPConfiguration("test-pdp", "test-configuration", algorithm,
+                List.of("policy plain permit"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
+                .withPlugins(Set.of("first-plugin", "second-plugin"));
+
+        val json     = mapper.writeValueAsString(original);
+        val restored = mapper.readValue(json, PDPConfiguration.class);
+
+        assertThat(restored).isEqualTo(original);
+        assertThat(restored.plugins()).containsExactlyInAnyOrder("first-plugin", "second-plugin");
+    }
+
+    @Test
+    @DisplayName("when serializing pdp configuration without plugins then no plugins field emitted")
+    void whenSerializingPDPConfigurationWithoutPluginsThenNoPluginsField() throws JacksonException {
+        val algorithm     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
+                ErrorHandling.ABSTAIN);
+        val configuration = new PDPConfiguration("test-pdp", "test-configuration", algorithm, List.of(),
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+        val json          = mapper.writeValueAsString(configuration);
+
+        assertThat(json).doesNotContain("\"plugins\"");
+    }
+
     @ParameterizedTest(name = "expected message contains {1}")
     @MethodSource("invalidPDPConfigurationCases")
     @DisplayName("when deserializing invalid pdp configuration then throws exception")
@@ -657,7 +684,25 @@ class SaplJacksonModuleTests {
                             "configurationId": "test-security",
                             "saplDocuments": [],
                             "variables": {}
-                        }""", "combiningAlgorithm"));
+                        }""", "combiningAlgorithm"),
+                arguments(
+                        """
+                                {
+                                    "pdpId": "test-pdp",
+                                    "configurationId": "test-configuration",
+                                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
+                                    "plugins": "first-plugin"
+                                }""",
+                        "Expected START_ARRAY for plugins"),
+                arguments(
+                        """
+                                {
+                                    "pdpId": "test-pdp",
+                                    "configurationId": "test-configuration",
+                                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
+                                    "plugins": ["first-plugin", 1]
+                                }""",
+                        "Expected VALUE_STRING element in plugins"));
     }
 
     @Test
@@ -699,6 +744,7 @@ class SaplJacksonModuleTests {
 
         assertThat(configuration.saplDocuments()).isEmpty();
         assertThat(configuration.data().variables()).isEmpty();
+        assertThat(configuration.plugins()).isEmpty();
     }
 
     @ParameterizedTest(name = "saplDocuments element {0}")

@@ -217,7 +217,8 @@ class ConfigurationIdsTests {
                     arguments("the critical extensions",
                             new PDPConfiguration(base.pdpId(), base.configurationId(), base.combiningAlgorithm(),
                                     base.compilerOptions(), base.saplDocuments(), base.data(), Map.of("geo", variables),
-                                    Map.of(), Set.of("geo"))));
+                                    Map.of(), Set.of("geo"))),
+                    arguments("the plugins", base.withPlugins(Set.of("first-plugin"))));
         }
     }
 }
