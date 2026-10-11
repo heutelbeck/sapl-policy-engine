@@ -129,7 +129,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private final Map<AttributeFinderInvocation, List<ActiveInvocation>>       activeInvocationsByInvocation = new HashMap<>();
     private final Map<ActiveInvocation, ScheduledFuture<?>>                    pendingTeardowns              = new HashMap<>();
     private final Map<String, BrokerSubscription>                              consumerSubscriptions         = new HashMap<>();
-    private final Map<String, Set<String>>                                     visiblePluginsByTenant        = new HashMap<>();
+    private final Map<String, Set<String>>                                     visiblePluginsByPdpId         = new HashMap<>();
 
     private final Duration                      gracePeriodDuration;
     private final ScheduledExecutorService      teardownScheduler;
@@ -211,8 +211,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     private boolean isVisible(PipHandleImpl handle, String pdpId) {
-        return handle.pluginId == null
-                || visiblePluginsByTenant.getOrDefault(pdpId, Set.of()).contains(handle.pluginId);
+        return handle.pluginId == null || visiblePluginsByPdpId.getOrDefault(pdpId, Set.of()).contains(handle.pluginId);
     }
 
     /**
@@ -446,13 +445,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
             try {
                 val next = Set.copyOf(pluginIds);
-                if (next.equals(visiblePluginsByTenant.getOrDefault(pdpId, Set.of()))) {
+                if (next.equals(visiblePluginsByPdpId.getOrDefault(pdpId, Set.of()))) {
                     return;
                 }
                 if (next.isEmpty()) {
-                    visiblePluginsByTenant.remove(pdpId);
+                    visiblePluginsByPdpId.remove(pdpId);
                 } else {
-                    visiblePluginsByTenant.put(pdpId, next);
+                    visiblePluginsByPdpId.put(pdpId, next);
                 }
                 reroutes = collectReroutes(pdpId);
             } finally {
