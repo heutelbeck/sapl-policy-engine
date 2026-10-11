@@ -41,7 +41,7 @@ import java.util.Collection;
  * {@link #policyInformationPoints()}, and registers them with the attribute
  * broker.
  *
- * @since 4.1.0
+ * @since 4.2.0
  */
 public interface SaplPolicyInformationPointPlugin extends ExtensionPoint {
     /**

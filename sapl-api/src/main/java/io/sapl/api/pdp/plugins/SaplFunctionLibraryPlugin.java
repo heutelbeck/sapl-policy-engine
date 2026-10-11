@@ -42,7 +42,7 @@ import org.pf4j.ExtensionPoint;
  * the classpath and registered as a {@code FunctionLibraryProvider} bean, for
  * example in tests).
  *
- * @since 4.1.0
+ * @since 4.2.0
  */
 public interface SaplFunctionLibraryPlugin extends FunctionLibraryProvider, ExtensionPoint {
 

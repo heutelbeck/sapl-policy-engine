@@ -68,7 +68,7 @@ import java.util.function.Consumer;
  * coalesced into one {@link SaplPluginManager#reload()} followed by a single
  * republish, so a batch of JAR changes triggers exactly one recompile.
  *
- * @since 4.1.0
+ * @since 4.2.0
  */
 @Slf4j
 public final class HotReloadingPluginsSource implements PluginsSource {
