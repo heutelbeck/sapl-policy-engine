@@ -68,10 +68,10 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
 
     private static final String ERROR_COMBINING_ALGORITHM_REQUIRED = "PDPConfiguration requires combiningAlgorithm field.";
     private static final String ERROR_CONFIGURATION_ID_REQUIRED    = "PDPConfiguration requires configurationId field.";
-    private static final String ERROR_EXPECTED_START_ARRAY         = "Expected START_ARRAY for saplDocuments.";
+    private static final String ERROR_EXPECTED_START_ARRAY         = "Expected START_ARRAY for %s.";
     private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
-    private static final String ERROR_EXPECTED_STRING_ELEMENT      = "Expected VALUE_STRING element in saplDocuments.";
+    private static final String ERROR_EXPECTED_STRING_ELEMENT      = "Expected VALUE_STRING element in %s.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
@@ -132,14 +132,15 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     }
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {
+        val fieldName = parser.currentName();
         if (parser.currentToken() != JsonToken.START_ARRAY) {
-            return context.reportInputMismatch(List.class, ERROR_EXPECTED_START_ARRAY);
+            return context.reportInputMismatch(List.class, ERROR_EXPECTED_START_ARRAY.formatted(fieldName));
         }
 
         val strings = new ArrayList<String>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
             if (parser.currentToken() != JsonToken.VALUE_STRING) {
-                return context.reportInputMismatch(List.class, ERROR_EXPECTED_STRING_ELEMENT);
+                return context.reportInputMismatch(List.class, ERROR_EXPECTED_STRING_ELEMENT.formatted(fieldName));
             }
             strings.add(parser.getString());
         }
