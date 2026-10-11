@@ -4,6 +4,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.nimbusds.jose.util.StandardCharset;
+
 import io.sapl.node.cli.options.RemoteConnectionOptions;
 import io.sapl.node.cli.support.PdpSetup;
 import picocli.CommandLine.ArgGroup;
@@ -13,6 +15,7 @@ import picocli.CommandLine.Spec;
 import reactor.netty.http.HttpProtocol;
 
 import java.io.Serializable;
+import java.net.URLEncoder;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
