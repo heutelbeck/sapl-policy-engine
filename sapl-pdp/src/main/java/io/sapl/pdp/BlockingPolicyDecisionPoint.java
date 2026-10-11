@@ -161,7 +161,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         val source  = rewireOnConfigChange(pdpId, maybePdp -> {
                         val interceptors = decisionInterceptorsFor(maybePdp);
                         return interceptors.isEmpty() ? evaluateDecisions(maybePdp, sub, subscriptionId, pdpId)
-                                : evaluateDecisionsTraced(maybePdp, sub, subscriptionId, pdpId);
+                                : evaluateDecisionsTraced(maybePdp, interceptors, sub, subscriptionId, pdpId);
                     });
         val deduped = Streams.distinctUntilChanged(source, e -> AuthorizationDecision.INDETERMINATE);
         return withUnsubscribeNotification(deduped, subscriptionId);
@@ -180,12 +180,13 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     private Stream<AuthorizationDecision> evaluateDecisionsTraced(Optional<CompiledPdp> maybePdp,
-            AuthorizationSubscription sub, String subscriptionId, String pdpId) {
+            List<DecisionInterceptor> interceptors, AuthorizationSubscription sub, String subscriptionId,
+            String pdpId) {
         try {
             val tracedSource = maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
                     .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, timestampSource)));
             return mapStream(tracedSource, tv -> {
-                dispatchDecisionObservers(decisionInterceptorsFor(maybePdp), tv, tv.timestamp(), subscriptionId, sub);
+                dispatchDecisionObservers(interceptors, tv, tv.timestamp(), subscriptionId, sub);
                 return tv.authorizationDecision();
             });
         } catch (RuntimeException e) {
