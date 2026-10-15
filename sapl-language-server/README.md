@@ -31,15 +31,25 @@ GRAALVM_HOME=/path/to/graalvm mvn package -Pnative -DskipTests
 
 This produces `target/sapl-language-server` (or `.exe` on Windows).
 
-**Updating Reflection Configuration:**
+**Reflection Configuration:**
 
-If you encounter reflection errors at runtime, use the GraalVM tracing agent to capture required metadata:
+The reflection metadata covers all model classes in the resolved LSP4J dependency, including client capabilities that the server does not use. `NativeReflectionMetadataTests` checks this coverage when LSP4J is upgraded. Keep fields and unsafe allocation registered for new Gson model types. The size-bounded function broker cache requires both Caffeine's `SSMS` cache factory and `PSMS` node factory.
+
+Use the GraalVM tracing agent to capture additional metadata:
 
 ```shell
-java -agentlib:native-image-agent=security-output-dir=native-security -jar target/sapl-language-server-4.2.0-SNAPSHOT-standalone.jar
+java -agentlib:native-image-agent=config-output-dir=native-config -jar target/sapl-language-server-4.2.0-SNAPSHOT-standalone.jar
 ```
 
-Then copy the generated configs to `src/main/resources/META-INF/native-image/io.sapl/sapl-language-server/`.
+Merge additional entries into `src/main/resources/META-INF/native-image/io.sapl/sapl-language-server/`; preserve registrations for unobserved client capabilities.
+
+Run the native stdio regression checks after building:
+
+```shell
+python3 src/test/python/native_lsp_smoke.py target/sapl-language-server
+```
+
+These checks send both minimal failing capability payloads and Neovim 0.12's full default capabilities, then exercise keyword, function, and attribute hover and function completion. The capabilities fixture was generated with `vim.lsp.protocol.make_client_capabilities()` in Neovim 0.12.5. The native build workflow runs these checks on Linux amd64/arm64, Windows amd64, and macOS arm64 before uploading binaries.
 
 ## Running
 

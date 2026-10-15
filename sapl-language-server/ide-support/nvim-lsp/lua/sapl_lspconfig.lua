@@ -1,6 +1,6 @@
 --[[
 
-    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -17,37 +17,20 @@
     limitations under the License.
 
 ]]
-local lspconfig = require('lspconfig')
-local configs = require('lspconfig.configs')
+-- Requires Neovim 0.11+; no plugin needed.
+vim.lsp.config('sapl', {
+  -- REQUIRED: Pick one of the following and update the path.
+  -- Native binary (no Java required):
+  cmd = { vim.fn.expand('~/.local/bin/sapl-language-server') },
+  -- Standalone JAR (requires Java 21+):
+  -- cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.2.0-SNAPSHOT-standalone.jar' },
 
--- Register custom server definition (only if not already registered)
-if not configs.sapl then
-  configs.sapl = {
-    default_config = {
-      -- REQUIRED: Pick one of the following and update the path.
-      -- Native binary (no Java required):
-      -- cmd = { '/path/to/sapl-language-server-linux-amd64' },
-      -- cmd = { '/path/to/sapl-language-server-macos-arm64' },
-      -- cmd = { '/path/to/sapl-language-server-windows-amd64.exe' },
-      -- Standalone JAR (requires Java 21+):
-      cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.2.0-SNAPSHOT-standalone.jar' },
-
-      filetypes = { 'sapl', 'sapltest' },
-
-      -- root_dir: Returns project root for LSP workspace.
-      -- Simple implementation uses file's directory.
-      -- For multi-file projects, consider pattern matching for project markers.
-      root_dir = function(fname)
-        return vim.fn.fnamemodify(fname, ':h')
-      end,
-
-      settings = {},
-    },
-  }
-end
+  filetypes = { 'sapl', 'sapltest' },
+  root_markers = { 'pdp.json', '.git' },
+})
 
 -- Activate the server.
 -- The SAPL LSP provides semantic tokens for syntax highlighting
 -- for both .sapl and .sapltest files. No separate syntax file needed - the LSP
 -- handles keywords, operator, strings, numbers, comments, and semantic elements.
-lspconfig.sapl.setup({})
+vim.lsp.enable('sapl')
