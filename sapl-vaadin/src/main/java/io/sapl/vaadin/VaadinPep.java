@@ -50,6 +50,7 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.BeforeLeaveEvent;
 import com.vaadin.flow.router.BeforeLeaveListener;
 import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.server.VaadinServletResponse;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -1051,7 +1052,8 @@ public class VaadinPep {
          */
         private void logout() {
             SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
-            logoutHandler.logout(VaadinServletRequest.getCurrent().getHttpServletRequest(), null, null);
+            logoutHandler.logout(VaadinServletRequest.getCurrent().getHttpServletRequest(),
+                    VaadinServletResponse.getCurrent().getHttpServletResponse(), null);
         }
 
         /**

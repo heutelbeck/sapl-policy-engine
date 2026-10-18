@@ -377,21 +377,14 @@ class RemoteHttpDecisionPointServerIT {
                 val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
                 warmUpAuthenticatedServer(baseUrl, oauth2Container);
 
-                val clientRegistrationRepository = new ReactiveClientRegistrationRepository() {
-                                                     @Override
-                                                     public Mono<ClientRegistration> findByRegistrationId(
-                                                             String registrationId) {
-                                                         return Mono.just(ClientRegistration
-                                                                 .withRegistrationId("saplPdp")
-                                                                 .tokenUri(oauth2TokenUri(oauth2Container))
-                                                                 .clientId(OAUTH2_CLIENT_ID).clientSecret(OAUTH2_SECRET)
-                                                                 .authorizationGrantType(
-                                                                         AuthorizationGrantType.CLIENT_CREDENTIALS)
-                                                                 .scope(OAUTH2_SCOPE).build());
-                                                     }
-                                                 };
-                val pdp                          = RemotePolicyDecisionPoint.builder().http().baseUrl(baseUrl)
-                        .withUnsecureSSL().oauth2(clientRegistrationRepository, "saplPdp").build();
+                ReactiveClientRegistrationRepository clientRegistrationRepository = registrationId -> Mono
+                        .just(ClientRegistration.withRegistrationId("saplPdp").tokenUri(oauth2TokenUri(oauth2Container))
+                                .clientId(OAUTH2_CLIENT_ID).clientSecret(OAUTH2_SECRET)
+                                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS).scope(OAUTH2_SCOPE)
+                                .build());
+                val                                  pdp                          = RemotePolicyDecisionPoint.builder()
+                        .http().baseUrl(baseUrl).withUnsecureSSL().oauth2(clientRegistrationRepository, "saplPdp")
+                        .build();
                 requestDecision(pdp);
                 oauth2Container.stop();
                 container.stop();

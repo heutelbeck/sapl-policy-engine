@@ -177,7 +177,7 @@ class MultiBuilderTests {
         when(pdpMock.decide(any(MultiAuthorizationSubscription.class))).thenReturn(fluxMock);
         var sutWithMockButton = sut.with(buttonMock);
         // WHEN+THEN
-        assertThatThrownBy(() -> sutWithMockButton.build()).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(sutWithMockButton::build).isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

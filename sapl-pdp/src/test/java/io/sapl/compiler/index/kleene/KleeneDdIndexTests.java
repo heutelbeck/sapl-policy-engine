@@ -224,10 +224,12 @@ class KleeneDdIndexTests {
         @Test
         @DisplayName("lookup results cannot mutate a shared terminal")
         void whenCallerChangesResultThenSharedIndexRemainsUnchanged() {
-            val index  = build(new Atom(0), new Constant(ERROR));
-            val result = index.lookup(ignored -> TRUE);
-            assertThatThrownBy(() -> result.trueMatches().add(3)).isInstanceOf(UnsupportedOperationException.class);
-            assertThatThrownBy(() -> result.errorMatches().add(3)).isInstanceOf(UnsupportedOperationException.class);
+            val index        = build(new Atom(0), new Constant(ERROR));
+            val result       = index.lookup(ignored -> TRUE);
+            val trueMatches  = result.trueMatches();
+            val errorMatches = result.errorMatches();
+            assertThatThrownBy(() -> trueMatches.add(3)).isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> errorMatches.add(3)).isInstanceOf(UnsupportedOperationException.class);
             assertThat(index.lookup(ignored -> FALSE)).isEqualTo(matches(FALSE, ERROR));
             assertThat(index.lookup(ignored -> TRUE)).isEqualTo(matches(TRUE, ERROR));
         }

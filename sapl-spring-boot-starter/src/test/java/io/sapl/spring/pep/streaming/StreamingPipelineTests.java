@@ -19,7 +19,6 @@ package io.sapl.spring.pep.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
@@ -44,7 +43,6 @@ import org.springframework.security.access.AccessDeniedException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementResult;
-import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.util.Maybe;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -91,8 +89,7 @@ class StreamingPipelineTests {
                 rapSupplierInvocationCount.incrementAndGet();
                 return rap.asFlux();
             };
-            return StreamingPipeline.create(pdp.asFlux(), d -> plan, supplier,
-                    signalTransitions);
+            return StreamingPipeline.create(pdp.asFlux(), d -> plan, supplier, signalTransitions);
         }
 
         void emitPermit() {
@@ -192,8 +189,8 @@ class StreamingPipelineTests {
             Harness         h           = new Harness();
             EnforcementPlan failingPlan = mockedPlan;
             when(failingPlan.enforceDecisionConstraints(any())).thenReturn(false);
-            when(failingPlan.executeStreamingOutput(any()))
-                    .thenReturn(new EnforcementResult<>(Maybe.of(new AccessDeniedException("Obligation failed")), true));
+            when(failingPlan.executeStreamingOutput(any())).thenReturn(
+                    new EnforcementResult<>(Maybe.of(new AccessDeniedException("Obligation failed")), true));
             h.plan = failingPlan;
             Flux<Object> out = h.create();
 
@@ -324,22 +321,22 @@ class StreamingPipelineTests {
 
         @Test
         void whenResumedThenRapSupplierIsInvokedAgain() {
-            Harness h = new Harness();
+            Harness      h   = new Harness();
             Flux<Object> out = h.create();
 
-            StepVerifier.create(out).then(h::emitPermit).then(h::emitSuspend)
-                    .then(h::emitPermit).thenCancel().verify(TIMEOUT);
+            StepVerifier.create(out).then(h::emitPermit).then(h::emitSuspend).then(h::emitPermit).thenCancel()
+                    .verify(TIMEOUT);
 
             assertThat(h.rapSupplierInvocationCount.get()).isEqualTo(2);
         }
 
         @Test
         void whenEquivalentPermitsArriveThenRapSupplierIsInvokedOnce() {
-            Harness h = new Harness();
+            Harness      h   = new Harness();
             Flux<Object> out = h.create();
 
-            StepVerifier.create(out).then(h::emitPermit).then(h::emitPermit).then(h::emitPermit)
-                    .thenCancel().verify(TIMEOUT);
+            StepVerifier.create(out).then(h::emitPermit).then(h::emitPermit).then(h::emitPermit).thenCancel()
+                    .verify(TIMEOUT);
 
             assertThat(h.rapSupplierInvocationCount.get()).isEqualTo(1);
         }
@@ -493,17 +490,6 @@ class StreamingPipelineTests {
                     .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(inv.getArgument(0)), false));
             return plan;
         }
-    }
-
-    private static Object extractValue(Signal signal) {
-        if (signal instanceof Signal.OutputSignal<?>(var ignoredType, Maybe<?> value)
-                && value instanceof Maybe.Present<?>(Object v)) {
-            return v;
-        }
-        if (signal instanceof Signal.ValueSignal<?> vs) {
-            return vs.value();
-        }
-        return null;
     }
 
 }

@@ -167,18 +167,14 @@ class SaplHttpPepFilterTests {
         @Test
         @DisplayName("a header set by an obligation is visible to the downstream chain")
         void headerInjected() throws Exception {
-            val plan     = planFor(permitWith("inject"), new ConstraintHandlerProvider() {
-                             @Override
-                             public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
-                                     Set<SignalType> supportedSignals) {
-                                 if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "inject")) {
-                                     return List.of();
-                                 }
-                                 ConstraintHandler.Consumer<MutableHttpRequest> h = req -> req.setHeader("X-Tenant",
-                                         "krynn");
-                                 return List.of(new ScopedConstraintHandler(h,
-                                         Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
+            val plan     = planFor(permitWith("inject"), (constraint, supportedSignals) -> {
+                             if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "inject")) {
+                                 return List.of();
                              }
+                             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> req.setHeader("X-Tenant",
+                                     "krynn");
+                             return List.of(
+                                     new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
                          });
             val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
@@ -192,19 +188,15 @@ class SaplHttpPepFilterTests {
         @Test
         @DisplayName("a failing request-mutation obligation throws AccessDeniedException")
         void failureThrows() {
-            val plan     = planFor(permitWith("boom"), new ConstraintHandlerProvider() {
-                             @Override
-                             public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
-                                     Set<SignalType> supportedSignals) {
-                                 if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "boom")) {
-                                     return List.of();
-                                 }
-                                 ConstraintHandler.Consumer<MutableHttpRequest> h = req -> {
-                                                  throw new IllegalStateException("nope");
-                                              };
-                                 return List.of(new ScopedConstraintHandler(h,
-                                         Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
+            val plan     = planFor(permitWith("boom"), (constraint, supportedSignals) -> {
+                             if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "boom")) {
+                                 return List.of();
                              }
+                             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> {
+                                              throw new IllegalStateException("nope");
+                                          };
+                             return List.of(
+                                     new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
                          });
             val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
@@ -221,17 +213,12 @@ class SaplHttpPepFilterTests {
         @Test
         @DisplayName("an obligation can rewrite the controller-produced body before commit")
         void rewriteBody() throws Exception {
-            val plan     = planFor(permitWith("rewrite"), new ConstraintHandlerProvider() {
-                             @Override
-                             public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
-                                     Set<SignalType> supportedSignals) {
-                                 if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "rewrite")) {
-                                     return List.of();
-                                 }
-                                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setBody("REWRITTEN");
-                                 return List
-                                         .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
+            val plan     = planFor(permitWith("rewrite"), (constraint, supportedSignals) -> {
+                             if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "rewrite")) {
+                                 return List.of();
                              }
+                             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setBody("REWRITTEN");
+                             return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                          });
             val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
@@ -246,18 +233,13 @@ class SaplHttpPepFilterTests {
         @Test
         @DisplayName("an obligation can add headers visible on the underlying response")
         void addHeader() throws Exception {
-            val plan     = planFor(permitWith("stamp"), new ConstraintHandlerProvider() {
-                             @Override
-                             public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
-                                     Set<SignalType> supportedSignals) {
-                                 if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "stamp")) {
-                                     return List.of();
-                                 }
-                                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setHeader("X-Trace",
-                                         "abc");
-                                 return List
-                                         .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
+            val plan     = planFor(permitWith("stamp"), (constraint, supportedSignals) -> {
+                             if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "stamp")) {
+                                 return List.of();
                              }
+                             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setHeader("X-Trace",
+                                     "abc");
+                             return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                          });
             val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
@@ -269,19 +251,14 @@ class SaplHttpPepFilterTests {
         @Test
         @DisplayName("a failing response obligation throws AccessDeniedException and does not commit")
         void failureThrows() throws Exception {
-            val plan     = planFor(permitWith("boom"), new ConstraintHandlerProvider() {
-                             @Override
-                             public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
-                                     Set<SignalType> supportedSignals) {
-                                 if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "boom")) {
-                                     return List.of();
-                                 }
-                                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> {
-                                                  throw new IllegalStateException("nope");
-                                              };
-                                 return List
-                                         .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
+            val plan     = planFor(permitWith("boom"), (constraint, supportedSignals) -> {
+                             if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "boom")) {
+                                 return List.of();
                              }
+                             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> {
+                                              throw new IllegalStateException("nope");
+                                          };
+                             return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                          });
             val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
@@ -295,18 +272,12 @@ class SaplHttpPepFilterTests {
         @DisplayName("an obligation observes the controller body via getBody before any rewrite")
         void observeBody() throws Exception {
             val observed = new AtomicReference<String>();
-            val plan     = planFor(permitWith("observe"), new ConstraintHandlerProvider() {
-                             @Override
-                             public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
-                                     Set<SignalType> supportedSignals) {
-                                 if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "observe")) {
-                                     return List.of();
-                                 }
-                                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> observed
-                                         .set(resp.getBody());
-                                 return List
-                                         .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
+            val plan     = planFor(permitWith("observe"), (constraint, supportedSignals) -> {
+                             if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "observe")) {
+                                 return List.of();
                              }
+                             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> observed.set(resp.getBody());
+                             return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                          });
             val request  = requestFor(plan);
             val response = new MockHttpServletResponse();

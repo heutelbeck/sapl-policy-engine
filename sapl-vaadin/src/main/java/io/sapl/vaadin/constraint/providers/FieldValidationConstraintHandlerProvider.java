@@ -217,7 +217,7 @@ public class FieldValidationConstraintHandlerProvider implements ConstraintHandl
                     if (errorMessage != null) {
                         return ValidationResult.error(errorMessage);
                     } else {
-                        return ValidationResult.error(result.stream().findFirst().get().getMessage());
+                        return ValidationResult.error(result.getFirst().getMessage());
                     }
                 }
             }

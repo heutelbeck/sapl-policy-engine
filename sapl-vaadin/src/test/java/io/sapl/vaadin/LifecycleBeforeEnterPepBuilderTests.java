@@ -39,7 +39,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.security.access.AccessDeniedException;
@@ -173,15 +172,15 @@ class LifecycleBeforeEnterPepBuilderTests {
     void when_onDenyDoWithDeny_thenBiConsumerIsAccepted() {
         // GIVEN
         mockSpringContextHolderAuthentication();
-        var pdpMock = mockPdp();
+        var permittingPdp = mockPdp();
 
         var beforeEnterEventMock = mockBeforeEnterEvent();
         doReturn(String.class).when(beforeEnterEventMock).getNavigationTarget();
 
-        var enforcementServiceMock = mockNextVaadinConstraintEnforcementService(Decision.DENY);
+        var denyingEnforcementService = mockNextVaadinConstraintEnforcementService(Decision.DENY);
 
         // Methods on SUT
-        var pepUnderTest = new VaadinPep.LifecycleBeforeEnterPepBuilder(pdpMock, enforcementServiceMock);
+        var pepUnderTest = new VaadinPep.LifecycleBeforeEnterPepBuilder(permittingPdp, denyingEnforcementService);
 
         @SuppressWarnings("unchecked") // suppress mock
         BiConsumer<AuthorizationDecision, BeforeEvent> biConsumerMock = mock(BiConsumer.class);
@@ -193,15 +192,15 @@ class LifecycleBeforeEnterPepBuilderTests {
 
         // THEN
         verify(beforeEnterEventMock, times(1)).getUI();
-        verify(enforcementServiceMock, times(1)).enforceConstraintsOfDecision(any(), any(), any());
+        verify(denyingEnforcementService, times(1)).enforceConstraintsOfDecision(any(), any(), any());
         verify(biConsumerMock, times(1)).accept(any(AuthorizationDecision.class), any(BeforeEvent.class));
     }
 
     private ReactivePolicyDecisionPoint mockPdp() {
-        var pdpMock   = mock(ReactivePolicyDecisionPoint.class);
-        var authzFlux = Flux.just(AuthorizationDecision.PERMIT);
-        when(pdpMock.decide(any(AuthorizationSubscription.class))).thenReturn(authzFlux);
-        return pdpMock;
+        var permittingPdp = mock(ReactivePolicyDecisionPoint.class);
+        var authzFlux     = Flux.just(AuthorizationDecision.PERMIT);
+        when(permittingPdp.decide(any(AuthorizationSubscription.class))).thenReturn(authzFlux);
+        return permittingPdp;
     }
 
     private BeforeEnterEvent mockBeforeEnterEvent() {
@@ -215,17 +214,17 @@ class LifecycleBeforeEnterPepBuilderTests {
     }
 
     private static void mockSpringContextHolderAuthentication() {
-        var authentication  = Mockito.mock(Authentication.class);
-        var securityContext = Mockito.mock(SecurityContext.class);
+        var authentication  = mock(Authentication.class);
+        var securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
     }
 
     private VaadinConstraintEnforcementService mockNextVaadinConstraintEnforcementService(Decision decision) {
-        var enforcementServiceMock = mock(VaadinConstraintEnforcementService.class);
-        var monoMock               = Mono
+        var decisionEnforcementService = mock(VaadinConstraintEnforcementService.class);
+        var monoMock                   = Mono
                 .just(new AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED));
-        when(enforcementServiceMock.enforceConstraintsOfDecision(any(), any(), any())).thenReturn(monoMock);
-        return enforcementServiceMock;
+        when(decisionEnforcementService.enforceConstraintsOfDecision(any(), any(), any())).thenReturn(monoMock);
+        return decisionEnforcementService;
     }
 }

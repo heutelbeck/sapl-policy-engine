@@ -43,7 +43,6 @@ class VaadinAuthorizationSubscriptionBuilderTests {
     MethodSecurityExpressionHandler               methodSecurityExpressionHandlerMock;
     private final JsonMapper                      mapper = JsonMapper.builder().build();
     VaadinAuthorizationSubscriptionBuilderService sut;
-    private static final JsonNodeFactory          JSON   = JsonNodeFactory.instance;
 
     @BeforeEach
     void setup() {

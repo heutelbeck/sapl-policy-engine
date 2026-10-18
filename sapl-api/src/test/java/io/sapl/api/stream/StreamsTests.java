@@ -282,16 +282,13 @@ class StreamsTests {
             // On the reschedule from the manually fired tick, close runs after the tick has
             // passed its stopped re-check but before it stores the returned handle. Without
             // re-checking stopped afterwards, that freshly scheduled handle is leaked.
-            val racingScheduler = new TimeScheduler() {
-                @Override
-                public Cancellable scheduleAt(Instant when, Runnable task) {
-                    if (scheduleCount.incrementAndGet() == 1) {
-                        pendingTick.set(task);
-                        return Cancellable.NOOP;
-                    }
-                    streamRef.get().close();
-                    return () -> lastCancelled.set(true);
+            TimeScheduler racingScheduler = (when, task) -> {
+                if (scheduleCount.incrementAndGet() == 1) {
+                    pendingTick.set(task);
+                    return Cancellable.NOOP;
                 }
+                streamRef.get().close();
+                return () -> lastCancelled.set(true);
             };
 
             streamRef.set(Streams.scheduledPoll(Duration.ofMillis(10), () -> Value.of("tick"), CLOCK, racingScheduler));

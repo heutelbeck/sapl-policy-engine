@@ -29,7 +29,6 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.textfield.TextField;
 
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.vaadin.base.SecurityHelper;
