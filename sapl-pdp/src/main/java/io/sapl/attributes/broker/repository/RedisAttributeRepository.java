@@ -23,6 +23,9 @@ import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.broker.AttributeRepository;
@@ -36,6 +39,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import io.lettuce.core.RedisConnectionStateListener;
@@ -43,12 +47,12 @@ import io.lettuce.core.RedisChannelHandler;
 import java.net.SocketAddress;
 
 /**
- * Repository implementation that persists attributes in Redis and handles change event happening in the repository
- * by using Redis Pub/Sub.
+ * Repository implementation that persists attributes in Redis and handles
+ * change event happening in the repository by using Redis Pub/Sub.
  *
- * The implementation sets all attribute to the state INDETERMINATE when a disconnect happens because
- * Redis Pub/Sub need a constant connection for the event stream and Redis keys are always requested
- * online.
+ * The implementation sets all attribute to the state INDETERMINATE when a
+ * disconnect happens because Redis Pub/Sub need a constant connection for the
+ * event stream and Redis keys are always requested online.
  */
 @Slf4j
 public final class RedisAttributeRepository implements AttributeRepository {
@@ -63,14 +67,18 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private static final String WARN_RESYNC_KEY_FAILED           = "Resync failed for key '{}' after reconnect. "
             + "The key may remain stale until the next reconnect {}";
     private static final String ERROR_RESYNC_FAILED              = "Unexpected failure while resyncing observers afte a reconnect to Redis backend.";
+    private static final String WARN_INVALID_BATCH               = "Ignoring a batch message that is not a JSON array: {}";
+    private static final String WARN_INVALID_BATCH_ENTRY         = "Ignoring an invalid batch entry without key or value: {}";
 
     private static final String FIELD_NAME      = "name";
     private static final String FIELD_ENTITY    = "entity";
     private static final String FIELD_ARGUMENTS = "arguments";
     private static final String FIELD_VALUE     = "value";
+    private static final String FIELD_BATCH_KEY = "key";
 
     private static final String ATTRIBUTE_KEY_PREFIX   = "sapl:attribute:";
     private static final String CHANGES_CHANNEL_PREFIX = "sapl:changes:";
+    private static final String BATCH_CHANNEL_PREFIX   = "sapl:batch:";
     private static final String ORDER_KEY_PREFIX       = "sapl:attribute:order:";
     private static final String SEQ_KEY_PREFIX         = "sapl:attribute:seq:";
 
@@ -82,6 +90,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
             .newVirtualThreadPerTaskExecutor();
     private final ReentrantLock                                 lock           = new ReentrantLock(true);
     private final Map<String, Set<Consumer<Value>>>             observersByKey = new HashMap<>();
+    private final AtomicReference<Consumer<Runnable>>           batchRunner    = new AtomicReference<>(Runnable::run);
 
     private final String pdpId;
     private boolean      closed = false;
@@ -97,6 +106,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
         // Subscribe to needed channels
         pubsub.sync().psubscribe(CHANGES_CHANNEL_PREFIX + "*");
+        pubsub.sync().psubscribe(BATCH_CHANNEL_PREFIX + pdpId);
         pubsub.sync().subscribe("__keyevent@" + database + "__:expired");
         registerAttributeMessageListener();
         registerConnectionStateListener();
@@ -227,7 +237,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
             try {
                 var bucket = observersByKey.get(redisKey);
                 if (bucket != null)
-                    bucket.remove(onValue);  // No-Op wenn nie registriert
+                    bucket.remove(onValue); // No-Op wenn nie registriert
             } finally {
                 lock.unlock();
             }
@@ -306,6 +316,10 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
             @Override
             public void message(String pattern, String channel, String message) {
+                if (channel.startsWith(BATCH_CHANNEL_PREFIX)) {
+                    handleBatch(message);
+                    return;
+                }
                 // Regex: sapl:changes:* -> All change events that are made on attributes
                 String redisKey = channel.substring(CHANGES_CHANNEL_PREFIX.length());
                 Value  value    = UNDEFINED_STRING.equals(message) ? Value.UNDEFINED
@@ -313,15 +327,38 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
                 notifyObservers(redisKey, value);
             }
+
+            private void handleBatch(String message) {
+                if (!(ValueJsonMarshaller.json(message) instanceof ArrayValue entries)) {
+                    log.warn(WARN_INVALID_BATCH, message);
+                    return;
+                }
+
+                var changes = new LinkedHashMap<String, Value>();
+                for (var entry : entries) {
+                    if (entry instanceof ObjectValue object
+                            && object.get(FIELD_BATCH_KEY) instanceof TextValue(var redisKey)
+                            && object.get(FIELD_VALUE) instanceof TextValue(var redisValue)) {
+                        var value = UNDEFINED_STRING.equals(redisValue) ? Value.UNDEFINED
+                                : ValueJsonMarshaller.json(redisValue);
+                        changes.put(redisKey, value);
+                    } else {
+                        log.warn(WARN_INVALID_BATCH_ENTRY, entry);
+                    }
+                }
+                batchRunner.get().accept(() -> changes.forEach((redisKey, value) -> notifyObservers(redisKey, value)));
+            }
         });
     }
 
     private void registerConnectionStateListener() {
-        // Monitor the current connection and reconnect if the connection was interrupted
+        // Monitor the current connection and reconnect if the connection was
+        // interrupted
         pubsub.addListener(new RedisConnectionStateListener() {
             @Override
             public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
-                // Creates a new thread that is executed by the re-sync executer. The main event loop threads doesn't
+                // Creates a new thread that is executed by the re-sync executer. The main event
+                // loop threads doesn't
                 // block that way.
                 CompletableFuture.runAsync(RedisAttributeRepository.this::resyncObservers, resyncExecutor)
                         .exceptionally(e -> {
@@ -344,5 +381,10 @@ public final class RedisAttributeRepository implements AttributeRepository {
                 }
             }
         });
+    }
+
+    @Override
+    public void setBatchRunner(Consumer<Runnable> batchRunner) {
+        this.batchRunner.set(batchRunner);
     }
 }

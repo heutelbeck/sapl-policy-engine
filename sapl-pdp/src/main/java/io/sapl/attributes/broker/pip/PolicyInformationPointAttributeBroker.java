@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -129,6 +130,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     // Set in close(). Guards open() and teardown scheduling.
     private volatile boolean closed = false;
+
+    private final ThreadLocal<Set<BrokerSubscription>> deferredSubscriptions = new ThreadLocal<>();
 
     /** No grace period, no fallback. */
     public PolicyInformationPointAttributeBroker() {
@@ -1068,6 +1071,17 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.unlock();
 
         }
+
+        // If batch mode, then only collect the subscriptions. batch() will re-evaluate them at the end
+        val batched = deferredSubscriptions.get();
+
+        // Yes: add them
+        if (batched != null) {
+            batched.addAll(toFire);
+            return;
+        }
+
+        // No: finished and re-evaluate them
         for (val subscription : toFire) {
             subscription.fireCallback();
         }
@@ -1410,6 +1424,38 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         @Override
         public String toString() {
             return "PipHandle[" + pipName + (loaded.get() ? "" : " unloaded") + "]";
+        }
+    }
+
+    /**
+     * Run {@code notifications} in a batch mode. While the batch mode is running, value changes
+     * do not re-evaluate the affected subscriptions immediately. When {@code notifications} returns,
+     * each collected subscription is re-evaluated exactly once. All new values will be seen together.
+     * It prevents a policy from evaluating an unwanted intermediate state between two changes of an
+     * atomic batch.
+     * <p>
+     * A nested call on the same thread joins the running batch. The outermost call ends the batch mode.
+     * If {@code notifications} throws, the processed values are still re-evaluated.
+     *
+     * @param notifications Applies the changed attribute values. It is provided by an attribute repository.
+     */
+    public void batch(@NonNull Runnable notifications) {
+        if (deferredSubscriptions.get() != null) {
+            notifications.run();
+            return;
+        }
+
+        val collected = new LinkedHashSet<BrokerSubscription>();
+        deferredSubscriptions.set(collected);
+
+        try {
+            notifications.run();
+        } finally {
+            deferredSubscriptions.remove();
+
+            for (val subscription : collected) {
+                subscription.fireCallback();
+            }
         }
     }
 }

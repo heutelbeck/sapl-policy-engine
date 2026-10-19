@@ -24,6 +24,7 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributeapi.attributes.backend.AttributeEntry;
 import io.sapl.attributeapi.attributes.backend.AttributeKey;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
+import io.sapl.attributeapi.attributes.dto.AttributeBatchChange;
 import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import tools.jackson.databind.JsonNode;
@@ -119,6 +120,25 @@ public class AttributeApiService {
         Integer queryLimit    = limit != null ? limit : securityProperties.getMaxLimit();
 
         return store.getAll(resolvedPdpId, queryLimit, offset).stream().map(this::toJsonNode).toList();
+    }
+
+    public void patchBatchChange(String pdpId, List<AttributeBatchChange> changes) {
+        var storeChanges = changes.stream().map(this::toStoreChange).toList();
+        store.applyAll(storeChanges, resolvePdpId(pdpId));
+    }
+
+    private AttributeStore.Change toStoreChange(AttributeBatchChange change) {
+        var entity    = change.entity() == null ? null : ValueJsonMarshaller.fromJsonNode(change.entity());
+        var arguments = change.arguments() == null ? List.<Value>of()
+                : change.arguments().stream().map(ValueJsonMarshaller::fromJsonNode).toList();
+        var key       = new AttributeKey(entity, change.name(), arguments);
+
+        if (change.op() == AttributeBatchChange.Operation.DELETE) {
+            return new AttributeStore.Change(key, null, null);
+        }
+        var ttl = change.ttl() == null ? null : Duration.ofSeconds(change.ttl());
+
+        return new AttributeStore.Change(key, ValueJsonMarshaller.fromJsonNode(change.value()), ttl);
     }
 
     public long count(@Nullable String pdpId) {

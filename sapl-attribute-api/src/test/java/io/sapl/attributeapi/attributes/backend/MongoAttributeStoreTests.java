@@ -30,7 +30,10 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.IndexDefinition;
+import org.springframework.data.mongodb.core.index.ReactiveIndexOperations;
 import org.springframework.data.mongodb.core.query.Query;
 import org.bson.Document;
 import io.sapl.api.model.Value;
@@ -47,6 +50,10 @@ class MongoAttributeStoreTests {
     @BeforeEach
     void setUp() {
         mongo = mock(ReactiveMongoTemplate.class);
+        when(mongo.getMongoDatabaseFactory()).thenReturn(mock(ReactiveMongoDatabaseFactory.class));
+        var indexOps = mock(ReactiveIndexOperations.class);
+        when(indexOps.createIndex(any(IndexDefinition.class))).thenReturn(Mono.just("createdAt_1"));
+        when(mongo.indexOps(any(String.class))).thenReturn(indexOps);
         when(mongo.collectionExists(COLLECTION)).thenReturn(Mono.just(true));
         when(mongo.executeCommand(any(Document.class))).thenReturn(Mono.just(new Document()));
         store = new MongoAttributeStore(mongo, COLLECTION);

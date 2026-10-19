@@ -73,6 +73,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private final AtomicBoolean                                      closed              = new AtomicBoolean(false);
     private final ConcurrentHashMap<String, Set<PendingObservation>> waitingObservations = new ConcurrentHashMap<>();
 
+    private final AtomicReference<Consumer<Runnable>> batchRunner = new AtomicReference<>(Runnable::run);
+
     private record PendingObservation(
             AttributeFinderInvocation inv,
             Consumer<Value> onValue,
@@ -185,6 +187,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
         }
 
         cache.put(configId, repository);
+        repository.setBatchRunner(batchRunner.get());
         route(pdpId, configId);
 
         val waiting = waitingObservations.remove(configId);
@@ -289,5 +292,11 @@ public class RoutingAttributeRepository implements AttributeRepository {
      */
     public Optional<Value> currentRawConfig(String pdpId) {
         return Optional.ofNullable(pdpToConfig.get(pdpId)).map(rawConfig::get);
+    }
+
+    @Override
+    public void setBatchRunner(Consumer<Runnable> batchRunner) {
+        this.batchRunner.set(batchRunner);
+        cache.values().forEach(repository -> repository.setBatchRunner(batchRunner));
     }
 }

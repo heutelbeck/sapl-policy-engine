@@ -24,8 +24,13 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+
 import org.jspecify.annotations.Nullable;
+import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.transaction.reactive.TransactionalOperator;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -86,7 +91,8 @@ public class PostgresAttributeStore implements AttributeStore {
             )
             """;
 
-    private final DatabaseClient client;
+    private final DatabaseClient        client;
+    private final TransactionalOperator transactions;
 
     private final String countSql;
     private final String getSql;
@@ -95,7 +101,8 @@ public class PostgresAttributeStore implements AttributeStore {
     private final String deleteSql;
 
     public PostgresAttributeStore(DatabaseClient client, String table, boolean autoCreateTable) {
-        this.client = client;
+        this.client       = client;
+        this.transactions = TransactionalOperator.create(new R2dbcTransactionManager(client.getConnectionFactory()));
 
         if (autoCreateTable) {
             client.sql(CREATE_TABLE_SQL.replace("{table}", table)).then().block();
@@ -189,6 +196,43 @@ public class PostgresAttributeStore implements AttributeStore {
         // The class is not responsible for it's lifecycle
     }
 
+    @Override
+    public void applyAll(List<Change> changes, String pdpId) {
+        // concatMap --> führe writes nach und nach auf der gleichen Verbindung als Transaktion aus
+        var toWrite = Flux.fromIterable(changes)
+                .concatMap(change -> change.isDelete() ? deleteSpec(change.key(), pdpId).then()
+                        : upsertSpec(change.key(), change.value(), expiresAt(change.ttl()), pdpId).then());
+
+        toWrite.then(client.sql(NOTIFY_SQL).bind("payload", batchPayload(changes, pdpId)).then())
+                .as(transactions::transactional).block();
+    }
+
+    private static @Nullable Instant expiresAt(@Nullable Duration ttl) {
+        return ttl == null ? null : Instant.now().plus(ttl);
+    }
+
+    private DatabaseClient.GenericExecuteSpec upsertSpec(AttributeKey key, Value value, @Nullable Instant expiresAt,
+            String pdpId) {
+        var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
+        var argumentsJson = valuesToJson(key.arguments());
+        var valueJson     = ValueJsonMarshaller.toJsonString(value);
+
+        var spec = client.sql(upsertSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name())
+                .bind(ARGUMENTS_FIELD, argumentsJson).bind(VALUE_FIELD, valueJson);
+        spec = expiresAt != null ? spec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
+                : spec.bindNull("expiresAt", OffsetDateTime.class);
+        return bindEntity(spec, entityJson);
+    }
+
+    private DatabaseClient.GenericExecuteSpec deleteSpec(AttributeKey key, String pdpId) {
+        var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
+        var argumentsJson = valuesToJson(key.arguments());
+        var spec          = client.sql(deleteSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name())
+                .bind(ARGUMENTS_FIELD, argumentsJson);
+
+        return bindEntity(spec, entityJson);
+    }
+
     private void notifyPdp(@NonNull AttributeKey key, String pdpId) {
         var payload = ValueJsonMarshaller.toJsonString(
                 ObjectValue.builder().put(PDP_ID_FIELD, Value.of(pdpId)).put(NAME_FIELD, Value.of(key.name()))
@@ -199,30 +243,14 @@ public class PostgresAttributeStore implements AttributeStore {
     }
 
     private boolean upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
-        var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
-        var argumentsJson = valuesToJson(key.arguments());
-        var valueJson     = ValueJsonMarshaller.toJsonString(value);
-
-        var upsertSpec = client.sql(upsertSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name())
-                .bind(ARGUMENTS_FIELD, argumentsJson).bind(VALUE_FIELD, valueJson);
-
-        upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
-                : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
-
-        Boolean inserted = bindEntity(upsertSpec, entityJson).map(row -> row.get("inserted", Boolean.class)).one()
+        Boolean inserted = upsertSpec(key, value, expiresAt, pdpId).map(row -> row.get("inserted", Boolean.class)).one()
                 .block();
-
         notifyPdp(key, pdpId);
         return Boolean.TRUE.equals(inserted);
     }
 
     private boolean deleteFromDB(@NonNull AttributeKey key, String pdpId) {
-        var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
-        var argumentsJson = valuesToJson(key.arguments());
-        var spec          = client.sql(deleteSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name())
-                .bind(ARGUMENTS_FIELD, argumentsJson);
-
-        Long rowsDeleted = bindEntity(spec, entityJson).fetch().rowsUpdated().block();
+        Long rowsDeleted = deleteSpec(key, pdpId).fetch().rowsUpdated().block();
         notifyPdp(key, pdpId);
         return rowsDeleted != null && rowsDeleted > 0;
     }
@@ -249,5 +277,17 @@ public class PostgresAttributeStore implements AttributeStore {
     private DatabaseClient.GenericExecuteSpec bindEntity(DatabaseClient.GenericExecuteSpec spec, String entityAsJson) {
         return (entityAsJson != null ? spec.bind(ENTITY_FIELD, entityAsJson)
                 : spec.bindNull(ENTITY_FIELD, String.class));
+    }
+
+    private static String batchPayload(List<Change> changes, String pdpId) {
+        List<Value> keys = changes.stream().map(change -> keyToValue(change.key())).toList();
+        return ValueJsonMarshaller.toJsonString(
+                ObjectValue.builder().put(PDP_ID_FIELD, Value.of(pdpId)).put("keys", Value.ofArray(keys)).build());
+    }
+
+    private static Value keyToValue(AttributeKey key) {
+        return ObjectValue.builder().put(NAME_FIELD, Value.of(key.name()))
+                .put(ENTITY_FIELD, key.entity() != null ? key.entity() : Value.NULL)
+                .put(ARGUMENTS_FIELD, Value.ofArray(key.arguments())).build();
     }
 }

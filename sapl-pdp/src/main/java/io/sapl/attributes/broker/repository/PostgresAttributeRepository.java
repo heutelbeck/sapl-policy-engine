@@ -28,12 +28,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.r2dbc.core.DatabaseClient;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.ArrayList;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 import reactor.util.retry.Retry.RetrySignal;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -47,12 +48,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import reactor.core.Disposable;
 
 /**
- * Repository implementation that persists attributes in PostgreSQL and maintains an In-Memory representation
- * by using the {@link InMemoryAttributeRepository} synchronized with PostgreSQL LISTEN/NOTIFY mechanism.
+ * Repository implementation that persists attributes in PostgreSQL and
+ * maintains an In-Memory representation by using the
+ * {@link InMemoryAttributeRepository} synchronized with PostgreSQL
+ * LISTEN/NOTIFY mechanism.
  *
- * The implementation sets all attribute to the state INDETERMINATE when a disconnect happens because LISTEN/NOTIFY
- * needs a constant connection for the event stream. The current implementation performs a full re-sync when
- * the connection is established again.
+ * The implementation sets all attribute to the state INDETERMINATE when a
+ * disconnect happens because LISTEN/NOTIFY needs a constant connection for the
+ * event stream. The current implementation performs a full re-sync when the
+ * connection is established again.
  */
 @Slf4j
 public final class PostgresAttributeRepository implements AttributeRepository {
@@ -63,6 +67,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String DEBUG_STALE_CONNECTION_CLOSE_FAILED = "Error closing stale connection for pdpId '{}': {}";
     private static final String DEBUG_RECONNECT_FAILED              = "Reconnect attempt failed for pdpId '{}': {}";
     private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
+    private static final String WARN_INVALID_BATCH_ENTRY            = "Ignoring an invalid batch entry for pdpId '{}': {}";
     private static final String WARN_TTL_CLEANUP                    = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
             + "or grant right to the user. Expired attributes will still be filtered"
             + "at query time but Postgres-side cleanup will not happen for pdp with id {} : {}";
@@ -142,11 +147,14 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private final DatabaseClient client;
     private final String         pdpId;
 
-    // Built once per instance since they embed the (dynamic, per-instance) table name.
+    // Built once per instance since they embed the (dynamic, per-instance) table
+    // name.
     private final String getAllSql;
     private final String getSql;
     private final String upsertSql;
     private final String deleteSql;
+
+    private final AtomicReference<Consumer<Runnable>> batchRunner = new AtomicReference<>(Runnable::run);
 
     private record DBEntry(String name, String entity, String arguments, String value, OffsetDateTime expiresAt) {}
 
@@ -161,7 +169,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
 
         client.sql(CREATE_TABLE_SQL.replace("{table}", table)).then().block();
 
-        // If the scheduler job already exists, it is handled as an upsert and updated in place, not duplicated
+        // If the scheduler job already exists, it is handled as an upsert and updated
+        // in place, not duplicated
         try {
             client.sql(SCHEDULE_TTL_CLEANUP_SQL.replace("{table}", table)).then().block();
         } catch (RuntimeException e) {
@@ -174,7 +183,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 + "WHERE pdp_id = :pdpId AND name = :name AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
                 + "AND arguments = CAST(:arguments AS jsonb)";
 
-        // ON CONFLICT is used for an atomic upsert operation. (NULLS NOT DISTINCT) is important because parts of the
+        // ON CONFLICT is used for an atomic upsert operation. (NULLS NOT DISTINCT) is
+        // important because parts of the
         // attribute key may be empty. They're seen as a unique key
         this.upsertSql = "INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
                 + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
@@ -191,7 +201,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         loadFromDB();
     }
 
-    // Reconnect-Fix: Connections needs to be re-intialized after a disconnect. Before that it was only loaded once
+    // Reconnect-Fix: Connections needs to be re-intialized after a disconnect.
+    // Before that it was only loaded once
     // during start time
     private void connectAndListen() {
         establishConnection();
@@ -202,7 +213,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                         .doBeforeRetry(this::handleNotificationStreamRetry))
                 .subscribe(this::handleNotification, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
 
-        // Start the heartbeat subscription to monitor on a different subscription channel if a disconnect did happen
+        // Start the heartbeat subscription to monitor on a different subscription
+        // channel if a disconnect did happen
         heartbeat.set(Flux.interval(HEARTBEAT_INTERVAL, Schedulers.boundedElastic()).filter(tick -> !closed)
                 .concatMap(tick -> client.sql(NOTIFY_SQL)
                         .bind("payload",
@@ -358,7 +370,23 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             return;
         }
 
-        var key        = payloadToKey(node);
+        // Batch-Mode for atomic updates when > 1 attribute is updated at once
+        if (node.get("keys") instanceof ArrayValue keys) {
+            var batchKeys = new ArrayList<RepositoryKey>();
+            for (var keyNode : keys) {
+                if (keyNode instanceof ObjectValue keyObject) {
+                    batchKeys.add(payloadToKey(keyObject));
+                } else {
+                    log.warn(WARN_INVALID_BATCH_ENTRY, pdpId, keyNode);
+                }
+            }
+            batchRunner.get().accept(() -> batchKeys.forEach(this::applyKey));
+            return;
+        }
+        applyKey(payloadToKey(node));
+    }
+
+    private void applyKey(RepositoryKey key) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
 
         // Query the key from the notification to decide if it's an update or delete
@@ -371,7 +399,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                         r.get("expires_at", OffsetDateTime.class)))
                 .one().timeout(CONNECT_TIMEOUT).block();
 
-        // if: Key deleted, also delete in cache, else: Key is updated, publish key again in cache
+        // if: Key deleted, also delete in cache, else: Key is updated, publish key
+        // again in cache
         if (row == null) {
             internalRepository.remove(key);
         } else {
@@ -405,7 +434,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     }
 
     private void removeStaleKeys(Set<RepositoryKey> seenKeys) {
-        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
+        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up
+        // after a re-sync
         for (var staleKey : internalRepository.knownKeys()) {
             if (!seenKeys.contains(staleKey)) {
                 internalRepository.remove(staleKey);
@@ -467,5 +497,10 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             }
         }
         reconnectUntilSuccessfulOrClosed();
+    }
+
+    @Override
+    public void setBatchRunner(Consumer<Runnable> batchRunner) {
+        this.batchRunner.set(batchRunner);
     }
 }

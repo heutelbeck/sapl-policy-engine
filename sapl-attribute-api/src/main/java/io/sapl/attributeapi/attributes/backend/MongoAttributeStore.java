@@ -22,20 +22,23 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 import org.bson.Document;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.ReactiveMongoTransactionManager;
 import org.springframework.data.mongodb.core.CollectionOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-
+import org.springframework.data.mongodb.core.query.UpdateDefinition;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -56,14 +59,22 @@ public class MongoAttributeStore implements AttributeStore {
     private static final String VALUE_FIELD      = "value";
     private static final String EXPIRES_AT_FIELD = "expiresAt";
     private static final String ID_FIELD         = "_id";
+    private static final String KEYS_FIELD       = "keys";
+    private static final String CREATED_AT_FIELD = "createdAt";
+    private static final String BATCH_COLLECTION = "attribute_batches";
 
     private final ReactiveMongoTemplate mongo;
+    private final TransactionalOperator transactions;
     private final String                collection;
 
     public MongoAttributeStore(ReactiveMongoTemplate mongo, String collection) {
-        this.mongo      = mongo;
-        this.collection = collection;
+        this.mongo        = mongo;
+        this.transactions = TransactionalOperator
+                .create(new ReactiveMongoTransactionManager(mongo.getMongoDatabaseFactory()));
+        this.collection   = collection;
         configureChangeStreamPrePostImages();
+        mongo.indexOps(BATCH_COLLECTION)
+                .createIndex(new Index().on(CREATED_AT_FIELD, Sort.Direction.ASC).expire(Duration.ofHours(1))).block();
     }
 
     @Override
@@ -127,6 +138,16 @@ public class MongoAttributeStore implements AttributeStore {
 
         return mongo.find(query, Document.class, collection).map(MongoAttributeStore::mapDocument).collectList()
                 .block();
+    }
+
+    @Override
+    public void applyAll(List<Change> changes, String pdpId) {
+        Flux.fromIterable(changes).concatMap(
+                change -> change.isDelete() ? mongo.remove(doMongoQuery(change.key(), pdpId), collection).then()
+                        : mongo.upsert(doMongoQuery(change.key(), pdpId), updateFor(change, pdpId), collection).then())
+                .then(mongo.insert(batchDocument(changes, pdpId), BATCH_COLLECTION).then())
+                .as(transactions::transactional).block();
+
     }
 
     @Override
@@ -200,5 +221,27 @@ public class MongoAttributeStore implements AttributeStore {
         } catch (DataAccessException e) {
             log.warn(WARN_PRE_POST_IMAGES, collection, e.getMessage());
         }
+    }
+
+    private Document batchDocument(List<Change> changes, @Nullable String pdpId) {
+        var keys = changes.stream().map(change -> {
+            var key = change.key();
+            return new Document(NAME_FIELD, key.name())
+                    .append(ENTITY_FIELD, key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null)
+                    .append(ARGUMENTS_FIELD, valuesToJson(key.arguments()));
+        }).toList();
+
+        return new Document(PDP_ID_FIELD, pdpId).append(KEYS_FIELD, keys).append(CREATED_AT_FIELD, Instant.now());
+    }
+
+    private UpdateDefinition updateFor(Change change, String pdpId) {
+        var key        = change.key();
+        var ttl        = change.ttl();
+        var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
+        var expiresAt  = ttl != null ? Instant.now().plus(ttl) : null;
+
+        return new Update().set(PDP_ID_FIELD, pdpId).set(NAME_FIELD, key.name()).set(ENTITY_FIELD, entityJson)
+                .set(ARGUMENTS_FIELD, valuesToJson(key.arguments()))
+                .set(VALUE_FIELD, ValueJsonMarshaller.toJsonString(change.value())).set(EXPIRES_AT_FIELD, expiresAt);
     }
 }

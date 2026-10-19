@@ -96,7 +96,7 @@ class MongoAttributeRepositoryTests {
     private Value lastReceived() {
         return received.getLast();
     }
-   
+
     private MongoAttributeRepository newRepository(String pdpId, String collection) {
         return new MongoAttributeRepository(newTemplate(), pdpId, collection);
     }

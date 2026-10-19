@@ -82,6 +82,10 @@ public interface AttributeRepository extends AutoCloseable {
      */
     void remove(@NonNull RepositoryKey key);
 
+    default void setBatchRunner(Consumer<Runnable> batchRunner) {
+        // repositories that do not support a batch mode ignore the runner
+    }
+
     /**
      * Registers {@code onValue} to receive value changes for
      * {@code invocation}. The current value is delivered synchronously

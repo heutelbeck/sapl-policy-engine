@@ -21,6 +21,7 @@ import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.ScanArgs;
+import io.lettuce.core.TransactionResult;
 
 /**
  * Implementation of the attribute store for a Redis backend.
@@ -41,6 +43,7 @@ public class RedisAttributeStore implements AttributeStore {
     private static final String REDIS_CHANGES_PREFIX   = "sapl:changes:";
     private static final String REDIS_ORDER_PREFIX     = "sapl:attribute:order:";
     private static final String REDIS_SEQ_PREFIX       = "sapl:attribute:seq:";
+    private static final String REDIS_BATCH_PREFIX     = "sapl:batch:";
 
     private static final String ERROR_TTL_NOT_POSITIVE = "TTL must be a strictly positive Duration.";
     private static final String UNDEFINED_STRING       = "UNDEFINED";
@@ -49,6 +52,7 @@ public class RedisAttributeStore implements AttributeStore {
     private static final String ENTITY_FIELD    = "entity";
     private static final String ARGUMENTS_FIELD = "arguments";
     private static final String VALUE_FIELD     = "value";
+    private static final String BATCH_KEY_FIELD = "key";
 
     private final RedisClient                             client;
     private final StatefulRedisConnection<String, String> connection;
@@ -86,18 +90,20 @@ public class RedisAttributeStore implements AttributeStore {
         }
 
         /*
-         * HSETNX sets a field only if it does not exist yet, and does so atomically. Redis does process
-         * commands strictly sequentially. Two concurrent calls can't get both created = true because of
-         * the sequential processing. The HSET just writes the fields into the (now) existing key.
-         * The HSET is not critical and last write wins.
-         * The command EXISTS was removed because it could cause a bug if two parallel requests tried to
-         * set the same attribute key. The counter would have been increased twice and both would return
-         * a HTTP 201 CREATED instead of a HTTP 200 OK and HTTP 201.
+         * HSETNX sets a field only if it does not exist yet, and does so atomically.
+         * Redis does process commands strictly sequentially. Two concurrent calls can't
+         * get both created = true because of the sequential processing. The HSET just
+         * writes the fields into the (now) existing key. The HSET is not critical and
+         * last write wins. The command EXISTS was removed because it could cause a bug
+         * if two parallel requests tried to set the same attribute key. The counter
+         * would have been increased twice and both would return a HTTP 201 CREATED
+         * instead of a HTTP 200 OK and HTTP 201.
          */
         boolean created = commands.hsetnx(redisKey, NAME_FIELD, key.name());
         commands.hset(redisKey, fields);
 
-        // Increment the sequence number within Redis, stores it add the current key to the sorted set (ZSET)
+        // Increment the sequence number within Redis, stores it add the current key to
+        // the sorted set (ZSET)
         if (created) {
             Long sequence = commands.incr(getSequenceKey(pdpId));
             commands.zadd(getOrderKey(pdpId), sequence.doubleValue(), redisKey);
@@ -124,7 +130,8 @@ public class RedisAttributeStore implements AttributeStore {
         return deleted != null && deleted > 0;
     }
 
-    // Escape special characters before adding them to the Redis Keys. Avoids mistakes by characters like *
+    // Escape special characters before adding them to the Redis Keys. Avoids
+    // mistakes by characters like *
     private static String escapePattern(String value) {
         return value.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?").replace("[", "\\[").replace("]",
                 "\\]");
@@ -135,8 +142,10 @@ public class RedisAttributeStore implements AttributeStore {
         ScanArgs arguments = ScanArgs.Builder.matches(REDIS_NAMESPACE_PREFIX + escapePattern(pdpId) + ":*");
         long     keys      = 0L;
 
-        // Use Redis SCAN instead of KEYS. KEYS is a blocking command while the keys are loading
-        // and SCAN is non-blocking because it's using a cursor logic and is recommend by Redis.
+        // Use Redis SCAN instead of KEYS. KEYS is a blocking command while the keys are
+        // loading
+        // and SCAN is non-blocking because it's using a cursor logic and is recommend
+        // by Redis.
         // Keys is not for production code made and ruins performance.
         KeyScanCursor<String> cursor = commands.scan(arguments);
         keys += cursor.getKeys().size();
@@ -156,7 +165,8 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        // Empty list if the limit is invalid or exactly 0 elements, limit == 0 included because Redis interprets it as
+        // Empty list if the limit is invalid or exactly 0 elements, limit == 0 included
+        // because Redis interprets it as
         // no limit = get all
         if (limit != null && limit <= 0) {
             return List.of();
@@ -229,5 +239,77 @@ public class RedisAttributeStore implements AttributeStore {
 
     private String getSequenceKey(String pdpId) {
         return REDIS_SEQ_PREFIX + pdpId;
+    }
+
+    @Override
+    public void applyAll(List<Change> changes, String pdpId) {
+        var batchEntries  = new ArrayList<Value>();
+        var newKeys       = new ArrayList<String>();
+        var hsetnxIndexes = new HashMap<Integer, String>();
+        int index         = 0;
+
+        // Use a own connection for MULTI command to ensure the statements are set
+        // exclusively
+        try (StatefulRedisConnection<String, String> tx = client.connect()) {
+            RedisCommands<String, String> command = tx.sync();
+            command.multi();
+            for (var change : changes) {
+                String redisKey = toRedisKey(change.key(), pdpId);
+
+                // Case of a key to delete
+                if (change.isDelete()) {
+                    command.del(redisKey);
+                    command.zrem(getOrderKey(pdpId), redisKey);
+                    index += 2;
+                    batchEntries.add(batchEntry(redisKey, UNDEFINED_STRING));
+                } else {
+                    // Case of a key too add or update
+                    String              redisValue = ValueJsonMarshaller.toJsonString(change.value());
+                    Map<String, String> fields     = new HashMap<>();
+
+                    fields.put(NAME_FIELD, change.key().name());
+                    fields.put(ARGUMENTS_FIELD, valuesToJson(change.key().arguments()));
+                    fields.put(VALUE_FIELD, redisValue);
+                    if (change.key().entity() != null) {
+                        fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(change.key().entity()));
+                    }
+
+                    hsetnxIndexes.put(index, redisKey);
+                    command.hsetnx(redisKey, NAME_FIELD, change.key().name());
+                    command.hset(redisKey, fields);
+                    index += 3;
+
+                    // Optional ttl is handled
+                    var ttl = change.ttl();
+                    if (ttl == null) {
+                        command.persist(redisKey);
+                    } else {
+                        command.expire(redisKey, ttl.toSeconds());
+                    }
+                    batchEntries.add(batchEntry(redisKey, redisValue));
+                }
+            }
+
+            // If all keys are added publish the message and store the results
+            command.publish(REDIS_BATCH_PREFIX + pdpId, ValueJsonMarshaller.toJsonString(Value.ofArray(batchEntries)));
+            TransactionResult result = command.exec();
+
+            // Increment the global counter
+            hsetnxIndexes.forEach((i, key) -> {
+                if (Boolean.TRUE.equals(result.get(i))) {
+                    newKeys.add(key);
+                }
+            });
+        }
+
+        for (var redisKey : newKeys) {
+            Long sequence = commands.incr(getSequenceKey(pdpId));
+            commands.zadd(getOrderKey(pdpId), sequence.doubleValue(), redisKey);
+        }
+    }
+
+    private static Value batchEntry(String redisKey, String redisValue) {
+        return ObjectValue.builder().put(BATCH_KEY_FIELD, Value.of(redisKey)).put(VALUE_FIELD, Value.of(redisValue))
+                .build();
     }
 }

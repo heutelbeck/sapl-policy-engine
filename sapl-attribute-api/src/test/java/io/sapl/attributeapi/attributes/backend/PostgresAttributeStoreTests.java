@@ -19,6 +19,7 @@ package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.r2dbc.core.DatabaseClient;
+import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.model.Value;
 
 class PostgresAttributeStoreTests {
@@ -37,6 +39,7 @@ class PostgresAttributeStoreTests {
     @BeforeEach
     void setUp() {
         DatabaseClient client = mock(DatabaseClient.class);
+        when(client.getConnectionFactory()).thenReturn(mock(ConnectionFactory.class));
         store = new PostgresAttributeStore(client, TABLE, false);
     }
 

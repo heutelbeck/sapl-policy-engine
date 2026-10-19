@@ -19,6 +19,7 @@ package io.sapl.attributeapi.attributes.controller;
 
 import io.sapl.attributeapi.attributes.BackendHandle;
 import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableException;
+import io.sapl.attributeapi.attributes.dto.AttributeBatchChange;
 import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.attributes.service.AttributeApiService;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
@@ -29,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -233,6 +235,14 @@ public class AttributeApiController {
             return ResponseEntity.ok(service.count(currentPdpId()));
         }
         return ResponseEntity.ok(service.getAll(currentPdpId(), limit, offset));
+    }
+
+    @Operation(summary = "Atomic update, create or delete of attributes. The endpoint supports to send more than one attribute and a mandatory operation.", responses = {
+            @ApiResponse(responseCode = "204", description = "The set of attributes was sucessfully sent") })
+    @PatchMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> patchAttributesInABatch(@RequestBody List<AttributeBatchChange> changes) {
+        service.patchBatchChange(currentPdpId(), changes);
+        return ResponseEntity.noContent().build();
     }
 
     /**

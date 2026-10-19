@@ -92,4 +92,14 @@ public interface AttributeStore {
      * Safely closes all the connections to the backend storage.
      */
     void close();
+
+    record Change(AttributeKey key, @Nullable Value value, @Nullable Duration ttl) {
+        public boolean isDelete() {
+            return value == null;
+        }
+    }
+
+    default void applyAll(List<Change> changes, String pdpId) {
+        throw new UnsupportedOperationException();
+    }
 }

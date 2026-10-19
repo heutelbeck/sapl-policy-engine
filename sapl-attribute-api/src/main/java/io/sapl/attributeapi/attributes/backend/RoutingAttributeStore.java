@@ -121,6 +121,16 @@ public final class RoutingAttributeStore implements AttributeStore {
         closeAll.run();
     }
 
+    @Override
+    public void applyAll(List<Change> changes, String pdpId) {
+        try {
+            resolve(pdpId).applyAll(changes, pdpId);
+        } catch (DataAccessException | RedisConnectionException | RedisCommandTimeoutException e) {
+            invalidate(pdpId);
+            throw new AttributeBackendUnavailableException(ERROR_UNAVAILABLE, e);
+        }
+    }
+
     /**
      * Constructs the store if the api server runs in a standalone mode with the SAPL Node.
      *

@@ -1120,6 +1120,10 @@ public class PolicyDecisionPointBuilder {
         val broker    = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback, timestampSource);
         val scheduler = new RealTimeScheduler(clock);
 
+        if (fallback != null) {
+            fallback.setBatchRunner(broker::batch);
+        }
+
         if (includeDefaults) {
             // 5 second TCP connect cap so a stalled remote PIP host does not
             // hang the calling decision indefinitely.

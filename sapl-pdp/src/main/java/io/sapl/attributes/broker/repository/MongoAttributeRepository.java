@@ -46,6 +46,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.LinkedHashMap;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 import org.springframework.data.mongodb.core.CollectionOptions;
 import reactor.util.retry.Retry.RetrySignal;
@@ -72,6 +74,10 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private static final String FIELD_ARGUMENTS  = "arguments";
     private static final String FIELD_VALUE      = "value";
     private static final String FIELD_EXPIRES_AT = "expiresAt";
+    private static final String BATCH_COLLECTION = "attribute_batches";
+    private static final String FIELD_KEYS       = "keys";
+
+    private final AtomicReference<Consumer<Runnable>> batchRunner = new AtomicReference<>(Runnable::run);
 
     // Delegate Pattern . observer(), close() etc are generated
     @Delegate(excludes = ExcludedMethods.class)
@@ -124,13 +130,12 @@ public final class MongoAttributeRepository implements AttributeRepository {
     // The subscription to the change streams needs a MongoDB replica set activated.
     // Replica sets are also working with a single node and are used together with change streams.
     private void subscribeToChangeStream() {
-        changeStreamSubscription
-                .set(openChangeStream().filter(this::belongsToPdpId).publishOn(Schedulers.boundedElastic())
-                        .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
-                                .maxBackoff(Duration.ofSeconds(30)).transientErrors(true).filter(throwable -> !closed)
-                                .doBeforeRetry(this::handleChangeStreamRetry))
-                        .subscribe(this::processChangeStreamEvent,
-                                error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
+        changeStreamSubscription.set(Flux.merge(openChangeStream(collection), openChangeStream(BATCH_COLLECTION))
+                .filter(this::belongsToPdpId).publishOn(Schedulers.boundedElastic())
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
+                        .transientErrors(true).filter(throwable -> !closed)
+                        .doBeforeRetry(this::handleChangeStreamRetry))
+                .subscribe(this::processChangeStreamEvent, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
     }
 
     // Handle the re-try logic on a detected disconnect. Invalidates the cache and resync the cache again.
@@ -157,11 +162,11 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
     // Opens the change stream when the first subscription is happening and activated pre-image for deletes on the
     // change stream
-    private Flux<ChangeStreamEvent<Document>> openChangeStream() {
+    private Flux<ChangeStreamEvent<Document>> openChangeStream(String watchedCollection) {
         return Flux.defer(() -> mongo.changeStream(Document.class)
                 .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP)
                         .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.WHEN_AVAILABLE))
-                .watchCollection(collection).listen());
+                .watchCollection(watchedCollection).listen());
     }
 
     // Filters events, so that events are only handled when the pdp id matches with the config of this object
@@ -171,8 +176,18 @@ public final class MongoAttributeRepository implements AttributeRepository {
     }
 
     // Handles the change stream event on a publish and delete case. Delete needs to read the attribute before deleting
-    // it
+    // it. Only meant for transactions with applyAll() and txnNumber. Other messages will be ignored here.
     private void processChangeStreamEvent(ChangeStreamEvent<Document> event) {
+        if (BATCH_COLLECTION.equals(event.getCollectionName())) {
+            handleBatch(Objects.requireNonNull(event.getBody()));
+            return;
+        }
+
+        var eventResult = event.getRaw();
+        if (eventResult != null && eventResult.getTxnNumber() != null) {
+            return;
+        }
+
         // Handle the delete events first because the body is always null on delete events
         if (isDeleteEvent(event)) {
             var doc = Objects.requireNonNull(event.getBodyBeforeChange());
@@ -349,5 +364,26 @@ public final class MongoAttributeRepository implements AttributeRepository {
         } catch (DataAccessException e) {
             log.warn(WARN_PRE_POST_IMAGES, pdpId, e.getMessage());
         }
+    }
+
+    private void handleBatch(Document batch) {
+        var rows = new LinkedHashMap<RepositoryKey, Document>();
+        for (var keyDoc : batch.getList(FIELD_KEYS, Document.class)) {
+            var key = repositoryKeyFromDocument(keyDoc);
+            rows.put(key, mongo.findOne(buildMongoQuery(key), Document.class, collection).block());
+        }
+
+        batchRunner.get().accept(() -> rows.forEach((key, doc) -> {
+            if (doc == null) {
+                internalRepository.remove(key);
+            } else {
+                updateCacheFromDocument(key, doc);
+            }
+        }));
+    }
+
+    @Override
+    public void setBatchRunner(Consumer<Runnable> batchRunner) {
+        this.batchRunner.set(batchRunner);
     }
 }
