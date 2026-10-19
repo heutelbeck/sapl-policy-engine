@@ -20,9 +20,13 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
+import io.sapl.ast.Expression;
+import lombok.val;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -238,17 +242,26 @@ class FunctionCallCompilerTests {
                 .containsExactlyInAnyOrder("a.attr", "b.attr");
     }
 
-    @Test
-    void whenFunctionNameIsSyntacticallyInvalidThenCompilerExceptionIsRaisedBeforeEvaluation() {
-        // A name with characters the function-name validator rejects must be
-        // caught at compile time, never propagate an IllegalArgumentException
-        // from the eval-path invocation constructor.
-        var                    ctx         = compilationContext();
-        var                    invalidName = "bad_name.fn";
-        final ThrowingCallable compile     = () -> FunctionCallCompiler.compile(invalidName, List.of(), TEST_LOCATION,
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "test_lib.fn", "test.fn_name", "lib$.fn", "_lib.$fn2" })
+    @DisplayName("Lexer-valid function names compile and evaluate with a dynamic argument")
+    void whenFunctionNameMatchesLexerThenEvaluationInvokesBroker(String functionName) {
+        val broker = functionBroker(functionName, List::getFirst);
+        val ctx    = testContext(broker, Map.of("x", Value.of("result")));
+
+        assertThat(evaluateExpression(functionName + "(x)", ctx)).isEqualTo(Value.of("result"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "bad-name.fn", "lib.bad-name", "1lib.fn", "lib.1fn", "lib..fn" })
+    @DisplayName("Invalid function names fail at compile time before evaluation")
+    void whenFunctionNameIsSyntacticallyInvalidThenCompilerExceptionIsRaisedBeforeEvaluation(String invalidName) {
+        val                    ctx       = compilationContext();
+        val                    arguments = List.<Expression>of();
+        final ThrowingCallable compile   = () -> FunctionCallCompiler.compile(invalidName, arguments, TEST_LOCATION,
                 ctx);
 
-        assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class);
+        assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class).hasMessageContaining(invalidName);
     }
 
     @Test

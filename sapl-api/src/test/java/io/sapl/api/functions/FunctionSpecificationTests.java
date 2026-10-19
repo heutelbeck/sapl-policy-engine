@@ -55,6 +55,9 @@ class FunctionSpecificationTests {
     static Stream<Arguments> validNames() {
         return Stream.of(arguments("time", "dayOfWeek", "time.dayOfWeek"),
                 arguments("geo.traccar", "distance2", "geo.traccar.distance2"),
+                arguments("digest", "sha3_256", "digest.sha3_256"),
+                arguments("graph", "reachable_paths", "graph.reachable_paths"),
+                arguments("_library", "$function2", "_library.$function2"),
                 arguments("a.b.c.d.e.f.g.h.i", "j", "a.b.c.d.e.f.g.h.i.j"));
     }
 
