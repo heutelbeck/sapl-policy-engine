@@ -50,7 +50,10 @@ class MongoAttributeStoreTests {
     @BeforeEach
     void setUp() {
         mongo = mock(ReactiveMongoTemplate.class);
-        when(mongo.getMongoDatabaseFactory()).thenReturn(mock(ReactiveMongoDatabaseFactory.class));
+
+        var databaseFactory = mock(ReactiveMongoDatabaseFactory.class);
+        when(mongo.getMongoDatabaseFactory()).thenReturn(databaseFactory);
+
         var indexOps = mock(ReactiveIndexOperations.class);
         when(indexOps.createIndex(any(IndexDefinition.class))).thenReturn(Mono.just("createdAt_1"));
         when(mongo.indexOps(any(String.class))).thenReturn(indexOps);

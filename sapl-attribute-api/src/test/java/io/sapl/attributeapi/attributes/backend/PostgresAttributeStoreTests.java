@@ -38,8 +38,10 @@ class PostgresAttributeStoreTests {
 
     @BeforeEach
     void setUp() {
-        DatabaseClient client = mock(DatabaseClient.class);
-        when(client.getConnectionFactory()).thenReturn(mock(ConnectionFactory.class));
+        DatabaseClient client            = mock(DatabaseClient.class);
+        var            connectionFactory = mock(ConnectionFactory.class);
+
+        when(client.getConnectionFactory()).thenReturn(connectionFactory);
         store = new PostgresAttributeStore(client, TABLE, false);
     }
 

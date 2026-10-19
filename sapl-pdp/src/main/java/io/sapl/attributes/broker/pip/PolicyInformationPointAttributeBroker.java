@@ -131,7 +131,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     // Set in close(). Guards open() and teardown scheduling.
     private volatile boolean closed = false;
 
-    private final ThreadLocal<Set<BrokerSubscription>> deferredSubscriptions = new ThreadLocal<>();
+    private static final ThreadLocal<Set<BrokerSubscription>> DEFERRED_SUBSCRIPTIONS = new ThreadLocal<>();
 
     /** No grace period, no fallback. */
     public PolicyInformationPointAttributeBroker() {
@@ -1073,7 +1073,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         // If batch mode, then only collect the subscriptions. batch() will re-evaluate them at the end
-        val batched = deferredSubscriptions.get();
+        val batched = DEFERRED_SUBSCRIPTIONS.get();
 
         // Yes: add them
         if (batched != null) {
@@ -1434,24 +1434,24 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * It prevents a policy from evaluating an unwanted intermediate state between two changes of an
      * atomic batch.
      * <p>
-     * A nested call on the same thread joins the running batch. The outermost call ends the batch mode.
+     * The batch phase is per thread. The outermost call ends the batch mode.
      * If {@code notifications} throws, the processed values are still re-evaluated.
      *
      * @param notifications Applies the changed attribute values. It is provided by an attribute repository.
      */
     public void batch(@NonNull Runnable notifications) {
-        if (deferredSubscriptions.get() != null) {
+        if (DEFERRED_SUBSCRIPTIONS.get() != null) {
             notifications.run();
             return;
         }
 
         val collected = new LinkedHashSet<BrokerSubscription>();
-        deferredSubscriptions.set(collected);
+        DEFERRED_SUBSCRIPTIONS.set(collected);
 
         try {
             notifications.run();
         } finally {
-            deferredSubscriptions.remove();
+            DEFERRED_SUBSCRIPTIONS.remove();
 
             for (val subscription : collected) {
                 subscription.fireCallback();

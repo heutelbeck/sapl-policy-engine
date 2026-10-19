@@ -328,27 +328,27 @@ public final class RedisAttributeRepository implements AttributeRepository {
                 notifyObservers(redisKey, value);
             }
 
-            private void handleBatch(String message) {
-                if (!(ValueJsonMarshaller.json(message) instanceof ArrayValue entries)) {
-                    log.warn(WARN_INVALID_BATCH, message);
-                    return;
-                }
-
-                var changes = new LinkedHashMap<String, Value>();
-                for (var entry : entries) {
-                    if (entry instanceof ObjectValue object
-                            && object.get(FIELD_BATCH_KEY) instanceof TextValue(var redisKey)
-                            && object.get(FIELD_VALUE) instanceof TextValue(var redisValue)) {
-                        var value = UNDEFINED_STRING.equals(redisValue) ? Value.UNDEFINED
-                                : ValueJsonMarshaller.json(redisValue);
-                        changes.put(redisKey, value);
-                    } else {
-                        log.warn(WARN_INVALID_BATCH_ENTRY, entry);
-                    }
-                }
-                batchRunner.get().accept(() -> changes.forEach((redisKey, value) -> notifyObservers(redisKey, value)));
-            }
         });
+    }
+
+    private void handleBatch(String message) {
+        if (!(ValueJsonMarshaller.json(message) instanceof ArrayValue entries)) {
+            log.warn(WARN_INVALID_BATCH, message);
+            return;
+        }
+
+        var changes = new LinkedHashMap<String, Value>();
+        for (var entry : entries) {
+            if (entry instanceof ObjectValue object && object.get(FIELD_BATCH_KEY) instanceof TextValue(var redisKey)
+                    && object.get(FIELD_VALUE) instanceof TextValue(var redisValue)) {
+                var value = UNDEFINED_STRING.equals(redisValue) ? Value.UNDEFINED
+                        : ValueJsonMarshaller.json(redisValue);
+                changes.put(redisKey, value);
+            } else {
+                log.warn(WARN_INVALID_BATCH_ENTRY, entry);
+            }
+        }
+        batchRunner.get().accept(() -> changes.forEach(this::notifyObservers));
     }
 
     private void registerConnectionStateListener() {
