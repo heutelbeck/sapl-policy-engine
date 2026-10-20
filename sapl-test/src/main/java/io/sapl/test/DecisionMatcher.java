@@ -252,10 +252,10 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
         }
 
         expectedObligations.stream().filter(expected -> doesNotContainValue(decision.obligations(), expected))
-                .map(expected -> "missing obligation %s".formatted(expected)).forEach(reasons::add);
+                .map("missing obligation %s"::formatted).forEach(reasons::add);
 
         expectedAdvice.stream().filter(expected -> doesNotContainValue(decision.advice(), expected))
-                .map(expected -> "missing advice %s".formatted(expected)).forEach(reasons::add);
+                .map("missing advice %s"::formatted).forEach(reasons::add);
 
         return reasons.isEmpty() ? "unknown mismatch" : String.join("; ", reasons);
     }

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
@@ -195,32 +196,39 @@ public class SaplFlatBuffersCodec {
         return switch (kindType) {
         case VALUE_NULL      -> Value.NULL;
         case VALUE_BOOL      -> {
-            FbBoolValue boolVal = (FbBoolValue) table.kind(new FbBoolValue());
+            FbBoolValue boolVal = readRequiredKind(table, new FbBoolValue());
             yield Value.of(boolVal.value());
         }
         case VALUE_NUMBER    -> {
-            FbNumberValue numVal = (FbNumberValue) table.kind(new FbNumberValue());
+            FbNumberValue numVal = readRequiredKind(table, new FbNumberValue());
             yield NumberValueLimits.parseBoundedNumber(numVal.value());
         }
         case VALUE_TEXT      -> {
-            FbTextValue textVal = (FbTextValue) table.kind(new FbTextValue());
+            FbTextValue textVal = readRequiredKind(table, new FbTextValue());
             yield Value.of(textVal.value());
         }
         case VALUE_ARRAY     -> {
-            FbArrayValue arrVal = (FbArrayValue) table.kind(new FbArrayValue());
+            FbArrayValue arrVal = readRequiredKind(table, new FbArrayValue());
             yield readArrayValue(arrVal);
         }
         case VALUE_OBJECT    -> {
-            FbObjectValue objVal = (FbObjectValue) table.kind(new FbObjectValue());
+            FbObjectValue objVal = readRequiredKind(table, new FbObjectValue());
             yield readObjectValue(objVal);
         }
         case VALUE_UNDEFINED -> Value.UNDEFINED;
         case VALUE_ERROR     -> {
-            FbErrorValue errVal = (FbErrorValue) table.kind(new FbErrorValue());
+            FbErrorValue errVal = readRequiredKind(table, new FbErrorValue());
             yield Value.error(errVal.message());
         }
         default              -> Value.UNDEFINED;
         };
+    }
+
+    private static <T extends Table> T readRequiredKind(FbValue table, T kind) {
+        if (table.kind(kind) == null) {
+            throw new IllegalArgumentException(ERROR_MALFORMED_BUFFER);
+        }
+        return kind;
     }
 
     private static ArrayValue readArrayValue(FbArrayValue table) {

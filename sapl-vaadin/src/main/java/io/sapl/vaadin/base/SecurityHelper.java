@@ -17,9 +17,10 @@
  */
 package io.sapl.vaadin.base;
 
+import static java.util.stream.Collectors.toCollection;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -51,14 +52,13 @@ public class SecurityHelper {
     /**
      * This method reads the roles of the user who is logged in.
      *
-     * @return the roles of the user as a list
+     * @return the roles of the user as a mutable list
      */
     public static List<String> getUserRoles() {
         Authentication userAuthentication = SecurityContextHolder.getContext().getAuthentication();
         if (userAuthentication != null) {
-            // .toList() breaks code, must use .collect
             return userAuthentication.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
+                    .collect(toCollection(ArrayList::new));
         } else {
             return new ArrayList<>();
         }

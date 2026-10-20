@@ -31,16 +31,45 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import lombok.val;
 import tools.jackson.databind.node.ArrayNode;
 
 @DisplayName("Security helper")
 class SecurityHelperTests {
+
+    @ParameterizedTest(name = "authenticated: {0}")
+    @ValueSource(booleans = { true, false })
+    @DisplayName("the returned roles remain mutable with and without authentication")
+    void whenReadingUserRolesThenReturnedListIsMutable(boolean authenticated) {
+        val previousContext = SecurityContextHolder.getContext();
+        val context         = SecurityContextHolder.createEmptyContext();
+        val expectedRoles   = new ArrayList<String>();
+        if (authenticated) {
+            context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated("user", "credentials",
+                    List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+            expectedRoles.add("ROLE_USER");
+        }
+        SecurityContextHolder.setContext(context);
+        try {
+            val roles = SecurityHelper.getUserRoles();
+            roles.add("ROLE_EDITOR");
+            expectedRoles.add("ROLE_EDITOR");
+
+            assertThat(roles).containsExactlyElementsOf(expectedRoles);
+        } finally {
+            SecurityContextHolder.setContext(previousContext);
+        }
+    }
 
     @Test
     void test_whenGetSubject_then_UsernameAttributeIsSet() {
