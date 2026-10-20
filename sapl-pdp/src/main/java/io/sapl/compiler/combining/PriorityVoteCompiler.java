@@ -141,29 +141,29 @@ public class PriorityVoteCompiler {
             val vote = combinePureVoters(accumulatorVote, index, priorityDecision, voterMetadata, ctx);
             return vote.finalizeVote(defaultDecision, errorHandling);
         }
-    }
 
-    private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, Decision priorityDecision,
-            VoterMetadata voterMetadata, EvaluationContext ctx) {
-        val result = index.matchKleene(ctx);
-        var vote   = accumulatorVote;
-        for (val document : result.trueMatches()) {
-            val  voter = document.voter();
-            Vote newVote;
-            if (voter instanceof Vote constantVote) {
-                newVote = constantVote;
-            } else {
-                newVote = ((PureVoter) voter).vote(ctx);
+        private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, Decision priorityDecision,
+                VoterMetadata voterMetadata, EvaluationContext ctx) {
+            val result = index.matchKleene(ctx);
+            var vote   = accumulatorVote;
+            for (val document : result.trueMatches()) {
+                val  voter = document.voter();
+                Vote newVote;
+                if (voter instanceof Vote constantVote) {
+                    newVote = constantVote;
+                } else {
+                    newVote = ((PureVoter) voter).vote(ctx);
+                }
+                vote = PriorityBasedVoteCombiner.combineVotes(vote, newVote, priorityDecision, voterMetadata);
             }
-            vote = PriorityBasedVoteCombiner.combineVotes(vote, newVote, priorityDecision, voterMetadata);
+            // A pure-path candidate has no streaming section, so an applicability error is
+            // terminal. The policy or set is INDETERMINATE.
+            for (val errorMatch : result.errorMatches()) {
+                val errorVote = Vote.error(errorMatch.error(), errorMatch.document().metadata());
+                vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
+            }
+            return vote;
         }
-        // A pure-path candidate has no streaming section, so an applicability error is
-        // terminal. The policy or set is INDETERMINATE.
-        for (val errorMatch : result.errorMatches()) {
-            val errorVote = Vote.error(errorMatch.error(), errorMatch.document().metadata());
-            vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
-        }
-        return vote;
     }
 
     /**
