@@ -794,8 +794,7 @@ public final class BundleBuilder {
         } catch (SecretSealingException e) {
             throw new PDPConfigurationException(ERROR_SEALED_CONTENT_REQUIRES_RECIPIENT, e);
         }
-        val configuredRecipient = sealingRecipient != null ? sealingRecipient
-                : secretsSealingKey != null ? secretsSealingKey.getKeyID() : null;
+        val configuredRecipient = configuredSealingRecipient();
         if (recipients.size() > 1
                 || configuredRecipient != null && !recipients.isEmpty() && !recipients.contains(configuredRecipient)) {
             throw new PDPConfigurationException(ERROR_SEALED_CONTENT_USES_MULTIPLE_RECIPIENTS);
@@ -807,6 +806,16 @@ public final class BundleBuilder {
             return recipients.iterator().next();
         }
         throw new PDPConfigurationException(ERROR_SEALED_CONTENT_REQUIRES_RECIPIENT);
+    }
+
+    private String configuredSealingRecipient() {
+        if (sealingRecipient != null) {
+            return sealingRecipient;
+        }
+        if (secretsSealingKey != null) {
+            return secretsSealingKey.getKeyID();
+        }
+        return null;
     }
 
     private static boolean isSealedFileName(String fileName) {

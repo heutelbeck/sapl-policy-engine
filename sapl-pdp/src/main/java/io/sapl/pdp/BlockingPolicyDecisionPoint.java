@@ -159,9 +159,9 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     public Stream<AuthorizationDecision> decide(AuthorizationSubscription sub, String pdpId) {
         val subscriptionId = idFactory.newRandom();
         notifyOnSubscribe(lifecycleListeners(), subscriptionId, sub, pdpId);
-        val source  = hasDecisionInterceptors()
-                ? rewireOnConfigChange(pdpId, maybePdp -> evaluateDecisionsTraced(maybePdp, sub, subscriptionId, pdpId))
-                : rewireOnConfigChange(pdpId, maybePdp -> evaluateDecisions(maybePdp, sub, subscriptionId, pdpId));
+        val source  = rewireOnConfigChange(pdpId,
+                hasDecisionInterceptors() ? maybePdp -> evaluateDecisionsTraced(maybePdp, sub, subscriptionId, pdpId)
+                        : maybePdp -> evaluateDecisions(maybePdp, sub, subscriptionId, pdpId));
         val deduped = Streams.distinctUntilChanged(source, e -> AuthorizationDecision.INDETERMINATE);
         return withUnsubscribeNotification(deduped, subscriptionId);
     }

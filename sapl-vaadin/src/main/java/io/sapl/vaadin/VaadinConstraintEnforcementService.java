@@ -126,7 +126,7 @@ public class VaadinConstraintEnforcementService implements EnforceConstraintsOfD
             return executeVaadinFunctions(plan, authorizationDecision, ui);
         } catch (Throwable t) {
             throwIfFatal(t);
-            log.warn(WARN_ENFORCEMENT_FAILED, t.toString());
+            log.atWarn().addArgument(t::toString).log(WARN_ENFORCEMENT_FAILED);
             return Mono.just(AuthorizationDecision.DENY);
         }
     }
@@ -175,10 +175,10 @@ public class VaadinConstraintEnforcementService implements EnforceConstraintsOfD
 
     private static Boolean logFailure(boolean isObligation, Value constraint, Throwable t) {
         if (isObligation) {
-            log.warn(WARN_OBLIGATION_FUNCTION_FAILED, constraint, t.toString());
+            log.atWarn().addArgument(constraint).addArgument(t::toString).log(WARN_OBLIGATION_FUNCTION_FAILED);
             return Boolean.FALSE;
         }
-        log.warn(WARN_ADVICE_FUNCTION_FAILED, constraint, t.toString());
+        log.atWarn().addArgument(constraint).addArgument(t::toString).log(WARN_ADVICE_FUNCTION_FAILED);
         return Boolean.TRUE;
     }
 

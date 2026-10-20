@@ -1125,9 +1125,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         final DispatchCoalescer                                                       coalescer;
         final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
         Set<SubscriptionKey>                                                          dependencies;
-        Map<SubscriptionKey, ActiveInvocation>                                        routingTable = new HashMap<>();
-        boolean                                                                       gateOpen     = false;
-        boolean                                                                       closed       = false;
+        Map<SubscriptionKey, ActiveInvocation>                                        routingTable       = new HashMap<>();
+        boolean                                                                       gateOpen           = false;
+        boolean                                                                       subscriptionClosed = false;
 
         // Rate-limits the should-never-happen onUpdate contract-violation error logs to
         // one per minute.
@@ -1149,10 +1149,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
 
             try {
-                if (closed) {
+                if (subscriptionClosed) {
                     return;
                 }
-                closed = true;
+                subscriptionClosed = true;
                 consumerSubscriptions.remove(id);
                 refcountZeroed = new ArrayList<>();
                 for (val active : routingTable.values()) {
@@ -1176,7 +1176,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
 
             try {
-                closed = true;
+                subscriptionClosed = true;
             } finally {
 
                 lock.unlock();
@@ -1246,7 +1246,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
 
             try {
-                if (closed) {
+                if (subscriptionClosed) {
                     return;
                 }
                 snapshotsByKey = currentSnapshots();
@@ -1290,7 +1290,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
 
             try {
-                if (closed) {
+                if (subscriptionClosed) {
                     return;
                 }
                 if (nextDependencies.equals(dependencies)) {

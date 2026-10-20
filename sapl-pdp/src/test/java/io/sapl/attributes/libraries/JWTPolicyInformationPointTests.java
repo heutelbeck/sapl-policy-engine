@@ -870,12 +870,11 @@ class JWTPolicyInformationPointTests {
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream).awaitsNext(v -> {
-                    val payload = (ObjectValue) ((ObjectValue) v).get("payload");
-                    val expVal  = payload.get("exp");
-                    assertThat(expVal).isNotNull();
-                    assertThat(expVal.toString()).doesNotContain("T");
-                });
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(value -> assertThat(value).isInstanceOfSatisfying(ObjectValue.class,
+                                token -> assertThat(token.get("payload")).isInstanceOfSatisfying(ObjectValue.class,
+                                        payload -> assertThat(payload.get("exp")).isNotNull()
+                                                .satisfies(exp -> assertThat(exp.toString()).doesNotContain("T")))));
             }
         }
 
@@ -889,12 +888,11 @@ class JWTPolicyInformationPointTests {
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream).awaitsNext(v -> {
-                    val payload = (ObjectValue) ((ObjectValue) v).get("payload");
-                    val expVal  = payload.get("exp");
-                    assertThat(expVal).isNotNull();
-                    assertThat(expVal.toString()).contains("T");
-                });
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(value -> assertThat(value).isInstanceOfSatisfying(ObjectValue.class,
+                                token -> assertThat(token.get("payload")).isInstanceOfSatisfying(ObjectValue.class,
+                                        payload -> assertThat(payload.get("exp")).isNotNull()
+                                                .satisfies(exp -> assertThat(exp.toString()).contains("T")))));
             }
         }
     }

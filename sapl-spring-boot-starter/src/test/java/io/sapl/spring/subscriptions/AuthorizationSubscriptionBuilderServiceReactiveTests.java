@@ -93,19 +93,21 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
                     .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                     .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
 
-            var subject = toJson(subscription.subject());
-            assertThat(subject.get("name").asString()).isEqualTo("the username");
-            assertThat(subject.has("credentials")).isFalse();
-            assertThat(subject.get("principal").has("password")).isFalse();
+            assertThat(subscription).isNotNull().satisfies(actualSubscription -> {
+                var subject = toJson(actualSubscription.subject());
+                assertThat(subject.get("name").asString()).isEqualTo("the username");
+                assertThat(subject.has("credentials")).isFalse();
+                assertThat(subject.get("principal").has("password")).isFalse();
 
-            var action = toJson(subscription.action());
-            assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
-            assertThat(action.get("java").get("arguments")).isNotNull();
+                var action = toJson(actualSubscription.action());
+                assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
+                assertThat(action.get("java").get("arguments")).isNotNull();
 
-            var resource = toJson(subscription.resource());
-            assertThat(resource.get("java").get("instanceof")).isNotNull();
+                var resource = toJson(actualSubscription.resource());
+                assertThat(resource.get("java").get("instanceof")).isNotNull();
 
-            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+                assertThat(toJson(actualSubscription.environment()).isNull()).isTrue();
+            });
         });
     }
 
@@ -135,16 +137,18 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
                     .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                     .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
 
-            var subject = toJson(subscription.subject());
-            assertThat(subject.get("name").asString()).isEqualTo("the username");
-            assertThat(subject.has("credentials")).isFalse();
-            assertThat(subject.get("principal").has("password")).isFalse();
+            assertThat(subscription).isNotNull().satisfies(actualSubscription -> {
+                var subject = toJson(actualSubscription.subject());
+                assertThat(subject.get("name").asString()).isEqualTo("the username");
+                assertThat(subject.has("credentials")).isFalse();
+                assertThat(subject.get("principal").has("password")).isFalse();
 
-            var action = toJson(subscription.action());
-            assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
-            assertThat(action.get("java").has("arguments")).isFalse();
+                var action = toJson(actualSubscription.action());
+                assertThat(action.get("java").get("name").asString()).isEqualTo("publicSeveralArgs");
+                assertThat(action.get("java").has("arguments")).isFalse();
 
-            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+                assertThat(toJson(actualSubscription.environment()).isNull()).isTrue();
+            });
         });
     }
 
@@ -185,18 +189,20 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
                     .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                     .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
 
-            var subject = toJson(subscription.subject());
-            assertThat(subject.get("name").asString()).isEqualTo("the username");
-            assertThat(subject.has("credentials")).isFalse();
-            assertThat(subject.get("principal").has("password")).isFalse();
+            assertThat(subscription).isNotNull().satisfies(actualSubscription -> {
+                var subject = toJson(actualSubscription.subject());
+                assertThat(subject.get("name").asString()).isEqualTo("the username");
+                assertThat(subject.has("credentials")).isFalse();
+                assertThat(subject.get("principal").has("password")).isFalse();
 
-            var action = toJson(subscription.action());
-            assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+                var action = toJson(actualSubscription.action());
+                assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
 
-            var resource = toJson(subscription.resource());
-            assertThat(resource.get("java").get("instanceof")).isNotNull();
+                var resource = toJson(actualSubscription.resource());
+                assertThat(resource.get("java").get("instanceof")).isNotNull();
 
-            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+                assertThat(toJson(actualSubscription.environment()).isNull()).isTrue();
+            });
         });
     }
 
@@ -212,20 +218,22 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
             val attribute    = attribute(null, null, null, null);
             val subscription = sut.reactiveConstructAuthorizationSubscription(invocation, attribute).block();
 
-            var subject = toJson(subscription.subject());
-            assertThat(subject.get("name").asString()).isEqualTo("anonymous");
-            assertThat(subject.has("credentials")).isFalse();
-            assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
+            assertThat(subscription).isNotNull().satisfies(actualSubscription -> {
+                var subject = toJson(actualSubscription.subject());
+                assertThat(subject.get("name").asString()).isEqualTo("anonymous");
+                assertThat(subject.has("credentials")).isFalse();
+                assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
 
-            var action = toJson(subscription.action());
-            assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
-            assertThat(action.has("http")).isFalse();
+                var action = toJson(actualSubscription.action());
+                assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+                assertThat(action.has("http")).isFalse();
 
-            var resource = toJson(subscription.resource());
-            assertThat(resource.has("http")).isFalse();
-            assertThat(resource.get("java").get("instanceof")).isNotNull();
+                var resource = toJson(actualSubscription.resource());
+                assertThat(resource.has("http")).isFalse();
+                assertThat(resource.get("java").get("instanceof")).isNotNull();
 
-            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+                assertThat(toJson(actualSubscription.environment()).isNull()).isTrue();
+            });
         });
     }
 
@@ -242,18 +250,20 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
             val subscription = sut.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject")
                     .block();
 
-            var subject = toJson(subscription.subject());
-            assertThat(subject.get("name").asString()).isEqualTo("anonymous");
-            assertThat(subject.has("credentials")).isFalse();
-            assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
+            assertThat(subscription).isNotNull().satisfies(actualSubscription -> {
+                var subject = toJson(actualSubscription.subject());
+                assertThat(subject.get("name").asString()).isEqualTo("anonymous");
+                assertThat(subject.has("credentials")).isFalse();
+                assertThat(subject.get("principal").asString()).isEqualTo("anonymous");
 
-            var action = toJson(subscription.action());
-            assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
-            assertThat(action.has("http")).isFalse();
+                var action = toJson(actualSubscription.action());
+                assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoid");
+                assertThat(action.has("http")).isFalse();
 
-            assertThat(toJson(subscription.resource()).asString()).isEqualTo("the returnObject");
+                assertThat(toJson(actualSubscription.resource()).asString()).isEqualTo("the returnObject");
 
-            assertThat(toJson(subscription.environment()).isNull()).isTrue();
+                assertThat(toJson(actualSubscription.environment()).isNull()).isTrue();
+            });
         });
     }
 

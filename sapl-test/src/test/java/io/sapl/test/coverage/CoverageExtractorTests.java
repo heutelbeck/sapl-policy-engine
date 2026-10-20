@@ -235,8 +235,7 @@ class CoverageExtractorTests {
             boolean targetMatched) {
         val voter     = new PolicySetVoterMetadata(setName, "default", "config", null,
                 new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), outcome, false);
-        val targetHit = targetMatched ? new Coverage.TargetResult(Value.TRUE, sourceLocation(1))
-                : new Coverage.TargetResult(Value.FALSE, sourceLocation(1));
+        val targetHit = new Coverage.TargetResult(targetMatched ? Value.TRUE : Value.FALSE, sourceLocation(1));
 
         val setCoverage = new PolicySetCoverage(voter, targetHit, List.of());
 
