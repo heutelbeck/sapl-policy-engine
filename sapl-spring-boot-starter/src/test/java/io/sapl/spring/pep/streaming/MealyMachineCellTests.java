@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -46,6 +47,7 @@ import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitError;
 import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpDeny;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Pending;
 import io.sapl.spring.pep.streaming.MealyMachine.Step;
+import lombok.val;
 
 /**
  * Cell-level content tests for {@link MealyMachine#step(State, Event)}.
@@ -59,9 +61,7 @@ import io.sapl.spring.pep.streaming.MealyMachine.Step;
  * <p>
  * This file performs content checks only. Semantic-subset claims (Lean theorems
  * quantified over {@code S × Σ} subsets)
- * live in {@code MealyMachineUniversalInvariantTests}; multi-step path
- * properties live in
- * {@code MealyMachineSequenceInvariantTests}.
+ * and the two-event sequence property live in {@code MealyMachineInvariantTests}.
  */
 class MealyMachineCellTests {
 
@@ -77,6 +77,20 @@ class MealyMachineCellTests {
 
         assertThat(step.newState().getClass()).isEqualTo(MealyTestSupport.stateByName(expectedTo).getClass());
         assertThat(emissionKinds(step)).isEqualTo(parseEmissions(expectedEmissions));
+    }
+
+    @Test
+    void tableCoversEveryStateAndEventOutcomeExactlyOnce() {
+        val states   = List.of("Pending", "Permitting", "Suspended", "Terminated");
+        val events   = List.of("PdpPermit:", "PdpSuspend:", "PdpDeny:", "PdpError:", "RapItem:Present",
+                "RapItem:Absent", "RapItem:Failed", "RapError:", "RapComplete:", "Cancel:");
+        val expected = states.stream().flatMap(state -> events.stream().map(event -> state + ":" + event)).toList();
+        val actual   = tableRows().map(row -> {
+                         val columns = row.get();
+                         return columns[0] + ":" + columns[1] + ":" + columns[2];
+                     }).toList();
+
+        assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
     }
 
     static Stream<Arguments> tableRows() {

@@ -380,13 +380,10 @@ class ExpressionSchemaResolver {
 
     private List<JsonNode> lookupSchemasByName(String resolvedName, Map<String, JsonNode> schemasByCodeTemplate) {
         var discoveredSchemas = new ArrayList<JsonNode>();
-        for (var schemaEntry : schemasByCodeTemplate.entrySet()) {
-            // Match on the function identity, not on substring containment, so a short
-            // name cannot pick up the schema of an unrelated longer-named function.
-            if (qualifiedNameOf(schemaEntry.getKey()).equals(resolvedName)) {
-                discoveredSchemas.add(schemaEntry.getValue());
-            }
-        }
+        // Match on the function identity, not on substring containment, so a short
+        // name cannot pick up the schema of an unrelated longer-named function.
+        schemasByCodeTemplate.entrySet().stream().filter(entry -> qualifiedNameOf(entry.getKey()).equals(resolvedName))
+                .map(Map.Entry::getValue).forEach(discoveredSchemas::add);
         return discoveredSchemas;
     }
 

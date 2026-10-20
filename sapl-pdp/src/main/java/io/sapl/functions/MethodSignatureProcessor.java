@@ -256,14 +256,6 @@ public class MethodSignatureProcessor {
         return paramIndex;
     }
 
-    private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
-        val templates = new String[expectedTypes.length];
-        for (int i = 0; i < expectedTypes.length; i++) {
-            templates[i] = ERROR_TYPE_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
-        }
-        return templates;
-    }
-
     private static String annotationNameOrMethodName(String nameFromAnnotation, Method method) {
         if (null != nameFromAnnotation && !nameFromAnnotation.isBlank()) {
             return nameFromAnnotation;
@@ -317,6 +309,14 @@ public class MethodSignatureProcessor {
                             && Objects.equals(exactArgCountError, oExactArgError)
                             && Objects.equals(minArgCountError, oMinArgError)
                             && Objects.equals(varArgErrorTemplate, oVarArgError));
+        }
+
+        private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
+            val templates = new String[expectedTypes.length];
+            for (int i = 0; i < expectedTypes.length; i++) {
+                templates[i] = ERROR_TYPE_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
+            }
+            return templates;
         }
     }
 }

@@ -149,58 +149,58 @@ public class UniqueVoteCompiler {
                     : combinePureVoters(accumulatorVote, index, voterMetadata, ctx);
             return vote.finalizeVote(defaultDecision, errorHandling);
         }
-    }
 
-    private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, VoterMetadata voterMetadata,
-            EvaluationContext ctx) {
-        var holder = new Vote[] { accumulatorVote };
-        index.matchKleeneWhile(ctx, stepResult -> {
-            for (val errorMatch : stepResult.errorMatches()) {
+        private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, VoterMetadata voterMetadata,
+                EvaluationContext ctx) {
+            var holder = new Vote[] { accumulatorVote };
+            index.matchKleeneWhile(ctx, stepResult -> {
+                for (val errorMatch : stepResult.errorMatches()) {
+                    // A pure-path candidate has no streaming section, so an applicability
+                    // error is terminal and the policy is INDETERMINATE.
+                    holder[0] = UniqueVoteCombiner.combineVotes(holder[0],
+                            Vote.error(errorMatch.error(), errorMatch.document().metadata()), voterMetadata);
+                }
+                for (val document : stepResult.trueMatches()) {
+                    val  voter = document.voter();
+                    Vote newVote;
+                    if (voter instanceof Vote constantVote) {
+                        newVote = constantVote;
+                    } else {
+                        newVote = ((PureVoter) voter).vote(ctx);
+                    }
+                    holder[0] = UniqueVoteCombiner.combineVotes(holder[0], newVote, voterMetadata);
+                }
+                return holder[0].authorizationDecision().decision() != Decision.INDETERMINATE;
+            });
+            return holder[0];
+        }
+
+        private static Vote combineMatchedAndComplete(Vote accumulatorVote, PolicyIndex index,
+                VoterMetadata voterMetadata, EvaluationContext ctx) {
+            val result   = index.matchKleene(ctx);
+            val matching = result.trueMatches();
+            var vote     = accumulatorVote;
+            for (val errorMatch : result.errorMatches()) {
                 // A pure-path candidate has no streaming section, so an applicability
                 // error is terminal and the policy is INDETERMINATE.
-                holder[0] = UniqueVoteCombiner.combineVotes(holder[0],
+                vote = UniqueVoteCombiner.combineVotes(vote,
                         Vote.error(errorMatch.error(), errorMatch.document().metadata()), voterMetadata);
             }
-            for (val document : stepResult.trueMatches()) {
-                val  voter = document.voter();
+            for (var i = 0; i < matching.size(); i++) {
+                val  voter = matching.get(i).voter();
                 Vote newVote;
                 if (voter instanceof Vote constantVote) {
                     newVote = constantVote;
                 } else {
                     newVote = ((PureVoter) voter).vote(ctx);
                 }
-                holder[0] = UniqueVoteCombiner.combineVotes(holder[0], newVote, voterMetadata);
+                vote = UniqueVoteCombiner.combineVotes(vote, newVote, voterMetadata);
+                if (vote.authorizationDecision().decision() == Decision.INDETERMINATE) {
+                    return CombiningUtils.completeSetOutcome(vote, matching.subList(i + 1, matching.size()));
+                }
             }
-            return holder[0].authorizationDecision().decision() != Decision.INDETERMINATE;
-        });
-        return holder[0];
-    }
-
-    private static Vote combineMatchedAndComplete(Vote accumulatorVote, PolicyIndex index, VoterMetadata voterMetadata,
-            EvaluationContext ctx) {
-        val result   = index.matchKleene(ctx);
-        val matching = result.trueMatches();
-        var vote     = accumulatorVote;
-        for (val errorMatch : result.errorMatches()) {
-            // A pure-path candidate has no streaming section, so an applicability
-            // error is terminal and the policy is INDETERMINATE.
-            vote = UniqueVoteCombiner.combineVotes(vote,
-                    Vote.error(errorMatch.error(), errorMatch.document().metadata()), voterMetadata);
+            return vote;
         }
-        for (var i = 0; i < matching.size(); i++) {
-            val  voter = matching.get(i).voter();
-            Vote newVote;
-            if (voter instanceof Vote constantVote) {
-                newVote = constantVote;
-            } else {
-                newVote = ((PureVoter) voter).vote(ctx);
-            }
-            vote = UniqueVoteCombiner.combineVotes(vote, newVote, voterMetadata);
-            if (vote.authorizationDecision().decision() == Decision.INDETERMINATE) {
-                return CombiningUtils.completeSetOutcome(vote, matching.subList(i + 1, matching.size()));
-            }
-        }
-        return vote;
     }
 
     /**

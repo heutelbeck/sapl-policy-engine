@@ -88,14 +88,14 @@ final class LatencyCollector {
         System.arraycopy(samples, 0, sorted, 0, n);
         Arrays.sort(sorted);
 
-        var mean = 0L;
+        var mean = 0.0;
         for (int i = 0; i < n; i++) {
-            mean += sorted[i];
+            mean += (double) sorted[i];
         }
         mean /= n;
 
-        return new BenchmarkResult.Latency(mean, pctl(sorted, 0.50), pctl(sorted, 0.90), pctl(sorted, 0.99),
-                pctl(sorted, 0.999), sorted[0], sorted[n - 1]);
+        return new BenchmarkResult.Latency(mean, (double) pctl(sorted, 0.50), (double) pctl(sorted, 0.90),
+                (double) pctl(sorted, 0.99), (double) pctl(sorted, 0.999), (double) sorted[0], (double) sorted[n - 1]);
     }
 
     private static long pctl(long[] sorted, double p) {

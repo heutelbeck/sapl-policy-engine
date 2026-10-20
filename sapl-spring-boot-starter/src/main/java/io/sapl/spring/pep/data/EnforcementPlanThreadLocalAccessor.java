@@ -37,7 +37,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlanContext;
  * lets a synchronous interceptor inside a Reactor flow read it, and clears it
  * on the way out.
  */
-public class EnforcementPlanThreadLocalAccessor implements ThreadLocalAccessor<EnforcementPlan> {
+public class EnforcementPlanThreadLocalAccessor implements ThreadLocalAccessor<Object> {
 
     /**
      * The key used in Reactor {@link reactor.util.context.Context} for the plan;
@@ -53,13 +53,13 @@ public class EnforcementPlanThreadLocalAccessor implements ThreadLocalAccessor<E
     }
 
     @Override
-    public @Nullable EnforcementPlan getValue() {
-        return EnforcementPlanContext.currentBlocking().orElse(null);
+    public @Nullable Object getValue() {
+        return EnforcementPlanContext.currentBinding();
     }
 
     @Override
-    public void setValue(EnforcementPlan value) {
-        EnforcementPlanContext.bindBlocking(value);
+    public void setValue(Object value) {
+        EnforcementPlanContext.bindContext(value);
     }
 
     @Override

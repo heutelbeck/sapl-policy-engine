@@ -22,6 +22,7 @@ import io.sapl.ast.*;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedElementValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
+import com.networknt.schema.Schema;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,6 +36,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import tools.jackson.databind.JsonNode;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
@@ -590,11 +594,8 @@ class SchemaValidatorCompilerTests {
         void whenValidateThrowsAtEvalTimeThenReturnsErrorValue() {
             // A networknt throw on adversarial input must surface as an ErrorValue, not
             // crash the eval path.
-            val throwingSchema = mock(com.networknt.schema.Schema.class);
-            org.mockito.Mockito
-                    .when(throwingSchema
-                            .validate(org.mockito.ArgumentMatchers.any(tools.jackson.databind.JsonNode.class)))
-                    .thenThrow(new RuntimeException("boom"));
+            val throwingSchema = mock(Schema.class);
+            when(throwingSchema.validate(any(JsonNode.class))).thenThrow(new RuntimeException("boom"));
             val validator = new PrecompiledSchemaValidator(SubscriptionElement.SUBJECT, STRING_SCHEMA, throwingSchema,
                     TEST_LOCATION);
             val ctx       = subscriptionContext("""

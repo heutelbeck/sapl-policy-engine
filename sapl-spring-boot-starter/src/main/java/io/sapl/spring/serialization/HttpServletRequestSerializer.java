@@ -141,7 +141,7 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
                 continue;
             }
             val eq  = pair.indexOf('=');
-            val key = eq < 0 ? decode(pair) : decode(pair.substring(0, eq));
+            val key = decode(eq < 0 ? pair : pair.substring(0, eq));
             // null (not "") for a valueless param to match the reactive stack's
             // getQueryParams().
             val value = eq < 0 ? null : decode(pair.substring(eq + 1));

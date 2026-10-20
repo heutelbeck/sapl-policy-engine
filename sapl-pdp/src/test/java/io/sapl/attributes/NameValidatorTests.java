@@ -17,29 +17,61 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.shared.NameValidator;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-@DisplayName("NameValidator")
+import io.sapl.grammar.antlr.SAPLLexer;
+import lombok.val;
+
+import static io.sapl.api.shared.NameValidator.requireValidName;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+@DisplayName("Name validation agrees with SAPL lexer identifier characters")
 class NameValidatorTests {
 
-    @ParameterizedTest(name = "[{index}] {0}")
-    @ValueSource(strings = { "", " ", " abc.def", "abc.def ", " abc.def ", "abc. def", "abc", "abc.123as",
-            "a.b.c.d.e.f.g.h.i.j.k" })
-    void whenPresentedWithInvalidNamesThenThrowsIllegalArgumentException(String invalidName) {
-        assertThatThrownBy(() -> NameValidator.requireValidName(invalidName))
-                .isInstanceOf(IllegalArgumentException.class);
+    @MethodSource("identifierCharacters")
+    @ParameterizedTest(name = "{0}")
+    void whenIdentifierContainsCharacterThenValidatorAgreesWithLexer(String description, String identifier) {
+        val acceptedByLexer = isLexerIdentifier(identifier);
+
+        assertThat(isValidName(identifier + ".member")).as("%s in namespace", description).isEqualTo(acceptedByLexer);
+        assertThat(isValidName("library." + identifier)).as("%s in member", description).isEqualTo(acceptedByLexer);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "a.b", "a1.b2", "a2.d.x333", "a.b.c.d.e.f.g.h.i.j" })
-    void whenPresentedWithValidNamesThenDoesNotThrow(String validName) {
-        assertThatCode(() -> NameValidator.requireValidName(validName)).doesNotThrowAnyException();
+    static Stream<Arguments> identifierCharacters() {
+        return IntStream.concat(IntStream.range(0, 128), IntStream.of(0x00E4, 0x03B1, 0x0430, 0x200B, 0x1F600))
+                .filter(codePoint -> codePoint != '.') // Dots separate qualified name segments.
+                .boxed().flatMap(codePoint -> {
+                    val character = new String(Character.toChars(codePoint));
+                    return Stream.of(arguments("U+%04X at start".formatted(codePoint), character + "identifier"),
+                            arguments("U+%04X within identifier".formatted(codePoint),
+                                    "identifier" + character + "suffix"));
+                });
+    }
+
+    private static boolean isLexerIdentifier(String identifier) {
+        val lexer = new SAPLLexer(CharStreams.fromString(identifier));
+        lexer.removeErrorListeners();
+        val token = lexer.nextToken();
+        return token.getType() == SAPLLexer.ID && identifier.equals(token.getText())
+                && lexer.nextToken().getType() == Token.EOF;
+    }
+
+    private static boolean isValidName(String name) {
+        try {
+            requireValidName(name);
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 
 }

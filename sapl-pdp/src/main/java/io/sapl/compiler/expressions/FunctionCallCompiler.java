@@ -87,44 +87,6 @@ public class FunctionCallCompiler {
     }
 
     /**
-     * Walks all arguments via {@link StreamOperator#evalChild} accumulating
-     * subscriptions from any stream children, holds the first
-     * {@link ErrorValue} and returns it after the full walk, defers
-     * {@code null} (incomplete child) to the end. Function invocation itself
-     * is synchronous and adds no subscriptions. Precedence at the end:
-     * error &gt; null &gt; function result.
-     */
-    private static ExpressionResult functionLookup(String functionName, List<? extends CompiledExpression> arguments,
-            EvaluationContext ctx) {
-        val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size());
-        boolean seenNull   = false;
-        Value   firstError = null;
-        val     argValues  = new ArrayList<Value>(arguments.size());
-        for (val arg : arguments) {
-            val v = evalChild(arg, ctx, deps);
-            if (v == null) {
-                seenNull = true;
-                continue;
-            }
-            if (v instanceof ErrorValue err) {
-                if (firstError == null) {
-                    firstError = err;
-                }
-                continue;
-            }
-            argValues.add(v);
-        }
-        if (firstError != null) {
-            return new ExpressionResult(firstError, deps);
-        }
-        if (seenNull) {
-            return new ExpressionResult(null, deps);
-        }
-        val result = ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
-        return new ExpressionResult(result, deps);
-    }
-
-    /**
      * Function with no arguments - simplest case.
      */
     record NoArgsFunction(String functionName, SourceLocation location) implements PureOperator {
@@ -219,6 +181,44 @@ public class FunctionCallCompiler {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             return functionLookup(functionName, arguments, ctx);
+        }
+
+        /**
+         * Walks all arguments via {@link StreamOperator#evalChild} accumulating
+         * subscriptions from any stream children, holds the first
+         * {@link ErrorValue} and returns it after the full walk, defers
+         * {@code null} (incomplete child) to the end. Function invocation itself
+         * is synchronous and adds no subscriptions. Precedence at the end:
+         * error &gt; null &gt; function result.
+         */
+        private static ExpressionResult functionLookup(String functionName,
+                List<? extends CompiledExpression> arguments, EvaluationContext ctx) {
+            val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size());
+            boolean seenNull   = false;
+            Value   firstError = null;
+            val     argValues  = new ArrayList<Value>(arguments.size());
+            for (val arg : arguments) {
+                val v = evalChild(arg, ctx, deps);
+                if (v == null) {
+                    seenNull = true;
+                    continue;
+                }
+                if (v instanceof ErrorValue err) {
+                    if (firstError == null) {
+                        firstError = err;
+                    }
+                    continue;
+                }
+                argValues.add(v);
+            }
+            if (firstError != null) {
+                return new ExpressionResult(firstError, deps);
+            }
+            if (seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            val result = ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
+            return new ExpressionResult(result, deps);
         }
     }
 

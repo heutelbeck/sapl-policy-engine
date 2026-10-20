@@ -91,11 +91,8 @@ public record DisjunctiveFormula(List<ConjunctiveClause> clauses) {
     public DisjunctiveFormula reduce() {
         var unique  = new ArrayList<>(new HashSet<>(clauses));
         var reduced = new ArrayList<ConjunctiveClause>(unique.size());
-        for (var candidate : unique) {
-            if (!candidate.isUnsatisfiable() && !isSubsumed(candidate, unique)) {
-                reduced.add(candidate);
-            }
-        }
+        unique.stream().filter(candidate -> !candidate.isUnsatisfiable() && !isSubsumed(candidate, unique))
+                .forEach(reduced::add);
         return new DisjunctiveFormula(reduced);
     }
 

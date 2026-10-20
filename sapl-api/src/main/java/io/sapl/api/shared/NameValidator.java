@@ -23,21 +23,20 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
- * Provides a pattern for checking syntactic correctness of names for policy
- * information points or functions.
+ * Validates fully qualified names of attributes and functions. Each segment uses
+ * the SAPL lexer identifier characters: ASCII letters, underscores, or dollar
+ * signs, followed by those characters or digits.
  */
 @UtilityClass
 public class NameValidator {
 
     private static final String ERROR_INVALID_NAME = """
-            The fully qualified name of a Policy Information Point or function must consist of \
-            at least two Strings separated by a '.'. Each of the strings must not \
-            contain white spaces and must start with a letter. \
-            No special characters are allowed. \
-            At most ten segments are allowed. \
+            The fully qualified name of an attribute or function must consist of \
+            two to ten segments separated by '.'. Each segment must start with an \
+            ASCII letter, '_' or '$', followed by ASCII letters, digits, '_' or '$'. \
             Name was: '%s'.""";
 
-    private static final String            REGEX   = "[a-zA-Z][a-zA-Z0-9]*\\.[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*){0,8}";
+    private static final String            REGEX   = "[a-zA-Z_$][a-zA-Z_$0-9]*(\\.[a-zA-Z_$][a-zA-Z_$0-9]*){1,9}";
     private static final Predicate<String> PATTERN = Pattern.compile(REGEX).asMatchPredicate();
 
     /**

@@ -19,6 +19,7 @@ package io.sapl.spring.pep.constraints;
 
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -42,10 +43,10 @@ public class EnforcementPlanContext {
 
     public static final String REACTOR_KEY = "io.sapl.enforcement.plan";
 
-    private static final ThreadLocal<EnforcementPlan> BLOCKING = new ThreadLocal<>();
+    private static final ThreadLocal<Object> BLOCKING = new ThreadLocal<>();
 
     public static Optional<EnforcementPlan> currentReactor(ContextView ctx) {
-        return Optional.ofNullable(ctx.getOrDefault(REACTOR_KEY, null));
+        return resolve(ctx.getOrDefault(REACTOR_KEY, null));
     }
 
     public static <T> Mono<T> withReactor(EnforcementPlan plan, Mono<T> body) {
@@ -53,7 +54,7 @@ public class EnforcementPlanContext {
     }
 
     public static Optional<EnforcementPlan> currentBlocking() {
-        return Optional.ofNullable(BLOCKING.get());
+        return resolve(BLOCKING.get());
     }
 
     public static <T> T withBlocking(EnforcementPlan plan, Supplier<T> body) {
@@ -62,7 +63,7 @@ public class EnforcementPlanContext {
         try {
             return body.get();
         } finally {
-            bindBlocking(previous);
+            bindContext(previous);
         }
     }
 
@@ -74,10 +75,35 @@ public class EnforcementPlanContext {
      * clear the binding.
      */
     public static void bindBlocking(EnforcementPlan plan) {
-        if (plan == null) {
+        bindContext(plan);
+    }
+
+    /**
+     * Returns the binding without resolving a streaming plan supplier.
+     *
+     * @return the plan or supplier held for context propagation, or null
+     */
+    public static @Nullable Object currentBinding() {
+        return BLOCKING.get();
+    }
+
+    /**
+     * Restores a context binding, preserving live streaming plan lookups.
+     *
+     * @param binding an enforcement plan, its supplier, or null to clear
+     */
+    public static void bindContext(@Nullable Object binding) {
+        if (binding == null) {
             BLOCKING.remove();
         } else {
-            BLOCKING.set(plan);
+            BLOCKING.set(binding);
         }
+    }
+
+    private static Optional<EnforcementPlan> resolve(@Nullable Object binding) {
+        if (binding instanceof Supplier<?> supplier) {
+            return Optional.ofNullable((EnforcementPlan) supplier.get());
+        }
+        return Optional.ofNullable((EnforcementPlan) binding);
     }
 }

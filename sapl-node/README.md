@@ -443,6 +443,26 @@ io.sapl.pdp.embedded.bundle-security:
 
 At least one option must be configured. For production, use signed bundles with key verification.
 
+### Sealed Bundle Secrets and Recipient Rotation
+
+The node can keep multiple X25519 recipient private keys during a publisher-driven
+rotation:
+
+```yaml
+io.sapl.pdp.embedded:
+  secrets:
+    private-key-paths:
+      - "/run/secrets/bundle-recipient-2026.jwk"
+      - "/run/secrets/bundle-recipient-2025.jwk"
+    accept-unencrypted: false
+```
+
+Each key requires a unique `kid`. The JWE header on every sealed leaf selects the
+matching key; the node does not try unrelated keys. Add the new private key and
+restart the node before publishers begin resealing bundles. Keep the previous key
+until every configured bundle has moved to the new recipient, then remove it and
+restart again. Mount private JWK files read-only in containers.
+
 ## Observability
 
 SAPL Node integrates with Spring Boot Actuator for health checks, info endpoints, and Prometheus metrics.

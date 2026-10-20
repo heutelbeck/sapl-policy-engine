@@ -321,7 +321,7 @@ a migration message on new engines).
 | `created` | Yes | Build timestamp. |
 | `configurationId` | Yes | The publication identity of this bundle: explicit (set at build time) or content-derived (`bundle@<hash16>`). 1 to 256 printable ASCII characters without whitespace, `/` or `\`. Signed and tamper-evident. |
 | `attribution` | Yes | An arbitrary JSON string or object (at most 16 KiB serialized), signed, never interpreted by the engine. The single opaque metadata slot: a builder tags a plain string, a publisher can nest a full trust chain. |
-| `audience.sealingRecipient` | Iff sealed content present | The single X25519 recipient key id the bundle's sealed content is sealed to. Consumers fail fast before any unseal attempt when they do not hold this key. One PDP in N realms means N publications, each re-sealed and re-signed. |
+| `audience.sealingRecipient` | Iff sealed content present | The single X25519 recipient key id every sealed leaf in the bundle is sealed to. Consumers reject mixed recipients and fail fast before unsealing when they do not hold this key. One PDP in N realms means N publications, each re-sealed and re-signed. |
 | `files` | Yes | SHA-256 hash per bundle file (the manifest itself excluded). |
 | `signature` | If signed | Ed25519 signature over the canonical manifest bytes. |
 
@@ -340,6 +340,22 @@ human-readable reason appear in the client health status, and the bundle is
 re-evaluated when its content changes (a new ETag). This is distinct from a transient
 transport error such as a timeout or a `5xx`, which the client retries silently and
 which does not emit a configuration error.
+
+### Recipient-Key Rotation
+
+Consumers may hold multiple X25519 private recipient keys at the same time. Every
+sealed leaf is routed by its protected JWE `kid`; trial decryption is not used. A
+publisher-driven rotation follows this order:
+
+1. Add the new private key beside the previous key and restart the consumer.
+2. Give the new public key to the publisher.
+3. Reseal and re-sign each bundle for the new recipient.
+4. Confirm every configured bundle names the new `audience.sealingRecipient`.
+5. Remove the previous private key and restart the consumer.
+
+During the transition, bundles sealed entirely to either configured recipient are
+accepted. A bundle that claims one manifest recipient while any sealed leaf names
+another recipient is rejected and cannot replace the last-good configuration.
 
 ### Security Considerations
 

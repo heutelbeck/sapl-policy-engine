@@ -194,7 +194,7 @@ public class SonarQubeCoverageReportGenerator {
         val falseHits   = getIntOrZero(branch, "falseHits");
 
         // Support both new format (startLine/endLine) and legacy (line)
-        val startLine = branch.has("startLine") ? getIntOrZero(branch, "startLine") : getIntOrZero(branch, "line");
+        val startLine = getIntOrZero(branch, branch.has("startLine") ? "startLine" : "line");
         val endLine   = branch.has("endLine") ? getIntOrZero(branch, "endLine") : startLine;
         val startChar = getIntOrZero(branch, "startChar");
         val endChar   = getIntOrZero(branch, "endChar");

@@ -411,7 +411,7 @@ public class GeographicFunctionLibrary {
             """)
     public static Value within(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
-                (thiz, that) -> (that instanceof GeometryCollection) ? thiz.within(that.union()) : thiz.within(that));
+                (thiz, that) -> thiz.within(that instanceof GeometryCollection ? that.union() : that));
     }
 
     @Function(docs = """

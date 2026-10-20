@@ -406,9 +406,10 @@ public class EmbeddedBenchmarkRunner {
     }
 
     private static BenchmarkResult.Latency latencyFromHistogram(Histogram histogram) {
-        return new BenchmarkResult.Latency(histogram.getMean(), histogram.getValueAtPercentile(50.0),
-                histogram.getValueAtPercentile(90.0), histogram.getValueAtPercentile(99.0),
-                histogram.getValueAtPercentile(99.9), histogram.getMinValue(), histogram.getMaxValue());
+        return new BenchmarkResult.Latency(histogram.getMean(), (double) histogram.getValueAtPercentile(50.0),
+                (double) histogram.getValueAtPercentile(90.0), (double) histogram.getValueAtPercentile(99.0),
+                (double) histogram.getValueAtPercentile(99.9), (double) histogram.getMinValue(),
+                (double) histogram.getMaxValue());
     }
 
     static final double WARMUP_CV_THRESHOLD = 10.0;

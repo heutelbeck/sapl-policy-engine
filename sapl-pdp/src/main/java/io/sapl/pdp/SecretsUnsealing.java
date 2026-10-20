@@ -26,6 +26,8 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
+import io.sapl.secrets.Keyring;
+import io.sapl.secrets.SecretSealingException;
 import io.sapl.secrets.ValueSealer;
 
 import lombok.experimental.UtilityClass;
@@ -60,12 +62,31 @@ public class SecretsUnsealing {
      * the configuration event
      *
      * @return the event with its configuration processed
+     * @throws PDPConfigurationException if cleartext secrets are rejected
+     * @throws SecretSealingException if a sealed leaf cannot be routed or
+     * decrypted
      */
     public static ConfigurationEvent processEvent(OctetKeyPair recipientPrivateKey, boolean acceptUnencryptedSecrets,
             ConfigurationEvent event) {
+        return processEvent(Keyring.of(recipientPrivateKey), acceptUnencryptedSecrets, event);
+    }
+
+    /**
+     * Processes a configuration event on ingestion using the recipient key named
+     * by each sealed leaf.
+     *
+     * @param keyring the X25519 recipient private keys
+     * @param acceptUnencryptedSecrets whether to accept unsealed secrets
+     * @param event the configuration event
+     * @return the event with its configuration processed
+     * @throws PDPConfigurationException if cleartext secrets are rejected
+     * @throws SecretSealingException if a sealed leaf cannot be routed or
+     * decrypted
+     */
+    public static ConfigurationEvent processEvent(Keyring keyring, boolean acceptUnencryptedSecrets,
+            ConfigurationEvent event) {
         if (event instanceof ConfigurationEvent.NewConfiguration(var configuration)) {
-            return new ConfigurationEvent.NewConfiguration(
-                    process(recipientPrivateKey, acceptUnencryptedSecrets, configuration));
+            return new ConfigurationEvent.NewConfiguration(process(keyring, acceptUnencryptedSecrets, configuration));
         }
         return event;
     }
@@ -84,21 +105,41 @@ public class SecretsUnsealing {
      *
      * @throws PDPConfigurationException
      * if secrets are not sealed and unsealed secrets are not accepted
+     * @throws SecretSealingException if a sealed leaf cannot be routed or
+     * decrypted
      */
     public static PDPConfiguration process(OctetKeyPair recipientPrivateKey, boolean acceptUnencryptedSecrets,
+            PDPConfiguration configuration) {
+        return process(Keyring.of(recipientPrivateKey), acceptUnencryptedSecrets, configuration);
+    }
+
+    /**
+     * Enforces the sealed-secrets policy and unseals each leaf with the recipient
+     * key it names.
+     *
+     * @param keyring the X25519 recipient private keys
+     * @param acceptUnencryptedSecrets whether to accept unsealed secrets
+     * @param configuration the configuration to process
+     * @return the configuration with its secrets unsealed
+     * @throws PDPConfigurationException if secrets are not sealed and unsealed
+     * secrets are not accepted
+     * @throws SecretSealingException if a sealed leaf cannot be routed or
+     * decrypted
+     */
+    public static PDPConfiguration process(Keyring keyring, boolean acceptUnencryptedSecrets,
             PDPConfiguration configuration) {
         if (!acceptUnencryptedSecrets) {
             requireSealed(configuration);
         }
-        return unseal(recipientPrivateKey, configuration);
+        return unseal(keyring, configuration);
     }
 
-    private static PDPConfiguration unseal(OctetKeyPair recipientPrivateKey, PDPConfiguration configuration) {
+    private static PDPConfiguration unseal(Keyring keyring, PDPConfiguration configuration) {
         val data            = configuration.data();
-        val unsealedSecrets = ValueSealer.unseal(recipientPrivateKey, data.secrets());
+        val unsealedSecrets = ValueSealer.unseal(keyring, data.secrets());
         val unsealedExtras  = new LinkedHashMap<String, Value>();
         for (val entry : configuration.extensionSecrets().entrySet()) {
-            unsealedExtras.put(entry.getKey(), ValueSealer.unseal(recipientPrivateKey, entry.getValue()));
+            unsealedExtras.put(entry.getKey(), ValueSealer.unseal(keyring, entry.getValue()));
         }
         return new PDPConfiguration(configuration.pdpId(), configuration.configurationId(),
                 configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),

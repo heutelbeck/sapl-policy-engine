@@ -50,7 +50,7 @@ public class ArithmeticOperators {
      */
     public static Value add(Value a, Value b, SourceLocation location) {
         if (a instanceof TextValue(var va)) {
-            return b instanceof TextValue(var vb) ? new TextValue(va + vb) : new TextValue(va + b.toString());
+            return new TextValue(va + (b instanceof TextValue(var vb) ? vb : b.toString()));
         }
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
             if (isPathological(va) || isPathological(vb)) {

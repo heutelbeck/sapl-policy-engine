@@ -25,7 +25,11 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.OctetKeyPair;
+import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
+
+import lombok.val;
 
 @DisplayName("Keyring (key-id routing)")
 class KeyringTests {
@@ -35,7 +39,7 @@ class KeyringTests {
     @Test
     @DisplayName("a key without a key id is rejected, failing closed")
     void whenKeyHasNoKeyIdThenThrows() {
-        var nullKidKey = new OctetKeyPair.Builder(keyA).keyID(null).build();
+        val nullKidKey = new OctetKeyPair.Builder(keyA).keyID(null).build();
         assertThatThrownBy(() -> Keyring.of(nullKidKey)).isInstanceOf(SecretSealingException.class)
                 .hasMessageContaining("no key id");
     }
@@ -43,25 +47,57 @@ class KeyringTests {
     @Test
     @DisplayName("two keys sharing a key id are rejected, failing closed")
     void whenTwoKeysShareKeyIdThenThrows() {
-        var keyA1 = SecretSealing.generateRecipientKey("a");
-        var keyA2 = SecretSealing.generateRecipientKey("a");
+        val keyA1 = SecretSealing.generateRecipientKey("a");
+        val keyA2 = SecretSealing.generateRecipientKey("a");
         assertThatThrownBy(() -> Keyring.of(keyA1, keyA2)).isInstanceOf(SecretSealingException.class)
                 .hasMessageContaining("'a'");
     }
 
     @Test
+    @DisplayName("the same key material under different key ids is rejected")
+    void whenKeyMaterialIsDuplicatedThenThrows() {
+        val duplicate = new OctetKeyPair.Builder(keyA).keyID("b").build();
+
+        assertThatThrownBy(() -> Keyring.of(keyA, duplicate)).isInstanceOf(SecretSealingException.class)
+                .hasMessageContaining("more than once");
+    }
+
+    @Test
+    @DisplayName("a public-only recipient key is rejected")
+    void whenKeyIsPublicThenThrows() {
+        val publicKey = keyA.toPublicJWK();
+
+        assertThatThrownBy(() -> Keyring.of(publicKey)).isInstanceOf(SecretSealingException.class)
+                .hasMessageContaining("private key material");
+    }
+
+    @Test
+    @DisplayName("a private key on another curve is rejected")
+    void whenKeyUsesAnotherCurveThenThrows() throws Exception {
+        val ed25519 = new OctetKeyPairGenerator(Curve.Ed25519).keyID("signing").generate();
+
+        assertThatThrownBy(() -> Keyring.of(ed25519)).isInstanceOf(SecretSealingException.class)
+                .hasMessageContaining("X25519");
+    }
+
+    @Test
     @DisplayName("a key indexed under a key id other than its own is rejected, failing closed")
     void whenKeyIndexedUnderForeignKeyIdThenThrows() {
-        var inconsistent = Map.of("wrong-id", keyA);
-        assertThatThrownBy(() -> new Keyring(inconsistent)).isInstanceOf(SecretSealingException.class)
+        val inconsistent = Map.of("wrong-id", keyA);
+        assertThatThrownBy(() -> keyring(inconsistent)).isInstanceOf(SecretSealingException.class)
                 .hasMessageContaining("wrong-id").hasMessageContaining("'a'");
     }
 
     @Test
     @DisplayName("a present key id resolves and an absent one yields empty")
     void whenKeyIdResolvedThenPresentOrEmpty() {
-        var ring = Keyring.of(keyA);
+        val ring = Keyring.of(keyA);
         assertThat(ring.privateKeyFor("a")).isPresent();
         assertThat(ring.privateKeyFor("b")).isEmpty();
+        assertThat(ring.toString()).contains("a").doesNotContain(keyA.toJSONString());
+    }
+
+    private static Keyring keyring(Map<String, OctetKeyPair> keys) {
+        return new Keyring(keys);
     }
 }
