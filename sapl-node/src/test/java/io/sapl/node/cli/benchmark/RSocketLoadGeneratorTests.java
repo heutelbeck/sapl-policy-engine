@@ -81,6 +81,8 @@ class RSocketLoadGeneratorTests {
                 return Mono.just(DefaultPayload.create("permit"));
             }
         })).bind(TcpServerTransport.create(TcpServer.create().host("127.0.0.1").port(0))).block(Duration.ofSeconds(5));
+        assertThat(server).isNotNull();
+
         val output  = new StringWriter();
         val outcome = RSocketLoadGenerator.run("127.0.0.1", server.address().getPort(), null, new byte[] { 1 }, 8, 2, 0,
                 1, 0, new PrintWriter(output));

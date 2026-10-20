@@ -144,9 +144,9 @@ public class RSocketLoadGenerator {
         val endpoint = socketPath != null ? "unix://" + socketPath : "rsocket://" + host + ":" + port;
         val sockets  = new ArrayList<RSocket>(connections);
         for (int i = 0; i < connections; i++) {
-            val     transport = socketPath != null
-                    ? TcpClientTransport.create(client.remoteAddress(() -> new DomainSocketAddress(socketPath)))
-                    : TcpClientTransport.create(client.host(host).port(port));
+            val     transport = TcpClientTransport
+                    .create(socketPath != null ? client.remoteAddress(() -> new DomainSocketAddress(socketPath))
+                            : client.host(host).port(port));
             RSocket rsocket;
             try {
                 rsocket = RSocketConnector.create().connect(transport).block();
