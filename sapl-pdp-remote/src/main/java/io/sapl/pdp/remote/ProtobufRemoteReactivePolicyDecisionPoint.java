@@ -48,6 +48,7 @@ import javax.net.ssl.SSLException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
@@ -71,7 +72,7 @@ import reactor.util.retry.Retry;
  * @see RemotePolicyDecisionPoint#builder()
  */
 @Slf4j
-public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicyDecisionPoint {
+public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicyDecisionPoint, AutoCloseable {
 
     private static final String ROUTE_DECIDE                = "decide";
     private static final String ROUTE_DECIDE_ONCE           = "decide-once";
@@ -90,10 +91,11 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
 
     static final int RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
-    private final Mono<RSocket>                  rSocketMono;
-    private final AtomicReference<RSocket>       cachedSocket = new AtomicReference<>();
-    private final AtomicReference<Mono<RSocket>> connecting   = new AtomicReference<>();
-    private final AtomicBoolean                  disposed     = new AtomicBoolean();
+    private final @Nullable RSocketClientResources clientResources;
+    private final Mono<RSocket>                    rSocketMono;
+    private final AtomicReference<RSocket>         cachedSocket = new AtomicReference<>();
+    private final AtomicReference<Mono<RSocket>>   connecting   = new AtomicReference<>();
+    private final AtomicBoolean                    disposed     = new AtomicBoolean();
 
     @Getter
     private final int firstBackoffMillis;
@@ -118,6 +120,15 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
             int firstBackoffMillis,
             int maxBackOffMillis,
             int timeoutMillis) {
+        this(rSocketMono, firstBackoffMillis, maxBackOffMillis, timeoutMillis, null);
+    }
+
+    private ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono,
+            int firstBackoffMillis,
+            int maxBackOffMillis,
+            int timeoutMillis,
+            @Nullable RSocketClientResources clientResources) {
+        this.clientResources = clientResources;
         val connectMono = rSocketMono;
         this.rSocketMono        = Mono.defer(() -> {
                                     val existing = cachedSocket.get();
@@ -338,7 +349,15 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     }
 
     /**
-     * Dispose the RSocket connection.
+     * Closes the RSocket connection and releases its shared event loops.
+     */
+    @Override
+    public void close() {
+        dispose();
+    }
+
+    /**
+     * Dispose the RSocket connection and release its shared event loops.
      */
     public void dispose() {
         disposed.set(true);
@@ -346,6 +365,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         val socket = cachedSocket.getAndSet(null);
         if (socket != null) {
             socket.dispose();
+        }
+        if (clientResources != null) {
+            clientResources.close();
         }
     }
 
@@ -603,9 +625,12 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
             if (setupPayloadMono != null) {
                 connector.setupPayload(setupPayloadMono);
             }
-            val rSocketMono = connector.connect(TcpClientTransport.create(tcpClient));
+            val clientResources = RSocketClientResources.acquire();
+            val client          = tcpClient;
+            val rSocketMono     = Mono
+                    .defer(() -> connector.connect(TcpClientTransport.create(clientResources.configure(client))));
             // Sustained failure backs off to a 60s heartbeat, not a tight reconnect storm.
-            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 60000);
+            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 60000, 5000, clientResources);
         }
     }
 }
