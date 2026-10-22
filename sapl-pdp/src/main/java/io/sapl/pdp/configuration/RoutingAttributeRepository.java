@@ -40,12 +40,10 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
 /**
- * A multi-tenant {@link AttributeRepository} that routes observe request's to the
- * right backend repository configured for the pdp id (tenant). The repositories
- * are built lazy during startup with a tolerance using a retry-with-backoff
- * logic to reconnect. The class is just a routing facade and not a concrete
- * repository implementation itself and only observe requests are routed to
- * the concrete {@code AttributeRepository}.
+ * A multi-tenant {@link AttributeRepository} that routes observe request's to the right repository
+ * configured for the pdpId. The repositories are built lazy during startup with a tolerance using
+ * a retry-with-backoff logic to reconnect. The class is just a routing facade and not a concrete repository
+ * implementation itself and only observe requests are routed to the concrete {@code AttributeRepository}.
  *
  * @since 4.2.0
  */
@@ -56,22 +54,24 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private static final String WARN_RETRYING_ATTRIBUTE_REPOSITORY = "Retrying to connect to the repository for pdp with id {} and configuration id {}: {}.";
     private static final String ERROR_REPOSITORY_STILL_BUILDING    = "Attribute Repository for configuration with id '%s' is still connecting.";
     private static final String ERROR_REPOSITORY_UNKNOWN           = "Attribute Repository for configuration with id '%s' is unknown.";
-    private static final String ATTRIBUTE_REPOSITORY_EXTENSION     = "attributeRepository";
+    private static final String ATTRIBUTE_REPOSITORY_EXTENSION     = "attributerepository";
 
     // Retry logic timeouts
     private static final Duration RETRY_FIRST_BACKOFF = Duration.ofSeconds(1);
     private static final Duration RETRY_MAX_BACKOFF   = Duration.ofSeconds(30);
 
-    private final ConcurrentHashMap<String, AttributeRepository> cache       = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String>              pdpToConfig = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Value>               rawConfig   = new ConcurrentHashMap<>();
+    // Repositories are keyed by pdp id and configuration id, because two pdps may carry the same configuration id
+    // (e.g. bundles with identical content or the same manifest id), but each needs its own repository.
+    private final ConcurrentHashMap<RouteKey, AttributeRepository> cache       = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String>                pdpToConfig = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<RouteKey, Value>               rawConfig   = new ConcurrentHashMap<>();
 
     // Retry Logic: pendingBuild = not build yet,
     // closed = thread-safe indicator for an open/closed repository
     // waitingObservations = cache request in case a repository is not done yet
-    private final ConcurrentHashMap<String, Disposable>              pendingBuilds       = new ConcurrentHashMap<>();
-    private final AtomicBoolean                                      closed              = new AtomicBoolean(false);
-    private final ConcurrentHashMap<String, Set<PendingObservation>> waitingObservations = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<RouteKey, Disposable>              pendingBuilds       = new ConcurrentHashMap<>();
+    private final AtomicBoolean                                        closed              = new AtomicBoolean(false);
+    private final ConcurrentHashMap<RouteKey, Set<PendingObservation>> waitingObservations = new ConcurrentHashMap<>();
 
     private final AtomicReference<Consumer<Runnable>> batchRunner = new AtomicReference<>(Runnable::run);
 
@@ -79,6 +79,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
             AttributeFinderInvocation inv,
             Consumer<Value> onValue,
             AtomicReference<Registration> liveRegistration) {}
+
+    private record RouteKey(String pdpId, String configurationId) {}
 
     // Builds the concrete repository from the given config block for the pdp id. Falls
     // back to an InMemoryAttributeRepository if the tenant has no such block configured.
@@ -90,28 +92,29 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Routes the invocation {@code inv} to the repository built for the right
-     * configuration id {@code inv.configurationId()}. Queues the invocation
+     * Routes the invocation {@code inv} to the repository built for its pdp id
+     * and configuration id. Queues the invocation
      * if the repository is unknown or not connected.
      */
     @Override
     public Registration observe(@NonNull AttributeFinderInvocation inv, @NonNull Consumer<Value> onValue) {
-        val configId   = inv.configurationId();
-        val repository = cache.get(configId);
+        val key        = new RouteKey(inv.pdpId(), inv.configurationId());
+        val repository = cache.get(key);
         if (repository != null) {
             return repository.observe(inv, onValue);
         }
 
-        val message = pendingBuilds.containsKey(configId) ? ERROR_REPOSITORY_STILL_BUILDING.formatted(configId)
+        val configId = key.configurationId();
+        val message  = pendingBuilds.containsKey(key) ? ERROR_REPOSITORY_STILL_BUILDING.formatted(configId)
                 : ERROR_REPOSITORY_UNKNOWN.formatted(configId);
         onValue.accept(Value.error(message));
 
         val liveRegistration = new AtomicReference<Registration>();
         val pending          = new PendingObservation(inv, onValue, liveRegistration);
-        waitingObservations.computeIfAbsent(configId, k -> ConcurrentHashMap.newKeySet()).add(pending);
+        waitingObservations.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(pending);
 
         return () -> {
-            Optional.ofNullable(waitingObservations.get(configId)).ifPresent(set -> set.remove(pending));
+            Optional.ofNullable(waitingObservations.get(key)).ifPresent(set -> set.remove(pending));
             Optional.ofNullable(liveRegistration.getAndSet(null)).ifPresent(Registration::close);
         };
     }
@@ -161,23 +164,23 @@ public class RoutingAttributeRepository implements AttributeRepository {
     // Builds the repository asynchronously, using a retry-with-backoff to tolerate
     // transient connection failures, that a slow connection never blocks the
     // configuration event processing.
-    private void buildWithRetry(String pdpId, String configId, Value repoNode) {
-        val disposable = Mono.fromCallable(() -> createRepository(repoNode, pdpId))
+    private void buildWithRetry(RouteKey key, Value repoNode) {
+        val disposable = Mono.fromCallable(() -> createRepository(repoNode, key.pdpId()))
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, RETRY_FIRST_BACKOFF).maxBackoff(RETRY_MAX_BACKOFF)
                         .scheduler(Schedulers.boundedElastic()).filter(failure -> !closed.get())
-                        .doBeforeRetry(signal -> log.warn(WARN_RETRYING_ATTRIBUTE_REPOSITORY, pdpId, configId,
-                                signal.failure().getMessage())))
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe(repository -> onRepositoryBuilt(pdpId, configId, repository),
-                        failure -> log.error(ERROR_ATTRIBUTE_REPOSITORY_CLOSED, pdpId, configId, failure.getMessage()));
-        pendingBuilds.put(configId, disposable);
+                        .doBeforeRetry(signal -> log.warn(WARN_RETRYING_ATTRIBUTE_REPOSITORY, key.pdpId(),
+                                key.configurationId(), signal.failure().getMessage())))
+                .subscribeOn(Schedulers.boundedElastic()).subscribe(repository -> onRepositoryBuilt(key, repository),
+                        failure -> log.error(ERROR_ATTRIBUTE_REPOSITORY_CLOSED, key.pdpId(), key.configurationId(),
+                                failure.getMessage()));
+        pendingBuilds.put(key, disposable);
     }
 
     // After the repository is built this method is called. Remove it from the pending builds, mark it as
     // active, put it in the repository cache, route pdp id and config id and replays all observe calls
     // that were missed during build time.
-    private void onRepositoryBuilt(String pdpId, String configId, AttributeRepository repository) {
-        pendingBuilds.remove(configId);
+    private void onRepositoryBuilt(RouteKey key, AttributeRepository repository) {
+        pendingBuilds.remove(key);
 
         // Closed the repository immediately if a closed() did run in the meantime.
         // Discards the freshly built repository immediately instead of caching it.
@@ -186,11 +189,11 @@ public class RoutingAttributeRepository implements AttributeRepository {
             return;
         }
 
-        cache.put(configId, repository);
+        cache.put(key, repository);
         repository.setBatchRunner(batchRunner.get());
-        route(pdpId, configId);
+        route(key.pdpId(), key.configurationId());
 
-        val waiting = waitingObservations.remove(configId);
+        val waiting = waitingObservations.remove(key);
         if (waiting != null) {
             waiting.forEach(
                     pending -> pending.liveRegistration().set(repository.observe(pending.inv(), pending.onValue())));
@@ -206,8 +209,9 @@ public class RoutingAttributeRepository implements AttributeRepository {
         val oldConfigId = pdpToConfig.put(pdpId, configId);
 
         if (oldConfigId != null && !oldConfigId.equals(configId)) {
-            Optional.ofNullable(cache.remove(oldConfigId)).ifPresent(AttributeRepository::close);
-            rawConfig.remove(oldConfigId);
+            val oldKey = new RouteKey(pdpId, oldConfigId);
+            Optional.ofNullable(cache.remove(oldKey)).ifPresent(AttributeRepository::close);
+            rawConfig.remove(oldKey);
         }
     }
 
@@ -257,15 +261,16 @@ public class RoutingAttributeRepository implements AttributeRepository {
      */
     void buildOrRoute(String pdpId, PDPConfiguration configuration) {
         val configId = configuration.configurationId();
+        val key      = new RouteKey(pdpId, configId);
         val repoNode = extractAttributeRepositoryNode(configuration);
 
         try {
-            rawConfig.put(configId, repoNode);
+            rawConfig.put(key, repoNode);
 
-            if (cache.containsKey(configId)) {
+            if (cache.containsKey(key)) {
                 route(pdpId, configId);
-            } else if (!pendingBuilds.containsKey(configId)) {
-                buildWithRetry(pdpId, configId, repoNode);
+            } else if (!pendingBuilds.containsKey(key)) {
+                buildWithRetry(key, repoNode);
             }
         } catch (RuntimeException failure) {
             log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
@@ -278,9 +283,14 @@ public class RoutingAttributeRepository implements AttributeRepository {
      */
     void removeForPdp(String pdpId) {
         val configId = pdpToConfig.remove(pdpId);
-        Optional.ofNullable(pendingBuilds.remove(configId)).ifPresent(Disposable::dispose);
-        Optional.ofNullable(cache.remove(configId)).ifPresent(AttributeRepository::close);
-        rawConfig.remove(configId);
+        if (configId == null) {
+            return;
+        }
+
+        val key = new RouteKey(pdpId, configId);
+        Optional.ofNullable(pendingBuilds.remove(key)).ifPresent(Disposable::dispose);
+        Optional.ofNullable(cache.remove(key)).ifPresent(AttributeRepository::close);
+        rawConfig.remove(key);
     }
 
     /**
@@ -291,7 +301,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
      * @return The raw configuration
      */
     public Optional<Value> currentRawConfig(String pdpId) {
-        return Optional.ofNullable(pdpToConfig.get(pdpId)).map(rawConfig::get);
+        return Optional.ofNullable(pdpToConfig.get(pdpId))
+                .map(configId -> rawConfig.get(new RouteKey(pdpId, configId)));
     }
 
     @Override

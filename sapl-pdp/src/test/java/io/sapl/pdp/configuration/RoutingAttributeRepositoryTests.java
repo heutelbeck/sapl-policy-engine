@@ -82,7 +82,7 @@ class RoutingAttributeRepositoryTests {
 
         val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
                 List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
-                .withExtensions(Map.of("attributeRepository", config), Map.of("attributeRepository", secrets),
+                .withExtensions(Map.of("attributerepository", config), Map.of("attributerepository", secrets),
                         Set.of());
 
         try (var router = new RoutingAttributeRepository()) {
@@ -98,7 +98,7 @@ class RoutingAttributeRepositoryTests {
 
         val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
                 List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
-                .withExtensions(Map.of("attributeRepository", config), Map.of(), Set.of());
+                .withExtensions(Map.of("attributerepository", config), Map.of(), Set.of());
 
         try (var router = new RoutingAttributeRepository()) {
             assertThat(router.canPrepare(configuration)).isFalse();
@@ -266,8 +266,8 @@ class RoutingAttributeRepositoryTests {
                     .put("port", Value.of(1)).put("database", Value.of("sapl")).build();
             val secrets = ObjectValue.builder().put("username", Value.of("sapl")).put("password", Value.of("secret"))
                     .build();
-            return configForInMemory(pdpId, configId).withExtensions(Map.of("attributeRepository", config),
-                    Map.of("attributeRepository", secrets), Set.of());
+            return configForInMemory(pdpId, configId).withExtensions(Map.of("attributerepository", config),
+                    Map.of("attributerepository", secrets), Set.of());
         }
 
         @Test
@@ -289,6 +289,45 @@ class RoutingAttributeRepositoryTests {
 
             assertThat(received.getFirst()).isInstanceOfSatisfying(ErrorValue.class,
                     error -> assertThat(error.message()).contains("still connecting"));
+        }
+    }
+
+    @Nested
+    @DisplayName("when the configuration id is identical but the pdp id is different")
+    class WhenConfigurationIdIsIdenticalButPdpIdDifferent {
+        private final RoutingAttributeRepository router    = new RoutingAttributeRepository();
+        private static final String              PDP_ID_1  = "tenant-1";
+        private static final String              PDP_ID_2  = "tenant-2";
+        private static final String              CONFIG_ID = "config";
+
+        @Test
+        @DisplayName("then removing one repository doesn't close the other")
+        void thenRemovingOneRepositoryDoesntCloseTheOther() {
+            router.buildOrRoute(PDP_ID_1, configForInMemory(PDP_ID_1, CONFIG_ID));
+            router.buildOrRoute(PDP_ID_2, configForInMemory(PDP_ID_2, CONFIG_ID));
+
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> router.currentRawConfig(PDP_ID_1).isPresent()
+                    && router.currentRawConfig(PDP_ID_2).isPresent());
+
+            // Both repositories exist
+            val received1 = new CopyOnWriteArrayList<Value>();
+            val received2 = new CopyOnWriteArrayList<Value>();
+            router.observe(invocation(PDP_ID_1, CONFIG_ID), received1::add);
+            router.observe(invocation(PDP_ID_2, CONFIG_ID), received2::add);
+
+            assertThat(received1).isNotEmpty().noneMatch(ErrorValue.class::isInstance);
+            assertThat(received2).isNotEmpty().noneMatch(ErrorValue.class::isInstance);
+
+            // Remove one repository. The other one shouldn't be closed.
+            router.removeForPdp(PDP_ID_1);
+
+            val afterRemoval = new CopyOnWriteArrayList<Value>();
+            router.observe(invocation(PDP_ID_2, CONFIG_ID), afterRemoval::add);
+
+            assertThat(afterRemoval).isNotEmpty().noneMatch(ErrorValue.class::isInstance);
+            assertThat(afterRemoval.getLast()).isEqualTo(Value.UNDEFINED);
+            assertThat(router.currentRawConfig(PDP_ID_1)).isEmpty();
+            assertThat(router.currentRawConfig(PDP_ID_2)).isPresent();
         }
     }
 }

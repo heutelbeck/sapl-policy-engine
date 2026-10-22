@@ -42,7 +42,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @DisplayName("AttributeRepositoryFactory")
 class AttributeRepositoryFactoryTests {
     @Nested
-    @DisplayName("when attributeRepository.type is not supported")
+    @DisplayName("when attributerepository.type is not supported")
     class WhenTypeIsUnsupported {
 
         @Test

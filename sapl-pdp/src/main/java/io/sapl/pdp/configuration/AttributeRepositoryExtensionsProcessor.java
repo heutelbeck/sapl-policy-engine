@@ -33,7 +33,7 @@ public final class AttributeRepositoryExtensionsProcessor implements ExtensionsP
 
     /**
      * A structural validation of the configuration that is delegated to {@link RoutingAttributeRepository#canPrepare}.
-     * Returns {@code true} if the "attributeRepository" extension is absent (InMemory fallback
+     * Returns {@code true} if the "attributerepository" extension is absent (InMemory fallback
      * remains valid) or structurally valid; {@code false} if it is present but malformed.
      */
     @Override

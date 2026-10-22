@@ -57,12 +57,12 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.*;
  */
 @UtilityClass
 public class AttributeRepositoryFactory {
-    private static final String ERROR_INVALID_IDENTIFIER        = "attributeRepository.%s='%s' for pdpId '%s' is invalid. "
+    private static final String ERROR_INVALID_IDENTIFIER        = "attributerepository.%s='%s' for pdpId '%s' is invalid. "
             + "Must match ^[A-Za-z_][A-Za-z0-9_]*$.";
-    private static final String ERROR_UNKNOWN_TYPE              = "attributeRepository.type='%s' for pdpId '%s' is not "
+    private static final String ERROR_UNKNOWN_TYPE              = "attributerepository.type='%s' for pdpId '%s' is not "
             + "supported. Set it to one of: postgres, mongo, redis.";
-    private static final String ERROR_MISSING_STRING            = "attributeRepository.%s is missing for pdpId '%s'.";
-    private static final String ERROR_MISSING_OR_INVALID_NUMBER = "attributeRepository.%s is missing or not a valid number for pdpId '%s'.";
+    private static final String ERROR_MISSING_STRING            = "attributerepository.%s is missing for pdpId '%s'.";
+    private static final String ERROR_MISSING_OR_INVALID_NUMBER = "attributerepository.%s is missing or not a valid number for pdpId '%s'.";
 
     private static final String DEFAULT_NAME     = "attributes";
     private static final String HOST_FIELD       = "host";

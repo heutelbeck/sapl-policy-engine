@@ -111,7 +111,7 @@ class AttributeRepositoryExtensionLoadingTests {
     private void writePolicyFiles(Path policyDir, String config, String secrets) throws Exception {
         Files.writeString(policyDir.resolve("pdp.json"), "{}");
         Files.writeString(policyDir.resolve("policy.sapl"), "policy \"p\" permit true;");
-        Files.writeString(policyDir.resolve("ext-attributeRepository.json"), config);
-        Files.writeString(policyDir.resolve("ext-attributeRepository-secrets.json"), secrets);
+        Files.writeString(policyDir.resolve("ext-attributerepository.json"), config);
+        Files.writeString(policyDir.resolve("ext-attributerepository-secrets.json"), secrets);
     }
 }
