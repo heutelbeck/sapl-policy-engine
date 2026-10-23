@@ -66,9 +66,7 @@ class MatcherConverter {
      */
     static List<ArgumentMatcher> convertAll(List<ValMatcherContext> matchers) {
         List<ArgumentMatcher> result = new ArrayList<>(matchers.size());
-        for (var matcher : matchers) {
-            result.add(convert(matcher));
-        }
+        matchers.stream().map(MatcherConverter::convert).forEach(result::add);
         return result;
     }
 

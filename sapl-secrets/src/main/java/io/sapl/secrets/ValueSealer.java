@@ -257,15 +257,14 @@ public class ValueSealer {
 
     private static void collectRecipientKeyIds(Value value, Set<String> recipients) {
         switch (value) {
-        case ObjectValue object  -> object.values().forEach(child -> collectRecipientKeyIds(child, recipients));
-        case ArrayValue array    -> array.forEach(child -> collectRecipientKeyIds(child, recipients));
-        case TextValue(var text) -> {
-            if (hasSealedShape(text)) {
-                recipients.add(SecretSealing.recipientKeyIdOf(unwrap(text))
-                        .orElseThrow(() -> new SecretSealingException(ERROR_MISSING_RECIPIENT_KEY_ID)));
-            }
-        }
-        default                  -> {
+        case ObjectValue object                            ->
+            object.values().forEach(child -> collectRecipientKeyIds(child, recipients));
+        case ArrayValue array                              ->
+            array.forEach(child -> collectRecipientKeyIds(child, recipients));
+        case TextValue(var text) when hasSealedShape(text) ->
+            recipients.add(SecretSealing.recipientKeyIdOf(unwrap(text))
+                    .orElseThrow(() -> new SecretSealingException(ERROR_MISSING_RECIPIENT_KEY_ID)));
+        default                                            -> {
             // Non-sealed leaves have no recipient.
         }
         }

@@ -19,35 +19,70 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.ast.AttributeStep;
+import io.sapl.ast.EnvironmentAttribute;
+import io.sapl.ast.Literal;
+import io.sapl.ast.QualifiedName;
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
+import java.util.stream.Stream;
+
+import static io.sapl.compiler.expressions.AttributeCompiler.compileAttributeStep;
+import static io.sapl.compiler.expressions.AttributeCompiler.compileEnvironmentAttribute;
+import static io.sapl.util.SaplTesting.TEST_LOCATION;
 import static io.sapl.util.SaplTesting.compileExpression;
+import static io.sapl.util.SaplTesting.compilationContext;
 import static io.sapl.util.SaplTesting.evaluate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("AttributeCompiler")
 class AttributeCompilerTests {
 
-    @DisplayName("Attribute name rejected by the name pattern but accepted by the grammar")
-    @ParameterizedTest(name = "<{0}>")
-    @ValueSource(strings = { "test_lib.attr", "test.at_tr", "lib$.attr", "^lib.attr" })
-    void whenAttributeNameViolatesNamePatternThenCompilesToErrorWithoutThrowing(String attributeName) {
-        var source = "<" + attributeName + ">";
+    @MethodSource("validAttributeAccesses")
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("Lexer-valid attribute names retain their name and entity during evaluation")
+    void whenAttributeNameMatchesLexerThenEvaluationReturnsBoundValue(String source, String attributeName,
+            Value entity) {
+        val eval = evaluate(source).withSubject(Value.of("alice")).with(attributeName, Value.of("result"));
 
-        assertThatCode(() -> compileExpression(source)).doesNotThrowAnyException();
-        assertThat(compileExpression(source)).isInstanceOf(ErrorValue.class);
+        assertThat(eval.value()).isEqualTo(Value.of("result"));
+        assertThat(eval.onlyInvocation()).satisfies(invocation -> {
+            assertThat(invocation.attributeName()).isEqualTo(attributeName);
+            assertThat(invocation.entity()).isEqualTo(entity);
+        });
     }
 
     @Test
-    void whenEntityAttributeNameViolatesNamePatternThenEvaluationReturnsErrorWithoutThrowing() {
-        var eval = evaluate("subject.<user_lib.role>").withSubject(Value.of("alice"));
+    void whenEnvironmentAttributeNameIsInvalidThenCompilationReturnsErrorWithoutThrowing() {
+        val attribute = new EnvironmentAttribute(QualifiedName.of("bad-name", "attr"), List.of(), null, false,
+                TEST_LOCATION);
 
-        assertThatCode(eval::value).doesNotThrowAnyException();
-        assertThat(eval.value()).isInstanceOf(ErrorValue.class);
+        assertThat(compileEnvironmentAttribute(attribute, compilationContext())).isInstanceOfSatisfying(
+                ErrorValue.class, error -> assertThat(error.message()).contains("bad-name.attr"));
+    }
+
+    @Test
+    void whenEntityAttributeNameIsInvalidThenCompilationReturnsErrorWithoutThrowing() {
+        val entity    = new Literal(Value.of("alice"), TEST_LOCATION);
+        val attribute = new AttributeStep(entity, QualifiedName.of("user-lib", "role"), List.of(), null, false,
+                TEST_LOCATION);
+
+        assertThat(compileAttributeStep(attribute, compilationContext())).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("user-lib.role"));
+    }
+
+    static Stream<Arguments> validAttributeAccesses() {
+        return Stream.of("test_lib.attr", "test.at_tr", "lib$.attr", "_lib.$attr2")
+                .flatMap(name -> Stream.of(arguments("<" + name + ">", name, null),
+                        arguments("subject.<" + name + ">", name, Value.of("alice"))));
     }
 
     @Test

@@ -45,16 +45,12 @@ public class SAPLTestDiagnosticsProvider {
         var diagnostics = new ArrayList<Diagnostic>();
 
         // Convert parse errors to diagnostics
-        for (var error : document.getParseErrors()) {
-            diagnostics.add(createDiagnostic(error.line(), error.charPositionInLine(), error.message(),
-                    error.offendingSymbol(), DiagnosticSeverity.Error));
-        }
+        document.getParseErrors().stream().map(error -> createDiagnostic(error.line(), error.charPositionInLine(),
+                error.message(), error.offendingSymbol(), DiagnosticSeverity.Error)).forEach(diagnostics::add);
 
         // Convert validation errors to diagnostics
-        for (var error : document.getValidationErrors()) {
-            diagnostics.add(createDiagnostic(error.line(), error.charPositionInLine(), error.message(),
-                    error.offendingText(), DiagnosticSeverity.Error));
-        }
+        document.getValidationErrors().stream().map(error -> createDiagnostic(error.line(), error.charPositionInLine(),
+                error.message(), error.offendingText(), DiagnosticSeverity.Error)).forEach(diagnostics::add);
 
         return diagnostics;
     }

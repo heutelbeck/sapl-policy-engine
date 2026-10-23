@@ -20,6 +20,7 @@ package io.sapl.pdp.remote;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +28,15 @@ import lombok.val;
 
 @DisplayName("RSocket remote PDP builder transport security")
 class ProtobufRemoteBuilderSecurityTests {
+
+    private ProtobufRemoteReactivePolicyDecisionPoint remotePdp;
+
+    @AfterEach
+    void disposeClient() {
+        if (remotePdp != null) {
+            remotePdp.dispose();
+        }
+    }
 
     @Test
     @DisplayName("credentials over plaintext are refused by default (fail closed)")
@@ -40,26 +50,26 @@ class ProtobufRemoteBuilderSecurityTests {
     @Test
     @DisplayName("credentials over TLS build successfully")
     void whenCredentialsWithTlsThenBuildSucceeds() {
-        val pdp = ProtobufRemoteReactivePolicyDecisionPoint.builder().host("localhost").port(7000)
+        remotePdp = ProtobufRemoteReactivePolicyDecisionPoint.builder().host("localhost").port(7000)
                 .basicAuth("user", "secret").secure().build();
 
-        assertThat(pdp).isNotNull();
+        assertThat(remotePdp).isNotNull();
     }
 
     @Test
     @DisplayName("credentials over plaintext build only with the explicit insecure opt-in")
     void whenCredentialsPlaintextWithOptInThenBuildSucceeds() {
-        val pdp = ProtobufRemoteReactivePolicyDecisionPoint.builder().host("localhost").port(7000)
+        remotePdp = ProtobufRemoteReactivePolicyDecisionPoint.builder().host("localhost").port(7000)
                 .basicAuth("user", "secret").allowInsecureTransport().build();
 
-        assertThat(pdp).isNotNull();
+        assertThat(remotePdp).isNotNull();
     }
 
     @Test
     @DisplayName("a connection without credentials does not require TLS")
     void whenNoCredentialsThenBuildSucceedsWithoutTls() {
-        val pdp = ProtobufRemoteReactivePolicyDecisionPoint.builder().host("localhost").port(7000).build();
+        remotePdp = ProtobufRemoteReactivePolicyDecisionPoint.builder().host("localhost").port(7000).build();
 
-        assertThat(pdp).isNotNull();
+        assertThat(remotePdp).isNotNull();
     }
 }

@@ -933,6 +933,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Allow Sonatype origin for Maven credentials
+        run: |
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          path = Path.home() / ".m2" / "settings.xml"
+          settings = ET.parse(path)
+          server = settings.find("./servers/server[id='central']")
+          if server is None:
+              raise SystemExit("Missing Maven server 'central'")
+          origins = ET.SubElement(server, "repositoryOrigins")
+          ET.SubElement(origins, "repositoryOrigin").text = "https://central.sonatype.com"
+          settings.write(path, encoding="utf-8", xml_declaration=True)
+          PYTHON
+
       - name: Deploy Maven Artifacts
         run: mvn -B --no-transfer-progress -pl !:sapl-node,!:sapl-playground,!:sapl-documentation-generator -PsonatypeDeploy -Dmaven.test.skip=true clean deploy
         env:

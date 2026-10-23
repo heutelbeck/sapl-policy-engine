@@ -9,7 +9,7 @@
 import { LitElement, html, css } from 'lit';
 import { EditorView, basicSetup } from 'codemirror';
 import { EditorState, Compartment, StateField, StateEffect } from '@codemirror/state';
-import { keymap, Decoration, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
+import { keymap, Decoration, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, tooltips, ViewPlugin } from '@codemirror/view';
 import { indentWithTab, defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { StreamLanguage, bracketMatching, foldService, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, defaultHighlightStyle, HighlightStyle } from '@codemirror/language';
@@ -20,6 +20,7 @@ import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { MergeView } from '@codemirror/merge';
 import { unifiedMergeView } from '@codemirror/merge';
 import { marked } from 'marked';
+import { StyleModule } from 'style-mod';
 
 // Global configuration ID export (for cross-module access like in old editor)
 export { saplPdpConfigurationId };
@@ -99,6 +100,41 @@ const coverageField = StateField.define({
         return decorations.map(transaction.changes);
     },
     provide: field => EditorView.decorations.from(field)
+});
+
+// Tooltips are mounted under document.body so completion lists, their documentation
+// panels and lint hovers escape the clipping ancestors of the editor host.
+// CodeMirror mounts its styles only into the editor root, so they are mirrored into the document.
+const documentTooltips = [
+    tooltips({ parent: document.body }),
+    ViewPlugin.define(view => {
+        const mount = state => StyleModule.mount(document, state.facet(EditorView.styleModule));
+        mount(view.state);
+        return {
+            update(update) {
+                if (update.state.facet(EditorView.styleModule) !== update.startState.facet(EditorView.styleModule)) {
+                    mount(update.state);
+                }
+            }
+        };
+    })
+];
+
+const completionTooltipTheme = EditorView.theme({
+    '.cm-completion-doc': { padding: '8px', fontSize: '13px', lineHeight: '1.4', maxWidth: '500px' },
+    '.cm-completion-doc code': { background: 'rgba(0, 0, 0, 0.1)', padding: '1px 4px', borderRadius: '3px', fontFamily: 'monospace', fontSize: '12px' },
+    '.cm-completion-doc pre': { background: 'rgba(0, 0, 0, 0.08)', padding: '8px', borderRadius: '4px', overflowX: 'auto', margin: '8px 0' },
+    '.cm-completion-doc pre code': { background: 'transparent', padding: '0' },
+    '.cm-completion-doc strong': { fontWeight: '600' },
+    '.cm-completion-doc ul': { margin: '4px 0', paddingLeft: '20px' },
+    '.cm-completion-doc li': { margin: '2px 0' },
+    '.cm-completion-doc p': { margin: '4px 0' },
+    '.cm-completion-doc a': { color: 'var(--lumo-primary-color, #1976d2)' },
+    '.cm-completionIcon-property::after': { content: '"\u25C8"', color: '#9c27b0' },
+    '.cm-completionIcon-function::after': { content: '"\u0192"', color: '#2196f3' },
+    '.cm-completionIcon-keyword::after': { content: '"\u2B22"', color: '#ff9800' },
+    '.cm-completionIcon-variable::after': { content: '"\uD835\uDC65"', color: '#4caf50' },
+    '.cm-completionIcon-module::after': { content: '"\u25F0"', color: '#607d8b' }
 });
 
 // Folding - compartment, cached ranges from LSP, and fold service
@@ -423,70 +459,6 @@ class SaplEditorLsp extends LitElement {
         .coverage-uncovered { background: var(--sapl-cov-uncovered) !important; }
         .coverage-ignored { background: var(--sapl-cov-ignored) !important; }
 
-        /* Completion documentation styles */
-        .cm-completion-doc {
-            padding: 8px;
-            font-size: 13px;
-            line-height: 1.4;
-            max-width: 500px;
-        }
-        .cm-completion-doc code {
-            background: rgba(0, 0, 0, 0.1);
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        .cm-completion-doc pre {
-            background: rgba(0, 0, 0, 0.08);
-            padding: 8px;
-            border-radius: 4px;
-            overflow-x: auto;
-            margin: 8px 0;
-        }
-        .cm-completion-doc pre code {
-            background: transparent;
-            padding: 0;
-        }
-        .cm-completion-doc strong {
-            font-weight: 600;
-        }
-        .cm-completion-doc ul {
-            margin: 4px 0;
-            padding-left: 20px;
-        }
-        .cm-completion-doc li {
-            margin: 2px 0;
-        }
-        .cm-completion-doc p {
-            margin: 4px 0;
-        }
-        .cm-completion-doc a {
-            color: var(--lumo-primary-color, #1976d2);
-        }
-
-        /* Completion icons for different types */
-        .cm-completionIcon-property::after {
-            content: "◈";
-            color: #9c27b0;
-        }
-        .cm-completionIcon-function::after {
-            content: "ƒ";
-            color: #2196f3;
-        }
-        .cm-completionIcon-keyword::after {
-            content: "⬢";
-            color: #ff9800;
-        }
-        .cm-completionIcon-variable::after {
-            content: "𝑥";
-            color: #4caf50;
-        }
-        .cm-completionIcon-module::after {
-            content: "◰";
-            color: #607d8b;
-        }
-
     `;
 
     constructor() {
@@ -625,7 +597,9 @@ class SaplEditorLsp extends LitElement {
             readOnlyCompartment.of(EditorState.readOnly.of(this.isReadOnly)),
             bracketMatchingCompartment.of(this.matchBrackets ? bracketMatching() : []),
             closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
-            lineWrappingCompartment.of(this.lineWrapping ? EditorView.lineWrapping : [])
+            lineWrappingCompartment.of(this.lineWrapping ? EditorView.lineWrapping : []),
+            ...documentTooltips,
+            completionTooltipTheme
         ];
 
         if (withLinting) {
@@ -703,7 +677,9 @@ class SaplEditorLsp extends LitElement {
                 themeCompartment.of(this._effectiveDark() ? oneDark : saplLight),
                 bracketMatchingCompartment.of(this.matchBrackets ? bracketMatching() : []),
                 closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
-                cursorTheme
+                cursorTheme,
+                ...documentTooltips,
+                completionTooltipTheme
             ];
 
             // Build collapseUnchanged config if enabled

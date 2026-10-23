@@ -403,6 +403,21 @@
     "queryAllDeclaredMethods": true
   },
   {
+    "name": "io.sapl.extensions.mqtt.MqttFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.geo.GeographicFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.functions.geo.traccar.TraccarFunctionLibrary",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
     "name": "io.sapl.api.functions.FunctionLibrary",
     "allDeclaredMethods": true
   },
@@ -558,6 +573,16 @@
   },
   {
     "name": "io.sapl.attributes.libraries.X509PolicyInformationPoint",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.extensions.mqtt.MqttPolicyInformationPoint",
+    "allDeclaredMethods": true,
+    "queryAllDeclaredMethods": true
+  },
+  {
+    "name": "io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint",
     "allDeclaredMethods": true,
     "queryAllDeclaredMethods": true
   },

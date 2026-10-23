@@ -122,9 +122,9 @@ public class PlaygroundConfiguration {
     @Bean
     DocumentationBundle documentationBundle() {
         var libraries = new ArrayList<LibraryDocumentation>();
-        for (var library : DefaultLibraries.defaults()) {
-            libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(library.getClass()));
-        }
+        DefaultLibraries.defaults().stream()
+                .map(library -> LibraryDocumentationExtractor.extractFunctionLibrary(library.getClass()))
+                .forEach(libraries::add);
         libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(GeographicFunctionLibrary.class));
         libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(MqttFunctionLibrary.class));
         libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(TraccarFunctionLibrary.class));

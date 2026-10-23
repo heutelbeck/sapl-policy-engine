@@ -74,7 +74,7 @@ class InMemoryAttributeRepositoryTests {
         return new RepositoryKey(null, fqn, List.of(), TEST_PDP_ID);
     }
 
-    @Test
+    @org.junit.jupiter.api.Test
     @DisplayName("the same attribute observed by two different pdpIds maps to distinct repository keys (tenant isolation)")
     void whenSameAttributeDifferentPdpIdThenDistinctRepositoryKeys() {
         val keyTenantA = RepositoryKey.fromInvocation(invocation("env.shared", "tenant-a"));
@@ -345,42 +345,36 @@ class InMemoryAttributeRepositoryTests {
         @DisplayName("then a TTL expiry on an unrelated key fires its own observer concurrently "
                 + "rather than queuing behind the slow callback")
         void thenTtlExpiryOnUnrelatedKeyFiresWhileSlowConsumerStillRunning() throws Exception {
-            val slowEntered  = new java.util.concurrent.CountDownLatch(1);
-            val ttlObserved  = new java.util.concurrent.CountDownLatch(1);
-            val unblockSlow  = new java.util.concurrent.CountDownLatch(1);
-            val slowObserver = new Consumer<Value>() {
-                                 @Override
-                                 public void accept(Value value) {
-                                     // The synchronous initial UNDEFINED delivery happens on the
-                                     // main thread inside observe(...). Blocking on it would park the
-                                     // main thread, so the concurrent scenario could never be set up.
-                                     // Only the real "trigger" value, delivered from the separate
-                                     // virtual thread below, parks the slow callback.
-                                     if (Value.UNDEFINED.equals(value)) {
-                                         return;
-                                     }
-                                     slowEntered.countDown();
-                                     try {
-                                         unblockSlow.await(5, java.util.concurrent.TimeUnit.SECONDS);
-                                     } catch (InterruptedException e) {
-                                         Thread.currentThread().interrupt();
-                                     }
-                                 }
-                             };
-            val ttlValueSeen = new java.util.concurrent.atomic.AtomicBoolean(false);
-            val fastObserver = new Consumer<Value>() {
-                                 @Override
-                                 public void accept(Value value) {
-                                     if (!Value.UNDEFINED.equals(value)) {
-                                         // The published value precedes the expiry UNDEFINED.
-                                         ttlValueSeen.set(true);
-                                     } else if (ttlValueSeen.get()) {
-                                         // Only the expiry UNDEFINED (after the published value)
-                                         // counts, not the initial registration UNDEFINED.
-                                         ttlObserved.countDown();
-                                     }
-                                 }
-                             };
+            val             slowEntered  = new java.util.concurrent.CountDownLatch(1);
+            val             ttlObserved  = new java.util.concurrent.CountDownLatch(1);
+            val             unblockSlow  = new java.util.concurrent.CountDownLatch(1);
+            Consumer<Value> slowObserver = value -> {
+                                             // The synchronous initial UNDEFINED delivery happens on the
+                                             // main thread inside observe(...). Blocking on it would park the
+                                             // main thread, so the concurrent scenario could never be set up.
+                                             // Only the real "trigger" value, delivered from the separate
+                                             // virtual thread below, parks the slow callback.
+                                             if (Value.UNDEFINED.equals(value)) {
+                                                 return;
+                                             }
+                                             slowEntered.countDown();
+                                             try {
+                                                 unblockSlow.await(5, java.util.concurrent.TimeUnit.SECONDS);
+                                             } catch (InterruptedException e) {
+                                                 Thread.currentThread().interrupt();
+                                             }
+                                         };
+            val             ttlValueSeen = new java.util.concurrent.atomic.AtomicBoolean(false);
+            Consumer<Value> fastObserver = value -> {
+                                             if (!Value.UNDEFINED.equals(value)) {
+                                                 // The published value precedes the expiry UNDEFINED.
+                                                 ttlValueSeen.set(true);
+                                             } else if (ttlValueSeen.get()) {
+                                                 // Only the expiry UNDEFINED (after the published value)
+                                                 // counts, not the initial registration UNDEFINED.
+                                                 ttlObserved.countDown();
+                                             }
+                                         };
 
             try (val ignored1 = repository.observe(invocation("env.slow"), slowObserver);
                     val ignored2 = repository.observe(invocation("env.ttl"), fastObserver)) {

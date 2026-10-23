@@ -31,6 +31,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
@@ -43,6 +46,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import lombok.val;
 
 @DisplayName("SaplFlatBuffersCodec")
 class SaplFlatBuffersCodecTests {
@@ -328,6 +332,47 @@ class SaplFlatBuffersCodecTests {
     @Nested
     @DisplayName("malformed buffer handling")
     class MalformedBufferTests {
+
+        @ParameterizedTest(name = "{0} without its payload is rejected")
+        @MethodSource("missingPayloadKinds")
+        @DisplayName("a value requiring a union payload rejects a missing payload explicitly")
+        void whenUnionPayloadMissingThenRejectedExplicitly(String description, byte kindType) {
+            val malformed = valueWithoutPayload(kindType);
+
+            assertThatThrownBy(() -> SaplFlatBuffersCodec.readValue(malformed))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessage("Malformed FlatBuffers buffer.")
+                    .hasRootCauseInstanceOf(IllegalArgumentException.class);
+        }
+
+        static Stream<Arguments> missingPayloadKinds() {
+            return Stream.of(arguments("boolean", (byte) 2), arguments("number", (byte) 3), arguments("text", (byte) 4),
+                    arguments("array", (byte) 5), arguments("object", (byte) 6), arguments("error", (byte) 8));
+        }
+
+        @Test
+        @DisplayName("a null value needs no union payload")
+        void whenNullHasNoPayloadThenDecodedAsNull() {
+            val encoded = valueWithoutPayload((byte) 1);
+
+            assertThat(SaplFlatBuffersCodec.readValue(encoded)).isEqualTo(Value.NULL);
+        }
+
+        @ParameterizedTest(name = "kind {0} without a payload decodes as undefined")
+        @ValueSource(bytes = { 0, 7 })
+        @DisplayName("absent and undefined values need no union payload")
+        void whenUndefinedHasNoPayloadThenDecodedAsUndefined(byte kindType) {
+            val encoded = valueWithoutPayload(kindType);
+
+            assertThat(SaplFlatBuffersCodec.readValue(encoded)).isEqualTo(Value.UNDEFINED);
+        }
+
+        private static byte[] valueWithoutPayload(byte kindType) {
+            val builder = new FlatBufferBuilder();
+            FbValue.startFbValue(builder);
+            FbValue.addKindType(builder, kindType);
+            builder.finish(FbValue.endFbValue(builder));
+            return builder.sizedByteArray();
+        }
 
         static Stream<Arguments> decoders() {
             return Stream.of(arguments("readValue", (Consumer<byte[]>) SaplFlatBuffersCodec::readValue),

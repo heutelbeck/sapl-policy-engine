@@ -83,9 +83,11 @@ import reactor.test.StepVerifier;
 @WithMockUser(username = "raistlin", roles = "BLACK_ROBE")
 class MongoDbShimChainIT {
 
+    // Work around MongoDB's Ubuntu kernel check (SERVER-131779).
     @Container
     @ServiceConnection
-    static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0");
+    static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0").withEnv("GLIBC_TUNABLES",
+            "glibc.pthread.rseq=1");
 
     private static final String SOLINARI = "Solinari";
     private static final String LUNITARI = "Lunitari";

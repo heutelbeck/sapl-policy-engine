@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.pep.streaming;
 
+import static reactor.core.Exceptions.throwIfFatal;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -26,8 +27,9 @@ import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
+import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.pep.constraints.EnforcementResult;
-import io.sapl.spring.pep.constraints.Signal.OutputSignal;
+import io.sapl.spring.pep.constraints.Signal.InputSignal;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission.Emit;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitComplete;
@@ -71,7 +73,7 @@ import reactor.util.context.ContextView;
  * a downstream {@link Flux} for the
  * subscriber.
  * <p>
- * One pipeline per method invocation. Owns the per-subscription mutable state
+ * One pipeline per downstream subscription. Owns the per-subscription mutable state
  * (current FSM state, RAP subscription, sink). Events arrive from independent
  * threads (the PDP decision stream, the RAP publisher, downstream requests). A
  * single lock serializes them so the FSM is advanced by one thread at a time
@@ -80,9 +82,9 @@ import reactor.util.context.ContextView;
  * Output shape: {@code Flux.create(...)} emits {@link ProtectedPayload}
  * wrappers (private nested record) carrying
  * either a data value or an error. The chain ends with
- * {@code .flatMap(ProtectedPayload::unwrap)} which re-emits the
+ * {@code .handle(StreamingPipeline::unpackPayload)} which re-emits the
  * value or raises the error from inside the per-item processing of
- * {@code flatMap}. That positioning is what lets a
+ * {@code handle}. That positioning is what lets a
  * downstream {@code onErrorContinue} catch boundary signals
  * ({@link AccessDeniedException} on suspend,
  * {@link AccessGrantedException} on resume, when {@code signalTransitions} is
@@ -97,17 +99,17 @@ import reactor.util.context.ContextView;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class StreamingPipeline {
 
+    private static final String ERROR_INPUT_REQUIRES_INVOCATION          = "Input handlers require a method invocation.";
     private static final String ERROR_PDP_STREAM_COMPLETED               = "PDP decision stream completed unexpectedly; a streaming PDP must not complete.";
     private static final String ERROR_STREAM_SUSPENDED                   = "Stream suspended: %s";
     private static final String WARN_AFTER_TERMINATION_OBLIGATION_FAILED = "After-termination obligation handler failed after the stream had already terminated; the completion cannot be retracted: {}";
     private static final String WARN_CANCEL_OBLIGATION_FAILED            = "Cancel obligation handler failed after the subscriber had already cancelled: {}";
-    private static final String WARN_RAP_AFTER_TERMINATION               = "RAP item arrived after termination; dropping.";
+    private static final String ERROR_SUSPEND_OBLIGATION_FAILED          = "Access denied. A suspension obligation failed.";
 
-    private final boolean                                          pauseRapDuringSuspend;
-    private final Flux<AuthorizationDecision>                      decisions;
-    private final Function<AuthorizationDecision, EnforcementPlan> planner;
-    private final Supplier<? extends Flux<?>>                      rapSupplier;
-    private final boolean                                          signalTransitions;
+    private final Flux<AuthorizationDecision>                            decisions;
+    private final Function<AuthorizationDecision, EnforcementPlan>       planner;
+    private final Function<EnforcementPlan, Supplier<? extends Flux<?>>> prepareRap;
+    private final boolean                                                signalTransitions;
 
     private final Object                       lock          = new Object();
     private final Disposable.Composite         subscriptions = Disposables.composite();
@@ -118,6 +120,8 @@ public final class StreamingPipeline {
     private boolean                            rapReady;
     private long                               subscriberDemand;
     private @Nullable EnforcementPlan          lastPermittingPlan;
+    private @Nullable EnforcementPlan          activeInputPlan;
+    private long                               decisionRevision;
 
     /**
      * Creates a cold {@link Flux} that, on subscription, drives the streaming PEP's
@@ -126,12 +130,6 @@ public final class StreamingPipeline {
      * instance with its own state and
      * lifecycle.
      *
-     * @param pauseRapDuringSuspend
-     * whether the RAP subscription is disposed on entering suspended state and
-     * re-subscribed on resume. When
-     * {@code false} (default), the RAP stays connected and items are dropped
-     * silently by the FSM. When
-     * {@code true}, RAP-side side effects pause for the duration of the suspension.
      * @param decisions
      * the PDP decision flux for this subscription. An empty flux is treated as a
      * single DENY decision.
@@ -140,9 +138,8 @@ public final class StreamingPipeline {
      * {@link EnforcementPlan}; typically
      * captures the per-method supported-signal set and output type.
      * @param rapSupplier
-     * the protected method's publisher, supplied lazily (invoked on each fresh
-     * PERMIT when
-     * {@code pauseRapDuringSuspend} is true; once on first PERMIT otherwise).
+     * the protected publisher factory, invoked initially and after suspension.
+     * This supplier-only entry point does not support method input handlers.
      * @param signalTransitions
      * whether to surface suspend/resume boundaries to the subscriber as
      * non-terminal exceptions on the error
@@ -155,16 +152,25 @@ public final class StreamingPipeline {
      * enabled) on the error channel, and completes / errors when the FSM reaches
      * {@link State.Terminated}.
      */
-    public static Flux<Object> create(boolean pauseRapDuringSuspend, Flux<AuthorizationDecision> decisions,
+    public static Flux<Object> create(Flux<AuthorizationDecision> decisions,
             Function<AuthorizationDecision, EnforcementPlan> planner, Supplier<? extends Flux<?>> rapSupplier,
             boolean signalTransitions) {
-        val pipeline = new StreamingPipeline(pauseRapDuringSuspend, decisions, planner, rapSupplier, signalTransitions);
-        // handle is used instead of flatMap so downstream request signals
-        // pass through to the create-sink without an intervening prefetch
-        // buffer. Errors raised via sink.error inside the handler remain
-        // eligible for onErrorContinue, which is what surfaces boundary
-        // signals as non-terminal events.
-        return Flux.<ProtectedPayload<Object>>create(pipeline::initialize).handle(StreamingPipeline::unpackPayload);
+        return createPrepared(decisions, planner, plan -> {
+            if (!plan.entriesFor(InputSignal.SIGNAL_TYPE).isEmpty()) {
+                throw new AccessDeniedException(ERROR_INPUT_REQUIRES_INVOCATION);
+            }
+            return rapSupplier;
+        }, signalTransitions);
+    }
+
+    static Flux<Object> createPrepared(Flux<AuthorizationDecision> decisions,
+            Function<AuthorizationDecision, EnforcementPlan> planner,
+            Function<EnforcementPlan, Supplier<? extends Flux<?>>> prepareRap, boolean signalTransitions) {
+        return Flux.defer(() -> {
+            val pipeline = new StreamingPipeline(decisions, planner, prepareRap, signalTransitions);
+            // handle preserves demand and makes transition notifications resumable.
+            return Flux.<ProtectedPayload<Object>>create(pipeline::initialize).handle(StreamingPipeline::unpackPayload);
+        });
     }
 
     private static void unpackPayload(ProtectedPayload<Object> payload, SynchronousSink<Object> sink) {
@@ -254,8 +260,8 @@ public final class StreamingPipeline {
         // a defective
         // PDP: fail closed by terminating the protected stream with an error (no retry
         // here).
-        val pdpSub = decisions.switchIfEmpty(Flux.just(io.sapl.api.pdp.AuthorizationDecision.DENY))
-                .contextWrite(subscriberContext).subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
+        val pdpSub = decisions.switchIfEmpty(Flux.just(AuthorizationDecision.DENY)).contextWrite(subscriberContext)
+                .subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
         subscriptions.add(pdpSub);
     }
 
@@ -264,10 +270,48 @@ public final class StreamingPipeline {
     }
 
     private void onPdpDecision(AuthorizationDecision decision) {
-        val   plan   = planner.apply(decision);
-        val   failed = plan.enforceDecisionConstraints(decision);
-        Event event  = classify(decision, plan, failed);
-        process(event);
+        synchronized (lock) {
+            if (state instanceof Terminated) {
+                return;
+            }
+            val revision = ++decisionRevision;
+            val plan     = planner.apply(decision);
+            lastPermittingPlan = plan;
+            val failed = plan.enforceDecisionConstraints(decision);
+            val event  = classify(decision, plan, failed);
+            if (failed) {
+                process(event);
+                return;
+            }
+            if (!isCurrentDecision(revision)) {
+                return;
+            }
+            if (!(event instanceof PdpPermit) || (rapSubscription != null && plan.matchesInputPlan(activeInputPlan))) {
+                process(event);
+                return;
+            }
+            disposeRap();
+            if (!isCurrentDecision(revision)) {
+                return;
+            }
+            try {
+                val invocation = prepareRap.apply(plan);
+                if (!isCurrentDecision(revision)) {
+                    return;
+                }
+                process(event);
+                if (isCurrentDecision(revision) && state instanceof Permitting) {
+                    subscribeRap(plan, invocation);
+                }
+            } catch (Throwable throwable) {
+                throwIfFatal(throwable);
+                process(new RapError(throwable));
+            }
+        }
+    }
+
+    private boolean isCurrentDecision(long revision) {
+        return revision == decisionRevision && !(state instanceof Terminated) && !sink.isCancelled();
     }
 
     /**
@@ -284,7 +328,9 @@ public final class StreamingPipeline {
         return switch (decision.decision()) {
         case PERMIT         -> decisionScopedFailed ? new PdpDeny(decision, plan, DenyKind.PERMIT_NOT_ENFORCEABLE)
                 : new PdpPermit(decision, plan);
-        case SUSPEND        -> new PdpSuspend(decision, plan, new TransitionReason.Suspended(decision));
+        case SUSPEND        ->
+            decisionScopedFailed ? new RapError(new AccessDeniedException(ERROR_SUSPEND_OBLIGATION_FAILED))
+                    : new PdpSuspend(decision, plan, new TransitionReason.Suspended(decision));
         case INDETERMINATE  -> new PdpDeny(decision, plan, DenyKind.INDETERMINATE);
         case NOT_APPLICABLE -> new PdpDeny(decision, plan, DenyKind.NO_POLICY_APPLICABLE);
         case DENY           -> new PdpDeny(decision, plan, DenyKind.POLICY_DENIED);
@@ -295,18 +341,20 @@ public final class StreamingPipeline {
         process(new PdpError(throwable));
     }
 
-    private void ensureRapSubscribed() {
-        BaseSubscriber<Object> subscriber;
-        synchronized (lock) {
-            if (rapSubscription != null || state instanceof Terminated) {
-                return;
-            }
-            subscriber      = createRapSubscriber();
-            rapSubscription = subscriber;
-            rapReady        = false;
-            subscriptions.add(subscriber);
+    private void subscribeRap(EnforcementPlan plan, Supplier<? extends Flux<?>> invocation) {
+        val subscriber = createRapSubscriber();
+        activeInputPlan = plan;
+        rapSubscription = subscriber;
+        rapReady        = false;
+        subscriptions.add(subscriber);
+        val source = EnforcementPlanContext.withBlocking(plan, invocation::get);
+        if (subscriber != rapSubscription || state instanceof Terminated) {
+            return;
         }
-        rapSupplier.get().contextWrite(subscriberContext).subscribe(subscriber);
+        Supplier<EnforcementPlan> current = this::currentPlan;
+        source.contextWrite(
+                context -> context.putAll(subscriberContext).put(EnforcementPlanContext.REACTOR_KEY, current))
+                .subscribe(subscriber);
     }
 
     private BaseSubscriber<Object> createRapSubscriber() {
@@ -315,6 +363,10 @@ public final class StreamingPipeline {
             protected void hookOnSubscribe(Subscription s) {
                 long toForward;
                 synchronized (lock) {
+                    if (this != rapSubscription || !(state instanceof Permitting)) {
+                        cancel();
+                        return;
+                    }
                     rapReady  = true;
                     toForward = subscriberDemand;
                 }
@@ -325,17 +377,29 @@ public final class StreamingPipeline {
 
             @Override
             protected void hookOnNext(Object value) {
-                onRapItem(value);
+                synchronized (lock) {
+                    if (this == rapSubscription) {
+                        onRapItem(this, value);
+                    }
+                }
             }
 
             @Override
             protected void hookOnError(Throwable throwable) {
-                onRapError(throwable);
+                synchronized (lock) {
+                    if (this == rapSubscription) {
+                        onRapError(throwable);
+                    }
+                }
             }
 
             @Override
             protected void hookOnComplete() {
-                onRapComplete();
+                synchronized (lock) {
+                    if (this == rapSubscription) {
+                        onRapComplete();
+                    }
+                }
             }
         };
     }
@@ -348,35 +412,23 @@ public final class StreamingPipeline {
             val sub = rapSubscription;
             rapSubscription = null;
             rapReady        = false;
+            activeInputPlan = null;
             sub.dispose();
             subscriptions.remove(sub);
         }
     }
 
-    private void onRapItem(Object payload) {
-        EnforcementPlan plan;
-        synchronized (lock) {
-            if (!(state instanceof Permitting(var permittingPlan))) {
-                if (state instanceof Terminated) {
-                    log.warn(WARN_RAP_AFTER_TERMINATION);
-                    return;
-                }
-                // Item arrived outside Permitting (typically Suspended).
-                // The plan is not active here, so per-item enforcement is
-                // not attempted. The FSM routes the absent-value, non-failure
-                // result through the silent-drop branch.
-                process(new RapItem(payload, ENFORCEMENT_NOT_ATTEMPTED));
-                return;
-            }
-            plan = permittingPlan;
+    private void onRapItem(BaseSubscriber<Object> source, Object payload) {
+        if (!(state instanceof Permitting(var plan))) {
+            return;
         }
-        val signal = OutputSignal.ofUnchecked(plan.outputType(), payload);
-        val result = plan.execute(signal, false);
-        process(new RapItem(payload, result));
+        val result = plan.executeStreamingOutput(payload);
+        if (result.failureState()) {
+            process(new RapItem(payload, result), result);
+        } else if (source == rapSubscription) {
+            process(new RapItem(payload, result));
+        }
     }
-
-    private static final EnforcementResult<Object> ENFORCEMENT_NOT_ATTEMPTED = new EnforcementResult<>(Maybe.absent(),
-            false);
 
     /**
      * Runs the error-signal handlers of the last-active Permitting plan against the
@@ -409,28 +461,29 @@ public final class StreamingPipeline {
         if (plan != null) {
             try {
                 plan.enforceComplete();
-                plan.enforceTermination();
             } catch (AccessDeniedException denied) {
                 process(new RapError(denied));
                 return;
             }
         }
         process(RapComplete.INSTANCE);
-        if (plan != null) {
-            enforceAfterTerminationBestEffort(plan);
-        }
     }
 
     private void onCancel() {
-        val plan = currentPlan();
-        if (plan != null) {
-            try {
-                plan.enforceCancel();
-            } catch (AccessDeniedException denied) {
-                log.warn(WARN_CANCEL_OBLIGATION_FAILED, denied.toString());
+        synchronized (lock) {
+            if (state instanceof Terminated) {
+                return;
+            }
+            val plan = currentPlan();
+            process(Cancel.INSTANCE);
+            if (plan != null) {
+                try {
+                    plan.enforceCancel();
+                } catch (AccessDeniedException denied) {
+                    log.warn(WARN_CANCEL_OBLIGATION_FAILED, denied.toString());
+                }
             }
         }
-        process(Cancel.INSTANCE);
     }
 
     private void enforceAfterTerminationBestEffort(EnforcementPlan plan) {
@@ -448,19 +501,25 @@ public final class StreamingPipeline {
     }
 
     private void process(Event event) {
-        State   priorState;
+        process(event, null);
+    }
+
+    private void process(Event event, @Nullable EnforcementResult<Object> failureOutput) {
         State   nextState;
         boolean rapItemGated = false;
         synchronized (lock) {
             if (state instanceof Terminated) {
                 return;
             }
-            priorState = state;
             val transition = MealyMachine.step(state, event);
             state     = transition.newState();
             nextState = state;
             if (nextState instanceof Permitting(var permittingPlan)) {
                 lastPermittingPlan = permittingPlan;
+            }
+            if (transition.isTerminal()) {
+                finish(event, transition.emissions(), failureOutput);
+                return;
             }
             boolean anyDataEmitted = false;
             for (val emission : transition.emissions()) {
@@ -475,36 +534,51 @@ public final class StreamingPipeline {
             if (event instanceof RapItem && !anyDataEmitted) {
                 rapItemGated = true;
             }
-            if (transition.isTerminal()) {
-                subscriptions.dispose();
-                rapSubscription = null;
-                rapReady        = false;
-                return;
-            }
         }
-        manageRapSubscription(priorState, nextState);
-        if (nextState instanceof Permitting) {
-            ensureRapSubscribed();
+        if (nextState instanceof Suspended) {
+            disposeRap();
         }
         if (rapItemGated) {
             requestOneMoreFromUpstream();
         }
     }
 
-    /**
-     * RAP connection management on state transitions when
-     * {@code pauseRapDuringSuspend} is true. Disposes the RAP
-     * subscription when the FSM enters Suspended from another state, and ensures it
-     * is re-subscribed when the FSM
-     * enters Permitting from Suspended.
-     */
-    private void manageRapSubscription(State priorState, State nextState) {
-        if (!pauseRapDuringSuspend) {
-            return;
+    private void finish(Event event, Iterable<Emission> emissions, @Nullable EnforcementResult<Object> failureOutput) {
+        val                   plan           = currentPlan();
+        AccessDeniedException cleanupFailure = null;
+        if (plan != null && !(event instanceof Cancel)) {
+            try {
+                plan.enforceTermination();
+            } catch (AccessDeniedException denied) {
+                cleanupFailure = denied;
+            }
         }
-        if (nextState instanceof Suspended && !(priorState instanceof Suspended)) {
-            disposeRap();
+        disposeRap();
+        subscriptions.dispose();
+        if (cleanupFailure != null) {
+            sink.error(cleanupFailure);
+        } else if (failureOutput != null) {
+            renderFailureOutput(failureOutput);
+        } else {
+            for (val emission : emissions) {
+                renderEmission(emission);
+            }
         }
+        if (plan != null && !(event instanceof Cancel)) {
+            enforceAfterTerminationBestEffort(plan);
+        }
+    }
+
+    private void renderFailureOutput(EnforcementResult<Object> result) {
+        // Terminal routing is unchanged. Only the selected failure output is rendered.
+        if (result.value() instanceof Maybe.Present<Object>(var value) && value != null) {
+            if (value instanceof Throwable throwable) {
+                sink.error(throwable);
+                return;
+            }
+            sink.next(ProtectedPayload.ofValue(value));
+        }
+        sink.complete();
     }
 
     private void renderEmission(Emission emission) {

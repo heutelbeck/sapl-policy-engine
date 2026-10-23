@@ -97,6 +97,17 @@ class LatencyCollectorTests {
         }
 
         @Test
+        @DisplayName("retains fractional nanoseconds in the mean")
+        void whenMeanIsFractionalThenFractionIsRetained() {
+            val collector = new LatencyCollector(2);
+            collector.addSample(1000);
+            collector.addSample(1001);
+
+            assertThat(collector.toLatency()).isNotNull()
+                    .satisfies(latency -> assertThat(latency.mean()).isEqualTo(1000.5));
+        }
+
+        @Test
         @DisplayName("p99 is higher than p50 for skewed distribution")
         void whenSkewedDistributionThenP99HigherThanP50() {
             val collector = new LatencyCollector(1000);

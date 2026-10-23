@@ -168,7 +168,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             // observers gate, about to call deliver) become no-ops.
             for (val bucket : observersByKey.values()) {
                 for (val observer : bucket) {
-                    observer.closed = true;
+                    observer.observerClosed = true;
                 }
             }
             entries.clear();
@@ -285,18 +285,18 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
         private static final long WARN_LOG_INTERVAL_NANOS = Duration.ofMinutes(1).toNanos();
 
-        private final long            id            = NEXT_ID.getAndIncrement();
+        private final long            id             = NEXT_ID.getAndIncrement();
         private final RepositoryKey   repositoryKey;
         private final Consumer<Value> onValue;
-        private volatile boolean      closed        = false;
-        private long                  lastDelivered = Long.MIN_VALUE;
+        private volatile boolean      observerClosed = false;
+        private long                  lastDelivered  = Long.MIN_VALUE;
 
         // Rate-limits the observer-threw warning to one per minute.
         private long    lastWarnLogNanos;
         private boolean warnLogged;
 
         synchronized void deliver(Value value, long seq) {
-            if (closed || seq <= lastDelivered) {
+            if (observerClosed || seq <= lastDelivered) {
                 return;
             }
             // Serialize and order deliveries so a delivery superseded by a newer
@@ -323,10 +323,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             lock.lock();
 
             try {
-                if (closed) {
+                if (observerClosed) {
                     return;
                 }
-                closed = true;
+                observerClosed = true;
                 val bucket = observersByKey.get(repositoryKey);
                 if (bucket != null) {
                     bucket.remove(this);

@@ -285,7 +285,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             ctx.policyBody().statements.stream().map(s -> (Statement) visit(s)).forEach(bodyStatements::add);
         }
 
-        val bodyLocation = ctx.policyBody() != null ? fromContext(ctx.policyBody()) : fromContext(ctx);
+        val bodyLocation = fromContext(ctx.policyBody() != null ? ctx.policyBody() : ctx);
         val body         = new PolicyBody(bodyStatements, bodyLocation);
 
         val obligations    = ctx.obligations.stream().map(this::expr).toList();

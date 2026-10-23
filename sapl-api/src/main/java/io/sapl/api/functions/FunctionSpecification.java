@@ -33,7 +33,7 @@ public record FunctionSpecification(
         Function<FunctionInvocation, Value> function) {
 
     public FunctionSpecification {
-        requireValidName(functionName());
+        requireValidName(namespace + "." + functionName);
     }
 
     public int numberOfArguments() {

@@ -363,7 +363,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
             String secrets) {
         return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
                 parameterToExpression(resource), parameterToExpression(environment), parameterToExpression(secrets),
-                false, false);
+                false);
     }
 
     private Expression parameterToExpression(String parameter) {
@@ -507,34 +507,26 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @Test
         @DisplayName("when injector wired then injector output appears in subscription secrets")
         void whenInjectorWiredThenSecretsContainInjectorOutput() {
-            val injector = new SubscriptionSecretsInjector() {
-                             @Override
-                             public io.sapl.api.model.ObjectValue injectSecrets(Authentication auth) {
-                                 return io.sapl.api.model.ObjectValue.builder().put("jwt", Value.of("test-token"))
-                                         .build();
-                             }
-                         };
-            val sut      = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-                    mapper, injector);
-            val attr     = attribute(null, null, null, null);
-            val sub      = sut.constructAuthorizationSubscription(authentication, invocation, attr);
+            SubscriptionSecretsInjector injector = ignored -> io.sapl.api.model.ObjectValue.builder()
+                    .put("jwt", Value.of("test-token")).build();
+            val                         sut      = new AuthorizationSubscriptionBuilderService(
+                    new DefaultMethodSecurityExpressionHandler(), mapper, injector);
+            val                         attr     = attribute(null, null, null, null);
+            val                         sub      = sut.constructAuthorizationSubscription(authentication, invocation,
+                    attr);
             assertThat(sub.secrets()).containsEntry("jwt", new TextValue("test-token"));
         }
 
         @Test
         @DisplayName("when SpEL secrets expression set then takes precedence over injector")
         void whenSpelSecretsThenPrecedenceOverInjector() {
-            val injector = new SubscriptionSecretsInjector() {
-                             @Override
-                             public io.sapl.api.model.ObjectValue injectSecrets(Authentication auth) {
-                                 return io.sapl.api.model.ObjectValue.builder().put("jwt", Value.of("injected"))
-                                         .build();
-                             }
-                         };
-            val sut      = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
-                    mapper, injector);
-            val attr     = attributeWithSecrets(null, null, null, null, "{jwt: 'spel-value'}");
-            val sub      = sut.constructAuthorizationSubscription(authentication, invocation, attr);
+            SubscriptionSecretsInjector injector = ignored -> io.sapl.api.model.ObjectValue.builder()
+                    .put("jwt", Value.of("injected")).build();
+            val                         sut      = new AuthorizationSubscriptionBuilderService(
+                    new DefaultMethodSecurityExpressionHandler(), mapper, injector);
+            val                         attr     = attributeWithSecrets(null, null, null, null, "{jwt: 'spel-value'}");
+            val                         sub      = sut.constructAuthorizationSubscription(authentication, invocation,
+                    attr);
             assertThat(sub.secrets()).containsEntry("jwt", new TextValue("spel-value"));
         }
 

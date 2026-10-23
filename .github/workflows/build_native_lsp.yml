@@ -101,6 +101,10 @@ jobs:
         shell: bash
         run: mvn -B package -pl sapl-language-server -P${{ matrix.profile }} -Dmaven.test.skip=true
 
+      - name: Test Native Language Server
+        shell: bash
+        run: ${{ runner.os == 'Windows' && 'python' || 'python3' }} sapl-language-server/src/test/python/native_lsp_smoke.py sapl-language-server/target/${{ matrix.executable }}
+
       - name: Upload Native Executable
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

@@ -61,7 +61,6 @@ class StreamingPipelineBackpressureTransparencyTests {
         AtomicLong                        upstreamRequested   = new AtomicLong();
         AtomicInteger                     supplierInvocations = new AtomicInteger();
         AtomicInteger                     pdpEvents           = new AtomicInteger();
-        boolean                           pauseRapDuringSuspend;
 
         Flux<Object> create() {
             Supplier<Flux<Object>> supplier = () -> {
@@ -69,7 +68,7 @@ class StreamingPipelineBackpressureTransparencyTests {
                                                 return rap.asFlux().doOnRequest(upstreamRequested::addAndGet);
                                             };
             val                    pdpFlux  = pdp.asFlux().doOnNext(ignored -> pdpEvents.incrementAndGet());
-            return StreamingPipeline.create(pauseRapDuringSuspend, pdpFlux, d -> plan, supplier, false);
+            return StreamingPipeline.create(pdpFlux, d -> plan, supplier, false);
         }
 
         void resetUpstreamSink() {
@@ -125,8 +124,8 @@ class StreamingPipelineBackpressureTransparencyTests {
     }
 
     @Test
-    @DisplayName("gated drop under suspended state tops up the upstream demand by one")
-    void gatedDropTopsUpUpstreamDemand() {
+    @DisplayName("suspension does not request replacement items from the retired source")
+    void whenSuspendedThenDoNotRequestFromRetiredSource() {
         TrackingHarness h   = new TrackingHarness();
         Flux<Object>    out = h.create();
 
@@ -135,20 +134,19 @@ class StreamingPipelineBackpressureTransparencyTests {
                 .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 5L)).then(() -> h.rap.tryEmitNext("a"))
                 .expectNext("a").then(() -> h.pdp.tryEmitNext(AuthorizationDecision.SUSPEND))
                 .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 2)).then(() -> h.rap.tryEmitNext("dropped"))
-                .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 6L))
+                .then(() -> assertThat(h.upstreamRequested).hasValue(5L)).then(h::resetUpstreamSink)
                 .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
                 .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 3)).then(() -> h.rap.tryEmitNext("b")).expectNext("b")
                 .thenCancel().verify(TIMEOUT);
 
-        assertThat(h.upstreamRequested.get()).isEqualTo(6L);
+        assertThat(h.upstreamRequested).hasValue(9L);
     }
 
     @Test
     @DisplayName("pending downstream demand is replayed to a fresh subscription on resume after pause")
     void pendingDemandReplaysToFreshSubscriptionOnResumeAfterPause() {
-        TrackingHarness h = new TrackingHarness();
-        h.pauseRapDuringSuspend = true;
-        Flux<Object> out = h.create();
+        TrackingHarness h   = new TrackingHarness();
+        Flux<Object>    out = h.create();
 
         StepVerifier.create(out, 0L).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
                 .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 1)).thenRequest(4L)
