@@ -27,8 +27,10 @@ import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -53,12 +55,14 @@ import org.springframework.data.mongodb.core.CollectionOptions;
 import reactor.util.retry.Retry.RetrySignal;
 
 /**
- * Repository implementation that persists attributes in MongoDB and maintains an In-Memory representation
- * by using the {@link InMemoryAttributeRepository} synchronized with MongoDB change streams.
+ * Repository implementation that persists attributes in MongoDB and maintains
+ * an In-Memory representation by using the {@link InMemoryAttributeRepository}
+ * synchronized with MongoDB change streams.
  *
- * The implementation sets all attribute to the state INDETERMINATE when a disconnect happens because the
- * change streams need a constant connection for the event stream. The current implementation performs a full
- * re-sync when the connection is established again.
+ * The implementation sets all attribute to the state INDETERMINATE when a
+ * disconnect happens because the change streams need a constant connection for
+ * the event stream. The current implementation performs a full re-sync when the
+ * connection is established again.
  */
 @Slf4j
 public final class MongoAttributeRepository implements AttributeRepository {
@@ -109,6 +113,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
         this.collection         = collection;
         this.internalRepository = new InMemoryAttributeRepository(this::deleteFromDB);
         configureChangeStreamPrePostImages();
+        createIndexes();
         loadFromDB();
         subscribeToChangeStream();
     }
@@ -128,7 +133,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
     }
 
     // The subscription to the change streams needs a MongoDB replica set activated.
-    // Replica sets are also working with a single node and are used together with change streams.
+    // Replica sets are also working with a single node and are used together with
+    // change streams.
     private void subscribeToChangeStream() {
         changeStreamSubscription.set(Flux.merge(openChangeStream(collection), openChangeStream(BATCH_COLLECTION))
                 .filter(this::belongsToPdpId).publishOn(Schedulers.boundedElastic())
@@ -138,7 +144,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .subscribe(this::processChangeStreamEvent, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
     }
 
-    // Handle the re-try logic on a detected disconnect. Invalidates the cache and resync the cache again.
+    // Handle the re-try logic on a detected disconnect. Invalidates the cache and
+    // resync the cache again.
     private void handleChangeStreamRetry(RetrySignal signal) {
         log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
         if (disconnected.compareAndSet(false, true)) {
@@ -151,7 +158,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
         }
     }
 
-    // Reconnects with a retry-backoff logic and loads all attributes from the backend if successful
+    // Reconnects with a retry-backoff logic and loads all attributes from the
+    // backend if successful
     private void resyncFromMongoWithRetry() {
         resyncSubscription.set(Mono.fromRunnable(this::loadFromDB)
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
@@ -160,7 +168,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .subscribe(v -> {}, error -> log.error(ERROR_RESYNC_FAILED, pdpId, error.getMessage())));
     }
 
-    // Opens the change stream when the first subscription is happening and activated pre-image for deletes on the
+    // Opens the change stream when the first subscription is happening and
+    // activated pre-image for deletes on the
     // change stream
     private Flux<ChangeStreamEvent<Document>> openChangeStream(String watchedCollection) {
         return Flux.defer(() -> mongo.changeStream(Document.class)
@@ -169,14 +178,17 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .watchCollection(watchedCollection).listen());
     }
 
-    // Filters events, so that events are only handled when the pdp id matches with the config of this object
+    // Filters events, so that events are only handled when the pdp id matches with
+    // the config of this object
     private boolean belongsToPdpId(ChangeStreamEvent<Document> event) {
         var body = isDeleteEvent(event) ? event.getBodyBeforeChange() : event.getBody();
         return body != null && pdpId.equals(body.getString(FIELD_PDP_ID));
     }
 
-    // Handles the change stream event on a publish and delete case. Delete needs to read the attribute before deleting
-    // it. Only meant for transactions with applyAll() and txnNumber. Other messages will be ignored here.
+    // Handles the change stream event on a publish and delete case. Delete needs to
+    // read the attribute before deleting
+    // it. Only meant for transactions with applyAll() and txnNumber. Other messages
+    // will be ignored here.
     private void processChangeStreamEvent(ChangeStreamEvent<Document> event) {
         if (BATCH_COLLECTION.equals(event.getCollectionName())) {
             handleBatch(Objects.requireNonNull(event.getBody()));
@@ -188,7 +200,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
             return;
         }
 
-        // Handle the delete events first because the body is always null on delete events
+        // Handle the delete events first because the body is always null on delete
+        // events
         if (isDeleteEvent(event)) {
             var doc = Objects.requireNonNull(event.getBodyBeforeChange());
             internalRepository.remove(repositoryKeyFromDocument(doc));
@@ -233,13 +246,15 @@ public final class MongoAttributeRepository implements AttributeRepository {
             internalRepository.publish(key, value, remaining);
     }
 
-    // Extract the expiry from a Mongo document to use it for the change stream handling
+    // Extract the expiry from a Mongo document to use it for the change stream
+    // handling
     private static Instant expirationFromDocument(Document doc) {
         var dateField = doc.getDate(FIELD_EXPIRES_AT);
         return dateField != null ? dateField.toInstant() : null;
     }
 
-    // Loads all attributes from the backend again. Adds current keys and removes stale keys
+    // Loads all attributes from the backend again. Adds current keys and removes
+    // stale keys
     private void loadFromDB() {
         var query    = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
         var seenKeys = new HashSet<RepositoryKey>();
@@ -265,7 +280,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
         upsertToDB(key, value, Instant.now().plus(ttl));
     }
 
-    // Upsert (update+insert) a repository key + value with optional ttl to the Mongo collection for the pdp
+    // Upsert (update+insert) a repository key + value with optional ttl to the
+    // Mongo collection for the pdp
     private void upsertToDB(@NonNull RepositoryKey key, Value value, @Nullable Instant expiresAt) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argsJson   = valuesToJsonArray(key.arguments());
@@ -333,10 +349,12 @@ public final class MongoAttributeRepository implements AttributeRepository {
         seenKeys.add(key);
     }
 
-    // Removes stale keys from the internal cache. Important after a resync with disconnect because
+    // Removes stale keys from the internal cache. Important after a resync with
+    // disconnect because
     // change events could have been missed
     private void removeStaleCacheEntries(Set<RepositoryKey> seenKeys) {
-        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up after a re-sync
+        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up
+        // after a re-sync
         for (var staleKey : internalRepository.knownKeys()) {
             if (!seenKeys.contains(staleKey)) {
                 internalRepository.remove(staleKey);
@@ -350,7 +368,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
             var exists = Boolean.TRUE.equals(mongo.collectionExists(collection).block());
 
             if (exists) {
-                // The db command collMod adds the changeStreamPreAndPostImages to the collection.
+                // The db command collMod adds the changeStreamPreAndPostImages to the
+                // collection.
                 // In other words: create a snapshot before and after an change stream event
                 mongo.executeCommand(new Document("collMod", collection).append("changeStreamPreAndPostImages",
                         new Document("enabled", true))).block();
@@ -364,6 +383,15 @@ public final class MongoAttributeRepository implements AttributeRepository {
         } catch (DataAccessException e) {
             log.warn(WARN_PRE_POST_IMAGES, pdpId, e.getMessage());
         }
+    }
+
+    private void createIndexes() {
+        mongo.indexOps(collection)
+                .createIndex(new Index().on(FIELD_PDP_ID, Sort.Direction.ASC).on(FIELD_NAME, Sort.Direction.ASC)
+                        .on(FIELD_ENTITY, Sort.Direction.ASC).on(FIELD_ARGUMENTS, Sort.Direction.ASC).unique())
+                .block();
+        mongo.indexOps(collection)
+                .createIndex(new Index().on(FIELD_EXPIRES_AT, Sort.Direction.ASC).expire(Duration.ZERO)).block();
     }
 
     private void handleBatch(Document batch) {
