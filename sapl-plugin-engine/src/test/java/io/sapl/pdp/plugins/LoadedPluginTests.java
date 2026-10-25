@@ -21,6 +21,7 @@ import io.sapl.api.pdp.DecisionInterceptor;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.semver4j.Semver;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,12 +34,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class LoadedPluginTests {
 
     private static final String PLUGIN_ID        = "test-plugin";
+    private static final Semver PLUGIN_VERSION   = new Semver("1.0.0");
     private static final Object FUNCTION_LIBRARY = new Object();
 
     @Test
     @DisplayName("the lists cannot be modified")
     void whenModifyingListsThenUnsupportedOperation() {
-        val plugin = new LoadedPlugin(PLUGIN_ID, List.of(FUNCTION_LIBRARY), List.of(), List.of());
+        val plugin = new LoadedPlugin(PLUGIN_ID, PLUGIN_VERSION, List.of(FUNCTION_LIBRARY), List.of(), List.of());
 
         assertThatThrownBy(() -> plugin.functionLibraries().add(new Object()))
                 .isInstanceOf(UnsupportedOperationException.class);
@@ -48,7 +50,8 @@ class LoadedPluginTests {
     @DisplayName("later changes to the source lists do not leak into the record")
     void whenSourceListChangesAfterConstructionThenRecordIsUnaffected() {
         val libraries = new ArrayList<Object>(List.of(FUNCTION_LIBRARY));
-        val plugin    = new LoadedPlugin(PLUGIN_ID, libraries, new ArrayList<>(), new ArrayList<DecisionInterceptor>());
+        val plugin    = new LoadedPlugin(PLUGIN_ID, PLUGIN_VERSION, libraries, new ArrayList<>(),
+                new ArrayList<DecisionInterceptor>());
 
         libraries.add(new Object());
 
@@ -60,7 +63,7 @@ class LoadedPluginTests {
     void whenListContainsNullThenRejected() {
         val libraries = Arrays.asList(FUNCTION_LIBRARY, null);
 
-        assertThatThrownBy(() -> new LoadedPlugin(PLUGIN_ID, libraries, List.of(), List.of()))
+        assertThatThrownBy(() -> new LoadedPlugin(PLUGIN_ID, PLUGIN_VERSION, libraries, List.of(), List.of()))
                 .isInstanceOf(NullPointerException.class);
     }
 }

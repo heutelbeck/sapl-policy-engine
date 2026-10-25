@@ -25,6 +25,7 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.pf4j.PluginDescriptor;
 import org.pf4j.PluginManager;
 import org.pf4j.PluginWrapper;
 
@@ -49,6 +50,7 @@ class SaplPluginManagerTests {
     private static final String LIBRARY_PLUGIN = "library-plugin";
     private static final String PIP_PLUGIN     = "pip-plugin";
     private static final String FAILING_PLUGIN = "failing-plugin";
+    private static final String PLUGIN_VERSION = "1.0.0";
 
     private static final Object              FUNCTION_LIBRARY         = new Object();
     private static final Object              POLICY_INFORMATION_POINT = new Object();
@@ -84,8 +86,11 @@ class SaplPluginManagerTests {
         val pluginManager  = mock(PluginManager.class);
         val startedPlugins = new ArrayList<PluginWrapper>();
         extensionsByPluginId.forEach((pluginId, extensions) -> {
-            val wrapper = mock(PluginWrapper.class);
+            val wrapper    = mock(PluginWrapper.class);
+            val descriptor = mock(PluginDescriptor.class);
             when(wrapper.getPluginId()).thenReturn(pluginId);
+            when(wrapper.getDescriptor()).thenReturn(descriptor);
+            when(descriptor.getVersion()).thenReturn(PLUGIN_VERSION);
             startedPlugins.add(wrapper);
             when(pluginManager.getExtensions(pluginId)).thenReturn(extensions);
         });

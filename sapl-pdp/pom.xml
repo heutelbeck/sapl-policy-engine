@@ -130,7 +130,6 @@
         <dependency>
             <groupId>org.semver4j</groupId>
             <artifactId>semver4j</artifactId>
-            <version>6.0.0</version>
         </dependency>
         <!-- IP Address Support -->
         <dependency>

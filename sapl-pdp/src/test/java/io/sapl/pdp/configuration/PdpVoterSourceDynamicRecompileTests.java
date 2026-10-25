@@ -27,6 +27,7 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import io.sapl.attributes.broker.pip.PolicyInformationPointVisibility;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.StandardFunctionLibrary;
@@ -36,6 +37,7 @@ import io.sapl.pdp.plugins.PluginSelectionException;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSnapshot;
 import lombok.val;
+import net.bytebuddy.build.Plugin;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -500,18 +502,19 @@ class PdpVoterSourceDynamicRecompileTests {
     @DisplayName("when the PIP visibility is managed")
     class PipVisibility {
 
-        private static final String ENABLED_PLUGIN = "enabled-plugin";
-        private static final String CONFLICT       = "Attribute 'test.value' is provided by both plugins.";
+        private static final String            ENABLED_PLUGIN     = "enabled-plugin";
+        private static final PluginRequirement ENABLED_PLUGIN_REQ = new PluginRequirement(ENABLED_PLUGIN, "1.0.0");
+        private static final String            CONFLICT           = "Attribute 'test.value' is provided by both plugins.";
 
         private final PluginsBundle                    bundle     = pluginsOf(brokerWithStandard());
         private final PolicyInformationPointVisibility visibility = mock(PolicyInformationPointVisibility.class);
 
         private PDPConfiguration enablingPlugin(String configId) {
-            return policyConfig(configId).withPlugins(Set.of(ENABLED_PLUGIN));
+            return policyConfig(configId).withPlugins(Set.of(ENABLED_PLUGIN_REQ));
         }
 
         private PDPConfiguration brokenEnablingPlugin() {
-            return brokenConfig().withPlugins(Set.of(ENABLED_PLUGIN));
+            return brokenConfig().withPlugins(Set.of(ENABLED_PLUGIN_REQ));
         }
 
         private PdpVoterSource voterSource() {
@@ -658,12 +661,13 @@ class PdpVoterSourceDynamicRecompileTests {
     @DisplayName("when the requested plugins cannot be provided")
     class PluginSelectionFailure {
 
-        private static final String REQUESTED_PLUGIN = "requested-plugin";
+        private static final String            REQUESTED_PLUGIN     = "requested-plugin";
+        private static final PluginRequirement REQUESTED_PLUGIN_REQ = new PluginRequirement(REQUESTED_PLUGIN, "1.0.0");
 
         private final PluginsBundle baseBundle = pluginsOf(brokerWithStandard());
 
         private PDPConfiguration requestingPlugin(String configId) {
-            return policyConfig(configId).withPlugins(Set.of(REQUESTED_PLUGIN));
+            return policyConfig(configId).withPlugins(Set.of(REQUESTED_PLUGIN_REQ));
         }
 
         private PluginsSnapshot failingSnapshot() {
@@ -671,7 +675,7 @@ class PdpVoterSourceDynamicRecompileTests {
             when(snapshot.availablePluginIds()).thenReturn(Set.of(REQUESTED_PLUGIN));
             when(snapshot.baseBundle()).thenReturn(baseBundle);
             when(snapshot.bundleFor(anyString(), anySet()))
-                    .thenThrow(new PluginSelectionException(PDP_ID, Set.of(REQUESTED_PLUGIN)));
+                    .thenThrow(new PluginSelectionException(PDP_ID, Set.of(REQUESTED_PLUGIN_REQ)));
             return snapshot;
         }
 
@@ -710,7 +714,7 @@ class PdpVoterSourceDynamicRecompileTests {
             when(snapshot.availablePluginIds()).thenReturn(Set.of(REQUESTED_PLUGIN));
             when(snapshot.baseBundle()).thenReturn(baseBundle);
             when(snapshot.bundleFor(anyString(), anySet())).thenReturn(baseBundle)
-                    .thenThrow(new PluginSelectionException(PDP_ID, Set.of(REQUESTED_PLUGIN)));
+                    .thenThrow(new PluginSelectionException(PDP_ID, Set.of(REQUESTED_PLUGIN_REQ)));
             val pluginsSource = new MutablePluginsSource();
             pluginsSource.publish(snapshot);
             try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
@@ -748,7 +752,7 @@ class PdpVoterSourceDynamicRecompileTests {
             try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
                 voterSource.loadConfiguration(requestingPlugin(CONFIG_A));
 
-                verify(snapshot).bundleFor(PDP_ID, Set.of(REQUESTED_PLUGIN));
+                verify(snapshot).bundleFor(PDP_ID, Set.of(REQUESTED_PLUGIN_REQ));
             }
         }
     }

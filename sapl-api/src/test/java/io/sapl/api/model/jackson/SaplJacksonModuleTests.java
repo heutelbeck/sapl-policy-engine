@@ -20,6 +20,7 @@ package io.sapl.api.model.jackson;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ArrayValue;
@@ -57,7 +58,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @DisplayName("SAPL Jackson module")
 class SaplJacksonModuleTests {
 
-    private static JsonMapper mapper;
+    private static JsonMapper              mapper;
+    private static final PluginRequirement FIRST_PLUGIN_REQ  = new PluginRequirement("first-plugin", "1.0.+");
+    private static final PluginRequirement SECOND_PLUGIN_REQ = new PluginRequirement("second-plugin", "*");
 
     @BeforeAll
     static void setup() {
@@ -618,13 +621,13 @@ class SaplJacksonModuleTests {
         val algorithm = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.ABSTAIN);
         val original  = new PDPConfiguration("test-pdp", "test-configuration", algorithm,
                 List.of("policy plain permit"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
-                .withPlugins(Set.of("first-plugin", "second-plugin"));
+                .withPlugins(Set.of(FIRST_PLUGIN_REQ, SECOND_PLUGIN_REQ));
 
         val json     = mapper.writeValueAsString(original);
         val restored = mapper.readValue(json, PDPConfiguration.class);
 
         assertThat(restored).isEqualTo(original);
-        assertThat(restored.plugins()).containsExactlyInAnyOrder("first-plugin", "second-plugin");
+        assertThat(restored.pluginRequirements()).containsExactlyInAnyOrder(FIRST_PLUGIN_REQ, SECOND_PLUGIN_REQ);
     }
 
     @Test
@@ -744,7 +747,7 @@ class SaplJacksonModuleTests {
 
         assertThat(configuration.saplDocuments()).isEmpty();
         assertThat(configuration.data().variables()).isEmpty();
-        assertThat(configuration.plugins()).isEmpty();
+        assertThat(configuration.pluginRequirements()).isEmpty();
     }
 
     @ParameterizedTest(name = "saplDocuments element {0}")

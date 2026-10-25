@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.plugins;
 
+import io.sapl.api.pdp.plugins.PluginRequirement;
+
 import java.util.Set;
 
 /**
@@ -35,9 +37,9 @@ record StaticPluginsSnapshot(PluginsBundle baseBundle) implements PluginsSnapsho
     }
 
     @Override
-    public PluginsBundle bundleFor(String pdpId, Set<String> pluginIds) {
-        if (!pluginIds.isEmpty()) {
-            throw new PluginSelectionException(pdpId, pluginIds);
+    public PluginsBundle bundleFor(String pdpId, Set<PluginRequirement> requirements) {
+        if (!requirements.isEmpty()) {
+            throw new PluginSelectionException(pdpId, requirements);
         }
         return baseBundle;
     }

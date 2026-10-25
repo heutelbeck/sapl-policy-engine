@@ -111,6 +111,7 @@
 		<jspecify.version>1.0.0</jspecify.version>
 		<protobuf.version>4.35.1</protobuf.version>
 		<flexmark.version>0.64.8</flexmark.version>
+		<semver4j.version>6.0.0</semver4j.version>
 		<springdoc.version>3.0.3</springdoc.version>
 		<jsqlparser.version>5.3</jsqlparser.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
@@ -386,6 +387,11 @@
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcutil-jdk18on</artifactId>
 				<version>${bouncycastle.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.semver4j</groupId>
+				<artifactId>semver4j</artifactId>
+				<version>${semver4j.version}</version>
 			</dependency>
 			<!-- Testcontainers -->
 			<dependency>

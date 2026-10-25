@@ -93,5 +93,9 @@
 			<artifactId>slf4j-nop</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+		<dependency>
+			<groupId>org.semver4j</groupId>
+			<artifactId>semver4j</artifactId>
+		</dependency>
+    </dependencies>
 </project>

@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.pf4j.JarPluginManager;
 import org.pf4j.PluginManager;
+import org.semver4j.Semver;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -118,7 +119,8 @@ public class SaplPluginManager implements AutoCloseable {
 
     /**
      * Collects what each started plugin provides, keyed by plugin id. A plugin
-     * whose extensions throw while providing their contributions is logged and
+     * whose {@code Plugin-Version} is not a valid semantic version, or whose
+     * extensions throw while providing their contributions, is logged and
      * omitted; the other plugins are unaffected.
      *
      * @return an immutable map from plugin id to the plugin's contributions
@@ -131,9 +133,15 @@ public class SaplPluginManager implements AutoCloseable {
             ensureOpen();
             val result = new HashMap<String, LoadedPlugin>();
             for (val wrapper : pluginManager.getStartedPlugins()) {
-                val pluginId = wrapper.getPluginId();
+                val pluginId   = wrapper.getPluginId();
+                val rawVersion = wrapper.getDescriptor().getVersion();
+                val version    = Semver.parse(rawVersion);
+                if (version == null) {
+                    log.error("Plugin '{}' has an invalid version '{}' and is not available.", pluginId, rawVersion);
+                    continue;
+                }
                 try {
-                    result.put(pluginId, collect(pluginId));
+                    result.put(pluginId, collect(pluginId, version));
                 } catch (RuntimeException e) {
                     log.error("Plugin '{}' failed while providing its extensions and is not available.", pluginId, e);
                 }
@@ -144,7 +152,7 @@ public class SaplPluginManager implements AutoCloseable {
         }
     }
 
-    private LoadedPlugin collect(String pluginId) {
+    private LoadedPlugin collect(String pluginId, Semver version) {
         List<Object>              functionLibraries       = new ArrayList<>();
         List<Object>              policyInformationPoints = new ArrayList<>();
         List<DecisionInterceptor> decisionInterceptors    = new ArrayList<>();
@@ -160,7 +168,7 @@ public class SaplPluginManager implements AutoCloseable {
                 decisionInterceptors.addAll(interceptorPlugin.decisionInterceptors());
             }
         }
-        return new LoadedPlugin(pluginId, functionLibraries, policyInformationPoints, decisionInterceptors);
+        return new LoadedPlugin(pluginId, version, functionLibraries, policyInformationPoints, decisionInterceptors);
     }
 
     /**

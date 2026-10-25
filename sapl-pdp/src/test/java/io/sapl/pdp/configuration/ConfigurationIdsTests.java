@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -214,11 +215,12 @@ class ConfigurationIdsTests {
                             new PDPConfiguration(base.pdpId(), base.configurationId(), base.combiningAlgorithm(),
                                     base.compilerOptions(), base.saplDocuments(), base.data(), Map.of(),
                                     Map.of("geo", secrets), Set.of())),
-                    arguments("the critical extensions",
+                    arguments(
+                            "the critical extensions",
                             new PDPConfiguration(base.pdpId(), base.configurationId(), base.combiningAlgorithm(),
                                     base.compilerOptions(), base.saplDocuments(), base.data(), Map.of("geo", variables),
                                     Map.of(), Set.of("geo"))),
-                    arguments("the plugins", base.withPlugins(Set.of("first-plugin"))));
+                    arguments("the plugins", base.withPlugins(Set.of(new PluginRequirement("first-plugin", "1.0.0")))));
         }
     }
 }

@@ -17,6 +17,7 @@
  */
 package io.sapl.api.model.jackson;
 
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
 import tools.jackson.databind.DeserializationContext;
@@ -54,7 +55,9 @@ import lombok.val;
  * <ul>
  * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.).
  * Defaults to an empty ObjectValue</li>
- * <li>plugins - array of plugin ids enabled for this PDP. Defaults to empty</li>
+ * <li>plugins - array of plugin requirements enabled for this PDP, each of the
+ * form {@code pluginId:versionRange}, at most one per plugin id. Defaults to
+ * empty</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {
@@ -73,6 +76,8 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
     private static final String ERROR_EXPECTED_STRING_ELEMENT      = "Expected VALUE_STRING element in %s.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
+    private static final String ERROR_PLUGIN_ENTRY_INVALID         = "PDPConfiguration field 'plugins' contains an invalid entry: %s";
+    private static final String ERROR_PLUGIN_ID_DUPLICATE          = "PDPConfiguration field 'plugins' must contain only unique plugin ids, found duplicate: '%s' and '%s'.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
     private final CombiningAlgorithmDeserializer combiningAlgorithmDeserializer = new CombiningAlgorithmDeserializer();
@@ -83,17 +88,17 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             return context.reportInputMismatch(PDPConfiguration.class, ERROR_EXPECTED_START_OBJECT);
         }
 
-        String             pdpId              = null;
-        String             configurationId    = null;
-        CombiningAlgorithm combiningAlgorithm = null;
-        ObjectValue        compilerOptions    = Value.EMPTY_OBJECT;
-        List<String>       saplDocuments      = List.of();
-        ObjectValue        variables          = Value.EMPTY_OBJECT;
-        ObjectValue        secrets            = Value.EMPTY_OBJECT;
-        ObjectValue        extensions         = Value.EMPTY_OBJECT;
-        ObjectValue        extensionSecrets   = Value.EMPTY_OBJECT;
-        Set<String>        criticalExtensions = Set.of();
-        Set<String>        plugins            = Set.of();
+        String                 pdpId              = null;
+        String                 configurationId    = null;
+        CombiningAlgorithm     combiningAlgorithm = null;
+        ObjectValue            compilerOptions    = Value.EMPTY_OBJECT;
+        List<String>           saplDocuments      = List.of();
+        ObjectValue            variables          = Value.EMPTY_OBJECT;
+        ObjectValue            secrets            = Value.EMPTY_OBJECT;
+        ObjectValue            extensions         = Value.EMPTY_OBJECT;
+        ObjectValue            extensionSecrets   = Value.EMPTY_OBJECT;
+        Set<String>            criticalExtensions = Set.of();
+        Set<PluginRequirement> plugins            = Set.of();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val fieldName = parser.currentName();
@@ -112,7 +117,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             case "extensionSecrets"                 -> extensionSecrets = deserializeObjectValue(parser, context);
             case "criticalExtensions"               ->
                 criticalExtensions = Set.copyOf(deserializeStringList(parser, context));
-            case "plugins"                          -> plugins = Set.copyOf(deserializeStringList(parser, context));
+            case "plugins"                          -> plugins = deserializePluginRequirements(parser, context);
             default                                 -> parser.skipChildren();
             }
         }
@@ -159,5 +164,24 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             map.put(fieldName, valueDeserializer.deserialize(parser, context));
         }
         return Value.ofObject(map);
+    }
+
+    private Set<PluginRequirement> deserializePluginRequirements(JsonParser parser, DeserializationContext context) {
+        val requirements = new HashMap<String, PluginRequirement>();
+        for (val entry : deserializeStringList(parser, context)) {
+            try {
+                val requirement = new PluginRequirement(entry);
+                val previous    = requirements.putIfAbsent(requirement.pluginId(), requirement);
+                if (previous != null) {
+                    return context.reportInputMismatch(PluginRequirement.class,
+                            ERROR_PLUGIN_ID_DUPLICATE.formatted(previous, requirement));
+                }
+            } catch (IllegalArgumentException e) {
+                return context.reportInputMismatch(PluginRequirement.class,
+                        ERROR_PLUGIN_ENTRY_INVALID.formatted(e.getMessage()));
+            }
+        }
+
+        return Set.copyOf(requirements.values());
     }
 }

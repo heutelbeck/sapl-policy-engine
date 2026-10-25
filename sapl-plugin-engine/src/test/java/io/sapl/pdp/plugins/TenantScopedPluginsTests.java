@@ -28,6 +28,7 @@ import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
@@ -41,12 +42,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.semver4j.Semver;
 
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,10 +66,11 @@ import static org.mockito.Mockito.verify;
 @DisplayName("Plugins are scoped to the PDPs that enable them")
 class TenantScopedPluginsTests {
 
-    private static final String FIRST_PLUGIN  = "first-plugin";
-    private static final String SECOND_PLUGIN = "second-plugin";
-    private static final String ENABLING_PDP  = "enabling-pdp";
-    private static final String OTHER_PDP     = "other-pdp";
+    private static final String FIRST_PLUGIN   = "first-plugin";
+    private static final String SECOND_PLUGIN  = "second-plugin";
+    private static final Semver PLUGIN_VERSION = new Semver("1.0.0");
+    private static final String ENABLING_PDP   = "enabling-pdp";
+    private static final String OTHER_PDP      = "other-pdp";
 
     private static final String PLAIN_POLICY     = "policy \"plain\" permit";
     private static final String FUNCTION_POLICY  = "policy \"function\" permit first.value() == \"first\";";
@@ -135,9 +139,9 @@ class TenantScopedPluginsTests {
         broker.load(new FirstPip(), FIRST_PLUGIN);
 
         val plugins  = Map.of(FIRST_PLUGIN,
-                new LoadedPlugin(FIRST_PLUGIN, List.of(new FirstLibrary()), List.of(new FirstPip()),
+                new LoadedPlugin(FIRST_PLUGIN, PLUGIN_VERSION, List.of(new FirstLibrary()), List.of(new FirstPip()),
                         List.of(firstInterceptor)),
-                SECOND_PLUGIN, new LoadedPlugin(SECOND_PLUGIN, List.of(), List.of(new CollidingPip()),
+                SECOND_PLUGIN, new LoadedPlugin(SECOND_PLUGIN, PLUGIN_VERSION, List.of(), List.of(new CollidingPip()),
                         List.<DecisionInterceptor>of()));
         val snapshot = new PluginEngineSnapshot(plugins, List.of(), false, 0, List.of(), List.of());
 
@@ -152,7 +156,9 @@ class TenantScopedPluginsTests {
         broker.close();
     }
 
-    private void load(String pdpId, String policy, Set<String> plugins) {
+    private void load(String pdpId, String policy, Set<String> pluginIds) {
+        val plugins = pluginIds.stream().map(pluginId -> new PluginRequirement(pluginId, PluginRequirement.ANY_VERSION))
+                .collect(Collectors.toSet());
         voterSource.loadConfiguration(new PDPConfiguration(pdpId, pdpId + "-config", CombiningAlgorithm.DEFAULT,
                 List.of(policy), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT)).withPlugins(plugins));
     }

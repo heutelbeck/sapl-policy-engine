@@ -19,10 +19,12 @@ package io.sapl.pdp.plugins;
 
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import lombok.val;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Immutable {@link PluginsSnapshot} published by the
@@ -36,8 +38,9 @@ import java.util.*;
  * from the base libraries plus the libraries of the requested plugins, and
  * combines the base decision interceptors with those of the requested plugins.
  * The order of interceptors contributed by different plugins is unspecified.
- * Requesting an unavailable plugin, or plugins whose libraries cannot be
- * combined, fails with a {@link PluginSelectionException}.
+ * Requesting an unavailable plugin, a plugin whose version lies outside the
+ * requested version range, or plugins whose libraries cannot be combined,
+ * fails with a {@link PluginSelectionException}.
  *
  * @since 4.2.0
  */
@@ -80,21 +83,27 @@ final class PluginEngineSnapshot implements PluginsSnapshot {
     }
 
     @Override
-    public PluginsBundle bundleFor(String pdpId, Set<String> pluginIds) {
-        val missing = new HashSet<>(pluginIds);
-        missing.removeAll(plugins.keySet());
+    public PluginsBundle bundleFor(String pdpId, Set<PluginRequirement> requirements) {
+        val missing = new HashSet<PluginRequirement>();
+        for (val requirement : requirements) {
+            val plugin = plugins.get(requirement.pluginId());
+            if (plugin == null || !requirement.isSatisfiedBy(plugin.version())) {
+                missing.add(requirement);
+            }
+        }
+
         if (!missing.isEmpty()) {
             throw new PluginSelectionException(pdpId, missing);
         }
 
-        if (pluginIds.isEmpty()) {
+        if (requirements.isEmpty()) {
             return baseBundle;
         }
 
         val libraries    = new ArrayList<>(baseLibraries);
         val interceptors = new ArrayList<>(baseInterceptors);
-        for (val pluginId : pluginIds) {
-            val plugin = plugins.get(pluginId);
+        for (val requirement : requirements) {
+            val plugin = plugins.get(requirement.pluginId());
             libraries.addAll(plugin.functionLibraries());
             interceptors.addAll(plugin.decisionInterceptors());
         }
@@ -105,8 +114,10 @@ final class PluginEngineSnapshot implements PluginsSnapshot {
             return new PluginsBundle(broker, interceptors, lifecycleListeners);
 
         } catch (RuntimeException e) {
+            val pluginIds = requirements.stream().map(PluginRequirement::pluginId)
+                    .collect(Collectors.toCollection(TreeSet::new));
             throw new PluginSelectionException(
-                    ERROR_LIBRARIES_NOT_PROVIDABLE.formatted(new TreeSet<>(pluginIds), pdpId, e.getMessage()), e);
+                    ERROR_LIBRARIES_NOT_PROVIDABLE.formatted(pluginIds, pdpId, e.getMessage()), e);
         }
     }
 }

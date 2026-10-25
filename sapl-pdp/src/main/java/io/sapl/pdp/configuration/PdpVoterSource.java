@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import io.sapl.attributes.broker.pip.PolicyInformationPointVisibility;
 import io.sapl.pdp.plugins.PluginSelectionException;
 import io.sapl.pdp.plugins.PluginsBundle;
@@ -44,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Holds the latest compiled PDP configuration per pdpId and notifies
@@ -149,8 +151,8 @@ public class PdpVoterSource implements AutoCloseable {
         return snapshot == null ? null : snapshot.baseBundle();
     }
 
-    private static Set<String> effectivePlugins(PDPConfiguration configuration) {
-        return configuration.plugins();
+    private static Set<PluginRequirement> effectivePlugins(PDPConfiguration configuration) {
+        return configuration.pluginRequirements();
     }
 
     private void onPluginsSnapshot(PluginsSnapshot newSnapshot) {
@@ -280,10 +282,12 @@ public class PdpVoterSource implements AutoCloseable {
     private void loadConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
             PluginsSnapshot snapshot) {
         retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
-        val         requested = effectivePlugins(pdpConfiguration);
+        val         requested          = effectivePlugins(pdpConfiguration);
+        val         requestedPluginIds = requested.stream().map(PluginRequirement::pluginId)
+                .collect(Collectors.toSet());
         CompiledPdp newConfiguration;
         try {
-            val conflicts = pipVisibility.conflictsAmong(requested);
+            val conflicts = pipVisibility.conflictsAmong(requestedPluginIds);
             if (!conflicts.isEmpty()) {
                 throw new PluginSelectionException(
                         ERROR_PLUGIN_CONFLICTS.formatted(pdpConfiguration.pdpId(), String.join(" ", conflicts)));
@@ -311,7 +315,7 @@ public class PdpVoterSource implements AutoCloseable {
             return;
         }
 
-        pipVisibility.setVisiblePlugins(pdpConfiguration.pdpId(), requested);
+        pipVisibility.setVisiblePlugins(pdpConfiguration.pdpId(), requestedPluginIds);
         getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(newConfiguration));
         notifyListeners(pdpConfiguration.pdpId(), new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), newConfiguration));
 

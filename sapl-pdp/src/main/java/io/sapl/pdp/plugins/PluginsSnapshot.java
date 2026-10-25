@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.plugins;
 
+import io.sapl.api.pdp.plugins.PluginRequirement;
+
 import java.util.Set;
 
 /**
@@ -46,10 +48,11 @@ public interface PluginsSnapshot {
      * {@link #baseBundle()}.
      *
      * @param pdpId the PDP requesting the plugins
-     * @param pluginIds the ids of the requested plugins
+     * @param requirements the requested plugins, each with the range of
+     * versions the PDP accepts
      * @return the bundle for the PDP
      * @throws PluginSelectionException if requested plugins are not available
-     * or their contributions cannot be combined
+     * in an accepted version or their contributions cannot be combined
      */
-    PluginsBundle bundleFor(String pdpId, Set<String> pluginIds);
+    PluginsBundle bundleFor(String pdpId, Set<PluginRequirement> requirements);
 }

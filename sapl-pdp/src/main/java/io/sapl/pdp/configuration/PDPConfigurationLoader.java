@@ -23,6 +23,7 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.secrets.ValueSealer;
 import lombok.experimental.UtilityClass;
@@ -110,8 +111,10 @@ public class PDPConfigurationLoader {
     private static final String ERROR_PDP_JSON_CONFIGURATION_ID_REMOVED = "pdp.json must not contain a 'configurationId' field. The configurationId moved to the bundle manifest and is derived from content for directory and resource sources. Remove the field.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED         = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED        = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
-    private static final String ERROR_PDP_JSON_PLUGIN_ID_INVALID        = "pdp.json field 'plugins' must contain only non-blank plugin ids, found: %s.";
-    private static final String ERROR_PDP_JSON_PLUGINS_NOT_ARRAY        = "pdp.json field 'plugins' must be an array of plugin ids.";
+    private static final String ERROR_PDP_JSON_PLUGIN_ENTRY_INVALID     = "pdp.json field 'plugins' must contain only non-blank plugin entries, found: %s.";
+    private static final String ERROR_PDP_JSON_PLUGIN_ENTRY_MALFORMED   = "pdp.json field 'plugins' contains an invalid entry: %s";
+    private static final String ERROR_PDP_JSON_PLUGIN_ID_DUPLICATE      = "pdp.json field 'plugins' must contain only unique plugin ids, found duplicate: '%s' and '%s'.";
+    private static final String ERROR_PDP_JSON_PLUGINS_NOT_ARRAY        = "pdp.json field 'plugins' must be an array of plugin entries of the form pluginId:versionRange.";
     private static final String ERROR_PDP_JSON_SECRETS_NOT_ALLOWED      = "pdp.json must not contain a 'secrets' section. Move the secrets object to 'secrets.json' (sealed: 'secrets.sealed.json').";
     private static final String ERROR_SEALED_CONTENT_NOT_SEALED         = "File '%s' is named sealed but its content is not sealed.";
     private static final String ERROR_SECRETS_FILE_NOT_OBJECT           = "Secrets file '%s' must contain a JSON object.";
@@ -184,7 +187,8 @@ public class PDPConfigurationLoader {
 
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
                 new PdpData(pdpJson.variables(), supplements.secrets()), supplements.extensions(),
-                supplements.extensionSecrets(), supplements.criticalExtensions(), pdpJson.plugins(), provenance);
+                supplements.extensionSecrets(), supplements.criticalExtensions(), pdpJson.pluginRequirements(),
+                provenance);
     }
 
     private static void putUtf8(Map<String, byte[]> contents, Map<String, String> textByName) {
@@ -317,7 +321,7 @@ public class PDPConfigurationLoader {
         val configurationId = ConfigurationIds.derive("res:" + sourceName, contents);
 
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
-                new PdpData(pdpJson.variables(), Value.EMPTY_OBJECT)).withPlugins(pdpJson.plugins());
+                new PdpData(pdpJson.variables(), Value.EMPTY_OBJECT)).withPlugins(pdpJson.pluginRequirements());
     }
 
     /**
@@ -362,7 +366,7 @@ public class PDPConfigurationLoader {
         enforceDocumentCount(saplDocuments.size(), maxDocuments);
         val documents = new ArrayList<>(saplDocuments.values());
         return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(), documents,
-                new PdpData(pdpJson.variables(), secrets)).withPlugins(pdpJson.plugins());
+                new PdpData(pdpJson.variables(), secrets)).withPlugins(pdpJson.pluginRequirements());
     }
 
     private static PdpJsonFile loadPdpJson(Path pdpJsonPath) {
@@ -414,9 +418,9 @@ public class PDPConfigurationLoader {
 
             val variables = parseValueSection(node, "variables");
 
-            val plugins = parsePlugins(node);
+            val pluginRequirements = parsePlugins(node);
 
-            return new PdpJsonContent(algorithm, compilerOptions, variables, plugins);
+            return new PdpJsonContent(algorithm, compilerOptions, variables, pluginRequirements);
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
@@ -432,7 +436,7 @@ public class PDPConfigurationLoader {
         return Value.EMPTY_OBJECT;
     }
 
-    private static Set<String> parsePlugins(JsonNode node) {
+    private static Set<PluginRequirement> parsePlugins(JsonNode node) {
         val pluginsNode = node.get(FIELD_PLUGINS);
         if (pluginsNode == null || pluginsNode.isNull()) {
             return Set.of();
@@ -440,14 +444,23 @@ public class PDPConfigurationLoader {
         if (!pluginsNode.isArray()) {
             throw new PDPConfigurationException(ERROR_PDP_JSON_PLUGINS_NOT_ARRAY);
         }
-        val plugins = new HashSet<String>();
+        val requirements = new HashMap<String, PluginRequirement>();
         for (val pluginNode : pluginsNode) {
             if (!pluginNode.isString() || pluginNode.asString().isBlank()) {
-                throw new PDPConfigurationException(ERROR_PDP_JSON_PLUGIN_ID_INVALID.formatted(pluginNode));
+                throw new PDPConfigurationException(ERROR_PDP_JSON_PLUGIN_ENTRY_INVALID.formatted(pluginNode));
             }
-            plugins.add(pluginNode.asString());
+            try {
+                val requirement = new PluginRequirement(pluginNode.asString());
+                val previous    = requirements.putIfAbsent(requirement.pluginId(), requirement);
+                if (previous != null) {
+                    throw new PDPConfigurationException(
+                            ERROR_PDP_JSON_PLUGIN_ID_DUPLICATE.formatted(previous, requirement));
+                }
+            } catch (IllegalArgumentException e) {
+                throw new PDPConfigurationException(ERROR_PDP_JSON_PLUGIN_ENTRY_MALFORMED.formatted(e.getMessage()), e);
+            }
         }
-        return plugins;
+        return Set.copyOf(requirements.values());
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {
@@ -543,7 +556,7 @@ public class PDPConfigurationLoader {
             CombiningAlgorithm algorithm,
             ObjectValue compilerOptions,
             ObjectValue variables,
-            Set<String> plugins) {}
+            Set<PluginRequirement> pluginRequirements) {}
 
     private record PdpJsonFile(String raw, PdpJsonContent parsed) {}
 

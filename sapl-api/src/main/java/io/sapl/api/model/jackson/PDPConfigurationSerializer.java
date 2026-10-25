@@ -17,6 +17,7 @@
  */
 package io.sapl.api.model.jackson;
 
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
@@ -57,7 +58,7 @@ import lombok.val;
  *   "secrets": {
  *     "apiKey": "secret-value"
  *   },
- *   "plugins": ["sapl-plugins-example"]
+ *   "plugins": ["sapl-plugins-example:1.4.+"]
  * }
  * }</pre>
  */
@@ -106,9 +107,11 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
             serializeStringList(List.copyOf(configuration.criticalExtensions()), generator);
         }
 
-        if (!configuration.plugins().isEmpty()) {
+        if (!configuration.pluginRequirements().isEmpty()) {
             generator.writeName("plugins");
-            serializeStringList(List.copyOf(configuration.plugins()), generator);
+            val pluginRequirements = configuration.pluginRequirements().stream().map(PluginRequirement::toString)
+                    .toList();
+            serializeStringList(pluginRequirements, generator);
         }
 
         generator.writeEndObject();

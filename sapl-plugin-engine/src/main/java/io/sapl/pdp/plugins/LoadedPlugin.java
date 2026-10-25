@@ -18,6 +18,8 @@
 package io.sapl.pdp.plugins;
 
 import io.sapl.api.pdp.DecisionInterceptor;
+import lombok.NonNull;
+import org.semver4j.Semver;
 
 import java.util.List;
 
@@ -27,6 +29,8 @@ import java.util.List;
  * The lists are immutable copies.
  *
  * @param pluginId the {@code Plugin-Id} from the plugin manifest
+ * @param version the {@code Plugin-Version} from the plugin manifest, parsed
+ * as a semantic version
  * @param functionLibraries the function library instances of the plugin
  * @param policyInformationPoints the Policy Information Point instances of the
  * plugin
@@ -35,7 +39,8 @@ import java.util.List;
  * @since 4.2.0
  */
 public record LoadedPlugin(
-        String pluginId,
+        @NonNull String pluginId,
+        @NonNull Semver version,
         List<Object> functionLibraries,
         List<Object> policyInformationPoints,
         List<DecisionInterceptor> decisionInterceptors) {

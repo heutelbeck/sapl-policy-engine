@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.plugins;
 
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -54,9 +55,10 @@ class StaticPluginsSnapshotTests {
     @DisplayName("requesting plugins fails, naming the PDP and all requested plugins in sorted order")
     void whenPluginsRequestedThenSelectionFails() {
         val snapshot  = snapshot();
-        val requested = Set.of("second-plugin", "first-plugin");
+        val requested = Set.of(new PluginRequirement("second-plugin", "*"),
+                new PluginRequirement("first-plugin", "1.4.+"));
 
         assertThatThrownBy(() -> snapshot.bundleFor(PDP_ID, requested)).isInstanceOf(PluginSelectionException.class)
-                .hasMessageContaining(PDP_ID).hasMessageContaining("[first-plugin, second-plugin]");
+                .hasMessageContaining(PDP_ID).hasMessageContaining("[first-plugin:1.4.+, second-plugin:*]");
     }
 }

@@ -22,10 +22,12 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.semver4j.Semver;
 
 import java.util.List;
 import java.util.Map;
@@ -38,9 +40,12 @@ import static org.mockito.Mockito.mock;
 @DisplayName("PluginEngineSnapshot builds a bundle per requested plugin set")
 class PluginEngineSnapshotTests {
 
-    private static final String PDP_ID        = "test-pdp";
-    private static final String FIRST_PLUGIN  = "first-plugin";
-    private static final String SECOND_PLUGIN = "second-plugin";
+    private static final String            PDP_ID            = "test-pdp";
+    private static final String            FIRST_PLUGIN      = "first-plugin";
+    private static final String            SECOND_PLUGIN     = "second-plugin";
+    private static final Semver            PLUGIN_VERSION    = new Semver("1.0.0");
+    private static final PluginRequirement FIRST_PLUGIN_REQ  = new PluginRequirement(FIRST_PLUGIN, "1.0.0");
+    private static final PluginRequirement SECOND_PLUGIN_REQ = new PluginRequirement(SECOND_PLUGIN, "1.0.+");
 
     private static final DecisionInterceptor           BASE_INTERCEPTOR   = mock(DecisionInterceptor.class);
     private static final DecisionInterceptor           FIRST_INTERCEPTOR  = mock(DecisionInterceptor.class);
@@ -81,7 +86,7 @@ class PluginEngineSnapshotTests {
     }
 
     private static LoadedPlugin plugin(String pluginId, Object library, DecisionInterceptor interceptor) {
-        return new LoadedPlugin(pluginId, List.of(library), List.of(), List.of(interceptor));
+        return new LoadedPlugin(pluginId, PLUGIN_VERSION, List.of(library), List.of(), List.of(interceptor));
     }
 
     private static PluginEngineSnapshot snapshotWith(Map<String, LoadedPlugin> plugins) {
@@ -141,7 +146,7 @@ class PluginEngineSnapshotTests {
         @Test
         @DisplayName("the bundle carries the base contributions plus those of the requested plugin only")
         void whenPluginRequestedThenBundleCarriesBaseAndRequestedContributions() {
-            val bundle = snapshotWithFirstAndSecond().bundleFor(PDP_ID, Set.of(FIRST_PLUGIN));
+            val bundle = snapshotWithFirstAndSecond().bundleFor(PDP_ID, Set.of(FIRST_PLUGIN_REQ));
 
             assertThat(bundle.functionBroker().getRegisteredLibraries()).containsExactlyInAnyOrder(BaseLibrary.class,
                     FirstLibrary.class);
@@ -153,10 +158,12 @@ class PluginEngineSnapshotTests {
         @DisplayName("missing plugins fail the selection, naming every missing plugin but no available one")
         void whenRequestedPluginsAreMissingThenSelectionFailsNamingAllMissing() {
             val snapshot  = snapshotWithFirstAndSecond();
-            val requested = Set.of(FIRST_PLUGIN, "missing-plugin-a", "missing-plugin-b");
+            val requested = Set.of(FIRST_PLUGIN_REQ, new PluginRequirement("missing-plugin-a", "1.0.0"),
+                    new PluginRequirement("missing-plugin-b", "1.0.0"));
 
             assertThatThrownBy(() -> snapshot.bundleFor(PDP_ID, requested)).isInstanceOf(PluginSelectionException.class)
-                    .hasMessageContaining(PDP_ID).hasMessageContaining("[missing-plugin-a, missing-plugin-b]")
+                    .hasMessageContaining(PDP_ID)
+                    .hasMessageContaining("[missing-plugin-a:1.0.0, missing-plugin-b:1.0.0]")
                     .hasMessageNotContaining(FIRST_PLUGIN);
         }
 
@@ -166,10 +173,10 @@ class PluginEngineSnapshotTests {
             val snapshot  = snapshotWith(
                     Map.of(FIRST_PLUGIN, plugin(FIRST_PLUGIN, new FirstLibrary(), FIRST_INTERCEPTOR), SECOND_PLUGIN,
                             plugin(SECOND_PLUGIN, new CollidingLibrary(), SECOND_INTERCEPTOR)));
-            val requested = Set.of(FIRST_PLUGIN, SECOND_PLUGIN);
+            val requested = Set.of(FIRST_PLUGIN_REQ, SECOND_PLUGIN_REQ);
 
-            assertThat(snapshot.bundleFor(PDP_ID, Set.of(FIRST_PLUGIN))).isNotNull();
-            assertThat(snapshot.bundleFor(PDP_ID, Set.of(SECOND_PLUGIN))).isNotNull();
+            assertThat(snapshot.bundleFor(PDP_ID, Set.of(FIRST_PLUGIN_REQ))).isNotNull();
+            assertThat(snapshot.bundleFor(PDP_ID, Set.of(SECOND_PLUGIN_REQ))).isNotNull();
             assertThatThrownBy(() -> snapshot.bundleFor(PDP_ID, requested)).isInstanceOf(PluginSelectionException.class)
                     .hasMessageContaining(PDP_ID).hasCauseInstanceOf(IllegalArgumentException.class);
         }

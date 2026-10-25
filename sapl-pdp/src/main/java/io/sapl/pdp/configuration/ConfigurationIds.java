@@ -19,6 +19,7 @@ package io.sapl.pdp.configuration;
 
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import lombok.val;
 
 import java.nio.ByteBuffer;
@@ -93,7 +94,8 @@ public final class ConfigurationIds {
                 utf8(ValueJsonMarshaller.toJsonString(value))));
         entries.put("criticalExtensions",
                 utf8(String.join("\n", configuration.criticalExtensions().stream().sorted().toList())));
-        entries.put("plugins", utf8(String.join("\n", configuration.plugins().stream().sorted().toList())));
+        entries.put("plugins", utf8(String.join("\n",
+                configuration.pluginRequirements().stream().map(PluginRequirement::toString).sorted().toList())));
         return entries;
     }
 

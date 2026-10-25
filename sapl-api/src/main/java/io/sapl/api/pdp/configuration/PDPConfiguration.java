@@ -19,6 +19,7 @@ package io.sapl.api.pdp.configuration;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,8 @@ import java.util.Set;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.plugins.PluginRequirement;
+import lombok.val;
 
 /**
  * Immutable configuration for a Policy Decision Point.
@@ -43,10 +46,11 @@ import io.sapl.api.model.Value;
  * name (sealed in transit, unsealed by the recipient)
  * @param criticalExtensions names of extensions the consumer must be able to
  * process, else the configuration is rejected
- * @param plugins ids of the plugins enabled for this PDP, as declared by the
- * {@code Plugin-Id} in each plugin's manifest. Only these plugins contribute
- * function libraries, policy information points and decision interceptors to
- * this PDP. Empty means no plugins
+ * @param pluginRequirements the plugins enabled for this PDP, each with the
+ * range of versions the PDP accepts, at most one requirement per plugin. Only
+ * these plugins, in an accepted version, contribute function libraries, policy
+ * information points and decision interceptors to this PDP. Empty means no
+ * plugins
  * @param provenance where this configuration originated. Descriptive metadata
  * only: it never influences policy decisions and never enters the
  * content-derived configuration id
@@ -61,17 +65,26 @@ public record PDPConfiguration(
         Map<String, Value> extensions,
         Map<String, Value> extensionSecrets,
         Set<String> criticalExtensions,
-        Set<String> plugins,
+        Set<PluginRequirement> pluginRequirements,
         ConfigurationProvenance provenance) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+    private static final String ERROR_DUPLICATE_PLUGIN_ID = "PDPConfiguration must contain at most one plugin requirement per plugin, found duplicate plugin id: %s.";
 
     public PDPConfiguration {
         extensions         = extensions == null ? Map.of() : Map.copyOf(extensions);
         extensionSecrets   = extensionSecrets == null ? Map.of() : Map.copyOf(extensionSecrets);
         criticalExtensions = criticalExtensions == null ? Set.of() : Set.copyOf(criticalExtensions);
-        plugins            = plugins == null ? Set.of() : Set.copyOf(plugins);
+        pluginRequirements = pluginRequirements == null ? Set.of() : Set.copyOf(pluginRequirements);
         provenance         = provenance == null ? UnknownProvenance.INSTANCE : provenance;
+
+        val pluginIds = new HashSet<String>();
+        for (val requirement : pluginRequirements) {
+            if (!pluginIds.add(requirement.pluginId())) {
+                throw new IllegalArgumentException(ERROR_DUPLICATE_PLUGIN_ID.formatted(requirement.pluginId()));
+            }
+        }
     }
 
     /**
@@ -160,19 +173,22 @@ public record PDPConfiguration(
     public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets,
             Set<String> criticalExtensions) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
+                extensions, extensionSecrets, criticalExtensions, pluginRequirements, provenance);
     }
 
     /**
      * Returns a copy of this configuration with the given set of enabled plugins.
      *
-     * @param plugins ids of the plugins enabled for this PDP
+     * @param pluginRequirements the plugins enabled for this PDP, each with the
+     * range of versions the PDP accepts, at most one requirement per plugin
      *
-     * @return a copy carrying the plugin ids
+     * @return a copy carrying the plugin requirements
+     *
+     * @throws IllegalArgumentException if two requirements name the same plugin
      */
-    public PDPConfiguration withPlugins(Set<String> plugins) {
+    public PDPConfiguration withPlugins(Set<PluginRequirement> pluginRequirements) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
+                extensions, extensionSecrets, criticalExtensions, pluginRequirements, provenance);
     }
 
     /**
@@ -184,7 +200,7 @@ public record PDPConfiguration(
      */
     public PDPConfiguration withProvenance(ConfigurationProvenance provenance) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
+                extensions, extensionSecrets, criticalExtensions, pluginRequirements, provenance);
     }
 
     /**
@@ -198,7 +214,7 @@ public record PDPConfiguration(
      */
     public PDPConfiguration withSecrets(PdpData data, Map<String, Value> extensionSecrets) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets, criticalExtensions, plugins, provenance);
+                extensions, extensionSecrets, criticalExtensions, pluginRequirements, provenance);
     }
 
     @Override
@@ -207,7 +223,7 @@ public record PDPConfiguration(
                 + combiningAlgorithm + ", compilerOptions=" + compilerOptions + ", saplDocuments=" + saplDocuments
                 + ", data=" + data + ", extensions=" + extensions.keySet() + ", extensionSecrets="
                 + (extensionSecrets.isEmpty() ? "NO EXTENSION SECRETS" : "EXTENSION SECRETS REDACTED")
-                + ", criticalExtensions=" + criticalExtensions + ", plugins=" + plugins + ", provenance=" + provenance
-                + "]";
+                + ", criticalExtensions=" + criticalExtensions + ", pluginRequirements=" + pluginRequirements
+                + ", provenance=" + provenance + "]";
     }
 }

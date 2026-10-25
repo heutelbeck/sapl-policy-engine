@@ -23,6 +23,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.plugins.PluginRequirement;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -639,11 +640,12 @@ class PDPConfigurationLoaderTests {
         @DisplayName("the listed plugins are enabled")
         void whenPluginsListedThenConfigurationEnablesThem() throws IOException {
             Files.writeString(tempDir.resolve("pdp.json"), """
-                    { "plugins": ["first-plugin", "second-plugin"] }""");
+                    { "plugins": ["first-plugin:1.4.+", "second-plugin:*"] }""");
 
             val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-            assertThat(config.plugins()).containsExactlyInAnyOrder("first-plugin", "second-plugin");
+            assertThat(config.pluginRequirements()).containsExactlyInAnyOrder(
+                    new PluginRequirement("first-plugin", "1.4.+"), new PluginRequirement("second-plugin", "*"));
         }
 
         @Test
@@ -653,7 +655,7 @@ class PDPConfigurationLoaderTests {
 
             val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-            assertThat(config.plugins()).isEmpty();
+            assertThat(config.pluginRequirements()).isEmpty();
         }
 
         @Test
@@ -664,18 +666,18 @@ class PDPConfigurationLoaderTests {
 
             val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-            assertThat(config.plugins()).isEmpty();
+            assertThat(config.pluginRequirements()).isEmpty();
         }
 
         @Test
         @DisplayName("a plugin id with surrounding whitespace is kept unchanged")
         void whenPluginIdHasSurroundingWhitespaceThenItIsKeptUnchanged() throws IOException {
             Files.writeString(tempDir.resolve("pdp.json"), """
-                    { "plugins": [" first-plugin "] }""");
+                    { "plugins": [" first-plugin :1.4.+"] }""");
 
             val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
 
-            assertThat(config.plugins()).containsExactly(" first-plugin ");
+            assertThat(config.pluginRequirements()).containsExactly(new PluginRequirement(" first-plugin ", "1.4.+"));
         }
 
         @ParameterizedTest(name = "plugins = {0}")
@@ -689,15 +691,15 @@ class PDPConfigurationLoaderTests {
                     .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("must be an array");
         }
 
-        @ParameterizedTest(name = "plugin id = {0}")
+        @ParameterizedTest(name = "plugin entry = {0}")
         @ValueSource(strings = { "1", "\"\"", "\"   \"", "null", "[]" })
-        @DisplayName("a plugin id that is not a non-blank string is rejected")
-        void whenPluginIdInvalidThenThrows(String pluginId) throws IOException {
+        @DisplayName("a plugin entry that is not a non-blank string is rejected")
+        void whenPluginEntryInvalidThenThrows(String pluginEntry) throws IOException {
             Files.writeString(tempDir.resolve("pdp.json"), """
-                    { "plugins": ["first-plugin", %s] }""".formatted(pluginId));
+                    { "plugins": ["first-plugin:1.4.+", %s] }""".formatted(pluginEntry));
 
             assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
-                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("non-blank plugin ids");
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("non-blank plugin entries");
         }
 
         @Test
@@ -706,9 +708,9 @@ class PDPConfigurationLoaderTests {
             val emptyMap = Map.<String, String>of();
 
             val config = PDPConfigurationLoader.loadFromContent("""
-                    { "plugins": ["first-plugin"] }""", emptyMap, "test-pdp", "test");
+                    { "plugins": ["first-plugin:1.4.+"] }""", emptyMap, "test-pdp", "test");
 
-            assertThat(config.plugins()).containsExactly("first-plugin");
+            assertThat(config.pluginRequirements()).containsExactly(new PluginRequirement("first-plugin", "1.4.+"));
         }
     }
 
