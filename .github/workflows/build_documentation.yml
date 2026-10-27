@@ -59,8 +59,7 @@ jobs:
         id: get-version
         run: |
           VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-          #echo "::set-output name=version::$VERSION" 
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build Required Modules Only
         run: mvn -B clean install -pl sapl-documentation-generator,sapl-node,sapl-bom -am -DskipTests -T 1C
