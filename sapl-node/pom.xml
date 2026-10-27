@@ -253,7 +253,7 @@
 		<dependency>
 			<groupId>com.github.dasniko</groupId>
 			<artifactId>testcontainers-keycloak</artifactId>
-			<version>4.3.0</version>
+			<version>4.4.0</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -285,6 +285,7 @@
 							<buildArg>-H:+ReportExceptionStackTraces</buildArg>
 							<buildArg>--enable-url-protocols=http,https</buildArg>
 							<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+							<buildArg>-H:+SharedArenaSupport</buildArg>
 							<buildArg>-march=compatibility</buildArg>
 							<buildArg>-O3</buildArg>
 							<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
@@ -421,7 +422,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-antrun-plugin</artifactId>
-				<version>3.1.0</version>
+				<version>3.2.0</version>
 				<executions>
 					<execution>
 						<id>create-completion-dir</id>
