@@ -66,10 +66,10 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up JDK 25
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -128,7 +128,7 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: ${{ (env.IS_FORK == 'true') && 50 || 0 }}
 
@@ -137,14 +137,14 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
           cache: 'maven'
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -241,7 +241,7 @@ jobs:
         # See: https://github.com/ScaCap/action-surefire-report/issues/75
       - name: Publish Test Report
         if: ${{ (success() || failure()) && (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
-        uses: scacap/action-surefire-report@3dacff26879cd2a7f2160d101254032a3707fe6f # v1.12.0
+        uses: scacap/action-surefire-report@c38a2d74b9840ae8950a4387ae02b637421d0f39 # v1.13.0
 
       - name: Clean up Local Repository before Caching
         shell: bash
@@ -263,13 +263,13 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           lfs: true
           fetch-depth: 0
 
       - name: Set up JDK 25
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -296,7 +296,7 @@ jobs:
             }]
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -377,7 +377,7 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: .github/scripts/native-node-smoke-test.sh
           sparse-checkout-cone-mode: false
@@ -409,10 +409,10 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up JDK
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -473,7 +473,7 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Download amd64 Native Binary
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -526,7 +526,7 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             LICENSE
@@ -655,18 +655,18 @@ jobs:
           sha256sum ./* > SHA256SUMS.txt
 
       - name: Attest SAPL Node release artifact provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: release/*
 
       - name: Attest SAPL Node JVM SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: release/sapl-node-${{ needs.version-check.outputs.version }}.jar
           sbom-path: release/sapl-node-${{ needs.version-check.outputs.version }}.cdx.json
 
       - name: Attest SAPL Node linux amd64 SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
             release/sapl-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz
@@ -675,7 +675,7 @@ jobs:
           sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-linux-amd64.cdx.json
 
       - name: Attest SAPL Node linux arm64 SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
             release/sapl-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz
@@ -685,13 +685,13 @@ jobs:
 
       - name: Attest SAPL Node macOS SBOM
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz
           sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-macos-arm64.cdx.json
 
       - name: Attest SAPL Node Windows SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: release/sapl-${{ needs.version-check.outputs.version }}-windows-amd64.zip
           sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-windows-amd64.cdx.json
@@ -722,7 +722,7 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             LICENSE
@@ -825,12 +825,12 @@ jobs:
           sha256sum ./* > SHA256SUMS.txt
 
       - name: Attest SAPL Language Server release artifact provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: release/*
 
       - name: Attest SAPL Language Server linux amd64 SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
             release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-amd64.tar.gz
@@ -839,7 +839,7 @@ jobs:
           sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-amd64.cdx.json
 
       - name: Attest SAPL Language Server linux arm64 SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
             release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-arm64.tar.gz
@@ -848,13 +848,13 @@ jobs:
           sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-linux-arm64.cdx.json
 
       - name: Attest SAPL Language Server macOS SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-macos-arm64.tar.gz
           sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-macos-arm64.cdx.json
 
       - name: Attest SAPL Language Server Windows SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.zip
           sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.cdx.json
@@ -896,13 +896,13 @@ jobs:
           egress-policy: audit
 
       - name: Check out
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           lfs: true
           fetch-depth: 0
 
       - name: Set up JDK 25
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -929,7 +929,7 @@ jobs:
             }]
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -957,7 +957,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Attest Maven artifact provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             pom.xml
@@ -1015,7 +1015,7 @@ jobs:
         run: docker load < sapl-playground-docker-image.tar.gz
 
       - name: Log in to the Container Registry
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1095,14 +1095,14 @@ jobs:
           cosign sign --yes ghcr.io/heutelbeck/sapl-playground@${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
 
       - name: Attest SAPL Node image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
           push-to-registry: true
 
       - name: Attest SAPL Node image SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }}
@@ -1110,14 +1110,14 @@ jobs:
           push-to-registry: true
 
       - name: Attest Playground image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-playground
           subject-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
           push-to-registry: true
 
       - name: Attest Playground image SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-playground
           subject-digest: ${{ steps.get-playground-hash.outputs.IMAGE_DIGEST }}
@@ -1155,7 +1155,7 @@ jobs:
           name: minimal-native-docker-images
 
       - name: Log in to the Container Registry
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1249,14 +1249,14 @@ jobs:
           cosign sign --yes ghcr.io/heutelbeck/sapl-node@${{ steps.min-manifest-digest.outputs.manifest_digest }}
 
       - name: Attest Minimal Native amd64 image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-digests.outputs.amd64_digest }}
           push-to-registry: true
 
       - name: Attest Minimal Native amd64 image SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-digests.outputs.amd64_digest }}
@@ -1264,14 +1264,14 @@ jobs:
           push-to-registry: true
 
       - name: Attest Minimal Native arm64 image provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-digests.outputs.arm64_digest }}
           push-to-registry: true
 
       - name: Attest Minimal Native arm64 image SBOM
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-digests.outputs.arm64_digest }}
@@ -1279,7 +1279,7 @@ jobs:
           push-to-registry: true
 
       - name: Attest Minimal Native manifest provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ghcr.io/heutelbeck/sapl-node
           subject-digest: ${{ steps.min-manifest-digest.outputs.manifest_digest }}
@@ -1315,7 +1315,7 @@ jobs:
 
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: snapshot-node
           name: Latest SAPL Node Snapshot
@@ -1379,7 +1379,7 @@ jobs:
 
       - name: Create release
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           name: SAPL Node ${{ github.ref_name }}
           body: |
@@ -1488,7 +1488,7 @@ jobs:
 
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: snapshot
           name: Latest Snapshot
@@ -1537,7 +1537,7 @@ jobs:
 
       - name: Create release
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           name: SAPL Language Server ${{ github.ref_name }}
           body: |
@@ -1631,7 +1631,7 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Attest final release checksums
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: sums-staging/SHA256SUMS.txt
 
