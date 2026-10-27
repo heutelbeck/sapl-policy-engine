@@ -285,6 +285,7 @@
 							<buildArg>-H:+ReportExceptionStackTraces</buildArg>
 							<buildArg>--enable-url-protocols=http,https</buildArg>
 							<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+							<buildArg>-H:+SharedArenaSupport</buildArg>
 							<buildArg>-march=compatibility</buildArg>
 							<buildArg>-O3</buildArg>
 							<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
