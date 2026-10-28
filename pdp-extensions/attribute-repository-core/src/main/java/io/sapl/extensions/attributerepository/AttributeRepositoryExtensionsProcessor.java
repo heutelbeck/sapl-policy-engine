@@ -22,7 +22,7 @@ import io.sapl.pdp.configuration.ExtensionsProcessor;
 
 /**
  * An {@link ExtensionsProcessor} adapter for the attribute repository configuration.
- * Translates calls from {@link PdpVoterSource} into the corresponding methods on
+ * Translates calls from {@link io.sapl.pdp.configuration.PdpVoterSource} into the corresponding methods on
  * {@link RoutingAttributeRepository}, adding no behavior of its own.
  */
 public final class AttributeRepositoryExtensionsProcessor implements ExtensionsProcessor {
