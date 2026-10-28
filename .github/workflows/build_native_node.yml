@@ -90,6 +90,7 @@ jobs:
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@5298d94fb55a4f185c602eeac5de1b553882abe2 # v1.6.4
         with:
+          version: '25.0.5.0.3'
           java-version: '25'
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -138,6 +139,7 @@ jobs:
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@5298d94fb55a4f185c602eeac5de1b553882abe2 # v1.6.4
         with:
+          version: '25.0.5.0.3'
           java-version: '25'
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
