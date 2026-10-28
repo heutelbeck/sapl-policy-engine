@@ -1569,7 +1569,7 @@ public final class PlaygroundView extends Composite<VerticalLayout> {
      * Creates a close button for policy tabs.
      */
     private Button createTabCloseButton() {
-        val button = new Button(VaadinIcon.CLOSE_SMALL.create());
+        val button = new Button(VaadinIcon.CLOSE.create());
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
         button.addClassName("tab-close");
         button.getStyle().set(CSS_MARGIN_LEFT, CSS_VALUE_SIZE_0_25EM);
