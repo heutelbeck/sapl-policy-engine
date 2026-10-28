@@ -17,8 +17,6 @@
  */
 package io.sapl.extensions.attributerepository;
 
-import java.math.BigDecimal;
-
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
@@ -42,7 +40,7 @@ public class TestAttributeRepositoryProvider implements AttributeRepositoryProvi
 
     @Override
     public AttributeRepository create(ObjectValue config, String pdpId) {
-        if (config.get("port") instanceof NumberValue(BigDecimal port) && port.intValue() == UNREACHABLE_PORT) {
+        if (config.get("port") instanceof NumberValue port && port.value().intValue() == UNREACHABLE_PORT) {
             throw new IllegalStateException("Test backend is unreachable.");
         }
         return new InMemoryAttributeRepository();

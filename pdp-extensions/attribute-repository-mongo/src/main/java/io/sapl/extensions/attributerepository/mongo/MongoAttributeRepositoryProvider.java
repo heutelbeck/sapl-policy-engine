@@ -125,7 +125,7 @@ public class MongoAttributeRepositoryProvider implements AttributeRepositoryProv
 
     private Integer numberValue(ObjectValue obj, String key) {
         val v = obj.get(key);
-        return v instanceof NumberValue(java.math.BigDecimal value) ? value.intValue() : null;
+        return v instanceof NumberValue number ? number.value().intValue() : null;
     }
 
     private String validIdentifier(ObjectValue config, String key, String pdpId) {

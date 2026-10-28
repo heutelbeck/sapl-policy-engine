@@ -74,6 +74,6 @@ public class RedisAttributeRepositoryProvider implements AttributeRepositoryProv
 
     private Integer numberValue(ObjectValue obj, String key) {
         val v = obj.get(key);
-        return v instanceof NumberValue(java.math.BigDecimal value) ? value.intValue() : null;
+        return v instanceof NumberValue number ? number.value().intValue() : null;
     }
 }
