@@ -80,9 +80,9 @@ class MongoAttributeRepositoryTests {
     private static MongoDBContainer mongoContainer() {
         var container = new MongoDBContainer("mongo:8.0");
         container.withReplicaSet();
-        container.withCommand("--replSet", "docker-rs", "--setParameter", "enableTestCommands=1",
-                "--wiredTigerCacheSizeGB", "0.25");
-        container.withStartupAttempts(3);
+        container.withCommand("--replSet", "docker-rs", "--setParameter", "enableTestCommands=1");
+        // Workaround Kernel 6.19
+        container.withEnv("GLIBC_TUNABLES", "glibc.pthread.rseq=1");
         return container;
     }
 

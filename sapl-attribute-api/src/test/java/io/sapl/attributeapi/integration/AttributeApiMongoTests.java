@@ -41,7 +41,7 @@ import org.testcontainers.mongodb.MongoDBContainer;
 class AttributeApiMongoTests extends AbstractAttributeApiTests {
 
     @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:8.0");
+    static MongoDBContainer mongo = mongoContainer();
 
     @DynamicPropertySource
     static void mongoProperties(DynamicPropertyRegistry registry) {
@@ -49,10 +49,18 @@ class AttributeApiMongoTests extends AbstractAttributeApiTests {
         registry.add("io.sapl.attributes.backends.mongo-test.mongo.port", () -> mongo.getMappedPort(27017));
     }
 
+    private static MongoDBContainer mongoContainer() {
+        var container = new MongoDBContainer("mongo:8.0");
+        // Workaround for Kernel 6.19
+        container.withEnv("GLIBC_TUNABLES", "glibc.pthread.rseq=1");
+        return container;
+    }
+
     @Override
     protected void cleanRepository() {
-        var client   = MongoClients.create(mongo.getConnectionString());
-        var template = new ReactiveMongoTemplate(new SimpleReactiveMongoDatabaseFactory(client, "sapl"));
-        template.dropCollection("attributes").block();
+        try (var client = MongoClients.create(mongo.getConnectionString())) {
+            var template = new ReactiveMongoTemplate(new SimpleReactiveMongoDatabaseFactory(client, "sapl"));
+            template.dropCollection("attributes").block();
+        }
     }
 }
