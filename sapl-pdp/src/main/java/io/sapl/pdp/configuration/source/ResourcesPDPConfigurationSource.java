@@ -164,8 +164,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
         val    subDirectoryData = new HashMap<String, Map<String, String>>();
         String rootPdpJson      = null;
 
-        try (var scanResult = new ClassGraph().enableNonSystemModules().enableClasspath().acceptPaths(normalizedPath)
-                .scan()) {
+        try (var scanResult = new ClassGraph().acceptPaths(normalizedPath).scan()) {
             for (var resource : scanResult.getAllResources()) {
                 val relativePath = getRelativePath(resource.getPath(), normalizedPath);
 
