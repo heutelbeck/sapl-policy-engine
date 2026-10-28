@@ -773,6 +773,10 @@
 		<module>pdp-extensions/geo-traccar</module>
 		<module>pdp-extensions/mqtt-functions</module>
 		<module>pdp-extensions/mqtt-pip</module>
+		<module>pdp-extensions/attribute-repository-core</module>
+		<module>pdp-extensions/attribute-repository-postgres</module>
+		<module>pdp-extensions/attribute-repository-mongo</module>
+		<module>pdp-extensions/attribute-repository-redis</module>
 
 		<!-- Testing modules -->
 		<module>sapl-test-parser</module>

@@ -21,15 +21,9 @@ import java.net.http.HttpClient;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import io.sapl.api.functions.FunctionLibraryProvider;
-import io.sapl.api.model.Value;
 import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.stream.TimeScheduler;
@@ -38,7 +32,6 @@ import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
-import io.sapl.pdp.configuration.RoutingAttributeRepository;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
@@ -82,11 +75,5 @@ class SaplExtensionsConfiguration {
     @Bean
     FunctionLibraryProvider extensionFunctionLibraries() {
         return () -> List.of(new GeographicFunctionLibrary(), new TraccarFunctionLibrary(), new MqttFunctionLibrary());
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "io.sapl.attribute-api.embedded", havingValue = "true")
-    Function<String, Optional<Value>> attributeRepositoryConfigResolver(RoutingAttributeRepository repo) {
-        return repo::currentRawConfig;
     }
 }

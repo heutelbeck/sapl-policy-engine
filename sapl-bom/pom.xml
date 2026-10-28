@@ -159,6 +159,26 @@
                 <artifactId>geo-traccar</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>attribute-repository-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>attribute-repository-postgres</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>attribute-repository-mongo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>attribute-repository-redis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 		</dependencies>
 	</dependencyManagement>
 	<profiles>

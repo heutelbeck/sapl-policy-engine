@@ -46,9 +46,6 @@ import lombok.val;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
-import io.sapl.pdp.configuration.AttributeConfiguration;
-import org.springframework.context.annotation.Import;
-
 @EnableCaching
 @ComponentScan({ "io.sapl.node", "io.sapl.server", "io.sapl.attributeapi" })
 @EnableConfigurationProperties(SaplNodeProperties.class)
@@ -67,8 +64,8 @@ import org.springframework.context.annotation.Import;
         "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveAutoConfiguration",
         "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveRepositoriesAutoConfiguration",
         "org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration",
-        // sapl-pdp's AttributeConfiguration provides its own ConnectionFactory/
-        // DatabaseClient beans only when io.sapl.attributes.storage=postgres.
+        // The embedded attribute API brings the R2DBC starter and builds its own
+        // ConnectionFactory/DatabaseClient only for a postgres backend.
         // Without these excludes, Spring Boot's generic R2DBC autoconfiguration
         // eagerly creates a fallback ConnectionFactory bean and fails with
         // "Failed to determine a suitable R2DBC Connection URL" for every other
@@ -76,7 +73,6 @@ import org.springframework.context.annotation.Import;
         "org.springframework.boot.r2dbc.autoconfigure.ConnectionFactoryAutoConfiguration",
         "org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration",
         "org.springframework.boot.r2dbc.autoconfigure.health.ConnectionFactoryHealthContributorAutoConfiguration" })
-@Import({ AttributeConfiguration.class })
 public class SaplNodeApplication {
 
     private static final String SERVER_COMMAND   = "server";

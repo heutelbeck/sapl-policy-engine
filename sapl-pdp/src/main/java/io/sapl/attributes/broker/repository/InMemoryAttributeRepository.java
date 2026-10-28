@@ -27,7 +27,13 @@ import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -122,7 +128,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             toFire = observers(key);
             seq    = ++sequenceCounter;
         } finally {
+
             lock.unlock();
+
         }
         fireObservers(toFire, Value.UNDEFINED, seq);
     }
@@ -146,6 +154,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             }
             seqInit = sequenceCounter;
         } finally {
+
             lock.unlock();
 
         }
@@ -342,7 +351,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
-    Set<RepositoryKey> observedKeys() {
+    public Set<RepositoryKey> observedKeys() {
         lock.lock();
         try {
             return new HashSet<>(observersByKey.keySet());

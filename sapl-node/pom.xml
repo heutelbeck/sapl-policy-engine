@@ -76,6 +76,21 @@
 			<artifactId>sapl-pdp</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>attribute-repository-postgres</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>attribute-repository-mongo</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>attribute-repository-redis</artifactId>
+			<version>${project.version}</version>
+		</dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>sapl-pdp-reactive</artifactId>
