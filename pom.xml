@@ -115,7 +115,7 @@
 		<slf4j-test.version>3.0.3</slf4j-test.version>
 		<springboot.version>4.1.2</springboot.version>
 		<commons-io.version>2.22.0</commons-io.version>
-		<classgraph.version>4.8.184</classgraph.version>
+		<classgraph.version>5.0.1</classgraph.version>
 		<graphql-java.version>26.1</graphql-java.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 		<flatbuffers.version>25.2.10</flatbuffers.version>

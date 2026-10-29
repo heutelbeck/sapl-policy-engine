@@ -293,6 +293,8 @@
 							     to avoid loading libawt.so through JNI at runtime. -->
 							<buildArg>--initialize-at-build-time=org.geotools.xsd.Parser,org.geotools.util.logging.Logging,org.geotools.util.logging.Logging$LogLevel,org.eclipse.imagen.ImageN,java.awt.Dimension,java.awt.Toolkit</buildArg>
 							<buildArg>--initialize-at-run-time=io.sapl.functions.geo.GeographicFunctionLibrary,com.scalar.maven.core.ScalarHtmlRenderer</buildArg>
+							<!-- NIO installs this ClassGraph provider into the image heap at build time. -->
+							<buildArg>--initialize-at-build-time=io.github.classgraph.vfs.VfsFileSystemProvider</buildArg>
 						</buildArgs>
 					</configuration>
 					<executions>
