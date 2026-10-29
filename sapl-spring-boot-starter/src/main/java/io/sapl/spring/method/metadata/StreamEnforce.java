@@ -35,8 +35,8 @@ import java.lang.annotation.Target;
  * fail-closed discipline:
  * <ul>
  * <li><b>PERMIT</b> with enforceable obligations: items flow.</li>
- * <li><b>SUSPEND</b>: subscription preserved, items dropped silently until a
- * later PERMIT resumes the flow.</li>
+ * <li><b>SUSPEND</b>: the RAP subscription is disposed. The PDP and client
+ * subscriptions stay open until a later PERMIT invokes the RAP again.</li>
  * <li><b>DENY</b>, <b>INDETERMINATE</b>, <b>NOT_APPLICABLE</b>, and a PERMIT
  * whose decision-scoped enforcement fails:
  * subscription terminates with
@@ -45,7 +45,13 @@ import java.lang.annotation.Target;
  * Per-item obligation failure terminates identically.</li>
  * </ul>
  * <p>
- * Two optional flags refine the PEP-side behaviour:
+ * Input handlers run before each RAP invocation, starting from the original
+ * argument array. A changed input plan under PERMIT also disposes and reinvokes
+ * the RAP. Argument objects are not deep-copied. Input mappers must replace
+ * mutable arguments rather than mutate objects shared with the original call.
+ * RAPs must support reinvocation without unintentionally repeating side effects.
+ * <p>
+ * One optional flag controls transition notifications:
  * <ul>
  * <li>{@link #signalTransitions()} (default {@code false}). Surfaces every
  * suspend/resume boundary to the subscriber as
@@ -55,12 +61,6 @@ import java.lang.annotation.Target;
  * {@link io.sapl.spring.pep.streaming.AccessGrantedException} on resume).
  * Subscribers consume the signals with {@code onErrorContinue} or via
  * {@link io.sapl.spring.pep.streaming.TransitionSignals}.</li>
- * <li>{@link #pauseRapDuringSuspend()} (default {@code false}). Manages the RAP
- * connection while suspended. When
- * {@code false}, the RAP subscription stays connected and items keep arriving;
- * the PEP drops them silently. When
- * {@code true}, the PEP disposes the RAP subscription on entering suspended and
- * re-subscribes on resume.</li>
  * </ul>
  *
  * @since 4.1.0
@@ -85,23 +85,6 @@ public @interface StreamEnforce {
      * transitions.
      */
     boolean signalTransitions() default false;
-
-    /**
-     * Whether the protected method (RAP) subscription is disposed while the PEP is
-     * in suspended state. Default
-     * {@code false}: RAP stays connected and items keep arriving; the PEP drops
-     * them silently (lower latency on resume,
-     * RAP-side state preserved). {@code true}: the PEP disposes the RAP
-     * subscription on entering suspended and
-     * re-subscribes on resume (stops RAP-side side effects during suspension at the
-     * cost of re-subscription latency on
-     * resume).
-     *
-     * @return {@code true} to pause the RAP subscription while suspended;
-     * {@code false} (default) to keep the RAP
-     * connected and drop items in the PEP.
-     */
-    boolean pauseRapDuringSuspend() default false;
 
     /**
      * @return SpEL expression for the subject in the authorization subscription. If

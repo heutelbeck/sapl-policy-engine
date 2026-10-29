@@ -1082,7 +1082,8 @@ public class SaplTestFixture {
         var    saplFiles      = new HashMap<String, String>();
         String pdpJson        = null;
 
-        try (var scanResult = new ClassGraph().acceptPaths(normalizedPath).scan()) {
+        try (var scanResult = new ClassGraph().enableNonSystemModules().enableClasspath().acceptPaths(normalizedPath)
+                .scan()) {
             for (var resource : scanResult.getAllResources()) {
                 var relativePath = getRelativePath(resource.getPath(), normalizedPath);
                 // Only process root-level files, skip subdirectories
@@ -1385,6 +1386,14 @@ public class SaplTestFixture {
                     throw new AssertionError(describeMismatch.apply(decision));
                 }
             }
+
+            private static Duration remainingTimeout(long deadlineNanos) {
+                val remaining = deadlineNanos - System.nanoTime();
+                if (remaining <= 0L) {
+                    throw new AssertionError("Timeout reached before expected decision arrived.");
+                }
+                return Duration.ofNanos(remaining);
+            }
         }
 
         private record Emit(String mockId, Value value) implements Action {
@@ -1400,14 +1409,6 @@ public class SaplTestFixture {
                     throws InterruptedException {
                 Thread.sleep(duration.toMillis(), duration.toNanosPart() % 1_000_000);
             }
-        }
-
-        private static Duration remainingTimeout(long deadlineNanos) {
-            val remaining = deadlineNanos - System.nanoTime();
-            if (remaining <= 0L) {
-                throw new AssertionError("Timeout reached before expected decision arrived.");
-            }
-            return Duration.ofNanos(remaining);
         }
     }
 }

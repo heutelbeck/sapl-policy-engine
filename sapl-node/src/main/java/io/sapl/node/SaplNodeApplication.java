@@ -199,6 +199,8 @@ public class SaplNodeApplication {
             hints.resources().registerPattern("ch/qos/logback/classic/logback-classic-version.properties");
             hints.resources().registerPattern("static/css/sapl-scalar-theme.css");
             hints.resources().registerPattern("static/openapi/pdp-http.yaml");
+            // Netty's leak detector queries touch methods during class initialization.
+            hints.reflection().registerTypeIfPresent(classLoader, "io.netty.util.ReferenceCountUtil");
             registerScalarReflection(hints, classLoader);
         }
 

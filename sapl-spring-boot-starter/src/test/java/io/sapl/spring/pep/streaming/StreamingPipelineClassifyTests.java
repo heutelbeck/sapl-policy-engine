@@ -36,6 +36,7 @@ import io.sapl.spring.pep.streaming.MealyMachine.Event;
 import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpDeny;
 import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpPermit;
 import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpSuspend;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.RapError;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import reactor.core.publisher.Flux;
 
@@ -57,7 +58,7 @@ class StreamingPipelineClassifyTests {
     private static final EnforcementPlan PLAN = new EnforcementPlan(Map.of());
 
     private static StreamingPipeline pipeline() {
-        return new StreamingPipeline(false, Flux.empty(), d -> PLAN, Flux::empty, false);
+        return new StreamingPipeline(Flux.empty(), d -> PLAN, plan -> Flux::empty, false);
     }
 
     @ParameterizedTest(name = "{0} (failed={1}) -> {2}")
@@ -104,7 +105,7 @@ class StreamingPipelineClassifyTests {
     static Stream<Arguments> verbCases() {
         return Stream.of(arguments(Decision.PERMIT, false, PdpPermit.class),
                 arguments(Decision.PERMIT, true, PdpDeny.class), arguments(Decision.SUSPEND, false, PdpSuspend.class),
-                arguments(Decision.SUSPEND, true, PdpSuspend.class),
+                arguments(Decision.SUSPEND, true, RapError.class),
                 arguments(Decision.INDETERMINATE, false, PdpDeny.class),
                 arguments(Decision.NOT_APPLICABLE, false, PdpDeny.class),
                 arguments(Decision.DENY, false, PdpDeny.class), arguments(Decision.DENY, true, PdpDeny.class));

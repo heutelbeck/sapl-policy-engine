@@ -364,8 +364,8 @@ class Sapl4Benchmark implements Callable<Integer> {
                     confidenceInterval95, count - 1));
             out.println(String.format(Locale.US, "  Forks:   %d of %d run (trailing window used for statistics)", count,
                     forkThroughputs.size()));
-            out.println(String.format(Locale.US, "  Per fork: %s", window.stream()
-                    .map(value -> String.format(Locale.US, "%,.0f", value)).collect(Collectors.joining(", "))));
+            out.println("  Per fork: " + window.stream().map(value -> String.format(Locale.US, "%,.0f", value))
+                    .collect(Collectors.joining(", ")));
         }
         if (latencyResult != null) {
             out.println(String.format(Locale.US,

@@ -22,30 +22,36 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import static io.sapl.api.shared.NameValidator.requireValidName;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@DisplayName("Fully qualified attribute and function names")
 class NameValidatorTests {
 
     @ParameterizedTest(name = "valid name \"{0}\" is accepted")
-    @ValueSource(strings = { "pip.attribute", "a.b.c", "foo.bar.baz.qux" })
+    @ValueSource(strings = { "pip.attribute", "a.b.c", "foo.bar.baz.qux", "digest.sha3_256", "digest.sha3_384",
+            "digest.sha3_512", "graph.reachable_paths", "test_lib.attribute", "lib$.attr", "_library.$function2",
+            "$.attr", "library._", "a1.b2", "a.b.c.d.e.f.g.h.i.j" })
     @DisplayName("when name is syntactically valid then no exception is thrown")
     void whenNameIsValidThenNoExceptionIsThrown(String name) {
-        assertThatCode(() -> NameValidator.requireValidName(name)).doesNotThrowAnyException();
+        assertThatCode(() -> requireValidName(name)).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "invalid name \"{0}\" is rejected")
-    @ValueSource(strings = { "noseparator", "1foo.bar", "foo .bar", "" })
+    @ValueSource(strings = { "noseparator", "1foo.bar", "foo.1bar", "foo .bar", "foo. bar", " foo.bar", "foo.bar ", "",
+            " ", ".bar", "foo.", "foo..bar", "foo-bar.baz", "foo.bar!", "`foo`.bar", "foo.`bar`", "f\u00f6o.bar",
+            "foo.b\u200bar", "a.b.c.d.e.f.g.h.i.j.k" })
     @DisplayName("when name is syntactically invalid then IllegalArgumentException is thrown")
     void whenNameIsInvalidThenIllegalArgumentExceptionIsThrown(String name) {
-        assertThatThrownBy(() -> NameValidator.requireValidName(name)).isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> requireValidName(name)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(name);
     }
 
     @Test
     @DisplayName("when name is null then documented IllegalArgumentException is thrown not NullPointerException")
     void whenNameIsNullThenIllegalArgumentExceptionIsThrown() {
-        assertThatThrownBy(() -> NameValidator.requireValidName(null)).isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> requireValidName(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
     }
 }

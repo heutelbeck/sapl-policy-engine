@@ -45,11 +45,6 @@ import lombok.NonNull;
  * error channel. Effective for {@link StreamEnforce}-derived attributes; always
  * {@code false} for
  * {@link PreEnforce} / {@link PostEnforce}.
- * @param pauseRapDuringSuspend
- * whether the RAP subscription is disposed while the PEP is in suspended state.
- * Effective for
- * {@link StreamEnforce}-derived attributes; always {@code false} for one-shot
- * PEPs.
  */
 public record SaplAttribute(
         Class<?> annotationType,
@@ -58,14 +53,12 @@ public record SaplAttribute(
         Expression resourceExpression,
         Expression environmentExpression,
         Expression secretsExpression,
-        boolean signalTransitions,
-        boolean pauseRapDuringSuspend) {
+        boolean signalTransitions) {
 
     private static final String NO_SECRETS = "NO SECRETS";
     private static final String SECRETS_REDACTED = "SECRETS REDACTED";
 
-    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, false,
-            false);
+    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, false);
 
     @Override
     public @NonNull String toString() {
@@ -73,8 +66,7 @@ public record SaplAttribute(
                 + expressionStringOrNull(subjectExpression()) + ", action=" + expressionStringOrNull(actionExpression())
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="
                 + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets()
-                + (signalTransitions() ? ", signalTransitions=true" : "")
-                + (pauseRapDuringSuspend() ? ", pauseRapDuringSuspend=true" : "") + ")";
+                + (signalTransitions() ? ", signalTransitions=true" : "") + ")";
     }
 
     private String maskSecrets() {

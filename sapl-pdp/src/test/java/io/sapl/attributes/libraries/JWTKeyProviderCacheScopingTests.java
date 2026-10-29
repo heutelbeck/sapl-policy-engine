@@ -23,6 +23,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -49,8 +50,10 @@ class JWTKeyProviderCacheScopingTests {
 
     private static final String KID = "k1";
 
-    private static final Key KEY_A = mock(Key.class);
-    private static final Key KEY_B = mock(Key.class);
+    @Mock
+    private Key keyForServerA;
+    @Mock
+    private Key keyForServerB;
 
     private static final String URI_A = "https://idp-a/keys/{kid}";
     private static final String URI_B = "https://idp-b/keys/{kid}";
@@ -65,7 +68,7 @@ class JWTKeyProviderCacheScopingTests {
             val httpClient = mock(HttpClient.class);
             val provider   = new JWTKeyProvider(httpClient, new MutableClock(NOW));
 
-            provider.cache(URI_A.replace("{kid}", KID), KID, KEY_A, 300_000L);
+            provider.cache(URI_A.replace("{kid}", KID), KID, keyForServerA, 300_000L);
 
             assertThat(provider.isCached(URI_A.replace("{kid}", KID), KID)).isTrue();
             assertThat(provider.isCached(URI_B.replace("{kid}", KID), KID)).isFalse();
@@ -82,7 +85,7 @@ class JWTKeyProviderCacheScopingTests {
             when(response.statusCode()).thenReturn(404);
             doReturn(response).when(httpClient).send(any(HttpRequest.class), any());
 
-            provider.cache(URI_A.replace("{kid}", KID), KID, KEY_A, 300_000L);
+            provider.cache(URI_A.replace("{kid}", KID), KID, keyForServerA, 300_000L);
 
             val configB = MAPPER.readTree("{\"uri\":\"" + URI_B + "\"}");
             val result  = provider.provide(KID, configB);
@@ -105,8 +108,8 @@ class JWTKeyProviderCacheScopingTests {
             val uriShort = URI_A.replace("{kid}", KID);
             val uriLong  = URI_B.replace("{kid}", KID);
 
-            provider.cache(uriShort, KID, KEY_A, 1_000L);
-            provider.cache(uriLong, KID, KEY_B, 600_000L);
+            provider.cache(uriShort, KID, keyForServerA, 1_000L);
+            provider.cache(uriLong, KID, keyForServerB, 600_000L);
 
             clock.setInstant(NOW.plusMillis(2_000L));
 

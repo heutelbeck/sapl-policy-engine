@@ -373,49 +373,6 @@ public class StreamAttributeMethodSignatureProcessor {
         return Streams.just((Value) result);
     }
 
-    private static int calculateMethodParameterCount(Method method, boolean hasVarArgs, int minArgCount) {
-        int count = 0;
-        if (hasEntityParameter(method)) {
-            count++;
-        }
-        if (hasAttributeAccessContextParameter(method)) {
-            count++;
-        }
-        count += hasVarArgs ? minArgCount + 1 : minArgCount;
-        return count;
-    }
-
-    private static boolean hasEntityParameter(Method method) {
-        if (method.isAnnotationPresent(EnvironmentAttribute.class)) {
-            return false;
-        }
-        val parameters = method.getParameters();
-        if (parameters.length == 0) {
-            return false;
-        }
-        return Value.class.isAssignableFrom(parameters[0].getType());
-    }
-
-    private static boolean hasAttributeAccessContextParameter(Method method) {
-        val parameters     = method.getParameters();
-        val hasEntityParam = hasEntityParameter(method);
-        val checkIndex     = hasEntityParam ? 1 : 0;
-
-        if (parameters.length <= checkIndex) {
-            return false;
-        }
-
-        return AttributeAccessContext.class.equals(parameters[checkIndex].getType());
-    }
-
-    private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
-        val templates = new String[expectedTypes.length];
-        for (int i = 0; i < expectedTypes.length; i++) {
-            templates[i] = ERROR_TYPE_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
-        }
-        return templates;
-    }
-
     private static String annotationNameOrMethodName(String nameFromAnnotation, Method method) {
         if (null != nameFromAnnotation && !nameFromAnnotation.isBlank()) {
             return nameFromAnnotation;
@@ -484,6 +441,49 @@ public class StreamAttributeMethodSignatureProcessor {
                             && Objects.equals(exactArgCountError, oExactArgError)
                             && Objects.equals(minArgCountError, oMinArgError)
                             && Objects.equals(varArgErrorTemplate, oVarArgError));
+        }
+
+        private static int calculateMethodParameterCount(Method method, boolean hasVarArgs, int minArgCount) {
+            int count = 0;
+            if (hasEntityParameter(method)) {
+                count++;
+            }
+            if (hasAttributeAccessContextParameter(method)) {
+                count++;
+            }
+            count += hasVarArgs ? minArgCount + 1 : minArgCount;
+            return count;
+        }
+
+        private static boolean hasEntityParameter(Method method) {
+            if (method.isAnnotationPresent(EnvironmentAttribute.class)) {
+                return false;
+            }
+            val parameters = method.getParameters();
+            if (parameters.length == 0) {
+                return false;
+            }
+            return Value.class.isAssignableFrom(parameters[0].getType());
+        }
+
+        private static boolean hasAttributeAccessContextParameter(Method method) {
+            val parameters     = method.getParameters();
+            val hasEntityParam = hasEntityParameter(method);
+            val checkIndex     = hasEntityParam ? 1 : 0;
+
+            if (parameters.length <= checkIndex) {
+                return false;
+            }
+
+            return AttributeAccessContext.class.equals(parameters[checkIndex].getType());
+        }
+
+        private static String[] buildTypeErrorTemplates(Class<?>[] expectedTypes) {
+            val templates = new String[expectedTypes.length];
+            for (int i = 0; i < expectedTypes.length; i++) {
+                templates[i] = ERROR_TYPE_TEMPLATE.formatted(i, expectedTypes[i].getSimpleName());
+            }
+            return templates;
         }
     }
 }

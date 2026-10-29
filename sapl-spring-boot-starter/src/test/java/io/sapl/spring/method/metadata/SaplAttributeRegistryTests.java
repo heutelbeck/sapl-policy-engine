@@ -257,7 +257,7 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, false, false);
+        expectFlagsInAttribute(TestClass.class, false);
     }
 
     @Test
@@ -270,33 +270,7 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, true, false);
-    }
-
-    @Test
-    void whenStreamEnforceWithPauseRapDuringSuspend_ThenFlagPropagates() {
-
-        class TestClass {
-            @StreamEnforce(pauseRapDuringSuspend = true, subject = "'s'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectFlagsInAttribute(TestClass.class, false, true);
-    }
-
-    @Test
-    void whenStreamEnforceWithAllFlags_ThenAllPropagate() {
-
-        class TestClass {
-            @StreamEnforce(signalTransitions = true, pauseRapDuringSuspend = true, subject = "'s'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectFlagsInAttribute(TestClass.class, true, true);
+        expectFlagsInAttribute(TestClass.class, true);
     }
 
     @Test
@@ -314,7 +288,6 @@ class SaplAttributeRegistryTests {
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, PreEnforce.class);
         assertThat(attribute).hasValueSatisfying(a -> {
             assertThat(a.signalTransitions()).isFalse();
-            assertThat(a.pauseRapDuringSuspend()).isFalse();
         });
     }
 
@@ -326,14 +299,12 @@ class SaplAttributeRegistryTests {
                 attr -> assertThat(attr.subjectExpression().getExpressionString()).isEqualTo(expectedExpressionString));
     }
 
-    private void expectFlagsInAttribute(Class<?> clazz, boolean expectedSignalTransitions,
-            boolean expectedPauseRapDuringSuspend) {
+    private void expectFlagsInAttribute(Class<?> clazz, boolean expectedSignalTransitions) {
         final var sut       = new SaplAttributeRegistry();
         final var mi        = MethodInvocationUtils.createFromClass(clazz, "doSomething");
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, StreamEnforce.class);
         assertThat(attribute).hasValueSatisfying(a -> {
             assertThat(a.signalTransitions()).isEqualTo(expectedSignalTransitions);
-            assertThat(a.pauseRapDuringSuspend()).isEqualTo(expectedPauseRapDuringSuspend);
         });
     }
 

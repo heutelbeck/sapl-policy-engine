@@ -214,27 +214,23 @@ class MongoShimEndToEndTests {
         @Test
         @DisplayName("Obligation handler that throws raises AccessDeniedException at the wrapper without calling the delegate")
         void givenMapperThatThrowsWhenFindThenAccessDenied() {
-            val throwingProvider = new ConstraintHandlerProvider() {
-                                     @Override
-                                     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
-                                             Set<SignalType> supportedSignals) {
-                                         if (!ConstraintHandlerProvider.constraintIsOfType(constraint,
-                                                 "test:throwingShimHandler")) {
-                                             return List.of();
-                                         }
-                                         ConstraintHandler.Mapper<Query> bad = q -> {
-                                                                  throw new RuntimeException(
-                                                                          "simulated handler failure");
-                                                              };
-                                         return List.of(new ScopedConstraintHandler(bad,
-                                                 MongoDbQueryShimSignal.SIGNAL_TYPE, 30));
-                                     }
-                                 };
-            val throwingPlanner  = new EnforcementPlanner(List.of(throwingProvider), MAPPER);
-            val decision         = permitWithObligation("""
+            ConstraintHandlerProvider throwingProvider = (constraint, supportedSignals) -> {
+                                                           if (!ConstraintHandlerProvider.constraintIsOfType(constraint,
+                                                                   "test:throwingShimHandler")) {
+                                                               return List.of();
+                                                           }
+                                                           ConstraintHandler.Mapper<Query> bad = q -> {
+                                                                                                          throw new RuntimeException(
+                                                                                                                  "simulated handler failure");
+                                                                                                      };
+                                                           return List.of(new ScopedConstraintHandler(bad,
+                                                                   MongoDbQueryShimSignal.SIGNAL_TYPE, 30));
+                                                       };
+            val                       throwingPlanner  = new EnforcementPlanner(List.of(throwingProvider), MAPPER);
+            val                       decision         = permitWithObligation("""
                     {"type": "test:throwingShimHandler"}
                     """);
-            val plan             = throwingPlanner.plan(decision,
+            val                       plan             = throwingPlanner.plan(decision,
                     Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
 
             StepVerifier

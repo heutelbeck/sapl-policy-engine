@@ -167,21 +167,20 @@ public final class SaplAttributeRegistry {
             Class<T> annotationType) {
         val annotation = findAnnotation(method, targetClass, annotationType);
         return switch (annotation) {
-        case PreEnforce a    -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), false, false);
-        case PostEnforce a   -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), false, false);
+        case PreEnforce a    ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets(), false);
+        case PostEnforce a   ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets(), false);
         case StreamEnforce a -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), a.signalTransitions(), a.pauseRapDuringSuspend());
+                a.secrets(), a.signalTransitions());
         case null, default   -> SaplAttribute.NULL_ATTRIBUTE;
         };
     }
 
     private SaplAttribute buildAttribute(Class<?> annotationType, String subject, String action, String resource,
-            String environment, String secrets, boolean signalTransitions, boolean pauseRapDuringSuspend) {
+            String environment, String secrets, boolean signalTransitions) {
         return new SaplAttribute(annotationType, parseExpression(subject), parseExpression(action),
-                parseExpression(resource), parseExpression(environment), parseExpression(secrets), signalTransitions,
-                pauseRapDuringSuspend);
+                parseExpression(resource), parseExpression(environment), parseExpression(secrets), signalTransitions);
     }
 
     private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {

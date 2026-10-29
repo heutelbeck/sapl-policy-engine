@@ -95,83 +95,69 @@
 		<sapl.full.tests>false</sapl.full.tests>
 
 		<!-- Dependencies -->
-		<asm.version>9.10.1</asm.version>
+		<asm.version>9.11.1</asm.version>
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
+		<okhttp.version>5.5.1</okhttp.version>
+		<scalar.version>0.6.85</scalar.version>
+		<vaadin.version>25.3.4</vaadin.version>
 		<pf4j.version>3.15.0</pf4j.version>
-		<okhttp.version>5.4.0</okhttp.version>
-		<scalar.version>0.6.59</scalar.version>
-		<vaadin.version>25.2.3</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
-		<lombok.version>1.18.46</lombok.version>
-		<jupiter.version>6.1.2</jupiter.version>
-		<mockito.version>5.23.0</mockito.version>
-		<guava.version>33.6.0-jre</guava.version>
+		<lombok.version>1.18.48</lombok.version>
+		<jupiter.version>6.1.3</jupiter.version>
+		<mockito.version>5.24.0</mockito.version>
+		<guava.version>33.7.2-jre</guava.version>
 		<assertj.version>3.27.7</assertj.version>
-		<jspecify.version>1.0.0</jspecify.version>
-		<protobuf.version>4.35.1</protobuf.version>
+		<jspecify.version>1.0.1</jspecify.version>
+		<protobuf.version>4.36.2</protobuf.version>
 		<flexmark.version>0.64.8</flexmark.version>
+		<springdoc.version>3.2.0</springdoc.version>
+		<jsqlparser.version>5.4</jsqlparser.version>
 		<semver4j.version>6.0.0</semver4j.version>
-		<springdoc.version>3.0.3</springdoc.version>
-		<jsqlparser.version>5.3</jsqlparser.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
-		<springboot.version>4.1.0</springboot.version>
+		<springboot.version>4.1.2</springboot.version>
 		<commons-io.version>2.22.0</commons-io.version>
-		<classgraph.version>4.8.184</classgraph.version>
-		<bouncycastle.version>1.85</bouncycastle.version>
+		<classgraph.version>5.0.1</classgraph.version>
+		<graphql-java.version>26.1</graphql-java.version>
+		<bouncycastle.version>1.86</bouncycastle.version>
 		<flatbuffers.version>25.2.10</flatbuffers.version>
-		<commons-lang.version>3.20.0</commons-lang.version>
+		<commons-lang.version>3.21.0</commons-lang.version>
 		<!--
-		  Pinned to 1.3.5, not 1.3.6. reactor-netty 1.3.6 places connections on
-		  only every other event loop (stride-2 selection over netty 4.2's
-		  MultiThreadIoEventLoopGroup), so half the I/O threads stay idle and
-		  RSocket throughput drops about 30% for both the PDP server and the
-		  RSocket clients (sapl-node, sapl-pdp-remote). 1.3.5 uses all loops.
-		  Workaround if a future constraint forces 1.3.6: start the JVM with
-		  reactor.netty.ioWorkerCount set to twice the core count.
-		  On the next reactor-netty upgrade, verify the stride-2 behavior is
-		  fixed before raising this. If it is still broken, prefer setting
-		  ioWorkerCount on the LoopResources programmatically over pinning.
+		  Reactor Netty 1.3.7 still skips every other client I/O loop on Netty 4.2.
+		  RSocketClientResources doubles the client worker count to compensate.
+		  Recheck connection distribution before removing that workaround.
 		-->
-		<reactor-netty.version>1.3.5</reactor-netty.version>
+		<reactor-netty.version>1.3.8</reactor-netty.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
-		<nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
-		<json-schema-validator.version>3.0.6</json-schema-validator.version>
+		<nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
+		<json-schema-validator.version>3.0.8</json-schema-validator.version>
 		<jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
 
 		<!-- Maven Plug-Ins -->
 		<sb-contrib.version>7.7.4</sb-contrib.version>
 		<maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
-		<maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
-		<exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
+		<maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+		<exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
 		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
 		<maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
-		<!--
-		  Pinned to 1.1.5, not 1.1.6. native-maven-plugin 1.1.6 calls
-		  MessageUtils from maven-shared-utils, which Maven 3.9.x does not
-		  expose to plugin realms, so every native build fails at goal startup
-		  with "A required class was missing". Fixed upstream by
-		  native-build-tools PR #1003; raise to the first release containing
-		  it and verify a -Pnative build starts.
-		-->
-		<native-maven-plugin.version>1.1.5</native-maven-plugin.version>
+		<native-maven-plugin.version>1.1.17</native-maven-plugin.version>
 		<maven-source-plugin.version>3.4.0</maven-source-plugin.version>
-		<maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
-		<jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
-		<maven-install-plugin.version>3.1.4</maven-install-plugin.version>
-		<license-maven-plugin.version>5.1.1</license-maven-plugin.version>
-		<sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
+		<maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
+		<jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
+		<maven-install-plugin.version>3.2.0</maven-install-plugin.version>
+		<license-maven-plugin.version>5.1.2</license-maven-plugin.version>
+		<sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
-		<maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
-		<maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
-		<maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+		<maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
+		<maven-failsafe-plugin.version>3.6.1</maven-failsafe-plugin.version>
+		<maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
 		<maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
-		<cyclonedx-maven-plugin.version>2.9.2</cyclonedx-maven-plugin.version>
-		<spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
+		<cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
+		<spotbugs-maven-plugin.version>4.10.5.0</spotbugs-maven-plugin.version>
 		<formatter-maven-plugin.version>2.29.0</formatter-maven-plugin.version>
 		<maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
-		<build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
-		<central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
+		<build-helper-maven-plugin.version>3.6.2</build-helper-maven-plugin.version>
+		<central-publishing-maven-plugin.version>0.12.0</central-publishing-maven-plugin.version>
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
@@ -275,11 +261,16 @@
                 <version>${slf4j-test.version}</version>
             </dependency>
 			<dependency>
+				<groupId>com.graphql-java</groupId>
+				<artifactId>graphql-java</artifactId>
+				<version>${graphql-java.version}</version>
+			</dependency>
+			<dependency>
 				<groupId>io.github.classgraph</groupId>
 				<artifactId>classgraph</artifactId>
 				<version>${classgraph.version}</version>
 			</dependency>
-			<!-- Must precede spring-boot-dependencies to override the reactor-netty it manages. See reactor-netty.version for why this is pinned. -->
+			<!-- Must precede spring-boot-dependencies to override the reactor-netty it manages. See reactor-netty.version for the client workaround. -->
 			<dependency>
 				<groupId>io.projectreactor.netty</groupId>
 				<artifactId>reactor-netty-core</artifactId>
@@ -814,6 +805,7 @@
 		<!-- Web endpoints -->
 		<module>sapl-vaadin-theme</module>
 		<module>sapl-vaadin-editor</module>
+		<module>sapl-vaadin</module>
 
 		<!-- Server applications -->
 		<module>sapl-node</module>

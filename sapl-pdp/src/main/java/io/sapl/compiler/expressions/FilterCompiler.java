@@ -151,98 +151,98 @@ public class FilterCompiler {
             case StreamOperator sf -> evaluateEachStreamFilter(baseValue, sf, ctx, deps);
             };
         }
-    }
 
-    /**
-     * Per-element evaluation of a stream filter against a base value.
-     * Dispatches on base shape (Array, Object, scalar, ErrorValue), walks
-     * every element to accumulate the maximum subscription set, holds the
-     * first {@link ErrorValue} from any per-element evaluation, returns it
-     * after the full walk. {@code null} from a per-element evaluation sets
-     * the incomplete flag. {@link UndefinedValue} elements are dropped per
-     * filter semantics. Precedence at the end:
-     * error &gt; null &gt; assembled result.
-     */
-    private static ExpressionResult evaluateEachStreamFilter(Value base, StreamOperator filterOperator,
-            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
-        if (base instanceof ErrorValue) {
-            return new ExpressionResult(base, deps);
-        }
-        if (base instanceof ArrayValue av) {
-            return evaluateEachStreamFilterArray(av, filterOperator, ctx, deps);
-        }
-        if (base instanceof ObjectValue ov) {
-            return evaluateEachStreamFilterObject(ov, filterOperator, ctx, deps);
-        }
-        val r = filterOperator.evaluate(ctx.withRelativeValue(base));
-        mergeDependencies(deps, r.dependencies());
-        return new ExpressionResult(r.result(), deps);
-    }
-
-    private static ExpressionResult evaluateEachStreamFilterArray(ArrayValue av, StreamOperator filterOperator,
-            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
-        val     builder    = new ArrayValue.Builder();
-        boolean seenNull   = false;
-        Value   firstError = null;
-        for (int i = 0; i < av.size(); i++) {
-            val perElementCtx = ctx.withRelativeValue(av.get(i), Value.of(i));
-            val r             = filterOperator.evaluate(perElementCtx);
+        /**
+         * Per-element evaluation of a stream filter against a base value.
+         * Dispatches on base shape (Array, Object, scalar, ErrorValue), walks
+         * every element to accumulate the maximum subscription set, holds the
+         * first {@link ErrorValue} from any per-element evaluation, returns it
+         * after the full walk. {@code null} from a per-element evaluation sets
+         * the incomplete flag. {@link UndefinedValue} elements are dropped per
+         * filter semantics. Precedence at the end:
+         * error &gt; null &gt; assembled result.
+         */
+        private static ExpressionResult evaluateEachStreamFilter(Value base, StreamOperator filterOperator,
+                EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
+            if (base instanceof ErrorValue) {
+                return new ExpressionResult(base, deps);
+            }
+            if (base instanceof ArrayValue av) {
+                return evaluateEachStreamFilterArray(av, filterOperator, ctx, deps);
+            }
+            if (base instanceof ObjectValue ov) {
+                return evaluateEachStreamFilterObject(ov, filterOperator, ctx, deps);
+            }
+            val r = filterOperator.evaluate(ctx.withRelativeValue(base));
             mergeDependencies(deps, r.dependencies());
-            val v = r.result();
-            if (v == null) {
-                seenNull = true;
-                continue;
-            }
-            if (v instanceof ErrorValue) {
-                if (firstError == null) {
-                    firstError = v;
-                }
-                continue;
-            }
-            if (!(v instanceof UndefinedValue)) {
-                builder.add(v);
-            }
+            return new ExpressionResult(r.result(), deps);
         }
-        if (firstError != null) {
-            return new ExpressionResult(firstError, deps);
-        }
-        if (seenNull) {
-            return new ExpressionResult(null, deps);
-        }
-        return new ExpressionResult(builder.build(), deps);
-    }
 
-    private static ExpressionResult evaluateEachStreamFilterObject(ObjectValue ov, StreamOperator filterOperator,
-            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
-        val     builder    = new ObjectValue.Builder();
-        boolean seenNull   = false;
-        Value   firstError = null;
-        for (val entry : ov.entrySet()) {
-            val perElementCtx = ctx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
-            val r             = filterOperator.evaluate(perElementCtx);
-            mergeDependencies(deps, r.dependencies());
-            val v = r.result();
-            if (v == null) {
-                seenNull = true;
-                continue;
-            }
-            if (v instanceof ErrorValue) {
-                if (firstError == null) {
-                    firstError = v;
+        private static ExpressionResult evaluateEachStreamFilterArray(ArrayValue av, StreamOperator filterOperator,
+                EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
+            val     builder    = new ArrayValue.Builder();
+            boolean seenNull   = false;
+            Value   firstError = null;
+            for (int i = 0; i < av.size(); i++) {
+                val perElementCtx = ctx.withRelativeValue(av.get(i), Value.of(i));
+                val r             = filterOperator.evaluate(perElementCtx);
+                mergeDependencies(deps, r.dependencies());
+                val v = r.result();
+                if (v == null) {
+                    seenNull = true;
+                    continue;
                 }
-                continue;
+                if (v instanceof ErrorValue) {
+                    if (firstError == null) {
+                        firstError = v;
+                    }
+                    continue;
+                }
+                if (!(v instanceof UndefinedValue)) {
+                    builder.add(v);
+                }
             }
-            if (!(v instanceof UndefinedValue)) {
-                builder.put(entry.getKey(), v);
+            if (firstError != null) {
+                return new ExpressionResult(firstError, deps);
             }
+            if (seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            return new ExpressionResult(builder.build(), deps);
         }
-        if (firstError != null) {
-            return new ExpressionResult(firstError, deps);
+
+        private static ExpressionResult evaluateEachStreamFilterObject(ObjectValue ov, StreamOperator filterOperator,
+                EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
+            val     builder    = new ObjectValue.Builder();
+            boolean seenNull   = false;
+            Value   firstError = null;
+            for (val entry : ov.entrySet()) {
+                val perElementCtx = ctx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
+                val r             = filterOperator.evaluate(perElementCtx);
+                mergeDependencies(deps, r.dependencies());
+                val v = r.result();
+                if (v == null) {
+                    seenNull = true;
+                    continue;
+                }
+                if (v instanceof ErrorValue) {
+                    if (firstError == null) {
+                        firstError = v;
+                    }
+                    continue;
+                }
+                if (!(v instanceof UndefinedValue)) {
+                    builder.put(entry.getKey(), v);
+                }
+            }
+            if (firstError != null) {
+                return new ExpressionResult(firstError, deps);
+            }
+            if (seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            return new ExpressionResult(builder.build(), deps);
         }
-        if (seenNull) {
-            return new ExpressionResult(null, deps);
-        }
-        return new ExpressionResult(builder.build(), deps);
     }
 
     private static CompiledExpression compileEachValuePureFold(Value vb, PureOperator pof, CompilationContext ctx) {

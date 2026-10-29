@@ -251,17 +251,11 @@ public final class DecisionMatcher implements Predicate<AuthorizationDecision> {
             reasons.add("expected resource %s but was %s".formatted(expectedResource, decision.resource()));
         }
 
-        for (var expected : expectedObligations) {
-            if (doesNotContainValue(decision.obligations(), expected)) {
-                reasons.add("missing obligation %s".formatted(expected));
-            }
-        }
+        expectedObligations.stream().filter(expected -> doesNotContainValue(decision.obligations(), expected))
+                .map("missing obligation %s"::formatted).forEach(reasons::add);
 
-        for (var expected : expectedAdvice) {
-            if (doesNotContainValue(decision.advice(), expected)) {
-                reasons.add("missing advice %s".formatted(expected));
-            }
-        }
+        expectedAdvice.stream().filter(expected -> doesNotContainValue(decision.advice(), expected))
+                .map("missing advice %s"::formatted).forEach(reasons::add);
 
         return reasons.isEmpty() ? "unknown mismatch" : String.join("; ", reasons);
     }

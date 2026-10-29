@@ -899,10 +899,10 @@ class BundleCommandTests {
         void whenKeyFileNotFoundThenFails(String missingOption) throws IOException {
             val dir = sealedDir("recipientA");
             cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipientB").toString());
-            val unsealWith = "--unseal-with".equals(missingOption) ? tempDir.resolve("nonexistent.jwk")
-                    : tempDir.resolve("recipientA.jwk");
-            val sealTo     = "--seal-to".equals(missingOption) ? tempDir.resolve("nonexistent.pub.jwk")
-                    : tempDir.resolve("recipientB.pub.jwk");
+            val unsealWith = tempDir
+                    .resolve("--unseal-with".equals(missingOption) ? "nonexistent.jwk" : "recipientA.jwk");
+            val sealTo     = tempDir
+                    .resolve("--seal-to".equals(missingOption) ? "nonexistent.pub.jwk" : "recipientB.pub.jwk");
 
             val exitCode = cmd.execute("bundle", "reseal", "-i", dir.toString(), "--unseal-with", unsealWith.toString(),
                     "--seal-to", sealTo.toString(), "--force");
