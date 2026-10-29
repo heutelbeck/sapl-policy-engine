@@ -20,21 +20,7 @@ package io.sapl.attributeapi;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-// Autoconfiguration excludes prevent Spring Boot from eagerly instantiating
-// Mongo/R2DBC infrastructure beans for backends that are not selected.
-// AttributeStoreConfiguration imports AttributeConfiguration (storage backend)
-// and creates the AttributeStore bean in the correct dependency order.
-
-@SpringBootApplication(excludeName = { "io.sapl.spring.data.mongo.config.SaplMongoReactiveAutoConfiguration",
-        "org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration",
-        "org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveRepositoriesAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration",
-        "org.springframework.boot.r2dbc.autoconfigure.ConnectionFactoryAutoConfiguration",
-        "org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration",
-        "org.springframework.boot.r2dbc.autoconfigure.health.ConnectionFactoryHealthContributorAutoConfiguration" })
+@SpringBootApplication
 public class AttributeApiApplication {
     public static void main(String[] args) {
         SpringApplication.run(AttributeApiApplication.class, args);

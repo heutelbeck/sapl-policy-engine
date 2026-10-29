@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @EnableCaching
-@ComponentScan({ "io.sapl.node", "io.sapl.server", "io.sapl.attributeapi" })
+@ComponentScan({ "io.sapl.node", "io.sapl.server" })
 @EnableConfigurationProperties(SaplNodeProperties.class)
 @ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
 // Transaction + persistence autoconfigure classes live in transitive Spring Boot
@@ -56,23 +56,7 @@ import picocli.CommandLine;
 @SpringBootApplication(excludeName = { "io.sapl.spring.config.AuthorizationManagerConfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizationAutoConfiguration",
-        "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration",
-        "io.sapl.spring.data.mongo.config.SaplMongoReactiveAutoConfiguration",
-        "org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration",
-        "org.springframework.boot.mongodb.autoconfigure.MongoReactiveAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveRepositoriesAutoConfiguration",
-        "org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration",
-        // The embedded attribute API brings the R2DBC starter and builds its own
-        // ConnectionFactory/DatabaseClient only for a postgres backend.
-        // Without these excludes, Spring Boot's generic R2DBC autoconfiguration
-        // eagerly creates a fallback ConnectionFactory bean and fails with
-        // "Failed to determine a suitable R2DBC Connection URL" for every other
-        // storage backend (including the heap default).
-        "org.springframework.boot.r2dbc.autoconfigure.ConnectionFactoryAutoConfiguration",
-        "org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration",
-        "org.springframework.boot.r2dbc.autoconfigure.health.ConnectionFactoryHealthContributorAutoConfiguration" })
+        "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
 public class SaplNodeApplication {
 
     private static final String SERVER_COMMAND   = "server";
