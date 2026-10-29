@@ -89,7 +89,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             """;
 
     private static final String SCHEDULE_TTL_CLEANUP_SQL = """
-            SELECT cron.schedule_in_database(
+            SELECT cron.schedule(
                 'ttl-cleanup-{table}',
                 '* * * * *',
                 $$
@@ -108,8 +108,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                     )::text
                 )
                 FROM deleted
-                $$,
-                current_database()
+                $$
             )
             """;
 

@@ -341,6 +341,24 @@ class PostgresAttributeRepositoryTests {
                     .map(row -> row.get(0, Long.class)).one().block();
             assertThat(jobs).isEqualTo(1L);
         }
+
+        @Test
+        @DisplayName("then role without superuser right registers the cron job")
+        void thenRoleWithoutSuperuserRightRegistersCronJob() {
+            val config = PostgresqlConnectionConfiguration.builder().host(postgres.getHost())
+                    .port(postgres.getMappedPort(5432)).database(postgres.getDatabaseName()).username("restricted")
+                    .password("test").build();
+
+            val factory = new PostgresqlConnectionFactory(config);
+
+            try (val noprivileges = new PostgresAttributeRepository(DatabaseClient.create(factory), factory, PDP_ID,
+                    "noprivileges_attributes")) {
+                val jobs = client.sql(
+                        "SELECT count(*) FROM cron.job WHERE jobname = 'ttl-cleanup-noprivileges_attributes' AND username = 'restricted'")
+                        .map(row -> row.get(0, Long.class)).one().block();
+                assertThat(jobs).isEqualTo(1L);
+            }
+        }
     }
 
     @Nested

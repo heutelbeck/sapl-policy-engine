@@ -67,7 +67,7 @@ public class PostgresAttributeStore implements AttributeStore {
                   )
             """;
     private static final String SCHEDULE_TTL_CLEANUP_SQL = """
-            SELECT cron.schedule_in_database(
+            SELECT cron.schedule(
                 'ttl-cleanup-{table}',
                 '* * * * *',
                 $$
@@ -86,8 +86,7 @@ public class PostgresAttributeStore implements AttributeStore {
                     )::text
                 )
                 FROM deleted
-                $$,
-                current_database()
+                $$
             )
             """;
 
