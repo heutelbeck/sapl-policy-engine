@@ -1082,7 +1082,8 @@ public class SaplTestFixture {
         var    saplFiles      = new HashMap<String, String>();
         String pdpJson        = null;
 
-        try (var scanResult = new ClassGraph().acceptPaths(normalizedPath).scan()) {
+        try (var scanResult = new ClassGraph().enableNonSystemModules().enableClasspath().acceptPaths(normalizedPath)
+                .scan()) {
             for (var resource : scanResult.getAllResources()) {
                 var relativePath = getRelativePath(resource.getPath(), normalizedPath);
                 // Only process root-level files, skip subdirectories

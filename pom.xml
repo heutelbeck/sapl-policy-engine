@@ -99,7 +99,7 @@
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
 		<okhttp.version>5.5.1</okhttp.version>
-		<scalar.version>0.6.82</scalar.version>
+		<scalar.version>0.6.85</scalar.version>
 		<vaadin.version>25.3.4</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.48</lombok.version>
@@ -110,12 +110,13 @@
 		<jspecify.version>1.0.1</jspecify.version>
 		<protobuf.version>4.36.2</protobuf.version>
 		<flexmark.version>0.64.8</flexmark.version>
-		<springdoc.version>3.1.1</springdoc.version>
+		<springdoc.version>3.2.0</springdoc.version>
 		<jsqlparser.version>5.4</jsqlparser.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
 		<springboot.version>4.1.2</springboot.version>
 		<commons-io.version>2.22.0</commons-io.version>
-		<classgraph.version>4.8.184</classgraph.version>
+		<classgraph.version>5.0.1</classgraph.version>
+		<graphql-java.version>26.1</graphql-java.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 		<flatbuffers.version>25.2.10</flatbuffers.version>
 		<commons-lang.version>3.21.0</commons-lang.version>
@@ -137,16 +138,16 @@
 		<exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
 		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
 		<maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
-		<native-maven-plugin.version>1.1.16</native-maven-plugin.version>
+		<native-maven-plugin.version>1.1.17</native-maven-plugin.version>
 		<maven-source-plugin.version>3.4.0</maven-source-plugin.version>
 		<maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
-		<jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
+		<jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
 		<maven-install-plugin.version>3.2.0</maven-install-plugin.version>
 		<license-maven-plugin.version>5.1.2</license-maven-plugin.version>
 		<sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
 		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
-		<maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
-		<maven-failsafe-plugin.version>3.6.0</maven-failsafe-plugin.version>
+		<maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
+		<maven-failsafe-plugin.version>3.6.1</maven-failsafe-plugin.version>
 		<maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
 		<maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
 		<cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
@@ -257,6 +258,11 @@
                 <artifactId>slf4j-test</artifactId>
                 <version>${slf4j-test.version}</version>
             </dependency>
+			<dependency>
+				<groupId>com.graphql-java</groupId>
+				<artifactId>graphql-java</artifactId>
+				<version>${graphql-java.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>io.github.classgraph</groupId>
 				<artifactId>classgraph</artifactId>
