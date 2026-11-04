@@ -46,7 +46,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -96,14 +98,14 @@ public class AttributeStoreConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(AttributeStore.class)
-    @ConditionalOnProperty(name = "io.sapl.attribute-api.embedded", havingValue = "false", matchIfMissing = true)
+    @ConditionalOnMissingClass("io.sapl.node.SaplNodeApplication")
     AttributeStore routingAttributeStore(Map<String, BackendHandle> attributeBackendHandlesByName,
             AttributeStorageProperties properties) {
         return RoutingAttributeStore.forBackends(attributeBackendHandlesByName, properties.getTenants());
     }
 
     @Bean
-    @ConditionalOnProperty(name = "io.sapl.attribute-api.embedded", havingValue = "true")
+    @ConditionalOnClass(name = "io.sapl.node.SaplNodeApplication")
     AttributeStore embeddedRoutingAttributeStore(
             @Qualifier("attributeRepositoryConfigResolver") Function<String, Optional<Value>> configResolver) {
         var cache = new ConcurrentHashMap<String, CachedEntry>();

@@ -25,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,7 +49,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -55,7 +56,8 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties(AttributeApiSecurityProperties.class)
-@ConditionalOnExpression("${io.sapl.attribute-api.enabled:false} && !${io.sapl.attribute-api.embedded:false}")
+@ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
+@ConditionalOnMissingClass("io.sapl.node.SaplNodeApplication")
 @RequiredArgsConstructor
 public class AttributeSecurityConfiguration {
     private static final String ERROR_NO_AUTH_METHOD_SET  = "No authentication method is set.";

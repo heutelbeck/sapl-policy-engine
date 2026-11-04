@@ -90,7 +90,7 @@ public class AttributeRepositoryAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "io.sapl.attribute-api.embedded", havingValue = "true")
+    @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
     Function<String, Optional<Value>> attributeRepositoryConfigResolver(RoutingAttributeRepository repository) {
         return repository::currentRawConfig;
     }
