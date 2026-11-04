@@ -610,33 +610,6 @@
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
 						<artifactId>native-maven-plugin</artifactId>
-						<version>0.10.6</version>
-						<extensions>true</extensions>
-						<executions>
-							<execution>
-								<id>build-native</id>
-								<goals>
-									<goal>compile-no-fork</goal>
-								</goals>
-								<phase>package</phase>
-							</execution>
-						</executions>
-						<configuration>
-							<imageName>sapl</imageName>
-							<buildArgs>
-								<buildArg>--no-fallback</buildArg>
-								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
-								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>-march=compatibility</buildArg>
-								<buildArg>-O3</buildArg>
-								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
-							</buildArgs>
-							<quickBuild>false</quickBuild>
-							<javaLauncher>
-        <version>17</version>
-    </javaLauncher>
-						</configuration>
 					</plugin>
 				</plugins>
 			</build>
