@@ -55,8 +55,6 @@ import lombok.val;
  * content-derived configuration id
  * @param requiredEngineVersion optional semantic version range for the engine,
  * or null if no engine version requirement is declared
- * @throws IllegalArgumentException if a declared engine version range is blank
- * or syntactically invalid
  */
 public record PDPConfiguration(
         String pdpId,
@@ -76,6 +74,12 @@ public record PDPConfiguration(
     private static final String ERROR_INVALID_ENGINE_VERSION_RANGE = "Invalid requiredEngineVersion range: '%s'.";
     private static final HyphenProcessor ENGINE_VERSION_RANGE_PROCESSOR = new HyphenProcessor();
 
+    /**
+     * Creates a configuration with a validated engine requirement and immutable extension data.
+     *
+     * @throws IllegalArgumentException if a declared engine version range is blank
+     * or syntactically invalid
+     */
     public PDPConfiguration {
         if (requiredEngineVersion != null && !isValidEngineVersionRange(requiredEngineVersion)) {
             throw new IllegalArgumentException(ERROR_INVALID_ENGINE_VERSION_RANGE.formatted(requiredEngineVersion));

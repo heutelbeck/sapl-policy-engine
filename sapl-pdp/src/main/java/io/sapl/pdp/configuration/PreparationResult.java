@@ -29,12 +29,16 @@ public sealed interface PreparationResult {
      * The host rejects the configuration's extension data with an explanation.
      *
      * @param reason the rejection reason, preserved verbatim
-     * @throws IllegalArgumentException if the reason is null or blank
      */
     record Rejected(String reason) implements PreparationResult {
 
         private static final String ERROR_REJECTION_REASON_REQUIRED = "An extension preparation rejection requires a nonblank reason.";
 
+        /**
+         * Creates a rejection with a reason the host can report.
+         *
+         * @throws IllegalArgumentException if the reason is null or blank
+         */
         public Rejected {
             if (reason == null || reason.isBlank()) {
                 throw new IllegalArgumentException(ERROR_REJECTION_REASON_REQUIRED);
