@@ -221,7 +221,7 @@ jobs:
         # request's number is needed.
       - name: Upload Artifact
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pr_build
           path: |
@@ -328,7 +328,7 @@ jobs:
         run: docker save ghcr.io/heutelbeck/sapl-playground:${{ needs.version-check.outputs.version }} | gzip > sapl-playground-docker-image.tar.gz
 
       - name: Upload Docker Image Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docker-images
           path: |
@@ -338,7 +338,7 @@ jobs:
           retention-days: 1
 
       - name: Upload SAPL Node JAR Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sapl-node-jars
           if-no-files-found: error
@@ -507,7 +507,7 @@ jobs:
             --output type=docker,dest=sapl-node-min-arm64.tar min-context/arm64
 
       - name: Upload Minimal Native Image Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: minimal-native-docker-images
           path: |
@@ -705,7 +705,7 @@ jobs:
           sbom-path: release/sapl-${{ needs.version-check.outputs.version }}-windows-amd64.cdx.json
 
       - name: Upload SAPL Node release assets
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sapl-node-release-assets
           path: release/*
@@ -868,7 +868,7 @@ jobs:
           sbom-path: release/sapl-language-server-${{ needs.version-check.outputs.version }}-windows-amd64.cdx.json
 
       - name: Upload SAPL Language Server release assets
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sapl-language-server-release-assets
           path: release/*
