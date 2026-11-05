@@ -109,10 +109,10 @@ public class EmbeddedBenchmarkRunner {
             val throughput = (double) opsCount / cfg.measurementTimeSeconds();
             val latency    = measureLatency(cfg, threads, bm.method(), entry.getKey(), err);
 
-            out.println(String.format(Locale.US, "THROUGHPUT:%.2f", throughput));
+            out.printf(Locale.US, "THROUGHPUT:%.2f%n", throughput);
             if (latency != null) {
-                out.println(String.format(Locale.US, "LATENCY:%.0f:%.0f:%.0f:%.0f:%.0f", latency.p50(), latency.p90(),
-                        latency.p99(), latency.p999(), latency.max()));
+                out.printf(Locale.US, "LATENCY:%.0f:%.0f:%.0f:%.0f:%.0f%n", latency.p50(), latency.p90(), latency.p99(),
+                        latency.p999(), latency.max());
             }
             out.flush();
 
@@ -294,8 +294,7 @@ public class EmbeddedBenchmarkRunner {
             val opsCount   = runThroughputIteration(seconds, threads, bm.method()) * bm.opsPerInvocation();
             val throughput = (double) opsCount / seconds;
             val nsPerOp    = seconds * 1_000_000_000.0 / opsCount;
-            out.println(
-                    String.format(Locale.US, "%s %d: %.1f ops/s  (%.0f ns/op)", phaseName, i + 1, throughput, nsPerOp));
+            out.printf(Locale.US, "%s %d: %.1f ops/s  (%.0f ns/op)%n", phaseName, i + 1, throughput, nsPerOp);
             out.flush();
             if (collect) {
                 results.add(throughput);

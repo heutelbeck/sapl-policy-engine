@@ -40,27 +40,27 @@ class FbAuthorizationSubscription extends Table {
 
     FbValue subject() {
         int o = __offset(4);
-        return o != 0 ? new FbValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     FbValue action() {
         int o = __offset(6);
-        return o != 0 ? new FbValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     FbValue resource() {
         int o = __offset(8);
-        return o != 0 ? new FbValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     FbValue environment() {
         int o = __offset(10);
-        return o != 0 ? new FbValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     FbValue secrets() {
         int o = __offset(12);
-        return o != 0 ? new FbValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     static int createFbAuthorizationSubscription(FlatBufferBuilder builder, int subjectOffset, int actionOffset,

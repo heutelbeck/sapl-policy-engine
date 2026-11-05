@@ -40,12 +40,12 @@ class FbMultiAuthorizationDecision extends Table {
 
     FbDecisionEntry decisions(int j) {
         int o = __offset(4);
-        return o != 0 ? new FbDecisionEntry().__assign(__indirect(__vector(o) + j * 4), bb) : null;
+        return o == 0 ? null : new FbDecisionEntry().__assign(__indirect(__vector(o) + j * 4), bb);
     }
 
     int decisionsLength() {
         int o = __offset(4);
-        return o != 0 ? __vector_len(o) : 0;
+        return o == 0 ? 0 : __vector_len(o);
     }
 
     static int createFbMultiAuthorizationDecision(FlatBufferBuilder builder, int decisionsOffset) {

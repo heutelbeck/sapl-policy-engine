@@ -34,12 +34,12 @@ class FbDecisionEntry extends Table {
 
     String subscriptionId() {
         int o = __offset(4);
-        return o != 0 ? __string(o + bb_pos) : null;
+        return o == 0 ? null : __string(o + bb_pos);
     }
 
     FbAuthorizationDecision decision() {
         int o = __offset(6);
-        return o != 0 ? new FbAuthorizationDecision().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbAuthorizationDecision().__assign(__indirect(o + bb_pos), bb);
     }
 
     static int createFbDecisionEntry(FlatBufferBuilder builder, int subscriptionIdOffset, int decisionOffset) {

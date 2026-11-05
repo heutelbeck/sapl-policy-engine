@@ -809,7 +809,7 @@ public class PatternsFunctionLibrary {
                 position += 2;
             } else if (character == '[') {
                 val closingBracket = findClosingBracket(glob, position);
-                position = closingBracket != -1 ? closingBracket + 1 : position + 1;
+                position = closingBracket == -1 ? position + 1 : closingBracket + 1;
             } else if (character == '{') {
                 if (depth == 0) {
                     count++;

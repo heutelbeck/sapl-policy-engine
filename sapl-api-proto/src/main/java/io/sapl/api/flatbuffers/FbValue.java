@@ -34,12 +34,12 @@ class FbValue extends Table {
 
     byte kindType() {
         int o = __offset(4);
-        return o != 0 ? bb.get(o + bb_pos) : 0;
+        return o == 0 ? 0 : bb.get(o + bb_pos);
     }
 
     Table kind(Table obj) {
         int o = __offset(6);
-        return o != 0 ? __union(obj, o + bb_pos) : null;
+        return o == 0 ? null : __union(obj, o + bb_pos);
     }
 
     static void startFbValue(FlatBufferBuilder builder) {

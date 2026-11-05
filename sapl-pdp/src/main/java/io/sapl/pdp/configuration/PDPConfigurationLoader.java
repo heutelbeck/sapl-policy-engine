@@ -90,9 +90,9 @@ import tools.jackson.databind.json.JsonMapper;
 @UtilityClass
 public class PDPConfigurationLoader {
 
-    private static final Set<String> PDP_JSON_FIELDS        = Set.of("algorithm", "compilerOptions", "variables",
-            "requiredEngineVersion", "requiredExtensions");
     private static final String      FIELD_COMPILER_OPTIONS = "compilerOptions";
+    private static final Set<String> PDP_JSON_FIELDS        = Set.of("algorithm", FIELD_COMPILER_OPTIONS, "variables",
+            "requiredEngineVersion", "requiredExtensions");
     private static final String      PDP_JSON               = "pdp.json";
     private static final String      SAPL_EXTENSION         = ".sapl";
     private static final String      SECRETS_SECTION        = "secrets";
@@ -419,19 +419,7 @@ public class PDPConfigurationLoader {
                 }
             }
 
-            CombiningAlgorithm algorithm;
-            val                algorithmNode = node.get("algorithm");
-            // A present-but-null algorithm degrades to the default, exactly like an absent
-            // field, rather than yielding a null algorithm that crashes compilation.
-            if (algorithmNode == null || algorithmNode.isNull()) {
-                log.warn(WARN_PDP_JSON_MISSING_ALGORITHM, CombiningAlgorithm.DEFAULT.toCanonicalString());
-                algorithm = CombiningAlgorithm.DEFAULT;
-            } else {
-                if (algorithmNode.has("votingMode") && "FIRST".equals(algorithmNode.path("votingMode").asString())) {
-                    throw new PDPConfigurationException(ERROR_PDP_JSON_FIRST_NOT_ALLOWED);
-                }
-                algorithm = MAPPER.treeToValue(algorithmNode, CombiningAlgorithm.class);
-            }
+            val algorithm = parseCombiningAlgorithm(node);
 
             if (node.has(SECRETS_SECTION)) {
                 throw new PDPConfigurationException(ERROR_PDP_JSON_SECRETS_NOT_ALLOWED);
@@ -446,6 +434,18 @@ public class PDPConfigurationLoader {
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
+    }
+
+    private static CombiningAlgorithm parseCombiningAlgorithm(JsonNode node) {
+        val algorithmNode = node.get("algorithm");
+        if (algorithmNode == null || algorithmNode.isNull()) {
+            log.warn(WARN_PDP_JSON_MISSING_ALGORITHM, CombiningAlgorithm.DEFAULT.toCanonicalString());
+            return CombiningAlgorithm.DEFAULT;
+        }
+        if (algorithmNode.has("votingMode") && "FIRST".equals(algorithmNode.path("votingMode").asString())) {
+            throw new PDPConfigurationException(ERROR_PDP_JSON_FIRST_NOT_ALLOWED);
+        }
+        return MAPPER.treeToValue(algorithmNode, CombiningAlgorithm.class);
     }
 
     private static Set<String> parseRequiredExtensions(JsonNode node) {

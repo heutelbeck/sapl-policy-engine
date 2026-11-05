@@ -45,7 +45,7 @@ public class ComparisonOperators {
      * Tests two values for inequality.
      */
     public static Value notEquals(Value a, Value b) {
-        return !a.equals(b) ? Value.TRUE : Value.FALSE;
+        return a.equals(b) ? Value.FALSE : Value.TRUE;
     }
 
     /**

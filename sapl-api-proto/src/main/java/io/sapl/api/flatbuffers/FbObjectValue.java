@@ -34,12 +34,12 @@ class FbObjectValue extends Table {
 
     FbObjectField fields(int j) {
         int o = __offset(4);
-        return o != 0 ? new FbObjectField().__assign(__indirect(__vector(o) + j * 4), bb) : null;
+        return o == 0 ? null : new FbObjectField().__assign(__indirect(__vector(o) + j * 4), bb);
     }
 
     int fieldsLength() {
         int o = __offset(4);
-        return o != 0 ? __vector_len(o) : 0;
+        return o == 0 ? 0 : __vector_len(o);
     }
 
     static int createFbObjectValue(FlatBufferBuilder builder, int fieldsOffset) {

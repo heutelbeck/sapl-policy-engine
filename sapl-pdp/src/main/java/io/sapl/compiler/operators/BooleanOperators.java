@@ -58,7 +58,7 @@ public class BooleanOperators {
         if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
             return va ^ vb ? Value.TRUE : Value.FALSE;
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof BooleanValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof BooleanValue ? b : a);
     }
 
 }

@@ -246,11 +246,11 @@ public class LoadtestCommand implements Callable<Integer> {
     }
 
     private static void printMachineReadable(BenchmarkResult result, PrintWriter out) {
-        out.println(String.format(Locale.US, "THROUGHPUT:%.2f", result.mean()));
+        out.printf(Locale.US, "THROUGHPUT:%.2f%n", result.mean());
         val latency = result.latency();
         if (latency != null) {
-            out.println(String.format(Locale.US, "LATENCY:%.0f:%.0f:%.0f:%.0f:%.0f", latency.p50(), latency.p90(),
-                    latency.p99(), latency.p999(), latency.max()));
+            out.printf(Locale.US, "LATENCY:%.0f:%.0f:%.0f:%.0f:%.0f%n", latency.p50(), latency.p90(), latency.p99(),
+                    latency.p999(), latency.max());
         }
         out.flush();
     }

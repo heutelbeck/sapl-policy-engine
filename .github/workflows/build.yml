@@ -80,7 +80,7 @@ jobs:
         run: |
           VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
           if [ -z "$VERSION" ]; then
-            echo "ERROR: Failed to extract version"
+            echo "ERROR: Failed to extract version" >&2
             exit 1
           fi
           echo "Extracted version: $VERSION"

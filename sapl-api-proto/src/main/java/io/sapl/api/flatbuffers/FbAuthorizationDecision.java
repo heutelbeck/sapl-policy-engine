@@ -40,22 +40,22 @@ class FbAuthorizationDecision extends Table {
 
     byte decision() {
         int o = __offset(4);
-        return o != 0 ? bb.get(o + bb_pos) : 0;
+        return o == 0 ? 0 : bb.get(o + bb_pos);
     }
 
     FbArrayValue obligations() {
         int o = __offset(6);
-        return o != 0 ? new FbArrayValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbArrayValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     FbArrayValue advice() {
         int o = __offset(8);
-        return o != 0 ? new FbArrayValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbArrayValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     FbValue resource() {
         int o = __offset(10);
-        return o != 0 ? new FbValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     static int createFbAuthorizationDecision(FlatBufferBuilder builder, byte decision, int obligationsOffset,

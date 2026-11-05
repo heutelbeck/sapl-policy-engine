@@ -25,7 +25,7 @@ public class LifecycleNavigationConfiguration implements VaadinServiceInitListen
 
     private static final long serialVersionUID = 2723967835464547701L;
 
-    private transient VaadinNavigationPepService vaadinNavigationPepService;
+    private final transient VaadinNavigationPepService vaadinNavigationPepService;
 
     public LifecycleNavigationConfiguration(VaadinNavigationPepService vaadinNavigationPepService) {
         this.vaadinNavigationPepService = vaadinNavigationPepService;
