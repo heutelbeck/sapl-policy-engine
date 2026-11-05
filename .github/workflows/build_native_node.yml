@@ -108,11 +108,11 @@ jobs:
 
       - name: Build Dependencies
         shell: bash
-        run: mvn -B install -pl sapl-node -am -DskipTests
+        run: mvn -B install -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
 
       - name: Build Native Image
         shell: bash
-        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -DskipTests
+        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

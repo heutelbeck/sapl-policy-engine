@@ -17,24 +17,17 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Shared conventions for the supplementary files carried alongside a PDP configuration. Extensions are named JSON
  * files that consumers other than the PDP read, for example to configure upstream connections. Secrets files carry
  * their sealing state in the filename: a {@code .sealed.json} name holds sealed content, a plain {@code .json} name
  * holds cleartext. All files are carried identically whether they sit loose in a policy directory or zipped in a
- * bundle, so both sources use these helpers to recognize the files, parse the critical set, and validate structural
+ * bundle, so both sources use these helpers to recognize the files and validate structural
  * integrity.
  * <p>
  * The files are:
@@ -43,7 +36,6 @@ import java.util.TreeSet;
  * <li>{@code ext-<name>.json}: cleartext extension configuration.</li>
  * <li>{@code ext-<name>-secrets.json} / {@code ext-<name>-secrets.sealed.json}: extension secrets, cleartext or
  * sealed.</li>
- * <li>{@code critical-extensions.json}: a JSON array of extension names the consumer must be able to process.</li>
  * </ul>
  * An artifact never mixes cleartext and sealed secrets files: either every secrets file is sealed or none is.
  */
@@ -80,13 +72,7 @@ public class ExtensionFiles {
      */
     public static final String SEALED_SECRETS_FILE = "secrets.sealed.json";
 
-    /**
-     * Name of the file declaring the critical extension set.
-     */
-    public static final String CRITICAL_EXTENSIONS_FILE = "critical-extensions.json";
-
-    private static final String ERROR_CRITICAL_WITHOUT_PAYLOAD      = "Critical extension '%s' is declared but neither 'ext-%s.json' nor 'ext-%s-secrets.json' is present.";
-    private static final String ERROR_MALFORMED_CRITICAL_EXTENSIONS = "The 'critical-extensions.json' file must be a JSON array of extension name strings.";
+    private static final String ERROR_REQUIRED_WITHOUT_PAYLOAD = "Required extension '%1$s' has no configuration or secrets payload. Provide 'ext-%1$s.json', 'ext-%1$s-secrets.json' or 'ext-%1$s-secrets.sealed.json'.";
 
     /**
      * @param fileName
@@ -152,78 +138,26 @@ public class ExtensionFiles {
     }
 
     /**
-     * Parses the content of a {@code critical-extensions.json} file.
-     *
-     * @param json
-     * the file content, or null or blank when absent
-     *
-     * @return the critical extension names, empty when the content is absent
-     *
-     * @throws PDPConfigurationException
-     * if the content is not a JSON array of strings
-     */
-    public static Set<String> parseCriticalExtensions(String json) {
-        if (json == null || json.isBlank()) {
-            return Set.of();
-        }
-        Value parsed;
-        try {
-            parsed = Value.ofJson(json);
-        } catch (RuntimeException e) {
-            throw new PDPConfigurationException(ERROR_MALFORMED_CRITICAL_EXTENSIONS, e);
-        }
-        if (!(parsed instanceof ArrayValue array)) {
-            throw new PDPConfigurationException(ERROR_MALFORMED_CRITICAL_EXTENSIONS);
-        }
-        val names = new LinkedHashSet<String>();
-        for (val element : array) {
-            if (!(element instanceof TextValue(var name))) {
-                throw new PDPConfigurationException(ERROR_MALFORMED_CRITICAL_EXTENSIONS);
-            }
-            names.add(name);
-        }
-        return names;
-    }
-
-    /**
-     * Serializes a critical extension set to canonical {@code critical-extensions.json} content. Names are sorted so
-     * the output is deterministic and the signed bytes are stable.
-     *
-     * @param criticalExtensionNames
-     * the critical extension names
-     *
-     * @return the JSON array content
-     */
-    public static String toJson(Collection<String> criticalExtensionNames) {
-        val array = ArrayValue.builder();
-        for (val name : new TreeSet<>(criticalExtensionNames)) {
-            array.add(Value.of(name));
-        }
-        return ValueJsonMarshaller.toJsonString(array.build());
-    }
-
-    /**
-     * Enforces the structural integrity rule that makes an extension set well-formed: every declared critical
-     * extension must have a payload present, a cleartext configuration or sealed secrets or both. A critical
+     * Enforces the structural integrity rule that makes an extension set well-formed: every declared required
+     * extension must have a payload present, a cleartext configuration or sealed secrets or both. A required
      * extension declared without any payload would let the consumer believe it is honored while it silently runs on
      * nothing. The check fails closed with a {@link PDPConfigurationException}.
      *
-     * @param criticalExtensions
-     * the declared critical extension names
+     * @param requiredExtensions
+     * the declared required extension names
      * @param extensionNames
      * the names with a cleartext configuration present
      * @param extensionSecretNames
      * the names with sealed secrets present
      *
      * @throws PDPConfigurationException
-     * if a critical extension has neither configuration nor secrets
+     * if a required extension has neither configuration nor secrets
      */
-    public static void validateIntegrity(Set<String> criticalExtensions, Set<String> extensionNames,
+    public static void validateIntegrity(Set<String> requiredExtensions, Set<String> extensionNames,
             Set<String> extensionSecretNames) {
-        for (val critical : criticalExtensions) {
-            if (!extensionNames.contains(critical) && !extensionSecretNames.contains(critical)) {
-                throw new PDPConfigurationException(
-                        ERROR_CRITICAL_WITHOUT_PAYLOAD.formatted(critical, critical, critical));
+        for (val extensionName : requiredExtensions) {
+            if (!extensionNames.contains(extensionName) && !extensionSecretNames.contains(extensionName)) {
+                throw new PDPConfigurationException(ERROR_REQUIRED_WITHOUT_PAYLOAD.formatted(extensionName));
             }
         }
     }

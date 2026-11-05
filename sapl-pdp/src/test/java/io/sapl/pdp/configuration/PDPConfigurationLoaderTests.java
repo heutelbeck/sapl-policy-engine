@@ -17,13 +17,21 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
-import lombok.val;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,20 +42,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Stream;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import lombok.val;
 
 @DisplayName("PDPConfigurationLoader")
 class PDPConfigurationLoaderTests {
@@ -75,14 +77,14 @@ class PDPConfigurationLoaderTests {
                 { "servers": [] }""");
         Files.writeString(tempDir.resolve("ext-upstreams-secrets.json"), """
                 { "apiKey": "ENC[value]" }""");
-        Files.writeString(tempDir.resolve("critical-extensions.json"), """
-                ["upstreams"]""");
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {"requiredExtensions": ["upstreams"]}""");
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
 
         assertThat(config.extensions()).containsKey("upstreams");
         assertThat(config.extensionSecrets()).containsKey("upstreams");
-        assertThat(config.criticalExtensions()).containsExactly("upstreams");
+        assertThat(config.requiredExtensions()).containsExactly("upstreams");
     }
 
     @Test
@@ -146,14 +148,14 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    @DisplayName("a critical extension without any payload file is rejected")
-    void whenDirectoryCriticalExtensionMissingPayloadThenThrows() throws IOException {
+    @DisplayName("a required extension without any payload file is rejected")
+    void whenDirectoryRequiredExtensionMissingPayloadThenThrows() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), "{}");
-        Files.writeString(tempDir.resolve("critical-extensions.json"), """
-                ["upstreams"]""");
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {"requiredExtensions": ["upstreams"]}""");
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Critical extension 'upstreams'");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Required extension 'upstreams'");
     }
 
     @Test

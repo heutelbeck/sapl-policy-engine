@@ -98,10 +98,12 @@
 		<asm.version>9.11.1</asm.version>
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
+		<pf4j.version>3.16.0</pf4j.version>
 		<okhttp.version>5.5.1</okhttp.version>
 		<scalar.version>0.6.85</scalar.version>
 		<vaadin.version>25.3.4</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
+		<semver4j.version>6.0.0</semver4j.version>
 		<lombok.version>1.18.48</lombok.version>
 		<jupiter.version>6.1.3</jupiter.version>
 		<mockito.version>5.24.0</mockito.version>
@@ -340,7 +342,18 @@
 				<artifactId>flexmark-ext-tables</artifactId>
 				<version>${flexmark.version}</version>
 			</dependency>
+			<!-- PF4J plugin framework -->
+			<dependency>
+				<groupId>org.pf4j</groupId>
+				<artifactId>pf4j</artifactId>
+				<version>${pf4j.version}</version>
+			</dependency>
 			<!-- Utility Libraries -->
+			<dependency>
+				<groupId>org.semver4j</groupId>
+				<artifactId>semver4j</artifactId>
+				<version>${semver4j.version}</version>
+			</dependency>
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>

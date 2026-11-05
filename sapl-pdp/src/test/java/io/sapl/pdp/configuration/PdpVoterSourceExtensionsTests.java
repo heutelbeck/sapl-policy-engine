@@ -32,10 +32,13 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.pdp.configuration.PreparationResult.Accepted;
+import io.sapl.pdp.configuration.PreparationResult.Rejected;
 import io.sapl.pdp.plugins.MutablePluginsSource;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.StaticPluginsSource;
 import io.sapl.util.SaplTesting;
+
 import lombok.val;
 
 @DisplayName("PdpVoterSource extension coordination")
@@ -129,9 +132,12 @@ class PdpVoterSourceExtensionsTests {
         private volatile boolean   accept    = true;
 
         @Override
-        public boolean prepare(String pdpId, PDPConfiguration configuration) {
+        public PreparationResult prepare(String pdpId, PDPConfiguration configuration) {
             prepared.add(pdpId);
-            return accept;
+            if (accept) {
+                return new Accepted();
+            }
+            return new Rejected("The test host cannot deploy the configuration extensions.");
         }
 
         @Override

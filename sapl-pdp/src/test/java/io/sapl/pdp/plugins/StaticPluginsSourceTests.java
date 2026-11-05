@@ -17,17 +17,19 @@
  */
 package io.sapl.pdp.plugins;
 
-import io.sapl.functions.DefaultFunctionBroker;
-import lombok.val;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
+import io.sapl.functions.DefaultFunctionBroker;
+
+import lombok.val;
 
 @DisplayName("StaticPluginsSource")
 class StaticPluginsSourceTests {

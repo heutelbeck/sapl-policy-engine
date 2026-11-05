@@ -17,10 +17,11 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import java.time.Instant;
+
 import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 
 /**
  * Immutable snapshot of a PDP's operational status, including configuration
@@ -32,9 +33,9 @@ import java.time.Instant;
  * @param combiningAlgorithm the combining algorithm in use, or null if ERROR
  * @param documentCount number of SAPL documents in the active configuration
  * @param lastSuccessfulLoad timestamp of the last successful configuration
- * load, or null if never loaded
+ * load, or null if never loaded or its timestamp could not be read
  * @param lastFailedLoad timestamp of the last failed configuration load, or
- * null if no failure occurred
+ * null if no failure occurred or its timestamp could not be read
  * @param lastError formatted error message from the last failed load, or null
  * if no failure occurred
  */

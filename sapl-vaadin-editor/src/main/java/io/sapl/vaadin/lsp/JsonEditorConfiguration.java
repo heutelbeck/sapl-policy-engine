@@ -31,4 +31,10 @@ public class JsonEditorConfiguration {
     private boolean lineWrapping;
     private boolean followColorScheme;
 
+    /**
+     * CSS font size, such as {@code 13px} or {@code 0.875rem}.
+     * Null inherits the font size from the containing page.
+     */
+    private String fontSize;
+
 }

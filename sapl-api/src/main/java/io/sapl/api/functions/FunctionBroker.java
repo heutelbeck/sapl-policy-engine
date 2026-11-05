@@ -17,9 +17,9 @@
  */
 package io.sapl.api.functions;
 
-import io.sapl.api.model.Value;
-
 import java.util.List;
+
+import io.sapl.api.model.Value;
 
 public interface FunctionBroker {
 

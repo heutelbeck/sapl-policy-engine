@@ -94,6 +94,16 @@ public class JsonEditor extends Component implements HasSize {
         element.setProperty(PROP_IS_LINT, config.isLint());
         element.setProperty(PROP_LINE_WRAPPING, config.isLineWrapping());
         element.setProperty(PROP_FOLLOW_COLOR_SCHEME, config.isFollowColorScheme());
+        setFontSize(config.getFontSize());
+    }
+
+    /**
+     * Sets the font size for editor text and line numbers.
+     *
+     * @param fontSize CSS font size, or null to inherit from the containing page
+     */
+    public void setFontSize(String fontSize) {
+        getElement().getStyle().setFontSize(fontSize);
     }
 
     /**

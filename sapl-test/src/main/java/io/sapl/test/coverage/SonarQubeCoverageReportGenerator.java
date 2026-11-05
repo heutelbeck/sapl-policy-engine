@@ -267,7 +267,7 @@ public class SonarQubeCoverageReportGenerator {
         }
 
         for (val branch : coverage.getBranchHits()) {
-            byLine.computeIfAbsent(branch.line(), l -> new LineAggregate()).accumulate(branch.isPartiallyCovered(),
+            byLine.computeIfAbsent(branch.startLine(), l -> new LineAggregate()).accumulate(branch.isPartiallyCovered(),
                     branch.totalBranchCount(), branch.coveredBranchCount());
         }
 

@@ -46,9 +46,12 @@ import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.Signal.InputSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.SignalType;
+
 import lombok.val;
+
 import reactor.core.publisher.Flux;
 import reactor.test.publisher.TestPublisher;
+
 import tools.jackson.databind.json.JsonMapper;
 
 final class StreamingPepScenarioSupport implements AutoCloseable {
@@ -90,14 +93,13 @@ final class StreamingPepScenarioSupport implements AutoCloseable {
     }
 
     Flux<Object> pipeline(boolean signalTransitions) {
-        return StreamingPipeline
-                .createPrepared(decisions(), this::plan, this::prepareInvocation, signalTransitions)
+        return StreamingPipeline.createPrepared(decisions(), this::plan, this::prepareInvocation, signalTransitions)
                 .doOnTerminate(downstreamTerminations::incrementAndGet);
     }
 
     private Supplier<? extends Flux<?>> prepareInvocation(EnforcementPlan plan) {
         try {
-            val method = StreamingPepScenarioSupport.class.getDeclaredMethod("open", String.class, String.class);
+            val method     = StreamingPepScenarioSupport.class.getDeclaredMethod("open", String.class, String.class);
             val invocation = new SimpleMethodInvocation(this, method, "all-devices", "09:00");
             if (plan.execute(InputSignal.of(invocation), false).failureState()) {
                 throw new AccessDeniedException("Input obligation failed");

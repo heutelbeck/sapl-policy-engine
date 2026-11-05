@@ -168,6 +168,14 @@ jobs:
         if: env.RUN_ANALYSIS == 'true'
         run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T 1.5C
 
+      - name: Verify Installed Editor Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          mvn -B install -pl sapl-vaadin-editor -am -DskipTests
+          version=$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)
+          bash .github/scripts/lsp-library-smoke-test.sh "$version"
+
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

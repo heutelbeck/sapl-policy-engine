@@ -17,13 +17,6 @@
  */
 package io.sapl.pdp.configuration;
 
-import java.util.Set;
-import java.util.List;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,7 +24,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +36,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 
 import lombok.val;
 
@@ -171,7 +172,7 @@ class ConfigurationIdsTests {
             val one   = base();
             val other = new PDPConfiguration("pdp-b", "id-b", one.combiningAlgorithm(), one.compilerOptions(),
                     one.saplDocuments(), one.data(), one.extensions(), one.extensionSecrets(),
-                    one.criticalExtensions());
+                    one.requiredExtensions());
             assertThat(ConfigurationIds.contentHash16(ConfigurationIds.entriesOf(one)))
                     .isEqualTo(ConfigurationIds.contentHash16(ConfigurationIds.entriesOf(other)));
         }
@@ -214,7 +215,7 @@ class ConfigurationIdsTests {
                             new PDPConfiguration(base.pdpId(), base.configurationId(), base.combiningAlgorithm(),
                                     base.compilerOptions(), base.saplDocuments(), base.data(), Map.of(),
                                     Map.of("geo", secrets), Set.of())),
-                    arguments("the critical extensions",
+                    arguments("the required extensions",
                             new PDPConfiguration(base.pdpId(), base.configurationId(), base.combiningAlgorithm(),
                                     base.compilerOptions(), base.saplDocuments(), base.data(), Map.of("geo", variables),
                                     Map.of(), Set.of("geo"))));

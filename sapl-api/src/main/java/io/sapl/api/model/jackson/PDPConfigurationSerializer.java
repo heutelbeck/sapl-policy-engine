@@ -17,17 +17,18 @@
  */
 package io.sapl.api.model.jackson;
 
-import tools.jackson.core.JsonGenerator;
-import tools.jackson.databind.SerializationContext;
-import tools.jackson.databind.ser.std.StdSerializer;
+import java.util.List;
+import java.util.Map;
+
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 
-import java.util.List;
-import java.util.Map;
-
 import lombok.val;
+
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
  * Jackson serializer for PDPConfiguration.
@@ -38,6 +39,7 @@ import lombok.val;
  * {
  *   "pdpId": "production",
  *   "configurationId": "v1.0",
+ *   "requiredEngineVersion": ">=4.2.0",
  *   "combiningAlgorithm": {
  *     "votingMode": "PRIORITY_DENY",
  *     "defaultDecision": "ABSTAIN",
@@ -59,6 +61,8 @@ import lombok.val;
  *   }
  * }
  * }</pre>
+ *
+ * The optional requiredEngineVersion field is omitted when null.
  */
 public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> {
 
@@ -74,6 +78,9 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
 
         generator.writeStringProperty("pdpId", configuration.pdpId());
         generator.writeStringProperty("configurationId", configuration.configurationId());
+        if (configuration.requiredEngineVersion() != null) {
+            generator.writeStringProperty("requiredEngineVersion", configuration.requiredEngineVersion());
+        }
 
         generator.writeName("combiningAlgorithm");
         serializeCombiningAlgorithm(configuration.combiningAlgorithm(), generator);
@@ -100,9 +107,9 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
             generator.writeName("extensionSecrets");
             serializeValueMap(configuration.extensionSecrets(), generator, serializers);
         }
-        if (!configuration.criticalExtensions().isEmpty()) {
-            generator.writeName("criticalExtensions");
-            serializeStringList(List.copyOf(configuration.criticalExtensions()), generator);
+        if (!configuration.requiredExtensions().isEmpty()) {
+            generator.writeName("requiredExtensions");
+            serializeStringList(configuration.requiredExtensions().stream().sorted().toList(), generator);
         }
 
         generator.writeEndObject();

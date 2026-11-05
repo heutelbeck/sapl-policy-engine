@@ -41,6 +41,9 @@ import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.pdp.configuration.ExtensionsProcessor;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PdpState;
+import io.sapl.pdp.configuration.PreparationResult;
+import io.sapl.pdp.configuration.PreparationResult.Accepted;
+
 import lombok.val;
 
 @DisplayName("ExtensionsProcessor wiring")
@@ -77,8 +80,8 @@ class ExtensionsProcessorTests {
     }
 
     @Test
-    @DisplayName("the default processor rejects a configuration that declares a critical capability it cannot deploy")
-    void whenCriticalCapabilityAndDefaultProcessorThenConfigurationRejected() throws Exception {
+    @DisplayName("the default processor rejects a configuration that declares a required capability it cannot deploy")
+    void whenRequiredCapabilityAndDefaultProcessorThenConfigurationRejected() throws Exception {
         Files.writeString(policyDir.resolve("pdp.json"), """
                 {}""");
         Files.writeString(policyDir.resolve("policy.sapl"), """
@@ -86,8 +89,8 @@ class ExtensionsProcessorTests {
                 """);
         Files.writeString(policyDir.resolve("ext-upstreams.json"), """
                 { "endpoint": "https://mcp.internal/billing" }""");
-        Files.writeString(policyDir.resolve("critical-extensions.json"), """
-                ["upstreams"]""");
+        Files.writeString(policyDir.resolve("pdp.json"), """
+                {"requiredExtensions": ["upstreams"]}""");
 
         try (val components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(policyDir).build()) {
             assertThat(components.pdpVoterSource().getPdpStatus("default"))
@@ -97,8 +100,8 @@ class ExtensionsProcessorTests {
     }
 
     @Test
-    @DisplayName("an initial configuration declaring a critical capability the default processor cannot deploy fails the build")
-    void whenInitialConfigurationDeclaresUncoveredCriticalThenBuildFails() {
+    @DisplayName("an initial configuration declaring a required capability the default processor cannot deploy fails the build")
+    void whenInitialConfigurationDeclaresUncoveredRequiredThenBuildFails() {
         val configuration = new PDPConfiguration("default", "cfg-1", CombiningAlgorithm.DEFAULT,
                 List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
                 .withExtensions(Map.of(), Map.of(), Set.of("upstreams"));
@@ -120,8 +123,8 @@ class ExtensionsProcessorTests {
     private record Recorder(CopyOnWriteArrayList<PDPConfiguration> committed) implements ExtensionsProcessor {
 
         @Override
-        public boolean prepare(String pdpId, PDPConfiguration configuration) {
-            return true;
+        public PreparationResult prepare(String pdpId, PDPConfiguration configuration) {
+            return new Accepted();
         }
 
         @Override

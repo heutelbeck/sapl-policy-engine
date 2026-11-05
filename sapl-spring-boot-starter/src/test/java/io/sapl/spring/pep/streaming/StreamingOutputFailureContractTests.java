@@ -35,7 +35,9 @@ import org.springframework.security.access.AccessDeniedException;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.pep.constraints.Signal;
+
 import lombok.val;
+
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -134,11 +136,11 @@ class StreamingOutputFailureContractTests {
     @Test
     @DisplayName("F4: suppressed failure still executes terminal cleanup exactly once")
     void whenFailureIsSuppressedThenExecuteTerminalHandlers() {
-        val failure = scenario.outputFailure();
-        val filter = scenario.outputMapper("suppress", 20, value -> null);
+        val failure     = scenario.outputFailure();
+        val filter      = scenario.outputMapper("suppress", 20, value -> null);
         val termination = scenario.runner("termination", Signal.TerminationSignal.SIGNAL_TYPE, 10, () -> {});
-        val after = scenario.runner("after-termination", Signal.AfterTerminationSignal.SIGNAL_TYPE, 10, () -> {});
-        val output = scenario.pipeline(false);
+        val after       = scenario.runner("after-termination", Signal.AfterTerminationSignal.SIGNAL_TYPE, 10, () -> {});
+        val output      = scenario.pipeline(false);
 
         StepVerifier.create(output).then(() -> scenario.permit(failure, filter, termination, after))
                 .then(() -> scenario.emit(0, "reading")).expectComplete().verify(TIMEOUT);
@@ -151,11 +153,11 @@ class StreamingOutputFailureContractTests {
     @DisplayName("F4: suppressing an item failure does not suppress a later cleanup obligation failure")
     void whenTerminalCleanupFailsThenDenyInsteadOfCompletingSilently() {
         val failure = scenario.outputFailure();
-        val filter = scenario.outputMapper("suppress", 20, value -> null);
+        val filter  = scenario.outputMapper("suppress", 20, value -> null);
         val cleanup = scenario.runner("cleanup-failure", Signal.TerminationSignal.SIGNAL_TYPE, 10, () -> {
-            throw new IllegalStateException("Cleanup obligation failed");
-        });
-        val output = scenario.pipeline(false);
+                        throw new IllegalStateException("Cleanup obligation failed");
+                    });
+        val output  = scenario.pipeline(false);
 
         StepVerifier.create(output).then(() -> scenario.permit(failure, filter, cleanup))
                 .then(() -> scenario.emit(0, "reading")).expectError(AccessDeniedException.class).verify(TIMEOUT);
@@ -167,26 +169,24 @@ class StreamingOutputFailureContractTests {
     @ParameterizedTest(name = "R11/F2: obligation fails after reentrant replacement {0}")
     @DisplayName("Replacement during output handling discards stale data but never an established failure")
     void whenOutputHandlerReplacesSourceThenPreserveFailureButNotStaleData(boolean fail) {
-        val changed = scenario.inputAudit("changed-input");
-        val mapper = scenario.outputMapper("restart", 10, value -> {
-            scenario.permit(changed);
-            if (fail) {
-                throw new IllegalStateException("Obligation failed after replacement");
-            }
-            return value;
-        });
-        val output = scenario.pipeline(false);
+        val changed  = scenario.inputAudit("changed-input");
+        val mapper   = scenario.outputMapper("restart", 10, value -> {
+                         scenario.permit(changed);
+                         if (fail) {
+                             throw new IllegalStateException("Obligation failed after replacement");
+                         }
+                         return value;
+                     });
+        val output   = scenario.pipeline(false);
         val verifier = StepVerifier.create(output).then(() -> scenario.permit(mapper))
                 .then(() -> scenario.emit(0, "stale"));
 
         if (fail) {
             verifier.expectError(AccessDeniedException.class).verify(TIMEOUT);
-            assertThat(scenario.calls).hasSize(2)
-                    .allSatisfy(call -> assertThat(call.cancellations).hasValue(1));
+            assertThat(scenario.calls).hasSize(2).allSatisfy(call -> assertThat(call.cancellations).hasValue(1));
             assertThat(scenario.pdpCancellations).hasValue(1);
         } else {
-            verifier.then(() -> scenario.emit(1, "current")).expectNext("current")
-                    .thenCancel().verify(TIMEOUT);
+            verifier.then(() -> scenario.emit(1, "current")).expectNext("current").thenCancel().verify(TIMEOUT);
         }
     }
 

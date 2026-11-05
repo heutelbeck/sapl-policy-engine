@@ -18,11 +18,13 @@
 package io.sapl.spring.pep.streaming;
 
 import static reactor.core.Exceptions.throwIfFatal;
+
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
+import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -30,6 +32,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.pep.constraints.EnforcementResult;
 import io.sapl.spring.pep.constraints.Signal.InputSignal;
+import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission.Emit;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitComplete;
@@ -48,15 +51,15 @@ import io.sapl.spring.pep.streaming.MealyMachine.State;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Permitting;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Suspended;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
-import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 import io.sapl.spring.util.Maybe;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.reactivestreams.Subscription;
+
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.BaseSubscriber;
@@ -106,10 +109,10 @@ public final class StreamingPipeline {
     private static final String WARN_CANCEL_OBLIGATION_FAILED            = "Cancel obligation handler failed after the subscriber had already cancelled: {}";
     private static final String ERROR_SUSPEND_OBLIGATION_FAILED          = "Access denied. A suspension obligation failed.";
 
-    private final Flux<AuthorizationDecision>                      decisions;
-    private final Function<AuthorizationDecision, EnforcementPlan> planner;
+    private final Flux<AuthorizationDecision>                            decisions;
+    private final Function<AuthorizationDecision, EnforcementPlan>       planner;
     private final Function<EnforcementPlan, Supplier<? extends Flux<?>>> prepareRap;
-    private final boolean                                          signalTransitions;
+    private final boolean                                                signalTransitions;
 
     private final Object                       lock          = new Object();
     private final Disposable.Composite         subscriptions = Disposables.composite();
@@ -169,8 +172,7 @@ public final class StreamingPipeline {
         return Flux.defer(() -> {
             val pipeline = new StreamingPipeline(decisions, planner, prepareRap, signalTransitions);
             // handle preserves demand and makes transition notifications resumable.
-            return Flux.<ProtectedPayload<Object>>create(pipeline::initialize)
-                    .handle(StreamingPipeline::unpackPayload);
+            return Flux.<ProtectedPayload<Object>>create(pipeline::initialize).handle(StreamingPipeline::unpackPayload);
         });
     }
 
@@ -261,8 +263,8 @@ public final class StreamingPipeline {
         // a defective
         // PDP: fail closed by terminating the protected stream with an error (no retry
         // here).
-        val pdpSub = decisions.switchIfEmpty(Flux.just(AuthorizationDecision.DENY))
-                .contextWrite(subscriberContext).subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
+        val pdpSub = decisions.switchIfEmpty(Flux.just(AuthorizationDecision.DENY)).contextWrite(subscriberContext)
+                .subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
         subscriptions.add(pdpSub);
     }
 
@@ -276,10 +278,10 @@ public final class StreamingPipeline {
                 return;
             }
             val revision = ++decisionRevision;
-            val plan = planner.apply(decision);
+            val plan     = planner.apply(decision);
             lastPermittingPlan = plan;
             val failed = plan.enforceDecisionConstraints(decision);
-            val event = classify(decision, plan, failed);
+            val event  = classify(decision, plan, failed);
             if (failed) {
                 process(event);
                 return;
@@ -287,8 +289,7 @@ public final class StreamingPipeline {
             if (!isCurrentDecision(revision)) {
                 return;
             }
-            if (!(event instanceof PdpPermit) ||
-                    (rapSubscription != null && plan.matchesInputPlan(activeInputPlan))) {
+            if (!(event instanceof PdpPermit) || (rapSubscription != null && plan.matchesInputPlan(activeInputPlan))) {
                 process(event);
                 return;
             }
@@ -330,9 +331,9 @@ public final class StreamingPipeline {
         return switch (decision.decision()) {
         case PERMIT         -> decisionScopedFailed ? new PdpDeny(decision, plan, DenyKind.PERMIT_NOT_ENFORCEABLE)
                 : new PdpPermit(decision, plan);
-        case SUSPEND        -> decisionScopedFailed
-                ? new RapError(new AccessDeniedException(ERROR_SUSPEND_OBLIGATION_FAILED))
-                : new PdpSuspend(decision, plan, new TransitionReason.Suspended(decision));
+        case SUSPEND        ->
+            decisionScopedFailed ? new RapError(new AccessDeniedException(ERROR_SUSPEND_OBLIGATION_FAILED))
+                    : new PdpSuspend(decision, plan, new TransitionReason.Suspended(decision));
         case INDETERMINATE  -> new PdpDeny(decision, plan, DenyKind.INDETERMINATE);
         case NOT_APPLICABLE -> new PdpDeny(decision, plan, DenyKind.NO_POLICY_APPLICABLE);
         case DENY           -> new PdpDeny(decision, plan, DenyKind.POLICY_DENIED);
@@ -347,15 +348,16 @@ public final class StreamingPipeline {
         val subscriber = createRapSubscriber();
         activeInputPlan = plan;
         rapSubscription = subscriber;
-        rapReady = false;
+        rapReady        = false;
         subscriptions.add(subscriber);
         val source = EnforcementPlanContext.withBlocking(plan, invocation::get);
         if (subscriber != rapSubscription || state instanceof Terminated) {
             return;
         }
         Supplier<EnforcementPlan> current = this::currentPlan;
-        source.contextWrite(context -> context.putAll(subscriberContext)
-                .put(EnforcementPlanContext.REACTOR_KEY, current)).subscribe(subscriber);
+        source.contextWrite(
+                context -> context.putAll(subscriberContext).put(EnforcementPlanContext.REACTOR_KEY, current))
+                .subscribe(subscriber);
     }
 
     private BaseSubscriber<Object> createRapSubscriber() {
@@ -544,9 +546,8 @@ public final class StreamingPipeline {
         }
     }
 
-    private void finish(Event event, Iterable<Emission> emissions,
-            @Nullable EnforcementResult<Object> failureOutput) {
-        val plan = currentPlan();
+    private void finish(Event event, Iterable<Emission> emissions, @Nullable EnforcementResult<Object> failureOutput) {
+        val                   plan           = currentPlan();
         AccessDeniedException cleanupFailure = null;
         if (plan != null && !(event instanceof Cancel)) {
             try {

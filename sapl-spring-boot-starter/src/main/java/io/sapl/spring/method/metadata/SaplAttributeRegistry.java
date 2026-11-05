@@ -17,8 +17,14 @@
  */
 package io.sapl.spring.method.metadata;
 
-import lombok.NonNull;
-import lombok.val;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.core.MethodClassKey;
@@ -32,13 +38,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.prepost.PreFilter;
 import org.springframework.util.ClassUtils;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import lombok.NonNull;
+import lombok.val;
 
 public final class SaplAttributeRegistry {
 
@@ -167,10 +168,10 @@ public final class SaplAttributeRegistry {
             Class<T> annotationType) {
         val annotation = findAnnotation(method, targetClass, annotationType);
         return switch (annotation) {
-        case PreEnforce a    -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), false);
-        case PostEnforce a   -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), false);
+        case PreEnforce a    ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets(), false);
+        case PostEnforce a   ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets(), false);
         case StreamEnforce a -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
                 a.secrets(), a.signalTransitions());
         case null, default   -> SaplAttribute.NULL_ATTRIBUTE;

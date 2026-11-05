@@ -17,22 +17,8 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import com.nimbusds.jose.jwk.OctetKeyPair;
-import io.sapl.api.SaplVersion;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.compiler.document.DocumentCompiler;
-import io.sapl.pdp.configuration.ConfigurationIds;
-import io.sapl.pdp.configuration.ExtensionFiles;
-import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.PDPConfigurationLoader;
-import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
-import io.sapl.secrets.SecretSealingException;
-import io.sapl.secrets.ValueSealer;
-import lombok.val;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
+import static io.sapl.pdp.SaplBuildInfo.version;
+import static io.sapl.pdp.configuration.ExtensionFiles.validateIntegrity;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -41,11 +27,34 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PrivateKey;
-import java.util.Arrays;
 import java.util.*;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import com.nimbusds.jose.jwk.OctetKeyPair;
+
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.compiler.document.DocumentCompiler;
+import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.ExtensionFiles;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.PDPConfigurationLoader;
+import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
+import io.sapl.secrets.SecretSealingException;
+import io.sapl.secrets.ValueSealer;
+
+import lombok.val;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Builder for creating SAPL bundle files (.saplbundle).
@@ -66,7 +75,6 @@ import java.util.zip.ZipOutputStream;
  *   audit.sapl
  *   ext-upstreams.json              (optional, cleartext extension data)
  *   ext-upstreams-secrets.sealed.json (optional, sealed extension secrets)
- *   critical-extensions.json        (optional, names the consumer must support)
  * </pre>
  *
  * <h2>Manifest and Configuration Id</h2>
@@ -165,17 +173,20 @@ public final class BundleBuilder {
     private static final String ERROR_SECRETS_NOT_SEALED                       = "Secrets must already be sealed. Use withSecrets to seal cleartext.";
     private static final String ERROR_SECRETS_REQUIRE_KEY                      = "Secrets require a sealing key. Call sealSecretsWith before building.";
 
+    private static final JsonMapper MAPPER = JsonMapper.builder()
+            .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_YAML_COMMENTS).build();
+
     private String                    pdpJson;
     private String                    configurationId;
     private JsonNode                  attribution;
     private String                    sealingRecipient;
     private String                    secrets;
     private String                    sealedSecrets;
-    private final Map<String, String> policies               = new LinkedHashMap<>();
-    private final Map<String, String> extensions             = new LinkedHashMap<>();
-    private final Map<String, String> extensionSecrets       = new LinkedHashMap<>();
-    private final Map<String, String> sealedExtensionSecrets = new LinkedHashMap<>();
-    private final Set<String>         criticalExtensions     = new LinkedHashSet<>();
+    private final Map<String, String> policies                     = new LinkedHashMap<>();
+    private final Map<String, String> extensions                   = new LinkedHashMap<>();
+    private final Map<String, String> extensionSecrets             = new LinkedHashMap<>();
+    private final Map<String, String> sealedExtensionSecrets       = new LinkedHashMap<>();
+    private final Set<String>         additionalRequiredExtensions = new LinkedHashSet<>();
 
     private PrivateKey   signingKey;
     private String       signingKeyId;
@@ -567,12 +578,12 @@ public final class BundleBuilder {
     }
 
     /**
-     * Marks an extension as critical.
+     * Adds an extension name to the requiredExtensions field in pdp.json.
      * <p>
-     * A critical extension must be understood by the consumer. A consumer without a
+     * A required extension must be understood by the consumer. A consumer without a
      * registered processor for it rejects the whole configuration. Building fails if
-     * a name is marked critical without a matching {@link #withExtension}
-     * configuration or extension secrets.
+     * a name is required without a matching {@link #withExtension} configuration or
+     * extension secrets. Names already declared in pdp.json are retained.
      *
      * @param name
      * the extension name (a slug, e.g. {@code upstreams})
@@ -582,9 +593,9 @@ public final class BundleBuilder {
      * @throws IllegalArgumentException
      * if the name is not a slug
      */
-    public BundleBuilder withCriticalExtension(String name) {
+    public BundleBuilder withRequiredExtension(String name) {
         validateExtensionName(name);
-        criticalExtensions.add(name);
+        additionalRequiredExtensions.add(name);
         return this;
     }
 
@@ -689,7 +700,9 @@ public final class BundleBuilder {
      * if bundle creation fails
      */
     public BundleManifest writeTo(OutputStream outputStream) {
-        validatePdpJson();
+        val configuration      = validatePdpJson();
+        val requiredExtensions = new TreeSet<>(configuration.requiredExtensions());
+        requiredExtensions.addAll(additionalRequiredExtensions);
         validatePolicies();
         if (secrets != null && sealedSecrets != null) {
             throw new PDPConfigurationException(ERROR_AMBIGUOUS_SECRETS);
@@ -699,9 +712,9 @@ public final class BundleBuilder {
         }
         val allSecretNames = new LinkedHashSet<>(extensionSecrets.keySet());
         allSecretNames.addAll(sealedExtensionSecrets.keySet());
-        ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), allSecretNames);
+        validateIntegrity(requiredExtensions, extensions.keySet(), allSecretNames);
         try (val zipStream = new ZipOutputStream(outputStream)) {
-            val allFiles = assembleFiles();
+            val allFiles = assembleFiles(resolvePdpJson(requiredExtensions));
             val manifest = buildManifest(allFiles);
 
             for (val entry : allFiles.entrySet()) {
@@ -714,10 +727,10 @@ public final class BundleBuilder {
         }
     }
 
-    private TreeMap<String, String> assembleFiles() {
+    private TreeMap<String, String> assembleFiles(String resolvedPdpJson) {
         val allFiles = new TreeMap<String, String>();
 
-        allFiles.put(PDP_JSON, pdpJson);
+        allFiles.put(PDP_JSON, resolvedPdpJson);
 
         allFiles.putAll(policies);
 
@@ -741,9 +754,6 @@ public final class BundleBuilder {
                     ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX,
                     entry.getValue());
         }
-        if (!criticalExtensions.isEmpty()) {
-            allFiles.put(ExtensionFiles.CRITICAL_EXTENSIONS_FILE, ExtensionFiles.toJson(criticalExtensions));
-        }
         return allFiles;
     }
 
@@ -755,7 +765,7 @@ public final class BundleBuilder {
 
         val resolvedId          = configurationId != null ? configurationId : deriveDefaultConfigurationId(fileHashes);
         val resolvedAttribution = attribution != null ? attribution
-                : BundleManifest.attributionOfText("sapl-pdp/" + SaplVersion.VERSION);
+                : BundleManifest.attributionOfText("sapl-pdp/" + version());
         val resolvedRecipient   = resolveSealingRecipient(allFiles);
 
         val unsignedManifest = BundleManifest.builder().configurationId(resolvedId).attribution(resolvedAttribution)
@@ -839,11 +849,21 @@ public final class BundleBuilder {
         zipStream.closeEntry();
     }
 
-    private void validatePdpJson() {
+    private String resolvePdpJson(Set<String> requiredExtensions) {
+        if (additionalRequiredExtensions.isEmpty()) {
+            return pdpJson;
+        }
+        val configuration = (ObjectNode) MAPPER.readTree(pdpJson);
+        val names         = configuration.putArray("requiredExtensions");
+        requiredExtensions.forEach(names::add);
+        return MAPPER.writeValueAsString(configuration);
+    }
+
+    private PDPConfiguration validatePdpJson() {
         if (pdpJson == null || pdpJson.isBlank()) {
             throw new PDPConfigurationException(ERROR_BUNDLE_MISSING_PDP_JSON);
         }
-        PDPConfigurationLoader.loadFromBundle(pdpJson, null, Map.of(), "build-validation", "build-validation");
+        return PDPConfigurationLoader.loadFromBundle(pdpJson, null, Map.of(), "build-validation", "build-validation");
     }
 
     private void validatePolicies() {

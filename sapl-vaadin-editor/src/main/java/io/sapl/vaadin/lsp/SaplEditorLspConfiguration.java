@@ -56,6 +56,12 @@ public class SaplEditorLspConfiguration {
     private boolean hasLineNumbers = true;
 
     /**
+     * CSS font size, such as {@code 13px} or {@code 0.875rem}.
+     * Null inherits the font size from the containing page.
+     */
+    private String fontSize;
+
+    /**
      * Whether the editor is read-only.
      */
     private boolean readOnly = false;

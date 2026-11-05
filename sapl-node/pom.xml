@@ -264,6 +264,22 @@
 	</dependencies>
 
 	<build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>META-INF/sapl-node-version.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>META-INF/sapl-node-version.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
 		<pluginManagement>
 			<plugins>
 				<!-- GraalVM native-image: shared config for all native-* profiles.

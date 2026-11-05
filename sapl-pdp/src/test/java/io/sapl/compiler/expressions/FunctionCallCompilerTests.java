@@ -17,24 +17,26 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.*;
-import io.sapl.ast.Expression;
-import lombok.val;
+import static io.sapl.util.SaplTesting.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.model.*;
+import io.sapl.ast.Expression;
 
-import static io.sapl.util.SaplTesting.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import lombok.val;
 
 @DisplayName("FunctionCallCompiler")
 class FunctionCallCompilerTests {

@@ -28,9 +28,11 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.ProxyMethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
+import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.method.metadata.StreamEnforce;
@@ -48,14 +50,14 @@ import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
+import io.sapl.spring.util.Maybe.Present;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
 import reactor.core.publisher.Flux;
-import org.springframework.security.access.AccessDeniedException;
-import io.sapl.spring.util.Maybe.Present;
 
 /**
  * Reactive PEP for {@link StreamEnforce}. Builds a {@link StreamingPipeline}
@@ -71,7 +73,7 @@ import io.sapl.spring.util.Maybe.Present;
 public final class StreamEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE = "@StreamEnforce reactive PEP supports Flux only at this time. Found return type %s.";
-    private static final String ERROR_UNSUPPORTED_INVOCATION = "@StreamEnforce requires a cloneable Spring proxy invocation.";
+    private static final String ERROR_UNSUPPORTED_INVOCATION  = "@StreamEnforce requires a cloneable Spring proxy invocation.";
     private static final String ERROR_INPUT_OBLIGATION_FAILED = "Access denied. Input enforcement failed. The protected method was not invoked.";
 
     private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
@@ -101,30 +103,28 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
             return Flux.error(new IllegalStateException(ERROR_UNSUPPORTED_INVOCATION));
         }
         val originalArguments = methodInvocation.getArguments().clone();
-        val publisherType    = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
-        val supportedSignals = collectSupportedSignals(publisherType);
-        val planner          = enforcementPlannerProvider.getObject();
-        val pdp              = policyDecisionPointProvider.getObject();
-        val tenantResolver   = tenantResolverProvider.getObject();
-        val authzSub         = subscriptionBuilderProvider.getObject()
+        val publisherType     = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
+        val supportedSignals  = collectSupportedSignals(publisherType);
+        val planner           = enforcementPlannerProvider.getObject();
+        val pdp               = policyDecisionPointProvider.getObject();
+        val tenantResolver    = tenantResolverProvider.getObject();
+        val authzSub          = subscriptionBuilderProvider.getObject()
                 .reactiveConstructAuthorizationSubscription(methodInvocation, attribute);
 
         val decisions = authzSub
                 .flatMapMany(sub -> tenantResolver.resolve().flatMapMany(pdpId -> pdp.decide(sub, pdpId)));
 
-        Function<AuthorizationDecision, EnforcementPlan> planFor     = decision -> planner.plan(decision,
-                supportedSignals);
+        Function<AuthorizationDecision, EnforcementPlan> planFor = decision -> planner.plan(decision, supportedSignals);
         return StreamingPipeline.createPrepared(decisions, planFor,
-                plan -> prepareInvocation(proxyInvocation, originalArguments, plan),
-                attribute.signalTransitions());
+                plan -> prepareInvocation(proxyInvocation, originalArguments, plan), attribute.signalTransitions());
     }
 
-    private static Supplier<? extends Flux<?>> prepareInvocation(ProxyMethodInvocation original,
-            Object[] arguments, EnforcementPlan plan) {
+    private static Supplier<? extends Flux<?>> prepareInvocation(ProxyMethodInvocation original, Object[] arguments,
+            EnforcementPlan plan) {
         val invocation = original.invocableClone(arguments.clone());
-        val result = plan.execute(InputSignal.of(invocation), false);
-        if (result.failureState() || !(result.value() instanceof Present<Object>(var value)) ||
-                !(value instanceof MethodInvocation prepared)) {
+        val result     = plan.execute(InputSignal.of(invocation), false);
+        if (result.failureState() || !(result.value() instanceof Present<Object>(var value))
+                || !(value instanceof MethodInvocation prepared)) {
             throw new AccessDeniedException(ERROR_INPUT_OBLIGATION_FAILED);
         }
         return () -> invokeProtected(prepared);

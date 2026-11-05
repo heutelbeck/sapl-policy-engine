@@ -255,12 +255,11 @@ root-level files. Subdirectories and unknown file names are rejected.
 
 | File | Required | Purpose |
 |------|----------|---------|
-| `pdp.json` | Yes | PDP configuration: combining algorithm and variables. Never contains secrets. Since SAPL 4.2.0 it must not contain a `configurationId` field; a bundle carrying one is rejected with a migration message. |
+| `pdp.json` | Yes | PDP configuration: combining algorithm, variables, compiler options, engine version requirement and required extensions. Never contains secrets. Since SAPL 4.2.0 it must not contain a `configurationId` field. A bundle carrying one is rejected with a migration message. |
 | `*.sapl` | Yes | SAPL policy documents. |
 | `secrets.sealed.json` | No | Sealed PDP-level secrets. Scalar leaves are `ENC[...]` tokens encrypted to an X25519 recipient key, structure and key names stay readable. |
 | `ext-<name>.json` | No | Cleartext extension data. Named JSON for consumers other than the PDP, for example gateway upstream configuration. |
 | `ext-<name>-secrets.sealed.json` | No | Sealed extension secrets for the same `<name>`. |
-| `critical-extensions.json` | No | A JSON array of extension names the consumer MUST be able to process, e.g. `["upstreams"]`. |
 | `.sapl-manifest.json` | Yes | Manifest carrying the bundle's packaging metadata and SHA-256 content hashes, plus an Ed25519 signature covering every other file when signed. See [Manifest Schema](#manifest-schema). |
 
 #### Secrets Sealing
@@ -272,17 +271,25 @@ variants (`secrets.json`, `ext-<name>-secrets.json`) exist for development setup
 only and require the consumer's explicit unencrypted-secrets opt-in. Sealing runs
 before signing, so the manifest signature covers the ciphertext.
 
-#### Extensions and Criticality
+#### Required Extensions
 
-Extension files let a bundle carry configuration for consumers other than the PDP.
-The consumer receives them alongside the policy configuration, keyed by extension
-name. `critical-extensions.json` follows the JOSE `crit` idea: a consumer without
-support for a listed extension MUST reject the whole configuration rather than
-silently ignore it, while unlisted extensions it does not know are ignored. Every
-listed name must have a payload in the bundle (`ext-<name>.json` or
-`ext-<name>-secrets.sealed.json` or both), otherwise the bundle is rejected. The
-critical set is covered by the manifest signature, so it cannot be stripped in
-transit.
+Extension files carry configuration for recipients such as a gateway. The
+`requiredExtensions` array in `pdp.json` names every extension the recipient must
+support and successfully prepare. For example, `"requiredExtensions": ["upstreams"]`
+requires support for the `upstreams` extension. Omitting the field or using an empty
+array declares no required extensions. Invalid declaration types are rejected.
+
+Every listed name must have a payload in the bundle, either `ext-<name>.json`,
+`ext-<name>-secrets.sealed.json` or both. The bundle is rejected if a required payload
+is absent. The recipient may ignore unsupported extensions that are not listed.
+The declaration is covered by the signature of `pdp.json` through the manifest.
+See [PDP Configuration](../2_2_PDPConfiguration/#requiredExtensions) for the complete
+field contract.
+
+An extension rejection identifies the PDP and rejected configuration and includes
+the recipient's explanation in the PDP status and log. A plain PDP lists the
+required extensions it cannot support. A previously working configuration stays
+active with status `STALE`. When no configuration is active, the status is `ERROR`.
 
 #### Manifest Schema
 
@@ -316,7 +323,7 @@ a migration message on new engines).
 
 | Field | Required | Purpose |
 |-------|----------|---------|
-| `version` | Yes | Recorded provenance: the engine library version that wrote the manifest, minted at build time. Publishers cannot set it, and it is not validated on load. |
+| `version` | Yes | Recorded provenance: the actual `sapl-pdp` build version that wrote the manifest, including prerelease identifiers. Publishers cannot set it, and it is not validated on load. Engine compatibility is declared separately through [`requiredEngineVersion`](../2_2_PDPConfiguration/#requiredEngineVersion). |
 | `hashAlgorithm` | Yes | Always `SHA-256`. |
 | `created` | Yes | Build timestamp. |
 | `configurationId` | Yes | The publication identity of this bundle: explicit (set at build time) or content-derived (`bundle@<hash16>`). 1 to 256 printable ASCII characters without whitespace, `/` or `\`. Signed and tamper-evident. |
@@ -330,7 +337,7 @@ a migration message on new engines).
 A bundle that is fetched successfully but is definitively invalid is handled as a
 configuration error rather than being retried in silence. This covers an invalid or
 missing signature, a malformed archive, a missing or unreadable `pdp.json`, secrets
-that cannot be unsealed, and a missing payload for a critical extension.
+that cannot be unsealed, and a missing payload for a required extension.
 
 For each such bundle the client reports a configuration error for the affected pdpId.
 It keeps serving the last successfully loaded configuration and marks that pdpId

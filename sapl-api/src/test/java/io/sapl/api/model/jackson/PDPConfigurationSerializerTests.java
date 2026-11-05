@@ -17,24 +17,29 @@
  */
 package io.sapl.api.model.jackson;
 
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.api.pdp.configuration.PdpData;
-import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+
+import lombok.val;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+
+@DisplayName("PDP configuration JSON uses the documented setting names")
 class PDPConfigurationSerializerTests {
 
     private static JsonMapper mapper;
@@ -45,7 +50,8 @@ class PDPConfigurationSerializerTests {
     }
 
     @Test
-    void when_serializingConfigurationWithCompilerOptions_then_emittedUnderDocumentedKey() throws JacksonException {
+    @DisplayName("Compiler options are serialized under their documented field name")
+    void whenSerializingConfigurationWithCompilerOptionsThenEmittedUnderDocumentedKey() throws JacksonException {
         val algorithm     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
                 ErrorHandling.ABSTAIN);
         val configuration = new PDPConfiguration("arkham-pdp", "v1.0", algorithm,
@@ -53,7 +59,7 @@ class PDPConfigurationSerializerTests {
                 new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         val json          = mapper.writeValueAsString(configuration);
 
-        // Contract: the documented key is "compilerOptions", not "compilerFlags".
-        assertThat(json).contains("\"compilerOptions\":{\"indexing\":\"AUTO\"}").doesNotContain("compilerFlags");
+        val document = mapper.readTree(json);
+        assertThat(document.path("compilerOptions").path("indexing").asString()).isEqualTo("AUTO");
     }
 }

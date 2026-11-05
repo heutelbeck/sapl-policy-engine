@@ -17,29 +17,10 @@
  */
 package io.sapl.node.cli.commands;
 
-import com.nimbusds.jose.jwk.OctetKeyPair;
-import io.sapl.api.SaplVersion;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.functions.libraries.crypto.PemUtils;
-import io.sapl.secrets.Keyring;
-import io.sapl.secrets.SecretSealing;
-import io.sapl.secrets.SecretSealingException;
-import io.sapl.secrets.ValueSealer;
-import io.sapl.pdp.configuration.ExtensionFiles;
-import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.bundle.BundleBuilder;
-import io.sapl.pdp.configuration.bundle.BundleManifest;
-import io.sapl.pdp.configuration.bundle.BundleSignatureException;
-import io.sapl.pdp.configuration.bundle.BundleSigner;
-import lombok.val;
-import org.jspecify.annotations.Nullable;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Spec;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
+import static io.sapl.node.SaplNodeBuildInfo.version;
+import static io.sapl.pdp.configuration.PDPConfigurationLoader.loadFromBundle;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -47,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
@@ -55,7 +37,6 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,8 +50,33 @@ import java.util.function.UnaryOperator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-import static java.util.Objects.requireNonNull;
+import org.jspecify.annotations.Nullable;
+
+import com.nimbusds.jose.jwk.OctetKeyPair;
+
+import io.sapl.api.SaplVersion;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.functions.libraries.crypto.PemUtils;
+import io.sapl.pdp.configuration.ExtensionFiles;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.pdp.configuration.bundle.BundleBuilder;
+import io.sapl.pdp.configuration.bundle.BundleManifest;
+import io.sapl.pdp.configuration.bundle.BundleSignatureException;
+import io.sapl.pdp.configuration.bundle.BundleSigner;
+import io.sapl.secrets.Keyring;
+import io.sapl.secrets.SecretSealing;
+import io.sapl.secrets.SecretSealingException;
+import io.sapl.secrets.ValueSealer;
+
+import lombok.val;
+
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
 
 /**
  * Bundle operations for policy management.
@@ -155,8 +161,8 @@ public class BundleCommand {
             Packages all .sapl policy files and pdp.json from the input
             directory into a .saplbundle file. Policies are validated for
             correct SAPL syntax during creation. Extension data
-            (ext-<name>.json), extension secrets, PDP-level secrets, and
-            critical-extensions.json are packaged too.
+            (ext-<name>.json), extension secrets and PDP secrets are packaged too.
+            Required extension names are declared in pdp.json.
 
             Secrets are handled by file name. A plaintext folder
             (secrets.json, ext-<name>-secrets.json) requires --seal-to: the
@@ -243,11 +249,10 @@ public class BundleCommand {
                 if (configurationId != null) {
                     builder.withConfigurationId(configurationId);
                 }
-                builder.withAttribution("sapl-node/" + SaplVersion.VERSION);
+                builder.withAttribution("sapl-node/" + version());
                 addPdpConfiguration(builder);
                 val policies = addPolicies(builder);
                 addExtensionConfigs(builder);
-                addCriticalExtensions(builder);
                 addSecrets(builder, scanAndCheckSecrets());
                 if (sealToFile != null) {
                     builder.sealSecretsWith(loadX25519PublicKey(sealToFile));
@@ -342,16 +347,6 @@ public class BundleCommand {
             }
         }
 
-        private void addCriticalExtensions(BundleBuilder builder) throws IOException {
-            val criticalFile = inputDir.resolve(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
-            if (!Files.exists(criticalFile)) {
-                return;
-            }
-            for (val name : ExtensionFiles.parseCriticalExtensions(Files.readString(criticalFile))) {
-                builder.withCriticalExtension(name);
-            }
-        }
-
     }
 
     // @formatter:off
@@ -361,10 +356,10 @@ public class BundleCommand {
         header = "Unpack a policy bundle into a directory.",
         description = { """
             Extracts every file from a .saplbundle into the output directory:
-            pdp.json, .sapl policies, secrets files, extension files, and
-            critical-extensions.json. The manifest is not written, so the
+            pdp.json, .sapl policies, secrets files and extension files.
+            The manifest is not written, so the
             directory can be edited and repackaged with 'sapl bundle create'.
-            The manifest's configuration id is printed; the unpacked sources
+            The manifest's configuration id is printed. The unpacked sources
             carry none.
 
             With -k the signature is verified before unpacking and a mismatch
@@ -817,7 +812,7 @@ public class BundleCommand {
             Creates a manifest containing SHA-256 hashes of all files in
             the bundle and signs it with the provided Ed25519 private key.
             All files are preserved: pdp.json, policies, sealed secrets,
-            extension files, and critical-extensions.json. The signature
+            extension files. The signature
             enables the PDP server to verify bundle integrity and
             authenticity at load time.
 
@@ -883,7 +878,6 @@ public class BundleCommand {
                 if (pdpJson != null) {
                     builder.withPdpJson(pdpJson);
                 }
-                val criticalJson  = contents.remove(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
                 val sealedSecrets = contents.remove(ExtensionFiles.SEALED_SECRETS_FILE);
                 if (sealedSecrets != null) {
                     builder.withSealedSecrets(sealedSecrets);
@@ -894,12 +888,6 @@ public class BundleCommand {
 
                 for (val entry : contents.entrySet()) {
                     addBundleEntry(builder, entry.getKey(), entry.getValue());
-                }
-
-                if (criticalJson != null) {
-                    for (val critical : ExtensionFiles.parseCriticalExtensions(criticalJson)) {
-                        builder.withCriticalExtension(critical);
-                    }
                 }
 
                 builder.signWith(privateKey, keyId);
@@ -926,7 +914,7 @@ public class BundleCommand {
         // library default.
         private static void carryOverManifestMetadata(BundleBuilder builder, @Nullable String manifestJson) {
             if (manifestJson == null) {
-                builder.withAttribution("sapl-node/" + SaplVersion.VERSION);
+                builder.withAttribution("sapl-node/" + version());
                 return;
             }
             val manifest = BundleManifest.fromJson(manifestJson);
@@ -1038,7 +1026,7 @@ public class BundleCommand {
             (configuration id and attribution), PDP configuration
             (pdp.json), all policies with their sizes, the secrets files
             with their sealing state, and the extensions with their
-            payloads and critical markers. Secret values are never
+            payloads and required markers. Secret values are never
             printed, only file names and sizes. Useful for auditing
             bundles before deployment.
 
@@ -1248,15 +1236,15 @@ public class BundleCommand {
                 }
             }
 
-            Set<String> critical;
+            Set<String> required;
             try {
-                critical = ExtensionFiles
-                        .parseCriticalExtensions(contents.get(ExtensionFiles.CRITICAL_EXTENSIONS_FILE));
-            } catch (PDPConfigurationException e) {
-                critical = Set.of();
-                out.println("  (malformed critical-extensions.json)");
+                required = loadFromBundle(contents.get(PDP_JSON), null, Map.of(), "bundle-inspection",
+                        "bundle-inspection").requiredExtensions();
+            } catch (PDPConfigurationException exception) {
+                required = Set.of();
+                out.printf("  (invalid pdp.json: %s)%n", exception.getMessage());
             }
-            for (val name : critical) {
+            for (val name : required) {
                 if (!names.containsKey(name)) {
                     detail(names, name).append("NO PAYLOAD");
                 }
@@ -1267,7 +1255,7 @@ public class BundleCommand {
                 return;
             }
             for (val entry : names.entrySet()) {
-                val marker = critical.contains(entry.getKey()) ? " [critical]" : "";
+                val marker = required.contains(entry.getKey()) ? " [required]" : "";
                 out.printf("  - %s%s: %s%n", entry.getKey(), marker, entry.getValue());
             }
         }

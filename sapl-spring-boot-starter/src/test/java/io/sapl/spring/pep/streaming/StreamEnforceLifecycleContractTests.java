@@ -41,7 +41,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
@@ -51,7 +50,9 @@ import io.sapl.spring.method.metadata.StreamEnforce;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.testsupport.SaplPepTestApp;
+
 import lombok.val;
+
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -268,7 +269,7 @@ class StreamEnforceLifecycleContractTests {
         @Test
         @DisplayName("R15/C5: synchronous and deferred RAP code sees the active enforcement plan")
         void whenOnlyOutputPlanChangesThenLazyRapCodeSeesTheNewPlan() {
-            val first = scenario.outputMapper("first-plan", 10, value -> "first:" + value);
+            val first  = scenario.outputMapper("first-plan", 10, value -> "first:" + value);
             val second = scenario.outputMapper("second-plan", 10, value -> "second:" + value);
             scenario.rapBody = call -> {
                 scenario.observed.add(EnforcementPlanContext.currentBlocking().orElseThrow());
@@ -281,8 +282,7 @@ class StreamEnforceLifecycleContractTests {
 
             StepVerifier.create(output).then(() -> scenario.permit(first)).then(() -> scenario.emit(0, "reading"))
                     .expectNext("first:reading").then(() -> scenario.permit(second))
-                    .then(() -> scenario.emit(0, "reading")).expectNext("second:reading")
-                    .thenCancel().verify(TIMEOUT);
+                    .then(() -> scenario.emit(0, "reading")).expectNext("second:reading").thenCancel().verify(TIMEOUT);
 
             assertThat(scenario.calls).hasSize(1);
             assertThat(scenario.observed).hasSize(3);

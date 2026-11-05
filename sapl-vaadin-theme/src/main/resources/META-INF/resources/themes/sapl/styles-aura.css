@@ -20,7 +20,6 @@ html {
 
 /* SAPL contrast variables using Aura light/dark convention */
 html {
-  color-scheme: var(--aura-color-scheme, light);
   --sapl-contrast-5pct: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
   --sapl-contrast-10pct: light-dark(rgba(0, 0, 0, 0.10), rgba(255, 255, 255, 0.10));
   --sapl-contrast-20pct: light-dark(rgba(0, 0, 0, 0.20), rgba(255, 255, 255, 0.20));

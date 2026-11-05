@@ -30,15 +30,17 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.spring.pep.constraints.Signal;
+
 import lombok.val;
+
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -265,17 +267,17 @@ class StreamingPipelineLifecycleContractTests {
         @ParameterizedTest(name = "R11: {0} during input enforcement")
         @DisplayName("A newer decision during input enforcement prevents the pending RAP call")
         void whenInputHandlerProcessesNewDecisionThenDoNotInvokeRap(Decision interruption) {
-            val input = scenario.runner("interrupt-input", Signal.InputSignal.SIGNAL_TYPE, 10,
+            val input    = scenario.runner("interrupt-input", Signal.InputSignal.SIGNAL_TYPE, 10,
                     () -> scenario.decide(interruption, List.of(), List.of()));
-            val output = scenario.pipeline(false);
+            val output   = scenario.pipeline(false);
             val verifier = StepVerifier.create(output).then(() -> scenario.permit(input))
                     .then(() -> assertThat(scenario.calls).isEmpty());
 
             if (interruption == Decision.DENY) {
                 verifier.expectError(AccessDeniedException.class).verify(TIMEOUT);
             } else {
-                verifier.then(scenario::permit).then(() -> assertThat(scenario.calls).hasSize(1))
-                        .thenCancel().verify(TIMEOUT);
+                verifier.then(scenario::permit).then(() -> assertThat(scenario.calls).hasSize(1)).thenCancel()
+                        .verify(TIMEOUT);
             }
         }
 

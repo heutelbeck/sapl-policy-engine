@@ -31,7 +31,9 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
+
 import lombok.val;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
@@ -134,8 +136,7 @@ class StreamingPipelineBackpressureTransparencyTests {
                 .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 5L)).then(() -> h.rap.tryEmitNext("a"))
                 .expectNext("a").then(() -> h.pdp.tryEmitNext(AuthorizationDecision.SUSPEND))
                 .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 2)).then(() -> h.rap.tryEmitNext("dropped"))
-                .then(() -> assertThat(h.upstreamRequested).hasValue(5L))
-                .then(h::resetUpstreamSink)
+                .then(() -> assertThat(h.upstreamRequested).hasValue(5L)).then(h::resetUpstreamSink)
                 .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
                 .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 3)).then(() -> h.rap.tryEmitNext("b")).expectNext("b")
                 .thenCancel().verify(TIMEOUT);
@@ -146,8 +147,8 @@ class StreamingPipelineBackpressureTransparencyTests {
     @Test
     @DisplayName("pending downstream demand is replayed to a fresh subscription on resume after pause")
     void pendingDemandReplaysToFreshSubscriptionOnResumeAfterPause() {
-        TrackingHarness h = new TrackingHarness();
-        Flux<Object> out = h.create();
+        TrackingHarness h   = new TrackingHarness();
+        Flux<Object>    out = h.create();
 
         StepVerifier.create(out, 0L).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
                 .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 1)).thenRequest(4L)

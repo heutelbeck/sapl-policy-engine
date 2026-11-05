@@ -17,21 +17,22 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.*;
-import io.sapl.ast.Expression;
-import io.sapl.ast.FunctionCall;
-import io.sapl.compiler.index.SemanticHashing;
-import lombok.experimental.UtilityClass;
-import lombok.val;
+import static io.sapl.api.model.StreamOperator.evalChild;
+import static io.sapl.api.shared.NameValidator.requireValidName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-import static io.sapl.api.model.StreamOperator.evalChild;
-import static io.sapl.api.shared.NameValidator.requireValidName;
+import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.model.*;
+import io.sapl.ast.Expression;
+import io.sapl.ast.FunctionCall;
+import io.sapl.compiler.index.SemanticHashing;
+
+import lombok.experimental.UtilityClass;
+import lombok.val;
 
 /**
  * Compiler for SAPL function calls.

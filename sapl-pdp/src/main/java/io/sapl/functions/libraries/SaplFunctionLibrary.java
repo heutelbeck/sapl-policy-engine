@@ -17,15 +17,18 @@
  */
 package io.sapl.functions.libraries;
 
+import static io.sapl.pdp.SaplBuildInfo.version;
+
+import java.io.IOException;
+import java.util.Properties;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.val;
 
-import java.io.IOException;
-import java.util.Properties;
+import lombok.val;
 
 /**
  * Collection of SAPL system information functions.
@@ -47,8 +50,7 @@ public class SaplFunctionLibrary {
 
     private static final String UNKNOWN = "unknown";
 
-    private static final String VERSION_PROPERTIES_PATH = "/saplversion.properties";
-    private static final String GIT_PROPERTIES_PATH     = "/git.properties";
+    private static final String GIT_PROPERTIES_PATH = "/git.properties";
 
     private static final String PROPERTY_GIT_COMMIT_ID  = "gitCommitId";
     private static final String PROPERTY_GIT_BRANCH     = "gitBranch";
@@ -79,8 +81,8 @@ public class SaplFunctionLibrary {
             }
             """;
 
-    private static final Properties VERSION_PROPERTIES = loadProperties(VERSION_PROPERTIES_PATH);
-    private static final Properties GIT_PROPERTIES     = loadProperties(GIT_PROPERTIES_PATH);
+    private static final TextValue  SAPL_VERSION   = new TextValue(version());
+    private static final Properties GIT_PROPERTIES = loadProperties(GIT_PROPERTIES_PATH);
 
     @Function(docs = """
             ```info()```: Returns system information including application version, git details, JDK/JRE, and operating system information.
@@ -131,7 +133,7 @@ public class SaplFunctionLibrary {
     public static Value info() {
         val builder = ObjectValue.builder();
 
-        builder.put(PROPERTY_SAPL_VERSION, saplVersion());
+        builder.put(PROPERTY_SAPL_VERSION, SAPL_VERSION);
 
         builder.put(PROPERTY_GIT_COMMIT_ID, gitProperty(GIT_COMMIT_ID_ABBREV));
         builder.put(PROPERTY_GIT_BRANCH, gitProperty(GIT_BRANCH));
@@ -166,16 +168,6 @@ public class SaplFunctionLibrary {
             // Properties remain empty if loading fails
         }
         return properties;
-    }
-
-    /**
-     * Retrieves the SAPL version from version properties.
-     *
-     * @return TextValue containing the version string, or "unknown" if not
-     * available
-     */
-    private static TextValue saplVersion() {
-        return new TextValue(VERSION_PROPERTIES.getProperty(PROPERTY_SAPL_VERSION, UNKNOWN));
     }
 
     /**

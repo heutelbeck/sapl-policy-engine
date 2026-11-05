@@ -19,6 +19,7 @@ package io.sapl.vaadin.lsp;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -31,11 +32,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -43,7 +48,9 @@ import org.springframework.web.socket.WebSocketExtension;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-@DisplayName("LSP WebSocket endpoint resource bounding")
+import lombok.val;
+
+@DisplayName("LSP WebSocket endpoint")
 class LspWebSocketEndpointTests {
 
     private LspWebSocketEndpoint endpoint;
@@ -53,6 +60,32 @@ class LspWebSocketEndpointTests {
         if (endpoint != null) {
             endpoint.destroy();
         }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("serverFailures")
+    @DisplayName("A failed language server closes its connection with SERVER_ERROR")
+    void whenLanguageServerFailsThenConnectionCloses(String description, Runnable failure) throws Exception {
+        endpoint = new LspWebSocketEndpoint(new LspWebSocketProperties()) {
+            @Override
+            void launchLanguageServer(WebSocketSession session, InputStream input, OutputStream output) {
+                failure.run();
+            }
+        };
+        val session = new RecordingSession("failed-server");
+
+        endpoint.afterConnectionEstablished(session);
+
+        assertThat(session.closed.await(2, TimeUnit.SECONDS)).as("connection closed after server failure").isTrue();
+        assertThat(session.closeStatus.get()).isEqualTo(CloseStatus.SERVER_ERROR);
+    }
+
+    private static Stream<Arguments> serverFailures() {
+        return Stream.of(arguments("Missing language server runtime class", (Runnable) () -> {
+            throw new NoClassDefFoundError("io/sapl/test/grammar/antlr/SAPLTestParser");
+        }), arguments("Unexpected language server startup failure", (Runnable) () -> {
+            throw new IllegalStateException("Language server startup failed");
+        }));
     }
 
     @Nested
@@ -181,6 +214,7 @@ class LspWebSocketEndpointTests {
         private final String                       id;
         private final Map<String, Object>          attributes  = new ConcurrentHashMap<>();
         private final AtomicReference<CloseStatus> closeStatus = new AtomicReference<>();
+        private final CountDownLatch               closed      = new CountDownLatch(1);
 
         RecordingSession(String id) {
             this.id = id;
@@ -204,6 +238,7 @@ class LspWebSocketEndpointTests {
         @Override
         public void close(CloseStatus status) {
             closeStatus.compareAndSet(null, status);
+            closed.countDown();
         }
 
         @Override

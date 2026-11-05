@@ -17,6 +17,14 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import static io.sapl.pdp.configuration.ExtensionFiles.validateIntegrity;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.ExtensionFiles;
@@ -24,13 +32,8 @@ import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.secrets.SecretSealingException;
 import io.sapl.secrets.ValueSealer;
-import lombok.val;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import lombok.val;
 
 /**
  * Intermediate representation of extracted bundle content.
@@ -44,8 +47,6 @@ import java.util.TreeSet;
  * name
  * @param sealedExtensionSecrets sealed-named extension secrets keyed by
  * extension name
- * @param criticalExtensionsJson the critical-extensions.json content, or null if
- * not present
  * @param manifest the bundle manifest, or null when the archive carries none
  * (rejected fail-closed during conversion)
  */
@@ -57,7 +58,6 @@ record Bundle(
         Map<String, String> extensions,
         Map<String, String> extensionSecrets,
         Map<String, String> sealedExtensionSecrets,
-        String criticalExtensionsJson,
         BundleManifest manifest) {
     private static final String ERROR_AUDIENCE_WITHOUT_SEALED_CONTENT = "Bundle manifest names an audience.sealingRecipient but the bundle carries no sealed content. The audience block is required exactly when sealed content is present.";
     private static final String ERROR_MANIFEST_REQUIRED = "Bundle has no .sapl-manifest.json. Since SAPL 4.2.0 the manifest carries the required configurationId; rebuild the bundle with BundleBuilder or 'sapl bundle create'.";
@@ -77,19 +77,18 @@ record Bundle(
         checkAudience(securityPolicy);
         val allSecretNames = new TreeSet<>(extensionSecrets.keySet());
         allSecretNames.addAll(sealedExtensionSecrets.keySet());
-        val criticalExtensions = ExtensionFiles.parseCriticalExtensions(criticalExtensionsJson);
-        ExtensionFiles.validateIntegrity(criticalExtensions, extensions.keySet(), allSecretNames);
-        val configuration  = PDPConfigurationLoader.loadFromBundle(pdpJson, secretsJson, saplDocuments, pdpId,
+        val configuration      = PDPConfigurationLoader.loadFromBundle(pdpJson, secretsJson, saplDocuments, pdpId,
                 manifest.configurationId());
-        val provenance     = new BundleProvenance(pdpId, saplDocuments, pdpJson, extensions, criticalExtensionsJson,
-                manifest);
+        val requiredExtensions = configuration.requiredExtensions();
+        validateIntegrity(requiredExtensions, extensions.keySet(), allSecretNames);
+        val provenance     = new BundleProvenance(pdpId, saplDocuments, pdpJson, extensions, manifest);
         val withProvenance = new PDPConfiguration(configuration.pdpId(), configuration.configurationId(),
                 configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
                 configuration.data(), configuration.extensions(), configuration.extensionSecrets(),
-                configuration.criticalExtensions(), provenance);
+                configuration.requiredExtensions(), provenance, configuration.requiredEngineVersion());
         val allSecrets     = toValues(extensionSecrets);
         allSecrets.putAll(toValues(sealedExtensionSecrets));
-        return withProvenance.withExtensions(toValues(extensions), allSecrets, criticalExtensions);
+        return withProvenance.withExtensions(toValues(extensions), allSecrets, requiredExtensions);
     }
 
     private void checkAudience(BundleSecurityPolicy securityPolicy) {
@@ -183,9 +182,6 @@ record Bundle(
         for (val entry : sealedExtensionSecrets.entrySet()) {
             files.put(ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX,
                     entry.getValue());
-        }
-        if (criticalExtensionsJson != null) {
-            files.put(ExtensionFiles.CRITICAL_EXTENSIONS_FILE, criticalExtensionsJson);
         }
         return files;
     }

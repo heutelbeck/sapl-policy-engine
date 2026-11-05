@@ -120,6 +120,7 @@ public class SaplEditorLsp extends Component implements HasSize {
         element.setProperty(PROP_AUTOCOMPLETE_DELAY, config.getAutocompleteDelay());
         element.setProperty(PROP_LINE_WRAPPING, config.isLineWrapping());
         element.setProperty(PROP_FOLLOW_COLOR_SCHEME, config.isFollowColorScheme());
+        setFontSize(config.getFontSize());
         if (config.getWsUrl() != null) {
             element.setProperty(PROP_WS_URL, config.getWsUrl());
         }
@@ -191,6 +192,15 @@ public class SaplEditorLsp extends Component implements HasSize {
      */
     public boolean isReadOnly() {
         return getElement().getProperty(PROP_IS_READ_ONLY, false);
+    }
+
+    /**
+     * Sets the font size for editor text and line numbers.
+     *
+     * @param fontSize CSS font size, or null to inherit from the containing page
+     */
+    public void setFontSize(String fontSize) {
+        getElement().getStyle().setFontSize(fontSize);
     }
 
     /**

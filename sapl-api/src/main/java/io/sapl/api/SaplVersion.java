@@ -20,11 +20,12 @@ package io.sapl.api;
 import lombok.experimental.UtilityClass;
 
 /**
- * Class defining the common serialization ID for all Serializable classes.
- * Objects are not intended to be serializable between versions of the engine.
+ * Defines the serialization compatibility identifier shared by SAPL classes.
+ * This identifier is maintained explicitly and does not identify an engine build.
+ * Use {@code io.sapl.pdp.SaplBuildInfo.version()} from the PDP module for the
+ * actual engine version, including prerelease identifiers.
  */
 @UtilityClass
 public class SaplVersion {
-    public static final long   VERSION_UID = 4_02_00L;
-    public static final String VERSION     = "4.2.0";
+    public static final long VERSION_UID = 4_02_00L;
 }

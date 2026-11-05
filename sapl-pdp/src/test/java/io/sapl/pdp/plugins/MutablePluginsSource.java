@@ -17,13 +17,13 @@
  */
 package io.sapl.pdp.plugins;
 
-import lombok.NonNull;
-
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+
+import lombok.NonNull;
 
 /**
  * Test fixture standing in for the future plugin engine. Each

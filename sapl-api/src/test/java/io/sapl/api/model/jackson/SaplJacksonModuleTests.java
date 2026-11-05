@@ -17,28 +17,9 @@
  */
 package io.sapl.api.model.jackson;
 
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.api.pdp.configuration.PdpData;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.*;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
-import lombok.val;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -50,9 +31,32 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+
+import lombok.val;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 @DisplayName("SAPL Jackson module")
 class SaplJacksonModuleTests {
@@ -609,7 +613,7 @@ class SaplJacksonModuleTests {
         val restored = mapper.readValue(json, PDPConfiguration.class);
 
         assertThat(restored).isEqualTo(original);
-        assertThat(restored.criticalExtensions()).containsExactly("upstreams");
+        assertThat(restored.requiredExtensions()).containsExactly("upstreams");
     }
 
     @ParameterizedTest(name = "expected message contains {1}")
@@ -705,15 +709,16 @@ class SaplJacksonModuleTests {
     @MethodSource("nonStringSaplDocumentElementCases")
     @DisplayName("when deserializing pdp configuration with non string sapl document then throws exception")
     void whenDeserializingPDPConfigurationWithNonStringSaplDocumentThenThrowsException(String element) {
-        val json   = """
-                {
-                    "pdpId": "test-pdp",
-                    "configurationId": "test-security",
-                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
-                    "saplDocuments": ["policy valid permit", %s],
-                    "variables": {}
-                }"""
-                .formatted(element);
+        val document = (ObjectNode) mapper.readTree(
+                """
+                        {
+                            "pdpId": "test-pdp",
+                            "configurationId": "test-security",
+                            "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
+                            "variables": {}
+                        }""");
+        document.putArray("saplDocuments").add("policy valid permit").add(mapper.readTree(element));
+        val json   = document.toString();
         val decode = (ThrowingCallable) () -> mapper.readValue(json, PDPConfiguration.class);
 
         assertThatThrownBy(decode).isInstanceOf(JacksonException.class).hasMessageContaining("saplDocuments");

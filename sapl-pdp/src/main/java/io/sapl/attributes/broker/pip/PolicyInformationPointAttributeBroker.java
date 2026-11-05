@@ -17,25 +17,6 @@
  */
 package io.sapl.attributes.broker.pip;
 
-import io.sapl.api.attributes.Attribute;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.attributes.EnvironmentAttribute;
-import io.sapl.api.attributes.PolicyInformationPoint;
-import io.sapl.api.documentation.LibraryDocumentation;
-import io.sapl.api.model.AttributeSnapshot;
-import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.Value;
-import io.sapl.api.shared.Match;
-import io.sapl.api.stream.Stream;
-import io.sapl.attributes.broker.AttributeBroker;
-import io.sapl.attributes.broker.AttributeRepository;
-import io.sapl.attributes.broker.DispatchCoalescer;
-import io.sapl.documentation.LibraryDocumentationExtractor;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.jspecify.annotations.Nullable;
-
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.InstantSource;
@@ -57,6 +38,27 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import org.jspecify.annotations.Nullable;
+
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.documentation.LibraryDocumentation;
+import io.sapl.api.model.AttributeSnapshot;
+import io.sapl.api.model.SubscriptionKey;
+import io.sapl.api.model.Value;
+import io.sapl.api.shared.Match;
+import io.sapl.api.stream.Stream;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.DispatchCoalescer;
+import io.sapl.documentation.LibraryDocumentationExtractor;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
  * In-memory {@link AttributeBroker} backed by a runtime catalog of Policy
