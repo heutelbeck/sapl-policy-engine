@@ -100,7 +100,7 @@
 		<antlr.version>4.13.2</antlr.version>
 		<pf4j.version>3.16.0</pf4j.version>
 		<okhttp.version>5.5.1</okhttp.version>
-		<scalar.version>0.6.85</scalar.version>
+		<scalar.version>0.6.87</scalar.version>
 		<vaadin.version>25.3.4</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<semver4j.version>6.0.0</semver4j.version>
@@ -140,7 +140,7 @@
 		<exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
 		<maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
 		<maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
-		<native-maven-plugin.version>1.1.17</native-maven-plugin.version>
+		<native-maven-plugin.version>1.1.18</native-maven-plugin.version>
 		<maven-source-plugin.version>3.4.0</maven-source-plugin.version>
 		<maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
 		<jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
