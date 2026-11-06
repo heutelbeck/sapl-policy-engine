@@ -44,6 +44,7 @@ import io.lettuce.core.RedisConnectionStateListener;
 import io.lettuce.core.RedisChannelHandler;
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Repository implementation that persists attributes in Redis and maintains an
@@ -96,10 +97,10 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private final ExecutorService            worker         = Executors
             .newSingleThreadExecutor(Thread.ofVirtual().factory());
     private final Map<String, RepositoryKey> knownRedisKeys = new ConcurrentHashMap<>();
+    private final AtomicBoolean              closed         = new AtomicBoolean(false);
 
     private final String pdpId;
     private final String ownKeyPrefix;
-    private boolean      closed = false;
 
     public RedisAttributeRepository(RedisClient client, String pdpId, int database) {
         this.client     = client;
@@ -133,10 +134,9 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
     @Override
     public void close() {
-        if (closed) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
-        closed = true;
         internalRepository.close();
 
         pubsub.sync().unsubscribe();
@@ -273,7 +273,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
             @Override
             public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
-                if (closed) {
+                if (closed.get()) {
                     return;
                 }
                 var keys = new HashSet<>(internalRepository.knownKeys());
@@ -342,14 +342,14 @@ public final class RedisAttributeRepository implements AttributeRepository {
     }
 
     private void runOnWorker(Runnable task) {
-        if (closed) {
+        if (closed.get()) {
             return;
         }
         worker.execute(() -> {
             try {
                 task.run();
             } catch (RuntimeException e) {
-                if (!closed) {
+                if (!closed.get()) {
                     log.error(ERROR_HANDLE_MESSAGE, pdpId, e);
                 }
             }
