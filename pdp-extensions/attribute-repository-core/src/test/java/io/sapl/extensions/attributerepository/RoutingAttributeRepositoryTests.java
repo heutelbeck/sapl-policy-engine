@@ -18,6 +18,7 @@
 package io.sapl.extensions.attributerepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ import lombok.val;
 
 class RoutingAttributeRepositoryTests {
     @Test
-    @DisplayName("An observer with an unknown configId triggers an error and queues the observation")
+    @DisplayName("when an observer has an unknown config then an error is triggered observe is queued")
     void whenObserveCalledForUnknownConfigThenErrorTriggeredAndQueued() {
         AttributeAccessContext context = new AttributeAccessContext(Value.ofObject(Map.of()), Value.ofObject(Map.of()),
                 Value.ofObject(Map.of()));
@@ -61,49 +62,59 @@ class RoutingAttributeRepositoryTests {
         }
     }
 
-    @Test
-    @DisplayName("canPrepare method accepts a configuration with an attributeRepository extension (fallback)")
-    void whenExtensionIsMissingThenCanPrepareAccepts() {
-        val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
-                List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-        try (var router = new RoutingAttributeRepository()) {
-            assertThat(router.canPrepare(configuration)).isTrue();
+    @Nested
+    @DisplayName("when canPrepare is called")
+    class WhenCanPrepareIsCalled {
+        private final RoutingAttributeRepository router = new RoutingAttributeRepository();
+        private final ObjectValue                config = ObjectValue.builder()
+                .put("type", Value.of(TestAttributeRepositoryProvider.TYPE)).put("host", Value.of("localhost"))
+                .put("port", Value.of(5432)).put("database", Value.of("sapl")).build();
+
+        private final ObjectValue secrets = ObjectValue.builder().put("username", Value.of("sapl"))
+                .put("password", Value.of("secret")).build();
+
+        private static PDPConfiguration configWithRepository(ObjectValue config, ObjectValue secrets) {
+            Map<String, Value> configs    = config == null ? Map.of() : Map.of("attributerepository", config);
+            Map<String, Value> secretsMap = secrets == null ? Map.of() : Map.of("attributerepository", secrets);
+            return configForInMemory("tenant-1", "config-1").withExtensions(configs, secretsMap, Set.of());
         }
-    }
 
-    @Test
-    @DisplayName("canPrepare method merges cleartext and secrets config into a valid combination")
-    void whenExtensionIsSplitThenCanPrepareAccepts() {
-        val config = ObjectValue.builder().put("type", Value.of(TestAttributeRepositoryProvider.TYPE))
-                .put("host", Value.of("localhost")).put("port", Value.of(5432)).put("database", Value.of("sapl"))
-                .build();
-
-        val secrets = ObjectValue.builder().put("username", Value.of("sapl")).put("password", Value.of("secret"))
-                .build();
-
-        val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
-                List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
-                .withExtensions(Map.of("attributerepository", config), Map.of("attributerepository", secrets),
-                        Set.of());
-
-        try (var router = new RoutingAttributeRepository()) {
-            assertThat(router.canPrepare(configuration)).isTrue();
+        @AfterEach
+        void closeRouter() {
+            router.close();
         }
-    }
 
-    @Test
-    @DisplayName("canPrepare method rejects an existing config that is invalid but existing for the attribute repository")
-    void whenExtensionExistsButIsInvalidThenCanPrepareRejects() {
-        val config = ObjectValue.builder().put("type", Value.of(TestAttributeRepositoryProvider.TYPE))
-                .put("host", Value.of("localhost")).put("port", Value.of(5432)).put("database", Value.of("sapl"))
-                .build();
+        @Test
+        @DisplayName("then a configuration without extension is accepted")
+        void thenMissingExtensionIsAccepted() {
+            assertThat(router.canPrepare(configWithRepository(null, null))).isTrue();
+        }
 
-        val configuration = new PDPConfiguration("tenant-1", "config-1", CombiningAlgorithm.DEFAULT,
-                List.of("policy \"p\" permit true;"), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT))
-                .withExtensions(Map.of("attributerepository", config), Map.of(), Set.of());
+        @Test
+        @DisplayName("then an extension split into config and secrets is accepted")
+        void thenSplitExtensionIsAccepted() {
+            assertThat(router.canPrepare(configWithRepository(config, secrets))).isTrue();
+        }
 
-        try (var router = new RoutingAttributeRepository()) {
-            assertThat(router.canPrepare(configuration)).isFalse();
+        @Test
+        @DisplayName("then an extension with only a secrets block is accepted")
+        void thenSecretsOnlyExtensionIsAccepted() {
+            val secretsOnly = ObjectValue.builder().putAll(config).putAll(secrets).build();
+            assertThat(router.canPrepare(configWithRepository(null, secretsOnly))).isTrue();
+        }
+
+        @Test
+        @DisplayName("then an extension with missing fields is rejected")
+        void thenInvalidExtensionIsRejected() {
+            assertThat(router.canPrepare(configWithRepository(config, null))).isFalse();
+        }
+
+        @Test
+        @DisplayName("then an extension without type is rejected")
+        void thenExtensionWithoutTypeIsRejected() {
+            val withoutType = ObjectValue.builder().put("host", Value.of("localhost")).put("port", Value.of(5432))
+                    .build();
+            assertThat(router.canPrepare(configWithRepository(withoutType, null))).isFalse();
         }
     }
 
@@ -135,6 +146,28 @@ class RoutingAttributeRepositoryTests {
 
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> received.size() == 2);
             assertThat(closedObserver).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("then null arguments are rejected")
+        void thenNullArgumentsAreRejected() {
+            val invocation = invocation(PDP_ID, CONFIG_ID);
+
+            assertThatThrownBy(() -> router.observe(null, received::add)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> router.observe(invocation, null)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then repository build after it was closed is being closed")
+        void thenRepositoryBuildAfterCloseIsClosedAgain() {
+            router.close();
+            router.buildOrRoute(PDP_ID, configForInMemory(PDP_ID, CONFIG_ID));
+
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> {
+                val values = new ArrayList<Value>();
+                router.observe(invocation(PDP_ID, CONFIG_ID), values::add).close();
+                return values.getFirst() instanceof ErrorValue error && error.message().contains("is unknown");
+            });
         }
 
         @AfterEach
@@ -197,6 +230,13 @@ class RoutingAttributeRepositoryTests {
         }
 
         @Test
+        @DisplayName("then removing an unknown pdp id leaves others untouched")
+        void thenRemovingAnUnknownPdpIdLeavesOthersUntouched() {
+            router.removeForPdp("unknown-pdp-id");
+            assertThat(router.currentRawConfig(PDP_ID)).isPresent();
+        }
+
+        @Test
         @DisplayName("then closing the router also closes the cached repositories")
         void thenClosingRouterClosedCachedRepositories() {
             router.close();
@@ -237,6 +277,11 @@ class RoutingAttributeRepositoryTests {
             assertThat(received).containsExactly(Value.UNDEFINED);
         }
 
+        @Test
+        @DisplayName("then a batch runner is handed to the cached repositories")
+        void thenSetBatchRunnerViaTheRouter() {
+            assertThatCode(() -> router.setBatchRunner(Runnable::run)).doesNotThrowAnyException();
+        }
     }
 
     private static PDPConfiguration configForInMemory(String pdpId, String configId) {
@@ -257,6 +302,11 @@ class RoutingAttributeRepositoryTests {
         private static final String              CONFIG_ID = "config-unreachable";
         private final RoutingAttributeRepository router    = new RoutingAttributeRepository();
         private final List<Value>                received  = new CopyOnWriteArrayList<>();
+
+        @BeforeEach
+        void resetAttempts() {
+            TestAttributeRepositoryProvider.UNREACHABLE_ATTEMPTS.set(0);
+        }
 
         @AfterEach
         void closeRouter() {
@@ -292,6 +342,27 @@ class RoutingAttributeRepositoryTests {
 
             assertThat(received.getFirst()).isInstanceOfSatisfying(ErrorValue.class,
                     error -> assertThat(error.message()).contains("still connecting"));
+        }
+
+        @Test
+        @DisplayName("then a failed build is retried")
+        void thenFailedBuildIsRetried() {
+            router.buildOrRoute(PDP_ID, configForUnreachableBackend(PDP_ID, CONFIG_ID));
+
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .until(() -> TestAttributeRepositoryProvider.UNREACHABLE_ATTEMPTS.get() >= 2);
+        }
+
+        @Test
+        @DisplayName("then a failing build after the router was closed is not retried")
+        void thenFailingBuildAfterCloseIsNotRetried() {
+            router.close();
+            router.buildOrRoute(PDP_ID, configForUnreachableBackend(PDP_ID, CONFIG_ID));
+
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .until(() -> TestAttributeRepositoryProvider.UNREACHABLE_ATTEMPTS.get() == 1);
+            Awaitility.await().during(Duration.ofMillis(1500)).atMost(Duration.ofSeconds(3))
+                    .until(() -> TestAttributeRepositoryProvider.UNREACHABLE_ATTEMPTS.get() == 1);
         }
     }
 

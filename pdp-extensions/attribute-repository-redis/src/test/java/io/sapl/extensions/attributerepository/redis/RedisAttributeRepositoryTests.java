@@ -42,6 +42,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -134,12 +135,25 @@ class RedisAttributeRepositoryTests {
                 assertThat(firstReceived()).isEqualTo(Value.of(42L));
             }
         }
+
+        @Test
+        @DisplayName("then null value in publish are rejected")
+        void thenNullValuesInPublishAreRejected() {
+            var key   = key("test.attribute");
+            var value = Value.of("something");
+            var ttl   = Duration.ofSeconds(5);
+
+            assertThatThrownBy(() -> repository.publish(null, value, ttl)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, value, null)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, null, ttl)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(null, value)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, null)).isInstanceOf(NullPointerException.class);
+        }
     }
 
     @Nested
     @DisplayName("when a value is removed")
     class WhenValueIsRemoved {
-
         @Test
         @DisplayName("then observer receives UNDEFINED")
         void thenGetReturnsUndefined() {
@@ -148,6 +162,12 @@ class RedisAttributeRepositoryTests {
             repository.remove(key("sapl.test.remove"));
 
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
+        }
+
+        @Test
+        @DisplayName("then null value in remove is rejected")
+        void thenNullValuesInRemoveIsRejected() {
+            assertThatThrownBy(() -> repository.remove(null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -395,6 +415,20 @@ class RedisAttributeRepositoryTests {
             Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
 
+        @Test
+        @DisplayName("then stale keys are removed")
+        void thenStaleKeysAreRemoved() {
+            repository.publish(key, value1);
+            repository.observe(invocation(PDP_ID, null, NAME, List.of()), received::add);
+
+            abortConnection(commands -> {
+                commands.del(redisKey);
+                commands.zrem("sapl:attribute:order:" + PDP_ID, redisKey);
+            });
+
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> Value.UNDEFINED.equals(lastReceived()));
+        }
+
         private void abortConnection(Consumer<RedisCommands<String, String>> command) {
             val adminCLI = RedisClient.create(redis.getRedisURI());
             try (val connection = adminCLI.connect()) {
@@ -454,7 +488,7 @@ class RedisAttributeRepositoryTests {
         private final Value         value = Value.of("test");
 
         @Test
-        @DisplayName("")
+        @DisplayName("then closed observers are not receiving further values")
         void thenClosedObserverReceivesNoFurtherValues() {
             val closedObserver = new CopyOnWriteArrayList<Value>();
             repository.observe(invocation(NAME), closedObserver::add).close();
@@ -467,6 +501,43 @@ class RedisAttributeRepositoryTests {
             }
 
             assertThat(closedObserver).containsExactly(Value.UNDEFINED);
+        }
+    }
+
+    @Nested
+    @DisplayName("when batch mode is used")
+    class WhenBatchModeIsUsed {
+        AtomicInteger runs     = new AtomicInteger();
+        String        redisKey = "sapl:attribute:test-tenant:null:batch.attribute:[]";
+        String        message  = "[{\"key\":\"" + redisKey + "\",\"value\":\"\\\"A\\\"\"}]";
+
+        @Test
+        @DisplayName("then a batch event is processed")
+        void thenBatchEventIsProcessed() {
+            setBatchRunner();
+            repository.publish(key("batch.attribute"), Value.of("batch"));
+            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
+            client.connect().sync().publish("sapl:batch:test-tenant", message);
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+        }
+
+        @Test
+        @DisplayName("then a batch event with a missing key is not processed")
+        void thenInvalidBatchEventIsNotProcessed() {
+            setBatchRunner();
+            repository.publish(key("batch.attribute"), Value.of("batch"));
+            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
+            client.connect().sync().publish("sapl:batch:test-tenant", message);
+            client.connect().sync().publish("sapl:batch:test-tenant", "no-json]]]]");
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+            assertThat(runs).hasValue(1);
+        }
+
+        private void setBatchRunner() {
+            repository.setBatchRunner(changes -> {
+                runs.incrementAndGet();
+                changes.run();
+            });
         }
     }
 }

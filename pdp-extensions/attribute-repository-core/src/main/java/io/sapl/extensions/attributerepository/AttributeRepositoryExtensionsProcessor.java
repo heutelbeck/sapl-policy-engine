@@ -28,14 +28,19 @@ import io.sapl.pdp.configuration.ExtensionsProcessor;
 public final class AttributeRepositoryExtensionsProcessor implements ExtensionsProcessor {
     private final RoutingAttributeRepository repository;
 
+    /**
+     * Set the routing attribute repository for this extension processor.
+     *
+     * @param repository The routing attribute repository that is used by this extension processor.
+     */
     public AttributeRepositoryExtensionsProcessor(RoutingAttributeRepository repository) {
         this.repository = repository;
     }
 
     /**
      * A structural validation of the configuration that is delegated to {@link RoutingAttributeRepository#canPrepare}.
-     * Returns {@code true} if the "attributerepository" extension is absent (InMemory fallback
-     * remains valid) or structurally valid; {@code false} if it is present but malformed.
+     * Returns {@code true} if the attribute repository extension is absent or structurally valid.
+     * {@code false} if it is present but malformed.
      */
     @Override
     public boolean prepare(String pdpId, PDPConfiguration configuration) {

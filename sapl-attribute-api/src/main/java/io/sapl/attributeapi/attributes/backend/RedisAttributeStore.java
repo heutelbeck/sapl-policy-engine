@@ -142,10 +142,8 @@ public class RedisAttributeStore implements AttributeStore {
         ScanArgs arguments = ScanArgs.Builder.matches(REDIS_NAMESPACE_PREFIX + escapePattern(pdpId) + ":*");
         long     keys      = 0L;
 
-        // Use Redis SCAN instead of KEYS. KEYS is a blocking command while the keys are
-        // loading
-        // and SCAN is non-blocking because it's using a cursor logic and is recommend
-        // by Redis.
+        // Use Redis SCAN instead of KEYS. KEYS is a blocking command while the keys are loading
+        // and SCAN is non-blocking because it's using a cursor logic and is recommend by Redis.
         // Keys is not for production code made and ruins performance.
         KeyScanCursor<String> cursor = commands.scan(arguments);
         keys += cursor.getKeys().size();
@@ -165,8 +163,7 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset) {
-        // Empty list if the limit is invalid or exactly 0 elements, limit == 0 included
-        // because Redis interprets it as
+        // Empty list if the limit is invalid or exactly 0 elements, limit == 0 included because Redis interprets it as
         // no limit = get all
         if (limit != null && limit <= 0) {
             return List.of();

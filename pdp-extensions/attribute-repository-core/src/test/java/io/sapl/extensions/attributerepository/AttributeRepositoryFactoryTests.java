@@ -115,14 +115,13 @@ class AttributeRepositoryFactoryTests {
     class WhenBackendModuleIsMissing {
 
         @Test
-        @DisplayName("then a known backend type is not supported and the message names the available types")
+        @DisplayName("then a known backend type is not supported")
         void thenKnownTypeWithoutModuleThrows() {
             val config = Value
                     .ofObject(Map.of("type", Value.of("redis"), "host", Value.of("h"), "port", Value.of(6379)));
 
             assertThatThrownBy(() -> AttributeRepositoryFactory.create(config, "test-pdp"))
-                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("redis")
-                    .hasMessageContaining("Available types: [test]");
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("redis");
         }
 
         @Test

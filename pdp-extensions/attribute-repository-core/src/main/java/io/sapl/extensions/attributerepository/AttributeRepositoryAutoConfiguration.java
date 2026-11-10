@@ -89,6 +89,13 @@ public class AttributeRepositoryAutoConfiguration {
                 JsonMapper.builder().build(), true, pipBeans, repository);
     }
 
+    /**
+     * If the Attribute API server is started embedded via {@code io.sapl.attribute-api.enabled=true}.
+     * Used by the Attribute API server to get the current configuration of pdp id.
+     *
+     * @param repository The current {@code RoutingAttributeRepository}.
+     * @return The raw config in the pdp for the pdp id's attribute repository database config.
+     */
     @Bean
     @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
     Function<String, Optional<Value>> attributeRepositoryConfigResolver(RoutingAttributeRepository repository) {

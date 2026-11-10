@@ -64,43 +64,36 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private static final String UNDEFINED_STRING                 = "UNDEFINED";
     private static final String NOTIFY_KEYSPACE_EVENTS_PARAM     = "notify-keyspace-events";
     private static final String ERROR_KEYSPACE_NOTIFICATIONS_OFF = "Configure Redis to publish expired key events.";
-    private static final String WARN_INVALID_BATCH               = "Ignoring a batch message that is not a JSON array: {}";
     private static final String ERROR_HANDLE_MESSAGE             = "Failed to apply a Redis message for pdp with id {}.";
-    private static final String WARN_INVALID_BATCH_ENTRY         = "Ignoring an invalid batch entry without key: {}";
+    private static final String FIELD_NAME                       = "name";
+    private static final String FIELD_ENTITY                     = "entity";
+    private static final String FIELD_ARGUMENTS                  = "arguments";
+    private static final String FIELD_VALUE                      = "value";
+    private static final String FIELD_BATCH_KEY                  = "key";
+    private static final String ATTRIBUTE_KEY_PREFIX             = "sapl:attribute:";
+    private static final String CHANGES_CHANNEL_PREFIX           = "sapl:changes:";
+    private static final String BATCH_CHANNEL_PREFIX             = "sapl:batch:";
+    private static final String ORDER_KEY_PREFIX                 = "sapl:attribute:order:";
+    private static final String SEQ_KEY_PREFIX                   = "sapl:attribute:seq:";
 
-    private static final String FIELD_NAME      = "name";
-    private static final String FIELD_ENTITY    = "entity";
-    private static final String FIELD_ARGUMENTS = "arguments";
-    private static final String FIELD_VALUE     = "value";
-    private static final String FIELD_BATCH_KEY = "key";
-
-    private static final String ATTRIBUTE_KEY_PREFIX   = "sapl:attribute:";
-    private static final String CHANGES_CHANNEL_PREFIX = "sapl:changes:";
-    private static final String BATCH_CHANNEL_PREFIX   = "sapl:batch:";
-    private static final String ORDER_KEY_PREFIX       = "sapl:attribute:order:";
-    private static final String SEQ_KEY_PREFIX         = "sapl:attribute:seq:";
-
-    // Relevant for the internal cache
+    // Internal cache TTL codes
     private static final long PTTL_NO_EXPIRY = -1;
     private static final long PTTL_NO_KEY    = -2;
-
-    // Delegate Pattern . observer(), close() etc are generated
-    @Delegate(excludes = ExcludedMethods.class)
-    private final InMemoryAttributeRepository internalRepository;
 
     private final RedisClient                                   client;
     private final StatefulRedisConnection<String, String>       connection;
     private final RedisCommands<String, String>                 commands;
     private final StatefulRedisPubSubConnection<String, String> pubsub;
     private final AtomicReference<Consumer<Runnable>>           batchRunner = new AtomicReference<>(Runnable::run);
-
-    private final ExecutorService            worker         = Executors
+    private final ExecutorService                               worker      = Executors
             .newSingleThreadExecutor(Thread.ofVirtual().factory());
-    private final Map<String, RepositoryKey> knownRedisKeys = new ConcurrentHashMap<>();
-    private final AtomicBoolean              closed         = new AtomicBoolean(false);
+    private final Map<String, RepositoryKey>                    knownKeys   = new ConcurrentHashMap<>();
+    private final AtomicBoolean                                 closed      = new AtomicBoolean(false);
+    private final String                                        pdpId;
+    private final String                                        pdpKeyPrefix;
 
-    private final String pdpId;
-    private final String ownKeyPrefix;
+    @Delegate(excludes = ExcludedMethods.class)
+    private final InMemoryAttributeRepository internalRepository;
 
     public RedisAttributeRepository(RedisClient client, String pdpId, int database) {
         this.client     = client;
@@ -112,7 +105,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         requireKeyspaceNotificationsEnabled();
 
         // Important for the internal Cache
-        this.ownKeyPrefix       = ATTRIBUTE_KEY_PREFIX + pdpId + ":";
+        this.pdpKeyPrefix       = ATTRIBUTE_KEY_PREFIX + pdpId + ":";
         this.internalRepository = new InMemoryAttributeRepository(key -> {});
 
         // Subscribe to needed channels
@@ -121,7 +114,6 @@ public final class RedisAttributeRepository implements AttributeRepository {
         pubsub.sync().subscribe("__keyevent@" + database + "__:expired");
         registerAttributeMessageListener();
         registerConnectionStateListener();
-
         loadFromRedis();
     }
 
@@ -162,11 +154,11 @@ public final class RedisAttributeRepository implements AttributeRepository {
         publishInternal(key, value, ttl);
     }
 
-    private void publishInternal(@NonNull RepositoryKey key, @NonNull Value value, @Nullable Duration ttl) {
+    private void publishInternal(RepositoryKey key, Value value, @Nullable Duration ttl) {
         String redisKey   = toRedisKey(key);
         String redisValue = ValueJsonMarshaller.toJsonString(value);
 
-        knownRedisKeys.put(redisKey, key);
+        knownKeys.put(redisKey, key);
         Map<String, String> fields = new HashMap<>();
         fields.put(FIELD_NAME, key.name());
         fields.put(FIELD_ARGUMENTS, valuesToJson(key.arguments()));
@@ -198,7 +190,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         String redisKey = toRedisKey(key);
 
         internalRepository.remove(key);
-        knownRedisKeys.remove(redisKey);
+        knownKeys.remove(redisKey);
         commands.del(toRedisKey(key));
         commands.publish(CHANGES_CHANNEL_PREFIX + toRedisKey(key), UNDEFINED_STRING);
         commands.zrem(getOrderKey(), redisKey);
@@ -227,7 +219,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         pubsub.addListener(new RedisPubSubAdapter<>() {
             @Override
             public void message(String channel, String message) {
-                // __keyevent@<db>__:expired, the message is the Redis key
+                // the message is the Redis key
                 runOnWorker(() -> applyRedisKey(message));
             }
 
@@ -246,25 +238,16 @@ public final class RedisAttributeRepository implements AttributeRepository {
     }
 
     private void handleBatch(String message) {
-        if (!(ValueJsonMarshaller.json(message) instanceof ArrayValue entries)) {
-            log.warn(WARN_INVALID_BATCH, message);
-            return;
-        }
-
         var redisKeys = new ArrayList<String>();
-        for (var entry : entries) {
-            if (entry instanceof ObjectValue object && object.get(FIELD_BATCH_KEY) instanceof TextValue(var redisKey)) {
-                redisKeys.add(redisKey);
-            } else {
-                log.warn(WARN_INVALID_BATCH_ENTRY, entry);
-            }
+
+        for (var entry : (ArrayValue) ValueJsonMarshaller.json(message)) {
+            redisKeys.add(((TextValue) ((ObjectValue) entry).get(FIELD_BATCH_KEY)).value());
         }
         batchRunner.get().accept(() -> redisKeys.forEach(this::applyRedisKey));
     }
 
     private void registerConnectionStateListener() {
-        // Monitor the current connection and reconnect if the connection was
-        // interrupted
+        // Monitor current connection and reconnect if connection was interrupted
         pubsub.addListener(new RedisConnectionStateListener() {
             @Override
             public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
@@ -302,13 +285,13 @@ public final class RedisAttributeRepository implements AttributeRepository {
         for (var staleKey : internalRepository.knownKeys()) {
             if (!seenKeys.contains(staleKey)) {
                 internalRepository.remove(staleKey);
-                knownRedisKeys.values().remove(staleKey);
+                knownKeys.values().remove(staleKey);
             }
         }
     }
 
     private @Nullable RepositoryKey applyRedisKey(String redisKey) {
-        if (!redisKey.startsWith(ownKeyPrefix)) {
+        if (!redisKey.startsWith(pdpKeyPrefix)) {
             return null;
         }
 
@@ -316,7 +299,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         long                ttl      = commands.pttl(redisKey);
 
         if (hashKeys.isEmpty() || ttl == PTTL_NO_KEY) {
-            var knownKey = knownRedisKeys.remove(redisKey);
+            var knownKey = knownKeys.remove(redisKey);
             if (knownKey != null) {
                 internalRepository.remove(knownKey);
             }
@@ -328,10 +311,9 @@ public final class RedisAttributeRepository implements AttributeRepository {
         var key        = new RepositoryKey(entity, hashKeys.get(FIELD_NAME),
                 jsonToValues(hashKeys.get(FIELD_ARGUMENTS)), pdpId);
         var raw        = hashKeys.get(FIELD_VALUE);
-        var value      = (raw == null || UNDEFINED_STRING.equals(raw)) ? Value.UNDEFINED
-                : ValueJsonMarshaller.json(raw);
+        var value      = raw == null ? Value.UNDEFINED : ValueJsonMarshaller.json(raw);
 
-        knownRedisKeys.put(redisKey, key);
+        knownKeys.put(redisKey, key);
 
         if (ttl == PTTL_NO_EXPIRY) {
             internalRepository.publish(key, value);

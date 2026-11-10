@@ -34,10 +34,10 @@ import java.util.Set;
 /**
  * Factory class to build a specific attribute repository using the interface
  * {@link io.sapl.attributes.broker.AttributeRepository}. This class is called
- * by {@link RoutingAttributeRepository} once per pdp id whenever a new
+ * by {@link RoutingAttributeRepository} once per pdp-id whenever a new
  * configuration arrives.
  * <p>
- * The backends are not part of the PDP. Each backend is a module with an
+ * The databases are not part of the PDP. Each database is a module with an
  * {@link AttributeRepositoryProvider} that is found via the
  * {@link ServiceLoader}. The factory class selects the provider by the
  * {@code type} field of the configuration. The provider validates the remaining
@@ -48,34 +48,26 @@ import java.util.Set;
 @Slf4j
 @UtilityClass
 public class AttributeRepositoryFactory {
-    private static final String ERROR_UNKNOWN_TYPE  = "attributerepository.type='%s' for pdpId '%s' is not "
-            + "supported. Available types: %s. Add the module of the backend to the classpath.";
-    private static final String WARN_DUPLICATE_TYPE = "Attribute repository type '{}' is provided twice. {} is ignored.";
-
-    private static final String TYPE_FIELD = "type";
-
-    // Loaded only once with the existing JARs.
-    private static final Map<String, AttributeRepositoryProvider> PROVIDERS = loadProviders();
+    private static final String                                   ERROR_UNKNOWN_TYPE = "The attributerepository.type='%s' for pdpId '%s' is not supported.";
+    private static final String                                   TYPE_FIELD         = "type";
+    private static final Map<String, AttributeRepositoryProvider> PROVIDERS          = loadProviders();
 
     /**
      * Creates the specific {@code AttributeRepository} from a configuration for a
      * specific pdp id.
      *
-     * @param config The given configuration block to build the attribute
-     * repository.
+     * @param config The given configuration block to build the attribute repository.
      * @param pdpId The pdp id that the repository is built for.
-     * @return The repository of the provider that matches the {@code type} field of
-     * {@code config}.
-     * @throws IllegalStateException if {@code type} is missing or no provider for
-     * it is on the classpath.
+     * @return The repository of the provider that matches the {@code type} field of {@code config}.
+     * @throws IllegalStateException if {@code type} is missing or no provider for it is on the classpath.
      */
     public AttributeRepository create(ObjectValue config, String pdpId) {
         PdpIdValidator.validatePdpId(pdpId);
-        val type     = stringValue(config, TYPE_FIELD);
+        val type     = getTextValueOrNull(config, TYPE_FIELD);
         val provider = providerFor(type);
 
         if (provider == null) {
-            throw new IllegalStateException(ERROR_UNKNOWN_TYPE.formatted(type, pdpId, PROVIDERS.keySet()));
+            throw new IllegalStateException(ERROR_UNKNOWN_TYPE.formatted(type, pdpId));
         }
 
         return provider.create(config, pdpId);
@@ -85,41 +77,38 @@ public class AttributeRepositoryFactory {
      * Validates if a given config matches one of the available attribute repository
      * types and contains the required fields of that type.
      *
-     * @param config The configuration block that is sent by the extension
-     * processor.
-     * @return {@code true} if a provider for the type exists and the required
-     * fields exist.
+     * @param config The configuration block that is sent by the extension processor.
+     * @return {@code true} if a provider for the type exists and the required fields exist.
      */
     public boolean validate(ObjectValue config) {
-        val provider = providerFor(stringValue(config, TYPE_FIELD));
+        val provider = providerFor(getTextValueOrNull(config, TYPE_FIELD));
         return provider != null && provider.validate(config);
     }
 
     /**
      * Types of the providers that are found on the classpath.
      *
-     * @return A key set of available provider types
+     * @return A set of available provider types found in the classpath
      */
     public Set<String> availableTypes() {
         return PROVIDERS.keySet();
     }
 
-    private String stringValue(ObjectValue obj, String key) {
-        val keyValue = obj.get(key);
-        return keyValue instanceof TextValue(String value) ? value : null;
+    // Helper method: Reads a text field from the configuration
+    private String getTextValueOrNull(ObjectValue object, String key) {
+        return object.get(key) instanceof TextValue text ? text.value() : null;
     }
 
+    // Helper method: Get the provider the given database type
     private AttributeRepositoryProvider providerFor(String type) {
         return type == null ? null : PROVIDERS.get(type.toLowerCase(Locale.ROOT));
     }
 
+    // Loads providers via the Java service loader
     private static Map<String, AttributeRepositoryProvider> loadProviders() {
         val providers = new HashMap<String, AttributeRepositoryProvider>();
         for (val provider : ServiceLoader.load(AttributeRepositoryProvider.class)) {
-            val type = provider.type().toLowerCase(Locale.ROOT);
-            if (providers.putIfAbsent(type, provider) != null) {
-                log.warn(WARN_DUPLICATE_TYPE, type, provider.getClass().getName());
-            }
+            providers.putIfAbsent(provider.type().toLowerCase(Locale.ROOT), provider);
         }
         return Map.copyOf(providers);
     }

@@ -30,7 +30,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 
 public class RedisAttributeRepositoryProvider implements AttributeRepositoryProvider {
-    private static String       TYPE           = "redis";
+    private static final String TYPE           = "redis";
     private static final String HOST_FIELD     = "host";
     private static final String PORT_FIELD     = "port";
     private static final String DATABASE_FIELD = "database";
@@ -68,12 +68,10 @@ public class RedisAttributeRepositoryProvider implements AttributeRepositoryProv
     }
 
     private String stringValue(ObjectValue obj, String key) {
-        val v = obj.get(key);
-        return v instanceof TextValue(String value) ? value : null;
+        return obj.get(key) instanceof TextValue text ? text.value() : null;
     }
 
     private Integer numberValue(ObjectValue obj, String key) {
-        val v = obj.get(key);
-        return v instanceof NumberValue number ? number.value().intValue() : null;
+        return obj.get(key) instanceof NumberValue number ? number.value().intValue() : null;
     }
 }

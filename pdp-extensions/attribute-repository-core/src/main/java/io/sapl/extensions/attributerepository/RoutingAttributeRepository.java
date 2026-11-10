@@ -42,16 +42,17 @@ import reactor.util.retry.Retry;
 import io.sapl.api.model.TextValue;
 
 /**
- * A multi-tenant {@link AttributeRepository} that routes observe request's to the right repository
- * configured for the pdpId. The repositories are built lazy during startup with a tolerance using
- * a retry-with-backoff logic to reconnect. The class is just a routing facade and not a concrete repository
- * implementation itself and only observe requests are routed to the concrete {@code AttributeRepository}.
+ * A multi-tenant {@link AttributeRepository} that routes observe requests to
+ * the right repository configured for the pdpId. The repositories are built
+ * lazy during startup with a tolerance using a retry-with-backoff logic to
+ * reconnect. The class is just a routing facade and not a concrete repository
+ * implementation itself and only observe requests are routed to the concrete
+ * {@code AttributeRepository}.
  *
  * @since 4.2.0
  */
 @Slf4j
 public class RoutingAttributeRepository implements AttributeRepository {
-    private static final String ERROR_ATTRIBUTE_REPOSITORY_CONFIG  = "Failed to apply attributeRepository configuration for pdpId '{}' (configurationId '{}'): {}. The previous configuration for this pdpId, if any, remains active.";
     private static final String ERROR_ATTRIBUTE_REPOSITORY_CLOSED  = "Couldn't connect to repository with pdp id {} and configuration id {}: {}.";
     private static final String WARN_RETRYING_ATTRIBUTE_REPOSITORY = "Retrying to connect to the repository for pdp with id {} and configuration id {}: {}.";
     private static final String ERROR_REPOSITORY_STILL_BUILDING    = "Attribute Repository for configuration with id '%s' is still connecting.";
@@ -60,37 +61,33 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private static final String REASON_TYPE_MISSING                = "the field 'type' is missing";
     private static final String REASON_NO_PROVIDER                 = "no backend module for type '%s' on the classpath. Available types: %s";
     private static final String REASON_INVALID_FIELDS              = "required fields for type '%s' are missing or invalid";
+    private static final String WARN_CLOSE_FAILED                  = "Could not close the old attribute repository of pdp id {} (configuration id {}): {}";
+    private static final String ATTRIBUTE_REPOSITORY_EXTENSION     = "attributerepository";
 
-    private static final String ATTRIBUTE_REPOSITORY_EXTENSION = "attributerepository";
-
-    // Retry logic timeouts
     private static final Duration RETRY_FIRST_BACKOFF = Duration.ofSeconds(1);
     private static final Duration RETRY_MAX_BACKOFF   = Duration.ofSeconds(30);
 
-    // Repositories are keyed by pdp id and configuration id, because two pdps may carry the same configuration id
-    // (e.g. bundles with identical content or the same manifest id), but each needs its own repository.
-    private final ConcurrentHashMap<RouteKey, AttributeRepository> cache       = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String>                pdpToConfig = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<RouteKey, Value>               rawConfig   = new ConcurrentHashMap<>();
-
-    // Retry Logic: pendingBuild = not build yet,
-    // closed = thread-safe indicator for an open/closed repository
-    // waitingObservations = cache request in case a repository is not done yet
+    private final ConcurrentHashMap<RouteKey, AttributeRepository>     cache               = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String>                    pdpToConfig         = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<RouteKey, Value>                   rawConfig           = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<RouteKey, Disposable>              pendingBuilds       = new ConcurrentHashMap<>();
     private final AtomicBoolean                                        closed              = new AtomicBoolean(false);
     private final ConcurrentHashMap<RouteKey, Set<PendingObservation>> waitingObservations = new ConcurrentHashMap<>();
+    private final AtomicReference<Consumer<Runnable>>                  batchRunner         = new AtomicReference<>(
+            Runnable::run);
 
-    private final AtomicReference<Consumer<Runnable>> batchRunner = new AtomicReference<>(Runnable::run);
-
+    // Holds back a observe call if the repository is still building
     private record PendingObservation(
             AttributeFinderInvocation inv,
             Consumer<Value> onValue,
             AtomicReference<Registration> liveRegistration) {}
 
+    // Routing key used by the router to identify the right repository from a
+    // request
     private record RouteKey(String pdpId, String configurationId) {}
 
-    // Builds the concrete repository from the given config block for the pdp id. Falls
-    // back to an InMemoryAttributeRepository if the tenant has no such block configured.
+    // Builds the repository from the config and falls back to an In-Memory
+    // Repository.
     private static AttributeRepository createRepository(Value repoNode, String pdpId) {
         if (repoNode instanceof ObjectValue obj) {
             return AttributeRepositoryFactory.create(obj, pdpId);
@@ -99,14 +96,15 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Routes the invocation {@code inv} to the repository built for its pdp id
-     * and configuration id. Queues the invocation
-     * if the repository is unknown or not connected.
+     * Routes the invocation {@code inv} to the repository built for its pdp id and
+     * configuration id. Queues the invocation if the repository is unknown or not
+     * connected.
      */
     @Override
     public Registration observe(@NonNull AttributeFinderInvocation inv, @NonNull Consumer<Value> onValue) {
         val key        = new RouteKey(inv.pdpId(), inv.configurationId());
         val repository = cache.get(key);
+
         if (repository != null) {
             return repository.observe(inv, onValue);
         }
@@ -157,8 +155,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Set this router as closed and cancels every pending repository build
-     * and closes every cached backend repository.
+     * Set this router as closed and cancels every pending repository build and
+     * closes every cached repository.
      */
     @Override
     public void close() {
@@ -172,25 +170,31 @@ public class RoutingAttributeRepository implements AttributeRepository {
     // transient connection failures, that a slow connection never blocks the
     // configuration event processing.
     private void buildWithRetry(RouteKey key, Value repoNode) {
+        // @formatter:off
         val disposable = Mono.fromCallable(() -> createRepository(repoNode, key.pdpId()))
-                .retryWhen(Retry.backoff(Long.MAX_VALUE, RETRY_FIRST_BACKOFF).maxBackoff(RETRY_MAX_BACKOFF)
-                        .scheduler(Schedulers.boundedElastic()).filter(failure -> !closed.get())
-                        .doBeforeRetry(signal -> log.warn(WARN_RETRYING_ATTRIBUTE_REPOSITORY, key.pdpId(),
-                                key.configurationId(), signal.failure().getMessage())))
-                .subscribeOn(Schedulers.boundedElastic()).subscribe(repository -> onRepositoryBuilt(key, repository),
-                        failure -> log.error(ERROR_ATTRIBUTE_REPOSITORY_CLOSED, key.pdpId(), key.configurationId(),
-                                failure.getMessage()));
+                .retryWhen(Retry.backoff(Long.MAX_VALUE, RETRY_FIRST_BACKOFF)
+                		.maxBackoff(RETRY_MAX_BACKOFF)
+                        .scheduler(Schedulers.boundedElastic())
+                        .filter(failure -> !closed.get())
+                        .doBeforeRetry(signal -> log.warn(WARN_RETRYING_ATTRIBUTE_REPOSITORY,
+                        		key.pdpId(),
+                        		key.configurationId(),
+                        		signal.failure().getMessage())))
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(repository -> onRepositoryBuilt(key, repository), failure -> log.error(ERROR_ATTRIBUTE_REPOSITORY_CLOSED,
+                		key.pdpId(),
+                		key.configurationId(),
+                		failure.getMessage()));
+        // @formatter:on
         pendingBuilds.put(key, disposable);
     }
 
-    // After the repository is built this method is called. Remove it from the pending builds, mark it as
-    // active, put it in the repository cache, route pdp id and config id and replays all observe calls
-    // that were missed during build time.
+    // Repository is built, put it in the repo cache, re-run the missed observe
+    // calls
     private void onRepositoryBuilt(RouteKey key, AttributeRepository repository) {
         pendingBuilds.remove(key);
 
-        // Closed the repository immediately if a closed() did run in the meantime.
-        // Discards the freshly built repository immediately instead of caching it.
+        // If repository was closed during the creation: close it.
         if (closed.get()) {
             repository.close();
             return;
@@ -198,7 +202,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
 
         cache.put(key, repository);
         repository.setBatchRunner(batchRunner.get());
-        route(key.pdpId(), key.configurationId());
+        activateConfiguration(key.pdpId(), key.configurationId());
 
         val waiting = waitingObservations.remove(key);
         if (waiting != null) {
@@ -208,26 +212,29 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     /*
-     * Updates the routing information in case of configuration id change
-     * e.g. secret changed. Closes the repository with the old config id
-     * and updates to the new one.
+     * Updates the routing information in case of a config change. Closes the old
+     * repository. Used when a config changes.
      */
-    private void route(String pdpId, String configId) {
+    private void activateConfiguration(String pdpId, String configId) {
         val oldConfigId = pdpToConfig.put(pdpId, configId);
 
         if (oldConfigId != null && !oldConfigId.equals(configId)) {
             val oldKey = new RouteKey(pdpId, oldConfigId);
-            Optional.ofNullable(cache.remove(oldKey)).ifPresent(AttributeRepository::close);
+            Optional.ofNullable(cache.remove(oldKey)).ifPresent(old -> {
+                try {
+                    old.close();
+                } catch (RuntimeException failure) {
+                    log.warn(WARN_CLOSE_FAILED, pdpId, oldConfigId, failure.getMessage());
+                }
+            });
             rawConfig.remove(oldKey);
         }
     }
 
     /*
-     * Extracts the clear text part (extConfig) and secret part (extSecret) of the attributeRepository
-     * extension into a single ObjectValue to match with the format AttributeRepositoryFactory expects.
-     * Fallback is InMemoryAttributeRepository.
+     * Combines the config from both ext-* configs to one object value.
      */
-    private static Value extractAttributeRepositoryNode(PDPConfiguration configuration) {
+    private static Value extractRepositoryConfig(PDPConfiguration configuration) {
         val extConfig  = configuration.extensions().get(ATTRIBUTE_REPOSITORY_EXTENSION);
         val extSecrets = configuration.extensionSecrets().get(ATTRIBUTE_REPOSITORY_EXTENSION);
 
@@ -249,12 +256,12 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     /*
-     * Validation of the the method prepare() of the extension process. If no extension
-     * is configure then the InMemoryAttributeRepository is the fallback. A present but
-     * structurally invalid extension will be rejected instead of a silent fallback.
+     * Reacts to prepare() method of the extension processor. Rejects an invalid
+     * configuration instead of failing silent. A missing configuration is loading
+     * an {@code InMemoryAttributeRepository}.
      */
     boolean canPrepare(PDPConfiguration configuration) {
-        val node = extractAttributeRepositoryNode(configuration);
+        val node = extractRepositoryConfig(configuration);
         if (!(node instanceof ObjectValue obj)) {
             return true;
         }
@@ -262,36 +269,31 @@ public class RoutingAttributeRepository implements AttributeRepository {
         if (AttributeRepositoryFactory.validate(obj)) {
             return true;
         }
-        log.warn(WARN_CONFIG_REJECTED, configuration.pdpId(), configuration.configurationId(), recjectReason(obj));
+        log.warn(WARN_CONFIG_REJECTED, configuration.pdpId(), configuration.configurationId(), rejectReason(obj));
         return false;
     }
 
     /*
-     * Reacts to the commit() method of the extension processor New configurations will be
-     * re-routed to an already existing repository object or a repository object will be built
-     * fresh when the configuration is seen the first time.
+     * Reacts to the commit() method of the extension processor. A known
+     * configuration becomes the current one and a unknown configuration is built in
+     * the background.
      */
     void buildOrRoute(String pdpId, PDPConfiguration configuration) {
         val configId = configuration.configurationId();
         val key      = new RouteKey(pdpId, configId);
-        val repoNode = extractAttributeRepositoryNode(configuration);
+        val repoNode = extractRepositoryConfig(configuration);
 
-        try {
-            rawConfig.put(key, repoNode);
-
-            if (cache.containsKey(key)) {
-                route(pdpId, configId);
-            } else if (!pendingBuilds.containsKey(key)) {
-                buildWithRetry(key, repoNode);
-            }
-        } catch (RuntimeException failure) {
-            log.error(ERROR_ATTRIBUTE_REPOSITORY_CONFIG, pdpId, configId, failure.getMessage());
+        rawConfig.put(key, repoNode);
+        if (cache.containsKey(key)) {
+            activateConfiguration(pdpId, configId);
+        } else if (!pendingBuilds.containsKey(key)) {
+            buildWithRetry(key, repoNode);
         }
     }
 
     /*
-     * Reacts to the remove() method of the extension processor and removes the configuration
-     * for the current pdp.
+     * Reacts to the remove() method of the extension processor and removes the
+     * configuration for the current pdp.
      */
     void removeForPdp(String pdpId) {
         val configId = pdpToConfig.remove(pdpId);
@@ -306,8 +308,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * The current raw configuration the router knows for the given pdp id. The last configuration
-     * is set by {@link #buildOrRoute(String, PDPConfiguration)}.
+     * The current raw configuration the router knows for the given pdp id. The last
+     * configuration is set by {@link #buildOrRoute(String, PDPConfiguration)}.
      *
      * @param pdpId The pdp id to return the raw configuration for
      * @return The raw configuration
@@ -323,10 +325,12 @@ public class RoutingAttributeRepository implements AttributeRepository {
         cache.values().forEach(repository -> repository.setBatchRunner(batchRunner));
     }
 
-    private String recjectReason(ObjectValue config) {
-        if (!(config.get("type") instanceof TextValue(String type))) {
+    private String rejectReason(ObjectValue config) {
+        if (!(config.get("type") instanceof TextValue typeField)) {
             return REASON_TYPE_MISSING;
         }
+
+        val type      = typeField.value();
         val available = AttributeRepositoryFactory.availableTypes();
         if (!available.contains(type.toLowerCase(Locale.ROOT))) {
             return REASON_NO_PROVIDER.formatted(type, available);

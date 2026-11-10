@@ -161,8 +161,7 @@ public class MongoAttributeStore implements AttributeStore {
 
     @Override
     public void close() {
-        // Noop: The used Mongo implementation is a Spring-managed bean shared across
-        // the application
+        // Noop: The used Mongo implementation is a Spring-managed bean shared across the application
         // The class is not responsible for it's lifecycle
     }
 
@@ -217,8 +216,7 @@ public class MongoAttributeStore implements AttributeStore {
             var exists = Boolean.TRUE.equals(mongo.collectionExists(collection).block());
 
             if (exists) {
-                // The db command collMod adds the changeStreamPreAndPostImages to the
-                // collection.
+                // The db command collMod adds the changeStreamPreAndPostImages to the collection.
                 // In other words: create a snapshot before and after an change stream event
                 mongo.executeCommand(new Document("collMod", collection).append("changeStreamPreAndPostImages",
                         new Document("enabled", true))).block();

@@ -118,13 +118,11 @@ public class PostgresAttributeRepositoryProvider implements AttributeRepositoryP
     }
 
     private String stringValue(ObjectValue obj, String key) {
-        val v = obj.get(key);
-        return v instanceof TextValue(String value) ? value : null;
+        return obj.get(key) instanceof TextValue text ? text.value() : null;
     }
 
     private Integer numberValue(ObjectValue obj, String key) {
-        val v = obj.get(key);
-        return v instanceof NumberValue number ? number.value().intValue() : null;
+        return obj.get(key) instanceof NumberValue number ? number.value().intValue() : null;
     }
 
 }

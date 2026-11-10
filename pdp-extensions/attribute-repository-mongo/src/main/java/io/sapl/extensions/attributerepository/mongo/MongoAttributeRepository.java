@@ -124,10 +124,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
     @Override
     public void close() {
         closed = true;
-        var subscription = changeStreamSubscription.get();
-        if (subscription != null) {
-            subscription.dispose();
-        }
+        changeStreamSubscription.get().dispose();
+
         var resync = resyncSubscription.get();
         if (resync != null) {
             resync.dispose();
@@ -140,7 +138,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
     // change streams.
     private void subscribeToChangeStream() {
         changeStreamSubscription.set(Flux.merge(openChangeStream(collection), openChangeStream(BATCH_COLLECTION))
-                .filter(this::belongsToPdpId).publishOn(Schedulers.boundedElastic())
+                .filter(this::isForPdpId).publishOn(Schedulers.boundedElastic())
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
                         .transientErrors(true).filter(throwable -> !closed)
                         .doBeforeRetry(this::handleChangeStreamRetry))
@@ -183,15 +181,12 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
     // Filters events, so that events are only handled when the pdp id matches with
     // the config of this object
-    private boolean belongsToPdpId(ChangeStreamEvent<Document> event) {
+    private boolean isForPdpId(ChangeStreamEvent<Document> event) {
         var body = isDeleteEvent(event) ? event.getBodyBeforeChange() : event.getBody();
         return body != null && pdpId.equals(body.getString(FIELD_PDP_ID));
     }
 
-    // Handles the change stream event on a publish and delete case. Delete needs to
-    // read the attribute before deleting
-    // it. Only meant for transactions with applyAll() and txnNumber. Other messages
-    // will be ignored here.
+    // Handles change stream event for publish/delete events from a transaction
     private void processChangeStreamEvent(ChangeStreamEvent<Document> event) {
         if (BATCH_COLLECTION.equals(event.getCollectionName())) {
             handleBatch(Objects.requireNonNull(event.getBody()));
@@ -203,8 +198,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
             return;
         }
 
-        // Handle the delete events first because the body is always null on delete
-        // events
+        // Handle the delete events first because the body is always null on delete events
         if (isDeleteEvent(event)) {
             var doc = Objects.requireNonNull(event.getBodyBeforeChange());
             internalRepository.remove(repositoryKeyFromDocument(doc));
@@ -233,9 +227,6 @@ public final class MongoAttributeRepository implements AttributeRepository {
     // Publish the repository key from a Mongo document
     private void updateCacheFromDocument(RepositoryKey key, Document doc) {
         var valueJson = doc.getString(FIELD_VALUE);
-        if (valueJson == null)
-            return;
-
         var value     = ValueJsonMarshaller.json(valueJson);
         var expiresAt = expirationFromDocument(doc);
 
@@ -249,15 +240,13 @@ public final class MongoAttributeRepository implements AttributeRepository {
             internalRepository.publish(key, value, remaining);
     }
 
-    // Extract the expiry from a Mongo document to use it for the change stream
-    // handling
+    // Extract expiry from a document to use it for change stream handling
     private static Instant expirationFromDocument(Document doc) {
         var dateField = doc.getDate(FIELD_EXPIRES_AT);
         return dateField != null ? dateField.toInstant() : null;
     }
 
-    // Loads all attributes from the backend again. Adds current keys and removes
-    // stale keys
+    // Loads all attributes again. Adds current and removes stale keys
     private void loadFromDB() {
         var query    = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
         var seenKeys = new HashSet<RepositoryKey>();
@@ -283,9 +272,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
         upsertToDB(key, value, Instant.now().plus(ttl));
     }
 
-    // Upsert (update+insert) a repository key + value with optional ttl to the
-    // Mongo collection for the pdp
-    private void upsertToDB(@NonNull RepositoryKey key, Value value, @Nullable Instant expiresAt) {
+    // Upsert repository key+value with optional ttl to collection
+    private void upsertToDB(RepositoryKey key, Value value, @Nullable Instant expiresAt) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argsJson   = valuesToJsonArray(key.arguments());
         var valueJson  = ValueJsonMarshaller.toJsonString(value);
@@ -302,7 +290,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
         deleteFromDB(key);
     }
 
-    // Builder for the correct Mongo query
+    // Builder for the correct query
     private Query buildMongoQuery(RepositoryKey key) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argsJson   = valuesToJsonArray(key.arguments());
@@ -317,9 +305,6 @@ public final class MongoAttributeRepository implements AttributeRepository {
     }
 
     private static List<Value> jsonArrayToValues(String json) {
-        if (json == null || json.isBlank())
-            return List.of();
-
         return (ArrayValue) ValueJsonMarshaller.json(json);
     }
 
@@ -327,14 +312,10 @@ public final class MongoAttributeRepository implements AttributeRepository {
         var entityJson = doc.getString(FIELD_ENTITY);
         var argsJson   = doc.getString(FIELD_ARGUMENTS);
         var valueJson  = doc.getString(FIELD_VALUE);
-
-        if (valueJson == null)
-            return;
-
-        var key       = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
+        var value      = ValueJsonMarshaller.json(valueJson);
+        var expiresAt  = expirationFromDocument(doc);
+        var key        = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
                 doc.getString(FIELD_NAME), jsonArrayToValues(argsJson), pdpId);
-        var value     = ValueJsonMarshaller.json(valueJson);
-        var expiresAt = expirationFromDocument(doc);
 
         if (expiresAt == null) {
             internalRepository.publish(key, value);
@@ -352,12 +333,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
         seenKeys.add(key);
     }
 
-    // Removes stale keys from the internal cache. Important after a resync with
-    // disconnect because
-    // change events could have been missed
+    // Removes stale keys from the internal cache. For resync after disconnect
     private void removeStaleCacheEntries(Set<RepositoryKey> seenKeys) {
-        // The InMemoryAttributeRepository functions as cache and needs to be cleaned up
-        // after a re-sync
         for (var staleKey : internalRepository.knownKeys()) {
             if (!seenKeys.contains(staleKey)) {
                 internalRepository.remove(staleKey);
@@ -365,15 +342,13 @@ public final class MongoAttributeRepository implements AttributeRepository {
         }
     }
 
-    // Check if the Mongo collection exists with the right configuration
+    // Check if collection exists with the right configuration
     private void configureChangeStreamPrePostImages() {
         try {
             var exists = Boolean.TRUE.equals(mongo.collectionExists(collection).block());
 
             if (exists) {
-                // The db command collMod adds the changeStreamPreAndPostImages to the
-                // collection.
-                // In other words: create a snapshot before and after an change stream event
+                // collMod adds the changeStreamPreAndPostImages
                 mongo.executeCommand(new Document("collMod", collection).append("changeStreamPreAndPostImages",
                         new Document("enabled", true))).block();
             } else {

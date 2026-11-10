@@ -18,6 +18,7 @@
 package io.sapl.extensions.attributerepository.postgres;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -139,6 +141,20 @@ class PostgresAttributeRepositoryTests {
                 assertThat(firstReceived()).isEqualTo(Value.of(42L));
             }
         }
+
+        @Test
+        @DisplayName("then null value in publish are rejected")
+        void thenNullValuesInPublishAreRejected() {
+            var key   = key("test.attribute");
+            var value = Value.of("something");
+            var ttl   = Duration.ofSeconds(5);
+
+            assertThatThrownBy(() -> repository.publish(null, value, ttl)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, value, null)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, null, ttl)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(null, value)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, null)).isInstanceOf(NullPointerException.class);
+        }
     }
 
     @Nested
@@ -153,6 +169,18 @@ class PostgresAttributeRepositoryTests {
             repository.remove(key("sapl.test.remove"));
 
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
+        }
+
+        @Test
+        @DisplayName("then null value in remove is rejected")
+        void thenNullValuesInRemoveAreRejected() {
+            assertThatThrownBy(() -> repository.remove(null)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then null value in deleteFromDb is rejected")
+        void thenNullValuesInDeleteFromDbAreRejected() {
+            assertThatThrownBy(() -> repository.deleteFromDB(null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -235,6 +263,21 @@ class PostgresAttributeRepositoryTests {
                 client.sql(DISCONNECT_SQL).then().block();
                 Awaitility.await().atMost(Duration.ofSeconds(60)).until(() -> lastReceived().equals(Value.UNDEFINED));
             }
+        }
+
+        @Test
+        @DisplayName("then repository retries until the container is back")
+        void thenRepositoryRetriesUntilDatabaseIsBack() {
+            repository.publish(key, value);
+            repository.observe(invocation(PDP_ID, null, NAME, List.of()), received::add);
+
+            val docker = postgres.getDockerClient();
+            docker.pauseContainerCmd(postgres.getContainerId()).exec();
+
+            Awaitility.await().atMost(Duration.ofSeconds(30)).until(() -> lastReceived() instanceof ErrorValue);
+            Awaitility.await().pollDelay(Duration.ofSeconds(6)).until(() -> true);
+            docker.unpauseContainerCmd(postgres.getContainerId()).exec();
+            Awaitility.await().atMost(Duration.ofSeconds(20)).until(() -> Value.of("test").equals(lastReceived()));
         }
     }
 
@@ -456,6 +499,62 @@ class PostgresAttributeRepositoryTests {
                         .map(row -> row.get(0, Long.class)).one().block();
                 assertThat(rows).isZero();
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("when batch mode is used")
+    class WhenBatchModeIsUsed {
+        private final AtomicInteger runs    = new AtomicInteger();
+        private final String        name    = "batch.attribute";
+        private final String        payload = """
+                {"pdpId":"test-tenant","keys":[{"name":"batch.attribute","entity":null,"arguments":[]}]}""";
+
+        @Test
+        @DisplayName("then a batch document is processed")
+        void thenBatchNotificationIsProcessed() {
+            setBatchRunner();
+            repository.publish(key(name), Value.of("batch"));
+            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
+            notify("""
+                    {"pdpId":"test-tenant","keys":[1]}
+                    """);
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+            assertThat(lastReceived()).isEqualTo(Value.of("batch"));
+        }
+
+        @Test
+        @DisplayName("then a batch document with a missing key is not processed")
+        void thenInvalidBatchIsSkipped() {
+            setBatchRunner();
+            repository.publish(key(name), Value.of("batch"));
+            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
+            notify("no-valid-json-set!");
+            notify(payload);
+
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+        }
+
+        @Test
+        @DisplayName("then a notification that is no json is ignored")
+        void thenInvalidNotificationIsIgnored() {
+            setBatchRunner();
+            notify("no-valid-json-set!");
+            notify(payload);
+
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() >= 1);
+            assertThat(runs).hasValue(1);
+        }
+
+        private void setBatchRunner() {
+            repository.setBatchRunner(changes -> {
+                runs.incrementAndGet();
+                changes.run();
+            });
+        }
+
+        private void notify(String payload) {
+            client.sql("SELECT pg_notify('attribute_changes', :payload)").bind("payload", payload).then().block();
         }
     }
 

@@ -32,8 +32,6 @@ import io.sapl.pdp.configuration.PdpState;
 import lombok.val;
 
 class AttributeRepositoryExtensionLoadingTests {
-    // The required fields of the real backends are tested in the provider tests of the
-    // attribute-repository-* modules. Here the test backend only checks the loading of the extension.
     @Test
     @DisplayName("a valid config split into cleartext and secrets is read and triggers buildOrRoute method")
     void whenConfigIsValidThenRepositoryBuildIsTriggered(@TempDir Path policyDir) throws Exception {

@@ -38,15 +38,16 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mongodb.MongoDBContainer;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
@@ -155,6 +156,20 @@ class MongoAttributeRepositoryTests {
                 assertThat(firstReceived()).isEqualTo(Value.of(42L));
             }
         }
+
+        @Test
+        @DisplayName("then null value in publish are rejected")
+        void thenNullValuesInPublishAreRejected() {
+            var key   = key("test.attribute");
+            var value = Value.of("something");
+            var ttl   = Duration.ofSeconds(5);
+
+            assertThatThrownBy(() -> repository.publish(null, value, ttl)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, value, null)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, null, ttl)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(null, value)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> repository.publish(key, null)).isInstanceOf(NullPointerException.class);
+        }
     }
 
     @Nested
@@ -187,6 +202,12 @@ class MongoAttributeRepositoryTests {
                 repository.remove(key("sapl.test.remove.two.nodes"));
                 Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
             }
+        }
+
+        @Test
+        @DisplayName("then null value in remove rejected")
+        void thenNullValuesInRemoveRejected() {
+            assertThatThrownBy(() -> repository.remove(null)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -403,6 +424,42 @@ class MongoAttributeRepositoryTests {
 
             Awaitility.await().atMost(Duration.ofSeconds(15)).until(
                     () -> received.stream().anyMatch(ErrorValue.class::isInstance) && lastReceived().equals(value));
+        }
+    }
+
+    @Nested
+    @DisplayName("when batch mode is used")
+    class WhenBatchModeIsUsed {
+        List<Document> keys  = List
+                .of(new Document("name", "batch.attribute").append("entity", null).append("arguments", "[]"));
+        Document       batch = new Document("pdpId", "test-tenant").append("keys", keys);
+        AtomicInteger  runs  = new AtomicInteger();
+
+        @Test
+        @DisplayName("then a batch document is processed")
+        void thenBatchDocumentIsProcessed() {
+            setBatchRunner();
+            newTemplate().insert(batch, "attribute_batches").block();
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+        }
+
+        @Test
+        @DisplayName("then a batch document for a valid attribute is processed")
+        void thenBatchDocumentForValidAttributeIsProcessed() {
+            setBatchRunner();
+            repository.publish(key("batch.attribute"), Value.of("batch"));
+            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
+            newTemplate().insert(batch, "attribute_batches").block();
+
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+            assertThat(lastReceived()).isEqualTo(Value.of("batch"));
+        }
+
+        private void setBatchRunner() {
+            repository.setBatchRunner(changes -> {
+                runs.incrementAndGet();
+                changes.run();
+            });
         }
     }
 }

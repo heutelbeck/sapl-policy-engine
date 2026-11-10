@@ -21,23 +21,24 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.attributes.broker.AttributeRepository;
 
 /**
- * Service provider interface (SPI) for an attribute repository backend. Each backend has it own
- * module and registers the provider in
+ * Service provider interface (SPI) for an attribute repository backend. Each
+ * backend has it own module and registers the provider in
  * {@code META-INF/services/io.sapl.extensions.attributerepository.AttributeRepositoryProvider}.
- * The {@link AttributeRepositoryFactory} locates the providers and the PDP only loads the database of the backends that
- * are needed.
+ * The {@link AttributeRepositoryFactory} locates the providers and the PDP only
+ * loads the database of the backends that are needed.
  *
  * @since 4.2.0
  */
 public interface AttributeRepositoryProvider {
     /**
-     * @return The value of the field {@code type} in the configuration. The type shows for which backend this
-     * provider is responsible for, e.g. {@code redis}.
+     * @return The value of the field {@code type} in the configuration for the
+     * database type.
      */
     String type();
 
     /**
-     * Checks if the configuration contains all fields that are needed to build the repository properly.
+     * Checks if the configuration contains all fields that are needed to build the
+     * repository properly.
      *
      * @param config The configuration block of the extension.
      * @return {@code true} if the required field exists.

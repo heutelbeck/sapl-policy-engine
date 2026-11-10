@@ -17,6 +17,8 @@
  */
 package io.sapl.extensions.attributerepository;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
@@ -24,8 +26,9 @@ import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 
 public class TestAttributeRepositoryProvider implements AttributeRepositoryProvider {
-    static final String TYPE             = "test";
-    static final int    UNREACHABLE_PORT = 1;
+    static final String        TYPE                 = "test";
+    static final int           UNREACHABLE_PORT     = 1;
+    static final AtomicInteger UNREACHABLE_ATTEMPTS = new AtomicInteger();
 
     @Override
     public String type() {
@@ -41,6 +44,7 @@ public class TestAttributeRepositoryProvider implements AttributeRepositoryProvi
     @Override
     public AttributeRepository create(ObjectValue config, String pdpId) {
         if (config.get("port") instanceof NumberValue port && port.value().intValue() == UNREACHABLE_PORT) {
+            UNREACHABLE_ATTEMPTS.incrementAndGet();
             throw new IllegalStateException("Test backend is unreachable.");
         }
         return new InMemoryAttributeRepository();
