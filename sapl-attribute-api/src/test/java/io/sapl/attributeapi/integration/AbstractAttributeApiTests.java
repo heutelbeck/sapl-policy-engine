@@ -342,57 +342,65 @@ abstract class AbstractAttributeApiTests {
         mockMvc.perform(delete("/api/attributes/sapl.test/sapl.test.deleteNonExisting"))
                 .andExpect(status().isNotFound());
     }
-    
+
     @Test
     @DisplayName("PATCH with valid batch stores all attributes")
     void whenPatchWithValidBatchIsUsedThenStoreAttributes() throws Exception {
-    	mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content("""
-    		  [ { "op": "put", "name": "sapl.test.batch1", "value": "test1" },
-                { "op": "put", "entity": "sapl.batch", "name": "sapl.test.batch2", "value": "test2", "ttl": 60 },
-                { "op": "put", "name": "sapl.test.batch3", "arguments": [42], "value": "test3", "ttl": 60 } ]
-    			""")).andExpect(status().isNoContent());
-    	
-    	MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.batch1")).andExpect(status().isOk()).andReturn();
-    	assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test1\"");
-    	
-    	result = mockMvc.perform(get("/api/attributes/sapl.batch/sapl.test.batch2")).andExpect(status().isOk()).andReturn();
-    	assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test2\"");
-    	
-    	result = mockMvc.perform(get("/api/attributes/sapl.test.batch3?arg=42")).andExpect(status().isOk()).andReturn();
-    	assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test3\"");
+        mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content(
+                """
+                         [ { "op": "put", "name": "sapl.test.batch1", "value": "test1" },
+                                 { "op": "put", "entity": "sapl.batch", "name": "sapl.test.batch2", "value": "test2", "ttl": 60 },
+                                 { "op": "put", "name": "sapl.test.batch3", "arguments": [42], "value": "test3", "ttl": 60 } ]
+                        """))
+                .andExpect(status().isNoContent());
+
+        MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.batch1")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test1\"");
+
+        result = mockMvc.perform(get("/api/attributes/sapl.batch/sapl.test.batch2")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test2\"");
+
+        result = mockMvc.perform(get("/api/attributes/sapl.test.batch3?arg=42")).andExpect(status().isOk()).andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test3\"");
     }
-    
+
     @Test
     @DisplayName("PATCH with valid batch and at least one delete is stored and deleted properly")
     void whenPatchWithValidBatchAndDeleteThenIsStoredAndDeleted() throws Exception {
-    	mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content("""
-    		  [ { "op": "put", "name": "sapl.test.batch1", "value": "test1" },
-                { "op": "put", "entity": "sapl.batch", "name": "sapl.test.batch2", "value": "test2", "ttl": 60 },
-                { "op": "delete", "entity": "sapl.batch", "name": "sapl.test.batch2" } ]
-    			""")).andExpect(status().isNoContent());
-    	
-    	MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.batch1")).andExpect(status().isOk()).andReturn();
-    	assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test1\"");
-    	
-    	mockMvc.perform(get("/api/attributes/sapl.batch/sapl.test.batch2")).andExpect(status().isNotFound()).andReturn();
+        mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content(
+                """
+                         [ { "op": "put", "name": "sapl.test.batch1", "value": "test1" },
+                                 { "op": "put", "entity": "sapl.batch", "name": "sapl.test.batch2", "value": "test2", "ttl": 60 },
+                                 { "op": "delete", "entity": "sapl.batch", "name": "sapl.test.batch2" } ]
+                        """))
+                .andExpect(status().isNoContent());
+
+        MvcResult result = mockMvc.perform(get("/api/attributes/sapl.test.batch1")).andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test1\"");
+
+        mockMvc.perform(get("/api/attributes/sapl.batch/sapl.test.batch2")).andExpect(status().isNotFound())
+                .andReturn();
     }
-    
+
     @Test
     @DisplayName("PATCH with an invalid batch is rejected")
     void whenPatchWithInvalidBatchSentThenItsRejected() throws Exception {
-    	mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content("""
-    		  [ { this is not a batch
-    			""")).andExpect(status().isInternalServerError());	
+        mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content("""
+                 [ { this is not a batch
+                """)).andExpect(status().isInternalServerError());
     }
-    
+
     @Test
     @DisplayName("PATCH with an valid batch format but invalid attribute is not executed")
     void whenPatchIsValidButAttributeInvalidThenDoNoExecute() throws Exception {
-    	mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content("""
-      		  [ { "op": "put", "name": "sapl.test.batch1", "value": "test1" },
-                  { "op": "put", "entity": "", "name": "invalid", "value": "test2", "ttl": 60 } ]
-      			""")).andExpect(status().isBadRequest());
-    	mockMvc.perform(get("/api/attributes/sapl.test.batch1")).andExpect(status().isNotFound());
+        mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content("""
+                 [ { "op": "put", "name": "sapl.test.batch1", "value": "test1" },
+                         { "op": "put", "entity": "", "name": "invalid", "value": "test2", "ttl": 60 } ]
+                """)).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/attributes/sapl.test.batch1")).andExpect(status().isNotFound());
     }
 
     private static List<String> namesOf(MvcResult result) throws Exception {

@@ -171,8 +171,8 @@ public class PostgresAttributeStore implements AttributeStore {
                 argumentsJson);
 
         return bindEntity(spec, entityJson)
-                .map(r -> ValueJsonMarshaller.json(Objects.requireNonNull(r.get(VALUE_FIELD, String.class))))
-                .one().blockOptional().orElse(Value.UNDEFINED);
+                .map(r -> ValueJsonMarshaller.json(Objects.requireNonNull(r.get(VALUE_FIELD, String.class)))).one()
+                .blockOptional().orElse(Value.UNDEFINED);
     }
 
     @Override
@@ -245,7 +245,7 @@ public class PostgresAttributeStore implements AttributeStore {
     }
 
     private boolean deleteFromDB(AttributeKey key, String pdpId) {
-    	long rowsDeleted = Objects.requireNonNull(deleteSpec(key, pdpId).fetch().rowsUpdated().block());
+        long rowsDeleted = Objects.requireNonNull(deleteSpec(key, pdpId).fetch().rowsUpdated().block());
         notifyPdp(key, pdpId);
         return rowsDeleted > 0;
     }
@@ -260,9 +260,9 @@ public class PostgresAttributeStore implements AttributeStore {
         String argumentsRaw = row.get(ARGUMENTS_FIELD, String.class);
         String valueRaw     = row.get(VALUE_FIELD, String.class);
 
-        Value       entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
-        List<Value> arguments = (ArrayValue) ValueJsonMarshaller.json(Objects.requireNonNull(argumentsRaw));
-        Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
+        Value      entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
+        ArrayValue arguments = (ArrayValue) ValueJsonMarshaller.json(Objects.requireNonNull(argumentsRaw));
+        Value      value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
         return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);
     }

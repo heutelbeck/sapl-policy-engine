@@ -162,7 +162,7 @@ public class MongoAttributeStore implements AttributeStore {
     }
 
     private boolean deleteFromDB(AttributeKey key, String pdpId) {
-    	DeleteResult result = Objects.requireNonNull(mongo.remove(doMongoQuery(key, pdpId), collection).block());
+        DeleteResult result = Objects.requireNonNull(mongo.remove(doMongoQuery(key, pdpId), collection).block());
         return result.getDeletedCount() > 0;
     }
 
@@ -174,7 +174,8 @@ public class MongoAttributeStore implements AttributeStore {
         var update = new Update().set(PDP_ID_FIELD, pdpId).set(NAME_FIELD, key.name()).set(ENTITY_FIELD, entityJson)
                 .set(ARGUMENTS_FIELD, argsJson).set(VALUE_FIELD, valueJson).set(EXPIRES_AT_FIELD, expiresAt);
 
-        UpdateResult result = Objects.requireNonNull(mongo.upsert(doMongoQuery(key, pdpId), update, collection).block());
+        UpdateResult result = Objects
+                .requireNonNull(mongo.upsert(doMongoQuery(key, pdpId), update, collection).block());
         return result.getUpsertedId() != null;
     }
 
@@ -197,9 +198,9 @@ public class MongoAttributeStore implements AttributeStore {
         String argumentsRaw = document.getString(ARGUMENTS_FIELD);
         String valueRaw     = document.getString(VALUE_FIELD);
 
-        Value       entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
-        ArrayValue  arguments = (ArrayValue) ValueJsonMarshaller.json(Objects.requireNonNull(argumentsRaw));
-        Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
+        Value      entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
+        ArrayValue arguments = (ArrayValue) ValueJsonMarshaller.json(Objects.requireNonNull(argumentsRaw));
+        Value      value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
         return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);
     }
