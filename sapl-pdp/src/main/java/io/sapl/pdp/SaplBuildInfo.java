@@ -17,8 +17,12 @@
  */
 package io.sapl.pdp;
 
+import static org.semver4j.Semver.parse;
+
 import java.io.IOException;
 import java.util.Properties;
+
+import org.jspecify.annotations.Nullable;
 
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -30,6 +34,8 @@ import lombok.val;
  */
 @UtilityClass
 public class SaplBuildInfo {
+
+    private static final String ERROR_ENGINE_VERSION_INVALID = "Cannot generate a minimum engine version requirement from sapl-pdp build version '%s'. Expected a valid semantic version.";
 
     private static final String RESOURCE    = "/saplversion.properties";
     private static final String VERSION_KEY = "saplVersion";
@@ -45,6 +51,29 @@ public class SaplBuildInfo {
      */
     public static String version() {
         return VERSION;
+    }
+
+    /**
+     * Generates a minimum version requirement accepted by the installed engine.
+     * Releases use {@code >=major.minor.patch}. Prereleases use
+     * {@code >=major.minor.patch-0} to include prereleases of that base version.
+     * Build metadata is omitted. Later prerelease versions still require an
+     * explicit range for their own base version.
+     *
+     * @return the minimum engine version requirement
+     * @throws IllegalStateException if the engine build version is unavailable or invalid
+     */
+    public static String minimumVersionRequirement() {
+        return minimumVersionRequirement(version());
+    }
+
+    static String minimumVersionRequirement(@Nullable String engineVersion) {
+        val parsedVersion = parse(engineVersion);
+        if (parsedVersion == null) {
+            throw new IllegalStateException(ERROR_ENGINE_VERSION_INVALID.formatted(engineVersion));
+        }
+        val baseVersion = parsedVersion.withClearedPreReleaseAndBuild().getVersion();
+        return ">=" + baseVersion + (parsedVersion.getPreRelease().isEmpty() ? "" : "-0");
     }
 
     private static String load() {

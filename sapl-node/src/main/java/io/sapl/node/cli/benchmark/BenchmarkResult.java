@@ -17,12 +17,13 @@
  */
 package io.sapl.node.cli.benchmark;
 
+import static java.util.Comparator.naturalOrder;
+
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -74,7 +75,7 @@ public record BenchmarkResult(
                 return new Latency(0, 0, 0, 0, 0, 0, 0);
             }
             val sorted = new ArrayList<>(nanoseconds);
-            Collections.sort(sorted);
+            sorted.sort(naturalOrder());
             val avg = nanoseconds.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
             return new Latency(avg, percentile(sorted, 0.50), percentile(sorted, 0.90), percentile(sorted, 0.99),
                     percentile(sorted, 0.999), sorted.getFirst(), sorted.getLast());
@@ -109,7 +110,7 @@ public record BenchmarkResult(
             return new BenchmarkResult(method, threads, 0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), null);
         }
         val sorted = new ArrayList<>(throughputs);
-        Collections.sort(sorted);
+        sorted.sort(naturalOrder());
         val mean   = throughputs.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         val n      = throughputs.size();
         val stddev = n > 1 ? Math.sqrt(throughputs.stream().mapToDouble(d -> (d - mean) * (d - mean)).sum() / (n - 1))

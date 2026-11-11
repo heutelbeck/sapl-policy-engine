@@ -34,7 +34,7 @@ class FbNumberValue extends Table {
 
     String value() {
         int o = __offset(4);
-        return o != 0 ? __string(o + bb_pos) : null;
+        return o == 0 ? null : __string(o + bb_pos);
     }
 
     static int createFbNumberValue(FlatBufferBuilder builder, int valueOffset) {

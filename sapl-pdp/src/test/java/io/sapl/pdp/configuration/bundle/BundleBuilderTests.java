@@ -17,25 +17,11 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.SaplVersion;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
-import io.sapl.pdp.configuration.ConfigurationIds;
-import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.secrets.SecretSealing;
-import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
+import static io.sapl.pdp.SaplBuildInfo.version;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatObject;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -55,9 +41,27 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.PDPConfigurationException;
+import io.sapl.secrets.SecretSealing;
+
+import lombok.val;
+import tools.jackson.databind.json.JsonMapper;
 
 @DisplayName("BundleBuilder")
 class BundleBuilderTests {
@@ -749,44 +753,63 @@ class BundleBuilderTests {
     }
 
     @Nested
-    @DisplayName("critical extensions")
-    class CriticalExtensions {
+    @DisplayName("required extensions")
+    class RequiredExtensions {
 
         @Test
-        @DisplayName("a critical extension is written to critical-extensions.json")
-        void whenCriticalExtensionMarkedThenWrittenToFile() throws IOException {
+        @DisplayName("Builder additions retain the existing pdp.json requirements and settings")
+        void whenBuilderAddsRequiredExtensionThenExistingDeclarationAndSettingsArePreserved() throws IOException {
+            val builder = BundleBuilder.create().withRequiredExtension("audit").withPdpJson("""
+                    {"requiredExtensions":["upstreams"], "requiredEngineVersion":">=4.2.0-0",
+                     "variables":{"tenant":"arkham"}}
+                    """).withRequiredExtension("upstreams").withExtension("upstreams", "{}").withExtension("audit",
+                    "{}");
+
+            val entries  = extractEntries(builder.build());
+            val document = JsonMapper.builder().build().readTree(entries.get("pdp.json"));
+            assertThatObject(document).satisfies(configuration -> {
+                assertThat(configuration.path("requiredExtensions").toString()).isEqualTo("[\"audit\",\"upstreams\"]");
+                assertThat(configuration.path("requiredEngineVersion").asString()).isEqualTo(">=4.2.0-0");
+                assertThat(configuration.path("variables").path("tenant").asString()).isEqualTo("arkham");
+            });
+        }
+
+        @Test
+        @DisplayName("Required extension names are written into pdp.json")
+        void whenRequiredExtensionMarkedThenWrittenToFile() throws IOException {
             val bundle  = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", """
-                    { "servers": [] }""").withCriticalExtension("upstreams").build();
+                    { "servers": [] }""").withRequiredExtension("upstreams").build();
             val entries = extractEntries(bundle);
-            assertThat(entries).containsKey("critical-extensions.json");
-            assertThat(entries.get("critical-extensions.json")).contains("upstreams");
+            assertThat(entries).containsOnlyKeys(".sapl-manifest.json", "pdp.json", "ext-upstreams.json");
+            assertThat(JsonMapper.builder().build().readTree(entries.get("pdp.json")).path("requiredExtensions")
+                    .toString()).isEqualTo("[\"upstreams\"]");
         }
 
         @Test
-        @DisplayName("a critical extension without any payload fails the build")
-        void whenCriticalExtensionMissingPayloadThenBuildFails() {
-            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withCriticalExtension("upstreams");
+        @DisplayName("a required extension without any payload fails the build")
+        void whenRequiredExtensionMissingPayloadThenBuildFails() {
+            val builder = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withRequiredExtension("upstreams");
             assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("Critical extension 'upstreams'");
+                    .hasMessageContaining("Required extension 'upstreams'");
         }
 
         @Test
-        @DisplayName("a critical extension with only sealed secrets builds")
-        void whenCriticalExtensionHasOnlySecretsThenBuilds() {
+        @DisplayName("a required extension with only sealed secrets builds")
+        void whenRequiredExtensionHasOnlySecretsThenBuilds() {
             val recipient = SecretSealing.generateRecipientKey();
             val builder   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).sealSecretsWith(recipient.toPublicJWK())
                     .withExtensionSecrets("upstreams", """
-                            { "apiKey": "x" }""").withCriticalExtension("upstreams");
+                            { "apiKey": "x" }""").withRequiredExtension("upstreams");
             assertThat(builder.build()).isNotEmpty();
         }
 
         @Test
-        @DisplayName("a signed bundle's critical set survives a parse round-trip")
-        void whenSignedBundleWithCriticalExtensionThenParsedFromConfig() {
+        @DisplayName("a signed bundle's required set survives a parse round-trip")
+        void whenSignedBundleWithRequiredExtensionThenParsedFromConfig() {
             val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("upstreams", "{}")
-                    .withCriticalExtension("upstreams").signWith(cultKeyPair.getPrivate(), "elder-key").build();
+                    .withRequiredExtension("upstreams").signWith(cultKeyPair.getPrivate(), "elder-key").build();
             val config = BundleParser.parse(bundle, "pdp", signedPolicy);
-            assertThat(config.criticalExtensions()).containsExactly("upstreams");
+            assertThat(config.requiredExtensions()).containsExactly("upstreams");
         }
     }
 
@@ -835,7 +858,7 @@ class BundleBuilderTests {
             val bundle   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).build();
             val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
 
-            assertThat(manifest.attribution().asString()).isEqualTo("sapl-pdp/" + SaplVersion.VERSION);
+            assertThat(manifest.attribution().asString()).isEqualTo("sapl-pdp/" + version());
         }
 
         @Test

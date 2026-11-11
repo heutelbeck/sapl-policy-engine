@@ -86,15 +86,6 @@ public record BranchHit(
     }
 
     /**
-     * Returns the start line (alias for backwards compatibility).
-     *
-     * @return the start line number
-     */
-    public int line() {
-        return startLine;
-    }
-
-    /**
      * Creates a new BranchHit with a single hit recorded (legacy, line-only
      * version).
      *

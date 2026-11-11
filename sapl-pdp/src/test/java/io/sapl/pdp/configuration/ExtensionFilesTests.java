@@ -23,8 +23,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Set;
 
@@ -41,9 +39,9 @@ class ExtensionFilesTests {
         @ParameterizedTest(name = "\"{0}\" -> config={1}, secrets={2}, sealedSecrets={3}")
         @CsvSource({ "ext-upstreams.json, true, false, false", "ext-upstreams-secrets.json, false, true, false",
                 "ext-upstreams-secrets.sealed.json, false, false, true", "pdp.json, false, false, false",
-                "policy.sapl, false, false, false", "critical-extensions.json, false, false, false",
-                "secrets.json, false, false, false", "secrets.sealed.json, false, false, false",
-                "upstreams.json, false, false, false", "ext-.json, true, false, false" })
+                "policy.sapl, false, false, false", "secrets.json, false, false, false",
+                "secrets.sealed.json, false, false, false", "upstreams.json, false, false, false",
+                "ext-.json, true, false, false" })
         @DisplayName("classifies root-level file names")
         void whenNameGivenThenClassifiedCorrectly(String name, boolean isConfig, boolean isSecrets,
                 boolean isSealedSecrets) {
@@ -63,66 +61,28 @@ class ExtensionFilesTests {
     }
 
     @Nested
-    @DisplayName("critical set parsing")
-    class Parsing {
-
-        @Test
-        @DisplayName("a JSON array of names parses to a set")
-        void whenJsonArrayThenParsed() {
-            assertThat(ExtensionFiles.parseCriticalExtensions("""
-                    ["upstreams", "branding"]""")).containsExactlyInAnyOrder("upstreams", "branding");
-        }
-
-        @NullAndEmptySource
-        @ValueSource(strings = { "   " })
-        @ParameterizedTest(name = "\"{0}\"")
-        @DisplayName("absent or blank content parses to an empty set")
-        void whenAbsentThenEmpty(String json) {
-            assertThat(ExtensionFiles.parseCriticalExtensions(json)).isEmpty();
-        }
-
-        @ValueSource(strings = { "\"upstreams\"", "{ \"upstreams\": true }", "[1, 2]", "[\"ok\", 3]", "not json" })
-        @ParameterizedTest(name = "{0}")
-        @DisplayName("content that is not a JSON array of strings is rejected")
-        void whenNotArrayOfStringsThenThrows(String json) {
-            val throwable = assertThatThrownBy(() -> ExtensionFiles.parseCriticalExtensions(json));
-            throwable.isInstanceOf(PDPConfigurationException.class).hasMessageContaining("JSON array");
-        }
-
-        @Test
-        @DisplayName("serialization sorts names and round-trips through parsing")
-        void whenSerializedThenSortedAndRoundTrips() {
-            val json = ExtensionFiles.toJson(Set.of("upstreams", "branding", "audit"));
-            assertThat(json.indexOf("audit")).isLessThan(json.indexOf("branding"));
-            assertThat(json.indexOf("branding")).isLessThan(json.indexOf("upstreams"));
-            assertThat(ExtensionFiles.parseCriticalExtensions(json)).containsExactlyInAnyOrder("upstreams", "branding",
-                    "audit");
-        }
-    }
-
-    @Nested
     @DisplayName("integrity validation")
     class Integrity {
 
         @Test
-        @DisplayName("a critical extension with a configuration passes")
-        void whenCriticalHasConfigThenPasses() {
+        @DisplayName("a required extension with a configuration passes")
+        void whenRequiredHasConfigThenPasses() {
             ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of("upstreams", "branding"), Set.of());
         }
 
         @Test
-        @DisplayName("a critical extension with only sealed secrets passes")
-        void whenCriticalHasOnlySecretsThenPasses() {
+        @DisplayName("a required extension with only sealed secrets passes")
+        void whenRequiredHasOnlySecretsThenPasses() {
             ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of(), Set.of("upstreams"));
         }
 
         @Test
-        @DisplayName("a critical extension with neither configuration nor secrets is rejected")
-        void whenCriticalWithoutPayloadThenThrows() {
+        @DisplayName("a required extension with neither configuration nor secrets is rejected")
+        void whenRequiredWithoutPayloadThenThrows() {
             val throwable = assertThatThrownBy(
                     () -> ExtensionFiles.validateIntegrity(Set.of("upstreams"), Set.of("branding"), Set.of("audit")));
             throwable.isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("Critical extension 'upstreams'");
+                    .hasMessageContaining("Required extension 'upstreams'");
         }
     }
 }

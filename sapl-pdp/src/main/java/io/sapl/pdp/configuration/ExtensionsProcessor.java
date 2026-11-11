@@ -35,9 +35,9 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
  * <ol>
  * <li>{@link #prepare} validates the configuration's extension slice against the
  * host's local capabilities and confirms every capability the configuration
- * declares critical can be deployed. It must be side-effect-free, returning
- * {@code false} aborts the whole update and the last-good configuration is
- * kept.</li>
+ * declares required can be deployed. It must not deploy changes. Returning
+ * {@link PreparationResult.Rejected} aborts the whole update and keeps the last
+ * working configuration.</li>
  * <li>{@link #commit} is called only after the policies compiled and
  * {@code prepare} accepted. The host then deploys the extension data for the
  * pdpId, reconciling its capabilities internally (load new, update changed,
@@ -47,20 +47,26 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
  * </ol>
  * {@link #remove} tears down everything held for a pdpId whose configuration was
  * removed or expired.
+ * <p>
+ * Configuration changes requested from these callbacks are queued by
+ * {@link PdpVoterSource}. They run after the current transition and its extension
+ * operation finish. A nested load therefore returns before the requested
+ * configuration becomes active.
  */
 public interface ExtensionsProcessor {
 
     /**
      * Validates the configuration's extension slice against the host's local
-     * capabilities. Side-effect-free. Returning {@code false} aborts the update
-     * and the last-good configuration for the pdpId is kept.
+     * capabilities without deploying changes. Returning
+     * {@link PreparationResult.Rejected} aborts the update and keeps the last
+     * working configuration for the pdpId.
      *
      * @param pdpId the identity of the configuration
      * @param configuration the configuration whose extension data to validate
-     * @return {@code true} if the host accepts the extension slice, including
-     * being able to deploy every declared critical capability
+     * @return an acceptance when every required capability can be deployed,
+     * or a rejection explaining why the configuration cannot be accepted
      */
-    boolean prepare(String pdpId, PDPConfiguration configuration);
+    PreparationResult prepare(String pdpId, PDPConfiguration configuration);
 
     /**
      * Deploys the configuration's extension data for the pdpId. Called only after

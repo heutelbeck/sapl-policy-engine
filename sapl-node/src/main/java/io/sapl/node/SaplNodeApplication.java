@@ -17,11 +17,14 @@
  */
 package io.sapl.node;
 
+import static org.slf4j.Logger.ROOT_LOGGER_NAME;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
@@ -33,17 +36,16 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
+import io.sapl.node.boot.SaplBanner;
+import io.sapl.node.cli.SaplNodeCli;
+
+import lombok.val;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
-import static org.slf4j.Logger.ROOT_LOGGER_NAME;
-
-import io.sapl.node.boot.SaplBanner;
-import io.sapl.node.cli.SaplNodeCli;
-import lombok.val;
-import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @EnableCaching
@@ -193,6 +195,7 @@ public class SaplNodeApplication {
             hints.resources().registerPattern("banner-color.txt");
             hints.resources().registerPattern("banner-plain.txt");
             hints.resources().registerPattern("saplversion.properties");
+            hints.resources().registerPattern("META-INF/sapl-node-version.properties");
             hints.resources().registerPattern("git.properties");
             hints.resources().registerPattern("ch/qos/logback/core/logback-core-version.properties");
             hints.resources().registerPattern("ch/qos/logback/classic/logback-classic-version.properties");

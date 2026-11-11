@@ -66,7 +66,6 @@ import java.util.zip.ZipInputStream;
  *   audit.sapl
  *   ext-upstreams.json                (optional, cleartext extension data)
  *   ext-upstreams-secrets.sealed.json (optional, sealed extension secrets)
- *   critical-extensions.json          (optional, names the consumer must support)
  * </pre>
  * <p>
  * Subdirectories inside bundles are ignored. Only root-level files are
@@ -161,7 +160,7 @@ public class BundleParser {
     private static final String ERROR_SEALED_CONTENT_NOT_SEALED         = "Bundle entry '%s' is named sealed but its content is not sealed.";
     private static final String ERROR_TOO_MANY_ENTRIES                  = "Too many entries (>%d).";
     private static final String ERROR_UNCOMPRESSED_SIZE_EXCEEDS         = "Uncompressed size exceeds %d MB.";
-    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE         = "Unexpected file in bundle from %s: %s. Bundles may only contain pdp.json, the manifest, root-level .sapl files, secrets files, ext-*.json extension files, and critical-extensions.json.";
+    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE         = "Unexpected file in bundle from %s: %s. Bundles may only contain pdp.json, the manifest, root-level .sapl files, secrets files, ext-*.json extension files.";
     private static final String ERROR_ZIP_BOMB_DETECTED                 = "ZIP bomb detected: %s Source: %s.";
 
     /**
@@ -382,7 +381,6 @@ public class BundleParser {
     private Bundle toBundleContent(HashMap<String, String> content) {
         val manifestJson           = content.remove(MANIFEST_FILENAME);
         val pdpJson                = content.remove(PDP_JSON);
-        val criticalExtensionsJson = content.remove(ExtensionFiles.CRITICAL_EXTENSIONS_FILE);
         val plaintextSecrets       = content.remove(ExtensionFiles.SECRETS_FILE);
         val sealedSecrets          = content.remove(ExtensionFiles.SEALED_SECRETS_FILE);
         val saplFiles              = new HashMap<String, String>();
@@ -420,7 +418,7 @@ public class BundleParser {
 
         val secretsJson = sealedSecrets != null ? sealedSecrets : plaintextSecrets;
         return new Bundle(pdpJson, secretsJson, sealedSecrets != null, saplFiles, extensions, extensionSecrets,
-                sealedExtensionSecrets, criticalExtensionsJson, manifest);
+                sealedExtensionSecrets, manifest);
     }
 
     private static void requireSealedContent(String name, String content) {
@@ -434,7 +432,6 @@ public class BundleParser {
             return false;
         }
         return PDP_JSON.equals(normalizedName) || MANIFEST_FILENAME.equals(normalizedName)
-                || ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(normalizedName)
                 || ExtensionFiles.SECRETS_FILE.equals(normalizedName)
                 || ExtensionFiles.SEALED_SECRETS_FILE.equals(normalizedName) || normalizedName.endsWith(SAPL_EXTENSION)
                 || ExtensionFiles.isExtensionFile(normalizedName)

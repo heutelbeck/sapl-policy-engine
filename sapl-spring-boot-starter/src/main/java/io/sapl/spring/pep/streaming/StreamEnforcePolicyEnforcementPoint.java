@@ -28,9 +28,11 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.ProxyMethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
+import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.method.metadata.StreamEnforce;
@@ -48,14 +50,14 @@ import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
+import io.sapl.spring.util.Maybe.Present;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
 import reactor.core.publisher.Flux;
-import org.springframework.security.access.AccessDeniedException;
-import io.sapl.spring.util.Maybe.Present;
 
 /**
  * Reactive PEP for {@link StreamEnforce}. Builds a {@link StreamingPipeline}

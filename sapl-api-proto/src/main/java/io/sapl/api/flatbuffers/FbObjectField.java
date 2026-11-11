@@ -34,12 +34,12 @@ class FbObjectField extends Table {
 
     String key() {
         int o = __offset(4);
-        return o != 0 ? __string(o + bb_pos) : null;
+        return o == 0 ? null : __string(o + bb_pos);
     }
 
     FbValue value() {
         int o = __offset(6);
-        return o != 0 ? new FbValue().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     static int createFbObjectField(FlatBufferBuilder builder, int keyOffset, int valueOffset) {

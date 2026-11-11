@@ -43,6 +43,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -61,12 +64,17 @@ import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.plugins.PluginsBundle;
+
 import lombok.val;
 
+@ExtendWith(MockitoExtension.class)
 @DisplayName("BlockingPolicyDecisionPoint robustness")
 class BlockingPolicyDecisionPointRobustnessTests {
 
     private static final AuthorizationSubscription SUB = subscription("subject", "action", "resource");
+
+    @Mock
+    private FunctionBroker functionBroker;
 
     @Nested
     @DisplayName("listener isolation (L19)")
@@ -190,7 +198,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
         @DisplayName("decideOnce degrades to INDETERMINATE when configuration lookup throws")
         void whenConfigurationLookupThrowsThenDecideOnceReturnsIndeterminate() {
             val source = mock(PdpVoterSource.class);
-            when(source.getPlugins()).thenReturn(new PluginsBundle(mock(FunctionBroker.class)));
+            when(source.getPlugins()).thenReturn(new PluginsBundle(functionBroker));
             when(source.getCurrentConfiguration(anyString())).thenThrow(new RuntimeException("boom"));
             val pdp = new BlockingPolicyDecisionPoint(source, mock(AttributeBroker.class),
                     new ThreadLocalRandomIdFactory());
@@ -213,7 +221,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
                     new PluginsBundle(mock(FunctionBroker.class)));
 
             val source = mock(PdpVoterSource.class);
-            when(source.getPlugins()).thenReturn(new PluginsBundle(mock(FunctionBroker.class)));
+            when(source.getPlugins()).thenReturn(new PluginsBundle(functionBroker));
             doAnswer(invocation -> {
                 Consumer<PdpUpdateEvent> listener = invocation.getArgument(1);
                 listener.accept(new PdpUpdateEvent.Voter(pdpId, compiled));

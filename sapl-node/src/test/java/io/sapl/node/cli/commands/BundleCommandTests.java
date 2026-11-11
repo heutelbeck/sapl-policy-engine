@@ -17,6 +17,7 @@
  */
 package io.sapl.node.cli.commands;
 
+import static io.sapl.node.SaplNodeBuildInfo.version;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -26,9 +27,6 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
@@ -36,6 +34,9 @@ import java.security.PublicKey;
 import java.util.Base64;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,10 +47,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.SaplVersion;
 import io.sapl.node.cli.SaplNodeCli;
+
 import lombok.val;
+
 import picocli.CommandLine;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 @DisplayName("Bundle Commands")
 class BundleCommandTests {
@@ -302,7 +306,7 @@ class BundleCommandTests {
         }
 
         @Test
-        @DisplayName("shows secrets, extensions, and the critical set")
+        @DisplayName("shows secrets, extensions, and the required set")
         void whenBundleHasSecretsAndExtensionsThenInspectShowsThem() throws Exception {
             cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
             val inputDir = tempDir.resolve("full-inspect");
@@ -315,8 +319,7 @@ class BundleCommandTests {
                     { "servers": [] }""");
             Files.writeString(inputDir.resolve("ext-upstreams-secrets.json"), """
                     { "token": "T" }""");
-            Files.writeString(inputDir.resolve("critical-extensions.json"), """
-                    ["upstreams"]""");
+            declareRequiredExtensions(inputDir, "upstreams");
             val bundleFile = tempDir.resolve("full-inspect.saplbundle");
             cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundleFile.toString(), "--seal-to",
                     tempDir.resolve("recipient.pub.jwk").toString());
@@ -326,7 +329,7 @@ class BundleCommandTests {
             assertThat(exitCode).isZero();
             assertThat(out.toString()).satisfies(output -> {
                 assertThat(output).contains("Secrets:").contains("secrets.sealed.json (sealed");
-                assertThat(output).contains("Extensions:").contains("upstreams [critical]").contains("config (")
+                assertThat(output).contains("Extensions:").contains("upstreams [required]").contains("config (")
                         .contains("sealed secrets (");
                 assertThat(output).doesNotContain("TOP-SECRET-VALUE");
             });
@@ -474,19 +477,18 @@ class BundleCommandTests {
         }
 
         @Test
-        @DisplayName("a critical-extensions.json in the input directory is packaged")
-        void whenCriticalExtensionsFileThenPackaged() throws Exception {
+        @DisplayName("Required extensions declared in pdp.json survive packaging")
+        void whenRequiredExtensionsAreDeclaredThenPackaged() throws Exception {
             val inputDir = createPolicyInputDir();
             Files.writeString(inputDir.resolve("ext-upstreams.json"), """
                     { "servers": [] }""");
-            Files.writeString(inputDir.resolve("critical-extensions.json"), """
-                    ["upstreams"]""");
-            val outputFile = tempDir.resolve("with-critical.saplbundle");
+            declareRequiredExtensions(inputDir, "upstreams");
+            val outputFile = tempDir.resolve("with-required.saplbundle");
 
             val exitCode = cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", outputFile.toString());
 
             assertThat(exitCode).isZero();
-            assertThat(bundleEntry(outputFile, "critical-extensions.json")).contains("upstreams");
+            assertThat(bundleEntry(outputFile, "pdp.json")).contains("upstreams");
         }
 
         @Test
@@ -585,8 +587,8 @@ class BundleCommandTests {
         }
 
         @Test
-        @DisplayName("sign preserves extension files and the critical set, and the result verifies")
-        void whenSignPreservesExtensionsAndCritical() throws Exception {
+        @DisplayName("sign preserves extension files and the required set, and the result verifies")
+        void whenSignPreservesExtensionsAndRequired() throws Exception {
             cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("recipient").toString());
             cmd.execute("bundle", "keygen", "-o", tempDir.resolve("signing").toString());
             val inputDir = policyDirWithSecrets();
@@ -594,8 +596,7 @@ class BundleCommandTests {
                     { "servers": [] }""");
             Files.writeString(inputDir.resolve("ext-upstreams-secrets.json"), """
                     { "apiKey": "K" }""");
-            Files.writeString(inputDir.resolve("critical-extensions.json"), """
-                    ["upstreams"]""");
+            declareRequiredExtensions(inputDir, "upstreams");
             val bundle = tempDir.resolve("unsigned.saplbundle");
             cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundle.toString(), "--seal-to",
                     tempDir.resolve("recipient.pub.jwk").toString());
@@ -609,7 +610,7 @@ class BundleCommandTests {
             assertThat(verifyExit).isZero();
             assertThat(bundleEntry(bundle, "ext-upstreams.json")).contains("servers");
             assertThat(bundleEntry(bundle, "ext-upstreams-secrets.sealed.json")).contains("ENC[");
-            assertThat(bundleEntry(bundle, "critical-extensions.json")).contains("upstreams");
+            assertThat(bundleEntry(bundle, "pdp.json")).contains("upstreams");
         }
 
         @Test
@@ -1095,7 +1096,7 @@ class BundleCommandTests {
             assertThat(printedId).matches("^bundle@[0-9a-f]{16}$");
             val manifest = bundleEntry(outputFile, ".sapl-manifest.json");
             assertThat(manifestField(manifest, "configurationId")).isEqualTo(printedId);
-            assertThat(manifestField(manifest, "attribution")).isEqualTo("sapl-node/" + SaplVersion.VERSION);
+            assertThat(manifestField(manifest, "attribution")).isEqualTo("sapl-node/" + version());
         }
 
         @Test
@@ -1310,6 +1311,17 @@ class BundleCommandTests {
     private String toPem(Key key, String type) {
         val base64 = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8)).encodeToString(key.getEncoded());
         return "-----BEGIN " + type + "-----\n" + base64 + "\n-----END " + type + "-----\n";
+    }
+
+    private static void declareRequiredExtensions(Path directory, String... names) throws IOException {
+        val mapper        = JsonMapper.builder().build();
+        val file          = directory.resolve("pdp.json");
+        val configuration = (ObjectNode) mapper.readTree(Files.readString(file));
+        val declaration   = configuration.putArray("requiredExtensions");
+        for (val name : names) {
+            declaration.add(name);
+        }
+        Files.writeString(file, mapper.writeValueAsString(configuration));
     }
 
 }

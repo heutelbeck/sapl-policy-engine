@@ -17,29 +17,42 @@
  */
 package io.sapl.pdp;
 
+import java.io.InputStream;
+import java.net.http.HttpClient;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.InstantSource;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+
+import org.jspecify.annotations.Nullable;
+
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.OctetKeyPair;
+
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.stream.TimeScheduler;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.pip.PipLoadException;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
-import io.sapl.attributes.broker.AttributeBroker;
-import io.sapl.attributes.broker.AttributeRepository;
-import org.jspecify.annotations.Nullable;
-import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
-import io.sapl.attributes.broker.pip.PipLoadException;
-import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
-import io.sapl.api.pdp.DecisionInterceptor;
-import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.ConfigurationIds;
@@ -57,20 +70,11 @@ import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSource;
 import io.sapl.pdp.plugins.StaticPluginsSource;
 import io.sapl.secrets.Keyring;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-import tools.jackson.databind.json.JsonMapper;
 
-import java.io.InputStream;
-import java.net.http.HttpClient;
-import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.InstantSource;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -452,7 +456,7 @@ public class PolicyDecisionPointBuilder {
      * Sets the extension processor through which the PDP coordinates
      * bundle-carried extension data with the host. Defaults to
      * {@link EmptyExtensionsProcessor}, which is a no-op for configurations
-     * without critical capabilities and rejects any that declare one it cannot
+     * without required capabilities and rejects any that declare one it cannot
      * deploy. A configuration goes live only when its policies compile and the
      * processor accepts its extension slice. See {@link ExtensionsProcessor}.
      *

@@ -284,20 +284,19 @@ class Sapl4Benchmark implements Callable<Integer> {
 
             var currentCoV = computeCoV(forkThroughputs);
             var covDisplay = forkThroughputs.size() >= 2 ? String.format(Locale.US, " (CoV: %.2f%%)", currentCoV) : "";
-            out.println(String.format(Locale.US, "Fork %d: %,.0f ops/s%s", forkIndex, throughput, covDisplay));
+            out.printf(Locale.US, "Fork %d: %,.0f ops/s%s%n", forkIndex, throughput, covDisplay);
             out.flush();
 
             if (isConverged(forkThroughputs)) {
-                out.println(
-                        String.format(Locale.US, "Converged after %d forks (CoV %.2f%% < %.1f%% over last %d forks)",
-                                forkIndex, currentCoV, convergenceThresholdPercent, convergenceWindow));
+                out.printf(Locale.US, "Converged after %d forks (CoV %.2f%% < %.1f%% over last %d forks)%n", forkIndex,
+                        currentCoV, convergenceThresholdPercent, convergenceWindow);
                 out.flush();
                 return new ConvergenceResult(forkThroughputs, true);
             }
         }
 
-        err.println(String.format(Locale.US, ERROR_CONVERGENCE_FAILED, maxForks, computeCoV(forkThroughputs),
-                convergenceThresholdPercent));
+        err.printf(Locale.US, ERROR_CONVERGENCE_FAILED + "%n", maxForks, computeCoV(forkThroughputs),
+                convergenceThresholdPercent);
         return new ConvergenceResult(forkThroughputs, false);
     }
 
@@ -357,20 +356,20 @@ class Sapl4Benchmark implements Callable<Integer> {
             var coefficientOfVariation = mean > 0 ? (standardDeviation / mean) * 100.0 : 0.0;
             var confidenceInterval95   = count > 1 ? tCritical95(count - 1) * standardDeviation / Math.sqrt(count)
                     : 0.0;
-            out.println(String.format(Locale.US, "  Mean:    %,.0f ops/s", mean));
-            out.println(String.format(Locale.US, "  StdDev:  %,.0f ops/s", standardDeviation));
-            out.println(String.format(Locale.US, "  CoV:     %.2f%%", coefficientOfVariation));
-            out.println(String.format(Locale.US, "  95%% CI:  +/- %,.0f ops/s (t-distribution, df=%d)",
-                    confidenceInterval95, count - 1));
-            out.println(String.format(Locale.US, "  Forks:   %d of %d run (trailing window used for statistics)", count,
-                    forkThroughputs.size()));
+            out.printf(Locale.US, "  Mean:    %,.0f ops/s%n", mean);
+            out.printf(Locale.US, "  StdDev:  %,.0f ops/s%n", standardDeviation);
+            out.printf(Locale.US, "  CoV:     %.2f%%%n", coefficientOfVariation);
+            out.printf(Locale.US, "  95%% CI:  +/- %,.0f ops/s (t-distribution, df=%d)%n", confidenceInterval95,
+                    count - 1);
+            out.printf(Locale.US, "  Forks:   %d of %d run (trailing window used for statistics)%n", count,
+                    forkThroughputs.size());
             out.println("  Per fork: " + window.stream().map(value -> String.format(Locale.US, "%,.0f", value))
                     .collect(Collectors.joining(", ")));
         }
         if (latencyResult != null) {
-            out.println(String.format(Locale.US,
-                    "  Latency: p50=%.0f ns  p90=%.0f ns  p99=%.0f ns  p99.9=%.0f ns  max=%.0f ns", latencyResult.p50(),
-                    latencyResult.p90(), latencyResult.p99(), latencyResult.p999(), latencyResult.max()));
+            out.printf(Locale.US, "  Latency: p50=%.0f ns  p90=%.0f ns  p99=%.0f ns  p99.9=%.0f ns  max=%.0f ns%n",
+                    latencyResult.p50(), latencyResult.p90(), latencyResult.p99(), latencyResult.p999(),
+                    latencyResult.max());
         }
         out.flush();
     }

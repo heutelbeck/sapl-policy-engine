@@ -17,6 +17,25 @@
  */
 package io.sapl.pdp;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.InstantSource;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.ErrorValue;
@@ -53,27 +72,9 @@ import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.pdp.configuration.PdpVoterSource;
+
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
-import java.time.Clock;
-import java.time.Instant;
-import java.time.InstantSource;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Reactor-free policy decision point implementing

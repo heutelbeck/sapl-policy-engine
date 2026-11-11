@@ -17,21 +17,22 @@
  */
 package io.sapl.compiler.expressions;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.Document;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
@@ -55,14 +56,18 @@ public class CompilationContext {
     public static final String OPTION_MAX_DNF_CLAUSES           = "maxDnfClauses";
     public static final String OPTION_MAX_INDEX_NODES           = "maxIndexNodes";
     public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
+    public static final String OPTION_MAX_TOTAL_SIZE_MEGABYTES  = "maxTotalSizeMegabytes";
     public static final String OPTION_MIN_POLICIES_FOR_INDEXING = "minPoliciesForIndexing";
     public static final String OPTION_UNROLL_IN_OPERATOR        = "unrollInOperator";
 
-    public static final String DEFAULT_INDEXING                  = "AUTO";
-    public static final int    DEFAULT_MAX_DNF_CLAUSES           = 10_000;
-    public static final int    DEFAULT_MAX_INDEX_NODES           = 500_000;
-    public static final int    DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
-    public static final int    DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
+    public static final String  DEFAULT_INDEXING                  = "AUTO";
+    public static final boolean DEFAULT_LOW_LATENCY_MODE          = true;
+    public static final boolean DEFAULT_UNROLL_IN_OPERATOR        = false;
+    public static final int     DEFAULT_MAX_TOTAL_SIZE_MEGABYTES  = 1024;
+    public static final int     DEFAULT_MAX_DNF_CLAUSES           = 10_000;
+    public static final int     DEFAULT_MAX_INDEX_NODES           = 500_000;
+    public static final int     DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
+    public static final int     DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
 
     private String                          pdpId                    = "defaultPdp";
     private String                          configurationId          = "defaultConfiguration";
@@ -317,7 +322,7 @@ public class CompilationContext {
      * {@code false} for lazy subscription (minimal subscription cost)
      */
     public boolean lowLatencyMode() {
-        return booleanCompilerOption(OPTION_LOW_LATENCY_MODE, true);
+        return booleanCompilerOption(OPTION_LOW_LATENCY_MODE, DEFAULT_LOW_LATENCY_MODE);
     }
 
     /**
@@ -327,7 +332,7 @@ public class CompilationContext {
      * @return {@code true} to enable in-array unrolling, {@code false} otherwise
      */
     public boolean unrollInOperator() {
-        return booleanCompilerOption(OPTION_UNROLL_IN_OPERATOR, false);
+        return booleanCompilerOption(OPTION_UNROLL_IN_OPERATOR, DEFAULT_UNROLL_IN_OPERATOR);
     }
 
     /**

@@ -252,8 +252,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             return false;
         }
         val name = file.getName();
-        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name)
-                || ExtensionFiles.CRITICAL_EXTENSIONS_FILE.equals(name) || ExtensionFiles.SECRETS_FILE.equals(name)
+        return name.endsWith(SAPL_EXTENSION) || PDP_JSON.equals(name) || ExtensionFiles.SECRETS_FILE.equals(name)
                 || ExtensionFiles.SEALED_SECRETS_FILE.equals(name) || ExtensionFiles.isExtensionFile(name)
                 || ExtensionFiles.isExtensionSecretsFile(name) || ExtensionFiles.isSealedExtensionSecretsFile(name);
     }

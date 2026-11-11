@@ -34,7 +34,7 @@ class FbErrorValue extends Table {
 
     String message() {
         int o = __offset(4);
-        return o != 0 ? __string(o + bb_pos) : null;
+        return o == 0 ? null : __string(o + bb_pos);
     }
 
     static int createFbErrorValue(FlatBufferBuilder builder, int messageOffset, int argumentsOffset) {

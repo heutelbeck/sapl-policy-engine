@@ -17,21 +17,31 @@
  */
 package io.sapl.pdp.configuration;
 
+import java.util.TreeSet;
+
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.pdp.configuration.PreparationResult.Accepted;
+import io.sapl.pdp.configuration.PreparationResult.Rejected;
 
 /**
  * The default {@link ExtensionsProcessor} for a PDP with no extension
  * capabilities. It declares an empty capability set, so it accepts any
- * configuration that requires none and rejects any that declares a critical
+ * configuration that requires none and rejects any that declares a required
  * capability it cannot deploy. {@link #commit} and {@link #remove} are no-ops.
  * This keeps a plain PDP neutral to the extension feature while still refusing
- * to go live on a configuration whose critical dependency it cannot satisfy.
+ * to go live on a configuration whose required dependency it cannot satisfy.
  */
 public final class EmptyExtensionsProcessor implements ExtensionsProcessor {
 
+    private static final String ERROR_REQUIRED_EXTENSIONS_UNSUPPORTED = "Required extensions are not supported by this PDP: %s.";
+
     @Override
-    public boolean prepare(String pdpId, PDPConfiguration configuration) {
-        return configuration.criticalExtensions().isEmpty();
+    public PreparationResult prepare(String pdpId, PDPConfiguration configuration) {
+        if (configuration.requiredExtensions().isEmpty()) {
+            return new Accepted();
+        }
+        return new Rejected(ERROR_REQUIRED_EXTENSIONS_UNSUPPORTED
+                .formatted(String.join(", ", new TreeSet<>(configuration.requiredExtensions()))));
     }
 
     @Override

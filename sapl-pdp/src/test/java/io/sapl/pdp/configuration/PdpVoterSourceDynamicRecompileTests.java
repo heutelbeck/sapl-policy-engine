@@ -17,6 +17,20 @@
  */
 package io.sapl.pdp.configuration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.Value;
@@ -31,20 +45,8 @@ import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.StandardFunctionLibrary;
 import io.sapl.pdp.plugins.MutablePluginsSource;
 import io.sapl.pdp.plugins.PluginsBundle;
+
 import lombok.val;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("PdpVoterSource dynamic recompile")
 class PdpVoterSourceDynamicRecompileTests {

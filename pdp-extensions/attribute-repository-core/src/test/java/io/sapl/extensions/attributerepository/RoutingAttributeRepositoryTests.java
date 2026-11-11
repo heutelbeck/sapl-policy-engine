@@ -45,6 +45,7 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.val;
+import io.sapl.pdp.configuration.PreparationResult;
 
 class RoutingAttributeRepositoryTests {
     @Test
@@ -66,8 +67,8 @@ class RoutingAttributeRepositoryTests {
     }
 
     @Nested
-    @DisplayName("when canPrepare is called")
-    class WhenCanPrepareIsCalled {
+    @DisplayName("when prepare is called")
+    class WhenPrepareIsCalled {
         private final RoutingAttributeRepository router = new RoutingAttributeRepository();
         private final ObjectValue                config = ObjectValue.builder()
                 .put("type", Value.of(TestAttributeRepositoryProvider.TYPE)).put("host", Value.of("localhost"))
@@ -90,26 +91,29 @@ class RoutingAttributeRepositoryTests {
         @Test
         @DisplayName("then a configuration without extension is accepted")
         void thenMissingExtensionIsAccepted() {
-            assertThat(router.canPrepare(configWithRepository(null, null))).isTrue();
+            assertThat(router.prepare(configWithRepository(null, null))).isInstanceOf(PreparationResult.Accepted.class);
         }
 
         @Test
         @DisplayName("then an extension split into config and secrets is accepted")
         void thenSplitExtensionIsAccepted() {
-            assertThat(router.canPrepare(configWithRepository(config, secrets))).isTrue();
+            assertThat(router.prepare(configWithRepository(config, secrets)))
+                    .isInstanceOf(PreparationResult.Accepted.class);
         }
 
         @Test
         @DisplayName("then an extension with only a secrets block is accepted")
         void thenSecretsOnlyExtensionIsAccepted() {
             val secretsOnly = ObjectValue.builder().putAll(config).putAll(secrets).build();
-            assertThat(router.canPrepare(configWithRepository(null, secretsOnly))).isTrue();
+            assertThat(router.prepare(configWithRepository(null, secretsOnly)))
+                    .isInstanceOf(PreparationResult.Accepted.class);
         }
 
         @Test
         @DisplayName("then an extension with missing fields is rejected")
         void thenInvalidExtensionIsRejected() {
-            assertThat(router.canPrepare(configWithRepository(config, null))).isFalse();
+            assertThat(router.prepare(configWithRepository(config, null)))
+                    .isInstanceOf(PreparationResult.Rejected.class);
         }
 
         @Test
@@ -117,7 +121,8 @@ class RoutingAttributeRepositoryTests {
         void thenExtensionWithoutTypeIsRejected() {
             val withoutType = ObjectValue.builder().put("host", Value.of("localhost")).put("port", Value.of(5432))
                     .build();
-            assertThat(router.canPrepare(configWithRepository(withoutType, null))).isFalse();
+            assertThat(router.prepare(configWithRepository(withoutType, null)))
+                    .isInstanceOf(PreparationResult.Rejected.class);
         }
     }
 

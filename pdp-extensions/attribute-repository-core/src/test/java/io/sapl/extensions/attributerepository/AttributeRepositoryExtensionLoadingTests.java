@@ -65,7 +65,7 @@ class AttributeRepositoryExtensionLoadingTests {
         try (val components = PolicyDecisionPointBuilder.withDefaults().acceptUnencryptedSecrets()
                 .withExtensionsProcessor(processor).withDirectorySource(policyDir).build()) {
 
-            verify(repository).canPrepare(any());
+            verify(repository).prepare(any());
             verify(repository).buildOrRoute(eq("default"), any());
             assertThat(components.pdpVoterSource().getPdpStatus("default"))
                     .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.LOADED));

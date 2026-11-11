@@ -17,20 +17,21 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.SaplVersion;
-import lombok.val;
+import static io.sapl.pdp.SaplBuildInfo.version;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import lombok.val;
 
 @DisplayName("BundleManifest")
 class BundleManifestTests {
@@ -54,10 +55,10 @@ class BundleManifestTests {
 
         @Test
         @DisplayName("mints the engine library version and the creation time at build")
-        void whenBuildingThenVersionIsMintedFromSaplVersionAndCreatedIsSet() {
+        void whenBuildingThenActualEngineVersionAndCreationTimeAreRecorded() {
             val manifest = validBuilder().buildUnsigned();
 
-            assertThat(manifest.version()).isEqualTo(SaplVersion.VERSION);
+            assertThat(manifest.version()).isEqualTo(version());
             assertThat(manifest.created()).isEqualTo(CREATED_TIME);
             assertThat(manifest.signature()).isNull();
         }
@@ -74,7 +75,7 @@ class BundleManifestTests {
             assertThat(restored.configurationId()).isEqualTo("release-77");
             assertThat(restored.attribution().get("publisher").asString()).isEqualTo("arkham");
             assertThat(restored.audience().sealingRecipient()).isEqualTo("recipient-key-2024");
-            assertThat(restored.version()).isEqualTo(SaplVersion.VERSION);
+            assertThat(restored.version()).isEqualTo(version());
         }
 
         @Test
@@ -182,7 +183,7 @@ class BundleManifestTests {
         @ParameterizedTest(name = "version \"{0}\" parses when required fields are present")
         @ValueSource(strings = { "1.0", "utterly-garbage-version" })
         void whenParsingManifestWithForeignVersionThenAcceptedBecauseVersionIsProvenanceOnly(String version) {
-            val json = validManifestJson().replace("\"" + SaplVersion.VERSION + "\"", "\"" + version + "\"");
+            val json = validManifestJson().replace("\"" + version() + "\"", "\"" + version + "\"");
 
             val manifest = BundleManifest.fromJson(json);
 

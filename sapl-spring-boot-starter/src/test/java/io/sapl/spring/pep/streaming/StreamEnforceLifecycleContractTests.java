@@ -41,7 +41,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
@@ -51,7 +50,9 @@ import io.sapl.spring.method.metadata.StreamEnforce;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.testsupport.SaplPepTestApp;
+
 import lombok.val;
+
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

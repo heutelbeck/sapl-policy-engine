@@ -17,22 +17,26 @@
  */
 package io.sapl.api.model.jackson;
 
-import tools.jackson.core.JsonParser;
-import tools.jackson.core.JsonToken;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.deser.std.StdDeserializer;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.api.pdp.configuration.PdpData;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.configuration.UnknownProvenance;
+
 import lombok.val;
+
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.deser.std.StdDeserializer;
 
 /**
  * Jackson deserializer for PDPConfiguration.
@@ -46,35 +50,40 @@ import lombok.val;
  * <li>pdpId - the PDP identifier</li>
  * <li>configurationId - the configuration version/identifier</li>
  * <li>combiningAlgorithm - the policy combining algorithm</li>
- * <li>saplDocuments - array of SAPL document strings</li>
- * <li>variables - object mapping variable names to Values</li>
- * <li>secrets - object mapping secret names to Values</li>
  * </ul>
  * Optional fields:
  * <ul>
- * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.).
+ * <li>compilerOptions: compiler tuning (indexing, unrollInOperator, etc.).
  * Defaults to an empty ObjectValue</li>
+ * <li>saplDocuments: policy sources, defaulting to an empty list</li>
+ * <li>variables, secrets, extensions and extensionSecrets: value maps,
+ * defaulting to empty objects</li>
+ * <li>requiredExtensions: required extension names, defaulting to an empty set</li>
+ * <li>requiredEngineVersion: optional engine version range. Defaults to null</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {
 
-    /**
-     * Default constructor required by Jackson 3.
-     */
-    public PDPConfigurationDeserializer() {
-        super(PDPConfiguration.class);
-    }
+    private static final String ERROR_COMBINING_ALGORITHM_REQUIRED   = "PDPConfiguration requires combiningAlgorithm field.";
+    private static final String ERROR_CONFIGURATION_ID_REQUIRED      = "PDPConfiguration requires configurationId field.";
+    private static final String ERROR_EXPECTED_ENGINE_VERSION_STRING = "requiredEngineVersion must be a string or null.";
+    private static final String ERROR_EXPECTED_START_ARRAY           = "Field '%s' must be an array of strings.";
+    private static final String ERROR_EXPECTED_START_OBJECT          = "Expected START_OBJECT for PDPConfiguration.";
+    private static final String ERROR_EXPECTED_START_OBJECT_MAP      = "Expected START_OBJECT for value map.";
+    private static final String ERROR_EXPECTED_STRING_ELEMENT        = "Field '%s' must contain only strings.";
+    private static final String ERROR_PDP_ID_REQUIRED                = "PDPConfiguration requires pdpId field.";
+    private static final String ERROR_UNKNOWN_FIELD                  = "Unknown PDPConfiguration field '%s'.";
 
-    private static final String ERROR_COMBINING_ALGORITHM_REQUIRED = "PDPConfiguration requires combiningAlgorithm field.";
-    private static final String ERROR_CONFIGURATION_ID_REQUIRED    = "PDPConfiguration requires configurationId field.";
-    private static final String ERROR_EXPECTED_START_ARRAY         = "Expected START_ARRAY for saplDocuments.";
-    private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
-    private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
-    private static final String ERROR_EXPECTED_STRING_ELEMENT      = "Expected VALUE_STRING element in saplDocuments.";
-    private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
+    private static final Set<String> OBJECT_FIELDS = Set.of("compilerOptions", "extensionSecrets", "extensions",
+            "secrets", "variables");
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
     private final CombiningAlgorithmDeserializer combiningAlgorithmDeserializer = new CombiningAlgorithmDeserializer();
+
+    /** Default constructor required by Jackson 3. */
+    public PDPConfigurationDeserializer() {
+        super(PDPConfiguration.class);
+    }
 
     @Override
     public PDPConfiguration deserialize(JsonParser parser, DeserializationContext context) {
@@ -82,35 +91,35 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             return context.reportInputMismatch(PDPConfiguration.class, ERROR_EXPECTED_START_OBJECT);
         }
 
-        String             pdpId              = null;
-        String             configurationId    = null;
-        CombiningAlgorithm combiningAlgorithm = null;
-        ObjectValue        compilerOptions    = Value.EMPTY_OBJECT;
-        List<String>       saplDocuments      = List.of();
-        ObjectValue        variables          = Value.EMPTY_OBJECT;
-        ObjectValue        secrets            = Value.EMPTY_OBJECT;
-        ObjectValue        extensions         = Value.EMPTY_OBJECT;
-        ObjectValue        extensionSecrets   = Value.EMPTY_OBJECT;
-        Set<String>        criticalExtensions = Set.of();
+        String             pdpId                 = null;
+        String             configurationId       = null;
+        String             requiredEngineVersion = null;
+        CombiningAlgorithm combiningAlgorithm    = null;
+        List<String>       saplDocuments         = List.of();
+        Set<String>        requiredExtensions    = Set.of();
+        val                objectFields          = new HashMap<String, ObjectValue>();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val fieldName = parser.currentName();
             parser.nextToken();
 
+            if (OBJECT_FIELDS.contains(fieldName)) {
+                objectFields.put(fieldName, deserializeObjectValue(parser, context));
+                continue;
+            }
+
             switch (fieldName) {
-            case "pdpId"                            -> pdpId = parser.getString();
-            case "configurationId"                  -> configurationId = parser.getString();
-            case "combiningAlgorithm"               ->
+            case "pdpId"                 -> pdpId = parser.getString();
+            case "configurationId"       -> configurationId = parser.getString();
+            case "requiredEngineVersion" -> requiredEngineVersion = deserializeEngineRequirement(parser, context);
+            case "combiningAlgorithm"    ->
                 combiningAlgorithm = combiningAlgorithmDeserializer.deserialize(parser, context);
-            case "compilerFlags", "compilerOptions" -> compilerOptions = deserializeObjectValue(parser, context);
-            case "saplDocuments"                    -> saplDocuments = deserializeStringList(parser, context);
-            case "variables"                        -> variables = deserializeObjectValue(parser, context);
-            case "secrets"                          -> secrets = deserializeObjectValue(parser, context);
-            case "extensions"                       -> extensions = deserializeObjectValue(parser, context);
-            case "extensionSecrets"                 -> extensionSecrets = deserializeObjectValue(parser, context);
-            case "criticalExtensions"               ->
-                criticalExtensions = Set.copyOf(deserializeStringList(parser, context));
-            default                                 -> parser.skipChildren();
+            case "saplDocuments"         -> saplDocuments = deserializeStringList(parser, context, fieldName);
+            case "requiredExtensions"    ->
+                requiredExtensions = Set.copyOf(deserializeStringList(parser, context, fieldName));
+            default                      -> {
+                return context.reportInputMismatch(PDPConfiguration.class, ERROR_UNKNOWN_FIELD.formatted(fieldName));
+            }
             }
         }
 
@@ -124,19 +133,35 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             return context.reportInputMismatch(PDPConfiguration.class, ERROR_COMBINING_ALGORITHM_REQUIRED);
         }
 
-        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments,
-                new PdpData(variables, secrets), extensions, extensionSecrets, criticalExtensions);
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm,
+                objectFields.getOrDefault("compilerOptions", Value.EMPTY_OBJECT), saplDocuments,
+                new PdpData(objectFields.getOrDefault("variables", Value.EMPTY_OBJECT),
+                        objectFields.getOrDefault("secrets", Value.EMPTY_OBJECT)),
+                objectFields.getOrDefault("extensions", Value.EMPTY_OBJECT),
+                objectFields.getOrDefault("extensionSecrets", Value.EMPTY_OBJECT), requiredExtensions,
+                UnknownProvenance.INSTANCE, requiredEngineVersion);
     }
 
-    private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {
+    private static @Nullable String deserializeEngineRequirement(JsonParser parser, DeserializationContext context) {
+        if (parser.currentToken() == JsonToken.VALUE_NULL) {
+            return null;
+        }
+        if (parser.currentToken() != JsonToken.VALUE_STRING) {
+            return context.reportInputMismatch(PDPConfiguration.class, ERROR_EXPECTED_ENGINE_VERSION_STRING);
+        }
+        return parser.getString();
+    }
+
+    private static List<String> deserializeStringList(JsonParser parser, DeserializationContext context,
+            String fieldName) {
         if (parser.currentToken() != JsonToken.START_ARRAY) {
-            return context.reportInputMismatch(List.class, ERROR_EXPECTED_START_ARRAY);
+            return context.reportInputMismatch(List.class, ERROR_EXPECTED_START_ARRAY.formatted(fieldName));
         }
 
         val strings = new ArrayList<String>();
         while (parser.nextToken() != JsonToken.END_ARRAY) {
             if (parser.currentToken() != JsonToken.VALUE_STRING) {
-                return context.reportInputMismatch(List.class, ERROR_EXPECTED_STRING_ELEMENT);
+                return context.reportInputMismatch(List.class, ERROR_EXPECTED_STRING_ELEMENT.formatted(fieldName));
             }
             strings.add(parser.getString());
         }

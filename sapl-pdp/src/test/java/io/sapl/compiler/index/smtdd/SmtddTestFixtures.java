@@ -51,7 +51,7 @@ class SmtddTestFixtures {
     public static IndexPredicate nePredicate(PureOperator operand, Value constant) {
         val hash       = operand.semanticHash() * 31 + constant.hashCode() + 1;
         val neOperator = new BinaryPureValue(BinaryOperatorType.NE,
-                (leftVal, rightVal, loc) -> !leftVal.equals(rightVal) ? Value.TRUE : Value.FALSE, operand, constant,
+                (leftVal, rightVal, loc) -> leftVal.equals(rightVal) ? Value.FALSE : Value.TRUE, operand, constant,
                 TEST_LOCATION, operand.isDependingOnSubscription(), false);
         return new IndexPredicate(hash, neOperator);
     }

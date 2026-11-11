@@ -34,12 +34,12 @@ class FbIdentifiableAuthorizationSubscription extends Table {
 
     String subscriptionId() {
         int o = __offset(4);
-        return o != 0 ? __string(o + bb_pos) : null;
+        return o == 0 ? null : __string(o + bb_pos);
     }
 
     FbAuthorizationSubscription subscription() {
         int o = __offset(6);
-        return o != 0 ? new FbAuthorizationSubscription().__assign(__indirect(o + bb_pos), bb) : null;
+        return o == 0 ? null : new FbAuthorizationSubscription().__assign(__indirect(o + bb_pos), bb);
     }
 
     static int createFbIdentifiableAuthorizationSubscription(FlatBufferBuilder builder, int subscriptionIdOffset,

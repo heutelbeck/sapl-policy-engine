@@ -17,10 +17,6 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import lombok.val;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -28,6 +24,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.TreeMap;
+
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+
+import lombok.val;
 
 /**
  * The single content-derivation function for configuration ids and the id
@@ -67,12 +68,14 @@ public final class ConfigurationIds {
     /**
      * The canonical entry set of a complete assembled configuration: the
      * closure authority for content-derived ids. Includes every component
-     * that influences PDP behavior - combining algorithm, compiler options,
+     * that influences PDP behavior: combining algorithm, engine version
+     * requirement, compiler options,
      * variables, secrets, all documents as a sorted multiset (PDP-level
      * voting modes are order-independent), extensions, extension secrets,
-     * and the critical extension set. The pdpId and configurationId are
+     * and the required extension set. The pdpId and configurationId are
      * excluded: they are instance and publication identity, never content.
      * No call site may hand-roll its own entry assembly.
+     * An undeclared engine version requirement contributes no entry.
      *
      * @param configuration the assembled configuration
      * @return the canonical, name-sorted entry set for {@link #derive}
@@ -80,6 +83,10 @@ public final class ConfigurationIds {
     public static Map<String, byte[]> entriesOf(PDPConfiguration configuration) {
         val entries = new TreeMap<String, byte[]>();
         entries.put("algorithm", utf8(configuration.combiningAlgorithm().toCanonicalString()));
+        val requiredEngineVersion = configuration.requiredEngineVersion();
+        if (requiredEngineVersion != null) {
+            entries.put("requiredEngineVersion", utf8(requiredEngineVersion));
+        }
         entries.put("compilerOptions", utf8(ValueJsonMarshaller.toJsonString(configuration.compilerOptions())));
         entries.put("variables", utf8(ValueJsonMarshaller.toJsonString(configuration.data().variables())));
         entries.put("secrets", utf8(ValueJsonMarshaller.toJsonString(configuration.data().secrets())));
@@ -91,8 +98,8 @@ public final class ConfigurationIds {
                 (name, value) -> entries.put("extension:" + name, utf8(ValueJsonMarshaller.toJsonString(value))));
         configuration.extensionSecrets().forEach((name, value) -> entries.put("extension-secrets:" + name,
                 utf8(ValueJsonMarshaller.toJsonString(value))));
-        entries.put("criticalExtensions",
-                utf8(String.join("\n", configuration.criticalExtensions().stream().sorted().toList())));
+        entries.put("requiredExtensions",
+                utf8(String.join("\n", configuration.requiredExtensions().stream().sorted().toList())));
         return entries;
     }
 

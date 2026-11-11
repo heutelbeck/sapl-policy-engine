@@ -56,7 +56,7 @@ public final class TestTimeScheduler implements TimeScheduler {
         val entry = new Entry(when, sequence.getAndIncrement(), task);
         queue.add(entry);
         return () -> {
-            synchronized (TestTimeScheduler.this) {
+            synchronized (this) {
                 queue.remove(entry);
             }
         };
@@ -90,7 +90,7 @@ public final class TestTimeScheduler implements TimeScheduler {
         @Override
         public int compareTo(Entry other) {
             int byTime = when.compareTo(other.when);
-            return byTime != 0 ? byTime : Long.compare(sequence, other.sequence);
+            return byTime == 0 ? Long.compare(sequence, other.sequence) : byTime;
         }
     }
 }

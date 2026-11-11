@@ -62,7 +62,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /**
@@ -79,7 +79,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /**
@@ -96,7 +96,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /**
@@ -121,7 +121,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /**
@@ -149,7 +149,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /** True if precision or scale exceeds the supported bounds. */
@@ -182,7 +182,7 @@ public class ArithmeticOperators {
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
             return va.compareTo(vb) < 0 ? Value.TRUE : Value.FALSE;
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /**
@@ -192,7 +192,7 @@ public class ArithmeticOperators {
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
             return va.compareTo(vb) <= 0 ? Value.TRUE : Value.FALSE;
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /**
@@ -202,7 +202,7 @@ public class ArithmeticOperators {
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
             return va.compareTo(vb) > 0 ? Value.TRUE : Value.FALSE;
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
     /**
@@ -212,7 +212,7 @@ public class ArithmeticOperators {
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
             return va.compareTo(vb) >= 0 ? Value.TRUE : Value.FALSE;
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
     }
 
 }

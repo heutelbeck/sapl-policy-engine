@@ -17,14 +17,10 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.SaplVersion;
-import lombok.val;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import static io.sapl.pdp.SaplBuildInfo.version;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.security.*;
 import java.time.Instant;
@@ -32,9 +28,14 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import lombok.val;
 
 @DisplayName("BundleSigner")
 class BundleSignerTests {
@@ -248,7 +249,7 @@ class BundleSignerTests {
     @Test
     void whenVerifyingWithUnsupportedHashAlgorithmThenThrowsException() {
         val sig         = new BundleManifest.Signature("Ed25519", "hash-alg-key", "abc123");
-        val badManifest = new BundleManifest(SaplVersion.VERSION, "SHA-1", REFERENCE, "test-config",
+        val badManifest = new BundleManifest(version(), "SHA-1", REFERENCE, "test-config",
                 BundleManifest.attributionOfText("bundle-signer-tests"), null,
                 Map.of("test.sapl", BundleManifest.computeHash("test")), sig);
         val variables   = Map.of("test.sapl", "test");
@@ -277,7 +278,7 @@ class BundleSignerTests {
     }
 
     private static BundleManifest manifestOf(Map<String, String> fileHashes, BundleManifest.Signature signature) {
-        return new BundleManifest(SaplVersion.VERSION, BundleManifest.HASH_ALGORITHM, REFERENCE, "test-config",
+        return new BundleManifest(version(), BundleManifest.HASH_ALGORITHM, REFERENCE, "test-config",
                 BundleManifest.attributionOfText("bundle-signer-tests"), null, fileHashes, signature);
     }
 

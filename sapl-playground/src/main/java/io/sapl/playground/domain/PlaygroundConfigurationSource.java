@@ -17,12 +17,18 @@
  */
 package io.sapl.playground.domain;
 
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
@@ -32,15 +38,10 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * UI-scoped configuration source for the playground PDP. Combines shared

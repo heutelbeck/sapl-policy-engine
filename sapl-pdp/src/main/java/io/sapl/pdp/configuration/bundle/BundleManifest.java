@@ -17,19 +17,6 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import io.sapl.api.SaplVersion;
-import io.sapl.pdp.configuration.ConfigurationIds;
-import lombok.val;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.JsonNodeFactory;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,6 +24,22 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.TreeMap;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import io.sapl.pdp.SaplBuildInfo;
+import io.sapl.pdp.configuration.ConfigurationIds;
+
+import lombok.val;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 /**
  * Manifest carrying the packaging metadata, file hashes, and cryptographic
@@ -524,7 +527,7 @@ public record BundleManifest(
         }
 
         private BundleManifest validated(Signature manifestSignature) {
-            val manifest = new BundleManifest(SaplVersion.VERSION, HASH_ALGORITHM, created, configurationId,
+            val manifest = new BundleManifest(SaplBuildInfo.version(), HASH_ALGORITHM, created, configurationId,
                     attribution, audience, new TreeMap<>(files), manifestSignature);
             validate(manifest);
             return manifest;

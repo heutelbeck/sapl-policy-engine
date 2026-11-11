@@ -200,6 +200,7 @@
 							<!-- Produce separate artifact with -standalone classifier -->
 							<shadedArtifactAttached>true</shadedArtifactAttached>
 							<shadedClassifierName>standalone</shadedClassifierName>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
 							<filters>
 								<filter>
 									<artifact>*:*</artifact>

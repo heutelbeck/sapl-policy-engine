@@ -30,6 +30,17 @@ import lombok.val;
 class SaplNodeApplicationNativeResourceHintsTests {
 
     @Test
+    @DisplayName("Node version metadata is registered for native images")
+    void whenRegisteringNativeResourceHintsThenNodeVersionMetadataIsIncluded() {
+        val hints = new RuntimeHints();
+
+        new SaplNodeApplication.NativeResourceHints().registerHints(hints, getClass().getClassLoader());
+
+        assertThat(RuntimeHintsPredicates.resource().forResource("META-INF/sapl-node-version.properties"))
+                .accepts(hints);
+    }
+
+    @Test
     @DisplayName("the PDP HTTP OpenAPI YAML is registered for native images")
     void whenRegisteringNativeResourceHintsThenPdpHttpOpenApiYamlIsIncluded() {
         val hints = new RuntimeHints();

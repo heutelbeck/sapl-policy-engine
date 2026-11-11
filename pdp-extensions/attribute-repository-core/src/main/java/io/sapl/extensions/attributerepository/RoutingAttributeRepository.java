@@ -40,6 +40,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 import io.sapl.api.model.TextValue;
+import io.sapl.pdp.configuration.PreparationResult;
 
 /**
  * A multi-tenant {@link AttributeRepository} that routes observe requests to
@@ -57,7 +58,6 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private static final String WARN_RETRYING_ATTRIBUTE_REPOSITORY = "Retrying to connect to the repository for pdp with id {} and configuration id {}: {}.";
     private static final String ERROR_REPOSITORY_STILL_BUILDING    = "Attribute Repository for configuration with id '%s' is still connecting.";
     private static final String ERROR_REPOSITORY_UNKNOWN           = "Attribute Repository for configuration with id '%s' is unknown.";
-    private static final String WARN_CONFIG_REJECTED               = "attributerepository configuration for pdpId '{}' (configurationId '{}') is rejected: {}";
     private static final String REASON_TYPE_MISSING                = "the field 'type' is missing";
     private static final String REASON_NO_PROVIDER                 = "no backend module for type '%s' on the classpath. Available types: %s";
     private static final String REASON_INVALID_FIELDS              = "required fields for type '%s' are missing or invalid";
@@ -260,17 +260,12 @@ public class RoutingAttributeRepository implements AttributeRepository {
      * configuration instead of failing silent. A missing configuration is loading
      * an {@code InMemoryAttributeRepository}.
      */
-    boolean canPrepare(PDPConfiguration configuration) {
+    PreparationResult prepare(PDPConfiguration configuration) {
         val node = extractRepositoryConfig(configuration);
-        if (!(node instanceof ObjectValue obj)) {
-            return true;
+        if (!(node instanceof ObjectValue obj) || AttributeRepositoryFactory.validate(obj)) {
+            return new PreparationResult.Accepted();
         }
-
-        if (AttributeRepositoryFactory.validate(obj)) {
-            return true;
-        }
-        log.warn(WARN_CONFIG_REJECTED, configuration.pdpId(), configuration.configurationId(), rejectReason(obj));
-        return false;
+        return new PreparationResult.Rejected(rejectReason(obj));
     }
 
     /*

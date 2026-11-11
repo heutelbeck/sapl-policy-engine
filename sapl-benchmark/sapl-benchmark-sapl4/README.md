@@ -147,7 +147,7 @@ The benchmark exercises the compiler flags from `pdp.json`:
 
 ```json
 {
-  "compilerFlags": {
+  "compilerOptions": {
     "indexing": "AUTO",
     "unrollInOperator": false,
     "minPoliciesForCanonical": 10,

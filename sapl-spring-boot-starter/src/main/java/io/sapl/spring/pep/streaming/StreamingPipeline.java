@@ -18,11 +18,13 @@
 package io.sapl.spring.pep.streaming;
 
 import static reactor.core.Exceptions.throwIfFatal;
+
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
+import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -30,6 +32,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.pep.constraints.EnforcementResult;
 import io.sapl.spring.pep.constraints.Signal.InputSignal;
+import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission.Emit;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitComplete;
@@ -48,15 +51,15 @@ import io.sapl.spring.pep.streaming.MealyMachine.State;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Permitting;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Suspended;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
-import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 import io.sapl.spring.util.Maybe;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.reactivestreams.Subscription;
+
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.BaseSubscriber;

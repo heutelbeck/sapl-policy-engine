@@ -17,15 +17,17 @@
  */
 package io.sapl.functions.libraries;
 
+import org.semver4j.Semver;
+import org.semver4j.SemverException;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+
 import lombok.val;
-import org.semver4j.Semver;
-import org.semver4j.SemverException;
 
 /**
  * Functions for semantic version comparison and validation in authorization
@@ -88,7 +90,7 @@ public class SemVerFunctionLibrary {
             ```sapl
             policy "advanced_analytics_feature"
             permit action.name == "useAdvancedAnalytics";
-              semver.isAtLeast(subject.appVersion, "3.2.0");
+              semver.isHigherOrEqual(subject.appVersion, "3.2.0");
             ```
 
             API compatibility checking ensures services can communicate properly. When services depend on each other, you need to verify they speak compatible API versions:
@@ -600,58 +602,6 @@ public class SemVerFunctionLibrary {
     }
 
     /**
-     * Tests if version meets minimum.
-     *
-     * @param version
-     * the version to check
-     * @param minimum
-     * the minimum version
-     *
-     * @return Value.TRUE if version meets minimum, Value.FALSE otherwise, or
-     * ErrorValue if parsing fails
-     */
-    @Function(docs = """
-            ```isAtLeast(TEXT version, TEXT minimum)```: Tests if version meets minimum.
-
-            Alias for isHigherOrEqual. Enforces minimum version requirements.
-
-            ```sapl
-            policy "security_requirement"
-            permit
-              semver.isAtLeast(request.version, resource.minimumSecureVersion);
-            ```
-            """, schema = SCHEMA_RETURNS_BOOLEAN)
-    public static Value isAtLeast(TextValue version, TextValue minimum) {
-        return isHigherOrEqual(version, minimum);
-    }
-
-    /**
-     * Tests if version is at or below maximum.
-     *
-     * @param version
-     * the version to check
-     * @param maximum
-     * the maximum version
-     *
-     * @return Value.TRUE if version is at or below maximum, Value.FALSE otherwise,
-     * or ErrorValue if parsing fails
-     */
-    @Function(docs = """
-            ```isAtMost(TEXT version, TEXT maximum)```: Tests if version is at or below maximum.
-
-            Alias for isLowerOrEqual. Enforces maximum version constraints.
-
-            ```sapl
-            policy "deprecated_after"
-            deny
-              !semver.isAtMost(subject.apiVersion, "2.9.9");
-            ```
-            """, schema = SCHEMA_RETURNS_BOOLEAN)
-    public static Value isAtMost(TextValue version, TextValue maximum) {
-        return isLowerOrEqual(version, maximum);
-    }
-
-    /**
      * Tests if version is in range.
      *
      * @param version
@@ -925,7 +875,7 @@ public class SemVerFunctionLibrary {
             policy "require_minimum"
             permit
               var minimum = semver.minSatisfying(resource.supportedVersions, ">=1.0.0");
-              semver.isAtLeast(subject.clientVersion, minimum);
+              semver.isHigherOrEqual(subject.clientVersion, minimum);
             ```
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value minSatisfying(ArrayValue versions, TextValue range) {
@@ -967,7 +917,7 @@ public class SemVerFunctionLibrary {
             policy "normalize_version"
             permit
               var normalized = semver.coerce(request.version);
-              semver.isAtLeast(normalized, "2.0.0");
+              semver.isHigherOrEqual(normalized, "2.0.0");
             ```
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value coerce(TextValue value) {

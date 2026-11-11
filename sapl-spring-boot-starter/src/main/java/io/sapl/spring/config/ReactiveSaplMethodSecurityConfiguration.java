@@ -40,11 +40,8 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
- * Wires the reactive @PreEnforce, @PostEnforce, and the unified
- * {@code @StreamEnforce} (plus its four named aliases)
- * PEPs to the shim-signal-based PEP framework.
- * {@link StreamEnforcePolicyEnforcementPoint} is currently a scaffolded
- * pass-through. The full streaming state machine implementation is pending.
+ * Registers reactive policy enforcement for {@code @PreEnforce},
+ * {@code @PostEnforce} and {@code @StreamEnforce}.
  */
 @Slf4j
 @Configuration(proxyBeanMethods = false)

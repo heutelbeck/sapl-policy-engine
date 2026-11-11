@@ -37,6 +37,10 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.semver4j</groupId>
+			<artifactId>semver4j</artifactId>
+		</dependency>
 		<!-- JSON Processing (Jackson 3) -->
 		<dependency>
 			<groupId>tools.jackson.core</groupId>
@@ -47,6 +51,13 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<!-- PF4J Plugins -->
+		<dependency>
+			<groupId>org.pf4j</groupId>
+			<artifactId>pf4j</artifactId>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- Annotations -->

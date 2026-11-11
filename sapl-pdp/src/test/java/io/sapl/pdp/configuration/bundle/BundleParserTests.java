@@ -495,13 +495,13 @@ class BundleParserTests {
     }
 
     @Test
-    @DisplayName("a critical-extensions.json entry is an allowed bundle file")
-    void whenCriticalExtensionsFilePresentThenAccepted() throws IOException {
-        val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "critical-extensions.json", "[]"));
+    @DisplayName("Omitting requiredExtensions from pdp.json leaves no required extensions")
+    void whenRequiredExtensionsAreAbsentThenTheSetIsEmpty() throws IOException {
+        val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON));
 
         val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
 
-        assertThat(config.criticalExtensions()).isEmpty();
+        assertThat(config.requiredExtensions()).isEmpty();
     }
 
     @Test
@@ -549,13 +549,13 @@ class BundleParserTests {
     }
 
     @Test
-    @DisplayName("a critical extension without any payload is rejected at parse time")
-    void whenCriticalExtensionMissingPayloadThenRejected() throws IOException {
-        val bundleBytes = manifestedBundle(Map.of("pdp.json", DEFAULT_PDP_JSON, "critical-extensions.json", """
-                ["upstreams"]"""));
+    @DisplayName("a required extension without any payload is rejected at parse time")
+    void whenRequiredExtensionMissingPayloadThenRejected() throws IOException {
+        val bundleBytes = manifestedBundle(Map.of("pdp.json", """
+                {"requiredExtensions": ["upstreams"]}"""));
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Critical extension 'upstreams'");
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Required extension 'upstreams'");
     }
 
     private static byte[] manifestedBundle(Map<String, String> files) throws IOException {

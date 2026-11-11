@@ -95,7 +95,7 @@ mkdir -p "$POLICIES"
 cat >"$POLICIES/pdp.json" <<'JSON'
 {
   "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "ABSTAIN", "errorHandling": "PROPAGATE" },
-  "compilerFlags": { "indexing": "SMTDD" }
+  "compilerOptions": { "indexing": "SMTDD" }
 }
 JSON
 cat >"$POLICIES/permit-use.sapl" <<'SAPL_POLICY'

@@ -17,7 +17,10 @@
  */
 package io.sapl.vaadin.lsp;
 
+import static java.lang.Thread.currentThread;
+
 import io.sapl.lsp.server.SAPLLanguageServer;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;
@@ -38,6 +41,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +61,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 public class LspWebSocketEndpoint extends TextWebSocketHandler implements DisposableBean {
+
+    private static final String ERROR_LSP_SERVER_FAILED = "LSP server failed for session {}, closing connection";
+
+    private static final String WARN_LSP_CONNECTION_MISSING   = "No LSP connection for session {}";
+    private static final String WARN_LSP_QUEUE_SATURATED      = "LSP server input queue saturated for session {}, closing";
+    private static final String WARN_LSP_SESSION_CAP_REACHED  = "Rejecting LSP WebSocket connection {}: concurrent session cap of {} reached";
+    private static final String WARN_LSP_SESSION_CLOSE_FAILED = "Could not close failed LSP WebSocket session {}";
 
     private static final String LSP_CONTENT_LENGTH_HEADER = "content-length:";
     private static final String LSP_HEADER_SEPARATOR      = "\r\n\r\n";
@@ -92,8 +103,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         if (activeSessions.incrementAndGet() > properties.getMaxConcurrentSessions()) {
             activeSessions.decrementAndGet();
-            log.warn("Rejecting LSP WebSocket connection {}: concurrent session cap of {} reached", session.getId(),
-                    properties.getMaxConcurrentSessions());
+            log.warn(WARN_LSP_SESSION_CAP_REACHED, session.getId(), properties.getMaxConcurrentSessions());
             session.close(CloseStatus.SERVICE_OVERLOAD);
             return;
         }
@@ -109,7 +119,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             session.getAttributes().put(SESSION_KEY_SERVER_INPUT, serverInput);
 
             var finalServerInput = serverInput;
-            executor.submit(() -> launchLanguageServer(session, finalServerInput, serverToClient));
+            executor.execute(() -> runLanguageServer(session, finalServerInput, serverToClient));
         } catch (Exception e) {
             // Remove the stored input so afterConnectionClosed (which Spring still
             // calls) does not decrement the session counter a second time.
@@ -124,7 +134,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
     protected void handleTextMessage(WebSocketSession session, @NonNull TextMessage message) throws Exception {
         var serverInput = (QueueBackedInputStream) session.getAttributes().get(SESSION_KEY_SERVER_INPUT);
         if (serverInput == null) {
-            log.warn("No LSP connection for session {}", session.getId());
+            log.warn(WARN_LSP_CONNECTION_MISSING, session.getId());
             return;
         }
 
@@ -136,11 +146,11 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             if (!serverInput.offer(lspMessage)) {
                 // The LSP server is not draining its input. Dropping a message would
                 // desynchronise the document model, so the session is closed instead.
-                log.warn("LSP server input queue saturated for session {}, closing", session.getId());
+                log.warn(WARN_LSP_QUEUE_SATURATED, session.getId());
                 session.close(CloseStatus.SERVICE_OVERLOAD);
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            currentThread().interrupt();
             log.debug("Interrupted while delivering message to LSP server for session {}", session.getId());
         }
     }
@@ -165,25 +175,33 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
         }
     }
 
-    void launchLanguageServer(WebSocketSession session, InputStream input, OutputStream output) {
+    void launchLanguageServer(WebSocketSession session, InputStream input, OutputStream output)
+            throws InterruptedException, ExecutionException {
+        log.info("Starting embedded LSP server for session {}", session.getId());
+
+        val server   = new SAPLLanguageServer();
+        val launcher = createLauncher(server, input, output);
+        server.connect(launcher.getRemoteProxy());
+
+        // Block until the connection is closed.
+        launcher.startListening().get();
+        log.info("LSP server stopped for session {}", session.getId());
+    }
+
+    private void runLanguageServer(WebSocketSession session, InputStream input, OutputStream output) {
         try {
-            log.info("Starting embedded LSP server for session {}", session.getId());
-
-            var server   = new SAPLLanguageServer();
-            var launcher = createLauncher(server, input, output);
-
-            var client = launcher.getRemoteProxy();
-            server.connect(client);
-
-            // Block until the connection is closed
-            launcher.startListening().get();
-
-            log.info("LSP server stopped for session {}", session.getId());
+            launchLanguageServer(session, input, output);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            currentThread().interrupt();
             log.debug("LSP server interrupted for session {}", session.getId());
-        } catch (Exception e) {
-            log.error("LSP server error for session {}", session.getId(), e);
+        } catch (Exception | LinkageError e) {
+            log.error(ERROR_LSP_SERVER_FAILED, session.getId(), e);
+            closeQuietly(input);
+            try {
+                session.close(CloseStatus.SERVER_ERROR);
+            } catch (IOException closeFailure) {
+                log.warn(WARN_LSP_SESSION_CLOSE_FAILED, session.getId(), closeFailure);
+            }
         }
     }
 
@@ -264,7 +282,7 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
                     current      = next;
                     currentIndex = 0;
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    currentThread().interrupt();
                     throw new IOException("Interrupted while reading LSP input", e);
                 }
             }

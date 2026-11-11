@@ -17,8 +17,6 @@
  */
 package io.sapl.test.coverage;
 
-import io.sapl.api.coverage.BranchHit;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -31,6 +29,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import io.sapl.api.coverage.BranchHit;
+
 import lombok.val;
 
 @DisplayName("BranchHit record tests")
@@ -38,12 +38,12 @@ class BranchHitTests {
 
     @Test
     @DisplayName("creates hit with true result")
-    void whenOfWithTrueResult_thenTrueHitsIsOne() {
+    void whenOfWithTrueResultThenTrueHitsIsOne() {
         val hit = BranchHit.of(0, 5, true);
 
         assertThat(hit).satisfies(h -> {
             assertThat(h.statementId()).isZero();
-            assertThat(h.line()).isEqualTo(5);
+            assertThat(h.startLine()).isEqualTo(5);
             assertThat(h.trueHits()).isOne();
             assertThat(h.falseHits()).isZero();
         });
@@ -51,12 +51,12 @@ class BranchHitTests {
 
     @Test
     @DisplayName("creates hit with false result")
-    void whenOfWithFalseResult_thenFalseHitsIsOne() {
+    void whenOfWithFalseResultThenFalseHitsIsOne() {
         val hit = BranchHit.of(3, 10, false);
 
         assertThat(hit).satisfies(h -> {
             assertThat(h.statementId()).isEqualTo(3);
-            assertThat(h.line()).isEqualTo(10);
+            assertThat(h.startLine()).isEqualTo(10);
             assertThat(h.trueHits()).isZero();
             assertThat(h.falseHits()).isOne();
         });
@@ -64,14 +64,14 @@ class BranchHitTests {
 
     @Test
     @DisplayName("merges compatible hits by summing counts")
-    void whenMergeCompatibleHits_thenCountsSummed() {
+    void whenMergeCompatibleHitsThenCountsSummed() {
         val hit1   = new BranchHit(0, 5, 2, 1);
         val hit2   = new BranchHit(0, 5, 1, 3);
         val merged = hit1.merge(hit2);
 
         assertThat(merged).satisfies(h -> {
             assertThat(h.statementId()).isZero();
-            assertThat(h.line()).isEqualTo(5);
+            assertThat(h.startLine()).isEqualTo(5);
             assertThat(h.trueHits()).isEqualTo(3);
             assertThat(h.falseHits()).isEqualTo(4);
         });
@@ -79,7 +79,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("merge throws on different statementId")
-    void whenMergeDifferentStatementId_thenThrows() {
+    void whenMergeDifferentStatementIdThenThrows() {
         val hit1 = new BranchHit(0, 5, 1, 0);
         val hit2 = new BranchHit(1, 5, 0, 1);
 
@@ -89,7 +89,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("mergeByLine throws on different line")
-    void whenMergeByLineDifferentLine_thenThrows() {
+    void whenMergeByLineDifferentLineThenThrows() {
         val hit1 = new BranchHit(0, 5, 1, 0);
         val hit2 = new BranchHit(0, 6, 0, 1);
 
@@ -100,7 +100,7 @@ class BranchHitTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("coverageStatusCases")
     @DisplayName("coverage status detection")
-    void whenCheckingCoverageStatus_thenCorrectResult(String description, int trueHits, int falseHits,
+    void whenCheckingCoverageStatusThenCorrectResult(String description, int trueHits, int falseHits,
             boolean expectedFully, boolean expectedPartially, int expectedCoveredCount) {
         val hit = new BranchHit(0, 1, trueHits, falseHits);
 
@@ -119,14 +119,14 @@ class BranchHitTests {
 
     @Test
     @DisplayName("total branch count is 2 for conditions")
-    void whenGetTotalBranchCountForCondition_thenTwo() {
+    void whenGetTotalBranchCountForConditionThenTwo() {
         assertThat(new BranchHit(0, 1, 0, 0).totalBranchCount()).isEqualTo(2);
         assertThat(new BranchHit(0, 1, 5, 3).totalBranchCount()).isEqualTo(2);
     }
 
     @Test
     @DisplayName("total branch count is 1 for target expressions")
-    void whenGetTotalBranchCountForTarget_thenOne() {
+    void whenGetTotalBranchCountForTargetThenOne() {
         // Negative statementId (except special constants) = target expression
         assertThat(new BranchHit(-1, 1, 0, 0).totalBranchCount()).isEqualTo(1);
         assertThat(new BranchHit(-5, 1, 1, 0).totalBranchCount()).isEqualTo(1);
@@ -134,19 +134,19 @@ class BranchHitTests {
 
     @Test
     @DisplayName("total branch count is 1 for single-branch policy outcome")
-    void whenGetTotalBranchCountForSingleBranchPolicy_thenOne() {
+    void whenGetTotalBranchCountForSingleBranchPolicyThenOne() {
         assertThat(new BranchHit(BranchHit.POLICY_SINGLE_BRANCH_ID, 1, 0, 0).totalBranchCount()).isEqualTo(1);
     }
 
     @Test
     @DisplayName("total branch count is 2 for two-branch policy outcome")
-    void whenGetTotalBranchCountForTwoBranchPolicy_thenTwo() {
+    void whenGetTotalBranchCountForTwoBranchPolicyThenTwo() {
         assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 0, 0).totalBranchCount()).isEqualTo(2);
     }
 
     @Test
     @DisplayName("record equality works correctly")
-    void whenComparingEqualHits_thenEqual() {
+    void whenComparingEqualHitsThenEqual() {
         val hit1 = new BranchHit(2, 7, 3, 4);
         val hit2 = new BranchHit(2, 7, 3, 4);
 
@@ -155,7 +155,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("record inequality works correctly")
-    void whenComparingDifferentHits_thenNotEqual() {
+    void whenComparingDifferentHitsThenNotEqual() {
         val base = new BranchHit(2, 7, 3, 4);
 
         assertThat(base).isNotEqualTo(new BranchHit(1, 7, 3, 4)).isNotEqualTo(new BranchHit(2, 8, 3, 4))
@@ -164,7 +164,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("forPolicyOutcome creates single-branch hit for policy without conditions")
-    void whenForPolicyOutcomeWithoutConditions_thenSingleBranch() {
+    void whenForPolicyOutcomeWithoutConditionsThenSingleBranch() {
         val hit = BranchHit.forPolicyOutcome(1, 3, 0, 10, true, false);
 
         assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_SINGLE_BRANCH_ID);
@@ -181,7 +181,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("forPolicyOutcome creates two-branch hit for policy with conditions")
-    void whenForPolicyOutcomeWithConditions_thenTwoBranch() {
+    void whenForPolicyOutcomeWithConditionsThenTwoBranch() {
         val hit = BranchHit.forPolicyOutcome(1, 5, 0, 20, false, true);
 
         assertThat(hit.statementId()).isEqualTo(BranchHit.POLICY_TWO_BRANCH_ID);
@@ -194,7 +194,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("isPolicyOutcome returns true only for policy outcome IDs")
-    void whenCheckingIsPolicyOutcome_thenCorrectResult() {
+    void whenCheckingIsPolicyOutcomeThenCorrectResult() {
         assertThat(new BranchHit(BranchHit.POLICY_SINGLE_BRANCH_ID, 1, 0, 0).isPolicyOutcome()).isTrue();
         assertThat(new BranchHit(BranchHit.POLICY_TWO_BRANCH_ID, 1, 0, 0).isPolicyOutcome()).isTrue();
         assertThat(new BranchHit(0, 1, 0, 0).isPolicyOutcome()).isFalse();
@@ -203,7 +203,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("isTargetExpression returns true for negative IDs except policy constants")
-    void whenCheckingIsTargetExpression_thenCorrectResult() {
+    void whenCheckingIsTargetExpressionThenCorrectResult() {
         assertThat(new BranchHit(-1, 1, 0, 0).isTargetExpression()).isTrue();
         assertThat(new BranchHit(-100, 1, 0, 0).isTargetExpression()).isTrue();
         assertThat(new BranchHit(0, 1, 0, 0).isTargetExpression()).isFalse();
@@ -215,7 +215,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("isSingleBranch returns true for targets and single-branch policies")
-    void whenCheckingIsSingleBranch_thenCorrectResult() {
+    void whenCheckingIsSingleBranchThenCorrectResult() {
         // Target expressions are single-branch
         assertThat(new BranchHit(-1, 1, 0, 0).isSingleBranch()).isTrue();
         assertThat(new BranchHit(-50, 1, 0, 0).isSingleBranch()).isTrue();
@@ -229,7 +229,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("coveredBranchCount respects single-branch semantics")
-    void whenGettingCoveredBranchCountForSingleBranch_thenMaxOne() {
+    void whenGettingCoveredBranchCountForSingleBranchThenMaxOne() {
         // Single-branch: only trueHits matters, returns 0 or 1
         assertThat(new BranchHit(-1, 1, 0, 0).coveredBranchCount()).isZero();
         assertThat(new BranchHit(-1, 1, 1, 0).coveredBranchCount()).isEqualTo(1);
@@ -241,7 +241,7 @@ class BranchHitTests {
 
     @Test
     @DisplayName("isFullyCoveredSemantic respects branch type")
-    void whenCheckingIsFullyCoveredSemantic_thenUsesCorrectSemantics() {
+    void whenCheckingIsFullyCoveredSemanticThenUsesCorrectSemantics() {
         // Two-branch condition: needs both true and false
         assertThat(new BranchHit(0, 1, 1, 0).isFullyCoveredSemantic()).isFalse();
         assertThat(new BranchHit(0, 1, 0, 1).isFullyCoveredSemantic()).isFalse();

@@ -17,9 +17,13 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.*;
-import io.sapl.functions.DefaultFunctionBroker;
-import lombok.val;
+import static io.sapl.documentation.LibraryDocumentationExtractor.extractFunctionLibrary;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,14 +32,26 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.stream.Stream;
+import io.sapl.api.documentation.EntryDocumentation;
+import io.sapl.api.model.*;
+import io.sapl.functions.DefaultFunctionBroker;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
+import lombok.val;
 
 @DisplayName("SemVerFunctionLibrary")
 class SemVerFunctionLibraryTests {
+
+    @Test
+    @DisplayName("publishes the semantic version function catalog")
+    void whenDocumentedThenPublishesCanonicalFunctionCatalog() {
+        val documentation = extractFunctionLibrary(SemVerFunctionLibrary.class);
+
+        assertThat(documentation.entries()).extracting(EntryDocumentation::name).containsExactlyInAnyOrder("parse",
+                "isValid", "compare", "equals", "isLower", "isHigher", "isLowerOrEqual", "isHigherOrEqual",
+                "haveSameMajor", "haveSameMinor", "haveSamePatch", "isCompatibleWith", "isBetween", "isPreRelease",
+                "isStable", "getMajor", "getMinor", "getPatch", "satisfies", "maxSatisfying", "minSatisfying", "coerce",
+                "diff");
+    }
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
@@ -206,7 +222,8 @@ class SemVerFunctionLibraryTests {
     }
 
     @ParameterizedTest(name = "{0}")
-    @CsvSource({ "1.0.0, 2.0.0, true", "2.0.0, 1.0.0, false", "1.0.0, 1.0.0, true", "1.0.0-alpha, 1.0.0, true" })
+    @CsvSource({ "1.0.0, 2.0.0, true", "2.0.0, 1.0.0, false", "1.0.0, 1.0.0, true", "2.0.0, 2.0.0, true",
+            "1.0.0-alpha, 1.0.0, true" })
     void isLowerOrEqualWhenValidVersionsThenReturnsCorrectResult(String version1, String version2, boolean expected) {
         val result = SemVerFunctionLibrary.isLowerOrEqual(Value.of(version1), Value.of(version2));
 
@@ -214,7 +231,8 @@ class SemVerFunctionLibraryTests {
     }
 
     @ParameterizedTest(name = "{0}")
-    @CsvSource({ "2.0.0, 1.0.0, true", "1.0.0, 2.0.0, false", "1.0.0, 1.0.0, true", "1.0.0, 1.0.0-alpha, true" })
+    @CsvSource({ "2.0.0, 1.0.0, true", "1.0.0, 2.0.0, false", "1.0.0, 1.0.0, true", "2.0.0, 2.0.0, true",
+            "1.0.0, 1.0.0-alpha, true" })
     void isHigherOrEqualWhenValidVersionsThenReturnsCorrectResult(String version1, String version2, boolean expected) {
         val result = SemVerFunctionLibrary.isHigherOrEqual(Value.of(version1), Value.of(version2));
 
@@ -264,22 +282,6 @@ class SemVerFunctionLibraryTests {
     void isCompatibleWithWhenMajorNonZeroThenRequiresSameMajor() {
         assertThat(SemVerFunctionLibrary.isCompatibleWith(Value.of("1.5.0"), Value.of("1.0.0"))).isEqualTo(Value.TRUE);
         assertThat(SemVerFunctionLibrary.isCompatibleWith(Value.of("2.0.0"), Value.of("1.9.9"))).isEqualTo(Value.FALSE);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @CsvSource({ "2.0.0, 1.0.0, true", "1.0.0, 2.0.0, false", "2.0.0, 2.0.0, true" })
-    void isAtLeastWhenValidVersionsThenReturnsCorrectResult(String version, String minimum, boolean expected) {
-        val result = SemVerFunctionLibrary.isAtLeast(Value.of(version), Value.of(minimum));
-
-        assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @CsvSource({ "1.0.0, 2.0.0, true", "2.0.0, 1.0.0, false", "2.0.0, 2.0.0, true" })
-    void isAtMostWhenValidVersionsThenReturnsCorrectResult(String version, String maximum, boolean expected) {
-        val result = SemVerFunctionLibrary.isAtMost(Value.of(version), Value.of(maximum));
-
-        assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
     }
 
     @ParameterizedTest(name = "{0}")

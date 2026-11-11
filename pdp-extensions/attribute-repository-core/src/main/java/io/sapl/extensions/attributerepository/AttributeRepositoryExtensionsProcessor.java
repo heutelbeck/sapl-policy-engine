@@ -19,6 +19,7 @@ package io.sapl.extensions.attributerepository;
 
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.ExtensionsProcessor;
+import io.sapl.pdp.configuration.PreparationResult;
 
 /**
  * An {@link ExtensionsProcessor} adapter for the attribute repository configuration.
@@ -38,13 +39,13 @@ public final class AttributeRepositoryExtensionsProcessor implements ExtensionsP
     }
 
     /**
-     * A structural validation of the configuration that is delegated to {@link RoutingAttributeRepository#canPrepare}.
+     * A structural validation of the configuration that is delegated to {@link RoutingAttributeRepository#prepare}.
      * Returns {@code true} if the attribute repository extension is absent or structurally valid.
      * {@code false} if it is present but malformed.
      */
     @Override
-    public boolean prepare(String pdpId, PDPConfiguration configuration) {
-        return repository.canPrepare(configuration);
+    public PreparationResult prepare(String pdpId, PDPConfiguration configuration) {
+        return repository.prepare(configuration);
     }
 
     /**
