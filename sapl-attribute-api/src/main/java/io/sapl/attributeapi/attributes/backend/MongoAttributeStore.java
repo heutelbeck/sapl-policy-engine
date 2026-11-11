@@ -20,10 +20,8 @@ package io.sapl.attributeapi.attributes.backend;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-
 import org.bson.Document;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
@@ -124,9 +122,7 @@ public class MongoAttributeStore implements AttributeStore {
         if (document == null)
             return Value.UNDEFINED;
 
-        var valueJson = document.getString(VALUE_FIELD);
-
-        return valueJson != null ? ValueJsonMarshaller.json(valueJson) : Value.UNDEFINED;
+        return ValueJsonMarshaller.json(Objects.requireNonNull(document.getString(VALUE_FIELD)));
     }
 
     @Override
@@ -165,12 +161,12 @@ public class MongoAttributeStore implements AttributeStore {
         // The class is not responsible for it's lifecycle
     }
 
-    private boolean deleteFromDB(@NonNull AttributeKey key, String pdpId) {
-        DeleteResult result = mongo.remove(doMongoQuery(key, pdpId), collection).block();
-        return result != null && result.getDeletedCount() > 0;
+    private boolean deleteFromDB(AttributeKey key, String pdpId) {
+    	DeleteResult result = Objects.requireNonNull(mongo.remove(doMongoQuery(key, pdpId), collection).block());
+        return result.getDeletedCount() > 0;
     }
 
-    private boolean upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
+    private boolean upsertToDB(AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argsJson   = valuesToJson(key.arguments());
         var valueJson  = ValueJsonMarshaller.toJsonString(value);
@@ -178,8 +174,8 @@ public class MongoAttributeStore implements AttributeStore {
         var update = new Update().set(PDP_ID_FIELD, pdpId).set(NAME_FIELD, key.name()).set(ENTITY_FIELD, entityJson)
                 .set(ARGUMENTS_FIELD, argsJson).set(VALUE_FIELD, valueJson).set(EXPIRES_AT_FIELD, expiresAt);
 
-        UpdateResult result = mongo.upsert(doMongoQuery(key, pdpId), update, collection).block();
-        return result != null && result.getUpsertedId() != null;
+        UpdateResult result = Objects.requireNonNull(mongo.upsert(doMongoQuery(key, pdpId), update, collection).block());
+        return result.getUpsertedId() != null;
     }
 
     private Query doMongoQuery(AttributeKey key, String pdpId) {
@@ -202,9 +198,7 @@ public class MongoAttributeStore implements AttributeStore {
         String valueRaw     = document.getString(VALUE_FIELD);
 
         Value       entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
-        List<Value> arguments = argumentsRaw != null && ValueJsonMarshaller.json(argumentsRaw) instanceof ArrayValue a
-                ? a
-                : List.of();
+        ArrayValue  arguments = (ArrayValue) ValueJsonMarshaller.json(Objects.requireNonNull(argumentsRaw));
         Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
         return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);

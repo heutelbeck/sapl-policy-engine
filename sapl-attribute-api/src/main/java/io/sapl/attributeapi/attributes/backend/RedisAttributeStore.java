@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.ScanArgs;
@@ -77,7 +76,7 @@ public class RedisAttributeStore implements AttributeStore {
         return publishInternal(key, value, ttl, pdpId);
     }
 
-    private boolean publishInternal(AttributeKey key, @NonNull Value value, @Nullable Duration ttl, String pdpId) {
+    private boolean publishInternal(AttributeKey key, Value value, @Nullable Duration ttl, String pdpId) {
         String redisKey   = toRedisKey(key, pdpId);
         String redisValue = ValueJsonMarshaller.toJsonString(value);
 
@@ -122,12 +121,12 @@ public class RedisAttributeStore implements AttributeStore {
     @Override
     public boolean remove(AttributeKey key, String pdpId) {
         String redisKey = toRedisKey(key, pdpId);
-        Long   deleted  = commands.del(redisKey);
+        long   deleted  = commands.del(redisKey);
 
         commands.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
         commands.zrem(getOrderKey(pdpId), redisKey);
 
-        return deleted != null && deleted > 0;
+        return deleted > 0;
     }
 
     // Escape special characters before adding them to the Redis Keys. Avoids

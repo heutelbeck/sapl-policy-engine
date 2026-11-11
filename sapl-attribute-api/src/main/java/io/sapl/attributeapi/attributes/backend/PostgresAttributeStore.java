@@ -22,15 +22,12 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-
 import org.jspecify.annotations.Nullable;
 import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.reactive.TransactionalOperator;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -173,10 +170,9 @@ public class PostgresAttributeStore implements AttributeStore {
         var spec = client.sql(getSql).bind(PDP_ID_FIELD, pdpId).bind(NAME_FIELD, key.name()).bind(ARGUMENTS_FIELD,
                 argumentsJson);
 
-        return bindEntity(spec, entityJson).map(r -> {
-            String raw = r.get(VALUE_FIELD, String.class);
-            return raw != null ? ValueJsonMarshaller.json(raw) : Value.UNDEFINED;
-        }).one().blockOptional().orElse(Value.UNDEFINED);
+        return bindEntity(spec, entityJson)
+                .map(r -> ValueJsonMarshaller.json(Objects.requireNonNull(r.get(VALUE_FIELD, String.class))))
+                .one().blockOptional().orElse(Value.UNDEFINED);
     }
 
     @Override
@@ -232,7 +228,7 @@ public class PostgresAttributeStore implements AttributeStore {
         return bindEntity(spec, entityJson);
     }
 
-    private void notifyPdp(@NonNull AttributeKey key, String pdpId) {
+    private void notifyPdp(AttributeKey key, String pdpId) {
         var payload = ValueJsonMarshaller.toJsonString(
                 ObjectValue.builder().put(PDP_ID_FIELD, Value.of(pdpId)).put(NAME_FIELD, Value.of(key.name()))
                         .put(ENTITY_FIELD, key.entity() != null ? key.entity() : Value.NULL)
@@ -241,17 +237,17 @@ public class PostgresAttributeStore implements AttributeStore {
         client.sql(NOTIFY_SQL).bind("payload", payload).then().block();
     }
 
-    private boolean upsertToDB(@NonNull AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
+    private boolean upsertToDB(AttributeKey key, Value value, @Nullable Instant expiresAt, String pdpId) {
         Boolean inserted = upsertSpec(key, value, expiresAt, pdpId).map(row -> row.get("inserted", Boolean.class)).one()
                 .block();
         notifyPdp(key, pdpId);
         return Boolean.TRUE.equals(inserted);
     }
 
-    private boolean deleteFromDB(@NonNull AttributeKey key, String pdpId) {
-        Long rowsDeleted = deleteSpec(key, pdpId).fetch().rowsUpdated().block();
+    private boolean deleteFromDB(AttributeKey key, String pdpId) {
+    	long rowsDeleted = Objects.requireNonNull(deleteSpec(key, pdpId).fetch().rowsUpdated().block());
         notifyPdp(key, pdpId);
-        return rowsDeleted != null && rowsDeleted > 0;
+        return rowsDeleted > 0;
     }
 
     private static String valuesToJson(List<Value> values) {
@@ -265,9 +261,7 @@ public class PostgresAttributeStore implements AttributeStore {
         String valueRaw     = row.get(VALUE_FIELD, String.class);
 
         Value       entity    = entityRaw != null ? ValueJsonMarshaller.json(entityRaw) : null;
-        List<Value> arguments = argumentsRaw != null && ValueJsonMarshaller.json(argumentsRaw) instanceof ArrayValue a
-                ? a
-                : List.of();
+        List<Value> arguments = (ArrayValue) ValueJsonMarshaller.json(Objects.requireNonNull(argumentsRaw));
         Value       value     = ValueJsonMarshaller.json(Objects.requireNonNull(valueRaw));
 
         return new AttributeEntry(new AttributeKey(entity, Objects.requireNonNull(name), arguments), value);

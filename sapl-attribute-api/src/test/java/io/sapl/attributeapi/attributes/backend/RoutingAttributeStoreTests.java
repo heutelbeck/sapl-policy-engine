@@ -19,6 +19,7 @@ package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -42,212 +43,243 @@ import io.sapl.attributeapi.attributes.BackendHandle;
 @ExtendWith(MockitoExtension.class)
 class RoutingAttributeStoreTests {
 
-    @Mock
-    private BackendHandle handle;
+	@Mock
+	private BackendHandle handle;
 
-    @Mock
-    private AttributeStore store;
+	@Mock
+	private AttributeStore store;
 
-    @Mock
-    private BackendHandle otherHandle;
+	@Mock
+	private BackendHandle otherHandle;
 
-    private RoutingAttributeStore routingStore;
-    private AttributeKey          key;
+	private RoutingAttributeStore routingStore;
+	private AttributeKey key;
 
-    @BeforeEach
-    void setUp() {
-        routingStore = RoutingAttributeStore.forBackends(Map.of("backend-1", handle), Map.of("tenant-01", "backend-1"));
+	@BeforeEach
+	void setUp() {
+		routingStore = RoutingAttributeStore.forBackends(Map.of("backend-1", handle), Map.of("tenant-01", "backend-1"));
 
-        // Just a key with an attribute name. No entity or arguments.
-        key = new AttributeKey(null, "test.attribute", List.of());
-    }
+		// Just a key with an attribute name. No entity or arguments.
+		key = new AttributeKey(null, "test.attribute", List.of());
+	}
 
-    @Test
-    @DisplayName("An unknown pdp id throws an exception without touching any backend")
-    void whenPdpIdIsUnknownThenGetThrowsIllegalArgumentException() {
-        assertThatThrownBy(() -> routingStore.get(key, "unknown-pdp")).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unknown-pdp");
+	@Test
+	@DisplayName("An unknown pdp id throws an exception without touching any backend")
+	void whenPdpIdIsUnknownThenGetThrowsIllegalArgumentException() {
+		assertThatThrownBy(() -> routingStore.get(key, "unknown-pdp")).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("unknown-pdp");
 
-        verifyNoInteractions(handle);
-    }
+		verifyNoInteractions(handle);
+	}
 
-    @Test
-    @DisplayName("A known pdp id delegates the get() call to the resolved backend")
-    void whenPdpIdIsKnownThenGetDelegatesToResolvedBackendStore() {
-        when(handle.resolveOrThrow("backend-1")).thenReturn(store);
-        when(store.get(key, "tenant-01")).thenReturn(Value.of("test"));
+	@Test
+	@DisplayName("A known pdp id delegates the get() call to the resolved backend")
+	void whenPdpIdIsKnownThenGetDelegatesToResolvedBackendStore() {
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		when(store.get(key, "tenant-01")).thenReturn(Value.of("test"));
 
-        var result = routingStore.get(key, "tenant-01");
-        assertThat(result).isEqualTo(Value.of("test"));
-        verify(store).get(key, "tenant-01");
-    }
+		var result = routingStore.get(key, "tenant-01");
+		assertThat(result).isEqualTo(Value.of("test"));
+		verify(store).get(key, "tenant-01");
+	}
 
-    @Test
-    @DisplayName("A known pdp id delegates the publish() call to the resolved backend")
-    void whenPdpIdIsKnownThenPublishDelegatesToResolvedBackendStore() {
-        when(handle.resolveOrThrow("backend-1")).thenReturn(store);
-        when(store.publish(key, Value.of("test1"), "tenant-01")).thenReturn(true);
+	@Test
+	@DisplayName("A known pdp id delegates the publish() call to the resolved backend")
+	void whenPdpIdIsKnownThenPublishDelegatesToResolvedBackendStore() {
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		when(store.publish(key, Value.of("test1"), "tenant-01")).thenReturn(true);
 
-        var created = routingStore.publish(key, Value.of("test1"), "tenant-01");
+		var created = routingStore.publish(key, Value.of("test1"), "tenant-01");
 
-        assertThat(created).isTrue();
-        verify(store).publish(key, Value.of("test1"), "tenant-01");
-    }
+		assertThat(created).isTrue();
+		verify(store).publish(key, Value.of("test1"), "tenant-01");
+	}
 
-    @Test
-    @DisplayName("A known pdp id delegates the publish() call with TTL to the resolved backend")
-    void whenPdpIdIsKnownThenPublishWithTtlDelegatesToResolvedBackendStore() {
-        when(handle.resolveOrThrow("backend-1")).thenReturn(store);
-        when(store.publish(key, Value.of("test2"), Duration.ofHours(1), "tenant-01")).thenReturn(true);
+	@Test
+	@DisplayName("A known pdp id delegates the publish() call with TTL to the resolved backend")
+	void whenPdpIdIsKnownThenPublishWithTtlDelegatesToResolvedBackendStore() {
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		when(store.publish(key, Value.of("test2"), Duration.ofHours(1), "tenant-01")).thenReturn(true);
 
-        var created = routingStore.publish(key, Value.of("test2"), Duration.ofHours(1), "tenant-01");
+		var created = routingStore.publish(key, Value.of("test2"), Duration.ofHours(1), "tenant-01");
 
-        assertThat(created).isTrue();
-        verify(store).publish(key, Value.of("test2"), Duration.ofHours(1), "tenant-01");
-    }
+		assertThat(created).isTrue();
+		verify(store).publish(key, Value.of("test2"), Duration.ofHours(1), "tenant-01");
+	}
 
-    @Test
-    @DisplayName("A known pdp id delegates the remove() call to the resolved backend")
-    void whenPdpIdIsKnownThenRemoveDelegatesToResolvedBackendStore() {
-        when(handle.resolveOrThrow("backend-1")).thenReturn(store);
-        when(store.remove(key, "tenant-01")).thenReturn(true);
+	@Test
+	@DisplayName("A known pdp id delegates the remove() call to the resolved backend")
+	void whenPdpIdIsKnownThenRemoveDelegatesToResolvedBackendStore() {
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		when(store.remove(key, "tenant-01")).thenReturn(true);
 
-        var removed = routingStore.remove(key, "tenant-01");
+		var removed = routingStore.remove(key, "tenant-01");
 
-        assertThat(removed).isTrue();
-        verify(store).remove(key, "tenant-01");
-    }
+		assertThat(removed).isTrue();
+		verify(store).remove(key, "tenant-01");
+	}
 
-    @Test
-    @DisplayName("A known pdp id delegates the count() call to the resolved backend")
-    void whenPdpIdIsKnownThenCountDelegatesToResolvedBackendStore() {
-        when(handle.resolveOrThrow("backend-1")).thenReturn(store);
-        when(store.count("tenant-01")).thenReturn(5L);
+	@Test
+	@DisplayName("A known pdp id delegates the count() call to the resolved backend")
+	void whenPdpIdIsKnownThenCountDelegatesToResolvedBackendStore() {
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		when(store.count("tenant-01")).thenReturn(5L);
 
-        var result = routingStore.count("tenant-01");
+		var result = routingStore.count("tenant-01");
 
-        assertThat(result).isEqualTo(5L);
-        verify(store).count("tenant-01");
-    }
+		assertThat(result).isEqualTo(5L);
+		verify(store).count("tenant-01");
+	}
 
-    @Test
-    @DisplayName("A known pdp id delegates getAll() call to the resolved backend")
-    void whenPdpIdIsKnownThenGetAllDelegatesToResolvedBackendStore() {
-        when(handle.resolveOrThrow("backend-1")).thenReturn(store);
-        var entry = new AttributeEntry(key, Value.of("test"));
-        when(store.getAll("tenant-01", 10, 0)).thenReturn(List.of(entry));
+	@Test
+	@DisplayName("A known pdp id delegates getAll() call to the resolved backend")
+	void whenPdpIdIsKnownThenGetAllDelegatesToResolvedBackendStore() {
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		var entry = new AttributeEntry(key, Value.of("test"));
+		when(store.getAll("tenant-01", 10, 0)).thenReturn(List.of(entry));
 
-        var result = routingStore.getAll("tenant-01", 10, 0);
+		var result = routingStore.getAll("tenant-01", 10, 0);
 
-        assertThat(result).containsExactly(entry);
-        verify(store).getAll("tenant-01", 10, 0);
-    }
+		assertThat(result).containsExactly(entry);
+		verify(store).getAll("tenant-01", 10, 0);
+	}
 
-    @Test
-    @DisplayName("The AttributeBackendUnavailableException message never contains the original exception's details")
-    void whenBackendUnavailableExceptionIsThrownThenMessageDoesNotLeakOriginalExceptionDetails() {
-        when(handle.resolveOrThrow("backend-1")).thenReturn(store);
-        when(store.get(key, "tenant-01"))
-                .thenThrow(new DataAccessResourceFailureException("connection refused to db-host-internal:5432"));
+	@Test
+	@DisplayName("The AttributeBackendUnavailableException message never contains the original exception's details")
+	void whenBackendUnavailableExceptionIsThrownThenMessageDoesNotLeakOriginalExceptionDetails() {
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		when(store.get(key, "tenant-01"))
+				.thenThrow(new DataAccessResourceFailureException("connection refused to db-host-internal:5432"));
 
-        assertThatThrownBy(() -> routingStore.get(key, "tenant-01"))
-                .isInstanceOf(AttributeBackendUnavailableException.class)
-                .hasMessage("The service is currently unavailable").hasMessageNotContaining("db-host-internal");
+		assertThatThrownBy(() -> routingStore.get(key, "tenant-01"))
+				.isInstanceOf(AttributeBackendUnavailableException.class)
+				.hasMessage("The service is currently unavailable").hasMessageNotContaining("db-host-internal");
 
-        verify(handle).invalidate();
-    }
+		verify(handle).invalidate();
+	}
 
-    @Test
-    @DisplayName("A close() call closes every BackendHandle in the map")
-    void whenCloseIsCalledThenEveryBackendHandleIsClosed() {
-        var multiBackendStore = RoutingAttributeStore.forBackends(Map.of("backend-1", handle, "backend-2", otherHandle),
-                Map.of("tenant-01", "backend-1"));
+	@Test
+	@DisplayName("A close() call closes every BackendHandle in the map")
+	void whenCloseIsCalledThenEveryBackendHandleIsClosed() {
+		var multiBackendStore = RoutingAttributeStore.forBackends(Map.of("backend-1", handle, "backend-2", otherHandle),
+				Map.of("tenant-01", "backend-1"));
 
-        multiBackendStore.close();
+		multiBackendStore.close();
 
-        verify(handle).close();
-        verify(otherHandle).close();
-    }
+		verify(handle).close();
+		verify(otherHandle).close();
+	}
 
-    @Test
-    @DisplayName("A connection that was refused throws an exception after getAll triggers it")
-    void whenGetAllInvalidThenExceptionIsThrown() {
-        key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
+	@Test
+	@DisplayName("A connection that was refused throws an exception after getAll triggers it")
+	void whenGetAllInvalidThenExceptionIsThrown() {
+		key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
 
-        var handleByBackendName = Map.of("redis-backend", handle);
-        var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");
+		var handleByBackendName = Map.of("redis-backend", handle);
+		var pdpIdToBackendName = Map.of("test-pdp", "redis-backend");
 
-        when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
-        when(store.getAll("test-pdp", null, null))
-                .thenThrow(new RedisConnectionException("The connection was refused"));
+		when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
+		when(store.getAll("test-pdp", null, null))
+				.thenThrow(new RedisConnectionException("The connection was refused"));
 
-        var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
+		var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
 
-        assertThatThrownBy(() -> router.getAll("test-pdp", null, null))
-                .isInstanceOf(AttributeBackendUnavailableException.class)
-                .hasMessage("The service is currently unavailable");
-        verify(handle, times(1)).invalidate();
-    }
+		assertThatThrownBy(() -> router.getAll("test-pdp", null, null))
+				.isInstanceOf(AttributeBackendUnavailableException.class)
+				.hasMessage("The service is currently unavailable");
+		verify(handle, times(1)).invalidate();
+	}
 
-    @Test
-    @DisplayName("A connection that was refused throws an exception after publish triggers it")
-    void whenPublishInvalidThenExceptionIsThrown() {
-        Value  value = Value.of("just a value");
-        String pdpId = "test-pdp";
+	@Test
+	@DisplayName("A connection that was refused throws an exception after publish triggers it")
+	void whenPublishInvalidThenExceptionIsThrown() {
+		Value value = Value.of("just a value");
+		String pdpId = "test-pdp";
 
-        key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
+		key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
 
-        var handleByBackendName = Map.of("redis-backend", handle);
-        var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");
+		var handleByBackendName = Map.of("redis-backend", handle);
+		var pdpIdToBackendName = Map.of("test-pdp", "redis-backend");
 
-        when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
-        when(store.publish(key, value, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+		when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
+		when(store.publish(key, value, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
 
-        var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
+		var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
 
-        assertThatThrownBy(() -> router.publish(key, value, pdpId))
-                .isInstanceOf(AttributeBackendUnavailableException.class)
-                .hasMessage("The service is currently unavailable");
-        verify(handle, times(1)).invalidate();
-    }
+		assertThatThrownBy(() -> router.publish(key, value, pdpId))
+				.isInstanceOf(AttributeBackendUnavailableException.class)
+				.hasMessage("The service is currently unavailable");
+		verify(handle, times(1)).invalidate();
+	}
 
-    @Test
-    @DisplayName("A connection that was refused throws an exception after delete triggers it")
-    void whenRemoveInvalidThenExceptionIsThrown() {
-        String pdpId = "test-pdp";
+	@Test
+	@DisplayName("A connection that was refused throws an exception after publish with TTL triggers it")
+	void whenPublishWithTtlInvalidThenExceptionIsThrown() {
+		Value value = Value.of("just a value");
+		var ttl = Duration.ofSeconds(60);
+		String pdpId = "tenant-01";
 
-        key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		when(store.publish(key, value, ttl, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
 
-        var handleByBackendName = Map.of("redis-backend", handle);
-        var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");
+		assertThatThrownBy(() -> routingStore.publish(key, value, ttl, pdpId))
+				.isInstanceOf(AttributeBackendUnavailableException.class)
+				.hasMessage("The service is currently unavailable");
+		verify(handle).invalidate();
+	}
 
-        when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
-        when(store.remove(key, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+	@Test
+	@DisplayName("A connection that was refused throws an exception after applyAll triggers it")
+	void whenApplyAllInvalidThenExceptionIsThrown() {
+		var changes = List.of(new AttributeStore.Change(key, Value.of("batch"), null));
+		String pdpId = "tenant-01";
 
-        var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
+		when(handle.resolveOrThrow("backend-1")).thenReturn(store);
+		doThrow(new RedisConnectionException("The connection was refused")).when(store).applyAll(changes, pdpId);
 
-        assertThatThrownBy(() -> router.remove(key, pdpId)).isInstanceOf(AttributeBackendUnavailableException.class)
-                .hasMessage("The service is currently unavailable");
-        verify(handle, times(1)).invalidate();
-    }
+		assertThatThrownBy(() -> routingStore.applyAll(changes, pdpId))
+				.isInstanceOf(AttributeBackendUnavailableException.class)
+				.hasMessage("The service is currently unavailable");
+		verify(handle).invalidate();
+	}
 
-    @Test
-    @DisplayName("A connection that was refused throws an exception after count triggers it")
-    void whenCountInvalidThenExceptionIsThrown() {
-        String pdpId = "test-pdp";
+	@Test
+	@DisplayName("A connection that was refused throws an exception after delete triggers it")
+	void whenRemoveInvalidThenExceptionIsThrown() {
+		String pdpId = "test-pdp";
 
-        key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
+		key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
 
-        var handleByBackendName = Map.of("redis-backend", handle);
-        var pdpIdToBackendName  = Map.of("test-pdp", "redis-backend");
+		var handleByBackendName = Map.of("redis-backend", handle);
+		var pdpIdToBackendName = Map.of("test-pdp", "redis-backend");
 
-        when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
-        when(store.count(pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+		when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
+		when(store.remove(key, pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
 
-        var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
+		var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
 
-        assertThatThrownBy(() -> router.count(pdpId)).isInstanceOf(AttributeBackendUnavailableException.class)
-                .hasMessage("The service is currently unavailable");
-        verify(handle, times(1)).invalidate();
-    }
+		assertThatThrownBy(() -> router.remove(key, pdpId)).isInstanceOf(AttributeBackendUnavailableException.class)
+				.hasMessage("The service is currently unavailable");
+		verify(handle, times(1)).invalidate();
+	}
+
+	@Test
+	@DisplayName("A connection that was refused throws an exception after count triggers it")
+	void whenCountInvalidThenExceptionIsThrown() {
+		String pdpId = "test-pdp";
+
+		key = new AttributeKey(Value.of("test"), "sapl.test", List.of());
+
+		var handleByBackendName = Map.of("redis-backend", handle);
+		var pdpIdToBackendName = Map.of("test-pdp", "redis-backend");
+
+		when(handle.resolveOrThrow("redis-backend")).thenReturn(store);
+		when(store.count(pdpId)).thenThrow(new RedisConnectionException("The connection was refused"));
+
+		var router = RoutingAttributeStore.forBackends(handleByBackendName, pdpIdToBackendName);
+
+		assertThatThrownBy(() -> router.count(pdpId)).isInstanceOf(AttributeBackendUnavailableException.class)
+				.hasMessage("The service is currently unavailable");
+		verify(handle, times(1)).invalidate();
+	}
 }

@@ -51,6 +51,7 @@ class AttributeApiMongoTests extends AbstractAttributeApiTests {
 
     private static MongoDBContainer mongoContainer() {
         var container = new MongoDBContainer("mongo:8.0");
+        container.withReplicaSet();
         // Workaround for Kernel 6.19
         container.withEnv("GLIBC_TUNABLES", "glibc.pthread.rseq=1");
         return container;
