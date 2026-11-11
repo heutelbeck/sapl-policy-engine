@@ -27,6 +27,11 @@ import lombok.val;
 import reactor.core.publisher.Mono;
 
 import org.awaitility.Awaitility;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.bson.Document;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -48,6 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
@@ -157,18 +163,21 @@ class MongoAttributeRepositoryTests {
             }
         }
 
-        @Test
-        @DisplayName("then null value in publish are rejected")
-        void thenNullValuesInPublishAreRejected() {
+        static Stream<Arguments> nullPublishArguments() {
             var key   = key("test.attribute");
             var value = Value.of("something");
             var ttl   = Duration.ofSeconds(5);
+            return Stream.of(arguments(null, value, ttl), arguments(key, null, ttl), arguments(key, value, null));
+        }
 
-            assertThatThrownBy(() -> repository.publish(null, value, ttl)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(key, value, null)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(key, null, ttl)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(null, value)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(key, null)).isInstanceOf(NullPointerException.class);
+        @ParameterizedTest
+        @MethodSource("nullPublishArguments")
+        @DisplayName("then null value in publish are rejected")
+        void thenNullValuesInPublishAreRejected(RepositoryKey key, Value value, Duration ttl) {
+            assertThatThrownBy(() -> repository.publish(key, value, ttl)).isInstanceOf(NullPointerException.class);
+            if (ttl != null) {
+                assertThatThrownBy(() -> repository.publish(key, value)).isInstanceOf(NullPointerException.class);
+            }
         }
     }
 
@@ -204,10 +213,11 @@ class MongoAttributeRepositoryTests {
             }
         }
 
-        @Test
+        @ParameterizedTest
+        @NullSource
         @DisplayName("then null value in remove rejected")
-        void thenNullValuesInRemoveRejected() {
-            assertThatThrownBy(() -> repository.remove(null)).isInstanceOf(NullPointerException.class);
+        void thenNullValuesInRemoveRejected(RepositoryKey key) {
+            assertThatThrownBy(() -> repository.remove(key)).isInstanceOf(NullPointerException.class);
         }
     }
 

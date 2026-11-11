@@ -32,6 +32,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.awaitility.Awaitility;
+import java.util.function.Consumer;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
@@ -148,13 +151,21 @@ class RoutingAttributeRepositoryTests {
             assertThat(closedObserver).hasSize(1);
         }
 
-        @Test
-        @DisplayName("then null arguments are rejected")
-        void thenNullArgumentsAreRejected() {
+        @ParameterizedTest
+        @NullSource
+        @DisplayName("then a null invocation is rejected")
+        void thenNullInvocationIsRejected(AttributeFinderInvocation invocation) {
+            assertThatThrownBy(() -> router.observe(invocation, received::add))
+                    .isInstanceOf(NullPointerException.class);
+        }
+
+        @ParameterizedTest
+        @NullSource
+        @DisplayName("then a null callback is rejected")
+        void thenNullCallbackIsRejected(Consumer<Value> callback) {
             val invocation = invocation(PDP_ID, CONFIG_ID);
 
-            assertThatThrownBy(() -> router.observe(null, received::add)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> router.observe(invocation, null)).isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> router.observe(invocation, callback)).isInstanceOf(NullPointerException.class);
         }
 
         @Test

@@ -255,7 +255,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
         return builder.build();
     }
 
-    /*
+    /**
      * Reacts to prepare() method of the extension processor. Rejects an invalid
      * configuration instead of failing silent. A missing configuration is loading
      * an {@code InMemoryAttributeRepository}.

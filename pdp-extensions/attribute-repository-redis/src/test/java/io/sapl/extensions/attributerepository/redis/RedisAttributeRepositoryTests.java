@@ -30,6 +30,10 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.val;
 import org.awaitility.Awaitility;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -46,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
@@ -136,18 +141,21 @@ class RedisAttributeRepositoryTests {
             }
         }
 
-        @Test
-        @DisplayName("then null value in publish are rejected")
-        void thenNullValuesInPublishAreRejected() {
+        static Stream<Arguments> nullPublishArguments() {
             var key   = key("test.attribute");
             var value = Value.of("something");
             var ttl   = Duration.ofSeconds(5);
+            return Stream.of(arguments(null, value, ttl), arguments(key, null, ttl), arguments(key, value, null));
+        }
 
-            assertThatThrownBy(() -> repository.publish(null, value, ttl)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(key, value, null)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(key, null, ttl)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(null, value)).isInstanceOf(NullPointerException.class);
-            assertThatThrownBy(() -> repository.publish(key, null)).isInstanceOf(NullPointerException.class);
+        @ParameterizedTest
+        @MethodSource("nullPublishArguments")
+        @DisplayName("then null value in publish are rejected")
+        void thenNullValuesInPublishAreRejected(RepositoryKey key, Value value, Duration ttl) {
+            assertThatThrownBy(() -> repository.publish(key, value, ttl)).isInstanceOf(NullPointerException.class);
+            if (ttl != null) {
+                assertThatThrownBy(() -> repository.publish(key, value)).isInstanceOf(NullPointerException.class);
+            }
         }
     }
 
@@ -164,10 +172,11 @@ class RedisAttributeRepositoryTests {
             Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(Value.UNDEFINED));
         }
 
-        @Test
+        @ParameterizedTest
+        @NullSource
         @DisplayName("then null value in remove is rejected")
-        void thenNullValuesInRemoveIsRejected() {
-            assertThatThrownBy(() -> repository.remove(null)).isInstanceOf(NullPointerException.class);
+        void thenNullValuesInRemoveIsRejected(RepositoryKey key) {
+            assertThatThrownBy(() -> repository.remove(key)).isInstanceOf(NullPointerException.class);
         }
     }
 

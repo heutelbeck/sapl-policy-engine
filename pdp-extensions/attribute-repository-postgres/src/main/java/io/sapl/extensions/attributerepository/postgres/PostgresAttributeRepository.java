@@ -272,14 +272,14 @@ public final class PostgresAttributeRepository implements AttributeRepository {
 		reloadLock.lock();
 
 		try {
-			var rows = client.sql(getAllSql).bind(FIELD_PDP_ID, pdpId)
+			var rows = Objects.requireNonNull(client.sql(getAllSql).bind(FIELD_PDP_ID, pdpId)
 					.map(row -> new DBEntry(
 							row.get(FIELD_NAME, String.class),
 							row.get(FIELD_ENTITY, String.class),
 							row.get(FIELD_ARGUMENTS, String.class),
 							row.get(FIELD_VALUE, String.class),
 							row.get("expires_at", OffsetDateTime.class)))
-					.all().collectList().timeout(LOAD_TIMEOUT).block();
+					.all().collectList().timeout(LOAD_TIMEOUT).block());
 
 			var seenKeys = new HashSet<RepositoryKey>();
 

@@ -241,7 +241,8 @@ public final class RedisAttributeRepository implements AttributeRepository {
         var redisKeys = new ArrayList<String>();
 
         for (var entry : (ArrayValue) ValueJsonMarshaller.json(message)) {
-            redisKeys.add(((TextValue) ((ObjectValue) entry).get(FIELD_BATCH_KEY)).value());
+            var redisKey = (TextValue) Objects.requireNonNull(((ObjectValue) entry).get(FIELD_BATCH_KEY));
+            redisKeys.add(redisKey.value());
         }
         batchRunner.get().accept(() -> redisKeys.forEach(this::applyRedisKey));
     }
