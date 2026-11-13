@@ -56,23 +56,27 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.r2dbc.core.DatabaseClient;
 
+/**
+ * Create the attribute stores. In standalone mode the configuration comes from
+ * {@code io.sapl.attribute-api.storage}. In embedded mode the SAPL node
+ * provides the configuration of each pdp id.
+ */
 @Configuration
 @Slf4j
 @EnableConfigurationProperties(AttributeStorageProperties.class)
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
 public class AttributeStoreConfiguration {
     private static final String WARN_REPOSITORY_BACKEND_UNAVAILABLE = "The attribute backend '{}' is unavailable at startup. Reconnect will be tried again later on first request: {}";
-
-    private static final String ERROR_UNKNOWN_PDPID = "No attribute backend configured for pdpId '%s'.";
-    private static final String FIELD_TYPE          = "type";
-    private static final String FIELD_HOST          = "host";
-    private static final String FIELD_PORT          = "port";
-    private static final String FIELD_DATABASE      = "database";
-    private static final String FIELD_USERNAME      = "username";
-    private static final String FIELD_PASSWORD      = "password";
-    private static final String FIELD_TABLE_NAME    = "tableName";
-    private static final String FIELD_AUTH_DATABASE = "authDatabase";
-    private static final String FIELD_COLLECTION    = "collectionName";
+    private static final String ERROR_UNKNOWN_PDPID                 = "No attribute backend configured for pdpId '%s'.";
+    private static final String FIELD_TYPE                          = "type";
+    private static final String FIELD_HOST                          = "host";
+    private static final String FIELD_PORT                          = "port";
+    private static final String FIELD_DATABASE                      = "database";
+    private static final String FIELD_USERNAME                      = "username";
+    private static final String FIELD_PASSWORD                      = "password";
+    private static final String FIELD_TABLE_NAME                    = "tableName";
+    private static final String FIELD_AUTH_DATABASE                 = "authDatabase";
+    private static final String FIELD_COLLECTION                    = "collectionName";
 
     private record CachedEntry(Value config, AttributeStore store) {}
 
@@ -111,11 +115,13 @@ public class AttributeStoreConfiguration {
         var cache = new ConcurrentHashMap<String, CachedEntry>();
 
         Function<String, AttributeStore> resolver = pdpId -> {
-            // 1. Get the current configuration via the bridge bean in the SAPL node. If missing, exception.
+            // 1. Get the current configuration via the bridge bean in the SAPL node. If
+            // missing, exception.
             var node = configResolver.apply(pdpId)
                     .orElseThrow(() -> new IllegalArgumentException(ERROR_UNKNOWN_PDPID.formatted(pdpId)));
 
-            // 2. If store for this configuration exists and configuration didn't change: ignore!
+            // 2. If store for this configuration exists and configuration didn't change:
+            // ignore!
             var cached = cache.get(pdpId);
 
             if (cached != null && cached.config().equals(node)) {
@@ -163,7 +169,8 @@ public class AttributeStoreConfiguration {
         val template = new ReactiveMongoTemplate(MongoClients.create(settingsBuilder.build()),
                 connectionString.getDatabase());
 
-        // Quick ping to check if if the backend is available because the MongoDB driver never does it by it's own
+        // Quick ping to check if if the backend is available because the MongoDB driver
+        // never does it by it's own
         template.executeCommand("{ ping: 1 }").block();
 
         return new MongoAttributeStore(template, mongo.getCollectionName());

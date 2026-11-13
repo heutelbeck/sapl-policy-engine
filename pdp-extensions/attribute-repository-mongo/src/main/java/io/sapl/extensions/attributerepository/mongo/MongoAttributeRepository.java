@@ -110,6 +110,15 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private final AtomicReference<Disposable> resyncSubscription       = new AtomicReference<>();
     private volatile boolean                  closed                   = false;
 
+    /**
+     * Creates the object for the Mongo attribute repository to communicate with the
+     * database. Connects to the change stream, creates the internal cache and loads
+     * all attributes.
+     *
+     * @param mongo The Mongo template to communicate.
+     * @param pdpId The pdp id for this attribute repository.
+     * @param collection The collection to find the attribute repository.
+     */
     public MongoAttributeRepository(ReactiveMongoTemplate mongo, String pdpId, String collection) {
         this.mongo              = mongo;
         this.pdpId              = pdpId;
@@ -145,8 +154,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .subscribe(this::processChangeStreamEvent, error -> log.error(ERROR_RECONNECT_GIVEN_UP, pdpId, error)));
     }
 
-    // Handle the re-try logic on a detected disconnect. Invalidates the cache and
-    // resync the cache again.
+    // Handle retry logic on a disconnect. Invalidates and resyncs cache again.
     private void handleChangeStreamRetry(RetrySignal signal) {
         log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
         if (disconnected.compareAndSet(false, true)) {
@@ -198,7 +206,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
             return;
         }
 
-        // Handle the delete events first because the body is always null on delete events
+        // Handle the delete events first because the body is always null on delete
+        // events
         if (isDeleteEvent(event)) {
             var doc = Objects.requireNonNull(event.getBodyBeforeChange());
             internalRepository.remove(repositoryKeyFromDocument(doc));
@@ -256,6 +265,11 @@ public final class MongoAttributeRepository implements AttributeRepository {
         removeStaleCacheEntries(seenKeys);
     }
 
+    /**
+     * Delete the attribute for the given attribute key from the database.
+     *
+     * @param key the attribute key.
+     */
     public void deleteFromDB(@NonNull RepositoryKey key) {
         mongo.remove(buildMongoQuery(key), collection).block();
     }

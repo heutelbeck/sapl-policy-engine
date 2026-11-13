@@ -29,6 +29,20 @@ import io.lettuce.core.RedisURI;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 
+/**
+ * Provider for a Redis attribute repository with the type {@code redis}. It's
+ * registered in
+ * {@code META-INF/services/io.sapl.extensions.attributerepository.AttributeRepositoryProvider}
+ * and found by
+ * {@link io.sapl.extensions.attributerepository.AttributeRepositoryFactory} via
+ * {@link java.util.ServiceLoader}.
+ * <p>
+ * Required fields are {@code host} and {@code port}. The optional field
+ * {@code password} enables authentication, {@code database} selects the Redis
+ * database index and defaults to {@code 0}.
+ *
+ * @since 4.2.0
+ */
 public class RedisAttributeRepositoryProvider implements AttributeRepositoryProvider {
     private static final String TYPE           = "redis";
     private static final String HOST_FIELD     = "host";
@@ -56,7 +70,8 @@ public class RedisAttributeRepositoryProvider implements AttributeRepositoryProv
         val port     = Objects.requireNonNull(numberValue(config, PORT_FIELD),
                 () -> ERROR_MISSING_OR_INVALID_NUMBER.formatted(PORT_FIELD, pdpId));
         val password = stringValue(config, PASSWORD_FIELD);
-        // Redis' own default DB index is 0, so an absent field is a valid choice here, unlike a missing port.
+        // Redis' own default DB index is 0, so an absent field is a valid choice here,
+        // unlike a missing port.
         val db = Objects.requireNonNullElse(numberValue(config, DATABASE_FIELD), 0);
 
         val builder = RedisURI.Builder.redis(host, port).withDatabase(db);

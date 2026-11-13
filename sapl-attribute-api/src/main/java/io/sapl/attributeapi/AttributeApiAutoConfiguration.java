@@ -25,6 +25,10 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
 
+/**
+ * Auto configuration for the Attribute API server to activate it in another
+ * application like the SAPL Node etc..
+ */
 @AutoConfiguration
 @ConditionalOnProperty(name = "io.sapl.attribute-api.enabled", havingValue = "true")
 @Import({ AttributeStoreConfiguration.class, AttributeSecurityConfiguration.class, AttributeApiService.class,

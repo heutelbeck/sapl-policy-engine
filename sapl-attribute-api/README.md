@@ -61,7 +61,7 @@ The other two steps are optional but should be considered depending on your envi
 
 2. Add the line `cron.database_name = 'sapl_attributes'` to the file `postgresql.conf`. This sets the default name for the cronjob database.
 
-3. Add the extension `shared_preload_libraries = 'pg_cron'` to the file `postgresql.conf`. A restart of Postgres is required to activate the extension. Also add `cron.use_background_workers = on` to `postgresql.conf` if local connections require a password. Otherwise `pg_cron` runs each job over a new connection without a password and the job fails.
+3. Add the library `shared_preload_libraries = 'pg_cron'` to the file `postgresql.conf`. A restart of Postgres is required to activate the extension. Also add `cron.use_background_workers = on` to `postgresql.conf` if local connections require a password. Otherwise `pg_cron` runs each job over a new connection without a password and the job fails.
 
 4. The database table will be automatically created if missing during startup. If you want to create the table manually, you can use the following statement:
 

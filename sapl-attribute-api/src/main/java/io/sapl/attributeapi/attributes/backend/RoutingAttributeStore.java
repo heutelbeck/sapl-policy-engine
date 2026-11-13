@@ -31,15 +31,31 @@ import io.lettuce.core.RedisConnectionException;
 import io.sapl.api.model.Value;
 import io.sapl.attributeapi.attributes.BackendHandle;
 
+/**
+ * Routing layer of the Attribute API server. This layer abstracts the concrete
+ * attribute stores, like Postgres, Mongo, Redis, from the other classes. It
+ * main purpose is to route the requests to the right attribute store that is
+ * defined by the pdp id. Also to detect a downtime and block requests for a
+ * short time.
+ */
 public final class RoutingAttributeStore implements AttributeStore {
     private static final String ERROR_UNAVAILABLE   = "The service is currently unavailable";
     private static final String ERROR_UNKNOWN_PDPID = "No attribute backend configured for pdpId '%s'.";
 
-    // Embedded case: load the backend configuration of the pdp through the node bean
+    // Embedded: load the database configuration of the pdp through the node bean
     private final Function<String, AttributeStore> resolver;
     private final Consumer<String>                 invalidator;
     private final Runnable                         closeAll;
 
+    /**
+     * Create the router object for the Attribute API server in standalone and
+     * embedded mode.
+     *
+     * @param resolver returns the attribute store of a pdp id.
+     * @param invalidator discards connections of a pdp id after a connection error.
+     * The next requests connects again.
+     * @param closeAll closes all attribute stores on shutdown.
+     */
     public RoutingAttributeStore(Function<String, AttributeStore> resolver,
             Consumer<String> invalidator,
             Runnable closeAll) {
@@ -132,7 +148,8 @@ public final class RoutingAttributeStore implements AttributeStore {
     }
 
     /**
-     * Constructs the store if the api server runs in a standalone mode with the SAPL Node.
+     * Constructs the store if the api server runs in a standalone mode with the
+     * SAPL Node.
      *
      * @param handlesByBackendName The connection settings
      * @param pdpIdToBackendName The registration of pdp id to backend name
@@ -161,7 +178,8 @@ public final class RoutingAttributeStore implements AttributeStore {
         return handlesByBackendName.get(backendName).resolveOrThrow(backendName);
     }
 
-    // Helper method to marks the connection as interrupted, so that a reconnect is tried instead of using a dead
+    // Helper method to marks the connection as interrupted, so that a reconnect is
+    // tried instead of using a dead
     // connection
     private static void invalidateViaBackendName(String pdpId, Map<String, BackendHandle> handlesByBackendName,
             Map<String, String> pdpIdToBackendName) {

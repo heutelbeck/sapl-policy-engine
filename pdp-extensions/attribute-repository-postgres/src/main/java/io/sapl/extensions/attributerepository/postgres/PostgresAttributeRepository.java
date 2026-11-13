@@ -148,6 +148,16 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     @Delegate(excludes = ExcludedMethods.class)
     private final InMemoryAttributeRepository internalRepository;
 
+    /**
+     * Creates the object for the Postgres attribute repository to communicate with
+     * the database. Listen to the channels, prepares common statements, creates the
+     * internal cache and loads all attributes.
+     *
+     * @param client The Postgres client to execute commands with.
+     * @param connectionFactory The Postgres connection.
+     * @param pdpId The pdp is this attribute repository is for.
+     * @param table The table that contains the attributes.
+     */
     public PostgresAttributeRepository(DatabaseClient client,
             ConnectionFactory connectionFactory,
             String pdpId,
@@ -299,8 +309,13 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         var argumentsJson = valuesToJson(key.arguments());
         var valueJson     = ValueJsonMarshaller.toJsonString(value);
 
-        var upsertSpec = client.sql(upsertSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name())
-                .bind(FIELD_ARGUMENTS, argumentsJson).bind(FIELD_VALUE, valueJson);
+        // @formatter:off
+        var upsertSpec = client.sql(upsertSql)
+        		.bind(FIELD_PDP_ID, pdpId)
+        		.bind(FIELD_NAME, key.name())
+                .bind(FIELD_ARGUMENTS, argumentsJson)
+                .bind(FIELD_VALUE, valueJson);
+        // @formatter:on
 
         upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
@@ -309,12 +324,23 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 : upsertSpec.bindNull(FIELD_ENTITY, String.class)).then().timeout(QUERY_TIMEOUT).block();
     }
 
+    /**
+     * Delete the attribute for the given attribute key from the database.
+     *
+     * @param key the attribute key.
+     */
     public void deleteFromDB(@NonNull RepositoryKey key) {
         var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
         var argumentsJson = valuesToJson(key.arguments());
 
-        var spec = client.sql(deleteSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name()).bind(FIELD_ARGUMENTS,
-                argumentsJson);
+        // @formatter:off
+		var spec = client.sql(deleteSql)
+				.bind(FIELD_PDP_ID, pdpId)
+				.bind(FIELD_NAME, key.name())
+				.bind(FIELD_ARGUMENTS,
+				argumentsJson);
+		// @formatter:on
+
         (entityJson != null ? spec.bind(FIELD_ENTITY, entityJson) : spec.bindNull(FIELD_ENTITY, String.class)).then()
                 .timeout(QUERY_TIMEOUT).block();
     }

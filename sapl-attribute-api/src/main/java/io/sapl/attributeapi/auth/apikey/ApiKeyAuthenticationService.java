@@ -32,6 +32,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.Duration;
 import java.util.UUID;
 
+/**
+ * The authentication service of the Attribute API server.
+ */
 public class ApiKeyAuthenticationService {
     private static final String SAPL_PREFIX = "sapl_";
 
@@ -41,21 +44,38 @@ public class ApiKeyAuthenticationService {
     private final Cache<String, AttributeApiUserDetails> cache = Caffeine.newBuilder().maximumSize(1000)
             .expireAfterWrite(Duration.ofMinutes(5)).build();
 
+    /**
+     * Creates the authentication service object for the current instance of the
+     * Attribute API server.
+     *
+     * @param properties The security properties of the current instance with all
+     * relevant settings.
+     * @param encoder The password encoder to use. Usually it's strong encryption
+     * with Argon2.
+     */
     public ApiKeyAuthenticationService(AttributeApiSecurityProperties properties, PasswordEncoder encoder) {
         this.properties = properties;
         this.encoder    = encoder;
 
-        // Always execute an Argon2 encoding, so that an attacker cannot measure the timings if a key is missing
+        // Always execute an Argon2 encoding, so that an attacker cannot measure the
+        // timings if a key is missing
         this.dummyArgon2 = encoder.encode(UUID.randomUUID().toString());
     }
 
+    /**
+     * Finds the user of an API key. The API key is like {@code sapl_<id>_<secret>}.
+     * Valid keys are cached for five minutes to reduce load. One Argon2 checks runs
+     * for every key with a valid format. This prevents that the response times does
+     * not differ too much whether an id is configured or not.
+     *
+     * @param rawKey the complete API key from the request.
+     * @return the user of key. Empty if the key is invalid.
+     * @throws NoSuchAlgorithmException if SHA-256 is missing. The JVM usually provides it.
+     */
     public Optional<AttributeApiUserDetails> findByApiKey(String rawKey) throws NoSuchAlgorithmException {
-        if (rawKey == null) {
-            return Optional.empty();
-        }
-
         val cacheKey   = sha256(rawKey);
         val cachedUser = cache.getIfPresent(cacheKey);
+
         if (cachedUser != null) {
             return Optional.of(cachedUser);
         }
@@ -65,10 +85,8 @@ public class ApiKeyAuthenticationService {
             return Optional.empty();
         }
 
-        val candidate    = properties.getApiKeyIdIndex().get(apiKeyId);
-        val hasCandidate = candidate != null && candidate.getApiKey() != null;
-        // Always run exactly one Argon2 verification (dummy hash when absent), so
-        // timing does not leak configured ids.
+        val candidate      = properties.getApiKeyIdIndex().get(apiKeyId);
+        val hasCandidate   = candidate != null && candidate.getApiKey() != null;
         val encodedToCheck = hasCandidate ? candidate.getApiKey() : dummyArgon2;
         val matches        = encoder.matches(rawKey, encodedToCheck);
 
@@ -84,7 +102,8 @@ public class ApiKeyAuthenticationService {
         return new AttributeApiUserDetails(user.getId(), null, user.getPdpId());
     }
 
-    // Extract the public id (middle part) of the api key. Assuming the prefix is set via SAPL_PREFIX
+    // Extract the public id (middle part) of the api key. Assuming the prefix is
+    // set via SAPL_PREFIX
     private static String extractApiKeyId(String rawKey) {
         if (!rawKey.startsWith(SAPL_PREFIX)) {
             return null;
@@ -98,7 +117,7 @@ public class ApiKeyAuthenticationService {
 
     // Hash the raw key in case of a heap dump exposure
     private static String sha256(String rawKey) throws NoSuchAlgorithmException {
-        val digest = MessageDigest.getInstance("SHA-256");
-        return HexFormat.of().formatHex(digest.digest(rawKey.getBytes(StandardCharsets.UTF_8)));
+        return HexFormat.of()
+                .formatHex(MessageDigest.getInstance("SHA-256").digest(rawKey.getBytes(StandardCharsets.UTF_8)));
     }
 }

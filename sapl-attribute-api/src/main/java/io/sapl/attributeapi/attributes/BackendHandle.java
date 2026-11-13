@@ -26,11 +26,16 @@ import io.sapl.attributeapi.attributes.backend.AttributeBackendUnavailableExcept
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Handles the available database connections and either connects directly,
+ * closes it or tries every 5 seconds a reconnect if the connection could not be
+ * established.
+ */
 @Slf4j
 public final class BackendHandle {
     private static final String ERROR_UNAVAILABLE = "The service is currently unavailable";
 
-    // To avoid reconnect burst when the backend is down
+    // To avoid reconnect burst when the database is down
     public static final Duration RETRY_COOLDOWN = Duration.ofSeconds(5);
 
     // Supplier defines how to create something but the creation happens later
@@ -39,16 +44,21 @@ public final class BackendHandle {
     private final AtomicReference<AttributeStore> store       = new AtomicReference<>();
     private final AtomicReference<Instant>        lastFailure = new AtomicReference<>();
 
+    /**
+     * Creates the backend handle object that creates the attribute store.
+     *
+     * @param builder Create the attribute store. Called at first use and after a failure.
+     */
     public BackendHandle(Supplier<AttributeStore> builder) {
         this.builder = builder;
     }
 
     /**
-     * Determines if an attribute store can be build. The reconnect retry stops
-     * for few seconds if the creation just failed.
+     * Determines if an attribute store can be build. The reconnect retry stops for
+     * few seconds if the creation just failed.
      *
-     * @param name The name of the attribute store backend
-     * @return A valid attribute store
+     * @param name The name of the attribute store database.
+     * @return A valid attribute store.
      */
     public AttributeStore resolveOrThrow(String name) {
         var current = store.get();
@@ -84,16 +94,19 @@ public final class BackendHandle {
         }
     }
 
+    /**
+     * Closes the current store e.g. the connections to the database.
+     */
     public void close() {
         var current = store.get();
-        if (current != null) {
+        if (store.get() != null) {
             current.close();
         }
     }
 
     /**
-     * Discards the currently resolved store. Start the retry cooldown again when
-     * a store that was available first is later unreachable.
+     * Discards the currently resolved store. Start the retry cooldown again when a
+     * store that was available first is later unreachable.
      */
     public void invalidate() {
         store.set(null);

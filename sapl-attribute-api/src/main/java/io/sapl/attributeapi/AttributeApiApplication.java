@@ -20,8 +20,16 @@ package io.sapl.attributeapi;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Main class and entry point of the Attribute API server.
+ */
 @SpringBootApplication
 public class AttributeApiApplication {
+    /**
+     * Entry point for the Attribute API server.
+     *
+     * @param args The start arguments of the Attribute API server.
+     */
     public static void main(String[] args) {
         SpringApplication.run(AttributeApiApplication.class, args);
     }

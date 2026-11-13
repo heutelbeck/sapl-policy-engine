@@ -18,10 +18,11 @@
 package io.sapl.attributeapi.attributes.backend;
 
 import io.sapl.api.model.Value;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * A record for a valid {@code AttributeEntry} used by the API that
- * contains the {@code AttributeKey} and a {@code Value}.
+ * An attribute read from a store. It's returned by {@link AttributeStore#getAll(String, Integer, Integer)}.
+ *
+ * @param key the attribute key.
+ * @param value the stored value.
  */
-public record AttributeEntry(AttributeKey key, @Schema(type = "string", example = "IT") Value value) {}
+public record AttributeEntry(AttributeKey key, Value value) {}

@@ -65,6 +65,12 @@ public class MongoAttributeStore implements AttributeStore {
     private final TransactionalOperator transactions;
     private final String                collection;
 
+    /**
+     * Creates the Mongo attribute store object to connect to the database.
+     *
+     * @param mongo The Mongo template to use for the communication.
+     * @param collection The collection that contains the attribute database.
+     */
     public MongoAttributeStore(ReactiveMongoTemplate mongo, String collection) {
         this.mongo        = mongo;
         this.transactions = TransactionalOperator

@@ -45,7 +45,7 @@ class RedisAttributeStoreTests {
 
     @Test
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
-    void whenPublishedWithNegativeTTLExceptionIsThrown() {
+    void whenPublishedWithNegativeTTLThenExceptionIsThrown() {
         when(client.connect()).thenReturn(connection);
         when(connection.sync()).thenReturn(commands);
 

@@ -57,6 +57,11 @@ public class RedisAttributeStore implements AttributeStore {
     private final StatefulRedisConnection<String, String> connection;
     private final RedisCommands<String, String>           commands;
 
+    /**
+     * Creates the Redis attribute store object to connect to the database.
+     *
+     * @param client The Redis client to communicate with the database.
+     */
     public RedisAttributeStore(RedisClient client) {
         this.client     = client;
         this.connection = client.connect();

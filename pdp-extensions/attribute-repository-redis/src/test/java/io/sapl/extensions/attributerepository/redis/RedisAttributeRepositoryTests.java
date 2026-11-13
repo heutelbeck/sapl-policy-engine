@@ -213,12 +213,12 @@ class RedisAttributeRepositoryTests {
     }
 
     @Nested
-    @DisplayName("pub/sub observer")
-    class PubSubObserver {
+    @DisplayName("when a value is published by another instance")
+    class WhenValueIsPublishedByAnotherInstance {
 
         @Test
-        @DisplayName("when value is publihed from another instance then observer is notified")
-        void observerNotifiedFromOtherInstance() {
+        @DisplayName("when value is published from another instance then observer is notified")
+        void thenObserverIsNotifiedOfValueFromOtherInstance() {
             repository.observe(invocation("sapl.test.observe"), received::add);
             received.clear();
 
@@ -237,7 +237,7 @@ class RedisAttributeRepositoryTests {
 
         @Test
         @DisplayName("observer still receives UNDEFINED when a TTL expires")
-        void observerNotifiedOfExpiryOnNonDefaultDatabase() {
+        void thenObserverIsNotifiedOfExpiry() {
             val baseUri = RedisURI.create(redis.getRedisURI());
             val uri     = RedisURI.Builder.redis(baseUri.getHost(), baseUri.getPort()).withDatabase(1).build();
             val client1 = RedisClient.create(uri);
@@ -258,7 +258,7 @@ class RedisAttributeRepositoryTests {
     class WhenKeyspaceNotificationsAreDisabled {
         @Test
         @DisplayName("construction fails fast with a clear error instead of starting up silently")
-        void constructorRejectsMissingKeyspaceNotifications() {
+        void thenConstructionFails() {
             try (val setupClient = RedisClient.create(redis.getRedisURI());
                     val testClient = RedisClient.create(redis.getRedisURI())) {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "");
@@ -272,8 +272,8 @@ class RedisAttributeRepositoryTests {
         }
 
         @Test
-        @DisplayName("construction fails when then flag for keyevents(E) is missing")
-        void keyeventFlagIsMissing() {
+        @DisplayName("construction fails when the flag for keyevents(E) is missing")
+        void thenConstructionFailsWithoutKeyeventFlag() {
             try (val setupClient = RedisClient.create(redis.getRedisURI());
                     val testClient = RedisClient.create(redis.getRedisURI())) {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "x");
@@ -287,8 +287,8 @@ class RedisAttributeRepositoryTests {
         }
 
         @Test
-        @DisplayName("construction fails when then flag for for expired events (x) is missing")
-        void expiredEventFlagIsMissing() {
+        @DisplayName("construction fails when the flag for expired events (x) is missing")
+        void thenConstructionFailsWithoutExpiredFlag() {
             try (val setupClient = RedisClient.create(redis.getRedisURI());
                     val testClient = RedisClient.create(redis.getRedisURI())) {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "E");
@@ -302,8 +302,8 @@ class RedisAttributeRepositoryTests {
         }
 
         @Test
-        @DisplayName("construction is sucessfull when the generic flag (A) is used with the keyevent flag (E)")
-        void genericFlagIsUsed() {
+        @DisplayName("construction is sucsessfull when the generic flag (A) is used with the keyevent flag (E)")
+        void thenConstructionSucceedsWithGenericAndKeyeventFlag() {
             try (val setupClient = RedisClient.create(redis.getRedisURI());
                     val testClient = RedisClient.create(redis.getRedisURI())) {
                 setupClient.connect().sync().configSet("notify-keyspace-events", "EA");

@@ -46,6 +46,12 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private final AuthenticationManager    authenticationManager;
     private final AuthenticationEntryPoint authenticationEntryPoint;
 
+    /**
+     * Create the api key authentication filter object for the Attribute API server.
+     *
+     * @param authenticationManager authenticates the extracted API key.
+     * @param authenticationEntryPoint answers failed authentication with HTTP 401.
+     */
     public ApiKeyAuthenticationFilter(AuthenticationManager authenticationManager,
             AuthenticationEntryPoint authenticationEntryPoint) {
         this.authenticationManager    = authenticationManager;
@@ -62,8 +68,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Strip only "Bearer ", keeping the sapl_ prefix intact - the service
-        // parses the api-key-id out of the full sapl_<id>_<secret> token.
+        // Strip the Bearer away to get the key
         String key = authHeader.substring(BEARER_PREFIX.length());
 
         try {

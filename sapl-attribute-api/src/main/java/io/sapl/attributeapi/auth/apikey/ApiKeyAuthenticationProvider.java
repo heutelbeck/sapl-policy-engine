@@ -26,10 +26,21 @@ import org.springframework.security.core.AuthenticationException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
+/**
+ * Authenticates the API keys that the {@link ApiKeyAuthenticationFilter}
+ * extracts from an {@code Authorization: Bearer sapl_...} header. A valid key
+ * yields an authenticated token with the user's pdp id.
+ */
 public class ApiKeyAuthenticationProvider implements AuthenticationProvider {
     private static final String               ERROR_NO_API_KEY = "Invalid api key.";
     private final ApiKeyAuthenticationService service;
 
+    /**
+     * Creates the authentication provider for api key usage within the Attribute
+     * API server.
+     *
+     * @param service The corresponding api key authentication service.
+     */
     public ApiKeyAuthenticationProvider(ApiKeyAuthenticationService service) {
         this.service = service;
     }
@@ -38,7 +49,8 @@ public class ApiKeyAuthenticationProvider implements AuthenticationProvider {
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         Object credentials = authentication.getCredentials();
 
-        // Throw a BadCredentialsException instead of a NPE to filter it properly and response a 401
+        // Throw a BadCredentialsException instead of a NPE to filter it properly and
+        // response a 401
         if (credentials == null) {
             throw new BadCredentialsException(ERROR_NO_API_KEY);
         }

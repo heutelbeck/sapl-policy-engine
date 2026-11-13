@@ -23,45 +23,55 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * The interface for an attribute store that implements a connection to
- * a persistent backend. Used by the API and offers methods that support
- * common endpoint mechanics.
+ * The interface for an attribute store that implements a connection to a
+ * database. Used by the API and offers methods that support common end point
+ * mechanics.
  */
 public interface AttributeStore {
     /**
-     * Publish an attribute to a persistent backend without a set time-to-live (TTL).
-     * A non set TTL means that the attribute never expires.
+     * Publish an attribute to a database without a set time-to-live
+     * (TTL). A non set TTL means that the attribute never expires.
      *
-     * @param key The attribute key that contains the entity, attribute name and arguments.
+     * @param key The attribute key that contains the entity, attribute name and
+     * arguments.
      * @param value The value of an attribute.
-     * @param pdpId The pdp id the attribute is stored for. The default is "default".
-     * @return {@code true}, the attribute could be published and {@code false} if not.
+     * @param pdpId The pdp id the attribute is stored for. The default is
+     * "default".
+     * @return {@code true}, the attribute could be published and {@code false} if
+     * not.
      */
     boolean publish(AttributeKey key, Value value, String pdpId);
 
     /**
-     * Publish an attribute to a persistent backend with a set time-to-live (TTL).
-     * The time-to-live set the lifetime of an attribute and is removed after it's expired.
+     * Publish an attribute to a database with a set time-to-live (TTL).
+     * The time-to-live set the lifetime of an attribute and is removed after it's
+     * expired.
      *
-     * @param key The attribute key that contains the entity, attribute name and arguments.
+     * @param key The attribute key that contains the entity, attribute name and
+     * arguments.
      * @param value The value of an attribute.
      * @param ttl The time to live of an attribute
-     * @param pdpId The pdp id the attribute is stored for. The default is "default".
-     * @return {@code true}, the attribute could be published and {@code false} if not.
+     * @param pdpId The pdp id the attribute is stored for. The default is
+     * "default".
+     * @return {@code true}, the attribute could be published and {@code false} if
+     * not.
      */
     boolean publish(AttributeKey key, Value value, Duration ttl, String pdpId);
 
     /**
-     * Removes an attribute from the persistent backend.
+     * Removes an attribute from the database.
      *
-     * @param key The attribute key that contains the entity, attribute name and arguments.
+     * @param key The attribute key that contains the entity, attribute name and
+     * arguments.
      * @param pdpId The pdp id to the delete the attribute for.
-     * @return {@code true}, the attribute could be removed and {@code false} if not.
+     * @return {@code true}, the attribute could be removed and {@code false} if
+     * not.
      */
     boolean remove(AttributeKey key, String pdpId);
 
     /**
-     * Counts all attributes for a specific pdp id that are stored on the persistent storage.
+     * Counts all attributes for a specific pdp id that are stored on the persistent
+     * storage.
      *
      * @param pdpId The pdp id the count operation is executed for.
      * @return A {@code Long} value that indicates the amount of entries.
@@ -69,10 +79,11 @@ public interface AttributeStore {
     Long count(String pdpId);
 
     /**
-     * Get a specific attribute from the backend. Specified by the attribute key and a mandatory
-     * pdp id.
+     * Get a specific attribute from the database. Specified by the attribute key and
+     * a mandatory pdp id.
      *
-     * @param key The {@code AttributeKey} that contains an attribute name and a optional entity and arguments.
+     * @param key The {@code AttributeKey} that contains an attribute name and a
+     * optional entity and arguments.
      * @param pdpId The pdp id the attribute lookup is done for.
      * @return An {@code Value} that contains the stored value for the attribute.
      */
@@ -84,7 +95,8 @@ public interface AttributeStore {
      * @param pdpId The pdp id the attribute lookup is done for.
      * @param limit Limit the result by [0..MAX_INT] entries.
      * @param offset Start the list at the number specified by the offset.
-     * @return A list of all stored attributes containing the {@code AttributeKey} and the {@code Value}.
+     * @return A list of all stored attributes containing the {@code AttributeKey}
+     * and the {@code Value}.
      */
     List<AttributeEntry> getAll(String pdpId, @Nullable Integer limit, @Nullable Integer offset);
 
@@ -93,12 +105,30 @@ public interface AttributeStore {
      */
     void close();
 
+    /**
+     * One change of the n changes of a batch.
+     *
+     * @param key the attribute key.
+     * @param value the new value to apply for this attribute.
+     * @param ttl the time to live or {@code null} for no expiry.
+     */
     record Change(AttributeKey key, @Nullable Value value, @Nullable Duration ttl) {
+        /**
+         * Ignores the value internally if the change is a delete.
+         *
+         * @return {@code null} because the value is not required for a delete.
+         */
         public boolean isDelete() {
             return value == null;
         }
     }
 
+    /**
+     * Optional end point to support batch changes via HTTP patch.
+     *
+     * @param changes a list of changes to make for several attributes.
+     * @param pdpId the pdp id the batch change is done for.
+     */
     default void applyAll(List<Change> changes, String pdpId) {
         throw new UnsupportedOperationException();
     }

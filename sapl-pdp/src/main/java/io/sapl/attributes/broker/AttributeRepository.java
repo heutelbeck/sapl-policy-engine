@@ -82,6 +82,15 @@ public interface AttributeRepository extends AutoCloseable {
      */
     void remove(@NonNull RepositoryKey key);
 
+    /**
+     * Sets the runner that delivers the values of one atomic batch together. The
+     * repository wraps the notifications of a batch in this runner, so policies
+     * are re-evaluated once with all new values and never see an intermediate
+     * state. Repositories without batch support ignore it.
+     *
+     * @param batchRunner runs the given notifications as one batch, provided by
+     * the attribute broker
+     */
     default void setBatchRunner(Consumer<Runnable> batchRunner) {
         // repositories that do not support a batch mode ignore the runner
     }

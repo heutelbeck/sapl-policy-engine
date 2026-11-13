@@ -73,14 +73,17 @@ public class AttributeApiController {
     private final BlockingTenantResolver tenantResolver;
 
     /**
-     * Endpoint to publish an attribute into the store that contains an entity and attribute name. The arguments
-     * are part of the request body because arguments can vary.
+     * Endpoint to publish an attribute into the store that contains an entity and
+     * attribute name. The arguments are part of the request body because arguments
+     * can vary.
      *
      * @param entity The name of the entity.
      * @param name The name of the attribute.
-     * @param request The request body that was sent. The body contains the value and the TTL.
-     * @return {@code HTTP 201} if the attribute didn't exist before and {@code HTTP 200} if the attribute was updated.
-     * See also RFC 9110 Section 9.3.
+     * @param request The request body that was sent. The body contains the value
+     * and the TTL.
+     * @return {@code HTTP 201} if the attribute didn't exist before and
+     * {@code HTTP 200} if the attribute was updated. See also RFC 9110
+     * Section 9.3.
      */
     @Operation(summary = "Publish an attribute with an entity, attribute name and optional arguments", responses = {
             @ApiResponse(responseCode = "200", description = "The attribute already existed and was updated."),
@@ -100,13 +103,16 @@ public class AttributeApiController {
     }
 
     /**
-     * Endpoint to publish an attribute into the store that contains no entity but the mandatory attribute name.
-     * The arguments are part of the request body because arguments can vary.
+     * End point to publish an attribute into the store that contains no entity but
+     * the mandatory attribute name. The arguments are part of the request body
+     * because arguments can vary.
      *
      * @param name The name of the attribute.
-     * @param request The request body that was sent. The body contains the value and the TTL.
-     * @return {@code HTTP 201} if the attribute didn't exist before and {@code HTTP 200} if the attribute was updated.
-     * See also RFC 9110 Section 9.3.
+     * @param request The request body that was sent. The body contains the value
+     * and the TTL.
+     * @return {@code HTTP 201} if the attribute didn't exist before and
+     * {@code HTTP 200} if the attribute was updated. See also RFC 9110
+     * Section 9.3.
      */
     @Operation(summary = "Publish an attribute with an attribute name and optional arguments", responses = {
             @ApiResponse(responseCode = "200", description = "The attribute already existed and was updated."),
@@ -126,9 +132,10 @@ public class AttributeApiController {
     }
 
     /**
-     * Endpoint to delete an attribute from the attribute store. Regarding to {@code RFC 7231 Section 4.3.5}
-     * a payload within a Delete has no defined semantics. Depending on the implementation a delete request
-     * with a body may be rejected or ignored. The recommend way is to sent it as URL parameter.
+     * End point to delete an attribute from the attribute store. Regarding to
+     * {@code RFC 7231 Section 4.3.5} a payload within a Delete has no defined
+     * semantics. Depending on the implementation a delete request with a body may
+     * be rejected or ignored. The recommend way is to sent it as URL parameter.
      *
      * @param entity The name of the entity.
      * @param name The attribute name.
@@ -149,9 +156,10 @@ public class AttributeApiController {
     }
 
     /**
-     * Endpoint to delete an attribute from the attribute store. Regarding to {@code RFC 7231 Section 4.3.5}
-     * a payload within a Delete has no defined semantics. Depending on the implementation a delete request
-     * with a body may be rejected or ignored. The recommend way is to sent it as URL parameter.
+     * End point to delete an attribute from the attribute store. Regarding to
+     * {@code RFC 7231 Section 4.3.5} a payload within a Delete has no defined
+     * semantics. Depending on the implementation a delete request with a body may
+     * be rejected or ignored. The recommend way is to sent it as URL parameter.
      *
      * @param name The attribute name.
      * @param args The arguments of the attribute
@@ -210,15 +218,18 @@ public class AttributeApiController {
     }
 
     /**
-     * Get all attributes for a given pdp id from the attribute store. Supports limit and offset
-     * to split requests and control the amount of output. Attribute will be in the order they
-     * were inserted into the attribute store.
+     * Get all attributes for a given pdp id from the attribute store. Supports
+     * limit and offset to split requests and control the amount of output.
+     * Attribute will be in the order they were inserted into the attribute store.
      *
      * @param limit The number of attributes that are put into the response.
-     * @param offset The position to start within the list. Used together with limit.
-     * @param count Instead of sending a list of attributes just return the amount of attributes found.
-     * @return {@code HTTP 200}. Without the count parameter a list of all attributes is returned that
-     * contains for each entry the {@code AttributeKey} and the {@Value} of an attribute. With the count
+     * @param offset The position to start within the list. Used together with
+     * limit.
+     * @param count Instead of sending a list of attributes just return the amount
+     * of attributes found.
+     * @return {@code HTTP 200}. Without the count parameter a list of all
+     * attributes is returned that contains for each entry the
+     * {@code AttributeKey} and the {@Value} of an attribute. With the count
      * parameter the amount of attributes will be returned.
      */
     @GetMapping
@@ -237,6 +248,12 @@ public class AttributeApiController {
         return ResponseEntity.ok(service.getAll(currentPdpId(), limit, offset));
     }
 
+    /**
+     * Endpoint to support an atomic batch change on the Attribute API server side.
+     *
+     * @param changes A list of changes to execute in an atomic way.
+     * @return {@code 204} - no content if the request was successfully sent.
+     */
     @Operation(summary = "Atomic update, create or delete of attributes. The endpoint supports to send more than one attribute and a mandatory operation.", responses = {
             @ApiResponse(responseCode = "204", description = "The set of attributes was sucessfully sent") })
     @PatchMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -248,7 +265,7 @@ public class AttributeApiController {
     /**
      * Returns an exception if the given request was invalid
      *
-     * @param e
+     * @param e The error message that indicates that the request was invalid.
      * @return {@code HTTP 400} - bad request with the exception message.
      */
     @ExceptionHandler(IllegalArgumentException.class)
@@ -258,9 +275,10 @@ public class AttributeApiController {
     }
 
     /**
-     * Return a {@code HTTP 404} - not found, if the given resource was not found in the store.
+     * Return a {@code HTTP 404} - not found, if the given resource was not found in
+     * the store.
      *
-     * @param e
+     * @param e The error message that the resource was not found in the store.
      * @return {@code HTTP 404} - not found.
      */
     @ExceptionHandler(NoSuchElementException.class)
@@ -277,12 +295,15 @@ public class AttributeApiController {
     }
 
     /**
-     * Exception thrown when the backend storage isn't available. Only show a generic message to avoid
-     * leaking internal information. Sends a {@code Retry-After:} header.
-     * Also see {@link https://datatracker.ietf.org/doc/html/rfc9110#name-503-service-unavailable}
+     * Exception thrown when the database isn't available. Only show a generic
+     * message to avoid leaking internal information. Sends a {@code Retry-After:}
+     * header. Also see <a href=
+     * "https://datatracker.ietf.org/doc/html/rfc9110#name-503-service-unavailable">RFC
+     * 9110, 503</a>
      *
-     * @param e The exception message
-     * @return {@code HTTP 503} - service unavailable. The current backend storage couldn't be reached.
+     * @param e The generic exception message.
+     * @return {@code HTTP 503} - service unavailable. The current backend storage
+     * couldn't be reached.
      */
     @ExceptionHandler(AttributeBackendUnavailableException.class)
     public ResponseEntity<String> handleBackendUnavailable(AttributeBackendUnavailableException e) {
@@ -293,11 +314,12 @@ public class AttributeApiController {
     }
 
     /**
-     * Exception thrown when the backend isn't available but the it's not marked as service down.
-     * Only show a generic message to avoid leaking internal information.
+     * Exception thrown when the database isn't available but it's not marked as
+     * service down. Only show a generic message to avoid leaking internal
+     * information.
      *
-     * @param e
-     * @return
+     * @param e The generic exception message seen by the client.
+     * @return The answer of the HTTP server with the generic error message.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleUnexpected(Exception e) {

@@ -17,15 +17,15 @@
  */
 package io.sapl.attributeapi.attributes.backend;
 
-/**
- * Exception to indicate that the current attribute backend is currently not available.
- */
-public class AttributeBackendUnavailableException extends RuntimeException {
-    public AttributeBackendUnavailableException(String message) {
-        super(message);
-    }
+import java.io.Serial;
+import io.sapl.api.SaplVersion;
+import lombok.experimental.StandardException;
 
-    public AttributeBackendUnavailableException(String message, Throwable cause) {
-        super(message, cause);
-    }
+/**
+ * Exception to indicate that the current attribute database is currently not available.
+ */
+@StandardException
+public class AttributeBackendUnavailableException extends RuntimeException {
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

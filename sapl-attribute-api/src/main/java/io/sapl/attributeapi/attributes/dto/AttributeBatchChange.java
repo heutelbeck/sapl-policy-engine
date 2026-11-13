@@ -23,6 +23,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import tools.jackson.databind.JsonNode;
 
+/**
+ * A batch change object that includes the API key, the value, TTL and the
+ * operation to execute.
+ */
 public record AttributeBatchChange(
         Operation op,
         JsonNode entity,
@@ -31,6 +35,9 @@ public record AttributeBatchChange(
         JsonNode value,
         Long ttl) {
 
+    /**
+     * Defines the allowed operations in a batch change.
+     */
     public enum Operation {
         @JsonProperty("put")
         PUT,

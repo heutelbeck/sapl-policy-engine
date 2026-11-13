@@ -43,16 +43,15 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
- * In-memory {@link AttributeRepository}. Producers publish values
- * keyed by {@link RepositoryKey}; observers register a per-invocation
- * listener via {@link #observe} and receive the current value plus
- * every subsequent change.
+ * In-memory {@link AttributeRepository}. Producers publish values keyed by
+ * {@link RepositoryKey}; observers register a per-invocation listener via
+ * {@link #observe} and receive the current value plus every subsequent change.
  * <p>
- * State is volatile: lost on close. TTL expiry removes the entry and
- * notifies observers (who observe {@link Value#UNDEFINED}).
+ * State is volatile: lost on close. TTL expiry removes the entry and notifies
+ * observers (who observe {@link Value#UNDEFINED}).
  * <p>
- * Thread-safety. All state mutations occur under a single internal
- * lock. Observer callbacks fire outside the lock.
+ * Thread-safety. All state mutations occur under a single internal lock.
+ * Observer callbacks fire outside the lock.
  *
  * @since 4.1.0
  */
@@ -72,10 +71,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     private boolean closed = false;
 
     /**
-     * Monotonic per-mutation sequence, assigned under {@link #lock}. Observers
-     * fire outside the lock, so concurrent publishes for the same key can race
-     * in delivery order. Each observer uses this sequence to drop a delivery a
-     * newer mutation has already superseded, so the latest value always wins.
+     * Monotonic per-mutation sequence, assigned under {@link #lock}. Observers fire
+     * outside the lock, so concurrent publishes for the same key can race in
+     * delivery order. Each observer uses this sequence to drop a delivery a newer
+     * mutation has already superseded, so the latest value always wins.
      */
     private long sequenceCounter = 0L;
 
@@ -86,8 +85,14 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         this(key -> {});
     }
 
+    /**
+     * Creates a repository that reports expired keys e.g. to be used as an internal
+     * cache if a persistent attribute repository has a delayed deletion.
+     *
+     * @param onExpiry called with the key of every attribute whose TTL ran out
+     */
     public InMemoryAttributeRepository(Consumer<RepositoryKey> onExpiry) {
-        this.onExpiry  = onExpiry; // new
+        this.onExpiry  = onExpiry;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
                            val thread = Thread.ofVirtual().unstarted(runnable);
                            thread.setName("InMemoryAttributeRepository-ttl");
@@ -242,7 +247,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             lock.unlock();
 
         }
-        onExpiry.accept(key); // new
+        onExpiry.accept(key);
         fireObservers(toFire, Value.UNDEFINED, seq);
     }
 
@@ -258,6 +263,12 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
+    /**
+     * Returns a snapshot of the keys that currently hold a value. Expired and
+     * removed keys are not included.
+     *
+     * @return a copy of the stored keys.
+     */
     public Set<RepositoryKey> knownKeys() {
         lock.lock();
         try {
@@ -268,9 +279,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Per-entry storage. {@code expiryTask} is settable so the
-     * publisher can install it after constructing the entry record
-     * that the task closure captures.
+     * Per-entry storage. {@code expiryTask} is settable so the publisher can
+     * install it after constructing the entry record that the task closure
+     * captures.
      */
     private static final class Entry {
         private final Value        value;
@@ -283,9 +294,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Single-key observer registered via {@link #observe}. The
-     * repository indexes observers in {@link #observersByKey} and
-     * fires them on publish, expire and remove.
+     * Single-key observer registered via {@link #observe}. The repository indexes
+     * observers in {@link #observersByKey} and fires them on publish, expire and
+     * remove.
      */
     @RequiredArgsConstructor
     private final class KeyObserver implements AttributeRepository.Registration {
@@ -351,6 +362,12 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
+    /**
+     * Returns a snapshot of the keys that currently have at least one observer.
+     * Including keys without a stored value.
+     *
+     * @return a copy of the observed keys.
+     */
     public Set<RepositoryKey> observedKeys() {
         lock.lock();
         try {

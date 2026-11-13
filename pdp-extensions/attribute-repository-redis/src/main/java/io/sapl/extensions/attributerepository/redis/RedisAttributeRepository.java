@@ -95,6 +95,15 @@ public final class RedisAttributeRepository implements AttributeRepository {
     @Delegate(excludes = ExcludedMethods.class)
     private final InMemoryAttributeRepository internalRepository;
 
+    /**
+     * Creates the object for the Redis attribute repository to communicate with
+     * the database. Listen to the channels, creates the
+     * internal cache and loads all attributes.
+     *
+     * @param client The Redis client to communicate with the database.
+     * @param pdpId The pdp id this attribute repository is for.
+     * @param database The Redis database to find the attributes.
+     */
     public RedisAttributeRepository(RedisClient client, String pdpId, int database) {
         this.client     = client;
         this.connection = client.connect();

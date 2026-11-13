@@ -27,17 +27,21 @@ import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
 import io.sapl.attributeapi.auth.AttributeApiUserDetails;
 
 /**
- * Validates the needed claim to identify the PDP within the token. The validated JWT will be converted
- * into an authenticated user representation. The claim is configurable via
- * {@code io.sapl.attribute-api.oauth2.oidc-pdp-id-claim}
- * and is by default set to {@code pdp_id}.
+ * Validates the needed claim to identify the PDP within the token. The
+ * validated JWT will be converted into an authenticated user representation.
+ * The claim is configurable via
+ * {@code io.sapl.attribute-api.oauth2.oidc-pdp-id-claim} and is by default set
+ * to {@code pdp_id}.
  */
 public class PdpIdJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
-    private static final String ERROR_MISSING_PDP_ID = "JWT token missing required claim: %s.";
-    private static final String ERROR_INVALID_PDP_ID = "JWT token claim '%s' contains an invalid pdpId value.";
+    private static final String ERROR_INVALID_PDP_ID = "JWT token claim '%s' is missing or contains an invalid pdpId value.";
+    private final String        claimName;
 
-    private final String claimName;
-
+    /**
+     * Creates a converter that reads the pdp-id from the given claim.
+     *
+     * @param claimName the JWT claim name that contains the pdpId
+     */
     public PdpIdJwtAuthenticationConverter(String claimName) {
         this.claimName = claimName;
     }
@@ -47,16 +51,11 @@ public class PdpIdJwtAuthenticationConverter implements Converter<Jwt, AbstractA
         val pdpIdClaim = source.getClaimAsString(claimName);
         val subject    = source.getSubject();
 
-        if (pdpIdClaim == null || pdpIdClaim.isBlank()) {
-            throw new InvalidBearerTokenException(ERROR_MISSING_PDP_ID.formatted(claimName));
-        }
-
         if (!AttributeApiSecurityProperties.isValidPdpId(pdpIdClaim)) {
             throw new InvalidBearerTokenException(ERROR_INVALID_PDP_ID.formatted(claimName));
         }
 
         var principal = new AttributeApiUserDetails(subject, null, pdpIdClaim);
-
         return UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities());
     }
 }

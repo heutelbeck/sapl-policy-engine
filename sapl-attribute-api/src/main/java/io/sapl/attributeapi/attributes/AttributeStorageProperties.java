@@ -26,9 +26,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * A storage class thats keeps the default properties for the Redis, Mongo or Postgres
- * attribute store. The default configuration is used when one of this configuration
- * items is missing in the configuration.
+ * A storage class thats keeps the default properties for the Redis, Mongo or
+ * Postgres attribute store. The default configuration is used when one of this
+ * configuration items is missing in the configuration.
  */
 @Data
 @ConfigurationProperties(prefix = "io.sapl.attributes")
@@ -99,10 +99,11 @@ public class AttributeStorageProperties implements InitializingBean {
     }
 
     /**
-     * Checks that are performed after the properties are set. Throws exceptions for an
-     * unknown storage type or a missing Postgres password.
+     * Checks that are performed after the properties are set. Throws exceptions for
+     * an unknown storage type or a missing Postgres password.
      *
-     * @throws IllegalStateException
+     * @throws IllegalStateException e.g., if the database type is unknown or
+     * Postgres password is missing.
      */
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -127,6 +128,9 @@ public class AttributeStorageProperties implements InitializingBean {
         }
     }
 
+    /**
+     * Static data class to define the available database configuration.
+     */
     @Data
     public static class BackendConfig {
         private BackendType type;
@@ -135,6 +139,9 @@ public class AttributeStorageProperties implements InitializingBean {
         private Redis       redis    = new Redis();
     }
 
+    /**
+     * Available database (backend) types.
+     */
     public enum BackendType {
         POSTGRES,
         MONGO,

@@ -27,6 +27,9 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import com.mongodb.MongoCredential;
 
+/**
+ * Factory class to create the proper URI's for the supported databases.
+ */
 @UtilityClass
 class AttributeStoreConnectionFactory {
     private static final String ERROR_MONGO_PASSWORD_REQUIRED = "Property io.sapl.attributes.mongo.username is set "
@@ -34,13 +37,30 @@ class AttributeStoreConnectionFactory {
 
     private static final String POSTGRES_DRIVER = "postgresql";
 
+    /**
+     * Builds the connections options for Postgres to use it for an attribute store.
+     *
+     * @param properties The properties of the Postgres database defined by config.
+     * @return The R2DBC connection options for the Postgres attribute store.
+     */
+    // @formatter:off
     ConnectionFactoryOptions buildPostgresOptions(AttributeStorageProperties.Postgres properties) {
-        return ConnectionFactoryOptions.builder().option(DRIVER, POSTGRES_DRIVER).option(HOST, properties.getHost())
-                .option(PORT, properties.getPort()).option(USER, properties.getUsername())
-                .option(PASSWORD, properties.getPassword()).option(DATABASE, properties.getDatabase()).build();
+        return ConnectionFactoryOptions.builder()
+        		.option(DRIVER, POSTGRES_DRIVER)
+        		.option(HOST, properties.getHost())
+                .option(PORT, properties.getPort())
+                .option(USER, properties.getUsername())
+                .option(PASSWORD, properties.getPassword())
+                .option(DATABASE, properties.getDatabase()).build();
 
     }
+    // @formatter: on
 
+    /**
+     * Builds the connections URI for Mongo to use it for an attribute store.
+     * @param properties The properties of the Mongo database defined by config.
+     * @return The Mongo connection URI for the Mongo attribute store.
+     */
     String buildMongoConnectionUri(AttributeStorageProperties.Mongo properties) {
         val hasCredentials = properties.getUsername() != null && !properties.getUsername().isBlank();
         val authSource     = hasCredentials ? "?authSource=" + properties.getAuthDatabase() : "";
@@ -50,6 +70,11 @@ class AttributeStoreConnectionFactory {
                 + authSource + timeoutParams;
     }
 
+    /**
+     * The Mongo credentials that are used together with a Mongo URI.
+     * @param properties The properties of the Mongo database defined by config.
+     * @return The Mongo credential object to authenticate against the Mongo database.
+     */
     @Nullable
     MongoCredential buildMongoCredential(Mongo properties) {
         val hasCredentials = properties.getUsername() != null && !properties.getUsername().isBlank();
@@ -63,6 +88,11 @@ class AttributeStoreConnectionFactory {
                 password.toCharArray());
     }
 
+    /**
+     * Builds the connections URI for Redis to use it for an attribute store.
+     * @param properties The properties of the Redis database defined by config.
+     * @return The Redis connection URI for the Mongo attribute store.
+     */
     RedisURI buildRedisUri(AttributeStorageProperties.Redis properties) {
         val builder = RedisURI.Builder.redis(properties.getHost(), properties.getPort())
                 .withDatabase(properties.getDatabase());

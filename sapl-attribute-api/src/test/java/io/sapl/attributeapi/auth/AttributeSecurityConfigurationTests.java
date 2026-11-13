@@ -18,7 +18,9 @@
 package io.sapl.attributeapi.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.UUID;
 
 import ch.qos.logback.classic.Logger;
@@ -27,9 +29,12 @@ import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 class AttributeSecurityConfigurationTests {
@@ -152,5 +157,49 @@ class AttributeSecurityConfigurationTests {
                 "io.sapl.attribute-api.users[0].api-key=" + encodedApiKey)
                 .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
                         .containsExactly("API key authentication activated."));
+    }
+
+    @Nested
+    @DisplayName("UserDetailsService")
+    class WhenUserDetailsServiceIsUsed {
+        private static final String SECRET = "$argon2id$v=19$m=16384,t=2,p=1$TAKAbikXvm+RzKPUysWxog$Iv+pnfhWQst5SgL63Bu5VML6EruahgZxutrCBcntuAU";
+
+        private UserDetailsService serviceFor(List<AttributeApiSecurityProperties.UserEntry> users) {
+            var properties = new AttributeApiSecurityProperties();
+            properties.setUsers(users);
+            return new AttributeSecurityConfiguration(properties,
+                    Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()).userDetailsService();
+        }
+
+        @Test
+        @DisplayName("returns matching user details for a known basic authentication user")
+        void whenUserExistsThenReturnUserDetails() {
+            var user = new AttributeApiSecurityProperties.UserEntry();
+            user.setPdpId("tenant-a");
+            user.setUsername("alice");
+            user.setSecret(SECRET);
+
+            var details = serviceFor(List.of(user)).loadUserByUsername("alice");
+
+            assertThat(details.getUsername()).isEqualTo("alice");
+            assertThat(details.getPassword()).isEqualTo(SECRET);
+        }
+
+        @Test
+        @DisplayName("throws when no user matches the given username")
+        void whenNoUserMatchesThenThrows() {
+            var service = serviceFor(List.of());
+
+            assertThatThrownBy(() -> service.loadUserByUsername("unknownUser"))
+                    .isInstanceOf(UsernameNotFoundException.class).hasMessageContaining("unknownUser");
+        }
+
+        @Test
+        @DisplayName("skips API-key-only users without a username")
+        void whenUserHasNoBasicAuthThenNotMatched() {
+            var service = serviceFor(List.of(new AttributeApiSecurityProperties.UserEntry()));
+
+            assertThatThrownBy(() -> service.loadUserByUsername("alice")).isInstanceOf(UsernameNotFoundException.class);
+        }
     }
 }

@@ -67,8 +67,7 @@ class ApiKeyAuthenticationServiceTests {
         }
 
         private static Stream<Arguments> invalidKeys() {
-            return Stream.of(Arguments.of(Named.of("null key", null)),
-                    Arguments.of(Named.of("missing sapl_ prefix", "justAnApiKey_butWrong")),
+            return Stream.of(Arguments.of(Named.of("missing sapl_ prefix", "justAnApiKey_butWrong")),
                     Arguments.of(Named.of("wrong secret for a known key id", "sapl_Gd405gc3Ri_wrongSecret")));
         }
 

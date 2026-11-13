@@ -40,6 +40,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -52,6 +53,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import static org.springframework.security.config.Customizer.withDefaults;
 
+/**
+ * Provides the security configuration/filter for the Attribute API server. Effective when
+ * the server is running standalone and replaced when it's running embedded.
+ */
 @Slf4j
 @Configuration
 @EnableWebSecurity
@@ -76,11 +81,18 @@ public class AttributeSecurityConfiguration {
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
     private String jwtIssuerUri;
 
+    /**
+     * Builds the security chain for /api/attributes/* and leaves other chains
+     * unaffected. So, other chains can handler their part themselves.
+     *
+     * @param http the security builder from the Spring framework.
+     * @return the security filter chain of the Attribute API
+     * @throws IllegalStateException if no authentication method is enabled
+     * @throws Exception if Spring Security fails to build the chain
+     */
     @Bean
     @Order(1)
     SecurityFilterChain attributeApiSecurityFilterChain(HttpSecurity http) throws Exception {
-        // Scoped to this module's endpoint's only, so it can coexist with a
-        // host application's own catch-all SecurityFilterChain (e.g. when embedded inside sapl-node).
         http.securityMatcher("/api/attributes/**");
         http.csrf(AbstractHttpConfigurer::disable);
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
@@ -145,10 +157,8 @@ public class AttributeSecurityConfiguration {
         var converter = new PdpIdJwtAuthenticationConverter(properties.getOauth2().getOidcPdpIdClaim());
         var decoder   = jwtDecoder();
 
-        // Similar to the resolver in the pdp node. Prevents a failing request towards the API
-        // if both api key auth and oauth2 are activated. Otherwise all values from the Authoriziation: Bearer
-        // header would be forwarded to the JwtDecoder. The api keys would fail because api keys are not valid
-        // JWT's. The filter is active for the prefix sapl_ in the authorization header
+        // Skip sapl_ API keys for the JWT decoder because it's used by the api. OAuth2
+        // ignores it.
         http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(request -> {
             String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
             if (authHeader != null && authHeader.startsWith(ApiKeyAuthenticationFilter.API_KEY_PREFIX)) {
@@ -158,26 +168,39 @@ public class AttributeSecurityConfiguration {
         }).jwt(jwt -> jwt.decoder(decoder).jwtAuthenticationConverter(converter)));
     }
 
+    /**
+     * Looks up the Basic auth users from {@code io.sapl.attribute-api.users}.
+     *
+     * @return the user found in the lookup for basic auth.
+     */
     @Bean
     UserDetailsService userDetailsService() {
-        return new AttributeApiUserDetailsService(properties);
+        return username -> properties.getUsers().stream().filter(user -> username.equals(user.getUsername()))
+                .findFirst()
+                .map(user -> new AttributeApiUserDetails(user.getUsername(), user.getSecret(), user.getPdpId()))
+                .orElseThrow(() -> new UsernameNotFoundException("User '" + username + "' not found"));
     }
 
+    // static, so that spring can inject the encoder in the constructor if not
+    // already available.
     @Bean
     @ConditionalOnMissingBean(PasswordEncoder.class)
     static PasswordEncoder passwordEncoder() {
         return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 
+    // boot check: error if no auth check is defined. abort application start.
     private boolean noAuthenticationMechanismIsDefined() {
         return !properties.isAllowNoAuth() && !properties.isAllowBasicAuth() && !properties.isAllowApiKeyAuth()
                 && !properties.isAllowOAuth2Auth();
     }
 
+    // boot check: are there any users for this auth mode enabled?
     private boolean hasBasicAuthUsers() {
         return properties.getUsers().stream().anyMatch(user -> user.getUsername() != null);
     }
 
+    // boot check: are there any users for this auth mode enabled?
     private boolean hasApiKeyUsers() {
         return properties.getUsers().stream().anyMatch(user -> user.getApiKeyId() != null);
     }
@@ -189,9 +212,14 @@ public class AttributeSecurityConfiguration {
         return JwtDecoders.fromIssuerLocation(jwtIssuerUri);
     }
 
-    // Resolves the pdpId of the authenticated principal. Falls back to
-    // NO_PDP_ID (which AttributeApiService treats the same as null) when
-    // no AttributeApiUserDetails is present, e.g. in no-auth mode.
+    /**
+     * Resolves the pdp id of the authenticated user. Returns an empty string if
+     * no-auth mode is enabled and the service will use the default pdp id. If
+     * embedded this service will not be executed because it's included in the main
+     * application.
+     *
+     * @return the resolver for the pdp id of the current request.
+     */
     @Bean
     @ConditionalOnMissingBean(BlockingTenantResolver.class)
     BlockingTenantResolver attributeApiBlockingTenantResolver() {

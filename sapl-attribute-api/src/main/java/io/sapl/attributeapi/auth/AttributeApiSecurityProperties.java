@@ -19,7 +19,6 @@ package io.sapl.attributeapi.auth;
 
 import lombok.Data;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -30,7 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-@Slf4j
+/**
+ * Settings of the Attribute API under {@code io.sapl.attribute-api}. It
+ * contains the auth modes, users, OAuth2 and request limits. Users are
+ * validated at startup. Invalid configuration stop the application.
+ */
 @Data
 @ConfigurationProperties(prefix = "io.sapl.attribute-api")
 public class AttributeApiSecurityProperties implements InitializingBean {
@@ -48,12 +51,10 @@ public class AttributeApiSecurityProperties implements InitializingBean {
     private boolean allowBasicAuth;
     private boolean allowApiKeyAuth;
     private boolean allowOAuth2Auth;
-
-    private String defaultPdpId = "default";
-    private int    maxArguments = 50;
-    private int    maxLimit     = 1000;
-
-    private OAuth2 oauth2 = new OAuth2();
+    private String  defaultPdpId = "default";
+    private int     maxArguments = 50;
+    private int     maxLimit     = 1000;
+    private OAuth2  oauth2       = new OAuth2();
 
     // Users from the given configuration
     private List<UserEntry> users = new ArrayList<>();
@@ -61,18 +62,23 @@ public class AttributeApiSecurityProperties implements InitializingBean {
     // Map the user entry and the api key id to find the configured users fast
     private Map<String, UserEntry> apiKeyIdIndex = Map.of();
 
-    // Read-only list of users
+    /**
+     * A read-only list of all configured users.
+     *
+     * @return the read-only list of all users.
+     */
     public List<UserEntry> getUsers() {
         return Collections.unmodifiableList(users);
     }
 
-    // Create a copy of the users list to prevent external modifications of it
+    /**
+     * Creates a copy of the users list to prevent external modification while
+     * loaded.
+     *
+     * @param users The list of users
+     */
     public void setUsers(List<UserEntry> users) {
         this.users = new ArrayList<>(users);
-    }
-
-    public Map<String, UserEntry> getApiKeyIdIndex() {
-        return apiKeyIdIndex;
     }
 
     @Override
@@ -98,6 +104,7 @@ public class AttributeApiSecurityProperties implements InitializingBean {
         this.apiKeyIdIndex = Map.copyOf(nextIndex);
     }
 
+    // Pre-checks for the api key
     private void apiKeyCheck(UserEntry user) {
         // Check if the api key id is set for the given user
         val apiKeyId = user.getApiKeyId();
@@ -115,11 +122,21 @@ public class AttributeApiSecurityProperties implements InitializingBean {
         }
     }
 
+    /**
+     * Checks if the pdp id is not too long and also if the pattern is compliant.
+     *
+     * @param pdpId The pdp id to check for.
+     * @return {@code true}, if the it's a valid pdp id.
+     */
     public static boolean isValidPdpId(String pdpId) {
-        return pdpId != null && !pdpId.isEmpty() && pdpId.length() <= MAX_PDP_ID_LENGTH
-                && VALID_PDP_ID_PATTERN.matcher(pdpId).matches();
+        return pdpId != null && pdpId.length() <= MAX_PDP_ID_LENGTH && VALID_PDP_ID_PATTERN.matcher(pdpId).matches();
     }
 
+    /**
+     * A user of the attribute api. The users are configured in standalone mode
+     * under {@code io.sapl.attribute-api.users}. A user can be authenticated with
+     * Basic auth, via API key, or both.
+     */
     @Data
     public static class UserEntry {
         private String id;
@@ -132,6 +149,10 @@ public class AttributeApiSecurityProperties implements InitializingBean {
         private String apiKey;
     }
 
+    /**
+     * Specific OAuth2 settings. Can be configured under
+     * {@code io.sapl.attribute-api.oauth2}.
+     */
     @Data
     public static class OAuth2 {
         private String oidcPdpIdClaim = "pdp_id";

@@ -127,7 +127,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
     /**
      * Not supported. This class only routes {@link #observe} calls.
      *
-     * @throws UnsupportedOperationException
+     * @throws UnsupportedOperationException The current implementation doesn't need
+     * a publish on that level.
      */
     @Override
     public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
@@ -137,7 +138,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
     /**
      * Not supported. This class only routes {@link #observe} calls.
      *
-     * @throws UnsupportedOperationException
+     * @throws UnsupportedOperationException The current implementation doesn't need
+     * a publish on that level.
      */
     @Override
     public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
@@ -147,7 +149,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
     /**
      * Not supported. This class only routes {@link #observe} calls.
      *
-     * @throws UnsupportedOperationException
+     * @throws UnsupportedOperationException The current implementation doesn't need
+     * a publish on that level.
      */
     @Override
     public void remove(@NonNull RepositoryKey key) {

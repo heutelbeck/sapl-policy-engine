@@ -18,29 +18,32 @@
 package io.sapl.attributeapi.auth;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import io.sapl.api.SaplVersion;
+import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Used as principal for all auth modes.
+ */
 @Getter
+@RequiredArgsConstructor
 public class AttributeApiUserDetails implements UserDetails {
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final String username;
     private final String password;
     private final String pdpId;
 
-    public AttributeApiUserDetails(String username, String password, String pdpId) {
-        this.username = username;
-        this.password = password;
-        this.pdpId    = pdpId;
-    }
-
     @Override
     @NullMarked
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Roles are not defined yet, but method is mandatory. Pdp id only.
         return List.of();
     }
 }

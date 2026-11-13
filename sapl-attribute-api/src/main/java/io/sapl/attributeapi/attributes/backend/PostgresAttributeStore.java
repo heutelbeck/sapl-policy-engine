@@ -96,6 +96,13 @@ public class PostgresAttributeStore implements AttributeStore {
     private final String upsertSql;
     private final String deleteSql;
 
+    /**
+     * Creates the Postgres attribute store object to connect to the database.
+     *
+     * @param client The database client to execute the commands.
+     * @param table The table that contains the attributes.
+     * @param autoCreateTable If {@code true}, then auto create the attributes table if missing.
+     */
     public PostgresAttributeStore(DatabaseClient client, String table, boolean autoCreateTable) {
         this.client       = client;
         this.transactions = TransactionalOperator.create(new R2dbcTransactionManager(client.getConnectionFactory()));
