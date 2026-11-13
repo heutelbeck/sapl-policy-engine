@@ -21,8 +21,9 @@ import io.sapl.attributeapi.auth.AttributeApiSecurityProperties.UserEntry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -53,30 +54,6 @@ class AttributeApiSecurityPropertiesTests {
         }
 
         @Test
-        @DisplayName("An api key without a valid api key id lets the server startup fail")
-        void whenApiKeyIsSetWithoutApiKeyIdThenStartupFails() {
-            var user = userWith("user-1", null, "$argon2id$...");
-
-            var properties = new AttributeApiSecurityProperties();
-            properties.setUsers(List.of(user));
-
-            assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("user-1");
-        }
-
-        @Test
-        @DisplayName("A blank api key id lets the server startup fail")
-        void whenApiKeyIdIsBlankThenStartupFails() {
-            var user = userWith("user-1", " ", "$argon2id$...");
-
-            var properties = new AttributeApiSecurityProperties();
-            properties.setUsers(List.of(user));
-
-            assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("user-1");
-        }
-
-        @Test
         @DisplayName("A user without a valid api key will be ignored on server startup")
         void whenUserHasNoApiKeyThenUserIsIgnored() {
             var user = userWith("user-1", null, null);
@@ -98,6 +75,32 @@ class AttributeApiSecurityPropertiesTests {
             properties.afterPropertiesSet();
 
             assertThat(properties.getApiKeyIdIndex()).containsEntry("id1", user);
+        }
+
+        @Test
+        @DisplayName("When a pdp id is too long then reject it")
+        void whenPdpIdIsTooLongThenRejectIt() {
+            var pdpId = "a".repeat(256);
+            assertThat(AttributeApiSecurityProperties.isValidPdpId(pdpId)).isFalse();
+        }
+
+        @Test
+        @DisplayName("When a pdp id is null then reject it")
+        void whenPdpIdIsNullThenRejectIt() {
+            assertThat(AttributeApiSecurityProperties.isValidPdpId(null)).isFalse();
+        }
+
+        @ParameterizedTest(name = "apiKeyId={0}, apiKey={1}")
+        @CsvSource(nullValues = "null", value = { "null,         $argon2id$...", "' ',          $argon2id$...",
+                "cleartextKey, this-is-cleartext", "''          , $argon2id$...", "id1         , $2a$10$abc",
+                "id1         , argon2id$x" })
+        @DisplayName("An invalid api keys throws an exception and let the startup fail")
+        void whenApiKeyConfigurationIsInvalidThenStartupFails(String apiKeyId, String apiKey) {
+            var properties = new AttributeApiSecurityProperties();
+            properties.setUsers(List.of(userWith("user-1", apiKeyId, apiKey)));
+
+            assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("user-1");
         }
     }
 }

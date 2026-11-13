@@ -31,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -103,6 +105,15 @@ class AttributeSecurityConfigurationTests {
                 .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
                         .containsExactly("API key authentication activated.",
                                 "API key authentication is enabled but no api key is defined."));
+    }
+
+    @Test
+    @DisplayName("API key without a api key id logs a warning")
+    void whenApiKeyAuthEnabledWithoutApiKeyIdThenWarningIsLogged() {
+        contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true",
+                "io.sapl.attribute-api.allow-api-key-auth=true", "io.sapl.attribute-api.users[0].username=testuser")
+                .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
+                        .contains("API key authentication is enabled but no api key is defined."));
     }
 
     @Test
@@ -201,5 +212,28 @@ class AttributeSecurityConfigurationTests {
 
             assertThatThrownBy(() -> service.loadUserByUsername("alice")).isInstanceOf(UsernameNotFoundException.class);
         }
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "allow-basic-auth", "allow-api-key-auth", "allow-oauth2-auth" })
+        @DisplayName("When no auth is enabled with another auth mode then no auth warning is not sent")
+        void whenNoAuthCombinedWithOtherAuthModeThenNoWarnLogging(String authMode) {
+            contextRunner
+                    .withPropertyValues("io.sapl.attribute-api.enabled=true",
+                            "io.sapl.attribute-api.allow-no-auth=true", "io.sapl.attribute-api." + authMode + "=true")
+                    .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
+                            .doesNotContain("Server has been configured to reply to requests without authentication."));
+        }
+
+        @Test
+        @DisplayName("When user is set without username then log warning")
+        void whenUserIsSetWithoutUsernameThenLogWarning() {
+            contextRunner
+                    .withPropertyValues("io.sapl.attribute-api.enabled=true",
+                            "io.sapl.attribute-api.allow-basic-auth=true", "io.sapl.attribute-api.users[0].id=user-1",
+                            "io.sapl.attribute-api.users[0].secret=testsecret")
+                    .run(context -> assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage).contains(
+                            "Basic authentication is enabled but no users with basic credentials are configured."));
+        }
+
     }
 }

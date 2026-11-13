@@ -17,26 +17,28 @@
  */
 package io.sapl.attributeapi.attributes.service;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.IntStream;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
 import io.sapl.api.model.Value;
 import io.sapl.attributeapi.attributes.backend.AttributeStore;
+import io.sapl.attributeapi.attributes.dto.AttributePublishRequest;
 import io.sapl.attributeapi.auth.AttributeApiSecurityProperties;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 class AttributeApiServiceTests {
     private AttributeStore                 store;
     private AttributeApiSecurityProperties properties;
+    private AttributePublishRequest        publishRequest = new AttributePublishRequest(null,
+            JsonNodeFactory.instance.stringNode("x"));
 
     @BeforeEach
     void setUp() {
@@ -53,6 +55,12 @@ class AttributeApiServiceTests {
 
         assertThatThrownBy(() -> service.get("entity", "sapl.attribute", args, null))
                 .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> service.publish("entity", "sapl.attribute", args, publishRequest, null), "pdp-id")
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> service.delete("entity", "sapl.attribute", args, null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -63,19 +71,29 @@ class AttributeApiServiceTests {
 
         assertThatThrownBy(() -> service.get("entity", "sapl.attribute", args, null))
                 .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> service.publish("entity", "sapl.attribute", args, publishRequest, null), "pdp-id")
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> service.delete("entity", "sapl.attribute", args, null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("A request with exactly 50 arguments and a default maximum of 50 is accepted by the API server")
     void whenArgumentsLimitIsNotReachedThenTheRequestIsAccepted() {
-        // Stub for the store because a valid request reached the store that is not needed here
         when(store.get(any(), any())).thenReturn(Value.UNDEFINED);
 
         var service = new AttributeApiService(store, properties);
         var args    = generateXArguments(50);
 
-        // Store reached because the store throws the NoSuchElementException and the argument-limit check is passed
         assertThatThrownBy(() -> service.get("entity", "sapl.attribute", args, null))
+                .isInstanceOf(NoSuchElementException.class);
+
+        assertThatCode(() -> service.publish("entity", "sapl.attribute", args, publishRequest, null))
+                .doesNotThrowAnyException();
+
+        assertThatThrownBy(() -> service.delete("entity", "sapl.attribute", args, null))
                 .isInstanceOf(NoSuchElementException.class);
     }
 

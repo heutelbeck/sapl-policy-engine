@@ -19,6 +19,7 @@ package io.sapl.attributeapi.attributes.backend;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import java.time.Duration;
@@ -26,6 +27,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import io.lettuce.core.RedisClient;
@@ -43,16 +46,17 @@ class RedisAttributeStoreTests {
     @Mock
     private RedisCommands<String, String>           commands;
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(longs = { 0, -1 })
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
-    void whenPublishedWithNegativeTTLThenExceptionIsThrown() {
+    void whenPublishedWithNegativeTTLThenExceptionIsThrown(long pTTL) {
         when(client.connect()).thenReturn(connection);
         when(connection.sync()).thenReturn(commands);
 
         var store = new RedisAttributeStore(client);
         var key   = new AttributeKey(null, "sapl.test.negative.ttl", List.of());
         var value = Value.of("negative");
-        var ttl   = Duration.ofSeconds(-1);
+        var ttl   = Duration.ofSeconds(pTTL);
 
         assertThatThrownBy(() -> store.publish(key, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("TTL must be a strictly positive Duration.");
@@ -67,5 +71,18 @@ class RedisAttributeStoreTests {
         var store = new RedisAttributeStore(client);
         assertThat(store.getAll("default", -1, 10)).isEmpty();
         verifyNoInteractions(commands);
+    }
+
+    @Test
+    @DisplayName("getAll without limit and offset reads the order set once")
+    void whenGetAllWithoutLimitAndOffsetThenOrderSetIsReadOnce() {
+        when(client.connect()).thenReturn(connection);
+        when(connection.sync()).thenReturn(commands);
+        when(commands.zrange("sapl:attribute:order:default", 0, -1)).thenReturn(List.of());
+
+        var store = new RedisAttributeStore(client);
+
+        assertThat(store.getAll("default", null, null)).isEmpty();
+        verify(commands).zrange("sapl:attribute:order:default", 0, -1);
     }
 }

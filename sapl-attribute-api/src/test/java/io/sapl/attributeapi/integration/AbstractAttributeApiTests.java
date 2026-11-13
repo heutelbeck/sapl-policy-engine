@@ -364,6 +364,14 @@ abstract class AbstractAttributeApiTests {
 
         result = mockMvc.perform(get("/api/attributes/sapl.test.batch3?arg=42")).andExpect(status().isOk()).andReturn();
         assertThat(result.getResponse().getContentAsString()).isEqualTo("\"test3\"");
+
+        mockMvc.perform(patch("/api/attributes").contentType(MediaType.APPLICATION_JSON).content("""
+                [ { "op": "put", "name": "sapl.test.batch1", "value": "updated" } ]
+                """)).andExpect(status().isNoContent());
+
+        result = mockMvc.perform(get("/api/attributes/sapl.test.batch1")).andExpect(status().isOk()).andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).isEqualTo("\"updated\"");
     }
 
     @Test

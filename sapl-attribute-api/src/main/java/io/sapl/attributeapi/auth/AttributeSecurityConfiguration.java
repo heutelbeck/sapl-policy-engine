@@ -206,7 +206,7 @@ public class AttributeSecurityConfiguration {
     }
 
     private JwtDecoder jwtDecoder() {
-        if (jwtIssuerUri == null || jwtIssuerUri.isBlank()) {
+        if (jwtIssuerUri.isBlank()) {
             throw new IllegalStateException(ERROR_MISSING_ISSUER_URI);
         }
         return JwtDecoders.fromIssuerLocation(jwtIssuerUri);

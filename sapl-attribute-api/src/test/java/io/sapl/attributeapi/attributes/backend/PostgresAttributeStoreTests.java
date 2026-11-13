@@ -25,7 +25,8 @@ import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.r2dbc.core.DatabaseClient;
 import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.model.Value;
@@ -45,11 +46,12 @@ class PostgresAttributeStoreTests {
         store = new PostgresAttributeStore(client, TABLE, false);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(longs = { 0, -1 })
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
-    void whenPublishedWithNegativeTTLThenExceptionIsThrown() {
+    void whenPublishedWithNegativeTTLThenExceptionIsThrown(long pTTL) {
         var value = Value.of("negative");
-        var ttl   = Duration.ofSeconds(-1);
+        var ttl   = Duration.ofSeconds(pTTL);
 
         assertThatThrownBy(() -> store.publish(KEY, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("TTL must be a strictly positive Duration.");

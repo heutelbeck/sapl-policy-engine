@@ -30,6 +30,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.IndexDefinition;
@@ -62,11 +64,12 @@ class MongoAttributeStoreTests {
         store = new MongoAttributeStore(mongo, COLLECTION);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(longs = { 0, -1 })
     @DisplayName("Publish with a negative TTL throws an exception and never writes into the database")
-    void whenPublishedWithNegativeTTLThenExceptionIsThrown() {
+    void whenPublishedWithNegativeTTLThenExceptionIsThrown(long pTTL) {
         clearInvocations(mongo);
-        var ttl   = Duration.ofSeconds(-1);
+        var ttl   = Duration.ofSeconds(pTTL);
         var value = Value.of("negative");
 
         assertThatThrownBy(() -> store.publish(KEY, value, ttl, "default")).isInstanceOf(IllegalArgumentException.class)
