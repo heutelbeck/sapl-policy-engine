@@ -93,5 +93,14 @@ class DeleteAttributeCommandTests {
             assertThat(apiServer.lastRequest().method()).isEqualTo("DELETE");
             assertThat(apiServer.lastRequest().uri()).hasToString("/api/attributes/attribute.test");
         }
+
+        @Test
+        @DisplayName("then a non-successful status returns exit code 1")
+        void thenNonSuccessfulStatusReturnsExitCodeOne() {
+            apiServer.respondWith(302, "");
+            val exitCode = cmd.execute("--url", apiServer.url(), "--name", NAME);
+
+            assertThat(exitCode).isEqualTo(1);
+        }
     }
 }

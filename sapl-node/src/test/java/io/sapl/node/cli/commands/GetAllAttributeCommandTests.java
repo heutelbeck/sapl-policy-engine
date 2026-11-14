@@ -126,5 +126,14 @@ class GetAllAttributeCommandTests {
             assertThat(out.toString()).isEmpty();
             assertThat(err.toString()).contains("503");
         }
+
+        @Test
+        @DisplayName("then a non-successful status returns exit code 1")
+        void thenNonSuccessfulStatusReturnsExitCodeOne() {
+            apiServer.respondWith(302, "");
+            val exitCode = cmd.execute("--url", apiServer.url());
+
+            assertThat(exitCode).isEqualTo(1);
+        }
     }
 }

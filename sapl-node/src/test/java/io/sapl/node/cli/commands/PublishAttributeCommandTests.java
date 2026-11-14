@@ -94,5 +94,24 @@ class PublishAttributeCommandTests {
             assertThat(apiServer.lastRequest().method()).isEqualTo("PUT");
             assertThat(apiServer.lastRequest().uri()).hasToString("/api/attributes/attribute.test");
         }
+
+        @Test
+        @DisplayName("then a non-successful status returns exit code 1")
+        void thenNonSuccessfulStatusReturnsExitCodeOne() {
+            apiServer.respondWith(302, "");
+            val exitCode = cmd.execute("--url", apiServer.url(), "--name", NAME, "--value", VALUE);
+
+            assertThat(exitCode).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("then a TTL is sent in the request body")
+        void thenTtlIsSentInTheRequestBody() {
+            apiServer.respondWith(201, "");
+            val exitCode = cmd.execute("--url", apiServer.url(), "--name", NAME, "--value", VALUE, "--ttl", "60");
+
+            assertThat(exitCode).isZero();
+            assertThat(apiServer.lastRequest().body()).contains("\"ttl\":60");
+        }
     }
 }

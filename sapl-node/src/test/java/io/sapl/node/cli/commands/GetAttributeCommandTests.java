@@ -96,5 +96,14 @@ class GetAttributeCommandTests {
             assertThat(apiServer.lastRequest().uri()).hasToString("/api/attributes/attribute.test");
             assertThat(out.toString()).contains("\"IT\"");
         }
+
+        @Test
+        @DisplayName("then a non-successful status returns exit code 1")
+        void thenNonSuccessfulStatusReturnsExitCodeOne() {
+            apiServer.respondWith(302, "");
+            val exitCode = cmd.execute("--url", apiServer.url(), "--name", NAME);
+
+            assertThat(exitCode).isEqualTo(1);
+        }
     }
 }

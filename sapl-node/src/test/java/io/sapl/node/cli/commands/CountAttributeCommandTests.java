@@ -77,5 +77,14 @@ class CountAttributeCommandTests {
             assertThat(apiServer.lastRequest().toString()).contains("/api/attributes?count=true");
             assertThat(out.toString()).contains("5");
         }
+
+        @Test
+        @DisplayName("then a non-successful status returns exit code 1")
+        void thenNonSuccessfulStatusReturnsExitCodeOne() {
+            apiServer.respondWith(302, "");
+            val exitCode = cmd.execute("--url", apiServer.url());
+
+            assertThat(exitCode).isEqualTo(1);
+        }
     }
 }
