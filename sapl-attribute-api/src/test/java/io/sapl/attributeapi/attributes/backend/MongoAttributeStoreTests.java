@@ -40,6 +40,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.bson.Document;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 class MongoAttributeStoreTests {
@@ -87,9 +88,12 @@ class MongoAttributeStoreTests {
     }
 
     @Test
-    @DisplayName("When the attribute doesn't exist then get returns UNDEFINED")
-    void whenAttributeNotExistThenGetReturnUndefined() {
+    @DisplayName("When the attribute doesn't exist then get returns UNDEFINED and get all an empty list")
+    void whenNoAttributeExistsThenGetIsUndefinedAndGetAllIsEmpty() {
         when(mongo.findOne(any(Query.class), eq(Document.class), eq(COLLECTION))).thenReturn(Mono.empty());
         assertThat(store.get(KEY, "default")).isEqualTo(Value.UNDEFINED);
+
+        when(mongo.find(any(Query.class), eq(Document.class), eq(COLLECTION))).thenReturn(Flux.empty());
+        assertThat(store.getAll("default", null, null)).isEmpty();
     }
 }

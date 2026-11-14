@@ -17,6 +17,7 @@
  */
 package io.sapl.attributeapi.attributes.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,6 +96,16 @@ class AttributeApiServiceTests {
 
         assertThatThrownBy(() -> service.delete("entity", "sapl.attribute", args, null))
                 .isInstanceOf(NoSuchElementException.class);
+
+        when(store.getAll(any(), any(), any())).thenReturn(List.of());
+        assertThat(service.getAll("aTenant", null, null)).isEmpty();
+
+        assertThatThrownBy(() -> service.get(" ", "sapl.attribute", args, null))
+                .isInstanceOf(NoSuchElementException.class);
+
+        assertThatCode(() -> service.publish("entity", "sapl.attribute", args,
+                new AttributePublishRequest(0L, JsonNodeFactory.instance.stringNode("x")), null))
+                .doesNotThrowAnyException();
     }
 
     @Test

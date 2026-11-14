@@ -2,52 +2,24 @@
 
 ## Overview
 
-This extension adds a routing layer to the SAPL Node. It is used by attribute
-repositories that store their attributes in a persistent database and routes
-each PDP ID to its own database.
+This module is the base of the attribute repository extensions. It adds a routing layer to the PDP that assigns an attribute repository to each PDP ID. The module cannot be used on its own. The modules `attribute-repository-postgres`, `attribute-repository-mongo`, `attribute-repository-redis` bring it automatically as dependency.
 
-You do not add this module yourself. It is pulled in as a dependency by
-`attribute-repository-postgres`, `attribute-repository-mongo` or
-`attribute-repository-redis`.
+## How the module works
 
-## Configuration
+The module is adding the following functionality to the PDP:
 
-Each PDP folder can contain an `ext-attributerepository.json`. The field `type`
-selects the database, all other fields depend on the database and are described
-in its README. A PDP without this file uses an in-memory repository.
+- Each PDP folder can contain an `ext-attributerepository.json` file. Its field `type` determines which database extension is used. The READMEs of the other modules contain concrete examples. The configuration of the secrets and the file above will be merged into one configuration for each PDP ID. A PDP without these files is using an `InMemoryAttributeRepository`.
+- The attribute repository is managed by a special routing attribute repository. It maintains the configuration, routes requests to the right database and retries with backoff if the database is not reachable when the repository is created.
+- The database extensions are found via the Java `ServiceLoader`. No further configuration is needed.
 
-An example for a minimal configuration of Redis is:
-```json
-{
-  "type": "redis",
-  "host": "localhost",
-  "port": 6379
-}
-```
+## Adding a database extension
 
-An example for a minimal configuration of Postgres is:
+A new database can be supported by implementing the `AttributeRepositoryProvider` interface. The following methods need to be implemented:
 
-```json
-{
-  "type": "postgres",
-  "host": "localhost",
-  "port": 5432,
-  "username": "sapl",
-  "password": "<password>",
-  "database": "sapl"
-}
-```
+| Method | To-Do |
+|--------|-------|
+| `type()` | Name used in the field `type` of the `ext-attributerepository.json` |
+| `validate(config)` | Validates the configuration before the attribute repository is created | 
+| `create(config, pdpId)` | Creates the repository for a PDP ID | 
 
-An example for a minimal configuration of Mongo is:
-
-```json
-{
-  "type": "mongo",
-  "host": "localhost",
-  "port": 27017,
-  "database": "sapl"
-}
-```
-
-
-
+The provider has to be registered in the file `src/main/resources/META-INF/services/io.sapl.extensions.attributerepository.AttributeRepositoryProvider` with its fully qualified class name.

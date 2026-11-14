@@ -35,6 +35,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
@@ -64,7 +66,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("If no authentication is set the startup fails")
+    @DisplayName("when no authentication mode is set then the startup fails")
     void whenNoAuthMechanismEnabledThenStartupFails() {
         contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true").run(context -> {
             assertThat(context).hasFailed();
@@ -73,7 +75,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("Basic auth with configured users logs activation")
+    @DisplayName("when basic auth is used with correct user then activation is logged")
     void whenBasicAuthEnabledWithUsersThenActivationIsLogged() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-basic-auth=true",
@@ -86,7 +88,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("Basic auth without configured users logs activation and a warning for missing username and password")
+    @DisplayName("when username or password are missing in basic auth then a warning is logged")
     void whenBasicAuthEnabledWithoutUsersThenActivationAndWarningIsLogged() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-basic-auth=true")
@@ -97,7 +99,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("API key without a api key user logs a warning")
+    @DisplayName("when an API key has no user then log a warning")
     void whenApiKeyAuthEnabledWithoutApiKeyUserThenWarningIsLogged() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true",
@@ -108,7 +110,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("API key without a api key id logs a warning")
+    @DisplayName("when an api key has no key id then log a warning")
     void whenApiKeyAuthEnabledWithoutApiKeyIdThenWarningIsLogged() {
         contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true",
                 "io.sapl.attribute-api.allow-api-key-auth=true", "io.sapl.attribute-api.users[0].username=testuser")
@@ -117,7 +119,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("OAuth2 activation is logged before the issuer discovery is failing")
+    @DisplayName("when the issuer discovery failed the OAuth2 message is still logged")
     void whenOAuth2EnabledThenActivationLoggedBeforeTheStartupFails() {
         contextRunner.withPropertyValues("io.sapl.attribute-api.enabled=true",
                 "io.sapl.attribute-api.allow-oauth2-auth=true").run(context -> {
@@ -128,7 +130,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("The default claim for OIDC is pdp_id when not overriden by a user's configuration")
+    @DisplayName("when OIDC pdp claim is set then the custom claim overrides the default claim")
     void whenOidcPdpIdClaimIsSetThenCustomClaimNameOverridesDefault() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true")
@@ -138,7 +140,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("When a custom claim is set then the claim name is overwritten")
+    @DisplayName("when a custom claim is set then the claim name is overwritten")
     void whenOidcPdpIdClaimIsSetThenDefaultClaimNameIsPdpId() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true",
@@ -149,7 +151,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("When no auth is configured then permit all requests but log a warning during startup")
+    @DisplayName("when no auth is configured then permit all requests but log a warning during startup")
     void whenOnlyNoAuthConfiguredThenPermitAllAndLogWarning() {
         contextRunner
                 .withPropertyValues("io.sapl.attribute-api.enabled=true", "io.sapl.attribute-api.allow-no-auth=true")
@@ -158,7 +160,7 @@ class AttributeSecurityConfigurationTests {
     }
 
     @Test
-    @DisplayName("When API key auth is enab led with a configured user then no warning is logged")
+    @DisplayName("when API key auth is enab led with a configured user then no warning is logged")
     void whenApiKeyAuthEnabledWithConfiguredUserThenNoWarningIsLogged() {
         var encodedApiKey = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8().encode(UUID.randomUUID().toString());
 
@@ -183,7 +185,7 @@ class AttributeSecurityConfigurationTests {
         }
 
         @Test
-        @DisplayName("returns matching user details for a known basic authentication user")
+        @DisplayName("when a basic user is known then return matching user details")
         void whenUserExistsThenReturnUserDetails() {
             var user = new AttributeApiSecurityProperties.UserEntry();
             user.setPdpId("tenant-a");
@@ -197,7 +199,7 @@ class AttributeSecurityConfigurationTests {
         }
 
         @Test
-        @DisplayName("throws when no user matches the given username")
+        @DisplayName("when no user matches the config then throw exception")
         void whenNoUserMatchesThenThrows() {
             var service = serviceFor(List.of());
 
@@ -206,7 +208,7 @@ class AttributeSecurityConfigurationTests {
         }
 
         @Test
-        @DisplayName("skips API-key-only users without a username")
+        @DisplayName("when the user is API key only and has no username then throw an exception")
         void whenUserHasNoBasicAuthThenNotMatched() {
             var service = serviceFor(List.of(new AttributeApiSecurityProperties.UserEntry()));
 
@@ -215,7 +217,7 @@ class AttributeSecurityConfigurationTests {
 
         @ParameterizedTest(name = "{0}")
         @ValueSource(strings = { "allow-basic-auth", "allow-api-key-auth", "allow-oauth2-auth" })
-        @DisplayName("When no auth is enabled with another auth mode then no auth warning is not sent")
+        @DisplayName("when no auth is enabled with another auth mode then no auth warning is not sent")
         void whenNoAuthCombinedWithOtherAuthModeThenNoWarnLogging(String authMode) {
             contextRunner
                     .withPropertyValues("io.sapl.attribute-api.enabled=true",
@@ -225,7 +227,7 @@ class AttributeSecurityConfigurationTests {
         }
 
         @Test
-        @DisplayName("When user is set without username then log warning")
+        @DisplayName("when user is set without username then log warning")
         void whenUserIsSetWithoutUsernameThenLogWarning() {
             contextRunner
                     .withPropertyValues("io.sapl.attribute-api.enabled=true",
@@ -235,5 +237,25 @@ class AttributeSecurityConfigurationTests {
                             "Basic authentication is enabled but no users with basic credentials are configured."));
         }
 
+        @Test
+        @DisplayName("when a tenant is resolved then the the pdp id of the user is returned or an empty string")
+        void whenTenantIsResolvedThenPdpIdOrEmptyStringIsReturned() {
+            var resolver = new AttributeSecurityConfiguration(new AttributeApiSecurityProperties(),
+                    Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()).attributeApiBlockingTenantResolver();
+
+            // Empty the auth context
+            SecurityContextHolder.clearContext();
+            assertThat(resolver.resolve()).isEmpty();
+
+            // with empty pdp id
+            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                    new AttributeApiUserDetails("without-pdp-id", null, null), null, List.of()));
+            assertThat(resolver.resolve()).isEmpty();
+
+            // with a pdp id
+            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                    new AttributeApiUserDetails("with-pdp-id", null, "pdp-id-a"), null, List.of()));
+            assertThat(resolver.resolve()).isEqualTo("pdp-id-a");
+        }
     }
 }

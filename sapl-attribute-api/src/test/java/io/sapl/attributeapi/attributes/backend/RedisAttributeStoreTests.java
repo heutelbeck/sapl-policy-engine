@@ -63,14 +63,18 @@ class RedisAttributeStoreTests {
     }
 
     @Test
-    @DisplayName("A negative limit in the getAll() methods returns an empty list")
-    void whenLimitIsNegativeThenReturnAnEmptyList() {
+    @DisplayName("when limit is negative then return an empty list and missing limit returns the whole set")
+    void whenLimitIsNegativeOrMissingThenGetAllReturnsEmptyListOrWholeSet() {
         when(client.connect()).thenReturn(connection);
         when(connection.sync()).thenReturn(commands);
 
         var store = new RedisAttributeStore(client);
         assertThat(store.getAll("default", -1, 10)).isEmpty();
         verifyNoInteractions(commands);
+
+        when(commands.zrange("sapl:attribute:order:default", 0, -1)).thenReturn(List.of());
+        assertThat(store.getAll("default", null, null)).isEmpty();
+        verify(commands).zrange("sapl:attribute:order:default", 0, -1);
     }
 
     @Test

@@ -66,15 +66,16 @@ class AttributeApiSecurityPropertiesTests {
         }
 
         @Test
-        @DisplayName("A user with a valid key is included in the generated list of valid users on server startup")
+        @DisplayName("When a user has a valid key then its included in the generated list of users on startup")
         void whenConfigurationIsValidThenUserIsInIndexList() {
-            var user = userWith("user-1", "id1", "$argon2id$...");
+            var users = List.of(userWith("user-1", "id1", "$argon2id$..."), userWith("user-2", "id2", "{bcrypt}x"),
+                    userWith("user-3", "id3", "$argon2i$x"), userWith("user-4", "id4", "$argon2d$x"));
 
             var properties = new AttributeApiSecurityProperties();
-            properties.setUsers(List.of(user));
+            properties.setUsers(users);
             properties.afterPropertiesSet();
 
-            assertThat(properties.getApiKeyIdIndex()).containsEntry("id1", user);
+            assertThat(properties.getApiKeyIdIndex()).hasSize(4).containsValues(users.toArray(UserEntry[]::new));
         }
 
         @Test
