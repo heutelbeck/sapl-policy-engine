@@ -309,7 +309,7 @@ class KeycloakOAuth2ExampleIT extends BaseIntegrationTest {
         val query = URI.create(url).getRawQuery();
         for (val pair : query.split("&")) {
             val keyValue = pair.split("=", 2);
-            if (keyValue[0].equals(name) && keyValue.length == 2) {
+            if (keyValue.length == 2 && keyValue[0].equals(name)) {
                 return URLDecoder.decode(keyValue[1], StandardCharsets.UTF_8);
             }
         }
