@@ -256,7 +256,9 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   build-docker:
-    if: ${{ github.event_name != 'pull_request' }}
+    # Dependabot-triggered runs get no repository secrets, and this job needs
+    # the Maven server credentials.
+    if: ${{ github.event_name != 'pull_request' && github.actor != 'dependabot[bot]' }}
     needs: [version-check]
     name: Build Docker Images
     runs-on: ubuntu-latest
