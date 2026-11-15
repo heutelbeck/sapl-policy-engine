@@ -1,9 +1,10 @@
 name: CodeQL
 
 on:
+  # Branch pushes other than master are covered by their pull_request run.
   push:
     branches:
-      - '**'
+      - master
   pull_request:
     branches: [ main, master ]
   schedule:

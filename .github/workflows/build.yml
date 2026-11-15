@@ -17,9 +17,11 @@ name: Testing and Deployment
 
 on:
   workflow_dispatch:
+  # Branch pushes other than master are covered by their pull_request run;
+  # running both would build the same code twice.
   push:
     branches:
-      - '**'
+      - master
     tags:
       - 'v*'
     paths-ignore:
