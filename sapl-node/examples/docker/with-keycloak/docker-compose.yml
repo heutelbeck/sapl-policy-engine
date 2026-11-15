@@ -68,6 +68,8 @@ services:
       - IO_SAPL_NODE_ALLOWBASICAUTH=false
       - IO_SAPL_NODE_ALLOWAPIKEYAUTH=false
       - IO_SAPL_NODE_ALLOWOAUTH2AUTH=true
+      # Public PKCE client from the realm; prefilled in the Scalar Authorize dialog at /scalar
+      - IO_SAPL_NODE_SCALAR_OAUTHCLIENTID=sapl-node-scalar
 
       # OAuth2 PDP ID Claim Configuration
       - IO_SAPL_NODE_OAUTH_PDPIDCLAIM=sapl_pdp_id

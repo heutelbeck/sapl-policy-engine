@@ -98,16 +98,16 @@
 		<asm.version>9.11.1</asm.version>
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
-		<pf4j.version>3.16.0</pf4j.version>
+		<pf4j.version>3.16.1</pf4j.version>
 		<okhttp.version>5.5.1</okhttp.version>
-		<scalar.version>0.6.87</scalar.version>
-		<vaadin.version>25.3.4</vaadin.version>
+		<scalar.version>0.7.0</scalar.version>
+		<vaadin.version>25.3.5</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<semver4j.version>6.0.0</semver4j.version>
 		<lombok.version>1.18.48</lombok.version>
 		<jupiter.version>6.1.3</jupiter.version>
 		<mockito.version>5.24.0</mockito.version>
-		<guava.version>33.7.2-jre</guava.version>
+		<guava.version>33.8.0-jre</guava.version>
 		<assertj.version>3.27.7</assertj.version>
 		<jspecify.version>1.0.1</jspecify.version>
 		<protobuf.version>4.36.2</protobuf.version>
@@ -130,7 +130,7 @@
 		<reactor-netty.version>1.3.8</reactor-netty.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
 		<nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
-		<json-schema-validator.version>3.0.8</json-schema-validator.version>
+		<json-schema-validator.version>3.0.9</json-schema-validator.version>
 		<jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
 
 		<!-- Maven Plug-Ins -->

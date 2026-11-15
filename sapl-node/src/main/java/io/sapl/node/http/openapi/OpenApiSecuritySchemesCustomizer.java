@@ -181,6 +181,9 @@ class OpenApiSecuritySchemesCustomizer {
         val scopes = new Scopes().addString("openid", "OpenID Connect identity");
         val flow   = new OAuthFlow().authorizationUrl(authUrl).tokenUrl(tokenUrl).scopes(scopes);
         flow.addExtension("x-scalar-redirect-uri", redirectUri);
+        if (clientId != null) {
+            flow.addExtension("x-scalar-client-id", clientId);
+        }
 
         val description = clientId == null
                 ? "OAuth2 auth-code + PKCE against issuer " + issuerUri
