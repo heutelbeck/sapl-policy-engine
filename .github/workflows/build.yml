@@ -1453,23 +1453,6 @@ jobs:
           files: release/*
           fail_on_unmatched_files: true
 
-      - name: Update Nix package hashes
-        env:
-          VERSION: ${{ needs.version-check.outputs.version }}
-          GH_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
-        run: |
-          AMD64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-${VERSION}-linux-amd64.tar.gz" | base64 -w0)"
-          ARM64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-${VERSION}-linux-arm64.tar.gz" | base64 -w0)"
-          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/heutelbeck/sapl-nix.git" sapl-nix
-          printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > sapl-nix/nix/hashes.json
-          cd sapl-nix
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add nix/hashes.json
-          if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
-          git commit -m "update sapl-node package hashes for ${VERSION}"
-          git push
-
   publish-native-lsp:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test, publish-native-node]
     if: >-
@@ -1592,22 +1575,78 @@ jobs:
           files: release/*
           fail_on_unmatched_files: true
 
-      - name: Update Nix LSP package hashes
+  update-nix-sources:
+    needs: [version-check, publish-native-lsp]
+    if: >-
+      ${{
+        !failure() && !cancelled() &&
+        (
+          (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
+          || (needs.version-check.outputs.is_tag == 'true' && needs.version-check.outputs.is_snapshot == 'false')
+        )
+      }}
+    name: Update sapl-nix Sources
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      # Hashes are computed from the archives as published on GitHub, i.e. the
+      # exact bytes sapl-nix will fetch. Any failed download aborts the job
+      # before sapl-nix is touched.
+      - name: Write channel source and push to sapl-nix
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
+          IS_SNAPSHOT: ${{ needs.version-check.outputs.is_snapshot }}
           GH_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
         run: |
-          AMD64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-language-server-${VERSION}-linux-amd64.tar.gz" | base64 -w0)"
-          ARM64_HASH="sha256-$(openssl dgst -sha256 -binary "release/sapl-language-server-${VERSION}-linux-arm64.tar.gz" | base64 -w0)"
+          set -euo pipefail
+          BASE="https://github.com/${{ github.repository }}/releases/download"
+          if [ "$IS_SNAPSHOT" = "true" ]; then
+            CHANNEL=snapshot; NODE_TAG=snapshot-node; LSP_TAG=snapshot
+          else
+            CHANNEL=release; NODE_TAG="v${VERSION}"; LSP_TAG="v${VERSION}"
+          fi
+
+          sri() {
+            curl -fsSL --retry 5 --retry-delay 10 "$1" -o archive.tar.gz
+            echo "sha256-$(openssl dgst -sha256 -binary archive.tar.gz | base64 -w0)"
+          }
+
+          NODE_AMD64=$(sri "$BASE/$NODE_TAG/sapl-${VERSION}-linux-amd64.tar.gz")
+          NODE_ARM64=$(sri "$BASE/$NODE_TAG/sapl-${VERSION}-linux-arm64.tar.gz")
+          LSP_AMD64=$(sri "$BASE/$LSP_TAG/sapl-language-server-${VERSION}-linux-amd64.tar.gz")
+          LSP_ARM64=$(sri "$BASE/$LSP_TAG/sapl-language-server-${VERSION}-linux-arm64.tar.gz")
+
           git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/heutelbeck/sapl-nix.git" sapl-nix
-          printf '{\n  "linux-amd64": "%s",\n  "linux-arm64": "%s"\n}\n' "$AMD64_HASH" "$ARM64_HASH" > sapl-nix/nix/lsp-hashes.json
+          jq -n \
+            --arg version "$VERSION" \
+            --arg nodeTag "$NODE_TAG" --arg nodeAmd64 "$NODE_AMD64" --arg nodeArm64 "$NODE_ARM64" \
+            --arg lspTag "$LSP_TAG" --arg lspAmd64 "$LSP_AMD64" --arg lspArm64 "$LSP_ARM64" \
+            '{
+              version: $version,
+              node: { tag: $nodeTag, hashes: { "linux-amd64": $nodeAmd64, "linux-arm64": $nodeArm64 } },
+              languageServer: { tag: $lspTag, hashes: { "linux-amd64": $lspAmd64, "linux-arm64": $lspArm64 } }
+            }' > "sapl-nix/nix/sources/${CHANNEL}.json"
+
           cd sapl-nix
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add nix/lsp-hashes.json
-          if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
-          git commit -m "update sapl-language-server package hashes for ${VERSION}"
-          git push
+          git add "nix/sources/${CHANNEL}.json"
+          if git diff --cached --quiet; then echo "No source changes"; exit 0; fi
+          git commit -m "${CHANNEL}: sapl ${VERSION}"
+          for _ in 1 2 3; do
+            git push && exit 0
+            git pull --rebase
+          done
+          echo "Pushing to sapl-nix failed after 3 attempts" >&2
+          exit 1
 
   publish-version-sums:
     name: Regenerate version-release SHA256SUMS.txt
