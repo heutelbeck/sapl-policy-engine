@@ -6,6 +6,11 @@ on:
   push:
     branches: [ main, master ]
 
+# Only the newest state of the default branch is worth scoring.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Declare default permissions as read only.
 permissions:
   contents: read
