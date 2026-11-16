@@ -35,9 +35,8 @@ import lombok.val;
 /**
  * Marshalling between SAPL Value types and JSON.
  * <p>
- * UndefinedValue and ErrorValue cannot be marshalled. Secret flags are not
- * preserved. Nesting depth limited to 500
- * levels.
+ * UndefinedValue and ErrorValue cannot be marshalled. Nesting depth limited to
+ * 500 levels.
  */
 @UtilityClass
 public class ValueJsonMarshaller {
