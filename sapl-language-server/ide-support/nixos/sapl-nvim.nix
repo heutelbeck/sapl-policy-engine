@@ -21,33 +21,22 @@
 # This module configures Neovim with full SAPL LSP support including
 # completion, diagnostics, and semantic token highlighting.
 #
-# The SAPL language server binary is fetched from the latest GitHub
-# snapshot release:
-#   https://github.com/heutelbeck/sapl-policy-engine/releases/tag/snapshot
+# The module expects the language server package as the module argument
+# sapl-language-server. The sapl-nix flake (https://github.com/heutelbeck/sapl-nix)
+# provides it, for example via Home Manager's extraSpecialArgs:
 #
-# Usage with Home Manager (standalone or as NixOS module):
-#
-#   sapl-language-server-bin = builtins.fetchurl {
-#     url = "https://github.com/heutelbeck/sapl-policy-engine/releases/download/snapshot/sapl-language-server-linux-amd64";
-#     sha256 = "0000000000000000000000000000000000000000000000000000";  # nix will tell you the correct hash
+#   home-manager.extraSpecialArgs = {
+#     sapl-language-server =
+#       inputs.sapl-nix.packages.${pkgs.stdenv.hostPlatform.system}.sapl-language-server-snapshot;
 #   };
 #
 #   # Then import this module:
 #   imports = [ ./sapl-nvim.nix ];
 #
-# Or inline the relevant parts into your existing Neovim configuration.
+# Any other build of sapl-language-server works as well. Or inline the
+# relevant parts into your existing Neovim configuration.
 
-{ pkgs, sapl-language-server-bin, ... }:
-let
-  sapl-language-server = pkgs.stdenv.mkDerivation {
-    pname = "sapl-language-server";
-    version = "snapshot";
-    dontUnpack = true;
-    installPhase = ''
-      install -Dm755 ${sapl-language-server-bin} $out/bin/sapl-language-server
-    '';
-  };
-in
+{ pkgs, sapl-language-server, ... }:
 {
   programs.neovim = {
     enable = true;

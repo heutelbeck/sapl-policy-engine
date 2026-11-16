@@ -33,6 +33,16 @@ Verify the installation:
 
 On Debian/Ubuntu and Red Hat/Fedora, platform packages are available from the same releases page. These install the binary to `/usr/bin/sapl` and set up the PATH automatically. See the [Getting Started guide](../1_2_GettingStarted/) for package installation commands.
 
+#### Installing with Nix
+
+On NixOS or with Nix, the [`sapl-nix`](https://github.com/heutelbeck/sapl-nix) flake packages the binary in a release and a snapshot channel and provides a NixOS module that runs SAPL Node as a service:
+
+```shell
+nix run github:heutelbeck/sapl-nix -- --version
+```
+
+See the [`sapl-nix` README](https://github.com/heutelbeck/sapl-nix#readme) for flake, NixOS, and Home Manager usage.
+
 #### GitHub Actions
 
 For CI pipelines, use the [`setup-sapl`](https://github.com/heutelbeck/setup-sapl) action to install the CLI automatically:

@@ -29,6 +29,10 @@ sudo rpm -i sapl-language-server-4.2.0-SNAPSHOT.x86_64.rpm
 
 The package installs the binary to `/usr/bin/sapl-language-server` and a man page to `/usr/share/man/man1/`. No configuration files, services, or system users are needed.
 
+#### Nix
+
+The [`sapl-nix`](https://github.com/heutelbeck/sapl-nix) flake provides `sapl-language-server` (latest release) and `sapl-language-server-snapshot`. Put either on your editor's `PATH`; the editor configurations below apply unchanged.
+
 #### Pre-built Binaries
 
 Download the archive for your platform from [GitHub Releases](https://github.com/heutelbeck/sapl-policy-engine/releases/tag/snapshot):
@@ -133,7 +137,7 @@ This variant covers `.sapl` files only. For `.sapltest` highlighting, use the fu
 
 #### NixOS / Home Manager
 
-A Nix module is provided at [`ide-support/nixos/sapl-nvim.nix`](https://github.com/heutelbeck/sapl-policy-engine/blob/main/sapl-language-server/ide-support/nixos/sapl-nvim.nix). It fetches the language server snapshot binary from GitHub Releases and configures LSP, completion, and semantic highlighting automatically.
+An example Home Manager module is provided at [`ide-support/nixos/sapl-nvim.nix`](https://github.com/heutelbeck/sapl-policy-engine/blob/main/sapl-language-server/ide-support/nixos/sapl-nvim.nix). It configures LSP, completion, and semantic highlighting and takes the language server package as an argument, for example `sapl-language-server-snapshot` from [`sapl-nix`](https://github.com/heutelbeck/sapl-nix#readme).
 
 ### Eclipse
 
