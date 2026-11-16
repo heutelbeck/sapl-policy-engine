@@ -33,7 +33,7 @@ import java.util.Map;
 import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
- * Compiles N-ary operators: ExclusiveDisjunction (XOR), Sum, Product.
+ * Compiles N-ary operators: ExclusiveDisjunction (XOR), Product.
  * <p>
  * These operators cannot short-circuit (all operands must be evaluated),
  * but we still apply cost-stratified optimization:
@@ -55,10 +55,6 @@ public class NaryOperatorCompiler {
 
     public CompiledExpression compileXor(ExclusiveDisjunction xd, CompilationContext ctx) {
         return compile(xd.operands(), ctx, xd.location(), BinaryOperatorType.XOR, BooleanOperators::xor);
-    }
-
-    public CompiledExpression compileSum(Sum s, CompilationContext ctx) {
-        return compile(s.operands(), ctx, s.location(), BinaryOperatorType.ADD, ArithmeticOperators::add);
     }
 
     public CompiledExpression compileProduct(Product p, CompilationContext ctx) {

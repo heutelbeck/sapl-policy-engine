@@ -465,9 +465,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
                         : BinaryOperatorType.SUB);
             }
         }
-        // Note: We do NOT use Sum for addition chains because + is overloaded
-        // for string concatenation, which is not commutative. Always use
-        // left-associative binary operators to preserve evaluation order.
+        // Addition chains are never flattened into an N-ary node because + is
+        // overloaded for string concatenation, which is not commutative. Always
+        // use left-associative binary operators to preserve evaluation order.
         return buildLeftAssociativeBinaryWithOps(operands, operators, ctx);
     }
 

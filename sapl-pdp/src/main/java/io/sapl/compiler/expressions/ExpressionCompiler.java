@@ -45,7 +45,6 @@ public class ExpressionCompiler {
         case Conjunction c           -> NaryBooleanCompiler.compileConjunction(c, ctx);
         case Disjunction d           -> NaryBooleanCompiler.compileDisjunction(d, ctx);
         case ExclusiveDisjunction xd -> NaryOperatorCompiler.compileXor(xd, ctx);
-        case Sum s                   -> NaryOperatorCompiler.compileSum(s, ctx);
         case Product p               -> NaryOperatorCompiler.compileProduct(p, ctx);
 
         // Attributes and Steps
