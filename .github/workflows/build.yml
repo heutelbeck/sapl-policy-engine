@@ -1619,7 +1619,8 @@ jobs:
           fi
 
           sri() {
-            curl -fsSL --retry 5 --retry-delay 10 "$1" -o archive.tar.gz
+            local archive_url="$1"
+            curl -fsSL --retry 5 --retry-delay 10 "$archive_url" -o archive.tar.gz
             echo "sha256-$(openssl dgst -sha256 -binary archive.tar.gz | base64 -w0)"
           }
 

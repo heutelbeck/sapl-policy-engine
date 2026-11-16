@@ -92,6 +92,7 @@ class KeycloakOAuth2ExampleIT extends BaseIntegrationTest {
     // Keycloak and never contacted, so no host port is bound to it.
     private static final String SCALAR_REDIRECT_URI = "http://localhost:8443/scalar";
 
+    private static final SecureRandom PKCE_RANDOM       = new SecureRandom();
     private static final Pattern      LOGIN_FORM_ACTION = Pattern.compile("action=\"([^\"]+)\"");
     private static final ObjectMapper JSON              = new ObjectMapper();
 
@@ -144,9 +145,10 @@ class KeycloakOAuth2ExampleIT extends BaseIntegrationTest {
             try (val saplNode = createSaplNodeOnNetwork(network)) {
                 saplNode.start();
 
-                val flow = WebClient.create(getHttpBaseUrl(saplNode)).get().uri("/v3/api-docs").retrieve()
-                        .bodyToMono(JsonNode.class).block(Duration.ofSeconds(30))
-                        .at("/components/securitySchemes/oauth2/flows/authorizationCode");
+                val apiDocs = WebClient.create(getHttpBaseUrl(saplNode)).get().uri("/v3/api-docs").retrieve()
+                        .bodyToMono(JsonNode.class).block(Duration.ofSeconds(30));
+                assertThat(apiDocs).as("OpenAPI document").isNotNull();
+                val flow = apiDocs.at("/components/securitySchemes/oauth2/flows/authorizationCode");
 
                 assertThat(Map.of("authorizationUrl", flow.path("authorizationUrl").asString(), "tokenUrl",
                         flow.path("tokenUrl").asString(), "clientId", flow.path("x-scalar-client-id").asString(),
@@ -319,7 +321,7 @@ class KeycloakOAuth2ExampleIT extends BaseIntegrationTest {
     private record Pkce(String verifier, String challenge) {
         static Pkce create() throws NoSuchAlgorithmException {
             val bytes = new byte[32];
-            new SecureRandom().nextBytes(bytes);
+            PKCE_RANDOM.nextBytes(bytes);
             val verifier  = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
             val digest    = MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII));
             val challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(digest);

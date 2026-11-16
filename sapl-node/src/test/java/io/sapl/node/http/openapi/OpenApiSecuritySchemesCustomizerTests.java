@@ -59,9 +59,9 @@ class OpenApiSecuritySchemesCustomizerTests {
 
     private static final String VALID_DISCOVERY = """
             {
-              "issuer": "%1$s",
-              "authorization_endpoint": "%1$s/auth",
-              "token_endpoint": "%1$s/token"
+              "issuer": "{issuer}",
+              "authorization_endpoint": "{issuer}/auth",
+              "token_endpoint": "{issuer}/token"
             }
             """;
 
@@ -84,7 +84,7 @@ class OpenApiSecuritySchemesCustomizerTests {
         @Test
         @DisplayName("configured client id is passed to Scalar so the Authorize dialog is prefilled")
         void whenClientIdConfiguredThenFlowCarriesScalarClientId() {
-            issuer.respond(200, VALID_DISCOVERY.formatted(issuer.uri()));
+            issuer.respondWithValidDiscovery();
 
             assertAuthorizationCodeFlow(oauthContext().withPropertyValues(CLIENT_ID_PROPERTY + "=sapl-node-scalar"),
                     flow -> assertThat(flow.getExtensions()).containsEntry(SCALAR_CLIENT_ID, "sapl-node-scalar")
@@ -94,7 +94,7 @@ class OpenApiSecuritySchemesCustomizerTests {
         @Test
         @DisplayName("without a configured client id Scalar receives no client id and the user enters one")
         void whenNoClientIdConfiguredThenFlowHasNoScalarClientId() {
-            issuer.respond(200, VALID_DISCOVERY.formatted(issuer.uri()));
+            issuer.respondWithValidDiscovery();
 
             assertAuthorizationCodeFlow(oauthContext(), flow -> assertThat(flow.getExtensions())
                     .doesNotContainKey(SCALAR_CLIENT_ID).containsEntry(SCALAR_REDIRECT_URI, "/scalar"));
@@ -103,7 +103,7 @@ class OpenApiSecuritySchemesCustomizerTests {
         @Test
         @DisplayName("configured redirect URI is passed to Scalar")
         void whenRedirectUriConfiguredThenFlowCarriesIt() {
-            issuer.respond(200, VALID_DISCOVERY.formatted(issuer.uri()));
+            issuer.respondWithValidDiscovery();
 
             assertAuthorizationCodeFlow(
                     oauthContext().withPropertyValues(REDIRECT_URI_PROPERTY + "=https://pdp.example.com/scalar"),
@@ -114,7 +114,7 @@ class OpenApiSecuritySchemesCustomizerTests {
         @Test
         @DisplayName("authorize and token URLs come from the issuer's discovery document")
         void whenDiscoverySucceedsThenFlowUsesDiscoveredEndpoints() {
-            issuer.respond(200, VALID_DISCOVERY.formatted(issuer.uri()));
+            issuer.respondWithValidDiscovery();
 
             assertAuthorizationCodeFlow(oauthContext(),
                     flow -> assertThat(flow).returns(issuer.uri() + "/auth", OAuthFlow::getAuthorizationUrl)
@@ -174,7 +174,7 @@ class OpenApiSecuritySchemesCustomizerTests {
                 val customizer   = context.getBean(OpenApiCustomizer.class);
                 val duringOutage = customize(customizer);
 
-                issuer.respond(200, VALID_DISCOVERY.formatted(issuer.uri()));
+                issuer.respondWithValidDiscovery();
                 val afterRecovery = customize(customizer);
 
                 assertThat(duringOutage.getComponents().getSecuritySchemes()).isNullOrEmpty();
@@ -185,7 +185,7 @@ class OpenApiSecuritySchemesCustomizerTests {
         @Test
         @DisplayName("a successfully resolved scheme is reused without contacting the issuer again")
         void whenSchemeResolvedThenIssuerIsQueriedOnce() {
-            issuer.respond(200, VALID_DISCOVERY.formatted(issuer.uri()));
+            issuer.respondWithValidDiscovery();
 
             oauthContext().run(context -> {
                 val customizer = context.getBean(OpenApiCustomizer.class);
@@ -254,6 +254,10 @@ class OpenApiSecuritySchemesCustomizerTests {
         void respond(int status, String body) {
             this.status = status;
             this.body   = body;
+        }
+
+        void respondWithValidDiscovery() {
+            respond(200, VALID_DISCOVERY.replace("{issuer}", uri()));
         }
 
         String uri() {
