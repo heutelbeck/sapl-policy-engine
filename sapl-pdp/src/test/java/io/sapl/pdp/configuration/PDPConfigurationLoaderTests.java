@@ -88,6 +88,33 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
+    @DisplayName("hand-edited extension and secrets files may contain comments")
+    void whenConfigurationFilesContainCommentsThenLoaded() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                // the gateway extension must be present
+                {"requiredExtensions": ["upstreams"]}""");
+        Files.writeString(tempDir.resolve("ext-upstreams.json"), """
+                {
+                  // no upstream servers yet
+                  "servers": []
+                }""");
+        Files.writeString(tempDir.resolve("ext-upstreams-secrets.json"), """
+                # rotated quarterly
+                { "apiKey": "cleartext-key" }""");
+        Files.writeString(tempDir.resolve("secrets.json"), """
+                { /* shared */ "apiKey": "cleartext-value" }""");
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
+
+        assertThat(config).satisfies(
+                c -> assertThat(c.extensions()).containsEntry("upstreams",
+                        Value.ofObject(Map.of("servers", Value.EMPTY_ARRAY))),
+                c -> assertThat(c.extensionSecrets()).containsEntry("upstreams",
+                        Value.ofObject(Map.of("apiKey", Value.of("cleartext-key")))),
+                c -> assertThat(c.data().secrets()).containsEntry("apiKey", Value.of("cleartext-value")));
+    }
+
+    @Test
     @DisplayName("a secrets.json file is loaded into the PDP data")
     void whenDirectoryHasSecretsFileThenLoaded() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), "{}");

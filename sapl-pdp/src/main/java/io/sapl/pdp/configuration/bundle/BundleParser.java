@@ -17,7 +17,8 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.model.Value;
+import static io.sapl.api.model.ValueJsonMarshaller.jsonAllowingComments;
+
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
@@ -422,7 +423,7 @@ public class BundleParser {
     }
 
     private static void requireSealedContent(String name, String content) {
-        if (!ValueSealer.hasSealedShape(Value.ofJson(content))) {
+        if (!ValueSealer.hasSealedShape(jsonAllowingComments(content))) {
             throw new PDPConfigurationException(ERROR_SEALED_CONTENT_NOT_SEALED.formatted(name));
         }
     }

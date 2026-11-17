@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import static io.sapl.api.model.ValueJsonMarshaller.jsonAllowingComments;
 import static io.sapl.pdp.SaplBuildInfo.version;
 import static io.sapl.pdp.configuration.ExtensionFiles.validateIntegrity;
 
@@ -35,7 +36,6 @@ import java.util.zip.ZipOutputStream;
 
 import com.nimbusds.jose.jwk.OctetKeyPair;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
@@ -489,7 +489,7 @@ public final class BundleBuilder {
      * if the content is not sealed
      */
     public BundleBuilder withSealedSecrets(String sealedJsonContent) {
-        if (sealedJsonContent == null || !ValueSealer.hasSealedShape(Value.ofJson(sealedJsonContent))) {
+        if (sealedJsonContent == null || !ValueSealer.hasSealedShape(jsonAllowingComments(sealedJsonContent))) {
             throw new IllegalArgumentException(ERROR_SECRETS_NOT_SEALED);
         }
         this.sealedSecrets = sealedJsonContent;
@@ -570,7 +570,7 @@ public final class BundleBuilder {
      */
     public BundleBuilder withSealedExtensionSecrets(String name, String sealedJsonContent) {
         validateExtensionName(name);
-        if (sealedJsonContent == null || !ValueSealer.hasSealedShape(Value.ofJson(sealedJsonContent))) {
+        if (sealedJsonContent == null || !ValueSealer.hasSealedShape(jsonAllowingComments(sealedJsonContent))) {
             throw new IllegalArgumentException(ERROR_EXTENSION_SECRETS_NOT_SEALED.formatted(name));
         }
         sealedExtensionSecrets.put(name, sealedJsonContent);
@@ -798,7 +798,7 @@ public final class BundleBuilder {
         try {
             for (val entry : allFiles.entrySet()) {
                 if (isSealedFileName(entry.getKey())) {
-                    recipients.addAll(ValueSealer.recipientKeyIdsOf(Value.ofJson(entry.getValue())));
+                    recipients.addAll(ValueSealer.recipientKeyIdsOf(jsonAllowingComments(entry.getValue())));
                 }
             }
         } catch (SecretSealingException e) {
@@ -880,7 +880,7 @@ public final class BundleBuilder {
     }
 
     private String sealDocument(String jsonContent) {
-        return ValueJsonMarshaller.toJsonString(ValueSealer.seal(secretsSealingKey, Value.ofJson(jsonContent)));
+        return ValueJsonMarshaller.toJsonString(ValueSealer.seal(secretsSealingKey, jsonAllowingComments(jsonContent)));
     }
 
     private static String algorithmToJson(CombiningAlgorithm algorithm) {

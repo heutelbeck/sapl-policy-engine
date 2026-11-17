@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
+import static io.sapl.api.model.ValueJsonMarshaller.jsonAllowingComments;
 import static io.sapl.pdp.configuration.ExtensionFiles.validateIntegrity;
 
 import java.util.LinkedHashMap;
@@ -119,7 +120,7 @@ record Bundle(
 
     private static void requireRecipient(String fileName, String json, String expectedRecipient) {
         try {
-            val recipients = ValueSealer.recipientKeyIdsOf(Value.ofJson(json));
+            val recipients = ValueSealer.recipientKeyIdsOf(jsonAllowingComments(json));
             if (!recipients.isEmpty() && !Set.of(expectedRecipient).equals(recipients)) {
                 throw new PDPConfigurationException(ERROR_SEALED_RECIPIENT_MISMATCH.formatted(fileName));
             }
@@ -131,7 +132,7 @@ record Bundle(
     private static Map<String, Value> toValues(Map<String, String> jsonByName) {
         val values = new LinkedHashMap<String, Value>();
         for (val entry : jsonByName.entrySet()) {
-            values.put(entry.getKey(), Value.ofJson(entry.getValue()));
+            values.put(entry.getKey(), jsonAllowingComments(entry.getValue()));
         }
         return values;
     }

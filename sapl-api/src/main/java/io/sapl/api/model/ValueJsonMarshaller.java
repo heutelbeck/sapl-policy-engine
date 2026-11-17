@@ -18,6 +18,7 @@
 package io.sapl.api.model;
 
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -41,9 +42,11 @@ import lombok.val;
 @UtilityClass
 public class ValueJsonMarshaller {
 
-    private static final JsonNodeFactory FACTORY       = JsonNodeFactory.instance;
-    private static final JsonMapper      OBJECT_MAPPER = JsonMapper.builder().build();
-    static final int                     MAX_DEPTH     = 500;
+    private static final JsonNodeFactory FACTORY               = JsonNodeFactory.instance;
+    private static final JsonMapper      OBJECT_MAPPER         = JsonMapper.builder().build();
+    private static final JsonMapper      COMMENTED_JSON_MAPPER = JsonMapper.builder()
+            .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_YAML_COMMENTS).build();
+    static final int                     MAX_DEPTH             = 500;
 
     private static final String ERROR_CANNOT_MARSHALL_ERROR_VALUE     = "Cannot marshall ErrorValue to JSON: %s.";
     private static final String ERROR_CANNOT_MARSHALL_NULL            = "Cannot marshall null to JsonNode.";
@@ -282,8 +285,29 @@ public class ValueJsonMarshaller {
      * @return the parsed Value, or ErrorValue if parsing fails
      */
     public static Value json(String json) {
+        return parse(OBJECT_MAPPER, json);
+    }
+
+    /**
+     * Parses a JSON string that may contain comments and converts it to a Value.
+     * <p>
+     * Accepts line comments starting with {@code //} or {@code #} and C-style
+     * block comments, matching the syntax accepted for {@code pdp.json}. Intended
+     * for human-edited configuration files such as extension and secrets files.
+     * Returns ErrorValue if parsing fails.
+     *
+     * @param json
+     * the JSON string to parse, possibly containing comments
+     *
+     * @return the parsed Value, or ErrorValue if parsing fails
+     */
+    public static Value jsonAllowingComments(String json) {
+        return parse(COMMENTED_JSON_MAPPER, json);
+    }
+
+    private static Value parse(JsonMapper mapper, String json) {
         try {
-            return fromJsonNode(OBJECT_MAPPER.readTree(json));
+            return fromJsonNode(mapper.readTree(json));
         } catch (JacksonException e) {
             return Value.error(ERROR_FAILED_TO_PARSE_JSON.formatted(e.getMessage()));
         }
