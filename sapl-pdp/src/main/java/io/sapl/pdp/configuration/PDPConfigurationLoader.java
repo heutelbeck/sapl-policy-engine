@@ -248,13 +248,13 @@ public class PDPConfigurationLoader {
             } else if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
                 hasSealed = true;
                 rawFiles.put(name, raw);
-                val sealedValue = jsonAllowingComments(raw);
+                val sealedValue = Value.ofJson(raw);
                 requireSealedContent(name, sealedValue);
                 extensionSecrets.put(ExtensionFiles.sealedExtensionSecretsNameOf(name), sealedValue);
             } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
                 hasPlaintext = true;
                 rawFiles.put(name, raw);
-                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name), jsonAllowingComments(raw));
+                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name), Value.ofJson(raw));
             } else if (ExtensionFiles.isExtensionFile(name)) {
                 rawFiles.put(name, raw);
                 extensions.put(ExtensionFiles.extensionNameOf(name), jsonAllowingComments(raw));
@@ -269,7 +269,7 @@ public class PDPConfigurationLoader {
     }
 
     private static ObjectValue parseSecretsObject(String fileName, String content) {
-        if (jsonAllowingComments(content) instanceof ObjectValue secrets) {
+        if (Value.ofJson(content) instanceof ObjectValue secrets) {
             return secrets;
         }
         throw new PDPConfigurationException(ERROR_SECRETS_FILE_NOT_OBJECT.formatted(fileName));

@@ -17,7 +17,6 @@
  */
 package io.sapl.node.cli.commands;
 
-import static io.sapl.api.model.ValueJsonMarshaller.jsonAllowingComments;
 import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
 import static io.sapl.node.SaplNodeBuildInfo.version;
 import static io.sapl.pdp.configuration.PDPConfigurationLoader.loadFromBundle;
@@ -759,7 +758,7 @@ public class BundleCommand {
                 }
                 val resealed = new LinkedHashMap<Path, String>();
                 for (val file : sealedFiles) {
-                    val document = jsonAllowingComments(Files.readString(file));
+                    val document = Value.ofJson(Files.readString(file));
                     if (!ValueSealer.hasSealedShape(document)) {
                         throw new CommandFailedException(ERROR_RESEAL_UNSEALED_LEAVES.formatted(file));
                     }
@@ -1479,11 +1478,11 @@ public class BundleCommand {
     }
 
     private static String sealDocument(String jsonContent, OctetKeyPair recipientPublicKey) {
-        return ValueJsonMarshaller.toJsonString(ValueSealer.seal(recipientPublicKey, jsonAllowingComments(jsonContent)));
+        return ValueJsonMarshaller.toJsonString(ValueSealer.seal(recipientPublicKey, Value.ofJson(jsonContent)));
     }
 
     private static String unsealDocument(String sealedJson, OctetKeyPair privateKey) {
-        return ValueJsonMarshaller.toJsonString(ValueSealer.unseal(privateKey, jsonAllowingComments(sealedJson)));
+        return ValueJsonMarshaller.toJsonString(ValueSealer.unseal(privateKey, Value.ofJson(sealedJson)));
     }
 
     private static String fileNameOf(Path path) {

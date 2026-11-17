@@ -17,7 +17,6 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import static io.sapl.api.model.ValueJsonMarshaller.jsonAllowingComments;
 import static io.sapl.pdp.configuration.ExtensionFiles.validateIntegrity;
 
 import java.util.LinkedHashMap;
@@ -25,8 +24,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
@@ -87,9 +88,10 @@ record Bundle(
                 configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
                 configuration.data(), configuration.extensions(), configuration.extensionSecrets(),
                 configuration.requiredExtensions(), provenance, configuration.requiredEngineVersion());
-        val allSecrets     = toValues(extensionSecrets);
-        allSecrets.putAll(toValues(sealedExtensionSecrets));
-        return withProvenance.withExtensions(toValues(extensions), allSecrets, requiredExtensions);
+        val allSecrets     = toValues(extensionSecrets, Value::ofJson);
+        allSecrets.putAll(toValues(sealedExtensionSecrets, Value::ofJson));
+        return withProvenance.withExtensions(toValues(extensions, ValueJsonMarshaller::jsonAllowingComments),
+                allSecrets, requiredExtensions);
     }
 
     private void checkAudience(BundleSecurityPolicy securityPolicy) {
@@ -120,7 +122,7 @@ record Bundle(
 
     private static void requireRecipient(String fileName, String json, String expectedRecipient) {
         try {
-            val recipients = ValueSealer.recipientKeyIdsOf(jsonAllowingComments(json));
+            val recipients = ValueSealer.recipientKeyIdsOf(Value.ofJson(json));
             if (!recipients.isEmpty() && !Set.of(expectedRecipient).equals(recipients)) {
                 throw new PDPConfigurationException(ERROR_SEALED_RECIPIENT_MISMATCH.formatted(fileName));
             }
@@ -129,10 +131,10 @@ record Bundle(
         }
     }
 
-    private static Map<String, Value> toValues(Map<String, String> jsonByName) {
+    private static Map<String, Value> toValues(Map<String, String> jsonByName, Function<String, Value> parser) {
         val values = new LinkedHashMap<String, Value>();
         for (val entry : jsonByName.entrySet()) {
-            values.put(entry.getKey(), jsonAllowingComments(entry.getValue()));
+            values.put(entry.getKey(), parser.apply(entry.getValue()));
         }
         return values;
     }
