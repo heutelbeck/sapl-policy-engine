@@ -88,30 +88,35 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    @DisplayName("hand-edited extension and secrets files may contain comments")
+    @DisplayName("hand-edited pdp.json and extension files may contain comments")
     void whenConfigurationFilesContainCommentsThenLoaded() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), """
                 // the gateway extension must be present
                 {"requiredExtensions": ["upstreams"]}""");
         Files.writeString(tempDir.resolve("ext-upstreams.json"), """
                 {
-                  // no upstream servers yet
-                  "servers": []
+                  # no upstream servers yet
+                  "servers": [] /* filled in by the operator */
                 }""");
-        Files.writeString(tempDir.resolve("ext-upstreams-secrets.json"), """
-                # rotated quarterly
-                { "apiKey": "cleartext-key" }""");
-        Files.writeString(tempDir.resolve("secrets.json"), """
-                { /* shared */ "apiKey": "cleartext-value" }""");
 
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
 
-        assertThat(config).satisfies(
-                c -> assertThat(c.extensions()).containsEntry("upstreams",
-                        Value.ofObject(Map.of("servers", Value.EMPTY_ARRAY))),
-                c -> assertThat(c.extensionSecrets()).containsEntry("upstreams",
-                        Value.ofObject(Map.of("apiKey", Value.of("cleartext-key")))),
-                c -> assertThat(c.data().secrets()).containsEntry("apiKey", Value.of("cleartext-value")));
+        assertThat(config.extensions()).containsEntry("upstreams",
+                Value.ofObject(Map.of("servers", Value.EMPTY_ARRAY)));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "secrets.json", "ext-upstreams-secrets.json" })
+    @DisplayName("secrets files are strict JSON and a commented secrets file is rejected")
+    void whenSecretsFileContainsCommentsThenRejected(String secretsFile) throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
+        Files.writeString(tempDir.resolve("ext-upstreams.json"), "{}");
+        Files.writeString(tempDir.resolve(secretsFile), """
+                // rotated quarterly
+                { "apiKey": "cleartext-key" }""");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(secretsFile);
     }
 
     @Test
