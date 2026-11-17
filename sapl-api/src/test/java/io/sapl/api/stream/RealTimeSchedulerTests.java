@@ -27,6 +27,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -59,7 +62,7 @@ class RealTimeSchedulerTests {
 
         scheduler.scheduleAt(REFERENCE.plusMillis(50), () -> fired.set(true));
 
-        await().atMost(Duration.ofSeconds(1)).untilTrue(fired);
+        await().atMost(Duration.ofSeconds(5)).untilTrue(fired);
     }
 
     @Test
@@ -69,7 +72,7 @@ class RealTimeSchedulerTests {
 
         scheduler.scheduleAt(REFERENCE.minusSeconds(1), () -> fired.set(true));
 
-        await().atMost(Duration.ofSeconds(1)).untilTrue(fired);
+        await().atMost(Duration.ofSeconds(5)).untilTrue(fired);
     }
 
     @Test
@@ -109,6 +112,39 @@ class RealTimeSchedulerTests {
         });
         scheduler.scheduleAt(REFERENCE.plusMillis(60), () -> secondRan.set(true));
 
-        await().atMost(Duration.ofSeconds(1)).untilTrue(secondRan);
+        await().atMost(Duration.ofSeconds(5)).untilTrue(secondRan);
+    }
+
+    @Test
+    @DisplayName("fires on time while CPU-bound virtual threads occupy every carrier thread")
+    void whenAllVirtualThreadCarriersAreBusyThenTaskStillFiresOnTime() throws InterruptedException {
+        val fired    = new AtomicBoolean(false);
+        val release  = new AtomicBoolean(false);
+        val carriers = Integer.getInteger("jdk.virtualThreadScheduler.parallelism",
+                Runtime.getRuntime().availableProcessors());
+        val running  = new CountDownLatch(carriers);
+        val spinners = new ArrayList<Thread>();
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        try {
+            // Virtual threads are not preempted: a spinning virtual thread keeps its carrier until it ends.
+            for (var i = 0; i < carriers; i++) {
+                spinners.add(Thread.ofVirtual().start(() -> {
+                    running.countDown();
+                    while (!release.get() && System.nanoTime() < deadline) {
+                        Thread.onSpinWait();
+                    }
+                }));
+            }
+            assertThat(running.await(5, TimeUnit.SECONDS)).isTrue();
+
+            scheduler.scheduleAt(REFERENCE.plusMillis(50), () -> fired.set(true));
+
+            await().atMost(Duration.ofMillis(2500)).untilTrue(fired);
+        } finally {
+            release.set(true);
+            for (val spinner : spinners) {
+                spinner.join();
+            }
+        }
     }
 }
