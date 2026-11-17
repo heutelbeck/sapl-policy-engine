@@ -103,9 +103,10 @@ NUMBER
     | ('0' | [1-9] DIGIT*) '.' DIGIT+ ([eE] [+\-]? DIGIT+)?
     ;
 
+// A string ends on the line it starts on. A line break in a text is written as an escape.
 STRING
-    : '"' (ESC | ~["\\])* '"'
-    | '\'' (ESC | ~['\\])* '\''
+    : '"' (ESC | ~["\\\r\n])* '"'
+    | '\'' (ESC | ~['\\\r\n])* '\''
     ;
 
 // Identifiers

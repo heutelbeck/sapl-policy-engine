@@ -146,16 +146,20 @@ class SAPLDocumentSymbolProviderTests {
         }
 
         @Test
-        @DisplayName("full range end follows a policy whose last token spans multiple lines")
-        void whenPolicyEndsWithMultiLineStringThenFullRangeEndsAtTokenEnd() {
-            var document = new SAPLParsedDocument("test.sapl", "policy \"p\" permit transform \"line1\nline2\"");
+        @DisplayName("full range ends after the last token of a policy that spans several lines")
+        void whenPolicySpansLinesThenFullRangeEndsAfterLastToken() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    policy "p"
+                    permit
+                    transform "text"
+                    """);
 
             var symbols = provider.provideDocumentSymbols(document);
 
             assertThat(symbols).hasSize(1).first().satisfies(symbol -> {
                 var fullRange = symbol.getRange();
-                assertThat(fullRange.getEnd().getLine()).isEqualTo(1);
-                assertThat(fullRange.getEnd().getCharacter()).isEqualTo(6);
+                assertThat(fullRange.getEnd().getLine()).isEqualTo(2);
+                assertThat(fullRange.getEnd().getCharacter()).isEqualTo(16);
             });
         }
 

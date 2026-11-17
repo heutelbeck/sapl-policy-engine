@@ -41,8 +41,10 @@ import static io.sapl.compiler.util.TrojanSourceUtil.assertNoTrojanSourceCharact
 
 @UtilityClass
 public class DocumentCompiler {
+    private static final String ERROR_AT_POSITION          = "line %d:%d %s";
     private static final String ERROR_COMPILATION_TOO_DEEP = "Compilation of SAPL document failed: expression tree is too deep.";
     private static final String ERROR_DOCUMENT_TOO_LARGE   = "Parsing of SAPL document failed: document exceeds the maximum size of %d bytes.";
+    private static final String ERROR_LONE_SURROGATE       = "Incomplete surrogate pair. A string holds one half of a surrogate pair, which is not a character on its own. Add the second half, for example '\\uD83D\\uDE00', or remove it.";
     private static final String ERROR_NESTING_TOO_DEEP     = "Parsing of SAPL document failed: document nesting is too deep.";
     private static final String ERROR_PARSING_AST_NULL     = "Parsing of SAPL document failed: AST was null.";
     private static final String ERROR_PARSING_FAILED       = "Parsing of SAPL document failed: %s.";
@@ -155,7 +157,7 @@ public class DocumentCompiler {
             @Override
             public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
                     int charPositionInLine, String message, RecognitionException exception) {
-                syntaxErrors.add("line %d:%d %s".formatted(line, charPositionInLine, message));
+                syntaxErrors.add(ERROR_AT_POSITION.formatted(line, charPositionInLine, message));
             }
         };
 
@@ -167,6 +169,7 @@ public class DocumentCompiler {
         tokenStream.fill();
         val tokens = tokenStream.getTokens();
         assertNoTrojanSourceEscapes(tokens);
+        syntaxErrors.addAll(loneSurrogateErrors(tokens));
         if (exceedsNestingLimit(tokens)) {
             syntaxErrors.add(ERROR_NESTING_TOO_DEEP);
             return new ParseResult(null, syntaxErrors);
@@ -195,6 +198,25 @@ public class DocumentCompiler {
                 assertNoTrojanSourceCharacters(unquoteString(token.getText()));
             }
         }
+    }
+
+    /**
+     * A string escape can denote one half of a surrogate pair. On its own such
+     * a half is no character and has no UTF-8 form: the text would change or
+     * fail, depending on where it is written to.
+     */
+    private List<String> loneSurrogateErrors(List<Token> tokens) {
+        return tokens.stream().filter(
+                token -> token.getType() == SAPLLexer.STRING && holdsLoneSurrogate(unquoteString(token.getText())))
+                .map(token -> ERROR_AT_POSITION.formatted(token.getLine(), token.getCharPositionInLine(),
+                        ERROR_LONE_SURROGATE))
+                .toList();
+    }
+
+    private boolean holdsLoneSurrogate(String text) {
+        // A complete pair is one code point outside the range of the surrogates. Only
+        // a half on its own stays a code point of that range.
+        return text.codePoints().anyMatch(codePoint -> Character.getType(codePoint) == Character.SURROGATE);
     }
 
     private boolean exceedsNestingLimit(List<Token> tokens) {

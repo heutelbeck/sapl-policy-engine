@@ -55,6 +55,8 @@ A backtick-quoted identifier (e.g. `` `permit` ``) is treated as a plain identif
 
 Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by double quotes `"` or by single quotes `'`. A quote character of the enclosing kind occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""` or `'it\'s'`. The other kind needs no escape, e.g., `'the name is "John Doe"'`.
 
+A string ends on the line on which it starts. A line break inside a text is written as the escape `\n`. The escape `\uXXXX` denotes a character by its code. A character outside the basic multilingual plane is written as itself or as a surrogate pair of two such escapes, e.g., `"\uD83D\uDE00"`. One half of a surrogate pair on its own is not a character, and a string that holds one is rejected.
+
 ### Comments
 
 Comments are used to store information in a SAPL document which is only intended for human readers and has no meaning for the PDP. Comments are simply ignored when the PDP evaluates a document.

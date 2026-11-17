@@ -118,24 +118,11 @@ class SAPLDocumentSymbolProvider {
         if (ctx == null || ctx.getStart() == null || ctx.getStop() == null) {
             return ZERO_RANGE;
         }
-        val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
-        val stop  = ctx.getStop();
-        return new Range(start, endPositionOf(stop));
+        return new Range(rangeOfToken(ctx.getStart()).getStart(), rangeOfToken(ctx.getStop()).getEnd());
     }
 
-    private static Position endPositionOf(Token token) {
-        val text        = token.getText();
-        val startLine   = token.getLine() - 1;
-        val startColumn = token.getCharPositionInLine();
-        val lastNewline = text.lastIndexOf('\n');
-        if (lastNewline < 0) {
-            return new Position(startLine, startColumn + text.length());
-        }
-        val newlineCount  = (int) text.chars().filter(c -> c == '\n').count();
-        val trailingChars = text.length() - lastNewline - 1;
-        return new Position(startLine + newlineCount, trailingChars);
-    }
-
+    // A token of SAPL starts and ends on one line: a string ends on its line, and
+    // white space and comments are no tokens of the parse tree.
     private static Range rangeOfToken(Token token) {
         val start = new Position(token.getLine() - 1, token.getCharPositionInLine());
         val end   = new Position(token.getLine() - 1, token.getCharPositionInLine() + token.getText().length());

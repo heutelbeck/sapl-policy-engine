@@ -329,6 +329,68 @@ class DocumentCompilerTests {
     }
 
     @Nested
+    @DisplayName("string literals")
+    class StringLiteralTests {
+
+        private static final String POLICY_COMPARING_SUBJECT_TO = """
+                policy "p" permit subject == %s;""";
+
+        static Stream<Arguments> stringsWithLineBreaks() {
+            return Stream.of(arguments("a line feed", "\"re\nad\""),
+                    arguments("a carriage return and a line feed", "\"re\r\nad\""),
+                    arguments("a carriage return", "\"re\rad\""),
+                    arguments("a line feed in single quotes", "'re\nad'"));
+        }
+
+        @ParameterizedTest(name = "rejects a string that holds {0}")
+        @MethodSource("stringsWithLineBreaks")
+        @DisplayName("parseDocument rejects a string that holds a line break")
+        void whenStringHoldsLineBreakThenDocumentIsInvalid(String description, String literal) {
+            val document = DocumentCompiler.parseDocument(POLICY_COMPARING_SUBJECT_TO.formatted(literal));
+
+            assertThat(document.isInvalid()).isTrue();
+        }
+
+        static Stream<Arguments> stringsWithLoneSurrogates() {
+            return Stream.of(arguments("the first half alone", "\"\\uD83D\""),
+                    arguments("the second half alone", "\"\\uDE00\""),
+                    arguments("the halves with a letter between them", "\"\\uD83Dx\\uDE00\""),
+                    arguments("the halves in the wrong order", "\"\\uDE00\\uD83D\""),
+                    arguments("a first half before a complete pair", "\"\\uD83D\\uD83D\\uDE00\""),
+                    arguments("a half in lower case", "\"\\ud83d\""),
+                    arguments("a half in single quotes", "'\\uD83D'"));
+        }
+
+        @ParameterizedTest(name = "rejects {0}")
+        @MethodSource("stringsWithLoneSurrogates")
+        @DisplayName("parseDocument rejects a string escape that is one half of a surrogate pair")
+        void whenStringHoldsLoneSurrogateThenDocumentIsInvalid(String description, String literal) {
+            val document = DocumentCompiler.parseDocument(POLICY_COMPARING_SUBJECT_TO.formatted(literal));
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.isInvalid()).isTrue();
+                assertThat(d.errors()).containsOnlyOnce("line 1:29 Incomplete surrogate pair.");
+            });
+        }
+
+        static Stream<Arguments> stringsThatStayValid() {
+            return Stream.of(arguments("a line break written as an escape", "\"re\\nad\""),
+                    arguments("a complete surrogate pair", "\"\\uD83D\\uDE00\""),
+                    arguments("the code of a half after an escaped backslash", "\"\\\\uD83D\""),
+                    arguments("a character outside the basic plane written as itself", "\"\uD83D\uDE00\""));
+        }
+
+        @ParameterizedTest(name = "accepts {0}")
+        @MethodSource("stringsThatStayValid")
+        @DisplayName("parseDocument accepts strings that only resemble the refused ones")
+        void whenStringOnlyResemblesRefusedOnesThenDocumentIsValid(String description, String literal) {
+            val document = DocumentCompiler.parseDocument(POLICY_COMPARING_SUBJECT_TO.formatted(literal));
+
+            assertThat(document.isInvalid()).as(document.errorMessage()).isFalse();
+        }
+    }
+
+    @Nested
     @DisplayName("resource limits")
     class ResourceLimitTests {
 
