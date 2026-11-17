@@ -52,6 +52,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
@@ -749,6 +750,27 @@ class BundleBuilderTests {
             val config    = BundleParser.parse(bundle, "pdp", signedPolicy);
             assertThat(config.extensions()).containsKey("paratron-gateway");
             assertThat(config.extensionSecrets()).containsKey("paratron-gateway");
+        }
+
+        @Test
+        @DisplayName("a bundled extension file may contain comments")
+        void whenBundledExtensionHasCommentsThenLoaded() {
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("paratron-gateway", """
+                    { /* public entry point */ "route": "/api" } // end""")
+                    .signWith(cultKeyPair.getPrivate(), "elder-key").build();
+            val config = BundleParser.parse(bundle, "pdp", signedPolicy);
+            assertThat(config.extensions()).containsEntry("paratron-gateway",
+                    Value.ofObject(Map.of("route", Value.of("/api"))));
+        }
+
+        @Test
+        @DisplayName("a bundled extension file that is not valid JSON fails the configuration")
+        void whenBundledExtensionMalformedThenRejected() {
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                    .withExtension("paratron-gateway", "{ \"route\": ").signWith(cultKeyPair.getPrivate(), "elder-key")
+                    .build();
+            assertThatThrownBy(() -> BundleParser.parse(bundle, "pdp", signedPolicy))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("ext-paratron-gateway.json");
         }
     }
 

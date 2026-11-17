@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -72,6 +74,7 @@ public class ExtensionFiles {
      */
     public static final String SEALED_SECRETS_FILE = "secrets.sealed.json";
 
+    private static final String ERROR_EXTENSION_FILE_NOT_JSON  = "Extension file '%s' does not contain valid JSON.";
     private static final String ERROR_REQUIRED_WITHOUT_PAYLOAD = "Required extension '%1$s' has no configuration or secrets payload. Provide 'ext-%1$s.json', 'ext-%1$s-secrets.json' or 'ext-%1$s-secrets.sealed.json'.";
 
     /**
@@ -175,6 +178,27 @@ public class ExtensionFiles {
                 throw new PDPConfigurationException(ERROR_REQUIRED_WITHOUT_PAYLOAD.formatted(extensionName));
             }
         }
+    }
+
+    /**
+     * Rejects an extension file whose content failed to parse. The message names the file but never the parser
+     * diagnostics, because those can quote file content and extension files may carry secrets.
+     *
+     * @param fileName
+     * the extension file name, used in the error message
+     * @param parsed
+     * the parse result of the file content
+     *
+     * @return the parsed value
+     *
+     * @throws PDPConfigurationException
+     * if the content did not parse
+     */
+    public static Value requireValidJson(String fileName, Value parsed) {
+        if (parsed instanceof ErrorValue) {
+            throw new PDPConfigurationException(ERROR_EXTENSION_FILE_NOT_JSON.formatted(fileName));
+        }
+        return parsed;
     }
 
 }

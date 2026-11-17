@@ -88,9 +88,11 @@ record Bundle(
                 configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
                 configuration.data(), configuration.extensions(), configuration.extensionSecrets(),
                 configuration.requiredExtensions(), provenance, configuration.requiredEngineVersion());
-        val allSecrets     = toValues(extensionSecrets, Value::ofJson);
-        allSecrets.putAll(toValues(sealedExtensionSecrets, Value::ofJson));
-        return withProvenance.withExtensions(toValues(extensions, ValueJsonMarshaller::jsonAllowingComments),
+        val allSecrets     = toValues(extensionSecrets, ExtensionFiles.EXTENSION_SECRETS_SUFFIX, Value::ofJson);
+        allSecrets.putAll(
+                toValues(sealedExtensionSecrets, ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX, Value::ofJson));
+        return withProvenance.withExtensions(
+                toValues(extensions, ExtensionFiles.EXTENSION_SUFFIX, ValueJsonMarshaller::jsonAllowingComments),
                 allSecrets, requiredExtensions);
     }
 
@@ -131,10 +133,12 @@ record Bundle(
         }
     }
 
-    private static Map<String, Value> toValues(Map<String, String> jsonByName, Function<String, Value> parser) {
+    private static Map<String, Value> toValues(Map<String, String> jsonByName, String fileSuffix,
+            Function<String, Value> parser) {
         val values = new LinkedHashMap<String, Value>();
         for (val entry : jsonByName.entrySet()) {
-            values.put(entry.getKey(), parser.apply(entry.getValue()));
+            val fileName = ExtensionFiles.EXTENSION_PREFIX + entry.getKey() + fileSuffix;
+            values.put(entry.getKey(), ExtensionFiles.requireValidJson(fileName, parser.apply(entry.getValue())));
         }
         return values;
     }

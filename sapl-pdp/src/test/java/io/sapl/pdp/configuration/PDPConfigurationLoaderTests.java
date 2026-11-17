@@ -119,6 +119,19 @@ class PDPConfigurationLoaderTests {
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(secretsFile);
     }
 
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "ext-upstreams.json", "ext-upstreams-secrets.json" })
+    @DisplayName("an extension file that is not valid JSON fails the configuration without echoing its content")
+    void whenExtensionFileMalformedThenRejected(String extensionFile) throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), "{}");
+        Files.writeString(tempDir.resolve(extensionFile), """
+                { "apiKey": "cleartext-key\"""");
+
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(extensionFile)
+                .hasMessageNotContaining("cleartext-key");
+    }
+
     @Test
     @DisplayName("a secrets.json file is loaded into the PDP data")
     void whenDirectoryHasSecretsFileThenLoaded() throws IOException {

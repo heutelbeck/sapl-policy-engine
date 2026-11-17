@@ -254,10 +254,12 @@ public class PDPConfigurationLoader {
             } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
                 hasPlaintext = true;
                 rawFiles.put(name, raw);
-                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name), Value.ofJson(raw));
+                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name),
+                        ExtensionFiles.requireValidJson(name, Value.ofJson(raw)));
             } else if (ExtensionFiles.isExtensionFile(name)) {
                 rawFiles.put(name, raw);
-                extensions.put(ExtensionFiles.extensionNameOf(name), jsonAllowingComments(raw));
+                extensions.put(ExtensionFiles.extensionNameOf(name),
+                        ExtensionFiles.requireValidJson(name, jsonAllowingComments(raw)));
             }
         }
 
