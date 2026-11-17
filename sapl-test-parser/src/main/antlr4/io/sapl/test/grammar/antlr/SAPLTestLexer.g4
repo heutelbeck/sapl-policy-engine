@@ -156,6 +156,7 @@ NUMBER
 
 STRING
     : '"' (ESC | ~["\\])* '"'
+    | '\'' (ESC | ~['\\])* '\''
     ;
 
 // Identifiers
@@ -182,7 +183,7 @@ fragment DIGIT
     ;
 
 fragment ESC
-    : '\\' (["\\/bfnrt] | UNICODE)
+    : '\\' (["'\\/bfnrt] | UNICODE)
     ;
 
 fragment UNICODE

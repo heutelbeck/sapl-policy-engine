@@ -57,12 +57,14 @@ import tools.jackson.databind.ser.std.StdSerializer;
  *     "maxRetries": 3
  *   },
  *   "secrets": {
- *     "apiKey": "secret-value"
+ *     "apiKey": "ENC[eyJhbGciOiJFQ0RILUVTIi...]"
  *   }
  * }
  * }</pre>
  *
- * The optional requiredEngineVersion field is omitted when null.
+ * The optional requiredEngineVersion field is omitted when null. Secrets are
+ * written as the configuration holds them and are not redacted: sealed secrets
+ * as {@code ENC[...]} tokens, unsealed secrets in clear text.
  */
 public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> {
 

@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.document;
 
+import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +28,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
+import static io.sapl.util.SaplTesting.evaluateExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -95,6 +97,71 @@ class AstTransformerTests {
                     arguments("scientific-notation index", "policy \"p\" permit [1,2,3][1e3] == 1;"),
                     arguments("out-of-range slice bound", "policy \"p\" permit [1,2,3][9999999999:] == 1;"),
                     arguments("out-of-range index-union member", "policy \"p\" permit [1,2,3][0,9999999999] == 1;"));
+        }
+    }
+
+    @Nested
+    @DisplayName("string literals in single and double quotes")
+    class StringLiteralTests {
+
+        static Stream<Arguments> literalsWithTheTextTheyDenote() {
+            return Stream.of(arguments("text in single quotes", """
+                    'plain text'
+                    """, "plain text"), arguments("an empty text in single quotes", """
+                    ''
+                    """, ""), arguments("an escaped single quote in single quotes", """
+                    'it\\'s'
+                    """, "it's"), arguments("an escaped single quote in double quotes", """
+                    "it\\'s"
+                    """, "it's"), arguments("a single quote in double quotes", """
+                    "it's"
+                    """, "it's"), arguments("a double quote in single quotes", """
+                    'say "hi"'
+                    """, "say \"hi\""), arguments("an escaped double quote in single quotes", """
+                    'say \\"hi\\"'
+                    """, "say \"hi\""), arguments("the common escapes in single quotes", """
+                    'a\\tb\\nc\\\\d\\/e\\u0041'
+                    """, "a\tb\nc\\d/eA"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("literalsWithTheTextTheyDenote")
+        @DisplayName("a string literal denotes its text with all escapes resolved")
+        void whenStringLiteralIsEvaluatedThenItDenotesItsText(String description, String literal, String text) {
+            assertThat(evaluateExpression(literal)).isEqualTo(Value.of(text));
+        }
+
+        static Stream<Arguments> stepsWithKeysInSingleQuotes() {
+            return Stream.of(arguments("a bracket key step", """
+                    { "key": 1 }['key'] == 1
+                    """), arguments("a dot key step", """
+                    { "key with space": 1 }.'key with space' == 1
+                    """), arguments("a recursive key step", """
+                    { "a": { "key": 1 } }..['key'] == [1]
+                    """), arguments("an attribute union step mixing both forms", """
+                    { "a": 1, "b": 2 }['a', "b"] == [1, 2]
+                    """), arguments("an object key", """
+                    { 'key': 1 }.key == 1
+                    """));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("stepsWithKeysInSingleQuotes")
+        @DisplayName("a key in single quotes selects the same attribute as in double quotes")
+        void whenKeyIsInSingleQuotesThenItSelectsTheAttribute(String description, String comparison) {
+            assertThat(evaluateExpression(comparison)).isEqualTo(Value.TRUE);
+        }
+
+        @Test
+        @DisplayName("a policy name in single quotes is the text between the quotes")
+        void whenPolicyNameIsInSingleQuotesThenNameIsItsText() {
+            val document = DocumentCompiler.parseDocument("""
+                    policy 'it\\'s a policy' permit""");
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.isInvalid()).as(d.errorMessage()).isFalse();
+                assertThat(d.name()).isEqualTo("it's a policy");
+            });
         }
     }
 

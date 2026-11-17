@@ -136,8 +136,9 @@ public class MqttPolicyInformationPoint {
 
             ## Secrets Configuration
 
-            Broker credentials are sourced exclusively from the `secrets` section in `pdp.json`.
-            They are never read from broker configuration objects or policy parameters.
+            Broker credentials are sourced exclusively from the PDP secrets file next to `pdp.json`
+            (`secrets.json`, sealed: `secrets.sealed.json`). They are never read from broker
+            configuration objects or policy parameters.
             When credentials are configured, broker connections require `tls: true` by default.
             Plaintext credential transport is rejected unless `variables.mqtt.allowInsecureTransport`
             or the selected broker's `allowInsecureTransport` is explicitly set to `true`.
@@ -153,14 +154,13 @@ public class MqttPolicyInformationPoint {
                contains `username`/`password` fields.
             3. **Anonymous**: If no secrets are found at all, connect with empty credentials.
 
-            Multi-broker secrets example:
+            Multi-broker secrets example. The content of `secrets.json` is the secrets object
+            itself, without a wrapping `secrets` key:
             ```json
             {
-              "secrets": {
-                "mqtt": {
-                  "production": { "username": "prod-user", "password": "prod-secret" },
-                  "staging": { "username": "staging-user", "password": "staging-secret" }
-                }
+              "mqtt": {
+                "production": { "username": "prod-user", "password": "prod-secret" },
+                "staging": { "username": "staging-user", "password": "staging-secret" }
               }
             }
             ```
@@ -168,14 +168,13 @@ public class MqttPolicyInformationPoint {
             Single-broker or flat secrets example (used when no per-broker key matches):
             ```json
             {
-              "secrets": {
-                "mqtt": { "username": "sapl-user", "password": "secure-password" }
-              }
+              "mqtt": { "username": "sapl-user", "password": "secure-password" }
             }
             ```
 
-            ## Complete pdp.json Example
+            ## Complete Configuration Example
 
+            `pdp.json`:
             ```json
             {
               "variables": {
@@ -188,12 +187,16 @@ public class MqttPolicyInformationPoint {
                     { "name": "staging", "brokerAddress": "mqtt-staging.example.com", "brokerPort": 1883, "clientId": "sapl-staging" }
                   ]
                 }
-              },
-              "secrets": {
-                "mqtt": {
-                  "production": { "username": "prod-user", "password": "prod-secret" },
-                  "staging": { "username": "staging-user", "password": "staging-secret" }
-                }
+              }
+            }
+            ```
+
+            `secrets.json`:
+            ```json
+            {
+              "mqtt": {
+                "production": { "username": "prod-user", "password": "prod-secret" },
+                "staging": { "username": "staging-user", "password": "staging-secret" }
               }
             }
             ```

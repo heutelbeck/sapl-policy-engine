@@ -24,6 +24,7 @@ import java.util.Set;
 
 import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
 import static com.google.protobuf.WireFormat.getTagFieldNumber;
+import static com.google.protobuf.WireFormat.getTagWireType;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -91,6 +92,7 @@ public class SaplProtobufCodec {
     private static final String ERROR_INVALID_NUMBER                    = "Malformed or out-of-bounds number value in protobuf payload.";
     private static final String ERROR_MAX_MULTI_SUBSCRIPTION_COUNT      = "Maximum multi-subscription count must be positive.";
     private static final String ERROR_MULTI_SUBSCRIPTION_COUNT_EXCEEDED = "Multi-subscription exceeds the maximum of %d entries.";
+    private static final String ERROR_SECRETS_NOT_AN_OBJECT             = "The secrets of an authorization subscription must be an object.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -285,11 +287,7 @@ public class SaplProtobufCodec {
     }
 
     private static void writeObjectValue(ObjectValue obj, CodedOutputStream output) throws IOException {
-        output.writeTag(VALUE_OBJECT, WIRETYPE_LENGTH_DELIMITED);
-        output.writeUInt32NoTag(computeObjectValueContentSize(obj));
-        for (val entry : obj.entrySet()) {
-            writeMapEntry(entry.getKey(), entry.getValue(), output);
-        }
+        writeObjectValueField(VALUE_OBJECT, obj, output);
     }
 
     private static void writeMapEntry(String key, Value value, CodedOutputStream output) throws IOException {
@@ -397,18 +395,28 @@ public class SaplProtobufCodec {
             case SUBSCRIPTION_ACTION      -> action = readEmbeddedValue(input, 0);
             case SUBSCRIPTION_RESOURCE    -> resource = readEmbeddedValue(input, 0);
             case SUBSCRIPTION_ENVIRONMENT -> environment = readEmbeddedValue(input, 0);
-            case SUBSCRIPTION_SECRETS     -> secrets = toObjectValue(readEmbeddedValue(input, 0));
+            case SUBSCRIPTION_SECRETS     -> secrets = readSecrets(input);
             default                       -> input.skipField(tag);
             }
         }
         return new AuthorizationSubscription(subject, action, resource, environment, secrets);
     }
 
-    private static ObjectValue toObjectValue(Value value) {
-        if (value instanceof ObjectValue ov) {
-            return ov;
+    // Secrets are an object message and are read strictly. A payload carrying
+    // anything but object fields is refused. Skipping it would evaluate the
+    // subscription as if the client had sent no secrets.
+    private static ObjectValue readSecrets(CodedInputStream input) throws IOException {
+        val limit   = input.pushLimit(input.readRawVarint32());
+        val builder = ObjectValue.builder();
+        while (!input.isAtEnd()) {
+            val tag = input.readTag();
+            if (getTagFieldNumber(tag) != OBJECT_FIELDS || getTagWireType(tag) != WIRETYPE_LENGTH_DELIMITED) {
+                throw new IOException(ERROR_SECRETS_NOT_AN_OBJECT);
+            }
+            readMapEntry(input, builder, 0);
         }
-        return Value.EMPTY_OBJECT;
+        input.popLimit(limit);
+        return builder.build();
     }
 
     private static void writeAuthorizationSubscriptionFields(AuthorizationSubscription sub, CodedOutputStream output)
@@ -417,7 +425,16 @@ public class SaplProtobufCodec {
         writeValueField(SUBSCRIPTION_ACTION, sub.action(), output);
         writeValueField(SUBSCRIPTION_RESOURCE, sub.resource(), output);
         writeValueField(SUBSCRIPTION_ENVIRONMENT, sub.environment(), output);
-        writeValueField(SUBSCRIPTION_SECRETS, sub.secrets(), output);
+        writeObjectValueField(SUBSCRIPTION_SECRETS, sub.secrets(), output);
+    }
+
+    private static void writeObjectValueField(int fieldNumber, ObjectValue object, CodedOutputStream output)
+            throws IOException {
+        output.writeTag(fieldNumber, WIRETYPE_LENGTH_DELIMITED);
+        output.writeUInt32NoTag(computeObjectValueContentSize(object));
+        for (val entry : object.entrySet()) {
+            writeMapEntry(entry.getKey(), entry.getValue(), output);
+        }
     }
 
     private static void writeValueField(int fieldNumber, Value value, CodedOutputStream output) throws IOException {
@@ -431,7 +448,13 @@ public class SaplProtobufCodec {
                 + computeValueFieldSize(SUBSCRIPTION_ACTION, sub.action())
                 + computeValueFieldSize(SUBSCRIPTION_RESOURCE, sub.resource())
                 + computeValueFieldSize(SUBSCRIPTION_ENVIRONMENT, sub.environment())
-                + computeValueFieldSize(SUBSCRIPTION_SECRETS, sub.secrets());
+                + computeObjectValueFieldSize(SUBSCRIPTION_SECRETS, sub.secrets());
+    }
+
+    private static int computeObjectValueFieldSize(int fieldNumber, ObjectValue object) {
+        val contentSize = computeObjectValueContentSize(object);
+        return CodedOutputStream.computeTagSize(fieldNumber) + CodedOutputStream.computeUInt32SizeNoTag(contentSize)
+                + contentSize;
     }
 
     private static int computeValueFieldSize(int fieldNumber, Value value) {

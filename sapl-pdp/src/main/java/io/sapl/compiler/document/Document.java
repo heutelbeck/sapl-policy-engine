@@ -85,12 +85,14 @@ public record Document(
         };
     }
 
+    /**
+     * Lists every syntax and validation error of the document on a line of its
+     * own.
+     *
+     * @return the errors, or an empty text if the document is valid
+     */
     public String errors() {
         val errors = new StringBuilder();
-        if (errorMessage != null) {
-            errors.append(errorMessage);
-            errors.append('\n');
-        }
         if (syntaxErrors != null) {
             for (val syntaxError : syntaxErrors) {
                 errors.append(syntaxError);

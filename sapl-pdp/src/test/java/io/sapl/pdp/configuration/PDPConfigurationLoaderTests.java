@@ -318,6 +318,35 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
+    @DisplayName("supplement files given with the content are loaded into the configuration")
+    void whenContentComesWithSupplementFilesThenTheyAreLoaded() {
+        val supplementFiles = Map.of("secrets.json", """
+                { "apiKey": "cleartext-value" }""", "ext-upstreams.json", """
+                { "servers": [] }""", "ext-upstreams-secrets.json", """
+                { "apiKey": "cleartext-key" }""");
+
+        val config = PDPConfigurationLoader.loadFromContent("""
+                {"requiredExtensions": ["upstreams"]}""", Map.of(), supplementFiles, "arkham-pdp", "root");
+
+        assertThat(config).satisfies(c -> {
+            assertThat(c.data().secrets()).containsKey("apiKey");
+            assertThat(c.extensions()).containsKey("upstreams");
+            assertThat(c.extensionSecrets()).containsKey("upstreams");
+        });
+    }
+
+    @Test
+    @DisplayName("the configuration id derived from content covers the supplement files")
+    void whenSupplementFilesDifferThenConfigurationIdDiffers() {
+        val first  = PDPConfigurationLoader.loadFromContent("{}", Map.of(), Map.of("secrets.json", """
+                { "apiKey": "first" }"""), "arkham-pdp", "root");
+        val second = PDPConfigurationLoader.loadFromContent("{}", Map.of(), Map.of("secrets.json", """
+                { "apiKey": "second" }"""), "arkham-pdp", "root");
+
+        assertThat(first.configurationId()).isNotEqualTo(second.configurationId());
+    }
+
+    @Test
     void whenLoadingFromContentThenCreatesConfiguration() {
         val pdpJsonContent = """
                 {

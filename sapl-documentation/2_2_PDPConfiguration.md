@@ -35,7 +35,7 @@ PDP-level secrets are configured once and automatically available to all PIPs vi
 
 Secrets never live inside `pdp.json`. They are carried in a dedicated file next to it, and the file name states whether the content is sealed:
 
-- **`secrets.json`**: cleartext secrets, for development setups only.
+- **`secrets.json`**: cleartext secrets, for development setups only. The PDP rejects a configuration with cleartext secrets unless unencrypted secrets are accepted explicitly: `acceptUnencryptedSecrets()` on the `PolicyDecisionPointBuilder`, or `io.sapl.pdp.embedded.secrets.accept-unencrypted: true` for Spring and SAPL Node.
 - **`secrets.sealed.json`**: sealed secrets. Every scalar leaf is replaced by an `ENC[...]` token encrypted to an X25519 recipient key, while the structure and key names stay readable. The recipient (the PDP, or the cluster sharing the key) restores the values at load time.
 
 ```json
@@ -106,7 +106,7 @@ A rejected update leaves the last working configuration active with status `STAL
 
 <span id="requiredExtensions"></span>`requiredExtensions`: optional array of extension names the recipient must support and successfully prepare before accepting the configuration. Omitting the field or providing an empty array declares no required extensions. Null values, other JSON types and array entries that are not strings are rejected.
 
-Each listed name must have configuration in `ext-<name>.json`, secrets in `ext-<name>-secrets.sealed.json` or both. For the example above, provide `ext-upstreams.json` or the matching secrets file alongside `pdp.json`. The same declaration applies to policy directories and bundles. Extension secrets follow the sealing rules described in [Secrets](#secrets).
+Each listed name must have configuration in `ext-<name>.json`, secrets in `ext-<name>-secrets.json` (sealed: `ext-<name>-secrets.sealed.json`) or both. For the example above, provide `ext-upstreams.json` or the matching secrets file alongside `pdp.json`. The same declaration applies to policy directories and bundles. Extension secrets follow the sealing rules described in [Secrets](#secrets).
 
 A recipient may ignore unsupported extensions that are not listed. It rejects the whole configuration if a required extension is unsupported or cannot be prepared. A rejected update leaves the last working configuration active with status `STALE`. Without a working configuration, the status is `ERROR`. The declaration in `pdp.json` is covered by the bundle signature.
 

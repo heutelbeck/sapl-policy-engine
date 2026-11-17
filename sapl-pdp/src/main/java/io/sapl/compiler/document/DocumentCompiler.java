@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 import static io.sapl.compiler.util.TrojanSourceUtil.assertNoTrojanSourceCharacters;
 
 @UtilityClass
@@ -52,10 +53,21 @@ public class DocumentCompiler {
      */
     public static final int MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
 
+    /**
+     * Maximum nesting depth of parentheses, brackets and braces in a SAPL
+     * document. All three kinds count towards the same depth. A document nested
+     * more deeply is rejected instead of being parsed. The bound keeps the
+     * recursive passes over a document well within the stack of an ordinary
+     * thread.
+     */
+    static final int MAX_NESTING_DEPTH = 32;
+
     private final SAPLValidator validator = new SAPLValidator();
 
     public static CompiledDocument compileDocument(String saplDocument, CompilationContext ctx) {
-        val parsedDocument = parseDocument(saplDocument);
+        val transformer = new AstTransformer();
+        transformer.setContext(ctx.getPdpId(), ctx.getConfigurationId());
+        val parsedDocument = parseDocument(saplDocument, transformer);
         if (parsedDocument.isInvalid()) {
             throw new SaplCompilerException(ERROR_PARSING_FAILED.formatted(parsedDocument.errors()));
         }
@@ -66,44 +78,60 @@ public class DocumentCompiler {
     }
 
     public Document parseDocument(String saplDefinition) {
+        return parseDocument(saplDefinition, new AstTransformer());
+    }
+
+    // The transformer is fresh for every document. It carries per-document mutable
+    // state (import map, schemas), so sharing one instance would let concurrent
+    // compilations of different documents race and resolve names against another
+    // document's imports.
+    private Document parseDocument(String saplDefinition, AstTransformer transformer) {
         if (saplDefinition.getBytes(StandardCharsets.UTF_8).length > MAX_DOCUMENT_SIZE_BYTES) {
             return rejectedDocument(saplDefinition, ERROR_DOCUMENT_TOO_LARGE.formatted(MAX_DOCUMENT_SIZE_BYTES));
         }
         assertNoTrojanSourceCharacters(saplDefinition);
-        val result           = parseWithErrors(saplDefinition);
+        val result = parseWithErrors(saplDefinition);
+        try {
+            return validateAndTransform(saplDefinition, result, transformer);
+        } catch (StackOverflowError e) {
+            // Validation and transformation walk the parse tree recursively. Input that
+            // nests deeply without brackets, such as a long chain of prefix operators,
+            // can exhaust the stack there although the parser did not.
+            return rejectedDocument(saplDefinition, ERROR_NESTING_TOO_DEEP);
+        }
+    }
+
+    private Document validateAndTransform(String saplDefinition, ParseResult result, AstTransformer transformer) {
         val validationErrors = result.syntaxErrors().isEmpty() ? validator.validate(result.parseTree())
                 : List.<ValidationError>of();
 
-        SaplDocument ast          = null;
-        Exception    astException = null;
+        SaplDocument ast = null;
         if (result.syntaxErrors().isEmpty() && validationErrors.isEmpty()) {
             try {
-                // A fresh transformer per call. The transformer carries per-document
-                // mutable state (import map, schemas), so sharing one instance would
-                // let concurrent compilations of different documents race and resolve
-                // names against another document's imports.
-                ast = new AstTransformer().visitSapl(result.parseTree());
+                ast = transformer.visitSapl(result.parseTree());
             } catch (SaplCompilerException e) {
-                val location = e.getLocation();
-                if (location != null) {
-                    validationErrors.add(new ValidationError(e.getMessage(), location.line(), location.column(), ""));
-                } else {
-                    validationErrors.add(new ValidationError(e.getMessage(), 0, 0, ""));
-                }
-                astException = e;
+                validationErrors.add(toValidationError(e));
             }
         }
-        val errorMessage = buildErrorMessage(result.syntaxErrors(), validationErrors, astException);
+        val errorMessage = buildErrorMessage(result.syntaxErrors(), validationErrors);
         return new Document(result.parseTree(), ast, saplDefinition, result.syntaxErrors(), validationErrors,
                 errorMessage);
+    }
+
+    private ValidationError toValidationError(SaplCompilerException exception) {
+        val location = exception.getLocation();
+        if (location == null) {
+            return new ValidationError(exception.getMessage(), 0, 0, "");
+        }
+        // Source locations count columns from one, validation errors from zero.
+        return new ValidationError(exception.getMessage(), location.line(), location.column() - 1, "");
     }
 
     private Document rejectedDocument(String source, String message) {
         return new Document(null, null, source, List.of(message), List.of(), message);
     }
 
-    private String buildErrorMessage(List<String> syntaxErrors, List<ValidationError> validationErrors,
-            Exception astException) {
+    private String buildErrorMessage(List<String> syntaxErrors, List<ValidationError> validationErrors) {
         if (syntaxErrors.isEmpty() && validationErrors.isEmpty()) {
             return "OK";
         }
@@ -111,9 +139,6 @@ public class DocumentCompiler {
         val messages = new ArrayList<String>();
         messages.addAll(syntaxErrors);
         messages.addAll(validationErrors.stream().map(ValidationError::toString).toList());
-        if (astException != null) {
-            messages.add(astException.getMessage());
-        }
 
         return String.join("; ", messages);
     }
@@ -139,15 +164,54 @@ public class DocumentCompiler {
         parser.removeErrorListeners();
         parser.addErrorListener(errorListener);
 
+        tokenStream.fill();
+        val tokens = tokenStream.getTokens();
+        assertNoTrojanSourceEscapes(tokens);
+        if (exceedsNestingLimit(tokens)) {
+            syntaxErrors.add(ERROR_NESTING_TOO_DEEP);
+            return new ParseResult(null, syntaxErrors);
+        }
+
         SAPLParser.SaplContext tree = null;
         try {
             tree = parser.sapl();
         } catch (StackOverflowError e) {
-            // Deeply nested input overflows the recursive-descent parser. Report it as a
-            // syntax error.
+            // Input that nests deeply without brackets, such as a long chain of prefix
+            // operators, overflows the recursive-descent parser. Report it as a syntax
+            // error.
             syntaxErrors.add(ERROR_NESTING_TOO_DEEP);
         }
         return new ParseResult(tree, syntaxErrors);
+    }
+
+    /**
+     * A string escape can denote a bidirectional control character without the
+     * character itself appearing in the source. Such an escape is rejected like
+     * the character it denotes.
+     */
+    private void assertNoTrojanSourceEscapes(List<Token> tokens) {
+        for (val token : tokens) {
+            if (token.getType() == SAPLLexer.STRING) {
+                assertNoTrojanSourceCharacters(unquoteString(token.getText()));
+            }
+        }
+    }
+
+    private boolean exceedsNestingLimit(List<Token> tokens) {
+        var depth = 0;
+        for (val token : tokens) {
+            // A closing bracket without an opening one must not lower the depth below
+            // zero. Otherwise it would buy additional nesting for what follows.
+            depth = switch (token.getType()) {
+            case SAPLLexer.LPAREN, SAPLLexer.LBRACKET, SAPLLexer.LBRACE -> depth + 1;
+            case SAPLLexer.RPAREN, SAPLLexer.RBRACKET, SAPLLexer.RBRACE -> Math.max(0, depth - 1);
+            default                                                     -> depth;
+            };
+            if (depth > MAX_NESTING_DEPTH) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private record ParseResult(SAPLParser.SaplContext parseTree, List<String> syntaxErrors) {}

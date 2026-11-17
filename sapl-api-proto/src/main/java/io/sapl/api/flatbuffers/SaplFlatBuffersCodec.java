@@ -262,7 +262,7 @@ public class SaplFlatBuffersCodec {
         int               actionOffset      = createValue(builder, subscription.action());
         int               resourceOffset    = createValue(builder, subscription.resource());
         int               environmentOffset = createValue(builder, subscription.environment());
-        int               secretsOffset     = createValue(builder, subscription.secrets());
+        int               secretsOffset     = createObjectValue(builder, subscription.secrets());
         int               subOffset         = FbAuthorizationSubscription.createFbAuthorizationSubscription(builder,
                 subjectOffset, actionOffset, resourceOffset, environmentOffset, secretsOffset);
         builder.finish(subOffset);
@@ -285,24 +285,17 @@ public class SaplFlatBuffersCodec {
     }
 
     private static AuthorizationSubscription readAuthorizationSubscription(FbAuthorizationSubscription table) {
-        FbValue     subjectFb     = table.subject();
-        FbValue     actionFb      = table.action();
-        FbValue     resourceFb    = table.resource();
-        FbValue     environmentFb = table.environment();
-        FbValue     secretsFb     = table.secrets();
-        Value       subject       = subjectFb != null ? readValue(subjectFb) : Value.UNDEFINED;
-        Value       action        = actionFb != null ? readValue(actionFb) : Value.UNDEFINED;
-        Value       resource      = resourceFb != null ? readValue(resourceFb) : Value.UNDEFINED;
-        Value       environment   = environmentFb != null ? readValue(environmentFb) : Value.UNDEFINED;
-        ObjectValue secrets       = secretsFb != null ? toObjectValue(readValue(secretsFb)) : Value.EMPTY_OBJECT;
+        FbValue       subjectFb     = table.subject();
+        FbValue       actionFb      = table.action();
+        FbValue       resourceFb    = table.resource();
+        FbValue       environmentFb = table.environment();
+        FbObjectValue secretsFb     = table.secrets();
+        Value         subject       = subjectFb != null ? readValue(subjectFb) : Value.UNDEFINED;
+        Value         action        = actionFb != null ? readValue(actionFb) : Value.UNDEFINED;
+        Value         resource      = resourceFb != null ? readValue(resourceFb) : Value.UNDEFINED;
+        Value         environment   = environmentFb != null ? readValue(environmentFb) : Value.UNDEFINED;
+        ObjectValue   secrets       = secretsFb != null ? readObjectValue(secretsFb) : Value.EMPTY_OBJECT;
         return new AuthorizationSubscription(subject, action, resource, environment, secrets);
-    }
-
-    private static ObjectValue toObjectValue(Value value) {
-        if (value instanceof ObjectValue ov) {
-            return ov;
-        }
-        return Value.EMPTY_OBJECT;
     }
 
     /**
@@ -393,7 +386,7 @@ public class SaplFlatBuffersCodec {
         int actionOffset      = createValue(builder, sub.action());
         int resourceOffset    = createValue(builder, sub.resource());
         int environmentOffset = createValue(builder, sub.environment());
-        int secretsOffset     = createValue(builder, sub.secrets());
+        int secretsOffset     = createObjectValue(builder, sub.secrets());
         return FbAuthorizationSubscription.createFbAuthorizationSubscription(builder, subjectOffset, actionOffset,
                 resourceOffset, environmentOffset, secretsOffset);
     }

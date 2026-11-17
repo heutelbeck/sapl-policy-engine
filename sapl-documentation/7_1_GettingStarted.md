@@ -358,10 +358,15 @@ The following commands run locally without starting the server. Use them to mana
 | Command | Description |
 |---------|-------------|
 | `sapl bundle create` | Create a `.saplbundle` archive from a directory of `.sapl` files and a `pdp.json`. Optionally signs in the same step. |
+| `sapl bundle unpack` | Unpack a policy bundle into a directory. |
+| `sapl bundle seal` | Seal a policy directory's secrets to a recipient. |
+| `sapl bundle unseal` | Unseal a policy directory's secrets with the recipient key. |
+| `sapl bundle reseal` | Reseal a policy directory's secrets from one recipient to another. |
 | `sapl bundle sign` | Sign a bundle with an Ed25519 private key. |
 | `sapl bundle verify` | Verify a signed bundle against a public key. |
 | `sapl bundle inspect` | Display bundle contents, signature status, and policy list. |
 | `sapl bundle keygen` | Generate an Ed25519 keypair for bundle signing. |
+| `sapl bundle keygen-secrets` | Generate an X25519 keypair for sealing bundle secrets. |
 | `sapl generate basic` | Generate Basic Auth credentials and a ready-to-paste YAML block. |
 | `sapl generate apikey` | Generate an API key and a ready-to-paste YAML block. |
 

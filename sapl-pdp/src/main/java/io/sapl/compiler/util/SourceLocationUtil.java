@@ -26,7 +26,6 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -80,30 +79,6 @@ public class SourceLocationUtil {
         val documentName   = getDocumentName(context);
 
         return new SourceLocation(documentName, documentSource, start, end, line, column, endLine, endColumn);
-    }
-
-    /**
-     * Extracts the source location from an ANTLR token.
-     *
-     * @param token the token to extract location from (may be null)
-     * @param context the containing parse tree context for document information
-     * @return the source location, or null if the token is null
-     */
-    public static SourceLocation fromToken(Token token, ParserRuleContext context) {
-        if (token == null) {
-            return null;
-        }
-
-        val start     = token.getStartIndex();
-        val end       = token.getStopIndex() + 1;
-        val line      = token.getLine();
-        val column    = token.getCharPositionInLine() + 1;
-        val endColumn = column + token.getText().length();
-
-        val documentSource = context != null ? getDocumentSource(context) : null;
-        val documentName   = context != null ? getDocumentName(context) : null;
-
-        return new SourceLocation(documentName, documentSource, start, end, line, column, line, endColumn);
     }
 
     /**

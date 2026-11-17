@@ -46,8 +46,6 @@ public class ExpressionEvaluator {
 
     private static final String CONTENT_ASSIST_ID = "contentAssistEvaluation";
 
-    private static final AstTransformer AST_TRANSFORMER = new AstTransformer();
-
     /**
      * Evaluates an ANTLR expression parse tree to a JSON node.
      * Only pure expressions (non-streaming) can be evaluated.
@@ -63,8 +61,10 @@ public class ExpressionEvaluator {
         }
 
         try {
-            // Convert ANTLR context to AST Expression
-            if (!(AST_TRANSFORMER.visit(expressionCtx) instanceof Expression expression)) {
+            // Convert ANTLR context to AST Expression. A fresh transformer per call. The
+            // transformer carries per-document mutable state, so an instance must not be
+            // shared between documents or threads.
+            if (!(new AstTransformer().visit(expressionCtx) instanceof Expression expression)) {
                 return Optional.empty();
             }
 

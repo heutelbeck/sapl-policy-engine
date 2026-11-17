@@ -40,7 +40,10 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.when;
 
 @DisplayName("DocumentCompiler")
 class DocumentCompilerTests {
@@ -108,7 +111,8 @@ class DocumentCompilerTests {
 
         static Stream<Arguments> invalidPolicyDefinitions() {
             return Stream.of(
-                    arguments("regex type mismatch", "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432"),
+                    arguments("stray comma after the effect",
+                            "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432"),
                     arguments("reserved var 'subject'", "policy \"p\" permit var subject = {};"),
                     arguments("reserved var 'action'", "policy \"p\" permit var action = {};"),
                     arguments("reserved var 'resource'", "policy \"p\" permit var resource = {};"),
@@ -268,6 +272,9 @@ class DocumentCompilerTests {
         private static final char PDI = '\u2069';
         private static final char RLO = '\u202E';
 
+        private static final String POLICY_COMPARING_SUBJECT_TO_TEXT = """
+                policy "p" permit subject == "a%sb";""";
+
         @ParameterizedTest(name = "rejects input containing {0}")
         @ValueSource(chars = { LRI, RLI, PDI, RLO })
         @DisplayName("parseDocument rejects trojan source characters")
@@ -287,6 +294,38 @@ class DocumentCompilerTests {
             assertThatThrownBy(() -> DocumentCompiler.compileDocument(malicious, ctx))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("trojan source");
         }
+
+        static Stream<Arguments> documentsWithEscapedTrojanCharacters() {
+            val everyCharacterInAStringLiteral = Stream
+                    .of("202A", "202B", "202C", "202D", "202E", "2066", "2067", "2068", "2069", "202e")
+                    .map(code -> arguments("\\u" + code + " in a string literal",
+                            POLICY_COMPARING_SUBJECT_TO_TEXT.formatted("\\u" + code)));
+            val otherPlacements                = Stream.of(arguments("\\u202E in a policy name", """
+                    policy "te\\u202Est" permit"""), arguments("\\u202E in a single-quoted string", """
+                    policy "p" permit 'a\\u202Eb' == subject;"""), arguments("\\u2066 in an object key", """
+                    policy "p" permit { "k\\u2066": 1 } == subject;"""), arguments("\\u2069 in a key step", """
+                    policy "p" permit subject."a\\u2069b" == 1;"""), arguments("\\u202E after an escaped backslash", """
+                    policy "p" permit "a\\\\\\u202Eb" == 1;"""));
+            return Stream.concat(everyCharacterInAStringLiteral, otherPlacements);
+        }
+
+        @ParameterizedTest(name = "rejects {0}")
+        @MethodSource("documentsWithEscapedTrojanCharacters")
+        @DisplayName("parseDocument rejects string escapes that denote trojan source characters")
+        void whenStringEscapeDenotesTrojanCharacterThenThrows(String description, String malicious) {
+            assertThatThrownBy(() -> DocumentCompiler.parseDocument(malicious))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("trojan source");
+        }
+
+        @Test
+        @DisplayName("parseDocument accepts the code of a trojan source character after an escaped backslash")
+        void whenBackslashIsEscapedThenFollowingCodeIsPlainText() {
+            val harmless = POLICY_COMPARING_SUBJECT_TO_TEXT.formatted("\\\\u202E");
+
+            val document = DocumentCompiler.parseDocument(harmless);
+
+            assertThat(document.isInvalid()).as(document.errorMessage()).isFalse();
+        }
     }
 
     @Nested
@@ -296,6 +335,12 @@ class DocumentCompilerTests {
         private static final int OVER_SIZE_LIMIT             = 2 * 1024 * 1024 + 1;
         private static final int DEEP_NESTING                = 50_000;
         private static final int FLAT_BINARY_CHAIN_OPERATORS = 10_000;
+        private static final int NESTING_LIMIT               = DocumentCompiler.MAX_NESTING_DEPTH;
+
+        private static final String POLICY_WITH_CONDITION = """
+                policy "x" permit %s;""";
+        private static final String OPENING_OBJECT        = """
+                {"k":""";
 
         private static String deeplyNestedPolicy() {
             return "policy \"x\" permit " + "(".repeat(DEEP_NESTING) + "true" + ")".repeat(DEEP_NESTING);
@@ -357,6 +402,122 @@ class DocumentCompilerTests {
             ThrowingCallable compile   = () -> DocumentCompiler.compileDocument(flatChain, ctx);
 
             assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class).hasMessageContaining("too deep");
+        }
+
+        private static String nested(String opening, String closing, int depth) {
+            return opening.repeat(depth) + "true" + closing.repeat(depth);
+        }
+
+        static Stream<Arguments> conditionsWithinNestingLimit() {
+            val brackets = "([{".repeat(NESTING_LIMIT + 1);
+            return Stream.of(arguments("parentheses nested to the limit", nested("(", ")", NESTING_LIMIT)),
+                    arguments("arrays nested to the limit", nested("[", "]", NESTING_LIMIT)),
+                    arguments("objects nested to the limit", nested(OPENING_OBJECT, "}", NESTING_LIMIT)),
+                    arguments("different brackets nested to the limit", nested("([", "])", NESTING_LIMIT / 2)),
+                    arguments("brackets next to each other", "[" + "[1],".repeat(4 * NESTING_LIMIT) + "[1]]"),
+                    arguments("brackets inside a comment", "/* " + brackets + " */ true"),
+                    arguments("brackets inside a string", '"' + brackets + '"'));
+        }
+
+        @ParameterizedTest(name = "accepts {0}")
+        @MethodSource("conditionsWithinNestingLimit")
+        @DisplayName("parseDocument accepts documents within the nesting limit")
+        void whenNestingIsWithinLimitThenDocumentIsValid(String description, String condition) {
+            val withinLimit = POLICY_WITH_CONDITION.formatted(condition);
+
+            val document = DocumentCompiler.parseDocument(withinLimit);
+
+            assertThat(document.isInvalid()).as(document.errorMessage()).isFalse();
+        }
+
+        static Stream<Arguments> conditionsBeyondNestingLimit() {
+            val beyondLimit = NESTING_LIMIT + 1;
+            return Stream.of(arguments("parentheses nested beyond the limit", nested("(", ")", beyondLimit)),
+                    arguments("arrays nested beyond the limit", nested("[", "]", beyondLimit)),
+                    arguments("objects nested beyond the limit", nested(OPENING_OBJECT, "}", beyondLimit)),
+                    arguments("different brackets nested beyond the limit",
+                            "(" + nested("([", "])", NESTING_LIMIT / 2) + ")"),
+                    arguments("closing brackets followed by nesting beyond the limit",
+                            ")".repeat(beyondLimit) + nested("(", ")", beyondLimit)),
+                    arguments("prefix operators chained deeply without brackets", "!".repeat(DEEP_NESTING) + "true"));
+        }
+
+        @ParameterizedTest(name = "rejects {0}")
+        @MethodSource("conditionsBeyondNestingLimit")
+        @DisplayName("parseDocument rejects documents nested beyond the limit")
+        void whenNestingExceedsLimitThenDocumentIsInvalid(String description, String condition) {
+            val beyondLimit = POLICY_WITH_CONDITION.formatted(condition);
+
+            val document = DocumentCompiler.parseDocument(beyondLimit);
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.isInvalid()).isTrue();
+                assertThat(d.errorMessage()).contains("nesting");
+            });
+        }
+
+        @Test
+        @DisplayName("parseDocument rejects a document whose transformation exhausts the stack")
+        void whenTransformationExhaustsStackThenDocumentIsInvalid() {
+            try (val ignored = mockConstruction(AstTransformer.class,
+                    (transformer, context) -> when(transformer.visitSapl(any())).thenThrow(StackOverflowError.class))) {
+                val document = DocumentCompiler.parseDocument(POLICY_WITH_CONDITION.formatted("true"));
+
+                assertThat(document).satisfies(d -> {
+                    assertThat(d.isInvalid()).isTrue();
+                    assertThat(d.errorMessage()).contains("nesting");
+                });
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("error reporting")
+    class ErrorReportingTests {
+
+        private static final String UNRESOLVED_FUNCTION = """
+                policy "p" permit
+                  foo();""";
+
+        static Stream<Arguments> invalidDocumentsWithTheirError() {
+            return Stream.of(arguments("a syntax error", "policy", "mismatched input"),
+                    arguments("a validation error", """
+                            subject schema <time.now>
+                            policy "p" permit""", "Attribute access is forbidden"),
+                    arguments("an error of the AST transformation", UNRESOLVED_FUNCTION, "Unresolved reference"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidDocumentsWithTheirError")
+        @DisplayName("parseDocument reports every error once")
+        void whenDocumentIsInvalidThenEachErrorIsReportedOnce(String description, String invalid, String error) {
+            val document = DocumentCompiler.parseDocument(invalid);
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.errorMessage()).containsOnlyOnce(error);
+                assertThat(d.errors()).containsOnlyOnce(error);
+            });
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidDocumentsWithTheirError")
+        @DisplayName("compileDocument names every error once")
+        void whenDocumentIsInvalidThenCompileNamesEachErrorOnce(String description, String invalid, String error) {
+            assertThatThrownBy(() -> DocumentCompiler.compileDocument(invalid, ctx))
+                    .isInstanceOf(SaplCompilerException.class).message().containsOnlyOnce(error);
+        }
+
+        @Test
+        @DisplayName("parseDocument reports the position of a transformation error like that of a syntax error")
+        void whenTransformationFailsThenColumnIsZeroBased() {
+            val document = DocumentCompiler.parseDocument(UNRESOLVED_FUNCTION);
+
+            assertThat(document.validationErrors()).singleElement().satisfies(error -> {
+                assertThat(error.line()).isEqualTo(2);
+                assertThat(error.charPositionInLine()).isEqualTo(2);
+                assertThat(error)
+                        .hasToString("line 2:2 Unresolved reference 'foo': not imported and not fully qualified.");
+            });
         }
     }
 }

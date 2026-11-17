@@ -75,7 +75,7 @@ A single authorization subscription is a JSON object with three required fields 
 - **action** (required): What operation is being attempted. Any JSON value.
 - **resource** (required): What is being accessed. Any JSON value.
 - **environment** (optional): Additional context such as time, location, or IP address. Any JSON value.
-- **secrets** (optional): Sensitive data for Policy Information Points (tokens, API keys, credentials). Any JSON value. Not included in logs or traces.
+- **secrets** (optional): Sensitive data for Policy Information Points (tokens, API keys, credentials). Must be a JSON object. Not included in logs or traces.
 
 For the full subscription format, see [Authorization Subscriptions](../2_1_AuthorizationSubscriptions/).
 
@@ -439,7 +439,7 @@ message AuthorizationSubscription {
   Value action = 2;
   Value resource = 3;
   Value environment = 4;
-  Value secrets = 5;
+  ObjectValue secrets = 5;
 }
 
 message AuthorizationDecision {

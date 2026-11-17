@@ -92,9 +92,9 @@ public class HttpPolicyInformationPoint {
 
             ## Secrets Configuration
 
-            HTTP credentials (API keys, bearer tokens, custom headers) are sourced from the
-            `secrets` section in `pdp.json` and/or from subscription secrets. They are never
-            embedded directly in policies.
+            HTTP credentials (API keys, bearer tokens, custom headers) are sourced from the PDP
+            secrets file next to `pdp.json` (`secrets.json`, sealed: `secrets.sealed.json`) and/or
+            from subscription secrets. They are never embedded directly in policies.
 
             Every credential is a **named** entry that declares both its headers and the
             destinations it may be sent to. A policy selects an entry with `secretsKey`; it can
@@ -135,19 +135,19 @@ public class HttpPolicyInformationPoint {
 
             ### Multi-Service Secrets Example
 
+            Content of `secrets.json`. The file holds the secrets object itself, without a
+            wrapping `secrets` key:
+
             ```json
             {
-              "variables": { },
-              "secrets": {
-                "http": {
-                  "weather-api": {
-                    "allowedBaseUrls": [ "https://api.weather.example" ],
-                    "headers": { "X-API-Key": "abc123" }
-                  },
-                  "internal-api": {
-                    "allowedBaseUrls": [ "https://api.internal.corp" ],
-                    "headers": { "Authorization": "Bearer infra-token" }
-                  }
+              "http": {
+                "weather-api": {
+                  "allowedBaseUrls": [ "https://api.weather.example" ],
+                  "headers": { "X-API-Key": "abc123" }
+                },
+                "internal-api": {
+                  "allowedBaseUrls": [ "https://api.internal.corp" ],
+                  "headers": { "Authorization": "Bearer infra-token" }
                 }
               }
             }

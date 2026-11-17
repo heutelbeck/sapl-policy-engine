@@ -861,6 +861,10 @@ public class SaplTestFixture {
         var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
                 effectiveAlgorithm, compilerOptions, effectivePolicies, pdpData);
 
+        // Secrets of a test are written in cleartext in its definition.
+        if (!effectiveSecrets.isEmpty()) {
+            pdpBuilder.acceptUnencryptedSecrets();
+        }
         return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeBroker(mockingAttributeBroker)
                 .withConfiguration(configuration).build();
     }

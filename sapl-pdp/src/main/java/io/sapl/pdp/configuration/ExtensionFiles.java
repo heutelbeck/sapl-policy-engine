@@ -96,6 +96,21 @@ public class ExtensionFiles {
     }
 
     /**
+     * Tells whether a file supplements a {@code pdp.json}: the secrets of the PDP,
+     * the configuration of an extension, or the secrets of an extension, sealed or
+     * not.
+     *
+     * @param fileName
+     * the file name to check
+     *
+     * @return true if the file is a secrets or extension file
+     */
+    public static boolean isSupplementFile(String fileName) {
+        return SECRETS_FILE.equals(fileName) || SEALED_SECRETS_FILE.equals(fileName) || isExtensionFile(fileName)
+                || isExtensionSecretsFile(fileName) || isSealedExtensionSecretsFile(fileName);
+    }
+
+    /**
      * @param fileName
      * a root-level file name
      *
@@ -139,7 +154,7 @@ public class ExtensionFiles {
 
     /**
      * Enforces the structural integrity rule that makes an extension set well-formed: every declared required
-     * extension must have a payload present, a cleartext configuration or sealed secrets or both. A required
+     * extension must have a payload present, a cleartext configuration or secrets or both. A required
      * extension declared without any payload would let the consumer believe it is honored while it silently runs on
      * nothing. The check fails closed with a {@link PDPConfigurationException}.
      *
@@ -148,7 +163,7 @@ public class ExtensionFiles {
      * @param extensionNames
      * the names with a cleartext configuration present
      * @param extensionSecretNames
-     * the names with sealed secrets present
+     * the names with secrets present, cleartext or sealed
      *
      * @throws PDPConfigurationException
      * if a required extension has neither configuration nor secrets

@@ -18,9 +18,11 @@
 package io.sapl.api.proto;
 
 import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
+import static com.google.protobuf.WireFormat.getTagFieldNumber;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 
 import java.io.ByteArrayOutputStream;
@@ -54,6 +56,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("SaplProtobufCodec")
 class SaplProtobufCodecTests {
+
+    private static final int MAP_ENTRY_KEY_FIELD   = 1;
+    private static final int MAP_ENTRY_VALUE_FIELD = 2;
+    private static final int OBJECT_FIELDS_FIELD   = 1;
+    private static final int SECRETS_FIELD         = 5;
+    private static final int TEXT_VALUE_FIELD      = 4;
 
     @Nested
     @DisplayName("Value serialization")
@@ -323,34 +331,85 @@ class SaplProtobufCodecTests {
             });
         }
 
+        static Stream<Arguments> secretsThatAreNotAnObjectMessage() throws IOException {
+            val secrets = ObjectValue.builder().put("apiKey", Value.of("secret123")).build();
+            return Stream.of(arguments("a text value", textValue("not-an-object")),
+                    arguments("an object wrapped into a value", SaplProtobufCodec.writeValue(secrets)));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("secretsThatAreNotAnObjectMessage")
+        @DisplayName("a subscription whose secrets are not an object message is refused")
+        void whenSecretsPayloadIsNotAnObjectMessageThenDecodingFails(String description, byte[] secretsPayload)
+                throws IOException {
+            // Skipping the payload instead would evaluate the subscription as if the
+            // client had sent no secrets.
+            val bytes = lengthDelimited(SECRETS_FIELD, secretsPayload);
+
+            assertThatThrownBy(() -> SaplProtobufCodec.readAuthorizationSubscription(bytes))
+                    .isInstanceOf(IOException.class)
+                    .hasMessage("The secrets of an authorization subscription must be an object.");
+        }
+
         @Test
-        @DisplayName("secrets is always decoded as an object even when the wire carries a non-object value")
-        void whenSecretsPayloadIsNotAnObjectThenSecretsDecodeAsEmptyObject() throws IOException {
-            // A non-object value in field 5 must decode to an empty object, not leak
-            // through.
-            val bytes = subscriptionWithNonObjectSecrets("not-an-object");
+        @DisplayName("secrets are read from an object message as the schema declares")
+        void whenSecretsAreAnObjectMessageThenTheyAreRead() throws IOException {
+            val bytes = lengthDelimited(SECRETS_FIELD, objectMessageWithApiKey());
 
             val deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
 
-            assertThat(deserialized.secrets()).isEqualTo(Value.EMPTY_OBJECT);
+            assertThat(deserialized.secrets())
+                    .isEqualTo(ObjectValue.builder().put("apiKey", Value.of("secret123")).build());
         }
 
-        private static byte[] subscriptionWithNonObjectSecrets(String secretText) throws IOException {
-            // secrets as VALUE_TEXT (field 4) rather than an object.
-            val secretValueBuffer = new ByteArrayOutputStream();
-            val secretValueOut    = CodedOutputStream.newInstance(secretValueBuffer);
-            secretValueOut.writeString(4, secretText);
-            secretValueOut.flush();
-            val secretValueBytes = secretValueBuffer.toByteArray();
+        @Test
+        @DisplayName("secrets are written as an object message as the schema declares")
+        void whenSubscriptionIsWrittenThenSecretsAreAnObjectMessage() throws IOException {
+            val subscription = new AuthorizationSubscription(Value.UNDEFINED, Value.UNDEFINED, Value.UNDEFINED,
+                    Value.UNDEFINED, ObjectValue.builder().put("apiKey", Value.of("secret123")).build());
 
-            // SUBSCRIPTION_SECRETS (field 5).
-            val subscriptionBuffer = new ByteArrayOutputStream();
-            val subscriptionOut    = CodedOutputStream.newInstance(subscriptionBuffer);
-            subscriptionOut.writeTag(5, WIRETYPE_LENGTH_DELIMITED);
-            subscriptionOut.writeUInt32NoTag(secretValueBytes.length);
-            subscriptionOut.writeRawBytes(secretValueBytes);
-            subscriptionOut.flush();
-            return subscriptionBuffer.toByteArray();
+            val bytes = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
+
+            assertThat(payloadOfField(SECRETS_FIELD, bytes)).isEqualTo(objectMessageWithApiKey());
+        }
+
+        // ObjectValue { fields { key: "apiKey" value { text_value: "secret123" } } }
+        private static byte[] objectMessageWithApiKey() throws IOException {
+            val entryBuffer = new ByteArrayOutputStream();
+            val entryOut    = CodedOutputStream.newInstance(entryBuffer);
+            entryOut.writeString(MAP_ENTRY_KEY_FIELD, "apiKey");
+            entryOut.writeByteArray(MAP_ENTRY_VALUE_FIELD, textValue("secret123"));
+            entryOut.flush();
+            return lengthDelimited(OBJECT_FIELDS_FIELD, entryBuffer.toByteArray());
+        }
+
+        // Value { text_value: text }
+        private static byte[] textValue(String text) throws IOException {
+            val buffer = new ByteArrayOutputStream();
+            val out    = CodedOutputStream.newInstance(buffer);
+            out.writeString(TEXT_VALUE_FIELD, text);
+            out.flush();
+            return buffer.toByteArray();
+        }
+
+        private static byte[] lengthDelimited(int fieldNumber, byte[] payload) throws IOException {
+            val buffer = new ByteArrayOutputStream();
+            val out    = CodedOutputStream.newInstance(buffer);
+            out.writeByteArray(fieldNumber, payload);
+            out.flush();
+            return buffer.toByteArray();
+        }
+
+        private static byte[] payloadOfField(int fieldNumber, byte[] message) throws IOException {
+            val input = CodedInputStream.newInstance(message);
+            while (!input.isAtEnd()) {
+                val tag = input.readTag();
+                if (getTagFieldNumber(tag) == fieldNumber) {
+                    return input.readByteArray();
+                }
+                input.skipField(tag);
+            }
+            return new byte[0];
         }
     }
 

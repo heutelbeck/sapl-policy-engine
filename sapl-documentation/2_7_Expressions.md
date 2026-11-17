@@ -45,7 +45,7 @@ For example, `object.subject` uses `subject` as a key step, and `{priority: 5}` 
 
 #### Variable Names
 
-Variable names (after the `var` keyword) accept plain identifiers, the subscription attribute keywords (`subject`, `action`, `resource`, `environment`), and the combining algorithm keywords listed above, all without escaping. Hard keywords (such as `permit`, `deny`, `var`, `in`, `true`) must use the backtick escape to be used as variable names (e.g., `` var `permit` = ... ``).
+Variable names (after the `var` keyword) accept plain identifiers and the combining algorithm keywords listed above, both without escaping. The subscription attribute keywords (`subject`, `action`, `resource`, `environment`) cannot be used as variable names. They are bound by the authorization subscription: a policy can read them, but it cannot define a variable with one of these names. Hard keywords (such as `permit`, `deny`, `var`, `in`, `true`) must use the backtick escape to be used as variable names (e.g., `` var `permit` = ... ``).
 
 #### Backtick Escape
 
@@ -53,7 +53,7 @@ A backtick-quoted identifier (e.g. `` `permit` ``) is treated as a plain identif
 
 ### Strings
 
-Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by double quotes `"`. Any quote character occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""`.
+Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by double quotes `"` or by single quotes `'`. A quote character of the enclosing kind occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""` or `'it\'s'`. The other kind needs no escape, e.g., `'the name is "John Doe"'`.
 
 ### Comments
 
@@ -83,7 +83,7 @@ SAPL is based on the **JavaScript Object Notation** or **JSON**, an [ECMA Standa
 
 - Primitive Types 
   - **Number**: A signed decimal number, e.g., `-1.9`. There is no distinction between integer and floating-point numbers. In case an integer is expected (e.g., for a numeric index), the decimal number is rounded to an integer number.
-  - **String**: A sequence of zero or more characters, written in double quotes, e.g., `"a string"`.
+  - **String**: A sequence of zero or more characters, written in double or single quotes, e.g., `"a string"` or `'a string'`.
   - **Boolean**: Either `true` or `false`.
   - **null**: Marks an empty value, `null`.
 - Structured Types 
@@ -148,9 +148,9 @@ A basic function expression consists of a function name and any number of argume
 library.a_function(subject.name, (environment.day_of_week + 1))
 ```
 
-Each function is available under its fully qualified name. The fully qualified name starts with the library name, consisting of one or more identifiers separated by periods `.` (e.g., `sapl.functions.simple`). The library name is followed by a period `.` and an identifier for the function name (e.g., `sapl.functions.simple.append`). Which function libraries are available depends on the configuration of the PDP.
+Each function is available under its fully qualified name. The fully qualified name consists of two parts: the library name (e.g., `filter`), followed by a period `.` and the function name (e.g., `filter.blacken`). Which function libraries are available depends on the configuration of the PDP.
 
-[Imports](../2_9_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
+[Imports](../2_9_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import filter.blacken` makes `blacken` available). An aliased import provides an alternative name (e.g., `import filter.blacken as redact` makes it available as `redact`).
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
 
@@ -379,12 +379,12 @@ Structure of `object`
 
 | Expression                                                  | Returned Value                                                                                                                         | Explanation                                                                                                                                     |
 |-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `object.key`  <br>`object["key"]`                            | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
+| `object.key`  <br>`object["key"]`  <br>`object['key']`       | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
 | `object.array1[0]`                                          | `{ "key" : "value2" }`                                                                                                                 | **Index step**                                                                                                                                  |
 | `object.array2[-1]`                                         | `5`                                                                                                                                    | **Index step** with negative value n returns the n-th last element                                                                              |
 | `object.*`  <br>`object[*]`                                 | ["value1",<br>      [<br>        { "key" : "value2" },<br>        { "key" : "value3" }<br>      ],<br>      [ 1, 2, 3, 4, 5 ]<br>    ] | **Wildcard step** applied to an object, it returns an array with the value of each attribute. Applied to an array, it returns the array itself |
 | `object.array2[0:-2:2]`                                     | `[ 1, 3 ]`                                                                                                                             | **Array slicing step** starting from first to second last element with a step size of two                                                       |
-| `object..key`  <br>`object..["key"]`                         | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
+| `object..key`  <br>`object..["key"]`  <br>`object..['key']`  | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
 | `object..[0]`                                               | `[ { "key" : "value2" }, 1 ]`                                                                                                          | **Recursive descent step** looking for an array index                                                                                           |
 | `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index); can also evaluate to an attribute name                                                   |
 | `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` references the current item, `#` its index/key. Can also be applied to an object           |
@@ -397,7 +397,7 @@ Structure of `object`
 
 The basic access syntax is quite similar to accessing an object’s attributes in JavaScript or Java:
 
-- **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource["another key"]`).
+- **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`, `resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource["another key"]`).
 - **Indices of an array** may be accessed by putting the index between square brackets (**index step**, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`\-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the array `array`.
 
 **Handling missing data:**
@@ -440,7 +440,7 @@ A wildcard step can be applied to an object or an array. When applied to an obje
 
 #### Recursive Descent Step `..key`, `..["key"]`, `..[1]`, `..*` or `..[*]`
 
-Looks for the specified key or array index in the current object or array and, recursively, in its children (i.e., the values of its attributes or its items). The recursive descent step can be applied to both an object and an array. It returns an array containing all attribute values or array items found. If the specified key is an asterisk (`..` **or** `[]`, wildcard), all attribute values and array items in the whole structure are returned.
+Looks for the specified key or array index in the current object or array and, recursively, in its children (i.e., the values of its attributes or its items). The recursive descent step can be applied to both an object and an array. It returns an array containing all attribute values or array items found. If the specified key is an asterisk (`..*` **or** `..[*]`, wildcard), all attribute values and array items in the whole structure are returned.
 
 As attributes of an object are not sorted, the order of items in the result array may vary.
 
@@ -461,7 +461,7 @@ As attributes of an object are not sorted, the order of items in the result arra
 >
 > The selection step `object..key` returns the following array: `["value1", "value2"]` (any attribute value with key `key`, the items may be in a different order).
 >
-> The wildcard selection step `object..` **or** `object..[]` returns `["value1", {"key":"value2"}, "value2"]` (recursively each attribute value and array item in the whole structure `object`, the sorting may be different).
+> The wildcard selection step `object..*` **or** `object..[*]` returns `["value1", {"key":"value2"}, "value2"]` (recursively each attribute value and array item in the whole structure `object`, the sorting may be different).
 
 
 #### Condition `[?(Condition)]`
