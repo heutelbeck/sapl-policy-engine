@@ -373,7 +373,7 @@ class SaplProtobufCodecTests {
             assertThat(payloadOfField(SECRETS_FIELD, bytes)).isEqualTo(objectMessageWithApiKey());
         }
 
-        // ObjectValue { fields { key: "apiKey" value { text_value: "secret123" } } }
+        // The ObjectValue message with the one entry apiKey, a text value.
         private static byte[] objectMessageWithApiKey() throws IOException {
             val entryBuffer = new ByteArrayOutputStream();
             val entryOut    = CodedOutputStream.newInstance(entryBuffer);
@@ -383,7 +383,7 @@ class SaplProtobufCodecTests {
             return lengthDelimited(OBJECT_FIELDS_FIELD, entryBuffer.toByteArray());
         }
 
-        // Value { text_value: text }
+        // The Value message that holds a text.
         private static byte[] textValue(String text) throws IOException {
             val buffer = new ByteArrayOutputStream();
             val out    = CodedOutputStream.newInstance(buffer);
