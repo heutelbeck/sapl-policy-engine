@@ -8,13 +8,13 @@
  */
 import { LitElement, html, css } from 'lit';
 import { EditorView, basicSetup } from 'codemirror';
-import { EditorState, Compartment, StateField, StateEffect } from '@codemirror/state';
-import { keymap, Decoration, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, tooltips, ViewPlugin } from '@codemirror/view';
+import { EditorState, Compartment, Prec, StateField, StateEffect } from '@codemirror/state';
+import { keymap, Decoration, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, showTooltip, tooltips, ViewPlugin } from '@codemirror/view';
 import { indentWithTab, defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { StreamLanguage, bracketMatching, foldService, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, defaultHighlightStyle, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { forceLinting, linter, lintKeymap } from '@codemirror/lint';
+import { forEachDiagnostic, linter, lintKeymap, nextDiagnostic, setDiagnostics } from '@codemirror/lint';
 import { autocompletion, CompletionContext, closeBrackets, closeBracketsKeymap, completionKeymap, snippet } from '@codemirror/autocomplete';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { MergeView } from '@codemirror/merge';
@@ -135,6 +135,29 @@ const completionTooltipTheme = EditorView.theme({
     '.cm-completionIcon-keyword::after': { content: '"\u2B22"', color: '#ff9800' },
     '.cm-completionIcon-variable::after': { content: '"\uD835\uDC65"', color: '#4caf50' },
     '.cm-completionIcon-module::after': { content: '"\u25F0"', color: '#607d8b' }
+});
+
+// Diagnostics in the hover and in the list of problems: the message, and below it the quick
+// fixes under a heading of their own.
+const diagnosticTheme = EditorView.theme({
+    '.cm-diagnosticText': { display: 'block' },
+    '.sapl-quickFixHeading': { marginTop: '6px', fontSize: '85%', fontWeight: '600', opacity: '0.75' },
+    '.cm-diagnosticAction': { marginLeft: '0', marginRight: '6px', marginTop: '4px' }
+});
+
+// The problems at a place of the document, shown on request from the keyboard. Moving the
+// cursor or editing the document closes them again.
+const showProblemsEffect = StateEffect.define();
+
+const problemsTooltipField = StateField.define({
+    create: () => null,
+    update: (tooltip, tr) => {
+        for (const effect of tr.effects) {
+            if (effect.is(showProblemsEffect)) return effect.value;
+        }
+        return tr.docChanged || tr.selection ? null : tooltip;
+    },
+    provide: field => showTooltip.from(field)
 });
 
 // Folding - compartment, cached ranges from LSP, and fold service
@@ -600,11 +623,18 @@ class SaplEditorLsp extends LitElement {
             closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
             lineWrappingCompartment.of(this.lineWrapping ? EditorView.lineWrapping : []),
             ...documentTooltips,
-            completionTooltipTheme
+            completionTooltipTheme,
+            diagnosticTheme
         ];
 
         if (withLinting) {
             extensions.push(linter(() => this._getLspDiagnostics()));
+            extensions.push(problemsTooltipField);
+            // Above the keys of the lint package, which bind F8 to selecting the next problem only.
+            extensions.push(Prec.high(keymap.of([
+                { key: 'Mod-.', run: view => this._quickFixAtCursor(view), preventDefault: true },
+                { key: 'F8', run: view => this._showNextProblem(view), preventDefault: true }
+            ])));
             extensions.push(autocompletion({
                 override: [context => this._getCompletions(context)],
                 activateOnTyping: true,
@@ -680,7 +710,8 @@ class SaplEditorLsp extends LitElement {
                 closeBracketsCompartment.of(this.autoCloseBrackets ? closeBrackets() : []),
                 cursorTheme,
                 ...documentTooltips,
-                completionTooltipTheme
+                completionTooltipTheme,
+                diagnosticTheme
             ];
 
             // Build collapseUnchanged config if enabled
@@ -995,7 +1026,6 @@ class SaplEditorLsp extends LitElement {
             to: this._positionToOffset(d.range.end),
             severity: this._mapSeverity(d.severity),
             message: d.message,
-            source: d.source || 'sapl',
             key: this._diagnosticKey(d),
             actions: []
         }));
@@ -1032,16 +1062,29 @@ class SaplEditorLsp extends LitElement {
             to: d.to,
             severity: d.severity,
             message: d.message,
-            source: d.source,
-            actions: d.actions
+            actions: [...d.actions],
+            renderMessage: d.actions.length > 0 ? () => this._messageWithQuickFixHeading(d.message) : undefined
         }));
     }
 
+    // CodeMirror places the actions of a diagnostic after its message. The heading between them
+    // tells what the buttons below it do.
+    _messageWithQuickFixHeading(message) {
+        const text = document.createElement('div');
+        text.textContent = message;
+        const heading = document.createElement('div');
+        heading.className = 'sapl-quickFixHeading';
+        heading.textContent = 'Quick Fix';
+        const content = document.createDocumentFragment();
+        content.append(text, heading);
+        return content;
+    }
+
     // CodeMirror lints after a change of the document. Diagnostics and quick fixes arrive
-    // later from the server, so the editor is told to take them up.
+    // from the server at their own time, so they are handed to the editor as they come.
     _refreshDiagnostics() {
         if (this._editor) {
-            forceLinting(this._editor);
+            this._editor.dispatch(setDiagnostics(this._editor.state, this._getLspDiagnostics()));
         }
     }
 
@@ -1080,6 +1123,77 @@ class SaplEditorLsp extends LitElement {
             }
         }
         this._refreshDiagnostics();
+    }
+
+    // The problems whose marked region holds a position, with the region of each.
+    _problemsAt(state, position) {
+        const problems = [];
+        forEachDiagnostic(state, (diagnostic, from, to) => {
+            if (from <= position && position <= to) {
+                problems.push({ diagnostic, from, to });
+            }
+        });
+        return problems;
+    }
+
+    // Applies the quick fix of the problem at the cursor if there is exactly one. Otherwise the
+    // problems at the cursor are shown with all their quick fixes to choose from.
+    _quickFixAtCursor(view) {
+        const problems = this._problemsAt(view.state, view.state.selection.main.head);
+        if (problems.length === 0) return false;
+        const quickFixes = problems.flatMap(({ diagnostic, from, to }) =>
+            (diagnostic.actions || []).map(action => ({ action, from, to })));
+        if (quickFixes.length === 1) {
+            const { action, from, to } = quickFixes[0];
+            action.apply(view, from, to);
+            return true;
+        }
+        this._showProblems(view, problems);
+        return true;
+    }
+
+    // Selects the next problem of the document and shows it with its quick fixes.
+    _showNextProblem(view) {
+        if (!nextDiagnostic(view)) return false;
+        const problems = this._problemsAt(view.state, view.state.selection.main.from);
+        if (problems.length > 0) {
+            this._showProblems(view, problems);
+        }
+        return true;
+    }
+
+    // Shows problems the way the hover of the lint package does: each message, and below it the
+    // quick fixes as buttons.
+    _showProblems(view, problems) {
+        const tooltip = {
+            pos: problems[0].from,
+            create: () => {
+                const list = document.createElement('ul');
+                list.className = 'cm-tooltip-lint';
+                for (const { diagnostic, from, to } of problems) {
+                    const item = document.createElement('li');
+                    item.className = `cm-diagnostic cm-diagnostic-${diagnostic.severity}`;
+                    const text = document.createElement('span');
+                    text.className = 'cm-diagnosticText';
+                    text.append(diagnostic.renderMessage ? diagnostic.renderMessage(view) : diagnostic.message);
+                    item.append(text);
+                    for (const action of diagnostic.actions || []) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'cm-diagnosticAction';
+                        button.textContent = action.name;
+                        button.addEventListener('mousedown', event => {
+                            event.preventDefault();
+                            action.apply(view, from, to);
+                        });
+                        item.append(button);
+                    }
+                    list.append(item);
+                }
+                return { dom: list };
+            }
+        };
+        view.dispatch({ effects: showProblemsEffect.of(tooltip) });
     }
 
     _quickFixAction(title, edits) {
