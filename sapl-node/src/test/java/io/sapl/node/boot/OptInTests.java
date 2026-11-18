@@ -20,6 +20,7 @@ package io.sapl.node.boot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -72,9 +73,9 @@ class OptInTests {
                                 Map.of("IO_SAPL_NODE_ALLOWNOTLS", "true")),
                         "the environment variable IO_SAPL_NODE_ALLOWNOTLS=true"),
                 arguments("the key in its file", fileSource("io.sapl.node.allow-no-tls"),
-                        "io.sapl.node.allow-no-tls=true in " + FILE),
+                        "io.sapl.node.allow-no-tls=true in " + Path.of(FILE)),
                 arguments("a camel case key in its file", fileSource("io.sapl.node.allowNoTls"),
-                        "io.sapl.node.allow-no-tls=true in " + FILE),
+                        "io.sapl.node.allow-no-tls=true in " + Path.of(FILE)),
                 arguments("a source that is no file",
                         new MapPropertySource("Inlined Test Properties", Map.of("io.sapl.node.allow-no-tls", "true")),
                         "io.sapl.node.allow-no-tls=true in Inlined Test Properties"));

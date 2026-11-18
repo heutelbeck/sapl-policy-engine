@@ -72,6 +72,7 @@ class CertificateExpiryWarning implements DisposableBean {
 
     private static final String WARN_CERTIFICATE_EXPIRED = "The TLS certificate of the %s API expired on %s. Clients refuse it until it is renewed.";
     private static final String WARN_CERTIFICATE_EXPIRES = "The TLS certificate of the %s API expires on %s, %s. Renew it before then.";
+    private static final String WARN_EXPIRY_NOT_CHECKED  = "The expiry of the TLS certificates could not be checked. The check runs again in a day.";
 
     private final Environment                environment;
     private final ObjectProvider<SslBundles> sslBundles;
@@ -106,7 +107,7 @@ class CertificateExpiryWarning implements DisposableBean {
                         .flatMap(expiry -> warning(entry.getKey(), expiry, now)).ifPresent(log::warn);
             }
         } catch (RuntimeException | KeyStoreException e) {
-            log.debug("The expiry of the TLS certificates could not be checked: {}", e.getMessage());
+            log.warn(WARN_EXPIRY_NOT_CHECKED, e);
         }
     }
 
