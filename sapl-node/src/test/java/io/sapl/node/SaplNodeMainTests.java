@@ -28,11 +28,14 @@ import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 import io.sapl.node.boot.OptIn;
+import io.sapl.node.testing.IsolatedConsoleLogging;
 
+@ExtendWith(IsolatedConsoleLogging.class)
 @ResourceLock(value = SYSTEM_OUT, mode = ResourceAccessMode.READ_WRITE)
 class SaplNodeMainTests {
 

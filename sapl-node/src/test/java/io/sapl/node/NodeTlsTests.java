@@ -52,6 +52,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import io.sapl.node.boot.SaplStartupConfigurationException;
+import io.sapl.node.testing.IsolatedConsoleLogging;
 import io.sapl.node.testing.TestCertificates;
 import io.sapl.node.testing.TestCertificates.PemFiles;
 import lombok.val;
@@ -63,7 +64,7 @@ import lombok.val;
  * on free local ports, without containers.
  */
 @DisplayName("Node TLS")
-@ExtendWith(OutputCaptureExtension.class)
+@ExtendWith({ IsolatedConsoleLogging.class, OutputCaptureExtension.class })
 class NodeTlsTests {
 
     private static final String WARN_WITHOUT_TLS = "Serving %s without TLS because of the command-line option --no-tls. Anyone on the network path can read and change credentials and authorization decisions. Use this only where TLS is terminated upstream, by a proxy or a service mesh, or in development.";

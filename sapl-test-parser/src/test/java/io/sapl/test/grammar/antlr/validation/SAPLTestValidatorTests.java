@@ -520,6 +520,10 @@ class SAPLTestValidatorTests {
         var lexer  = new SAPLTestLexer(CharStreams.fromString(document));
         var tokens = new CommonTokenStream(lexer);
         var parser = new SAPLTestParser(tokens);
+        // These tests cover the validator. Syntax errors are recovered by the parser
+        // and need no report on the console.
+        lexer.removeErrorListeners();
+        parser.removeErrorListeners();
         return parser.saplTest();
     }
 

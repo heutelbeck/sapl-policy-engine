@@ -162,7 +162,14 @@
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
-		
+
+		<!-- Test dependencies use sun.misc.Unsafe, native libraries and reflective
+		     final field mutation, which newer JDKs report with a warning on each test
+		     JVM start. These options permit that. A JDK that does not know one of
+		     them yet, such as JDK 21, skips it because of IgnoreUnrecognizedVMOptions.
+		     The Maven JVM gets the same treatment in .mvn/jvm.config. -->
+		<jvm.access.argLine>-XX:+IgnoreUnrecognizedVMOptions --sun-misc-unsafe-memory-access=allow --enable-native-access=ALL-UNNAMED --enable-final-field-mutation=ALL-UNNAMED</jvm.access.argLine>
+
 		<!-- Path to project/module with the license file -->
 		<main.basedir>${project.basedir}</main.basedir>
 
@@ -526,7 +533,7 @@
                     <configuration>
                         <argLine>@{argLine}
                             -javaagent:${project.build.directory}/mockito-agent/mockito-core.jar -Xshare:off
-                            -XX:+EnableDynamicAgentLoading</argLine>
+                            -XX:+EnableDynamicAgentLoading ${jvm.access.argLine}</argLine>
                         <systemPropertyVariables>
                             <sapl.fullTests>${sapl.full.tests}</sapl.fullTests>
                         </systemPropertyVariables>
@@ -548,7 +555,7 @@
                     <configuration>
                         <argLine>@{argLine}
                             -javaagent:${project.build.directory}/mockito-agent/mockito-core.jar -Xshare:off
-                            -XX:+EnableDynamicAgentLoading</argLine>
+                            -XX:+EnableDynamicAgentLoading ${jvm.access.argLine}</argLine>
                     </configuration>
                 </plugin>
 				<plugin>
@@ -710,6 +717,7 @@
 								<exclude>**/*.sapl</exclude>
 								<exclude>**/*.vim</exclude>
 								<exclude>**/*.lua</exclude>
+								<exclude>**/*.zsh</exclude>
 								<exclude>**/types.d.ts</exclude>
 								<exclude>**/vite.config.ts</exclude>
 								<exclude>**/vite.generated.ts</exclude>
@@ -895,6 +903,16 @@
 								</plugin>
 							</plugins>
 						</configuration>
+						<executions>
+							<!-- The aggregator itself has no classes to analyze. Not inherited by the modules. -->
+							<execution>
+								<id>default-cli</id>
+								<inherited>false</inherited>
+								<configuration>
+									<skip>true</skip>
+								</configuration>
+							</execution>
+						</executions>
 					</plugin>
 				</plugins>
 			</build>

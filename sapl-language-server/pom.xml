@@ -230,6 +230,15 @@
 										<exclude>META-INF/spring.tooling</exclude>
 										<!-- Proguard configs -->
 										<exclude>META-INF/proguard/**</exclude>
+										<!-- OSGi metadata of multi-release jars (BouncyCastle) -->
+										<exclude>META-INF/versions/*/OSGI-INF/**</exclude>
+									</excludes>
+								</filter>
+								<!-- The ClassGraph modules ship the same license file. Keep the one of the main module. -->
+								<filter>
+									<artifact>io.github.classgraph:classgraph-*</artifact>
+									<excludes>
+										<exclude>LICENSE-ClassGraph.txt</exclude>
 									</excludes>
 								</filter>
 								<!-- Exclude bundled ANTLR metadata from graphql-java -->

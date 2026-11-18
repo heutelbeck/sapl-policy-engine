@@ -58,10 +58,14 @@ import java.util.logging.Logger;
 @FunctionLibrary(name = "geo", description = GeographicFunctionLibrary.DESCRIPTION, libraryDocumentation = GeographicFunctionLibrary.DOCUMENTATION)
 public class GeographicFunctionLibrary {
 
+    // GeoTools logs every intentionally blocked external reference at WARNING with
+    // a full stack trace, so silence it to prevent log flooding in production. The
+    // JUL LogManager references loggers only weakly, so the configured logger is
+    // held here. Otherwise a garbage collection drops it along with its level.
+    private static final Logger GEOTOOLS_XSD_LOGGER = Logger.getLogger("org.geotools.xsd");
+
     static {
-        // GeoTools logs every intentionally blocked external reference at WARNING with
-        // a full stack trace, so silence it to prevent log flooding in production.
-        Logger.getLogger("org.geotools.xsd").setLevel(Level.SEVERE);
+        GEOTOOLS_XSD_LOGGER.setLevel(Level.SEVERE);
     }
 
     static final String DESCRIPTION   = "A function library to manipulate, inspect, and convert geograpihc data.";
