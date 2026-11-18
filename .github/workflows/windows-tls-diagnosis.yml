@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   node-tls:
-    name: NodeTlsTests on Windows
+    name: Node tests on Windows
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -33,8 +33,9 @@ jobs:
           java-version: '25'
           cache: 'maven'
 
-      - name: Run the TLS tests of the node
-        run: mvn -B test -pl sapl-node -am "-Dtest=NodeTlsTests" "-Dsurefire.failIfNoSpecifiedTests=false" "-Djacoco.skip=true" "-Dsonar.skip=true"
+      # All tests of the node: the TLS tests pass on their own and fail only after other test classes.
+      - name: Run the tests of the node
+        run: mvn -B test -pl sapl-node -am "-Dsurefire.failIfNoSpecifiedTests=false" "-Djacoco.skip=true" "-Dsonar.skip=true"
         env:
           LOGGING_LEVEL_IO_SAPL_NODE_BOOT: DEBUG
 
