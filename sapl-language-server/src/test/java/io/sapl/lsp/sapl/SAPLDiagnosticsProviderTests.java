@@ -18,143 +18,131 @@
 package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.list;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.util.List;
 import java.util.stream.Stream;
 
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticRelatedInformation;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.compiler.diagnostics.Problem;
 import lombok.val;
 
+@DisplayName("SAPL diagnostics provider")
 class SAPLDiagnosticsProviderTests {
 
-    private static final String POLICY = """
-            policy "p"
-            permit
-                subject.role == "admin";
-            """;
+    private static final String URI = "test.sapl";
+
+    private static final String WRONG_OPERATOR = "Wrong operator '='. '=' only defines variables. To compare two values, use '=='.";
 
     private final SAPLDiagnosticsProvider provider = new SAPLDiagnosticsProvider();
 
-    @Test
-    @DisplayName("when a parse error reports empty offending text then the diagnostic spans at least one character so the editor highlights it")
-    void whenParseErrorHasEmptyOffendingTextThenDiagnosticIsVisible() {
-        var document = new StubParsedDocument(POLICY,
-                List.of(new ParsedDocument.ParseError(2, 4, "unexpected token", "")), List.of());
+    static Stream<Arguments> comparisonsWrittenWithTheSignOfADefinition() {
+        val plainLine    = "    action = \"read\";";
+        val afterTheFace = "    \"" + ProtocolText.GRINNING_FACE + "\" = subject.mood;";
+        return ProtocolText.documentsWithEveryLineEndAndFaces(plainLine, afterTheFace);
+    }
 
-        var diagnostics = provider.provideDiagnostics(document);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("comparisonsWrittenWithTheSignOfADefinition")
+    @DisplayName("a problem of the catalogue reaches the editor with its class, its message and the range of the wrong text")
+    void whenComparisonIsWrittenWithTheSignOfADefinitionThenTheEditorMarksTheSignWithTheProblemOfTheCatalogue(
+            String description, String content) {
+        val diagnostics = provider.provideDiagnostics(new SAPLParsedDocument(URI, content));
 
         assertThat(diagnostics).singleElement().satisfies(diagnostic -> {
-            var start = diagnostic.getRange().getStart();
-            var end   = diagnostic.getRange().getEnd();
-            assertThat(start.getLine()).isEqualTo(1);
-            assertThat(start.getCharacter()).isEqualTo(4);
-            assertThat(end.getCharacter()).isGreaterThan(start.getCharacter());
+            assertThat(diagnostic.getCode().getLeft()).isEqualTo("assignment-instead-of-comparison");
+            assertThat(diagnostic.getMessage().getLeft()).isEqualTo(WRONG_OPERATOR);
+            assertThat(ProtocolText.textOf(content, diagnostic.getRange())).isEqualTo("=");
+            assertThat(diagnostic.getSeverity()).isEqualTo(DiagnosticSeverity.Error);
+            assertThat(diagnostic.getSource()).isEqualTo("sapl");
+            assertThat(diagnostic.getRelatedInformation()).isNull();
         });
     }
 
     @Test
-    @DisplayName("when a validation error reports empty offending text then the diagnostic spans at least one character so the editor highlights it")
-    void whenValidationErrorHasEmptyOffendingTextThenDiagnosticIsVisible() {
-        var document = new StubParsedDocument(POLICY, List.of(),
-                List.of(new ParsedDocument.ValidationError(3, 0, "invalid reference", "")));
+    @DisplayName("a policy without name reaches the editor with the problem of the catalogue, at the keyword policy")
+    void whenPolicyHasNoNameThenTheEditorMarksTheKeywordPolicyWithTheProblemOfTheCatalogue() {
+        val content  = "policy permit";
+        val document = new SAPLParsedDocument(URI, content);
 
-        var diagnostics = provider.provideDiagnostics(document);
+        val diagnostics = provider.provideDiagnostics(document);
 
         assertThat(diagnostics).singleElement().satisfies(diagnostic -> {
-            var start = diagnostic.getRange().getStart();
-            var end   = diagnostic.getRange().getEnd();
-            assertThat(start.getLine()).isEqualTo(2);
-            assertThat(end.getCharacter()).isGreaterThan(start.getCharacter());
+            assertThat(diagnostic.getCode().getLeft()).isEqualTo(Problem.MISSING_POLICY_NAME.identifier());
+            assertThat(diagnostic.getMessage().getLeft()).isEqualTo(document.getDiagnostics().getFirst().message());
+            assertThat(ProtocolText.textOf(content, diagnostic.getRange())).isEqualTo("policy");
         });
     }
 
     @Test
-    @DisplayName("when an error reports a multi-character offending symbol then the diagnostic spans exactly that symbol's width")
-    void whenOffendingSymbolHasWidthThenDiagnosticSpansThatWidth() {
-        var document = new StubParsedDocument("policy permitt",
-                List.of(new ParsedDocument.ParseError(1, 7, "unexpected token", "permitt")), List.of());
+    @DisplayName("the editor shows what the compiler reports beyond the syntax: a name that is not imported")
+    void whenNameIsNotImportedThenTheEditorMarksTheNameAsTheCompilerReportsIt() {
+        val content = """
+                policy "p" permit
+                  foo();""";
 
-        var diagnostics = provider.provideDiagnostics(document);
+        val diagnostics = provider.provideDiagnostics(new SAPLParsedDocument(URI, content));
 
         assertThat(diagnostics).singleElement().satisfies(diagnostic -> {
-            var range = diagnostic.getRange();
-            assertThat(range.getStart().getCharacter()).isEqualTo(7);
-            assertThat(range.getEnd().getCharacter()).isEqualTo(14);
+            assertThat(diagnostic.getCode().getLeft()).isEqualTo(Problem.NAME_NOT_IMPORTED.identifier());
+            assertThat(ProtocolText.textOf(content, diagnostic.getRange())).isEqualTo("foo");
         });
     }
 
-    @Nested
-    @DisplayName("the range of a diagnostic")
-    class RangeOfADiagnosticTests {
+    @Test
+    @DisplayName("a valid document has no diagnostics")
+    void whenDocumentIsValidThenNoDiagnosticIsPublished() {
+        val content = """
+                policy "p"
+                permit
+                    action == "read";""";
 
-        static Stream<Arguments> comparisonsWrittenWithTheSignOfADefinition() {
-            val plainLine    = "    action = \"read\";";
-            val afterTheFace = "    \"" + ProtocolText.GRINNING_FACE + "\" = subject.mood;";
-            return ProtocolText.documentsWithEveryLineEndAndFaces(plainLine, afterTheFace);
-        }
+        val diagnostics = provider.provideDiagnostics(new SAPLParsedDocument(URI, content));
 
-        @ParameterizedTest(name = "{0}")
-        @MethodSource("comparisonsWrittenWithTheSignOfADefinition")
-        @DisplayName("marks the text that is wrong in the editor")
-        void whenAComparisonIsWrittenWithTheSignOfADefinitionThenTheEditorMarksThatSign(String description,
-                String content) {
-            val document = new SAPLParsedDocument("test.sapl", content);
-
-            val diagnostics = provider.provideDiagnostics(document);
-
-            assertThat(diagnostics).first()
-                    .extracting(diagnostic -> ProtocolText.textOf(content, diagnostic.getRange())).isEqualTo("=");
-        }
+        assertThat(diagnostics).isEmpty();
     }
 
-    private record StubParsedDocument(
-            String content,
-            List<ParsedDocument.ParseError> parseErrors,
-            List<ParsedDocument.ValidationError> validationErrors) implements ParsedDocument {
+    @Test
+    @DisplayName("a further region of a problem reaches the editor as related information at its place, with its label")
+    void whenProblemHasAFurtherRegionThenTheEditorGetsItAsRelatedInformation() {
+        val content = """
+                import clock.now
+                import time.now
+                policy "p" permit""";
 
-        @Override
-        public String getUri() {
-            return "stub.sapl";
-        }
+        val diagnostics = provider.provideDiagnostics(new SAPLParsedDocument(URI, content));
 
-        @Override
-        public String getContent() {
-            return content;
-        }
+        assertThat(diagnostics).singleElement()
+                .extracting(Diagnostic::getRelatedInformation, list(DiagnosticRelatedInformation.class)).singleElement()
+                .satisfies(related -> {
+                    assertThat(related.getMessage()).isEqualTo("first imported here");
+                    assertThat(related.getLocation().getUri()).isEqualTo(URI);
+                    assertThat(ProtocolText.textOf(content, related.getLocation().getRange())).isEqualTo("clock.now");
+                });
+    }
 
-        @Override
-        public ParseTree getParseTree() {
-            return null;
-        }
+    static Stream<Arguments> documentsWhoseProblemHasNoText() {
+        return Stream.of(arguments("a document that holds only a comment", "// access rules for the ward\n"),
+                arguments("a document that holds only a schema statement", "subject schema { \"type\": \"object\" }"),
+                arguments("a document that holds only a comment and no line break", "// only a comment"));
+    }
 
-        @Override
-        public List<Token> getTokens() {
-            return List.of();
-        }
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("documentsWhoseProblemHasNoText")
+    @DisplayName("a diagnostic always marks at least one visible character, so that the editor shows it")
+    void whenProblemHasAnEmptyRegionThenTheDiagnosticStillMarksAVisibleCharacter(String description, String content) {
+        val diagnostics = provider.provideDiagnostics(new SAPLParsedDocument(URI, content));
 
-        @Override
-        public boolean hasErrors() {
-            return !parseErrors.isEmpty() || !validationErrors.isEmpty();
-        }
-
-        @Override
-        public List<ParsedDocument.ParseError> getParseErrors() {
-            return parseErrors;
-        }
-
-        @Override
-        public List<ParsedDocument.ValidationError> getValidationErrors() {
-            return validationErrors;
-        }
+        assertThat(diagnostics).isNotEmpty()
+                .allSatisfy(diagnostic -> assertThat(ProtocolText.textOf(content, diagnostic.getRange())).isNotBlank());
     }
 
 }

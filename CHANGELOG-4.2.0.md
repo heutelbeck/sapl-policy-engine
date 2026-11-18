@@ -9,3 +9,22 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - SAPL Node gained optional global admission limits, caps on concurrent SSE streams, RSocket connections and streams per connection, and request rate limits on the unary endpoints. All default to unbounded, rejections fail closed with retriable errors and are observable through the `sapl.limits.rejections` metric. See the configuration reference for the `io.sapl.node.limits` properties.
 - SAPL Node JWT access can now be gated by scope via `io.sapl.node.oauth.required-scopes`, complementing the audience gate, and `oauth.pdp-id-claim` accepts dot-separated paths into nested claims, validated at startup.
 - The HTTP policy information point now binds credentials to destinations. A credential is a named `secrets.http.<key>` entry carrying its headers and an `allowedBaseUrls` allowlist; policies can no longer supply credential headers, and a secret is sent only to a URL matching its allowlist by scheme, host, port, and path prefix. Fail closed, no unnamed default credential.
+
+## Breaking changes
+
+- The `secrets` of an authorization subscription are an object on the RSocket wire (protobuf field 5 is now `ObjectValue`). RSocket clients and SDKs of 4.1.x cannot talk to a 4.2 node. Upgrade clients and node together.
+- A user secret or API key in the SAPL Node configuration that is not an Argon2 hash refuses the start. A `{argon2id}` prefix is no longer accepted. Regenerate such entries with `sapl generate basic` or `sapl generate apikey`.
+- An unknown key under `io.sapl.node` refuses the start, so a misspelt key no longer goes unnoticed.
+- An OAuth2 issuer must use https, and so must the key address its discovery document names. Plain http needs `io.sapl.node.oauth.allow-insecure-issuer=true` and logs a warning at start.
+- A request with two `Authorization` headers is refused with 401.
+- A tenant claim that is an object or a list counts as no tenant.
+- Bundles are read strictly. Duplicate entry names, entries the archive's central directory hides, inconsistent archives, names or content that are not UTF-8, a creation time not in the form `YYYY-MM-DDTHH:MM:SS[.fraction]Z`, an empty or incomplete signature block and weak (small order) Ed25519 keys are refused. The CLI reads bundles with the same hardened reader as the PDP.
+- A recipient key whose public part does not belong to its private part is refused when it is loaded.
+- The subject of a schema statement must be `subject`, `action`, `resource` or `environment`.
+- The diagnostics of the parser use a new problem catalogue with new messages, and positions follow the LSP specification. In the Java API, `Document` carries these diagnostics and no longer has `syntaxErrors`, `validationErrors` and `errorMessage`. `TracedValue` and `AttributeRecord` are removed from `sapl-api`.
+
+## Other changes
+
+- The SAPL Node authentication cache (`io.sapl.node.http.auth-cache.*`) now also covers RSocket connections. The keys keep their names.
+- A stack overflow while evaluating a policy answers INDETERMINATE for that subscription, and the decision stream stays open.
+- Unsealing errors now tell a malformed token apart from a key that does not fit the token.

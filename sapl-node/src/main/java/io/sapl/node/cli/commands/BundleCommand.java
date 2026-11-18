@@ -47,8 +47,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.UnaryOperator;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.jspecify.annotations.Nullable;
 
@@ -64,9 +62,11 @@ import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleManifest;
+import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 import io.sapl.pdp.configuration.bundle.BundleSigner;
 import io.sapl.secrets.Keyring;
+import io.sapl.secrets.RecipientKeys;
 import io.sapl.secrets.SecretSealing;
 import io.sapl.secrets.SecretSealingException;
 import io.sapl.secrets.ValueSealer;
@@ -421,7 +421,7 @@ public class BundleCommand {
                 requireKeyFile(keyFile);
                 requireKeyFile(unsealKeyFile);
 
-                val contents     = extractBundleContents(bundleFile);
+                val contents     = BundleParser.readEntries(bundleFile);
                 val manifestJson = contents.remove(BundleManifest.MANIFEST_FILENAME);
                 verifySignatureIfKeyGiven(manifestJson, contents);
 
@@ -445,7 +445,8 @@ public class BundleCommand {
             } catch (BundleSignatureException e) {
                 err.println(ERROR_VERIFICATION_FAILED.formatted(e.getMessage()));
                 return 1;
-            } catch (IOException | GeneralSecurityException | ParseException | PDPConfigurationException e) {
+            } catch (IOException | GeneralSecurityException | ParseException | PDPConfigurationException
+                    | SecretSealingException e) {
                 err.println(ERROR_UNPACKING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
@@ -672,7 +673,7 @@ public class BundleCommand {
             } catch (CommandFailedException e) {
                 e.printTo(err);
                 return 1;
-            } catch (IOException | ParseException e) {
+            } catch (IOException | ParseException | SecretSealingException e) {
                 err.println(ERROR_UNSEALING_DIRECTORY.formatted(e.getMessage()));
                 return 1;
             }
@@ -870,7 +871,7 @@ public class BundleCommand {
                 requireKeyFile(keyFile);
 
                 val privateKey = loadEd25519PrivateKey(keyFile);
-                val contents   = extractBundleContents(bundleFile);
+                val contents   = BundleParser.readEntries(bundleFile);
                 val builder    = BundleBuilder.create();
 
                 carryOverManifestMetadata(builder, contents.remove(BundleManifest.MANIFEST_FILENAME));
@@ -984,7 +985,7 @@ public class BundleCommand {
                 requireKeyFile(keyFile);
 
                 val publicKey = loadEd25519PublicKey(keyFile);
-                val contents  = extractBundleContents(bundleFile);
+                val contents  = BundleParser.readEntries(bundleFile);
 
                 val manifestJson = contents.remove(BundleManifest.MANIFEST_FILENAME);
                 if (manifestJson == null) {
@@ -1008,7 +1009,7 @@ public class BundleCommand {
             } catch (BundleSignatureException e) {
                 err.println(ERROR_VERIFICATION_FAILED.formatted(e.getMessage()));
                 return 1;
-            } catch (IOException | GeneralSecurityException e) {
+            } catch (IOException | GeneralSecurityException | PDPConfigurationException e) {
                 err.println(ERROR_VERIFYING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
@@ -1075,7 +1076,7 @@ public class BundleCommand {
                 requireBundleFile(bundleFile);
                 requireKeyFile(keyFile);
 
-                val contents = extractBundleContents(bundleFile);
+                val contents = BundleParser.readEntries(bundleFile);
                 if (contents.isEmpty()) {
                     throw new CommandFailedException(ERROR_NOT_A_BUNDLE.formatted(bundleFile));
                 }
@@ -1111,7 +1112,7 @@ public class BundleCommand {
             } catch (CommandFailedException e) {
                 e.printTo(err);
                 return 1;
-            } catch (IOException | BundleSignatureException e) {
+            } catch (BundleSignatureException | PDPConfigurationException e) {
                 err.println(ERROR_INSPECTING_BUNDLE.formatted(e.getMessage()));
                 return 1;
             }
@@ -1415,45 +1416,6 @@ public class BundleCommand {
 
     }
 
-    private static final long MAX_BUNDLE_ENTRY_BYTES = 256L * 1024 * 1024;
-    private static final long MAX_BUNDLE_TOTAL_BYTES = 256L * 1024 * 1024;
-
-    private static Map<String, String> extractBundleContents(Path bundlePath) throws IOException {
-        val  contents   = new HashMap<String, String>();
-        long totalBytes = 0;
-        try (val zipStream = new ZipInputStream(Files.newInputStream(bundlePath))) {
-            ZipEntry entry;
-            while ((entry = zipStream.getNextEntry()) != null) {
-                if (entry.isDirectory()) {
-                    continue;
-                }
-                val bytes = readBoundedEntry(zipStream, entry.getName(), MAX_BUNDLE_ENTRY_BYTES);
-                totalBytes += bytes.length;
-                if (totalBytes > MAX_BUNDLE_TOTAL_BYTES) {
-                    throw new IOException("Bundle exceeds total size cap of " + MAX_BUNDLE_TOTAL_BYTES + " bytes");
-                }
-                contents.put(entry.getName(), new String(bytes, StandardCharsets.UTF_8));
-            }
-        }
-        return contents;
-    }
-
-    private static byte[] readBoundedEntry(ZipInputStream in, String entryName, long maxBytes) throws IOException {
-        val  out    = new java.io.ByteArrayOutputStream();
-        val  buffer = new byte[8192];
-        long total  = 0;
-        int  read;
-        while ((read = in.read(buffer)) != -1) {
-            total += read;
-            if (total > maxBytes) {
-                throw new IOException(
-                        "Bundle entry " + entryName + " exceeds per-entry size cap of " + maxBytes + " bytes");
-            }
-            out.write(buffer, 0, read);
-        }
-        return out.toByteArray();
-    }
-
     private static PrivateKey loadEd25519PrivateKey(Path keyFile) throws IOException, GeneralSecurityException {
         val keyBytes = PemUtils.decodePemFromFile(keyFile);
         return KeyFactory.getInstance(ALGORITHM_ED25519).generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
@@ -1464,7 +1426,7 @@ public class BundleCommand {
     }
 
     private static OctetKeyPair loadX25519PrivateKey(Path keyFile) throws IOException, ParseException {
-        return OctetKeyPair.parse(Files.readString(keyFile));
+        return RecipientKeys.requireMatchingPublicPart(OctetKeyPair.parse(Files.readString(keyFile)));
     }
 
     // Lenient manifest read for display only: legacy pre-4.2 manifests carry no

@@ -1,4 +1,5 @@
 import filter.blacken
+import filter.remove
 
 set "PatientRepository"
 

@@ -252,9 +252,23 @@ public enum Problem {
      * Values: the limit.
      */
     NESTING_TOO_DEEP(
-            "nesting-too-deep",
+            Identifier.NESTING_TOO_DEEP,
             "Nesting too deep.",
             "At most %1$s levels of parentheses, brackets and braces are allowed."),
+
+    /**
+     * Not part of the catalogue that all implementations of SAPL share. An
+     * expression nests too deeply to be read without brackets that explain it,
+     * for example through a long chain of prefix operators or subtemplates: a
+     * step of reading exhausted the stack. It is marked at the start of the
+     * document, as no place in it is known.
+     * <p>
+     * Values: none.
+     */
+    NESTING_TOO_DEEP_WITHOUT_BRACKETS(
+            Identifier.NESTING_TOO_DEEP,
+            "Nesting too deep.",
+            "This expression nests too deeply to be read, for example through a long chain of '!', '-', '+' or '::'."),
 
     /**
      * A bracket is not closed before the document ends.
@@ -1180,7 +1194,25 @@ public enum Problem {
     TOO_MANY_PROBLEMS(
             "too-many-problems",
             "Too many problems.",
-            "Only the first %1$s problems are reported. Resolve them and check the document again.");
+            "Only the first %1$s problems are reported. Resolve them and check the document again."),
+
+    /**
+     * Not part of the catalogue that all implementations of SAPL share. It stands
+     * in for a failure of reading a document that the checks did not foresee: an
+     * exception of the lexer, the parser, the analysis or the transformation into
+     * the AST. Such a failure is logged, and the document is refused with this
+     * problem instead of the exception reaching the caller. The analysis refuses
+     * every document that the transformation cannot read, so a document with
+     * this problem shows a gap in the checks. No document of the conformance
+     * corpus has it.
+     * <p>
+     * Values: the message of a refusal of the transformation, or the kind and
+     * the message of any other failure.
+     */
+    SYNTAX_ERROR(
+            "syntax-error",
+            "Document not read.",
+            "Reading the document failed with '%1$s'. The checks of SAPL did not foresee this. Report it together with the document.");
 
     /**
      * What a name is called in a list of what can stand at a place.
@@ -1336,6 +1368,7 @@ public enum Problem {
         private static final String MALFORMED_NUMBER              = "malformed-number";
         private static final String MISPLACED_IMPORT_OR_SCHEMA    = "misplaced-import-or-schema";
         private static final String NAME_MISSING                  = "name-missing";
+        private static final String NESTING_TOO_DEEP              = "nesting-too-deep";
         private static final String OBJECT_ENTRY_MALFORMED        = "object-entry-malformed";
         private static final String POLICY_PART_ORDER             = "policy-part-order";
         private static final String SCHEMA_STATEMENT_MALFORMED    = "schema-statement-malformed";

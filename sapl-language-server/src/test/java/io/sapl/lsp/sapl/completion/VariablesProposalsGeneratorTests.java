@@ -150,9 +150,9 @@ class VariablesProposalsGeneratorTests {
         val document = """
                 policy "test"
                 permit
-                    var greeting = "%s";
+                    var greeting = "FACES";
                     var later = 1;
-                """.formatted(faces);
+                """.replace("FACES", faces);
         val sapl     = parse(document);
         // The cursor stands where the second definition starts, so that one is not in
         // scope yet.

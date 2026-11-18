@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.diagnostics;
 
+import io.sapl.api.model.DocumentLines;
+
 /**
  * A region of a SAPL document. A region that starts and ends at the same
  * position marks a place between two characters.
@@ -35,4 +37,20 @@ package io.sapl.compiler.diagnostics;
  * @param endLine the line of the position after the last character
  * @param endColumn the column of the position after the last character
  */
-public record Region(int start, int end, int line, int column, int endLine, int endColumn) {}
+public record Region(int start, int end, int line, int column, int endLine, int endColumn) {
+
+    /**
+     * The region between two places of a document, with the lines and columns of
+     * both.
+     *
+     * @param lines the lines of the document
+     * @param start the offset of the first character of the region
+     * @param end the offset after the last character of the region
+     * @return the region
+     */
+    public static Region of(DocumentLines lines, int start, int end) {
+        return new Region(start, end, lines.lineOf(start), lines.columnOf(start), lines.lineOf(end),
+                lines.columnOf(end));
+    }
+
+}

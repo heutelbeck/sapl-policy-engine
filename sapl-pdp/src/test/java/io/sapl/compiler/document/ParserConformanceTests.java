@@ -17,8 +17,9 @@
  */
 package io.sapl.compiler.document;
 
+import io.sapl.compiler.diagnostics.Diagnostic;
+import io.sapl.compiler.diagnostics.Problem;
 import io.sapl.compiler.document.ConformanceCorpus.Case;
-import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -63,6 +64,21 @@ class ParserConformanceTests {
                 refusal.map(errors -> "refuses it: " + errors).orElse("accepts it")).isEqualTo(statedValid);
     }
 
+    /**
+     * A refused document is refused for a problem that the checks name. A
+     * failure of the transformation that they did not foresee would make a
+     * document invalid as well, and pass as a refusal the corpus states.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("casesOfTheParserCorpus")
+    @DisplayName("no document is refused for a failure that the checks did not foresee")
+    void whenDocumentIsParsedThenNoProblemIsAnUnforeseenFailure(Case conformanceCase) {
+        val document = DocumentCompiler.parseDocument(conformanceCase.document());
+
+        assertThat(document.diagnostics()).as(document.errors()).extracting(Diagnostic::problem)
+                .doesNotContain(Problem.SYNTAX_ERROR);
+    }
+
     private static boolean isStatedValid(Case conformanceCase) {
         if (!conformanceCase.expectation().isEmpty()) {
             throw new IllegalStateException(ERROR_HOLDS_A_REPORT.formatted(conformanceCase.origin()));
@@ -81,14 +97,8 @@ class ParserConformanceTests {
      * accepts the document
      */
     private static Optional<String> refusalOf(String document) {
-        try {
-            val parsed = DocumentCompiler.parseDocument(document);
-            return parsed.isInvalid() ? Optional.of(parsed.errors()) : Optional.empty();
-        } catch (SaplCompilerException refusal) {
-            // The engine refuses a document that holds a bidirectional control character
-            // by throwing, where it returns an invalid document for every other mistake.
-            return Optional.of(refusal.getMessage());
-        }
+        val parsed = DocumentCompiler.parseDocument(document);
+        return parsed.isInvalid() ? Optional.of(parsed.errors()) : Optional.empty();
     }
 
 }

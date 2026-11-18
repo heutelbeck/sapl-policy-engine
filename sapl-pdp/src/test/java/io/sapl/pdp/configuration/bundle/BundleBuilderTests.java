@@ -61,6 +61,8 @@ import io.sapl.pdp.configuration.ConfigurationIds;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.secrets.SecretSealing;
 
+import com.nimbusds.jose.jwk.OctetKeyPair;
+
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -637,6 +639,28 @@ class BundleBuilderTests {
             val bundle    = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed)
                     .withSealingRecipient("legacy-recipient-key").build();
             assertThat(extractEntries(bundle).get("secrets.sealed.json")).isEqualTo(sealed);
+        }
+
+        @Test
+        @DisplayName("an explicit sealing recipient names the audience of sealed secrets that hold no sealed leaf")
+        void whenSealedSecretsHoldNoLeafThenExplicitRecipientNamesTheAudience() throws IOException {
+            val bundle   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets("{}")
+                    .withSealingRecipient("vault-key").build();
+            val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
+            assertThat(manifest.audience()).isEqualTo(new BundleManifest.Audience("vault-key"));
+        }
+
+        @Test
+        @DisplayName("sealed tokens without a key id are refused even with an explicit sealing recipient")
+        void whenSealedTokensCarryNoKeyIdThenRefusedDespiteExplicitRecipient() {
+            val recipient = new OctetKeyPair.Builder(SecretSealing.generateRecipientKey().toPublicJWK()).keyID(null)
+                    .build();
+            val sealed    = """
+                    { "apiKey": "ENC[%s]" }""".formatted(SecretSealing.seal(recipient, "\"secret\""));
+            val builder   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed)
+                    .withSealingRecipient("vault-key");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("requires a sealing recipient key id");
         }
 
         @Test

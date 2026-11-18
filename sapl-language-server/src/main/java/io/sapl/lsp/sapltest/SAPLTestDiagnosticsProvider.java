@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.eclipse.lsp4j.Diagnostic;
 
-import io.sapl.lsp.core.ErrorDiagnostics;
 import io.sapl.lsp.core.ParsedDocument;
 
 /**
@@ -39,7 +38,11 @@ public class SAPLTestDiagnosticsProvider {
      * @return list of diagnostics
      */
     public List<Diagnostic> provideDiagnostics(ParsedDocument document) {
-        return ErrorDiagnostics.diagnosticsOf(document, SOURCE);
+        if (!(document instanceof SAPLTestParsedDocument testDocument)) {
+            return List.of();
+        }
+        return ErrorDiagnostics.diagnosticsOf(testDocument.getContent(), testDocument.getParseErrors(),
+                testDocument.getValidationErrors(), SOURCE);
     }
 
 }

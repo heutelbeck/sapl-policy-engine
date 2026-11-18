@@ -137,7 +137,8 @@ class ProblemTests {
         @Test
         @DisplayName("holds exactly the identifiers that all implementations share")
         void whenIdentifiersAreCollectedThenTheyAreTheSharedOnes() {
-            val identifiers = Arrays.stream(Problem.values()).map(Problem::identifier).distinct();
+            val identifiers = Arrays.stream(Problem.values()).filter(problem -> problem != Problem.SYNTAX_ERROR)
+                    .map(Problem::identifier).distinct();
 
             assertThat(identifiers).containsExactlyInAnyOrderElementsOf(SHARED_IDENTIFIERS.lines().toList());
         }
@@ -166,8 +167,8 @@ class ProblemTests {
             });
         }
 
-        @ParameterizedTest(name = "{0}")
         @EnumSource(Problem.class)
+        @ParameterizedTest(name = "{0}")
         @DisplayName("names each of its values in its texts")
         void whenProblemIsRenderedThenItsTextsNameEachValue(Problem problem) {
             val diagnostic = withNamedValues(problem);
@@ -175,14 +176,32 @@ class ProblemTests {
             assertThat(diagnostic.values()).allSatisfy(value -> assertThat(diagnostic.message()).contains(value));
         }
 
-        @ParameterizedTest(name = "{0}")
         @EnumSource(Problem.class)
+        @ParameterizedTest(name = "{0}")
         @DisplayName("is refused with a value more than its texts name")
         void whenOneValueTooManyIsGivenThenDiagnosticIsRefused(Problem problem) {
             val oneTooMany = namedValues(problem.numberOfValues() + 1);
 
             assertThatThrownBy(() -> diagnosticOf(problem, oneTooMany)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining(problem.name());
+        }
+    }
+
+    @Nested
+    @DisplayName("the stand-in for a problem that the catalogue does not classify")
+    class StandInTests {
+
+        @Test
+        @DisplayName("passes on the message of the failure, and its identifier is none that the implementations share")
+        void whenProblemIsNotClassifiedThenItPassesOnTheMessageOfTheFailure() {
+            val message = "Unresolved reference 'foo': not imported and not fully qualified.";
+
+            val diagnostic = diagnosticOf(Problem.SYNTAX_ERROR, List.of(message));
+
+            assertThat(diagnostic).satisfies(standIn -> {
+                assertThat(standIn.message()).contains(message);
+                assertThat(SHARED_IDENTIFIERS.lines()).doesNotContain(standIn.identifier());
+            });
         }
     }
 
@@ -196,8 +215,8 @@ class ProblemTests {
                     arguments(10, "ten"), arguments(11, "11"));
         }
 
-        @ParameterizedTest(name = "{0} is written as {1}")
         @MethodSource("countsAndTheirWords")
+        @ParameterizedTest(name = "{0} is written as {1}")
         @DisplayName("a count from three to ten is a word, any other is written in digits")
         void whenCountIsWrittenThenSmallCountsAreWords(int count, String expected) {
             assertThat(Problem.countInWords(count)).isEqualTo(expected);
@@ -242,8 +261,8 @@ class ProblemTests {
                     arguments("delimiters", (Function<List<String>, String>) Problem::delimiters));
         }
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource("waysToList")
+        @ParameterizedTest(name = "{0}")
         @DisplayName("a list of nothing is refused")
         void whenNothingIsListedThenItIsRefused(String listed, Function<List<String>, String> list) {
             val nothing = List.<String>of();

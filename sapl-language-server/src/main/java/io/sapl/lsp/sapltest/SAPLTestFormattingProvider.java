@@ -40,11 +40,7 @@ class SAPLTestFormattingProvider {
      * @return list of text edits to apply
      */
     List<TextEdit> provideFormatting(ParsedDocument document) {
-        if (!document.getParseErrors().isEmpty()) {
-            return List.of();
-        }
-
-        if (!(document instanceof SAPLTestParsedDocument testDocument)) {
+        if (!(document instanceof SAPLTestParsedDocument testDocument) || !testDocument.getParseErrors().isEmpty()) {
             return List.of();
         }
 

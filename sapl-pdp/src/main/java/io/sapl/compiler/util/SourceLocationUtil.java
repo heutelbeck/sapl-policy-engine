@@ -30,6 +30,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Map;
@@ -47,6 +48,8 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
 @UtilityClass
 public class SourceLocationUtil {
 
+    private static final String POLICY_OF_SET = "->";
+
     // ANTLR getText copies the whole document per call, once per AST node, and
     // the lines of the document are counted in one pass over it. Share one copy
     // and one count per parse.
@@ -54,7 +57,12 @@ public class SourceLocationUtil {
             .synchronizedMap(new WeakHashMap<>());
 
     /**
-     * Extracts the source location from an ANTLR parse tree context.
+     * Extracts the source location from an ANTLR parse tree context. The name of
+     * the document is found from the context, which walks to the root of the
+     * parse tree and past the imports and schemas of the document, for every
+     * context anew. To locate many contexts of one document, find the name once
+     * with {@link #documentNameOf(SaplContext)} and locate each context with
+     * {@link #fromContext(ParserRuleContext, String)}.
      *
      * @param context the parse tree context to extract location from (may be null)
      * @return the source location, or null if the context is null or was not
@@ -64,7 +72,21 @@ public class SourceLocationUtil {
         if (context == null) {
             return null;
         }
+        return fromContext(context, getDocumentName(context));
+    }
 
+    /**
+     * Extracts the source location from an ANTLR parse tree context of a document
+     * whose name is known.
+     *
+     * @param context the parse tree context to extract location from
+     * @param documentName the name the location carries: the name of the policy
+     * or the policy set of the document, for a context inside a policy of a
+     * policy set {@link #qualifiedPolicyName(String, String)}, or null
+     * @return the source location, or null if the context was not parsed from a
+     * document
+     */
+    public static SourceLocation fromContext(ParserRuleContext context, @Nullable String documentName) {
         val startToken = context.getStart();
         val stopToken  = context.getStop();
 
@@ -80,8 +102,6 @@ public class SourceLocationUtil {
         val start = lines.offsetOfCodePoint(startToken.getStartIndex());
         val end   = stopToken != null ? lines.offsetOfCodePoint(stopToken.getStopIndex() + 1)
                 : start + startToken.getText().length();
-
-        val documentName = getDocumentName(context);
 
         return new SourceLocation(documentName, lines.text(), start, end, lines.lineOf(start), lines.columnOf(start),
                 lines.lineOf(end), lines.columnOf(end));
@@ -111,18 +131,43 @@ public class SourceLocationUtil {
      * are attributed to the individual policy rather than the whole set.
      */
     private static String getDocumentName(ParserRuleContext context) {
-        val root = findRoot(context);
-        if (!(root instanceof SaplContext saplContext)) {
+        if (!(findRoot(context) instanceof SaplContext document)) {
             return null;
         }
+        val name = documentNameOf(document);
+        if (name == null || !(document.policyElement() instanceof PolicySetElementContext)) {
+            return name;
+        }
+        return policySetScope(name, context);
+    }
 
-        return switch (saplContext.policyElement()) {
+    /**
+     * Gets the name of the policy or the policy set of a document.
+     *
+     * @param document the parse tree of a document
+     * @return the name, or null if the document has none
+     */
+    public static @Nullable String documentNameOf(SaplContext document) {
+        return switch (document.policyElement()) {
         case PolicyOnlyElementContext p when p.policy().saplName != null     ->
             unquoteString(p.policy().saplName.getText());
         case PolicySetElementContext ps when ps.policySet().saplName != null ->
-            policySetScope(unquoteString(ps.policySet().saplName.getText()), context);
+            unquoteString(ps.policySet().saplName.getText());
         case null, default                                                   -> null;
         };
+    }
+
+    /**
+     * Gets the name of a policy inside a policy set, qualified by the set as
+     * {@code setname->policyname}, so that attribute reads are attributed to the
+     * individual policy rather than the whole set.
+     *
+     * @param setName the name of the policy set
+     * @param policyName the name of the policy
+     * @return the qualified name
+     */
+    public static String qualifiedPolicyName(String setName, String policyName) {
+        return setName + POLICY_OF_SET + policyName;
     }
 
     /**
@@ -136,7 +181,7 @@ public class SourceLocationUtil {
         if (policy == null || policy.saplName == null) {
             return setName;
         }
-        return setName + "->" + unquoteString(policy.saplName.getText());
+        return qualifiedPolicyName(setName, unquoteString(policy.saplName.getText()));
     }
 
     /**

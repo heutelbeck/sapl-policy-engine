@@ -82,12 +82,12 @@ class FirstVoteCompilerTests {
     class EdgeCases {
 
         @Test
-        @DisplayName("empty policy set throws IllegalArgumentException with syntax errors")
+        @DisplayName("empty policy set throws IllegalArgumentException that names the problem")
         void emptyPolicySetThrows() {
             assertThatThrownBy(() -> compilePolicySet("""
                     set "empty"
                     first or abstain errors propagate
-                    """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Syntax errors");
+                    """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Empty policy set.");
         }
 
         @Test

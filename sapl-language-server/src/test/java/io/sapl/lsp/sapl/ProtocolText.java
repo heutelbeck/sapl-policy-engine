@@ -20,11 +20,13 @@ package io.sapl.lsp.sapl;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.TextEdit;
 import org.junit.jupiter.params.provider.Arguments;
 
 import lombok.val;
@@ -89,6 +91,25 @@ public class ProtocolText {
      */
     public static String textOf(String document, Range range) {
         return document.substring(offsetOf(document, range.getStart()), offsetOf(document, range.getEnd()));
+    }
+
+    /**
+     * Applies the edits of one change to a document, as an editor does: every
+     * range refers to the document before the change, so the edits are applied
+     * from its end.
+     *
+     * @param document the text of the document
+     * @param edits the edits of the change
+     * @return the text of the document after the change
+     */
+    public static String withEditsApplied(String document, List<TextEdit> edits) {
+        val changed = new StringBuilder(document);
+        edits.stream()
+                .sorted(Comparator.comparingInt((TextEdit edit) -> offsetOf(document, edit.getRange().getStart()))
+                        .reversed())
+                .forEach(edit -> changed.replace(offsetOf(document, edit.getRange().getStart()),
+                        offsetOf(document, edit.getRange().getEnd()), edit.getNewText()));
+        return changed.toString();
     }
 
     /**

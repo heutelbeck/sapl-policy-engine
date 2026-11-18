@@ -15,7 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.lsp.core;
+package io.sapl.lsp.sapltest;
+
+import static io.sapl.compiler.util.TrojanSourceUtil.isTrojanSourceCharacter;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -23,18 +25,19 @@ import java.util.List;
 
 import io.sapl.api.model.DocumentLines;
 import io.sapl.compiler.document.DocumentCompiler;
-import io.sapl.lsp.core.ParsedDocument.ParseError;
+import io.sapl.lsp.sapltest.SAPLTestParsedDocument.ParseError;
 
 import lombok.val;
 
 /**
- * Pre-parse guards shared by the SAPL and SAPL-test parsed documents. The
- * editor compiles arbitrary, untrusted text on every keystroke, so the same
- * protections the bundle/compile path enforces must apply here. Unlike that
- * path, which rejects the document outright, the editor surfaces each problem
- * as an error diagnostic so the author can see and fix it.
+ * Pre-parse guards of the SAPL-test parsed documents. The editor compiles
+ * arbitrary, untrusted text on every keystroke, so the same protections the
+ * bundle/compile path enforces must apply here. Unlike that path, which rejects
+ * the document outright, the editor surfaces each problem as an error
+ * diagnostic so the author can see and fix it. SAPL documents get these
+ * protections from the analysis of the engine.
  */
-public final class ParsedDocumentGuards {
+final class ParsedDocumentGuards {
 
     private static final int    MAX_TROJAN_DIAGNOSTICS = 100;
     private static final String ERROR_NESTING_TOO_DEEP = "Document nesting is too deep to parse.";
@@ -44,11 +47,11 @@ public final class ParsedDocumentGuards {
     private ParsedDocumentGuards() {
     }
 
-    public static boolean exceedsMaxLength(String content) {
+    static boolean exceedsMaxLength(String content) {
         return content.getBytes(StandardCharsets.UTF_8).length > DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES;
     }
 
-    public static ParseError nestingTooDeep() {
+    static ParseError nestingTooDeep() {
         return new ParseError(1, 0, ERROR_NESTING_TOO_DEEP, "");
     }
 
@@ -56,7 +59,7 @@ public final class ParsedDocumentGuards {
      * Diagnostics that can be determined before parsing: oversized input and
      * bidirectional control characters. Returns an empty list for clean input.
      */
-    public static List<ParseError> preParseDiagnostics(String content) {
+    static List<ParseError> preParseDiagnostics(String content) {
         val diagnostics = new ArrayList<ParseError>();
         if (exceedsMaxLength(content)) {
             diagnostics
@@ -84,15 +87,10 @@ public final class ParsedDocumentGuards {
         val limit   = Math.min(content.length(), DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES);
         val offsets = new ArrayList<Integer>();
         for (var offset = 0; offset < limit && offsets.size() < MAX_TROJAN_DIAGNOSTICS; offset++) {
-            if (isBidiControl(content.charAt(offset))) {
+            if (isTrojanSourceCharacter(content.charAt(offset))) {
                 offsets.add(offset);
             }
         }
         return offsets;
-    }
-
-    private static boolean isBidiControl(char c) {
-        return c == '\u202A' || c == '\u202B' || c == '\u202C' || c == '\u202D' || c == '\u202E' || c == '\u2066'
-                || c == '\u2067' || c == '\u2068' || c == '\u2069';
     }
 }

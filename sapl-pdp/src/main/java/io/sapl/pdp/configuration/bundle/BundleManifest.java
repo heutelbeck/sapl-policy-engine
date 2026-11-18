@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -130,6 +131,10 @@ public record BundleManifest(
 
     private static final String MIGRATION_GUIDANCE = "The configurationId moved to the bundle manifest; rebuild the bundle with SAPL 4.2.0 or later.";
 
+    private static final String CREATED_FIELD = "created";
+    private static final Pattern UTC_INSTANT = Pattern
+            .compile("\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z");
+
     private static final String ERROR_ATTRIBUTION_MISSING = "Manifest is missing required field 'attribution'. "
             + MIGRATION_GUIDANCE;
     private static final String ERROR_ATTRIBUTION_NOT_STRING_OR_OBJECT = "Manifest field 'attribution' must be a JSON string or object.";
@@ -141,9 +146,11 @@ public record BundleManifest(
             + MIGRATION_GUIDANCE;
     private static final String ERROR_CREATED_MISSING = "Manifest is missing required field 'created'. "
             + MIGRATION_GUIDANCE;
+    private static final String ERROR_CREATED_NOT_UTC_INSTANT = "Failed to parse manifest: 'created' is not an ISO-8601 instant in UTC: %s.";
     private static final String ERROR_FAILED_TO_PARSE_MANIFEST = "Failed to parse manifest: %s.";
     private static final String ERROR_FAILED_TO_SERIALIZE_MANIFEST = "Failed to serialize manifest.";
     private static final String ERROR_FILES_MISSING = "Manifest is missing required field 'files'.";
+    private static final String ERROR_SIGNATURE_FIELD_MISSING = "Failed to parse manifest: the signature block is missing the field '%s'.";
     private static final String ERROR_UNSUPPORTED_MANIFEST_HASH = "Manifest field 'hashAlgorithm' must be '%s', got: '%s'.";
 
     private static final JsonMapper CANONICAL_MAPPER = createCanonicalMapper();
@@ -290,6 +297,7 @@ public record BundleManifest(
     public static BundleManifest fromJson(String json) {
         BundleManifest manifest;
         try {
+            requireUtcInstant(CANONICAL_MAPPER.readTree(json).get(CREATED_FIELD));
             manifest = CANONICAL_MAPPER.readValue(json, BundleManifest.class);
         } catch (JacksonException e) {
             throw new BundleSignatureException(ERROR_FAILED_TO_PARSE_MANIFEST.formatted(e.getMessage()), e);
@@ -306,9 +314,27 @@ public record BundleManifest(
         return CANONICAL_MAPPER.readTree(attributionJson);
     }
 
+    // The creation time is read only in the form ISO_INSTANT writes, in UTC with
+    // up to nine digits of fraction. Jackson also takes numbers and offsets,
+    // which no writer of a manifest produces.
+    private static void requireUtcInstant(JsonNode created) {
+        if (created == null || created.isNull()) {
+            return;
+        }
+        if (!created.isString()) {
+            throw new BundleSignatureException(ERROR_CREATED_NOT_UTC_INSTANT.formatted(created));
+        }
+        if (!UTC_INSTANT.matcher(created.asString()).matches()) {
+            throw new BundleSignatureException(ERROR_CREATED_NOT_UTC_INSTANT.formatted(created.asString()));
+        }
+    }
+
     private static void validate(BundleManifest manifest) {
         if (manifest.created() == null) {
             throw new BundleSignatureException(ERROR_CREATED_MISSING);
+        }
+        if (manifest.signature() != null) {
+            requireSignatureFields(manifest.signature());
         }
         if (manifest.configurationId() == null) {
             throw new BundleSignatureException(ERROR_CONFIGURATION_ID_MISSING);
@@ -327,6 +353,20 @@ public record BundleManifest(
         }
         if (manifest.files() == null) {
             throw new BundleSignatureException(ERROR_FILES_MISSING);
+        }
+    }
+
+    // A signature block without all its fields is malformed. It is never read as
+    // the absence of a signature, which would let it load with verification off.
+    private static void requireSignatureFields(Signature signature) {
+        requireSignatureField("algorithm", signature.algorithm());
+        requireSignatureField("keyId", signature.keyId());
+        requireSignatureField("value", signature.value());
+    }
+
+    private static void requireSignatureField(String field, String value) {
+        if (value == null) {
+            throw new BundleSignatureException(ERROR_SIGNATURE_FIELD_MISSING.formatted(field));
         }
     }
 

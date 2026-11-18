@@ -44,6 +44,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -159,7 +160,8 @@ class PolicyBodyCompilationTests {
                     %s
                 """.formatted(bodyContent);
         val document     = DocumentCompiler.parseDocument(policySource);
-        val element      = document.sapl().policyElement();
+        // The test bodies are valid, so the document has its parse tree.
+        val element = requireNonNull(document.sapl()).policyElement();
         if (element instanceof PolicyOnlyElementContext policyOnly) {
             val policyCtx = policyOnly.policy();
             if (policyCtx.policyBody() != null) {

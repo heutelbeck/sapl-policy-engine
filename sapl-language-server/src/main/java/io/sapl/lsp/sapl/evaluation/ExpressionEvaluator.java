@@ -87,10 +87,13 @@ public class ExpressionEvaluator {
             }
 
             return Optional.of(ValueJsonMarshaller.toJsonNode(schemaObject));
-        } catch (Exception e) {
+        } catch (Exception | StackOverflowError e) {
             // Content-assist compiles and evaluates attacker-influenced schema expressions.
             // Any failure (compile, evaluation, marshalling, or an unexpected node type)
-            // must degrade to no proposal, never escape to the dispatch layer.
+            // must degrade to no proposal, never escape to the dispatch layer. That
+            // includes an expression nested too deeply for the stack: the transformation,
+            // the compilation and the evaluation each recurse once per link of a chain of
+            // prefix operators, subtemplates or steps.
             return Optional.empty();
         }
     }

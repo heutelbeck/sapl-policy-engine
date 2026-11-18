@@ -39,6 +39,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static io.sapl.compiler.document.ConformanceCorpus.ACCEPTED;
+import static io.sapl.compiler.document.ConformanceCorpus.BETWEEN_PROBLEMS;
+import static io.sapl.compiler.document.ConformanceCorpus.RUN_OF_PROBLEMS;
 import static io.sapl.util.PlacedDocuments.SOMEWHERE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -56,28 +59,28 @@ class CatalogueConformanceTests {
     private static final List<String> CORPORA = List.of("diagnostics", "several-mistakes");
 
     /**
-     * The problems of the catalogue that no case of the corpus reports. Their
-     * texts are not proven by this test. A problem that is listed here and is
-     * reported by a case fails the test, so the list cannot go stale.
+     * The problems of the catalogue that no case of the corpus reports, and the
+     * stand-in for the problems that the catalogue does not classify, which is
+     * not part of the shared catalogue. Their texts are not proven by this test.
+     * A problem that is listed here and is reported by a case fails the test, so
+     * the list cannot go stale.
      */
-    private static final Set<Problem> PROBLEMS_WITHOUT_A_CASE = Set.of(Problem.DOCUMENT_TOO_LARGE,
+    private static final Set<Problem> PROBLEMS_WITHOUT_A_CASE = Set.of(Problem.SYNTAX_ERROR,
+            Problem.NESTING_TOO_DEEP_WITHOUT_BRACKETS, Problem.DOCUMENT_TOO_LARGE,
             Problem.INVISIBLE_PARAGRAPH_SEPARATOR, Problem.IMPORT_CONFLICT_WITHOUT_ORIGIN,
-            Problem.MISSING_POLICY_SET_NAME, Problem.UNQUOTED_POLICY_SET_NAME,
-            Problem.MISPLACED_PART_AFTER_TRANSFORMATION, Problem.UNEXPECTED_END_AFTER_VALUE,
-            Problem.UNEXPECTED_END_AFTER_VALUE_WITH_DELIMITERS, Problem.UNEXPECTED_END_WHERE_VALUE_EXPECTED,
-            Problem.UNEXPECTED_END_WHERE_END_EXPECTED, Problem.UNEXPECTED_END_WHERE_ONE_OF_EXPECTED);
+            Problem.UNQUOTED_POLICY_SET_NAME, Problem.MISPLACED_PART_AFTER_TRANSFORMATION,
+            Problem.UNEXPECTED_END_AFTER_VALUE, Problem.UNEXPECTED_END_AFTER_VALUE_WITH_DELIMITERS,
+            Problem.UNEXPECTED_END_WHERE_VALUE_EXPECTED, Problem.UNEXPECTED_END_WHERE_END_EXPECTED,
+            Problem.UNEXPECTED_END_WHERE_ONE_OF_EXPECTED);
 
     private static final String WITHOUT_A_CASE = "The problems of the catalogue that render no problem of the corpus. One that is not expected here has a text that differs from the corpus, or the corpus has no case for it. One that is not found here is reported by a case and leaves the list of problems without a case.";
 
-    private static final String ACCEPTED         = "accepted";
-    private static final String BETWEEN_PROBLEMS = "\n\n";
-    private static final String OR               = " or ";
+    private static final String OR = " or ";
 
     private static final Pattern FURTHER_REGION     = Pattern.compile("also \\d+:\\d+-\\d+:\\d+ (?<label>.+)");
     private static final Pattern MARKED_VALUE       = Pattern.compile("\0(?<number>\\d)\0");
     private static final Pattern PROBLEM_AND_REGION = Pattern.compile("(?<identifier>[a-z0-9-]+) \\d+:\\d+-\\d+:\\d+");
     private static final Pattern QUICK_FIX          = Pattern.compile("fix \\d+:\\d+-\\d+:\\d+ \".*\"");
-    private static final Pattern RUN_OF_PROBLEMS    = Pattern.compile("<\\d+ times (?<identifier>[a-z0-9-]+)>");
 
     private static final String ERROR_NO_PROBLEM       = "The statement of %s does not state a problem. A problem is stated by its identifier and region, its short form and its explanation.";
     private static final String ERROR_UNEXPECTED_LINE  = "The statement of %s holds a line that is neither a further region nor a quick fix: '%s'.";
@@ -162,8 +165,8 @@ class CatalogueConformanceTests {
                 .isSubsetOf(labelsOfTheCatalogue);
     }
 
-    @ParameterizedTest(name = "{0}")
     @MethodSource("runsOfProblems")
+    @ParameterizedTest(name = "{0}")
     @DisplayName("a run of problems that the corpus reports names a class of the catalogue")
     void whenRunOfProblemsIsReportedThenItsIdentifierIsOneOfTheCatalogue(String name, String identifier) {
         assertThat(Arrays.stream(Problem.values()).map(Problem::identifier)).as(name).contains(identifier);

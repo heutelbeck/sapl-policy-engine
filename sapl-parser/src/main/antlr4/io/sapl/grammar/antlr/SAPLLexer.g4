@@ -132,6 +132,39 @@ SL_COMMENT
     : '//' ~[\r\n]* -> channel(HIDDEN)
     ;
 
+// Mistakes. The parser accepts none of these tokens, so a document that holds
+// one is refused. They let the lexer read every text to its end, and they keep
+// what was meant together, so that the mistake can be named as a whole.
+
+// A string with an escape sequence that does not exist.
+MALFORMED_STRING
+    : '"' DOUBLE_QUOTED_TEXT '"'
+    | '\'' SINGLE_QUOTED_TEXT '\''
+    ;
+
+// A string that is not closed on its line. It takes the rest of the line.
+UNCLOSED_STRING
+    : '"' DOUBLE_QUOTED_TEXT '\\'?
+    | '\'' SINGLE_QUOTED_TEXT '\\'?
+    ;
+
+// A text that a typographic quotation mark opens. A typographic quotation mark
+// on the same line closes it, or a plain one if there is none.
+TYPOGRAPHIC_STRING
+    : TYPOGRAPHIC_QUOTE (TYPOGRAPHIC_TEXT | '"')* TYPOGRAPHIC_QUOTE
+    | TYPOGRAPHIC_QUOTE TYPOGRAPHIC_TEXT* '"'
+    ;
+
+// A block comment that is not closed. It takes the rest of the document.
+UNCLOSED_COMMENT
+    : '/*' (~'*' | '*'+ ~[*/])* '*'*
+    ;
+
+// A character that starts no token.
+UNKNOWN_CHARACTER
+    : .
+    ;
+
 // Fragments
 fragment DIGIT
     : [0-9]
@@ -147,4 +180,27 @@ fragment UNICODE
 
 fragment HEX
     : [0-9a-fA-F]
+    ;
+
+// The text of a string after its opening quotation mark, in which a backslash
+// takes any character but a line break with it.
+fragment DOUBLE_QUOTED_TEXT
+    : ('\\' ~[\r\n] | ~["\\\r\n])*
+    ;
+
+fragment SINGLE_QUOTED_TEXT
+    : ('\\' ~[\r\n] | ~['\\\r\n])*
+    ;
+
+// The typographic quotation marks: the double and single angle quotation marks,
+// and the quotation marks from U+2018 to U+201F.
+fragment TYPOGRAPHIC_QUOTE
+    : [\u00AB\u00BB\u2018-\u201F\u2039\u203A]
+    ;
+
+// A character of a text in typographic quotation marks other than a plain
+// quotation mark. A set cannot refer to TYPOGRAPHIC_QUOTE, so it names the
+// typographic quotation marks again.
+fragment TYPOGRAPHIC_TEXT
+    : ~[\r\n"\u00AB\u00BB\u2018-\u201F\u2039\u203A]
     ;

@@ -154,8 +154,9 @@ public class SAPLCompletionProvider {
 
         case FUNCTION_CALL -> addFunctionCompletions(items, config);
 
-        case UNKNOWN ->
-            // Fallback - provide expression completions only (safe default)
+        default ->
+            // UNKNOWN, and any context without completions of its own: expression
+            // completions only, the safe fallback
             addExpressionCompletions(items, document, positions, cursor, config);
         }
 

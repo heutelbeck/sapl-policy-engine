@@ -20,7 +20,9 @@ package io.sapl.compiler.util;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,29 +40,40 @@ public class TrojanSourceUtil {
 
     private static final String ERROR_TROJAN_SOURCE = "Illegal bidirectional unicode control characters detected. This is indicative of a potential trojan source attack.";
 
+    private static final int NOT_FOUND = -1;
+
     private static final char EMBEDDING_RANGE_START = '\u202A';
     private static final char EMBEDDING_RANGE_END   = '\u202E';
     private static final char ISOLATE_RANGE_START   = '\u2066';
     private static final char ISOLATE_RANGE_END     = '\u2069';
 
     /**
-     * Asserts that the given source string does not contain trojan source
-     * characters.
+     * Finds the first trojan source character of a text.
      *
-     * @param source the source string to validate
-     * @throws SaplCompilerException if trojan source characters are detected
+     * @param source the text to search, or null
+     * @return the index of the first trojan source character, or -1 if the text
+     * holds none or is null
      */
-    public static void assertNoTrojanSourceCharacters(String source) {
+    public static int indexOfTrojanSourceCharacter(@Nullable String source) {
         if (source == null) {
-            return;
+            return NOT_FOUND;
         }
-        for (int i = 0; i < source.length(); i++) {
-            char c = source.charAt(i);
-            if ((c >= EMBEDDING_RANGE_START && c <= EMBEDDING_RANGE_END)
-                    || (c >= ISOLATE_RANGE_START && c <= ISOLATE_RANGE_END)) {
-                throw new SaplCompilerException(ERROR_TROJAN_SOURCE);
+        for (var index = 0; index < source.length(); index++) {
+            if (isTrojanSourceCharacter(source.charAt(index))) {
+                return index;
             }
         }
+        return NOT_FOUND;
+    }
+
+    /**
+     * @param character a character, or a code unit that a string escape denotes
+     * @return whether it is a bidirectional embedding, override or isolate
+     * control
+     */
+    public static boolean isTrojanSourceCharacter(int character) {
+        return (character >= EMBEDDING_RANGE_START && character <= EMBEDDING_RANGE_END)
+                || (character >= ISOLATE_RANGE_START && character <= ISOLATE_RANGE_END);
     }
 
     /**
@@ -86,18 +99,18 @@ public class TrojanSourceUtil {
 
         @Override
         public int read() throws IOException {
-            int b = source.read();
+            val b = source.read();
             checkByte(b);
             return b;
         }
 
         @Override
         public int read(byte @NonNull [] b, int off, int len) throws IOException {
-            int numberOfBytesRead = source.read(b, off, len);
+            val numberOfBytesRead = source.read(b, off, len);
             if (numberOfBytesRead == EOF) {
                 return EOF;
             }
-            for (int i = off; i < off + numberOfBytesRead; i++) {
+            for (var i = off; i < off + numberOfBytesRead; i++) {
                 checkByte(Byte.toUnsignedInt(b[i]));
             }
             return numberOfBytesRead;
@@ -129,8 +142,8 @@ public class TrojanSourceUtil {
                 if (buffer[currentIndex] != 0xE2) {
                     return false;
                 }
-                int second = buffer[(currentIndex + 1) % BUFFER_SIZE];
-                int third  = buffer[(currentIndex + 2) % BUFFER_SIZE];
+                val second = buffer[(currentIndex + 1) % BUFFER_SIZE];
+                val third  = buffer[(currentIndex + 2) % BUFFER_SIZE];
                 if (second == 0x80) {
                     return third >= 0xAA && third <= 0xAE;
                 }

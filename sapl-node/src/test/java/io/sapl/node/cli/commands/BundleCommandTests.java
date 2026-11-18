@@ -46,6 +46,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.node.cli.SaplNodeCli;
 
@@ -368,7 +369,7 @@ class BundleCommandTests {
             val exitCode = cmd.execute("bundle", "inspect", "-b", notABundle.toString());
 
             assertThat(exitCode).isEqualTo(1);
-            assertThat(err.toString()).contains("Not a valid SAPL bundle");
+            assertThat(err.toString()).contains("Failed to parse bundle from").contains("notabundle.json");
         }
 
     }
@@ -421,6 +422,26 @@ class BundleCommandTests {
             assertThat(exitCode).isZero();
             assertThat(tempDir.resolve("recipient.jwk")).exists();
             assertThat(tempDir.resolve("recipient.pub.jwk")).exists();
+        }
+
+        @Test
+        @DisplayName("unseal refuses a private key whose public part belongs to another private part when it loads the key")
+        void whenUnsealKeyPublicPartBelongsToAnotherKeyThenRefusedWhenLoaded() throws Exception {
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("first").toString());
+            cmd.execute("bundle", "keygen-secrets", "-o", tempDir.resolve("second").toString());
+            val mapper     = JsonMapper.builder().build();
+            val mismatched = (ObjectNode) mapper.readTree(Files.readString(tempDir.resolve("first.jwk")));
+            mismatched.put("x",
+                    mapper.readTree(Files.readString(tempDir.resolve("second.pub.jwk"))).get("x").asString());
+            val keyFile  = tempDir.resolve("mismatched.jwk");
+            val inputDir = Files.createDirectories(tempDir.resolve("without-secrets"));
+            Files.writeString(keyFile, mapper.writeValueAsString(mismatched));
+
+            val exitCode = cmd.execute("bundle", "unseal", "-i", inputDir.toString(), "--unseal-with",
+                    keyFile.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("The public part of the key does not belong to its private part.");
         }
 
         @Test
@@ -1077,6 +1098,60 @@ class BundleCommandTests {
             assertThat(err.toString()).contains("not signed");
         }
 
+    }
+
+    @Nested
+    @DisplayName("reading a bundle with the reader of the PDP")
+    class HardenedReaderTests {
+
+        @ParameterizedTest(name = "bundle {0}")
+        @ValueSource(strings = { "inspect", "unpack", "verify" })
+        @DisplayName("an archive holding a file a bundle may not hold is refused as the PDP refuses it")
+        void whenArchiveHoldsAFileABundleMayNotHoldThenRefused(String command) throws Exception {
+            val bundleFile = archiveWith("notes.txt", "Ph'nglui mglw'nafh".getBytes(StandardCharsets.UTF_8));
+
+            val exitCode = cmd.execute(commandLine(command, bundleFile));
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("Unexpected file in bundle from").contains("notes.txt");
+        }
+
+        @ParameterizedTest(name = "bundle {0}")
+        @ValueSource(strings = { "inspect", "unpack", "verify" })
+        @DisplayName("an entry whose content is not UTF-8 is refused, never read with replacement characters")
+        void whenEntryIsNotUtf8ThenRefused(String command) throws Exception {
+            val bundleFile = archiveWith("elder.sapl", new byte[] { 'p', (byte) 0xff, (byte) 0xfe });
+
+            val exitCode = cmd.execute(commandLine(command, bundleFile));
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("The bundle entry 'elder.sapl' is not UTF-8 text.");
+        }
+
+        private String[] commandLine(String command, Path bundleFile) throws Exception {
+            val publicKey = tempDir.resolve("public.pem");
+            Files.writeString(publicKey, toPem(generateEd25519KeyPair().publicKey(), "PUBLIC KEY"));
+            val options = switch (command) {
+            case "unpack" -> Stream.of("-o", tempDir.resolve("out").toString());
+            case "verify" -> Stream.of("-k", publicKey.toString());
+            default       -> Stream.<String>empty();
+            };
+            return Stream.concat(Stream.of("bundle", command, "-b", bundleFile.toString()), options)
+                    .toArray(String[]::new);
+        }
+
+        private Path archiveWith(String name, byte[] content) throws IOException {
+            val bundleFile = tempDir.resolve("hostile.saplbundle");
+            try (val zip = new ZipOutputStream(Files.newOutputStream(bundleFile))) {
+                zip.putNextEntry(new ZipEntry("pdp.json"));
+                zip.write(TEST_PDP_JSON.getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+                zip.putNextEntry(new ZipEntry(name));
+                zip.write(content);
+                zip.closeEntry();
+            }
+            return bundleFile;
+        }
     }
 
     @Nested

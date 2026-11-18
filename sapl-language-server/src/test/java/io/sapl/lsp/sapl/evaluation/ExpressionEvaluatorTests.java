@@ -26,6 +26,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.DisplayName;
@@ -112,6 +114,48 @@ class ExpressionEvaluatorTests {
                 return null;
             };
         }
+    }
+
+    @Nested
+    @DisplayName("schema expressions nested beyond the stack")
+    class DeepNestingTests {
+
+        private static final int  NESTED_SIGNS = 5_000;
+        private static final long LARGE_STACK  = 64L * 1024 * 1024;
+        private static final long SMALL_STACK  = 256L * 1024;
+
+        @Test
+        @Timeout(30)
+        @DisplayName("a schema expression nested too deeply for the stack yields no schema instead of failing the request")
+        void whenSchemaExpressionExhaustsTheStackThenNoSchemaIsProposed() throws InterruptedException {
+            val document = "subject schema " + "-".repeat(NESTED_SIGNS) + "{}\npolicy \"p\" permit";
+            val sapl     = onThreadWithStack(LARGE_STACK, () -> TestParsing.parseSilently(document));
+
+            val schema = onThreadWithStack(SMALL_STACK, () -> ExpressionEvaluator.evaluateExpressionToJsonNode(
+                    sapl.schemaStatement().getFirst().schemaExpression, LSPConfiguration.minimal()));
+
+            assertThat(schema).isEmpty();
+        }
+    }
+
+    /**
+     * Runs work on a thread of its own stack size and returns its result. What the
+     * work throws fails the test.
+     */
+    private static <T> T onThreadWithStack(long stackSize, Supplier<T> work) throws InterruptedException {
+        val result  = new AtomicReference<T>();
+        val failure = new AtomicReference<Throwable>();
+        val thread  = new Thread(null, () -> {
+                        try {
+                            result.set(work.get());
+                        } catch (Throwable thrown) {
+                            failure.set(thrown);
+                        }
+                    }, "stack-of-its-own", stackSize);
+        thread.start();
+        thread.join();
+        assertThat(failure.get()).as("what the work threw").isNull();
+        return result.get();
     }
 
     private static Optional<JsonNode> schemaOf(String document) {

@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -222,7 +223,7 @@ class FixtureCoverageIntegrationTests {
 
         val report = new SonarQubeCoverageReportGenerator(tempDir).generate();
 
-        assertThat(LINE_NUMBER_OF_SONARQUBE.matcher(report).results().map(match -> Integer.parseInt(match.group(1))))
+        assertThat(LINE_NUMBER_OF_SONARQUBE.matcher(report).results().map(match -> Integer.valueOf(match.group(1))))
                 .containsExactly(1, 3, 4);
     }
 
@@ -230,8 +231,10 @@ class FixtureCoverageIntegrationTests {
         val result = SaplTestFixture.createSingleTest().withPolicy(policyWithLinesEndingIn(lineEnd))
                 .withTestIdentifier("line-end-test").withCoverageOutput(tempDir).withCoverageFileWriteDisabled()
                 .whenDecide(facultySubscription()).expectPermit().verify();
-        assertThat(result.coverage().getPolicyCoverageList()).hasSize(1);
-        return result.coverage().getPolicyCoverageList().getFirst();
+        // The fixture collects coverage, so a verified test carries it.
+        val coverage = requireNonNull(result.coverage());
+        assertThat(coverage.getPolicyCoverageList()).hasSize(1);
+        return coverage.getPolicyCoverageList().getFirst();
     }
 
     private static String policyWithLinesEndingIn(String lineEnd) {
@@ -244,7 +247,7 @@ class FixtureCoverageIntegrationTests {
                 return List.of();
             }
             try (val stream = Files.list(directory)) {
-                return stream.filter(p -> p.getFileName().toString().endsWith(".ndjson")).toList();
+                return stream.filter(path -> path.toString().endsWith(".ndjson")).toList();
             }
         } catch (IOException e) {
             return List.of();

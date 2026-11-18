@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 /**
@@ -39,6 +40,23 @@ import java.util.stream.IntStream;
  */
 @UtilityClass
 public class ConformanceCorpus {
+
+    /**
+     * The report that says that a document has no problem.
+     */
+    public static final String ACCEPTED = "accepted";
+
+    /**
+     * What separates the problems of a report: an empty line.
+     */
+    public static final String BETWEEN_PROBLEMS = "\n\n";
+
+    /**
+     * A block of a report that stands for a run of problems of one class, one
+     * after the other: {@code <100 times assignment-instead-of-comparison>}. The
+     * groups "count" and "identifier" hold the number and the class.
+     */
+    public static final Pattern RUN_OF_PROBLEMS = Pattern.compile("<(?<count>\\d+) times (?<identifier>[a-z0-9-]+)>");
 
     /**
      * The system property that names the directory of the corpus.

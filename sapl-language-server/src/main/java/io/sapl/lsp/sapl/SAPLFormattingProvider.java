@@ -27,24 +27,20 @@ import lombok.val;
 
 /**
  * Provides document formatting for SAPL documents.
- * Formats only when there are no parse errors (validation errors are
- * acceptable).
+ * Formats only when the syntax of the document has no problem (problems of
+ * its rules are acceptable).
  */
 class SAPLFormattingProvider {
 
     /**
      * Provides formatting edits for a SAPL document.
-     * Returns an empty list if the document has parse errors.
+     * Returns an empty list if the syntax of the document has a problem.
      *
      * @param document the parsed document
      * @return list of text edits to apply
      */
     List<TextEdit> provideFormatting(ParsedDocument document) {
-        if (!document.getParseErrors().isEmpty()) {
-            return List.of();
-        }
-
-        if (!(document instanceof SAPLParsedDocument saplDocument)) {
+        if (!(document instanceof SAPLParsedDocument saplDocument) || !saplDocument.isSyntaxValid()) {
             return List.of();
         }
 

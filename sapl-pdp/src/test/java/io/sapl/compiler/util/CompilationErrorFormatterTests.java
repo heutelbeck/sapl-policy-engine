@@ -268,9 +268,9 @@ class CompilationErrorFormatterTests {
 
                   1 | policy "p"
                   2 | permit
-                > 3 |     var mood = "%s"; var mood = "sad";
+                > 3 |     var mood = "FACE"; var mood = "sad";
                                           ^
-                """.formatted(GRINNING_FACE);
+                """.replace("FACE", GRINNING_FACE);
 
         private static final String HTML_REPORT = """
                 <div class="sapl-compilation-error">

@@ -63,7 +63,8 @@ public class CompilationErrorFormatter {
         }
 
         String lineNumber(int line) {
-            return String.format("%" + maxLineNumWidth + "d", line);
+            val number = String.valueOf(line);
+            return " ".repeat(Math.max(0, maxLineNumWidth - number.length())) + number;
         }
     }
 

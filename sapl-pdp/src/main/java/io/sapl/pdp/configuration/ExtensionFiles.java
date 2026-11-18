@@ -84,7 +84,7 @@ public class ExtensionFiles {
      * @return true if the name is a sealed extension secrets file
      */
     public static boolean isSealedExtensionSecretsFile(String fileName) {
-        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(SEALED_EXTENSION_SECRETS_SUFFIX);
+        return isExtensionNameEndingWith(fileName, SEALED_EXTENSION_SECRETS_SUFFIX);
     }
 
     /**
@@ -94,8 +94,7 @@ public class ExtensionFiles {
      * @return true if the name is a cleartext extension secrets file
      */
     public static boolean isExtensionSecretsFile(String fileName) {
-        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(EXTENSION_SECRETS_SUFFIX)
-                && !isSealedExtensionSecretsFile(fileName);
+        return isExtensionNameEndingWith(fileName, EXTENSION_SECRETS_SUFFIX) && !isSealedExtensionSecretsFile(fileName);
     }
 
     /**
@@ -120,8 +119,8 @@ public class ExtensionFiles {
      * @return true if the name is a cleartext extension configuration file
      */
     public static boolean isExtensionFile(String fileName) {
-        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(EXTENSION_SUFFIX)
-                && !isExtensionSecretsFile(fileName) && !isSealedExtensionSecretsFile(fileName);
+        return isExtensionNameEndingWith(fileName, EXTENSION_SUFFIX) && !isExtensionSecretsFile(fileName)
+                && !isSealedExtensionSecretsFile(fileName);
     }
 
     /**
@@ -199,6 +198,13 @@ public class ExtensionFiles {
             throw new PDPConfigurationException(ERROR_EXTENSION_FILE_NOT_JSON.formatted(fileName));
         }
         return parsed;
+    }
+
+    // The ending is looked for after the prefix, so that the two never overlap:
+    // ext-secrets.json is the configuration of the extension 'secrets'.
+    private static boolean isExtensionNameEndingWith(String fileName, String ending) {
+        return fileName.startsWith(EXTENSION_PREFIX) && fileName.length() >= EXTENSION_PREFIX.length() + ending.length()
+                && fileName.endsWith(ending);
     }
 
 }

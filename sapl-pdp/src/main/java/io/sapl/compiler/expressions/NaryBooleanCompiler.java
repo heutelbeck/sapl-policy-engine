@@ -137,20 +137,6 @@ public class NaryBooleanCompiler {
         return new NaryBooleanStreamLazy(pures, streams, shortCircuitValue, identityValue, location, pendingError);
     }
 
-    public static TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
-        val subsequentAttrs = subsequent.contributingAttributes();
-        if (preceding.isEmpty()) {
-            return subsequent;
-        }
-        if (subsequentAttrs.isEmpty()) {
-            return new TracedValue(subsequent.value(), preceding);
-        }
-        val merged = new ArrayList<AttributeRecord>(preceding.size() + subsequentAttrs.size());
-        merged.addAll(preceding);
-        merged.addAll(subsequentAttrs);
-        return new TracedValue(subsequent.value(), merged);
-    }
-
     /**
      * N-ary boolean with only Pure operands. Simple loop at runtime,
      * short-circuits on shortCircuitValue.

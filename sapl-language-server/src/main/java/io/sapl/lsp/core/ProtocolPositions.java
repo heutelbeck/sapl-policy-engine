@@ -26,6 +26,7 @@ import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 
 import io.sapl.api.model.DocumentLines;
+import io.sapl.compiler.diagnostics.Region;
 import io.sapl.compiler.util.SourceLocationUtil;
 import lombok.NonNull;
 import lombok.val;
@@ -184,6 +185,46 @@ public final class ProtocolPositions {
      */
     public Range rangeOf(Token token) {
         return new Range(positionOf(startOf(token)), positionOf(endOf(token)));
+    }
+
+    /**
+     * @param region a region of the document
+     * @return the range of the region
+     */
+    public Range rangeOf(Region region) {
+        return new Range(positionOf(region.start()), positionOf(region.end()));
+    }
+
+    /**
+     * The range that marks a region in an editor. An empty region, such as the
+     * end of the document, marks the nearest visible character before it, or
+     * else the nearest one after it, so that the editor shows the mark. Only a
+     * document without a visible character has nothing to mark.
+     *
+     * @param region a region of the document
+     * @return the range that marks the region
+     */
+    public Range markOf(Region region) {
+        if (region.end() > region.start()) {
+            return rangeOf(region);
+        }
+        val text   = lines.text();
+        val place  = Math.clamp(region.start(), 0, text.length());
+        var before = place;
+        while (before > 0 && Character.isWhitespace(text.charAt(before - 1))) {
+            before--;
+        }
+        if (before > 0) {
+            return new Range(positionOf(text.offsetByCodePoints(before, -1)), positionOf(before));
+        }
+        var after = place;
+        while (after < text.length() && Character.isWhitespace(text.charAt(after))) {
+            after++;
+        }
+        if (after < text.length()) {
+            return new Range(positionOf(after), positionOf(text.offsetByCodePoints(after, 1)));
+        }
+        return rangeOf(region);
     }
 
     /**
