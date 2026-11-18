@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.util.ContextInitializer;
-import ch.qos.logback.core.joran.spi.JoranException;
 import lombok.val;
 
 /**
@@ -57,7 +56,7 @@ public final class IsolatedConsoleLogging implements BeforeAllCallback, AfterAll
     }
 
     @Override
-    public void afterAll(ExtensionContext context) throws JoranException {
+    public void afterAll(ExtensionContext context) throws Exception {
         if (context.getStore(NAMESPACE).remove(Console.class, Console.class) instanceof Console(var out, var err)) {
             System.setOut(out);
             System.setErr(err);
