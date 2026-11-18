@@ -70,9 +70,10 @@ class CertificateExpiryWarning implements DisposableBean {
 
     private static final Duration CHECK_INTERVAL = Duration.ofDays(1);
 
-    private static final String WARN_CERTIFICATE_EXPIRED = "The TLS certificate of the %s API expired on %s. Clients refuse it until it is renewed.";
-    private static final String WARN_CERTIFICATE_EXPIRES = "The TLS certificate of the %s API expires on %s, %s. Renew it before then.";
-    private static final String WARN_EXPIRY_NOT_CHECKED  = "The expiry of the TLS certificates could not be checked. The check runs again in a day.";
+    private static final String INFO_CERTIFICATE_VALID_UNTIL = "The TLS certificate of the %s API is valid until %s.";
+    private static final String WARN_CERTIFICATE_EXPIRED     = "The TLS certificate of the %s API expired on %s. Clients refuse it until it is renewed.";
+    private static final String WARN_CERTIFICATE_EXPIRES     = "The TLS certificate of the %s API expires on %s, %s. Renew it before then.";
+    private static final String WARN_EXPIRY_NOT_CHECKED      = "The expiry of the TLS certificates could not be checked. The check runs again in a day.";
 
     private final Environment                environment;
     private final ObjectProvider<SslBundles> sslBundles;
@@ -103,8 +104,10 @@ class CertificateExpiryWarning implements DisposableBean {
             val now = Instant.now();
             for (val entry : bundlesByApi().entrySet()) {
                 val bundle = entry.getValue();
-                earliestExpiry(bundle.getStores().getKeyStore(), bundle.getKey().getAlias())
-                        .flatMap(expiry -> warning(entry.getKey(), expiry, now)).ifPresent(log::warn);
+                val expiry = earliestExpiry(bundle.getStores().getKeyStore(), bundle.getKey().getAlias());
+                expiry.ifPresent(validUntil -> log.info(INFO_CERTIFICATE_VALID_UNTIL.formatted(entry.getKey(),
+                        validUntil.truncatedTo(ChronoUnit.SECONDS))));
+                expiry.flatMap(validUntil -> warning(entry.getKey(), validUntil, now)).ifPresent(log::warn);
             }
         } catch (RuntimeException | KeyStoreException e) {
             log.warn(WARN_EXPIRY_NOT_CHECKED, e);
