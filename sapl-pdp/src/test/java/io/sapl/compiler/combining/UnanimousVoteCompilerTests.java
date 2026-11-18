@@ -43,7 +43,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class UnanimousVoteCompilerTests {
 
     @Nested
-    @DisplayName("Static voter case - all foldable policies")
+    @DisplayName("Static voter case: all foldable policies")
     class StaticVoterCase {
 
         @Test
@@ -204,7 +204,7 @@ class UnanimousVoteCompilerTests {
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Decision.PERMIT),
-                arguments("mixed foldable and pure policies - all agree",
+                arguments("mixed foldable and pure policies, all agree",
                     """
                     policy "foldable" permit
                     policy "pure" permit subject == "alice";
@@ -336,13 +336,13 @@ class UnanimousVoteCompilerTests {
                     policy "active" permit
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
-                arguments("mixed pure and stream policies - all agree",
+                arguments("mixed pure and stream policies, all agree",
                     """
                     policy "pure" permit subject == "alice";
                     policy "stream" permit <test.attr>;
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }"),
-                arguments("stream voter with foldable accumulator - all agree",
+                arguments("stream voter with foldable accumulator, all agree",
                     """
                     policy "foldable" permit
                     policy "stream" permit <test.attr>;
@@ -382,7 +382,7 @@ class UnanimousVoteCompilerTests {
                     """,
                     "{ \"subject\": \"alice\", \"action\": \"read\", \"resource\": \"data\" }",
                     Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE })),
-                arguments("stream voter with foldable accumulator - disagree",
+                arguments("stream voter with foldable accumulator, disagree",
                     """
                     policy "foldable" deny
                     policy "stream" permit <test.attr>;

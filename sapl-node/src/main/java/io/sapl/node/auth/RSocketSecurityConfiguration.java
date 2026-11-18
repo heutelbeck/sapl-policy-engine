@@ -80,7 +80,7 @@ public class RSocketSecurityConfiguration {
     private static final String ERROR_NO_CREDENTIALS    = "No authentication credentials in setup frame.";
 
     private static final String WARN_JWT_NO_EXPIRY_ACCEPTED = "Accepting a JWT without an 'exp' claim because io.sapl.node.oauth.allow-jwt-without-expiry=true. This grants a non-expiring connection to the PDP.";
-    private static final String WARN_JWT_NO_EXPIRY_REJECTED = "Rejected a JWT without an 'exp' claim. It would grant a non-expiring connection; set io.sapl.node.oauth.allow-jwt-without-expiry=true to accept (insecure).";
+    private static final String WARN_JWT_NO_EXPIRY_REJECTED = "Rejected a JWT without an 'exp' claim. It would grant a non-expiring connection. Set io.sapl.node.oauth.allow-jwt-without-expiry=true to accept (insecure).";
 
     private final SaplNodeProperties   properties;
     private final UserLookupService    userLookupService;
@@ -95,9 +95,6 @@ public class RSocketSecurityConfiguration {
             return null;
         }
         val allowNoAuth = properties.isAllowNoAuth();
-        if (allowNoAuth) {
-            log.warn("RSocket endpoint accepts unauthenticated connections");
-        }
         return setup -> Mono.defer(() -> authenticateSetup(setup, allowNoAuth));
     }
 

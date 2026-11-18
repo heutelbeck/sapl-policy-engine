@@ -293,13 +293,11 @@ public class SecurityConfiguration {
 
         if (pdpProperties.isAllowNoAuth() && !pdpProperties.isAllowBasicAuth() && !pdpProperties.isAllowApiKeyAuth()
                 && !pdpProperties.isAllowOauth2Auth()) {
-            log.warn("Server has been configured to reply to requests without authentication.");
             return http.httpBasic(AbstractHttpConfigurer::disable).requestCache(cache -> cache.disable())
                     .authorizeHttpRequests(requests -> requests.anyRequest().permitAll()).build();
         }
 
         if (pdpProperties.isAllowNoAuth()) {
-            log.warn("Server has been configured to reply to requests without authentication.");
             http.authorizeHttpRequests(requests -> requests.requestMatchers("/**").permitAll());
         } else {
             http.authorizeHttpRequests(
@@ -395,8 +393,8 @@ public class SecurityConfiguration {
                         oauth.isAllowJwtWithoutExpiry()));
                 return decoder;
             } catch (Exception e) {
-                log.warn("OIDC discovery against issuer {} failed: {}; OAuth2 token validation will retry on the next "
-                        + "request", jwtIssuerURI, e.getMessage());
+                log.warn("OIDC discovery against issuer {} failed: {}. OAuth2 token validation will retry on the next "
+                        + "request.", jwtIssuerURI, e.getMessage());
                 throw new JwtException("OIDC issuer unavailable: " + e.getMessage(), e);
             }
         });

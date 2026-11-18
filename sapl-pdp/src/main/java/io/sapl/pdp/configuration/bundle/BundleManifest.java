@@ -129,7 +129,7 @@ public record BundleManifest(
     /** Filename for the manifest within the bundle. */
     public static final String MANIFEST_FILENAME = ".sapl-manifest.json";
 
-    private static final String MIGRATION_GUIDANCE = "The configurationId moved to the bundle manifest; rebuild the bundle with SAPL 4.2.0 or later.";
+    private static final String MIGRATION_GUIDANCE = "The configurationId moved to the bundle manifest. Rebuild the bundle with SAPL 4.2.0 or later.";
 
     private static final String CREATED_FIELD = "created";
     private static final Pattern UTC_INSTANT = Pattern

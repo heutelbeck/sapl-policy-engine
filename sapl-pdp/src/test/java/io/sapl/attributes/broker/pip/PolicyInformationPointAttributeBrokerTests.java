@@ -782,7 +782,7 @@ class PolicyInformationPointAttributeBrokerTests {
     class StreamCompletion {
 
         @Test
-        @DisplayName("PIP stream completes after first emission; mailbox value persists")
+        @DisplayName("PIP stream completes after first emission, mailbox value persists")
         void whenStreamCompletesThenLastValueRetained() {
             broker.load(new ConstantPip());
             val key      = envKey("constant.value");

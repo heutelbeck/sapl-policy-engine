@@ -95,6 +95,14 @@ public class SaplNodeProperties implements InitializingBean {
             See the multi-tenant configuration reference at
             https://sapl.io/docs/latest/7_2_Configuration for details.""";
 
+    // Plaintext without TLS, read by the transports and the warnings through
+    // OptIn, which knows the source of the opt-in.
+    private boolean allowNoTls = false;
+
+    // The PEM certificate of both transports, mapped to an SSL bundle by
+    // TlsKeysEnvironmentPostProcessor.
+    private TlsKeys tls = new TlsKeys();
+
     // Authentication methods
     private boolean allowNoAuth     = false;
     private boolean allowBasicAuth  = false;
@@ -264,6 +272,16 @@ public class SaplNodeProperties implements InitializingBean {
         // Secure by default: the keys of an http issuer would be fetched in
         // cleartext, so only an https issuer is accepted without this opt-in.
         private boolean allowInsecureIssuer = false;
+    }
+
+    /**
+     * The keys of the TLS certificate that both transports serve unless one of
+     * them names an SSL bundle of its own.
+     */
+    @Data
+    public static class TlsKeys {
+        private @Nullable String certificateChain;
+        private @Nullable String privateKey;
     }
 
     /**

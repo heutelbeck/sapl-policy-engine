@@ -123,7 +123,7 @@ class StepCompilerTests {
 
         @ParameterizedTest(name = "{0} = {1}")
         @MethodSource
-        @DisplayName("on Value - valid indices")
+        @DisplayName("on Value: valid indices")
         void onValueValid(String expr, Value expected) {
             assertCompilesTo(expr, expected);
         }
@@ -383,7 +383,7 @@ class StepCompilerTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        @DisplayName("on Value - valid slices")
+        @DisplayName("on Value: valid slices")
         void onValueValid(String description, String expr, Value expected) {
             assertCompilesTo(expr, expected);
         }
@@ -524,7 +524,7 @@ class StepCompilerTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        @DisplayName("on Value - constant folds")
+        @DisplayName("on Value: constant folds")
         void onValue(String description, String expr, Value expected) {
             var result = compileExpression(expr);
             if (expected instanceof ArrayValue arr && result instanceof ArrayValue resArr) {

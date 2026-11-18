@@ -18,7 +18,7 @@
 
 # End-to-end demonstration: Spring Boot consumer reaches the SAPL Node over
 # RSocket+TLS using an OAuth2 client_credentials-managed JWT minted at Keycloak.
-# Run ./generate-keystore.sh first to create the development keystore.
+# Run ./generate-certificate.sh first to create the development certificate.
 
 services:
   keycloak:
@@ -74,18 +74,12 @@ services:
       # Policies
       - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY
       - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
-      # SSL bundle shared by HTTPS server (8443) and RSocket TLS server (7000)
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_ALIAS=sapl-node
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_PASSWORD=changeit
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_LOCATION=file:/pdp/tls/keystore.p12
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_PASSWORD=changeit
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_TYPE=PKCS12
+      # One certificate for HTTPS (8443) and RSocket TLS (7000)
+      - IO_SAPL_NODE_TLS_CERTIFICATECHAIN=/pdp/tls/server.pem
+      - IO_SAPL_NODE_TLS_PRIVATEKEY=/pdp/tls/server.key
       - SERVER_PORT=8443
-      - SERVER_SSL_ENABLED=true
-      - SERVER_SSL_BUNDLE=sapl-bundle
       - SAPL_PDP_RSOCKET_ENABLED=true
       - SAPL_PDP_RSOCKET_PORT=7000
-      - SAPL_PDP_RSOCKET_SSL_BUNDLE=sapl-bundle
       - SERVER_ADDRESS=0.0.0.0
       - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
       - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true

@@ -16,9 +16,10 @@
 # limitations under the License.
 #
 
-# Demonstrates TLS termination on both transports (HTTP + RSocket) using a
-# single shared Spring Boot SSL bundle. Run ./generate-keystore.sh first to
-# create the self-signed development keystore at ./tls/keystore.p12.
+# Demonstrates TLS on both transports (HTTP + RSocket) with one certificate
+# from PEM files. Run ./generate-certificate.sh first to create the
+# self-signed development certificate at ./tls/server.pem and its key at
+# ./tls/server.key.
 
 services:
   sapl-node:
@@ -48,24 +49,15 @@ services:
       - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY
       - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
 
-      # Spring Boot SSL bundle definition. The same `sapl-bundle` name is
-      # referenced by both the HTTP server and the RSocket server below, so
-      # one keystore covers both transports.
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_ALIAS=sapl-node
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_PASSWORD=changeit
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_LOCATION=file:/pdp/tls/keystore.p12
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_PASSWORD=changeit
-      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_TYPE=PKCS12
+      # One certificate for both APIs. A renewed certificate is served
+      # without a restart.
+      - IO_SAPL_NODE_TLS_CERTIFICATECHAIN=/pdp/tls/server.pem
+      - IO_SAPL_NODE_TLS_PRIVATEKEY=/pdp/tls/server.key
 
-      # HTTPS on 8443 using the bundle
+      # HTTPS on 8443, RSocket TLS on 7000
       - SERVER_PORT=8443
-      - SERVER_SSL_ENABLED=true
-      - SERVER_SSL_BUNDLE=sapl-bundle
-
-      # RSocket TLS on 7000 using the same bundle
       - SAPL_PDP_RSOCKET_ENABLED=true
       - SAPL_PDP_RSOCKET_PORT=7000
-      - SAPL_PDP_RSOCKET_SSL_BUNDLE=sapl-bundle
 
       # Bind to 0.0.0.0 so the docker port mapping works
       - SERVER_ADDRESS=0.0.0.0

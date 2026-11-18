@@ -90,7 +90,7 @@ class NaryBooleanKleeneTests {
     class StratifiedLazy {
 
         @Test
-        @DisplayName("a stream FALSE dominates a pure error in AND - the pure error must NOT skip the stream tier")
+        @DisplayName("a stream FALSE dominates a pure error in AND, the pure error must NOT skip the stream tier")
         void whenPureErrorAndStreamFalseThenFalse() {
             val value = evaluate("subject && <test.attr>").with("test.attr", Value.FALSE).value();
             assertThat(value).isEqualTo(Value.FALSE);

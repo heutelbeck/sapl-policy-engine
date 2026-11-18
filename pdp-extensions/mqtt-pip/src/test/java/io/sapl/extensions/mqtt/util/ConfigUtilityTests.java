@@ -89,7 +89,7 @@ class ConfigUtilityTests {
     }
 
     @Nested
-    @DisplayName("getMqttBrokerConfig - invalid inputs")
+    @DisplayName("getMqttBrokerConfig: invalid inputs")
     class InvalidBrokerConfig {
 
         static Stream<Arguments> invalidBrokerConfigCases() {
@@ -136,7 +136,7 @@ class ConfigUtilityTests {
     }
 
     @Nested
-    @DisplayName("getMqttBrokerConfig - resolution paths")
+    @DisplayName("getMqttBrokerConfig: resolution paths")
     class BrokerConfigResolution {
 
         @Test

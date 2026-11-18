@@ -79,14 +79,14 @@ public class HttpPolicyInformationPoint {
             | `body` | any | (none) | The request body. |
             | `accept` | text | `"application/json"` | Accepted response media type. |
             | `contentType` | text | `"application/json"` | Media type of the request body. |
-            | `maxResponseBytes` | number | `1048576` | Maximum response body, SSE event, or WebSocket message size in bytes; an oversized payload fails closed to an error value. |
+            | `maxResponseBytes` | number | `1048576` | Maximum response body, SSE event, or WebSocket message size in bytes. An oversized payload fails closed to an error value. |
             | `secretsKey` | text | (none) | Selects a named credential set from secrets (see below). |
 
             The `secretsKey` field is request metadata and is stripped before the HTTP request is
             sent.
 
             Polling cadence is not a request setting. Each call issues one request and emits one
-            value; the engine re-evaluates the attribute on its own schedule via the
+            value. The engine re-evaluates the attribute on its own schedule via the
             `pollIntervalMs` attribute option (see Functions and Attributes), uniformly with every
             streaming attribute.
 
@@ -97,7 +97,7 @@ public class HttpPolicyInformationPoint {
             from subscription secrets. They are never embedded directly in policies.
 
             Every credential is a **named** entry that declares both its headers and the
-            destinations it may be sent to. A policy selects an entry with `secretsKey`; it can
+            destinations it may be sent to. A policy selects an entry with `secretsKey`. It can
             never supply the credential itself, and the entry can never be sent to a URL outside
             its `allowedBaseUrls`. There is no unnamed default credential.
 
@@ -249,7 +249,7 @@ public class HttpPolicyInformationPoint {
               <http.get(request)[{pollIntervalMs: 1000}]>.status == "OK";
             ```
             The `[{pollIntervalMs: 1000}]` attribute option sets how often the engine
-            re-evaluates the attribute (re-issues the request); it is optional and
+            re-evaluates the attribute (re-issues the request). It is optional and
             defaults to the engine-wide attribute poll interval.
             """)
     public Stream<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {

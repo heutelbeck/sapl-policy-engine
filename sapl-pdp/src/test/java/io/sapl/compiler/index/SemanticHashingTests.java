@@ -50,7 +50,7 @@ class SemanticHashingTests {
     }
 
     @Nested
-    @DisplayName("ordered - determinism")
+    @DisplayName("ordered: determinism")
     class OrderedDeterminismTests {
 
         @Test
@@ -73,7 +73,7 @@ class SemanticHashingTests {
     }
 
     @Nested
-    @DisplayName("ordered - sensitivity to differences")
+    @DisplayName("ordered: sensitivity to differences")
     class OrderedSensitivityTests {
 
         @Test
@@ -114,7 +114,7 @@ class SemanticHashingTests {
     }
 
     @Nested
-    @DisplayName("commutative - order independence")
+    @DisplayName("commutative: order independence")
     class CommutativeOrderTests {
 
         @Test
@@ -132,7 +132,7 @@ class SemanticHashingTests {
     }
 
     @Nested
-    @DisplayName("commutative - sensitivity to differences")
+    @DisplayName("commutative: sensitivity to differences")
     class CommutativeSensitivityTests {
 
         @Test
@@ -186,7 +186,7 @@ class SemanticHashingTests {
     }
 
     @Nested
-    @DisplayName("valueHash - consistency with value equality")
+    @DisplayName("valueHash: consistency with value equality")
     class ValueHashConsistencyTests {
 
         @Test
@@ -215,7 +215,7 @@ class SemanticHashingTests {
     }
 
     @Nested
-    @DisplayName("valueHash - sensitivity to differences")
+    @DisplayName("valueHash: sensitivity to differences")
     class ValueHashSensitivityTests {
 
         @Test

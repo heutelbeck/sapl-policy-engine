@@ -86,13 +86,13 @@ public class PatternsFunctionLibrary {
             - Non-technical users need to write or understand patterns
 
             Glob patterns support:
-            - `*` - Matches zero or more characters within a segment
-            - `**` - Matches across segment boundaries
-            - `?` - Matches exactly one character
-            - `[abc]` or `[a-z]` - Character sets and ranges
-            - `[!abc]` - Negated character sets
-            - `{cat,dog,bird}` - Alternatives
-            - `\\` - Escape character for literal matching
+            - `*`: Matches zero or more characters within a segment
+            - `**`: Matches across segment boundaries
+            - `?`: Matches exactly one character
+            - `[abc]` or `[a-z]`: Character sets and ranges
+            - `[!abc]`: Negated character sets
+            - `{cat,dog,bird}`: Alternatives
+            - `\\`: Escape character for literal matching
 
             Delimiters define segment boundaries. When not specified, `.` is used by default.
 
@@ -1202,7 +1202,7 @@ public class PatternsFunctionLibrary {
      */
     private static void logSecurityEvent(String event, String details) {
         if (log.isWarnEnabled()) {
-            log.warn("SECURITY: {} - {}", event, details);
+            log.warn("SECURITY: {}: {}", event, details);
         }
     }
 

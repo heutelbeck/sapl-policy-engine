@@ -67,7 +67,7 @@ final class AttributeStream implements Stream<Value> {
     private static final String DEBUG_ATTEMPT_FAILED    = "Attribute '{}' attempt failed: {}";
     private static final String DEBUG_INNER_CLOSE_THREW = "Inner stream close threw: {}";
     private static final String ERROR_PUMP_FAILURE      = "Attribute '%s' pump encountered an unexpected failure: %s.";
-    private static final String ERROR_PUMP_FAILURE_LOG  = "Attribute '{}' pump caught an unexpected failure; surfacing an error and retrying after backoff.";
+    private static final String ERROR_PUMP_FAILURE_LOG  = "Attribute '{}' pump caught an unexpected failure. Surfacing an error and retrying after backoff.";
     private static final String ERROR_RETRIES_EXHAUSTED = "Attribute '%s' transient failure: retries exhausted, last cause: %s.";
 
     private static final Duration PUMP_FAILURE_BACKOFF      = Duration.ofSeconds(1);

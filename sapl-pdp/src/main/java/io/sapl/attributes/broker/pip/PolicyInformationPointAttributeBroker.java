@@ -109,8 +109,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_GRACE_DURATION_NEGATIVE = "gracePeriodDuration must not be negative";
     private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
     private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
-    private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw); ignoring this fire: {}";
-    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set); ignoring this fire and keeping the current dependency set.";
+    private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw). Ignoring this fire: {}";
+    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set). Ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE  = "subscriptionId already open: %s";
@@ -795,7 +795,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             try {
                 opened = delegate.get();
             } catch (RuntimeException e) {
-                log.debug("Synchronous first open threw; pump will retry: {}", e.getMessage());
+                log.debug("Synchronous first open threw. The pump will retry: {}", e.getMessage());
                 opened = null;
             }
             this.first = new AtomicReference<>(opened);

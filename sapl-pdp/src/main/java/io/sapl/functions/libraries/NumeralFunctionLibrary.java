@@ -179,7 +179,7 @@ public class NumeralFunctionLibrary {
 
             Returns: Parsed number
 
-            Example - parse permission mask from config:
+            Example: parse permission mask from config
             ```sapl
             policy "example"
             permit
@@ -205,7 +205,7 @@ public class NumeralFunctionLibrary {
 
             Returns: Parsed number
 
-            Example - parse feature flags:
+            Example: parse feature flags
             ```sapl
             policy "example"
             permit
@@ -230,7 +230,7 @@ public class NumeralFunctionLibrary {
 
             Returns: Parsed number
 
-            Example - parse Unix file permissions:
+            Example: parse Unix file permissions
             ```sapl
             policy "example"
             permit action == "read_file";
@@ -344,7 +344,7 @@ public class NumeralFunctionLibrary {
 
             Returns: Prefixed hexadecimal string
 
-            Example - format for logging:
+            Example: format for logging
             ```sapl
             policy "example"
             permit
@@ -437,7 +437,7 @@ public class NumeralFunctionLibrary {
 
             Returns: Padded hexadecimal string
 
-            Example - format device ID with fixed width:
+            Example: format device ID with fixed width
             ```sapl
             policy "example"
             permit
@@ -478,7 +478,7 @@ public class NumeralFunctionLibrary {
 
             Returns: Padded binary string
 
-            Example - format with fixed width:
+            Example: format with fixed width
             ```sapl
             policy "example"
             permit
@@ -560,7 +560,7 @@ public class NumeralFunctionLibrary {
 
             Returns: Boolean indicating validity
 
-            Example - validate before parsing:
+            Example: validate before parsing
             ```sapl
             policy "example"
             permit action == "register_device";

@@ -19,38 +19,28 @@
 
 set -euo pipefail
 
-KEYSTORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tls"
-KEYSTORE_FILE="$KEYSTORE_DIR/keystore.p12"
-ALIAS="sapl-node"
-PASSWORD="changeit"
-SAN="DNS:localhost,IP:127.0.0.1"
-DNAME="CN=localhost, OU=SAPL, O=Heutelbeck, L=Hagen, ST=NRW, C=DE"
+TLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tls"
+CERTIFICATE="$TLS_DIR/server.pem"
+PRIVATE_KEY="$TLS_DIR/server.key"
 VALIDITY_DAYS=365
 
-mkdir -p "$KEYSTORE_DIR"
+mkdir -p "$TLS_DIR"
 
-if [ -f "$KEYSTORE_FILE" ]; then
-    echo "Keystore already exists at $KEYSTORE_FILE."
+if [ -f "$CERTIFICATE" ]; then
+    echo "A certificate already exists at $CERTIFICATE."
     echo "Delete it manually if you want to regenerate."
     exit 0
 fi
 
-keytool -genkeypair \
-    -alias "$ALIAS" \
-    -keyalg RSA \
-    -keysize 2048 \
-    -validity "$VALIDITY_DAYS" \
-    -dname "$DNAME" \
-    -ext "SAN=$SAN" \
-    -keystore "$KEYSTORE_FILE" \
-    -storetype PKCS12 \
-    -storepass "$PASSWORD" \
-    -keypass "$PASSWORD"
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days "$VALIDITY_DAYS" -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" -keyout "$PRIVATE_KEY" -out "$CERTIFICATE"
+
+# The container runs as another user than the one who generated the key.
+# Readable by all is acceptable for this development key only.
+chmod 644 "$PRIVATE_KEY"
 
 echo
-echo "Keystore created at $KEYSTORE_FILE"
-echo "Alias:    $ALIAS"
-echo "Password: $PASSWORD (storepass = keypass)"
+echo "Certificate created at $CERTIFICATE"
+echo "Private key created at $PRIVATE_KEY"
 echo
 echo "The docker-compose.yml mounts ./tls into the container at /pdp/tls."
 echo "Start the demo with: docker compose up"

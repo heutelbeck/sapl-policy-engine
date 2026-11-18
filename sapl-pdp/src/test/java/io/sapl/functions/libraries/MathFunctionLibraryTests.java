@@ -263,30 +263,30 @@ class MathFunctionLibraryTests {
     private static Stream<Arguments> errorCases() {
         return Stream.of(
                 // pow errors
-                arguments("pow(-1, 0.5) - NaN result", MathFunctionLibrary.pow(num(-1.0), num(0.5)),
+                arguments("pow(-1, 0.5): NaN result", MathFunctionLibrary.pow(num(-1.0), num(0.5)),
                         "Power operation resulted in NaN"),
                 // sqrt errors
-                arguments("sqrt(-1) - negative value", MathFunctionLibrary.sqrt(num(-1.0)),
+                arguments("sqrt(-1): negative value", MathFunctionLibrary.sqrt(num(-1.0)),
                         "Cannot calculate square root of a negative number"),
                 // clamp errors
                 arguments("clamp with min > max", MathFunctionLibrary.clamp(num(5.0), num(10.0), num(0.0)),
                         "Minimum must be less than or equal to maximum"),
                 // log errors
-                arguments("log(0) - zero value", MathFunctionLibrary.log(num(0.0)),
+                arguments("log(0): zero value", MathFunctionLibrary.log(num(0.0)),
                         "Logarithm requires a positive value"),
-                arguments("log(-1) - negative value", MathFunctionLibrary.log(num(-1.0)),
+                arguments("log(-1): negative value", MathFunctionLibrary.log(num(-1.0)),
                         "Logarithm requires a positive value"),
-                arguments("log10(0) - zero value", MathFunctionLibrary.log10(num(0.0)),
+                arguments("log10(0): zero value", MathFunctionLibrary.log10(num(0.0)),
                         "Logarithm requires a positive value"),
-                arguments("log10(-1) - negative value", MathFunctionLibrary.log10(num(-1.0)),
+                arguments("log10(-1): negative value", MathFunctionLibrary.log10(num(-1.0)),
                         "Logarithm requires a positive value"),
-                arguments("logb(-1, 10) - negative value", MathFunctionLibrary.logb(num(-1.0), num(10.0)),
+                arguments("logb(-1, 10): negative value", MathFunctionLibrary.logb(num(-1.0), num(10.0)),
                         "Logarithm requires a positive value"),
-                arguments("logb(10, 1) - base 1", MathFunctionLibrary.logb(num(10.0), num(1.0)),
+                arguments("logb(10, 1): base 1", MathFunctionLibrary.logb(num(10.0), num(1.0)),
                         "Logarithm base must be positive and not equal to 1"),
-                arguments("logb(10, -2) - negative base", MathFunctionLibrary.logb(num(10.0), num(-2.0)),
+                arguments("logb(10, -2): negative base", MathFunctionLibrary.logb(num(10.0), num(-2.0)),
                         "Logarithm base must be positive and not equal to 1"),
-                arguments("logb(10, 0) - zero base", MathFunctionLibrary.logb(num(10.0), num(0.0)),
+                arguments("logb(10, 0): zero base", MathFunctionLibrary.logb(num(10.0), num(0.0)),
                         "Logarithm base must be positive and not equal to 1"));
     }
 }

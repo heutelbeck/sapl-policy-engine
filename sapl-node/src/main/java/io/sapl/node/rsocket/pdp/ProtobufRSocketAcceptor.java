@@ -106,8 +106,8 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final String ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED     = "Failed to parse multi-subscription: {}";
     private static final String ERROR_PARSE_SUBSCRIPTION_FAILED           = "Failed to parse subscription: {}";
     private static final String ERROR_UNKNOWN_ROUTE                       = "Unknown RSocket route: {}";
-    private static final String WARN_EXPIRY_SCHEDULE_REJECTED             = "Could not schedule connection expiry; disposing the connection now.";
-    private static final String WARN_MULTI_DECIDE_ALL_ONCE_NULL           = "decideAll for pdpId={} produced no value before stream completion; returning INDETERMINATE for the entire batch. This indicates a server-side defect.";
+    private static final String WARN_EXPIRY_SCHEDULE_REJECTED             = "Could not schedule connection expiry. Disposing the connection now.";
+    private static final String WARN_MULTI_DECIDE_ALL_ONCE_NULL           = "decideAll for pdpId={} produced no value before stream completion. Returning INDETERMINATE for the entire batch. This indicates a server-side defect.";
 
     // Static is intentional: virtual-thread-per-task holds no platform
     // threads or pooled resources when idle, so dispose() at shutdown

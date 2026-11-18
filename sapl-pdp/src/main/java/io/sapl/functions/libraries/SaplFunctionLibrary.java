@@ -103,7 +103,7 @@ public class SaplFunctionLibrary {
 
             Use this function to validate system requirements, log runtime environment details for audit trails, or conditionally enable features based on platform capabilities.
 
-            **Example - Enforce Minimum JDK Version:**
+            **Example: Enforce Minimum JDK Version**
             ```sapl
             policy "require_jdk21"
             permit action == "system:deploy";
@@ -111,7 +111,7 @@ public class SaplFunctionLibrary {
               info.jdkVersion >= "21";
             ```
 
-            **Example - Platform-Specific Access Control:**
+            **Example: Platform-Specific Access Control**
             ```sapl
             policy "linux_only_operations"
             permit action == "admin:configure-network";
@@ -119,7 +119,7 @@ public class SaplFunctionLibrary {
               info.osName =~ "Linux";
             ```
 
-            **Example - Audit Logging with Environment Context:**
+            **Example: Audit Logging with Environment Context**
             ```sapl
             policy "audit_with_environment"
             permit action == "data:access";

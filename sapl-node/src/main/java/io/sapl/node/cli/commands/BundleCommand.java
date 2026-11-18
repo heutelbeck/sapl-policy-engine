@@ -693,12 +693,12 @@ public class BundleCommand {
             secrets.sealed.json and each ext-<name>-secrets.sealed.json keeps
             its name, while their sealed leaves are decrypted with the source
             key and re-encrypted to the target key. The plaintext exists only
-            transiently in memory; no cleartext is ever written.
+            transiently in memory. No cleartext is ever written.
 
             A single source key rekeys a uniformly sealed folder: every sealed
             leaf must have been sealed to the source key's id. A folder whose
             leaves are sealed under mixed key ids is out of scope for this
-            command and fails closed. Plaintext secrets are rejected; seal the
+            command and fails closed. Plaintext secrets are rejected. Seal the
             folder first. A folder mixing sealed and plaintext secrets is
             rejected. A sealed secrets file that actually holds cleartext leaves
             is rejected rather than passed through as a false success.
@@ -822,7 +822,7 @@ public class BundleCommand {
 
             When the input bundle carries a manifest, its configurationId,
             attribution, and audience are carried over into the signed
-            bundle; the creation timestamp and engine version are re-minted
+            bundle. The creation timestamp and engine version are re-minted
             because re-signing is a build event.
 
             By default, the input bundle is overwritten with the signed
@@ -1436,7 +1436,7 @@ public class BundleCommand {
                 && manifest.get("configurationId") instanceof TextValue(var configurationId)) {
             return configurationId;
         }
-        return "(none recorded; manifest predates SAPL 4.2.0)";
+        return "(none recorded, manifest predates SAPL 4.2.0)";
     }
 
     private static String sealDocument(String jsonContent, OctetKeyPair recipientPublicKey) {

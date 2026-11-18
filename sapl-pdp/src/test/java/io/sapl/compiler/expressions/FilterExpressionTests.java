@@ -278,7 +278,7 @@ class FilterExpressionTests {
     @DisplayName("Filter Error Cases")
     class FilterErrorCases {
 
-        @ParameterizedTest(name = "{0} - {1}")
+        @ParameterizedTest(name = "{0}: {1}")
         @MethodSource
         void whenErrorConditionThenProducesError(String description, String expression, String errorFragment) {
             val result = evaluate(expression);

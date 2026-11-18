@@ -45,7 +45,7 @@ class CredentialRedactionTests {
     }
 
     @Test
-    @DisplayName("known credential fields stay redacted at any depth; benign fields are kept")
+    @DisplayName("known credential fields stay redacted at any depth, benign fields are kept")
     void redactsKnownCredentialFields() {
         val node     = MAPPER.readTree("""
                 {"username": "alice", "password": "secret-pw-value",

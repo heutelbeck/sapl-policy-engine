@@ -696,10 +696,10 @@ class CidrFunctionLibraryTests {
             10.0.0.0/16        | 24 | true
             192.168.0.0/24     | 25 | true
             192.168.0.0/24     | 26 | true
-            # Invalid - Target Too Large
+            # Invalid: Target Too Large
             192.168.0.0/24     | 23 | false
             192.168.0.0/24     | 16 | false
-            # Invalid - Not On Boundary
+            # Invalid: Not On Boundary
             192.168.1.0/23     | 24 | false
             192.168.3.0/22     | 24 | false
             # IPv6

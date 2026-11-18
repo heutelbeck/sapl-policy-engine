@@ -120,7 +120,7 @@ public class GeographicFunctionLibrary {
 
             KML and GML inputs are parsed with external entity and remote schema resolution disabled,
             so a document cannot make the PDP fetch an external entity or schema (no server-side
-            request forgery); only the schemas bundled locally with the engine are used.
+            request forgery). Only the schemas bundled locally with the engine are used.
 
             For more details, refer to individual function documentation.
             """;
@@ -277,7 +277,7 @@ public class GeographicFunctionLibrary {
 
             **Notes:**
 
-            - Only exact matches are considered equal; differences in precision or coordinate order will result in `false`.
+            - Only exact matches are considered equal. Differences in precision or coordinate order will result in `false`.
             - Suitable for testing identical geometries in scenarios requiring strict equality.
             """)
     public static Value equalsExact(ObjectValue thisGeometry, ObjectValue thatGeometry) {

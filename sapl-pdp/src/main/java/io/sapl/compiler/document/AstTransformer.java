@@ -60,7 +60,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
     private static final String ERROR_NUMBER_LITERAL_TOO_LONG      = "Numeric literal is too long (%d characters, max %d).";
     private static final String ERROR_NUMBER_NOT_REPRESENTABLE     = "Numeric literal '%s' is out of range and cannot be represented.";
-    private static final String ERROR_UNHANDLED_CONTEXT            = "Unhandled parse context: %s - visitor method not implemented";
+    private static final String ERROR_UNHANDLED_CONTEXT            = "Unhandled parse context: %s. The visitor method is not implemented.";
     private static final String ERROR_UNKNOWN_DEFAULT_VOTE         = "Unknown default vote.";
     private static final String ERROR_UNKNOWN_EFFECT               = "Unknown effect.";
     private static final String ERROR_UNKNOWN_ERROR_HANDLING       = "Unknown error handling.";

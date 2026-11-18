@@ -262,14 +262,14 @@ class PolicyBodyCompilationTests {
                     TestCase.pureOnly("middle false short-circuits", "true; false; true;", Value.FALSE, 3L, 2, 0L, 1L),
 
                     // Mixed strata - values and pures (pure only)
-                    TestCase.pureWithVars("values and pures - all true", "flag; true; otherFlag;",
+                    TestCase.pureWithVars("values and pures: all true", "flag; true; otherFlag;",
                             Map.of("flag", Value.TRUE, "otherFlag", Value.TRUE), Value.TRUE, 3L, 3),
                     TestCase.pureWithVars("value false short-circuits before pure", "flag; false; otherFlag;",
                             Map.of("flag", Value.TRUE, "otherFlag", Value.error("should not see")), Value.FALSE, 3L, 2,
                             0L, 1L),
 
                     // Mixed strata - pures and streams (separate expectations)
-                    TestCase.mixed("pure and stream - all true", "flag; <test.attr>;", Map.of("flag", Value.TRUE),
+                    TestCase.mixed("pure and stream: all true", "flag; <test.attr>;", Map.of("flag", Value.TRUE),
                             "test.attr", Value.TRUE, Value.TRUE, Value.TRUE, 2L, 2),
                     TestCase.mixed("pure false, stream true", "flag; <test.attr>;", Map.of("flag", Value.FALSE),
                             "test.attr", Value.TRUE, Value.FALSE, Value.TRUE, 2L, 1, 0L),
@@ -393,7 +393,7 @@ class PolicyBodyCompilationTests {
                                     new Step.Publish("test.attr", Value.FALSE), new Step.ExpectValue(Value.FALSE),
                                     new Step.Publish("test.attr", Value.TRUE), new Step.ExpectValue(Value.TRUE),
                                     new Step.ExpectNoValue())),
-                    new StreamTestCase("chained streams - first stream changes", "<a.attr>; <b.attr>;",
+                    new StreamTestCase("chained streams: first stream changes", "<a.attr>; <b.attr>;",
                             List.of(new Step.Publish("a.attr", Value.TRUE), new Step.ExpectNoValue(),
                                     new Step.Publish("b.attr", Value.TRUE), new Step.ExpectValue(Value.TRUE),
                                     new Step.Publish("a.attr", Value.TRUE), new Step.ExpectValue(Value.TRUE),

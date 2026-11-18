@@ -55,7 +55,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
     private static final String ERROR_NO_CREDENTIALS  = "Authentication is required.";
 
     private static final String WARN_JWT_NO_EXPIRY_ACCEPTED = "Accepting a JWT without an 'exp' claim because io.sapl.node.oauth.allow-jwt-without-expiry=true. This grants non-expiring access to the PDP.";
-    private static final String WARN_JWT_NO_EXPIRY_REJECTED = "Rejected a JWT without an 'exp' claim. It would grant non-expiring access; set io.sapl.node.oauth.allow-jwt-without-expiry=true to accept (insecure).";
+    private static final String WARN_JWT_NO_EXPIRY_REJECTED = "Rejected a JWT without an 'exp' claim. It would grant non-expiring access. Set io.sapl.node.oauth.allow-jwt-without-expiry=true to accept (insecure).";
 
     private static final String TRANSPORT = "http";
 
