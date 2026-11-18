@@ -1707,6 +1707,38 @@ jobs:
         run: |
           gh release upload "${TAG}" sums-staging/SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
 
+  # Once version X is released, its snapshot builds are superseded. Their assets are
+  # removed from the rolling snapshot releases, which then only carry snapshots of the
+  # next version. Versioned releases are never touched.
+  retire-snapshot-assets:
+    name: Remove the snapshot assets of the released version
+    needs: [version-check, publish-version-sums]
+    if: ${{ needs.version-check.outputs.is_tag == 'true' && needs.version-check.outputs.is_snapshot == 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
+      - name: Delete the snapshot assets of this version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version-check.outputs.version }}
+        run: |
+          set -euo pipefail
+          for release in snapshot snapshot-node; do
+            assets=$(gh release view "$release" --repo "${{ github.repository }}" --json assets --jq '.assets[].name')
+            for asset in $(grep -F -- "${VERSION}-SNAPSHOT" <<< "$assets" || true); do
+              echo "Deleting ${asset} from ${release}"
+              gh release delete-asset "$release" "$asset" --repo "${{ github.repository }}" --yes
+            done
+          done
+
   publish-docs:
     needs: [test, version-check]
     if: >-
