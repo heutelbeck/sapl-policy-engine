@@ -312,8 +312,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # The vaadin-maven-plugin of sapl-playground is not thread-safe. The playground
+      # is built single-threaded against the artifacts installed by the parallel build.
       - name: Build All for Server
-        run: mvn -U -B clean install -Dmaven.test.skip=true -Psign,production -T 1.5C
+        run: mvn -U -B clean install -Dmaven.test.skip=true -Psign,production -T 1.5C -pl '!sapl-playground'
+        env:
+          MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Build SAPL Playground for Server
+        run: mvn -B clean install -Dmaven.test.skip=true -Psign,production -pl sapl-playground
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}

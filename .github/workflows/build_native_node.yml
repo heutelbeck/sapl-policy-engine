@@ -83,10 +83,6 @@ jobs:
           docker run --rm -v /tmp/alpine-zlib:/out alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
           sudo cp /tmp/alpine-zlib/libz.a "/usr/lib/$(uname -m)-linux-musl/"
 
-      - name: Setup Visual Studio Build Tools (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
-
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@d6eca2595046623d69d636041513c80abf745406 # v1.6.9
         with:
