@@ -25,7 +25,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.1.2</version>
+		<version>4.1.3</version>
 	</parent>
 
 	<artifactId>sapl-node</artifactId>
@@ -351,6 +351,8 @@
 					<image>
 						<builder>paketobuildpacks/builder-jammy-tiny:latest@sha256:13e4dcca1d17a5e13eb0966cba03dea94c225436d3c15ff566cbef3b7eacd250</builder>
 						<buildpacks>
+							<!-- The JVM buildpack is named ahead of the Java buildpack to pin the JRE release the image ships. -->
+							<buildpack>docker://paketobuildpacks/bellsoft-liberica:11.10.6@sha256:d6b52a91e60a703b6fa4954591a4a6729e1f6b1ec64b15f9f1defbfc8b05be88</buildpack>
 							<buildpack>urn:cnb:builder:paketo-buildpacks/java</buildpack>
 						</buildpacks>
 						<name>
