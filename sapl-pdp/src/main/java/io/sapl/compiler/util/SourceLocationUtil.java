@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.util;
 
+import io.sapl.api.model.DocumentLines;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.grammar.antlr.SAPLParser.PolicyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -26,6 +27,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -38,22 +40,25 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
 /**
  * Utility class for extracting source location information from ANTLR
  * parse
- * tree nodes.
+ * tree nodes. ANTLR indexes the document in code points and ends lines only at
+ * a line feed. A source location instead holds offsets into the document
+ * string and the lines and columns that {@link DocumentLines} counts.
  */
 @UtilityClass
 public class SourceLocationUtil {
 
-    // ANTLR getText copies the whole document per call, once per AST node. Share
-    // one copy per parse.
-    private static final Map<CharStream, String> DOCUMENT_SOURCE_BY_STREAM = Collections
+    // ANTLR getText copies the whole document per call, once per AST node, and
+    // the lines of the document are counted in one pass over it. Share one copy
+    // and one count per parse.
+    private static final Map<CharStream, DocumentLines> DOCUMENT_LINES_BY_STREAM = Collections
             .synchronizedMap(new WeakHashMap<>());
 
     /**
      * Extracts the source location from an ANTLR parse tree context.
      *
      * @param context the parse tree context to extract location from (may be null)
-     * @return the source location, or null if the context is null or has no
-     * location information
+     * @return the source location, or null if the context is null or was not
+     * parsed from a document
      */
     public static SourceLocation fromContext(ParserRuleContext context) {
         if (context == null) {
@@ -67,34 +72,36 @@ public class SourceLocationUtil {
             return null;
         }
 
-        val start     = startToken.getStartIndex();
-        val end       = stopToken != null ? stopToken.getStopIndex() + 1 : start + startToken.getText().length();
-        val line      = startToken.getLine();
-        val column    = startToken.getCharPositionInLine() + 1;
-        val endLine   = stopToken != null ? stopToken.getLine() : line;
-        val endColumn = stopToken != null ? stopToken.getCharPositionInLine() + stopToken.getText().length() + 1
-                : column + startToken.getText().length();
+        val lines = documentLinesOf(startToken);
+        if (lines == null) {
+            return null;
+        }
 
-        val documentSource = getDocumentSource(context);
-        val documentName   = getDocumentName(context);
+        val start = lines.offsetOfCodePoint(startToken.getStartIndex());
+        val end   = stopToken != null ? lines.offsetOfCodePoint(stopToken.getStopIndex() + 1)
+                : start + startToken.getText().length();
 
-        return new SourceLocation(documentName, documentSource, start, end, line, column, endLine, endColumn);
+        val documentName = getDocumentName(context);
+
+        return new SourceLocation(documentName, lines.text(), start, end, lines.lineOf(start), lines.columnOf(start),
+                lines.lineOf(end), lines.columnOf(end));
     }
 
     /**
-     * Gets the full document source from the parse tree root.
+     * Gets the lines of the document a token was read from. They are counted once
+     * per parse and shared by every caller.
+     *
+     * @param token a token
+     * @return the lines of its document, or null for a token that was not read
+     * from a document
      */
-    private static String getDocumentSource(ParserRuleContext context) {
-        val root = findRoot(context);
-        if (root == null || root.getStart() == null) {
-            return null;
-        }
-        val inputStream = root.getStart().getInputStream();
+    public static DocumentLines documentLinesOf(Token token) {
+        val inputStream = token.getInputStream();
         if (inputStream == null) {
             return null;
         }
-        return DOCUMENT_SOURCE_BY_STREAM.computeIfAbsent(inputStream,
-                stream -> stream.getText(new Interval(0, stream.size() - 1)));
+        return DOCUMENT_LINES_BY_STREAM.computeIfAbsent(inputStream,
+                stream -> DocumentLines.of(stream.getText(new Interval(0, stream.size() - 1))));
     }
 
     /**

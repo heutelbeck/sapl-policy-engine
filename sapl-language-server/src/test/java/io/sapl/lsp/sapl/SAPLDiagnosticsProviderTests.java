@@ -20,23 +20,35 @@ package io.sapl.lsp.sapl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.lsp.core.ParsedDocument;
+import lombok.val;
 
 class SAPLDiagnosticsProviderTests {
+
+    private static final String POLICY = """
+            policy "p"
+            permit
+                subject.role == "admin";
+            """;
 
     private final SAPLDiagnosticsProvider provider = new SAPLDiagnosticsProvider();
 
     @Test
     @DisplayName("when a parse error reports empty offending text then the diagnostic spans at least one character so the editor highlights it")
     void whenParseErrorHasEmptyOffendingTextThenDiagnosticIsVisible() {
-        var document = new StubParsedDocument(List.of(new ParsedDocument.ParseError(2, 4, "unexpected token", "")),
-                List.of());
+        var document = new StubParsedDocument(POLICY,
+                List.of(new ParsedDocument.ParseError(2, 4, "unexpected token", "")), List.of());
 
         var diagnostics = provider.provideDiagnostics(document);
 
@@ -52,7 +64,7 @@ class SAPLDiagnosticsProviderTests {
     @Test
     @DisplayName("when a validation error reports empty offending text then the diagnostic spans at least one character so the editor highlights it")
     void whenValidationErrorHasEmptyOffendingTextThenDiagnosticIsVisible() {
-        var document = new StubParsedDocument(List.of(),
+        var document = new StubParsedDocument(POLICY, List.of(),
                 List.of(new ParsedDocument.ValidationError(3, 0, "invalid reference", "")));
 
         var diagnostics = provider.provideDiagnostics(document);
@@ -68,7 +80,7 @@ class SAPLDiagnosticsProviderTests {
     @Test
     @DisplayName("when an error reports a multi-character offending symbol then the diagnostic spans exactly that symbol's width")
     void whenOffendingSymbolHasWidthThenDiagnosticSpansThatWidth() {
-        var document = new StubParsedDocument(
+        var document = new StubParsedDocument("policy permitt",
                 List.of(new ParsedDocument.ParseError(1, 7, "unexpected token", "permitt")), List.of());
 
         var diagnostics = provider.provideDiagnostics(document);
@@ -80,7 +92,32 @@ class SAPLDiagnosticsProviderTests {
         });
     }
 
+    @Nested
+    @DisplayName("the range of a diagnostic")
+    class RangeOfADiagnosticTests {
+
+        static Stream<Arguments> comparisonsWrittenWithTheSignOfADefinition() {
+            val plainLine    = "    action = \"read\";";
+            val afterTheFace = "    \"" + ProtocolText.GRINNING_FACE + "\" = subject.mood;";
+            return ProtocolText.documentsWithEveryLineEndAndFaces(plainLine, afterTheFace);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("comparisonsWrittenWithTheSignOfADefinition")
+        @DisplayName("marks the text that is wrong in the editor")
+        void whenAComparisonIsWrittenWithTheSignOfADefinitionThenTheEditorMarksThatSign(String description,
+                String content) {
+            val document = new SAPLParsedDocument("test.sapl", content);
+
+            val diagnostics = provider.provideDiagnostics(document);
+
+            assertThat(diagnostics).first()
+                    .extracting(diagnostic -> ProtocolText.textOf(content, diagnostic.getRange())).isEqualTo("=");
+        }
+    }
+
     private record StubParsedDocument(
+            String content,
             List<ParsedDocument.ParseError> parseErrors,
             List<ParsedDocument.ValidationError> validationErrors) implements ParsedDocument {
 
@@ -91,7 +128,7 @@ class SAPLDiagnosticsProviderTests {
 
         @Override
         public String getContent() {
-            return "";
+            return content;
         }
 
         @Override

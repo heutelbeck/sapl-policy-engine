@@ -17,15 +17,12 @@
  */
 package io.sapl.lsp.sapl;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
 import org.antlr.v4.runtime.Token;
 import org.eclipse.lsp4j.SemanticTokens;
 
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.lsp.core.SemanticTokenEncoder;
 
 /**
  * Provides semantic tokens for syntax highlighting in SAPL documents.
@@ -39,45 +36,7 @@ class SAPLSemanticTokensProvider {
      * @return the semantic tokens
      */
     public SemanticTokens provideSemanticTokens(ParsedDocument document) {
-        var tokens        = document.getTokens();
-        var semanticInfos = new ArrayList<SemanticTokenInfo>();
-
-        for (var token : tokens) {
-            var tokenType = mapTokenType(token);
-            if (tokenType >= 0) {
-                addTokenInfos(semanticInfos, token, tokenType);
-            }
-        }
-
-        // Sort by position (line, then column)
-        semanticInfos
-                .sort(Comparator.comparingInt(SemanticTokenInfo::line).thenComparingInt(SemanticTokenInfo::column));
-
-        // Encode as LSP semantic tokens data array
-        var data = encodeTokens(semanticInfos);
-        return new SemanticTokens(data);
-    }
-
-    /**
-     * Adds one {@link SemanticTokenInfo} per line the token spans. The LSP
-     * semantic-tokens protocol forbids a token from crossing a line boundary, so a
-     * multi-line token (a block comment or a string with embedded newlines) is
-     * split into one token per line. Continuation lines start at column 0.
-     *
-     * @param semanticInfos the accumulator to add to
-     * @param token the ANTLR token
-     * @param tokenType the mapped semantic token type index
-     */
-    private void addTokenInfos(List<SemanticTokenInfo> semanticInfos, Token token, int tokenType) {
-        var startLine = token.getLine() - 1; // Convert to 0-based
-        var lines     = token.getText().split("\n", -1);
-        for (var i = 0; i < lines.length; i++) {
-            var column = i == 0 ? token.getCharPositionInLine() : 0;
-            var length = lines[i].endsWith("\r") ? lines[i].length() - 1 : lines[i].length();
-            if (length > 0) {
-                semanticInfos.add(new SemanticTokenInfo(startLine + i, column, length, tokenType, 0));
-            }
-        }
+        return SemanticTokenEncoder.semanticTokensOf(document, this::mapTokenType);
     }
 
     /**
@@ -143,40 +102,5 @@ class SAPLSemanticTokensProvider {
         default -> -1;
         };
     }
-
-    /**
-     * Encodes semantic tokens as the LSP data array format.
-     * Each token is encoded as 5 integers: deltaLine, deltaStartChar, length,
-     * tokenType, tokenModifiers.
-     *
-     * @param tokens the semantic token infos
-     * @return the encoded data array
-     */
-    private List<Integer> encodeTokens(List<SemanticTokenInfo> tokens) {
-        var data     = new ArrayList<Integer>();
-        var prevLine = 0;
-        var prevChar = 0;
-
-        for (var token : tokens) {
-            var deltaLine = token.line() - prevLine;
-            var deltaChar = deltaLine == 0 ? token.column() - prevChar : token.column();
-
-            data.add(deltaLine);
-            data.add(deltaChar);
-            data.add(token.length());
-            data.add(token.tokenType());
-            data.add(token.tokenModifiers());
-
-            prevLine = token.line();
-            prevChar = token.column();
-        }
-
-        return data;
-    }
-
-    /**
-     * Represents semantic token information before encoding.
-     */
-    private record SemanticTokenInfo(int line, int column, int length, int tokenType, int tokenModifiers) {}
 
 }

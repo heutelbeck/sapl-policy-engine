@@ -14,7 +14,7 @@ import { indentWithTab, defaultKeymap, history, historyKeymap } from '@codemirro
 import { oneDark } from '@codemirror/theme-one-dark';
 import { StreamLanguage, bracketMatching, foldService, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting, defaultHighlightStyle, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { linter, lintKeymap } from '@codemirror/lint';
+import { forceLinting, linter, lintKeymap } from '@codemirror/lint';
 import { autocompletion, CompletionContext, closeBrackets, closeBracketsKeymap, completionKeymap, snippet } from '@codemirror/autocomplete';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { MergeView } from '@codemirror/merge';
@@ -495,6 +495,7 @@ class SaplEditorLsp extends LitElement {
         this._lastDiagnosticsVersion = -1;  // Track version for diagnostics validation
         this._isInternalUpdate = false;
         this._completionRequestId = 0;  // Track latest completion request for cancellation
+        this._serverOffersQuickFixes = false;  // Announced by the server in its answer to initialize
 
         // CM6 MergeView options (real API)
         this._mergeOptions = {
@@ -940,12 +941,14 @@ class SaplEditorLsp extends LitElement {
                     textDocument: {
                         synchronization: { dynamicRegistration: false, didSave: true },
                         completion: { completionItem: { snippetSupport: false } },
-                        publishDiagnostics: { relatedInformation: true }
+                        publishDiagnostics: { relatedInformation: true },
+                        codeAction: { codeActionLiteralSupport: { codeActionKind: { valueSet: ['quickfix'] } } }
                     }
                 },
                 rootUri: null
             });
 
+            this._serverOffersQuickFixes = Boolean(result?.capabilities?.codeActionProvider);
             this._sendLspNotification('initialized', {});
             this._sendDidOpen();
         } catch (e) {
@@ -986,20 +989,23 @@ class SaplEditorLsp extends LitElement {
             return;
         }
 
-        this._diagnostics = (params.diagnostics || []).map(d => ({
+        const published = params.diagnostics || [];
+        this._diagnostics = published.map(d => ({
             from: this._positionToOffset(d.range.start),
             to: this._positionToOffset(d.range.end),
             severity: this._mapSeverity(d.severity),
             message: d.message,
-            source: d.source || 'sapl'
+            source: d.source || 'sapl',
+            key: this._diagnosticKey(d),
+            actions: []
         }));
 
         // Remember which version these diagnostics are for
         this._lastDiagnosticsVersion = this._documentVersion;
 
-        // Trigger lint update
-        if (this._editor) {
-            this._editor.dispatch({});
+        this._refreshDiagnostics();
+        if (this._serverOffersQuickFixes && published.length > 0) {
+            this._attachQuickFixes(published, this._documentVersion);
         }
 
         // Notify Vaadin server
@@ -1026,8 +1032,67 @@ class SaplEditorLsp extends LitElement {
             to: d.to,
             severity: d.severity,
             message: d.message,
-            source: d.source
+            source: d.source,
+            actions: d.actions
         }));
+    }
+
+    // CodeMirror lints after a change of the document. Diagnostics and quick fixes arrive
+    // later from the server, so the editor is told to take them up.
+    _refreshDiagnostics() {
+        if (this._editor) {
+            forceLinting(this._editor);
+        }
+    }
+
+    // A published diagnostic is told apart by its range and its message. The server names the
+    // diagnostics a code action resolves in the same form.
+    _diagnosticKey(diagnostic) {
+        const { start, end } = diagnostic.range;
+        return `${start.line}:${start.character}-${end.line}:${end.character} ${diagnostic.message}`;
+    }
+
+    // Asks the server for the quick fixes of the published diagnostics and offers each one as
+    // an action of the diagnostic it resolves. Quick fixes for an older version of the document
+    // are dropped: their edits would apply to text that has changed.
+    async _attachQuickFixes(published, version) {
+        let codeActions;
+        try {
+            codeActions = await this._sendLspRequest('textDocument/codeAction', {
+                textDocument: { uri: this._documentUri },
+                range: { start: { line: 0, character: 0 }, end: this._offsetToPosition(this._editor.state.doc.length) },
+                context: { diagnostics: published, only: ['quickfix'] }
+            });
+        } catch (e) {
+            console.debug('[SAPL LSP] No quick fixes:', e);
+            return;
+        }
+        if (version !== this._documentVersion || !Array.isArray(codeActions)) {
+            return;
+        }
+        for (const codeAction of codeActions) {
+            const edits = codeAction.edit?.changes?.[this._documentUri];
+            if (!edits || codeAction.kind !== 'quickfix') continue;
+            const action = this._quickFixAction(codeAction.title, edits);
+            for (const resolved of codeAction.diagnostics || []) {
+                const key = this._diagnosticKey(resolved);
+                this._diagnostics.filter(d => d.key === key).forEach(d => d.actions.push(action));
+            }
+        }
+        this._refreshDiagnostics();
+    }
+
+    _quickFixAction(title, edits) {
+        return {
+            name: title,
+            apply: view => view.dispatch({
+                changes: edits.map(edit => ({
+                    from: this._positionToOffset(edit.range.start),
+                    to: this._positionToOffset(edit.range.end),
+                    insert: edit.newText
+                }))
+            })
+        };
     }
 
     async _getCompletions(context) {
@@ -1273,10 +1338,14 @@ class SaplEditorLsp extends LitElement {
         return this._editor.state.doc.lineAt(offset).number;
     }
 
+    // The column as a person reads it and as the messages of the engine count it: from 1, in
+    // characters. A character outside the basic plane takes two units of the document and is
+    // one column.
     _offsetToColumn(offset) {
-        if (!this._editor) return 0;
+        if (!this._editor) return 1;
         const line = this._editor.state.doc.lineAt(offset);
-        return offset - line.from;
+        const charactersBefore = Array.from(line.text.slice(0, offset - line.from)).length;
+        return charactersBefore + 1;
     }
 
     _mapSeverity(severity) {

@@ -47,6 +47,9 @@
 	
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
+		<!-- The tests tagged "conformance" read the corpus of the sapl-rust
+			repository. They run in the profile "conformance" only. -->
+		<excludedGroups>conformance</excludedGroups>
 	</properties>
 	
 	<dependencies>
@@ -246,4 +249,31 @@
             </plugin>
         </plugins>
     </build>
+
+	<profiles>
+		<profile>
+			<!-- Runs only the tests tagged "conformance". They expect the
+				sapl-rust repository next to this one. Another place is given with
+				-Dsapl.conformance.directory=... -->
+			<id>conformance</id>
+			<properties>
+				<groups>conformance</groups>
+				<excludedGroups />
+				<sapl.conformance.directory>${project.basedir}/../../sapl-rust/conformance</sapl.conformance.directory>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<systemPropertyVariables>
+								<sapl.conformance.directory>${sapl.conformance.directory}</sapl.conformance.directory>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

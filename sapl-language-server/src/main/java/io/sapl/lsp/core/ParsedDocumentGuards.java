@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.sapl.api.model.DocumentLines;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.lsp.core.ParsedDocument.ParseError;
 
@@ -66,23 +67,28 @@ public final class ParsedDocumentGuards {
     }
 
     private static void addTrojanDiagnostics(String content, List<ParseError> diagnostics) {
-        val limit = Math.min(content.length(), DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES);
-        var line  = 1;
-        var col   = 0;
-        var found = 0;
-        for (var i = 0; i < limit && found < MAX_TROJAN_DIAGNOSTICS; i++) {
-            val c = content.charAt(i);
-            if (c == '\n') {
-                line++;
-                col = 0;
-                continue;
-            }
-            if (isBidiControl(c)) {
-                diagnostics.add(new ParseError(line, col, ERROR_TROJAN, String.valueOf(c)));
-                found++;
-            }
-            col++;
+        val offsets = bidiControlOffsets(content);
+        if (offsets.isEmpty()) {
+            return;
         }
+        // A parse error names its place as the parser does, like the errors of the
+        // parser itself.
+        val lines = DocumentLines.of(content);
+        for (val offset : offsets) {
+            diagnostics.add(new ParseError(lines.parserLineOf(offset), lines.charPositionInLineOf(offset), ERROR_TROJAN,
+                    String.valueOf(content.charAt(offset))));
+        }
+    }
+
+    private static List<Integer> bidiControlOffsets(String content) {
+        val limit   = Math.min(content.length(), DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES);
+        val offsets = new ArrayList<Integer>();
+        for (var offset = 0; offset < limit && offsets.size() < MAX_TROJAN_DIAGNOSTICS; offset++) {
+            if (isBidiControl(content.charAt(offset))) {
+                offsets.add(offset);
+            }
+        }
+        return offsets;
     }
 
     private static boolean isBidiControl(char c) {

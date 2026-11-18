@@ -22,7 +22,10 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.lsp.configuration.LSPConfiguration;
+import io.sapl.lsp.sapl.ProtocolText;
 import io.sapl.lsp.sapl.TestParsing;
+import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -138,6 +141,27 @@ class VariablesProposalsGeneratorTests {
 
         // Base subscription variables should be included, but not user/role
         assertThat(proposals).contains("subject", "action", "resource", "environment").doesNotContain("user", "role");
+    }
+
+    @Test
+    @DisplayName("a variable defined after the cursor is not proposed when characters outside the basic plane stand before the cursor")
+    void whenCharactersOutsideTheBasicPlaneStandBeforeTheCursorThenVariableDefinedAfterTheCursorIsNotProposed() {
+        val faces    = ProtocolText.GRINNING_FACE.repeat(8);
+        val document = """
+                policy "test"
+                permit
+                    var greeting = "%s";
+                    var later = 1;
+                """.formatted(faces);
+        val sapl     = parse(document);
+        // The cursor stands where the second definition starts, so that one is not in
+        // scope yet.
+        val cursorOffset = document.indexOf("var later");
+        val config       = LSPConfiguration.minimal();
+
+        val proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
+
+        assertThat(proposals).contains("greeting").doesNotContain("later");
     }
 
     @Test

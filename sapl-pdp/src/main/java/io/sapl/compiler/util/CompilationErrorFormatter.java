@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.util;
 
+import io.sapl.api.model.DocumentLines;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.experimental.UtilityClass;
@@ -25,7 +26,9 @@ import lombok.val;
 /**
  * Utility for formatting compilation errors with source code context. Produces
  * human-readable error messages that include the relevant code snippet with the
- * error position highlighted.
+ * error position highlighted. The lines and columns are those of
+ * {@link DocumentLines}, so the snippet shows the lines of the document whatever
+ * ends them, and a column counts code points.
  */
 @UtilityClass
 public class CompilationErrorFormatter {
@@ -38,6 +41,31 @@ public class CompilationErrorFormatter {
 
     private static final String LINE_MARKER = "> ";
     private static final String NO_MARKER   = "  ";
+
+    /**
+     * The lines of a document around the line of an error, and the width their
+     * numbers take.
+     */
+    private record Snippet(
+            DocumentLines lines,
+            int errorLine,
+            int errorColumn,
+            int startLine,
+            int endLine,
+            int maxLineNumWidth) {
+
+        static Snippet around(SourceLocation location) {
+            val lines     = DocumentLines.of(location.documentSource());
+            val errorLine = location.line();
+            val endLine   = Math.min(lines.lineCount(), errorLine + CONTEXT_LINES_AFTER);
+            return new Snippet(lines, errorLine, location.column(), Math.max(1, errorLine - CONTEXT_LINES_BEFORE),
+                    endLine, String.valueOf(endLine).length());
+        }
+
+        String lineNumber(int line) {
+            return String.format("%" + maxLineNumWidth + "d", line);
+        }
+    }
 
     /**
      * Formats a SaplCompilerException with source code context as plain text.
@@ -131,28 +159,18 @@ public class CompilationErrorFormatter {
             return null;
         }
 
-        val source = location.documentSource();
-        val lines  = source.split("\n", -1);
+        val snippet = Snippet.around(location);
+        val sb      = new StringBuilder();
 
-        val errorLine       = location.line();
-        val errorColumn     = location.column();
-        val startLine       = Math.max(1, errorLine - CONTEXT_LINES_BEFORE);
-        val endLine         = Math.min(lines.length, errorLine + CONTEXT_LINES_AFTER);
-        val maxLineNumWidth = String.valueOf(endLine).length();
-        val lineNumFormat   = "%" + maxLineNumWidth + "d";
-        val sb              = new StringBuilder();
-
-        for (int lineNum = startLine; lineNum <= endLine; lineNum++) {
-            val lineIndex   = lineNum - 1;
-            val lineContent = lineIndex < lines.length ? lines[lineIndex] : "";
-            val isErrorLine = lineNum == errorLine;
+        for (int lineNum = snippet.startLine(); lineNum <= snippet.endLine(); lineNum++) {
+            val lineContent = snippet.lines().textOfLine(lineNum);
+            val isErrorLine = lineNum == snippet.errorLine();
             val marker      = isErrorLine ? LINE_MARKER : NO_MARKER;
 
-            sb.append(marker).append(String.format(lineNumFormat, lineNum)).append(" | ").append(lineContent)
-                    .append('\n');
+            sb.append(marker).append(snippet.lineNumber(lineNum)).append(" | ").append(lineContent).append('\n');
 
-            if (isErrorLine && errorColumn > 0) {
-                val caretPadding = marker.length() + maxLineNumWidth + 3 + errorColumn - 1;
+            if (isErrorLine && snippet.errorColumn() > 0) {
+                val caretPadding = marker.length() + snippet.maxLineNumWidth() + 3 + snippet.errorColumn() - 1;
                 sb.append(" ".repeat(caretPadding)).append("^\n");
             }
         }
@@ -165,32 +183,30 @@ public class CompilationErrorFormatter {
             return null;
         }
 
-        val source = location.documentSource();
-        val lines  = source.split("\n", -1);
+        val snippet = Snippet.around(location);
+        val lines   = snippet.lines();
+        val sb      = new StringBuilder();
 
-        val errorLine       = location.line();
-        val errorColumn     = location.column();
-        val startLine       = Math.max(1, errorLine - CONTEXT_LINES_BEFORE);
-        val endLine         = Math.min(lines.length, errorLine + CONTEXT_LINES_AFTER);
-        val maxLineNumWidth = String.valueOf(endLine).length();
-        val lineNumFormat   = "%" + maxLineNumWidth + "d";
-        val sb              = new StringBuilder();
-
-        for (int lineNum = startLine; lineNum <= endLine; lineNum++) {
-            val lineIndex   = lineNum - 1;
-            val lineContent = lineIndex < lines.length ? lines[lineIndex] : "";
-            val isErrorLine = lineNum == errorLine;
+        for (int lineNum = snippet.startLine(); lineNum <= snippet.endLine(); lineNum++) {
+            val lineContent = lines.textOfLine(lineNum);
+            val isErrorLine = lineNum == snippet.errorLine();
 
             if (isErrorLine) {
                 sb.append("<span class=\"error-line\">");
             }
 
-            sb.append("<span class=\"line-number\">").append(String.format(lineNumFormat, lineNum)).append("</span> ");
+            sb.append("<span class=\"line-number\">").append(snippet.lineNumber(lineNum)).append("</span> ");
 
-            if (isErrorLine && errorColumn > 0 && errorColumn <= lineContent.length()) {
-                val before = escapeHtml(lineContent.substring(0, errorColumn - 1));
-                val at     = escapeHtml(String.valueOf(lineContent.charAt(errorColumn - 1)));
-                val after  = escapeHtml(lineContent.substring(errorColumn));
+            // The mark covers the whole character at the column, also one outside the
+            // basic plane that the string holds in two code units.
+            val markStart = isErrorLine && snippet.errorColumn() > 0
+                    ? lines.offsetOfColumn(lineNum, snippet.errorColumn()) - lines.startOfLine(lineNum)
+                    : lineContent.length();
+            if (markStart < lineContent.length()) {
+                val markEnd = markStart + Character.charCount(lineContent.codePointAt(markStart));
+                val before  = escapeHtml(lineContent.substring(0, markStart));
+                val at      = escapeHtml(lineContent.substring(markStart, markEnd));
+                val after   = escapeHtml(lineContent.substring(markEnd));
                 sb.append(before).append("<span class=\"error-char\">").append(at).append("</span>").append(after);
             } else {
                 sb.append(escapeHtml(lineContent));

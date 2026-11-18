@@ -17,12 +17,18 @@
  */
 package io.sapl.test.coverage;
 
+import io.sapl.api.coverage.LineCoverageInfo;
+import io.sapl.api.coverage.LineCoverageStatus;
+import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -31,13 +37,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("Fixture coverage integration tests")
 class FixtureCoverageIntegrationTests {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
+
+    private static final Pattern LINE_NUMBER_OF_SONARQUBE = Pattern.compile("lineNumber=\"(\\d+)\"");
 
     private static final String MISKATONIC_POLICY = """
             policy "miskatonic-library-access"
@@ -170,6 +182,60 @@ class FixtureCoverageIntegrationTests {
         assertThat(result.hasCoverage()).isTrue();
         val coverageFiles = listCoverageFiles(tempDir);
         assertThat(coverageFiles).isEmpty();
+    }
+
+    static Stream<Arguments> lineEnds() {
+        return Stream.of(arguments("a line feed", "\n"), arguments("a carriage return", "\r"),
+                arguments("a carriage return and a line feed", "\r\n"));
+    }
+
+    @ParameterizedTest(name = "lines that end with {0}")
+    @MethodSource("lineEnds")
+    @DisplayName("reports the policy and its conditions as covered on the lines where an editor shows them, whatever ends the lines")
+    void whenLinesEndWithAnyLineBreakThenPolicyAndConditionsAreCoveredOnTheLinesAnEditorShows(String lineBreak,
+            String lineEnd) {
+        val coverage = coverageOf(lineEnd);
+
+        assertThat(coverage.getCoveredLines()).isEqualTo(Set.of(1, 3, 4));
+    }
+
+    @ParameterizedTest(name = "lines that end with {0}")
+    @MethodSource("lineEnds")
+    @DisplayName("the line coverage the editor receives marks the policy and its conditions on their lines, whatever ends the lines")
+    void whenLinesEndWithAnyLineBreakThenLineCoverageForTheEditorMarksTheLinesAnEditorShows(String lineBreak,
+            String lineEnd) {
+        val coverage = coverageOf(lineEnd);
+
+        // The editor shows every line whose status is not irrelevant.
+        assertThat(coverage.getLineCoverage()).filteredOn(line -> line.status() != LineCoverageStatus.IRRELEVANT)
+                .extracting(LineCoverageInfo::line).containsExactly(1, 3, 4);
+    }
+
+    @ParameterizedTest(name = "lines that end with {0}")
+    @MethodSource("lineEnds")
+    @DisplayName("the SonarQube report names the lines of the policy and its conditions, whatever ends the lines")
+    void whenLinesEndWithAnyLineBreakThenSonarQubeReportNamesTheLinesAnEditorShows(String lineBreak, String lineEnd)
+            throws IOException {
+        SaplTestFixture.createSingleTest().withPolicy(policyWithLinesEndingIn(lineEnd), "policies/miskatonic.sapl")
+                .withTestIdentifier("sonarqube-line-end-test").withCoverageOutput(tempDir)
+                .whenDecide(facultySubscription()).expectPermit().verify();
+
+        val report = new SonarQubeCoverageReportGenerator(tempDir).generate();
+
+        assertThat(LINE_NUMBER_OF_SONARQUBE.matcher(report).results().map(match -> Integer.parseInt(match.group(1))))
+                .containsExactly(1, 3, 4);
+    }
+
+    private PolicyCoverageData coverageOf(String lineEnd) {
+        val result = SaplTestFixture.createSingleTest().withPolicy(policyWithLinesEndingIn(lineEnd))
+                .withTestIdentifier("line-end-test").withCoverageOutput(tempDir).withCoverageFileWriteDisabled()
+                .whenDecide(facultySubscription()).expectPermit().verify();
+        assertThat(result.coverage().getPolicyCoverageList()).hasSize(1);
+        return result.coverage().getPolicyCoverageList().getFirst();
+    }
+
+    private static String policyWithLinesEndingIn(String lineEnd) {
+        return MISKATONIC_POLICY.replace("\n", lineEnd);
     }
 
     private List<Path> listCoverageFiles(Path directory) {
