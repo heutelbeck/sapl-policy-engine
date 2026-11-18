@@ -57,9 +57,10 @@ public final class IsolatedConsoleLogging implements BeforeAllCallback, AfterAll
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
-        if (context.getStore(NAMESPACE).remove(Console.class, Console.class) instanceof Console(var out, var err)) {
-            System.setOut(out);
-            System.setErr(err);
+        val console = context.getStore(NAMESPACE).remove(Console.class, Console.class);
+        if (console != null) {
+            System.setOut(console.out());
+            System.setErr(console.err());
         }
         val loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         loggerContext.reset();

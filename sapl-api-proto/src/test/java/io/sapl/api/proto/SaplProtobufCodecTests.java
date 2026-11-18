@@ -28,6 +28,7 @@ import com.google.protobuf.CodedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.HexFormat;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
@@ -331,6 +332,27 @@ class SaplProtobufCodecTests {
             });
         }
 
+        static Stream<Arguments> subscriptionsWithDefaultParts() {
+            return Stream.of(
+                    arguments("environment undefined and no secrets",
+                            new AuthorizationSubscription(Value.of("alice"), Value.of("read"), Value.of("document"),
+                                    Value.UNDEFINED, Value.EMPTY_OBJECT),
+                            "0a072205616c69636512062204726561641a0a2208646f63756d656e74"),
+                    arguments("every part undefined and no secrets", new AuthorizationSubscription(Value.UNDEFINED,
+                            Value.UNDEFINED, Value.UNDEFINED, Value.UNDEFINED, Value.EMPTY_OBJECT), ""));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("subscriptionsWithDefaultParts")
+        @DisplayName("parts that hold their default are left out and read back as their default")
+        void whenPartsHoldTheirDefaultThenTheyAreLeftOut(String description, AuthorizationSubscription subscription,
+                String expectedHex) throws IOException {
+            val bytes = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
+
+            assertThat(HexFormat.of().formatHex(bytes)).isEqualTo(expectedHex);
+            assertThat(SaplProtobufCodec.readAuthorizationSubscription(bytes)).isEqualTo(subscription);
+        }
+
         static Stream<Arguments> secretsThatAreNotAnObjectMessage() throws IOException {
             val secrets = ObjectValue.builder().put("apiKey", Value.of("secret123")).build();
             return Stream.of(arguments("a text value", textValue("not-an-object")),
@@ -428,6 +450,35 @@ class SaplProtobufCodecTests {
             val deserialized = SaplProtobufCodec.readAuthorizationDecision(bytes);
 
             assertThat(deserialized.decision()).isEqualTo(decision);
+        }
+
+        static Stream<Arguments> decisionsWithDefaultParts() {
+            return Stream.of(
+                    arguments("a permit",
+                            new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                                    Value.UNDEFINED),
+                            "0801"),
+                    arguments("a deny",
+                            new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                                    Value.UNDEFINED),
+                            "0802"),
+                    arguments("indeterminate, the zero value",
+                            new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                                    Value.UNDEFINED),
+                            ""),
+                    arguments("a permit whose resource is null", new AuthorizationDecision(Decision.PERMIT,
+                            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.NULL), "080122020a00"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("decisionsWithDefaultParts")
+        @DisplayName("parts that hold their default are left out and read back as their default")
+        void whenPartsHoldTheirDefaultThenTheyAreLeftOut(String description, AuthorizationDecision decision,
+                String expectedHex) throws IOException {
+            val bytes = SaplProtobufCodec.writeAuthorizationDecision(decision);
+
+            assertThat(HexFormat.of().formatHex(bytes)).isEqualTo(expectedHex);
+            assertThat(SaplProtobufCodec.readAuthorizationDecision(bytes)).isEqualTo(decision);
         }
 
         static Stream<Arguments> decisionTestCases() {

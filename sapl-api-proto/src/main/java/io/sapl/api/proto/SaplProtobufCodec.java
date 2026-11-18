@@ -419,13 +419,24 @@ public class SaplProtobufCodec {
         return builder.build();
     }
 
+    // Parts that hold their default (undefined, or no secrets) are left out. The reader takes a
+    // missing part as its default, and the Rust engine writes the same bytes.
     private static void writeAuthorizationSubscriptionFields(AuthorizationSubscription sub, CodedOutputStream output)
             throws IOException {
-        writeValueField(SUBSCRIPTION_SUBJECT, sub.subject(), output);
-        writeValueField(SUBSCRIPTION_ACTION, sub.action(), output);
-        writeValueField(SUBSCRIPTION_RESOURCE, sub.resource(), output);
-        writeValueField(SUBSCRIPTION_ENVIRONMENT, sub.environment(), output);
-        writeObjectValueField(SUBSCRIPTION_SECRETS, sub.secrets(), output);
+        writeDefinedValueField(SUBSCRIPTION_SUBJECT, sub.subject(), output);
+        writeDefinedValueField(SUBSCRIPTION_ACTION, sub.action(), output);
+        writeDefinedValueField(SUBSCRIPTION_RESOURCE, sub.resource(), output);
+        writeDefinedValueField(SUBSCRIPTION_ENVIRONMENT, sub.environment(), output);
+        if (!sub.secrets().isEmpty()) {
+            writeObjectValueField(SUBSCRIPTION_SECRETS, sub.secrets(), output);
+        }
+    }
+
+    private static void writeDefinedValueField(int fieldNumber, Value value, CodedOutputStream output)
+            throws IOException {
+        if (!(value instanceof UndefinedValue)) {
+            writeValueField(fieldNumber, value, output);
+        }
     }
 
     private static void writeObjectValueField(int fieldNumber, ObjectValue object, CodedOutputStream output)
@@ -444,11 +455,15 @@ public class SaplProtobufCodec {
     }
 
     private static int computeAuthorizationSubscriptionSize(AuthorizationSubscription sub) {
-        return computeValueFieldSize(SUBSCRIPTION_SUBJECT, sub.subject())
-                + computeValueFieldSize(SUBSCRIPTION_ACTION, sub.action())
-                + computeValueFieldSize(SUBSCRIPTION_RESOURCE, sub.resource())
-                + computeValueFieldSize(SUBSCRIPTION_ENVIRONMENT, sub.environment())
-                + computeObjectValueFieldSize(SUBSCRIPTION_SECRETS, sub.secrets());
+        return computeDefinedValueFieldSize(SUBSCRIPTION_SUBJECT, sub.subject())
+                + computeDefinedValueFieldSize(SUBSCRIPTION_ACTION, sub.action())
+                + computeDefinedValueFieldSize(SUBSCRIPTION_RESOURCE, sub.resource())
+                + computeDefinedValueFieldSize(SUBSCRIPTION_ENVIRONMENT, sub.environment())
+                + (sub.secrets().isEmpty() ? 0 : computeObjectValueFieldSize(SUBSCRIPTION_SECRETS, sub.secrets()));
+    }
+
+    private static int computeDefinedValueFieldSize(int fieldNumber, Value value) {
+        return value instanceof UndefinedValue ? 0 : computeValueFieldSize(fieldNumber, value);
     }
 
     private static int computeObjectValueFieldSize(int fieldNumber, ObjectValue object) {
@@ -520,12 +535,22 @@ public class SaplProtobufCodec {
         };
     }
 
+    // Parts that hold their default (INDETERMINATE, which is the zero value, empty obligations and
+    // advice, an undefined resource) are left out. The reader takes a missing part as its default,
+    // and the Rust engine writes the same bytes.
     private static void writeAuthorizationDecisionFields(AuthorizationDecision dec, CodedOutputStream output)
             throws IOException {
-        output.writeEnum(DECISION_DECISION, toProtoDecision(dec.decision()));
-        writeArrayValueField(DECISION_OBLIGATIONS, dec.obligations(), output);
-        writeArrayValueField(DECISION_ADVICE, dec.advice(), output);
-        writeValueField(DECISION_RESOURCE, dec.resource(), output);
+        val decision = toProtoDecision(dec.decision());
+        if (decision != DECISION_ENUM_INDETERMINATE) {
+            output.writeEnum(DECISION_DECISION, decision);
+        }
+        if (!dec.obligations().isEmpty()) {
+            writeArrayValueField(DECISION_OBLIGATIONS, dec.obligations(), output);
+        }
+        if (!dec.advice().isEmpty()) {
+            writeArrayValueField(DECISION_ADVICE, dec.advice(), output);
+        }
+        writeDefinedValueField(DECISION_RESOURCE, dec.resource(), output);
     }
 
     private static void writeArrayValueField(int fieldNumber, ArrayValue array, CodedOutputStream output)
@@ -550,10 +575,16 @@ public class SaplProtobufCodec {
     }
 
     private static int computeAuthorizationDecisionSize(AuthorizationDecision dec) {
-        return CodedOutputStream.computeEnumSize(DECISION_DECISION, toProtoDecision(dec.decision()))
-                + computeArrayValueFieldSize(DECISION_OBLIGATIONS, dec.obligations())
-                + computeArrayValueFieldSize(DECISION_ADVICE, dec.advice())
-                + computeValueFieldSize(DECISION_RESOURCE, dec.resource());
+        val decision = toProtoDecision(dec.decision());
+        return (decision == DECISION_ENUM_INDETERMINATE ? 0
+                : CodedOutputStream.computeEnumSize(DECISION_DECISION, decision))
+                + computeNonEmptyArrayValueFieldSize(DECISION_OBLIGATIONS, dec.obligations())
+                + computeNonEmptyArrayValueFieldSize(DECISION_ADVICE, dec.advice())
+                + computeDefinedValueFieldSize(DECISION_RESOURCE, dec.resource());
+    }
+
+    private static int computeNonEmptyArrayValueFieldSize(int fieldNumber, ArrayValue array) {
+        return array.isEmpty() ? 0 : computeArrayValueFieldSize(fieldNumber, array);
     }
 
     private static int computeArrayValueFieldSize(int fieldNumber, ArrayValue array) {
