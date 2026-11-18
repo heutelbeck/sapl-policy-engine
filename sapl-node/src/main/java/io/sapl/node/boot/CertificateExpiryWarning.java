@@ -101,10 +101,16 @@ class CertificateExpiryWarning implements DisposableBean {
     // check, so every failure is logged and the check runs again tomorrow.
     void warnOfExpiringCertificates() {
         try {
-            val now = Instant.now();
-            for (val entry : bundlesByApi().entrySet()) {
+            val now     = Instant.now();
+            val bundles = bundlesByApi();
+            log.debug("Checking the expiry of the TLS certificates of {}.", bundles.keySet());
+            for (val entry : bundles.entrySet()) {
                 val bundle = entry.getValue();
                 val expiry = earliestExpiry(bundle.getStores().getKeyStore(), bundle.getKey().getAlias());
+                if (expiry.isEmpty()) {
+                    log.debug("The TLS certificate of the {} API names no expiry under the alias {}.", entry.getKey(),
+                            bundle.getKey().getAlias());
+                }
                 expiry.ifPresent(validUntil -> log.info(INFO_CERTIFICATE_VALID_UNTIL.formatted(entry.getKey(),
                         validUntil.truncatedTo(ChronoUnit.SECONDS))));
                 expiry.flatMap(validUntil -> warning(entry.getKey(), validUntil, now)).ifPresent(log::warn);
