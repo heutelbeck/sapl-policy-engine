@@ -46,6 +46,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -187,6 +188,10 @@ class NodeTlsTests {
         args.add("--spring.config.location=file:" + locations);
         // The test classpath silences logging, the node logs as shipped.
         args.add("--logging.config=classpath:logback-spring.xml");
+        // Spring Boot keeps a logging system that an earlier test of this JVM left initialized
+        // instead of configuring it anew, which silenced the first node of this class on Windows.
+        // These tests read the log, so every node starts from a clean logging system.
+        LoggingSystem.get(NodeTlsTests.class.getClassLoader()).cleanUp();
         val arguments = SaplNodeApplication.serverArguments(args.toArray(new String[0]));
         return SaplNodeApplication.serverApplication(arguments).run(arguments.springArguments().toArray(new String[0]));
     }
