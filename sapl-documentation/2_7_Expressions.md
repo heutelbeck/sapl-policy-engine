@@ -228,7 +228,19 @@ Except for the unary operators, multiple operators with the same precedence (e.g
 
    `exp1 =~ exp2`
 
-   The expression evaluates to `true` if the result of evaluating `exp1` matches the pattern contained in the result of evaluating `exp2`. The pattern needs to be specified according to the [java.util.regex package](https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
+   The expression evaluates to `true` if the result of evaluating `exp1` matches the pattern contained in the result of evaluating `exp2`. The pattern must match the whole text: `"administrator" =~ "admin"` is `false`, `"administrator" =~ "admin.*"` is `true`. If `exp1` is not a string, the expression evaluates to `false`. If `exp2` is not a string or not a valid pattern, the expression evaluates to an error. A constant pattern that is not valid is reported when the policy is compiled.
+
+   Patterns are written in the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) and are matched in time linear in the length of the text, without backtracking. No pattern can make the PDP spend time exponential in the length of the text, even if the pattern or the text comes from the authorization subscription. The following rules apply:
+
+   - Constructs that need backtracking do not exist and make a pattern invalid: look-ahead and look-behind (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`), backreferences (`\1`), atomic groups (`(?>...)`) and possessive quantifiers (`*+`, `++`, `?+`).
+   - The classes `\d`, `\w`, `\s` and `\b` hold ASCII characters only. Use Unicode classes such as `\p{L}` (letters) or `\p{Nd}` (decimal digits) for other scripts.
+   - Matching without regard to case, `(?i)`, follows Unicode: `"É" =~ "(?i)é"` is `true`.
+   - `.` matches every character except the line feed. With `(?s)` it matches the line feed as well.
+   - `(?U)` makes repetitions lazy by default, `\v` is the vertical tab only, and `\Q...\E` quotes a literal section.
+   - A pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. Each repetition counts with its number of copies, so `(?:a{100}){101}` is too large. A single repetition count may be at most 1000.
+
+   Up to SAPL 4.1, patterns followed `java.util.regex`. Patterns that use look-around, backreferences, atomic groups, possessive quantifiers or syntax only Java knows, such as `\h`, `\R`, `\X`, `\G`, `\Z`, `\e`, `\cX`, `\0101` or `\p{javaLowerCase}`, must be rewritten. The same syntax applies to the functions of the `patterns` library, to the `pattern` keyword of JSON schemas, and to the `=~` conditions of the content filter constraints of the Spring integration.
+
 4. `in` (element of)
 
    Assuming `exp1` is an expression and `exp2` is an expression evaluating to an array, the `in` operator can be used:

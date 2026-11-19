@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes.libraries;
 
+import com.google.re2j.Pattern;
 import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +40,6 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.regex.Pattern;
 
 /**
  * Retrieves public keys from a remote JWT authorization server with

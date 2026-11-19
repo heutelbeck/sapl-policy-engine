@@ -37,6 +37,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.google.re2j.PatternSyntaxException;
+
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import org.springframework.security.access.AccessDeniedException;
@@ -393,16 +395,27 @@ class ContentFilterTests {
 
         @Test
         @Timeout(15)
-        @DisplayName("a catastrophically backtracking regex (missed by the old blocklist) applied to hostile input fails closed")
-        void catastrophicRegexAppliedToHostileInputFailsClosed() {
+        @DisplayName("a regex that backtracking engines take exponential time for answers hostile input in linear time")
+        void regexThatWouldBacktrackCatastrophicallyAnswersHostileInputInLinearTime() {
             val constraint = v("""
                     {"conditions": [{"path": "$.x", "type": "=~", "value": "(.*,){30}P"}]}
                     """);
             val predicate  = ContentFilter.predicateFromConditions(constraint, MAPPER);
-            val hostile    = Map.of("x", "1,".repeat(30));
+            val hostile    = Map.of("x", "1,".repeat(10_000));
 
-            assertThatThrownBy(() -> predicate.test(hostile)).isInstanceOf(AccessDeniedException.class)
-                    .hasMessageContaining("Unsafe regex pattern");
+            assertThat(predicate.test(hostile)).isFalse();
+        }
+
+        @Test
+        @Timeout(15)
+        @DisplayName("a regex whose compiled program would be too large is refused when the constraint is read")
+        void regexTooLargeToCompileIsRefused() {
+            val constraint = v("""
+                    {"conditions": [{"path": "$.x", "type": "=~", "value": "(?:(?:a{1000}){1000}){1000}"}]}
+                    """);
+
+            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
+                    .isInstanceOf(PatternSyntaxException.class).hasMessageContaining("expression too large");
         }
 
         @Test

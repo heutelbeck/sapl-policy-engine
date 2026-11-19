@@ -22,8 +22,7 @@ import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import io.sapl.compiler.util.BoundedRegex;
-import io.sapl.compiler.util.BoundedRegularExpressionFactory;
+import io.sapl.compiler.util.LinearRegularExpressionFactory;
 import lombok.val;
 
 import java.util.HashMap;
@@ -125,6 +124,17 @@ public class SchemaValidationLibrary {
             Example: If `resource.form = {"zip": "ABC"}` fails pattern validation,
             `result.errors` contains: `[{"path": "/zip", "message": "does not match
             pattern ^[0-9]{5}$", "type": "pattern", "schemaPath": "/properties/zip"}]`.
+
+            ## Patterns
+
+            The `pattern` and `patternProperties` keywords use the syntax of RE2
+            (https://github.com/google/re2/wiki/Syntax), the same syntax as the `=~`
+            operator, and are matched in time linear in the length of the text. A
+            pattern matches if it matches any part of the text, and `$` matches at
+            the end of the text only. Look-around, backreferences, atomic groups and
+            possessive quantifiers do not exist in this syntax, and `\\d`, `\\w` and
+            `\\s` hold ASCII characters only. A schema with such a pattern, or with a
+            pattern too large to compile, is an error.
             """;
 
     // JSON Schema field names
@@ -192,7 +202,7 @@ public class SchemaValidationLibrary {
             """;
 
     private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
-            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12, BoundedRegularExpressionFactory::applyTo);
+            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12, LinearRegularExpressionFactory::applyTo);
 
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
@@ -397,7 +407,7 @@ public class SchemaValidationLibrary {
             val schemaNode  = ValueJsonMarshaller.toJsonNode(jsonSchema);
             val validator   = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
-            val errors      = BoundedRegex.runWithSharedMatchBudget(() -> validator.validate(subjectNode));
+            val errors      = validator.validate(subjectNode);
             return createValidationResult(errors.isEmpty(), errors);
         } catch (SchemaException e) {
             // An uncompilable schema (malformed, bad or unresolvable $ref) is an author
@@ -433,7 +443,7 @@ public class SchemaValidationLibrary {
         }
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
             builder.schemas(schemaMap);
-            BoundedRegularExpressionFactory.applyTo(builder);
+            LinearRegularExpressionFactory.applyTo(builder);
         });
     }
 

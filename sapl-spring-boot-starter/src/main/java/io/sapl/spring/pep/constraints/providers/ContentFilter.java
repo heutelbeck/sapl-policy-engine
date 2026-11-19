@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,8 +41,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.util.BoundedRegex;
-import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
+import io.sapl.compiler.util.LinearRegex;
 import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import lombok.experimental.UtilityClass;
@@ -61,7 +59,6 @@ public class ContentFilter {
     private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT = "Constraint enforcement failed. Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.";
     private static final String ERROR_CONVERTING_MODIFIED_OBJECT              = "Error converting modified object to original class type.";
     private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
-    private static final String ERROR_REGEX_UNSAFE                            = "Unsafe regex pattern rejected (potential ReDoS): ";
 
     private static final String     DISCLOSE_LEFT                  = "discloseLeft";
     private static final String     DISCLOSE_RIGHT                 = "discloseRight";
@@ -303,20 +300,9 @@ public class ContentFilter {
         if (!(conditionValue instanceof TextValue(var patternText))) {
             throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
-        val regex = Pattern.compile(patternText);
-        return original -> {
-            val value = getValueAtPath(original, path, objectMapper);
-            if (!(value instanceof String stringValue)) {
-                return false;
-            }
-            // Bound the match. A runaway pattern or hostile input aborts within
-            // the budget and denies, instead of hanging the request thread.
-            try {
-                return BoundedRegex.matches(regex, stringValue);
-            } catch (RegexBudgetExceededException e) {
-                throw new AccessDeniedException(ERROR_REGEX_UNSAFE + patternText);
-            }
-        };
+        val regex = LinearRegex.compile(patternText);
+        return original -> getValueAtPath(original, path, objectMapper) instanceof String stringValue
+                && regex.matches(stringValue);
     }
 
     private static Predicate<Object> equalsCondition(Value condition, String path, Value conditionValue,

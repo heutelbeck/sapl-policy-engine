@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
+import com.google.re2j.Pattern;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.NumberValue;
@@ -84,6 +85,8 @@ public class TemporalFunctionLibrary {
               age >= 18;
             ```
             """;
+
+    private static final Pattern NUMERIC_OFFSET_SUFFIX = Pattern.compile(".*[+-]\\d{2}:\\d{2}");
 
     private static final DateTimeFormatter DIN_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
     private static final DateTimeFormatter US_TIME_FORMATTER       = new DateTimeFormatterBuilder()
@@ -678,7 +681,7 @@ public class TemporalFunctionLibrary {
             }
 
             Instant.parse(text);
-            if (!text.contains("T") || (!text.endsWith("Z") && !text.matches(".*[+-]\\d{2}:\\d{2}$"))) {
+            if (!text.contains("T") || (!text.endsWith("Z") && !NUMERIC_OFFSET_SUFFIX.matches(text))) {
                 return Value.FALSE;
             }
 

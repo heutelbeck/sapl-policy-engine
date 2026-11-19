@@ -20,7 +20,6 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -181,13 +180,6 @@ public class ExtendedFilterCompiler {
     }
 
     private static Value navigateAndApply(Value current, UnaryOperator<Value> terminal, List<PathElement> path,
-            PathAnalysis pathAnalysis, EvaluationContext evalCtx) {
-        // Shared regex budget across the whole filter so per-element matches cannot
-        // amplify cost with size.
-        return BoundedRegex.runWithSharedMatchBudget(() -> navigate(current, terminal, path, pathAnalysis, evalCtx));
-    }
-
-    private static Value navigate(Value current, UnaryOperator<Value> terminal, List<PathElement> path,
             PathAnalysis pathAnalysis, EvaluationContext evalCtx) {
         if (current instanceof ErrorValue) {
             return current;

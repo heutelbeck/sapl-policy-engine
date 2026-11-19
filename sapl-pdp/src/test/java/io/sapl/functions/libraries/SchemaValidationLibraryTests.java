@@ -23,10 +23,16 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
@@ -39,16 +45,44 @@ class SchemaValidationLibraryTests {
 
     @Test
     @Timeout(15)
-    @DisplayName("a catastrophically backtracking schema pattern aborts under the match budget instead of hanging the evaluation thread")
-    void whenSchemaPatternIsCatastrophicallyBacktrackingThenBoundedAbort() {
+    @DisplayName("a schema pattern that backtracking engines take exponential time for answers in linear time")
+    void whenSchemaPatternWouldBacktrackCatastrophicallyThenAnswersQuickly() {
         val schema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
                 .build();
-        val hostile = Value.of("a".repeat(50));
+        val hostile = Value.of("a".repeat(29) + "b".repeat(10_000));
 
         val result = isCompliant(hostile, schema);
 
-        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                e -> assertThat(e.message()).contains("time budget"));
+        assertThat(result).isEqualTo(Value.FALSE);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("a schema pattern matches any part of the text, and $ only at the end of the text")
+    void whenSchemaPatternMatchedThenSemanticsOfJsonSchemaApply(String description, String pattern, String text,
+            boolean compliant) {
+        val schema = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of(pattern)).build();
+        assertThat(isCompliant(Value.of(text), schema)).isEqualTo(Value.of(compliant));
+    }
+
+    static Stream<Arguments> whenSchemaPatternMatchedThenSemanticsOfJsonSchemaApply() {
+        return Stream.of(arguments("a part of the text", "[0-9]{5}", "zip 12345", true),
+                arguments("an anchored pattern", "^[0-9]{5}$", "12345", true),
+                arguments("a line feed before the end", "^[0-9]{5}$", "12345\n", false),
+                arguments("a long form Unicode property", "^\\p{Letter}+$", "caf\u00e9", true));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("a schema with an invalid or too large pattern is an error, not a non-compliant subject")
+    void whenSchemaPatternInvalidThenError(String description, String pattern) {
+        val schema = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of(pattern)).build();
+        assertThat(isCompliant(Value.of("password1"), schema)).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> whenSchemaPatternInvalidThenError() {
+        return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$"),
+                arguments("too large to compile", "(?:a{1000}){1000}"));
     }
 
     @Test
@@ -202,28 +236,24 @@ class SchemaValidationLibraryTests {
     @Test
     @Timeout(30)
     @DisplayName("when many array elements each match a backtracking pattern then the aggregate validation is bounded and aborts")
-    void whenManyElementsMatchBacktrackingPatternThenAggregateIsBounded() {
-        // A schema "pattern" keyword is matched once per array element. Each individual
-        // element match stays under the single-match budget, while the aggregate of all
-        // element matches would run far past it. The bound must be per validate() call
-        // so
-        // the whole validation aborts once the shared budget is exhausted, rather than
-        // letting eval-thread CPU scale linearly with the element count.
+    void whenManyElementsMatchBacktrackingPatternThenValidationAnswersQuickly() {
+        // A schema "pattern" keyword is matched once per array element. Each match takes
+        // time linear in the length of the element, so the whole validation scales
+        // linearly with the element count.
         val itemSchema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
                 .build();
         val arraySchema = ObjectValue.builder().put("type", Value.of("array")).put("items", itemSchema).build();
 
         val hostileElement = Value.of("a".repeat(24));
         val arrayBuilder   = ArrayValue.builder();
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 1_000; i++) {
             arrayBuilder.add(hostileElement);
         }
         val hostileArray = arrayBuilder.build();
 
         val result = isCompliant(hostileArray, arraySchema);
 
-        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                e -> assertThat(e.message()).contains("time budget"));
+        assertThat(result).isEqualTo(Value.FALSE);
     }
 
     @Test

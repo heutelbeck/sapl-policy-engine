@@ -24,6 +24,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.util.Stratum;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -71,13 +72,11 @@ class RegexCompilerTests {
     }
 
     @Test
-    @org.junit.jupiter.api.Timeout(15)
-    @DisplayName("a catastrophically backtracking pattern aborts within the budget instead of hanging")
-    void whenCatastrophicBacktrackingThenReturnsTimeoutError() {
-        // Catastrophic backtracking that would hang the thread must be aborted by the
-        // bounded matcher as an ErrorValue.
+    @Timeout(15)
+    @DisplayName("a pattern that a backtracking engine takes exponential time for answers in linear time")
+    void whenPatternWouldBacktrackCatastrophicallyThenAnswersWithoutDelay() {
         var input = "1,".repeat(30);
-        assertCompilesToError("\"" + input + "\" =~ \"(.*,){30}P\"", "time budget");
+        assertCompilesTo("\"" + input + "\" =~ \"(.*,){30}P\"", Value.FALSE);
     }
 
     @MethodSource

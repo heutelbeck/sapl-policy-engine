@@ -188,6 +188,21 @@ class SchemaValidatorCompilerTests {
                     .hasMessageContaining("Invalid JSON Schema");
         }
 
+        @ParameterizedTest(name = "when schema pattern is {0} then throws SaplCompilerException")
+        @MethodSource("invalidSchemaPatterns")
+        void whenSchemaPatternInvalidThenThrowsCompilerException(String description, String pattern) {
+            val schema  = (ObjectValue) obj("type", Value.of("string"), "pattern", Value.of(pattern));
+            val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
+            val ctx     = compilationContext();
+            assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageContaining("Invalid JSON Schema");
+        }
+
+        static Stream<Arguments> invalidSchemaPatterns() {
+            return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$"),
+                    arguments("too large to compile", "(?:a{1000}){1000}"));
+        }
+
         @Test
         @DisplayName("when schema expression evaluates to errors then throws SaplCompilerException")
         void whenSchemaExpressionEvaluatesToErrorThenThrowsCompilerException() {
@@ -297,29 +312,26 @@ class SchemaValidatorCompilerTests {
     }
 
     @Nested
-    @DisplayName("Aggregate ReDoS budget")
-    class AggregateRegexBudgetTests {
+    @DisplayName("Patterns on hostile input")
+    class PatternsOnHostileInputTests {
 
         /**
          * A schema {@code pattern} keyword is matched once per element of the
-         * validated collection. With a backtracking pattern and an
-         * attacker-sized array, each individual element match stays under the
-         * single-match budget while the aggregate of all element matches would
-         * run far past it. A correct bound is per {@code schema.validate()} call,
-         * so the whole validation aborts once the shared budget is exhausted,
-         * rather than letting CPU cost scale linearly with the element count.
+         * validated collection. Patterns are matched in linear time, so a pattern
+         * that backtracking engines take exponential time for answers each element
+         * quickly, and the whole validation scales linearly with the element count.
          */
         @Test
         @Timeout(30)
-        @DisplayName("when many array elements each match a backtracking pattern then the aggregate validation is bounded and aborts")
-        void whenManyElementsMatchBacktrackingPatternThenAggregateIsBounded() {
+        @DisplayName("when many array elements are matched against a pattern that would backtrack catastrophically then the validation answers quickly")
+        void whenManyElementsMatchBacktrackingPatternThenValidationAnswersQuickly() {
             val arraySchema = (ObjectValue) obj("type", Value.of("array"), "items",
                     obj("type", Value.of("string"), "pattern", Value.of("(.*a){30}$")));
             val validator   = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, arraySchema)),
                     compilationContext());
             assertThat(validator).isNotNull();
             val hostileElement = "a".repeat(24);
-            val hostileArray   = ("\"" + hostileElement + "\",").repeat(8);
+            val hostileArray   = ("\"" + hostileElement + "\",").repeat(1_000);
             val ctx            = subscriptionContext("""
                     {
                         "subject": [%s"%s"],
@@ -330,8 +342,7 @@ class SchemaValidatorCompilerTests {
 
             val result = evaluate(validator, ctx);
 
-            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                    e -> assertThat(e.message()).contains("time budget"));
+            assertThat(result).isEqualTo(Value.FALSE);
         }
     }
 

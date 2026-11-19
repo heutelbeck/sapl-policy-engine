@@ -23,8 +23,6 @@ import io.sapl.api.model.*;
 import lombok.val;
 
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Functions for string manipulation in authorization policies. Provides simple,
@@ -674,7 +672,11 @@ public class StringFunctionLibrary {
             return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
-        return Value.of(text.replaceFirst(Pattern.quote(targetText), Matcher.quoteReplacement(replacementText)));
+        val index = text.indexOf(targetText);
+        if (index < 0) {
+            return str;
+        }
+        return Value.of(text.substring(0, index) + replacementText + text.substring(index + targetText.length()));
     }
 
     @Function(docs = """

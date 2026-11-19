@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
+import com.google.re2j.Pattern;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
@@ -44,7 +45,6 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Functions for making access control decisions based on X.509 certificate

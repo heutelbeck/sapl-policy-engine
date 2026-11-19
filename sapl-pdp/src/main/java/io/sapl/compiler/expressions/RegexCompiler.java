@@ -17,23 +17,25 @@
  */
 package io.sapl.compiler.expressions;
 
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.LinearRegex;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.HashMap;
 import java.util.List;
-import io.sapl.compiler.util.BoundedRegex;
-import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiler for REGEX binary operations with pre-compilation optimization.
+ * <p>
+ * The pattern must match the whole text. Patterns are compiled by
+ * {@link LinearRegex} and matched in linear time without backtracking.
  * <p>
  * When the regex pattern is a compile-time constant (literal string), the
  * pattern is pre-compiled for better runtime performance. When the pattern
@@ -45,7 +47,6 @@ public class RegexCompiler {
 
     private static final String          ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
     private static final String          ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
-    private static final String          ERROR_REGEX_TIMEOUT        = "Regular expression evaluation exceeded its time budget.";
     private static final BinaryOperation MATCHER                    = RegexCompiler::matchRegex;
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
@@ -64,9 +65,9 @@ public class RegexCompiler {
         if (right instanceof TextValue(String value)) {
             final Pattern compiled;
             try {
-                compiled = Pattern.compile(value);
+                compiled = LinearRegex.compile(value);
             } catch (PatternSyntaxException e) {
-                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getMessage()), e,
+                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getDescription()), e,
                         binaryOperation);
             }
             if (left instanceof Value lv) {
@@ -92,11 +93,7 @@ public class RegexCompiler {
         if (!(input instanceof TextValue(String value))) {
             return Value.FALSE; // Non-text doesn't match
         }
-        try {
-            return BoundedRegex.matches(pattern, value) ? Value.TRUE : Value.FALSE;
-        } catch (RegexBudgetExceededException | StackOverflowError e) {
-            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
-        }
+        return pattern.matches(value) ? Value.TRUE : Value.FALSE;
     }
 
     static Value matchRegex(Value input, Value pattern, SourceLocation loc) {
@@ -108,15 +105,11 @@ public class RegexCompiler {
         }
         final Pattern compiled;
         try {
-            compiled = Pattern.compile(patternText);
+            compiled = LinearRegex.compile(patternText);
         } catch (PatternSyntaxException e) {
-            return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getMessage());
+            return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getDescription());
         }
-        try {
-            return BoundedRegex.matches(compiled, inputText) ? Value.TRUE : Value.FALSE;
-        } catch (RegexBudgetExceededException | StackOverflowError e) {
-            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
-        }
+        return compiled.matches(inputText) ? Value.TRUE : Value.FALSE;
     }
 
     /**

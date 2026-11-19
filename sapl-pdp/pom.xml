@@ -124,6 +124,11 @@
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
         </dependency>
+        <!-- Linear time regular expressions -->
+        <dependency>
+            <groupId>com.google.re2j</groupId>
+            <artifactId>re2j</artifactId>
+        </dependency>
         <!-- JSON Web Token Support -->
         <dependency>
             <groupId>com.nimbusds</groupId>
