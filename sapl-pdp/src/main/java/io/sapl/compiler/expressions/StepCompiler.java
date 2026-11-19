@@ -629,8 +629,7 @@ public class StepCompiler {
         @Override
         public long semanticHash() {
             long baseHash = baseValue != null ? SemanticHashing.valueHash(baseValue) : baseOp.semanticHash();
-            long exprHash = expr instanceof PureOperator po ? po.semanticHash() : expr.hashCode();
-            return SemanticHashing.ordered(KIND, baseHash, exprHash);
+            return SemanticHashing.ordered(KIND, baseHash, SemanticHashing.expressionHash(expr));
         }
     }
 

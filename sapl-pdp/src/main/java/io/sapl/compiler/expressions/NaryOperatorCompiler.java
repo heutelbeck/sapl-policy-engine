@@ -175,7 +175,7 @@ public class NaryOperatorCompiler {
 
         @Override
         public long semanticHash() {
-            val kind        = (long) opType.hashCode();
+            val kind        = SemanticHashing.kindHash(opType);
             val childHashes = pures.stream().mapToLong(PureOperator::semanticHash).toArray();
             if (valueResult == null) {
                 return SemanticHashing.commutative(kind, childHashes);

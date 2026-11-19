@@ -107,7 +107,7 @@ public class SmtddBuilder {
         log.debug("SMTDD: equality branch (group {}/{}): {} branches", groupIndex + 1, groups.size(),
                 compacted.branchFormulas().size());
 
-        val branches = new HashMap<Value, SmtddNode>();
+        val branches = new LinkedHashMap<Value, SmtddNode>();
         for (val entry : compacted.branchFormulas().entrySet()) {
             branches.put(entry.getKey(),
                     buildEqualityLevels(groups, groupIndex + 1, entry.getValue(), formulaBdds, table, maxIndexNodes));

@@ -36,9 +36,12 @@ import java.util.*;
 @RequiredArgsConstructor
 public class EqualityGroup {
 
-    private final PureOperator        sharedOperand;
-    private final Map<Value, BitSet>  equalsFormulas      = new HashMap<>();
-    private final Map<Value, BitSet>  excludeFormulas     = new HashMap<>();
+    private final PureOperator sharedOperand;
+    // Linked in the order of the formulas: the hash of a null, undefined or error
+    // constant is an identity hash, so hash order would change the branch order of
+    // the built index from one run to the next.
+    private final Map<Value, BitSet>  equalsFormulas      = new LinkedHashMap<>();
+    private final Map<Value, BitSet>  excludeFormulas     = new LinkedHashMap<>();
     private final Set<IndexPredicate> tentativePredicates = new HashSet<>();
 
     void addEquals(Value constant, int formulaIndex, IndexPredicate predicate) {
@@ -84,11 +87,11 @@ public class EqualityGroup {
         val equalityUnconstrained = (BitSet) formulasInBucket.clone();
         equalityUnconstrained.andNot(equalityConstrained);
 
-        val branchValues = new HashSet<Value>();
+        val branchValues = new LinkedHashSet<Value>();
         branchValues.addAll(equalsInBucket.keySet());
         branchValues.addAll(excludeInBucket.keySet());
 
-        val branchFormulas = new HashMap<Value, BitSet>();
+        val branchFormulas = new LinkedHashMap<Value, BitSet>();
         for (val value : branchValues) {
             val members    = (BitSet) equalityUnconstrained.clone();
             val equalsHere = equalsInBucket.get(value);
@@ -127,7 +130,7 @@ public class EqualityGroup {
     }
 
     private static Map<Value, BitSet> intersectWithBucket(Map<Value, BitSet> source, BitSet formulasInBucket) {
-        val inBucket = new HashMap<Value, BitSet>();
+        val inBucket = new LinkedHashMap<Value, BitSet>();
         for (val entry : source.entrySet()) {
             val bits = (BitSet) entry.getValue().clone();
             bits.and(formulasInBucket);

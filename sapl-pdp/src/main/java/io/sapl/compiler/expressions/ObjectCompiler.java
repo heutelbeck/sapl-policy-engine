@@ -141,13 +141,8 @@ public class ObjectCompiler {
         public long semanticHash() {
             long hash = KIND;
             for (int i = 0; i < entries.size(); i++) {
-                val entry     = entries.get(i);
-                val entryHash = switch (entry) {
-                              case Value v                -> SemanticHashing.valueHash(v);
-                              case PureOperator p         -> p.semanticHash();
-                              case StreamOperator ignored -> (long) entry.hashCode();
-                              };
-                hash = SemanticHashing.ordered(hash, SemanticHashing.textHash(keys[i]), entryHash);
+                hash = SemanticHashing.ordered(hash, SemanticHashing.textHash(keys[i]),
+                        SemanticHashing.expressionHash(entries.get(i)));
             }
             return hash;
         }

@@ -691,4 +691,33 @@ class SchemaValidatorCompilerTests {
                     error -> assertThat(error.message()).isEqualTo("Schema validation failed: boom."));
         }
     }
+
+    @Nested
+    @DisplayName("Semantic hash")
+    class SemanticHashTests {
+
+        /**
+         * The canonical order of operands and the policy index rely on semantic
+         * hashes that are the same in every run, so the subscription element is
+         * hashed by its name and the validators are combined in the order of the
+         * elements, never in the order of a hash map over enum constants.
+         */
+        @Test
+        @DisplayName("schemas for several elements hash to the same value in every run and in any written order")
+        void whenSchemasForSeveralElementsThenSemanticHashIsTheSameInEveryRunAndAnyOrder() {
+            val ctx     = compilationContext();
+            val written = (PureOperator) compileValidator(
+                    List.of(enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA),
+                            enforcedSchema(SubscriptionElement.ACTION, NUMBER_SCHEMA),
+                            enforcedSchema(SubscriptionElement.ACTION, BOOLEAN_SCHEMA)),
+                    ctx);
+            val swapped = (PureOperator) compileValidator(
+                    List.of(enforcedSchema(SubscriptionElement.ACTION, NUMBER_SCHEMA),
+                            enforcedSchema(SubscriptionElement.ACTION, BOOLEAN_SCHEMA),
+                            enforcedSchema(SubscriptionElement.SUBJECT, STRING_SCHEMA)),
+                    ctx);
+            assertThat(new long[] { written.semanticHash(), swapped.semanticHash() })
+                    .containsExactly(4479095267155628887L, 4479095267155628887L);
+        }
+    }
 }

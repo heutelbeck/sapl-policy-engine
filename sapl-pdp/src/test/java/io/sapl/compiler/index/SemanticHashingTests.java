@@ -266,4 +266,20 @@ class SemanticHashingTests {
         }
     }
 
+    @Nested
+    @DisplayName("Operator kinds")
+    class OperatorKindTests {
+
+        /**
+         * The canonical order of operands and the index rely on semantic hashes that
+         * are the same in every run, so the kind of an operator is hashed by its name,
+         * never by the identity hash of its enum constant.
+         */
+        @Test
+        @DisplayName("an operator kind hashes to the same value in every run")
+        void whenOperatorKindIsHashedThenTheValueIsTheSameInEveryRun() {
+            assertThat(new long[] { kindHash(BinaryOperatorType.EQ), kindHash(BinaryOperatorType.NE) })
+                    .containsExactly(9086193433037044070L, 2626961288452957960L);
+        }
+    }
 }

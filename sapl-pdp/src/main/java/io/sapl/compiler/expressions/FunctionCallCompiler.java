@@ -159,12 +159,7 @@ public class FunctionCallCompiler {
         public long semanticHash() {
             long hash = SemanticHashing.ordered(KIND, functionName.hashCode());
             for (val arg : arguments) {
-                val argHash = switch (arg) {
-                case Value v                -> SemanticHashing.valueHash(v);
-                case PureOperator p         -> p.semanticHash();
-                case StreamOperator ignored -> (long) arg.hashCode();
-                };
-                hash = SemanticHashing.ordered(hash, argHash);
+                hash = SemanticHashing.ordered(hash, SemanticHashing.expressionHash(arg));
             }
             return hash;
         }

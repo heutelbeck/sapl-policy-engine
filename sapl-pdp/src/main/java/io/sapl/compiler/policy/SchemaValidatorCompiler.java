@@ -35,6 +35,7 @@ import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -83,8 +84,12 @@ public class SchemaValidatorCompiler {
         if (enforced.isEmpty()) {
             return Value.TRUE;
         }
-        val registry            = buildSchemaRegistry(ctx);
+        val registry = buildSchemaRegistry(ctx);
+        // Grouped in the order of the subscription elements, not in the iteration order of a
+        // hash map over enum constants, which differs from one run to the next and would
+        // change the semantic hash of the combined validator.
         val validatorsByElement = enforced.stream().collect(Collectors.groupingBy(SchemaStatement::element,
+                () -> new EnumMap<>(SubscriptionElement.class),
                 Collectors.mapping(schema -> compileSchemaValidator(schema, ctx, registry), Collectors.toList())));
         val elementValidators   = new ArrayList<PureOperator>();
         for (val validators : validatorsByElement.values()) {
@@ -182,7 +187,8 @@ public class SchemaValidatorCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, element.hashCode(), schemaSource.hashCode());
+            return SemanticHashing.ordered(KIND, SemanticHashing.kindHash(element),
+                    SemanticHashing.valueHash(schemaSource));
         }
     }
 

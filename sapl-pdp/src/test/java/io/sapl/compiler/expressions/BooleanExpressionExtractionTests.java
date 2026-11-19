@@ -102,11 +102,11 @@ class BooleanExpressionExtractionTests {
         void whenOrInsideAndThenPreservesNesting() {
             val expr = extractBooleanExpression("(subject.x == 1) && ((subject.y == 2) || (resource.z == 3))");
 
-            assertThat(expr).isInstanceOf(And.class);
-            assertThat(((And) expr).operands()).hasSize(2).satisfies(ops -> {
-                assertThat(ops.get(0)).isInstanceOf(Atom.class);
-                assertThat(ops.get(1)).isInstanceOf(Or.class);
-            });
+            // The operands of && are in canonical order, not in the order written.
+            assertThat(expr).isInstanceOfSatisfying(And.class,
+                    and -> assertThat(and.operands()).hasSize(2)
+                            .anySatisfy(op -> assertThat(op).isInstanceOf(Atom.class))
+                            .anySatisfy(op -> assertThat(op).isInstanceOf(Or.class)));
         }
 
         @Test

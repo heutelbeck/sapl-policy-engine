@@ -213,12 +213,7 @@ public class ArrayCompiler {
         public long semanticHash() {
             long hash = KIND;
             for (val element : elements) {
-                val elementHash = switch (element) {
-                case Value v                -> SemanticHashing.valueHash(v);
-                case PureOperator p         -> p.semanticHash();
-                case StreamOperator ignored -> (long) element.hashCode();
-                };
-                hash = SemanticHashing.ordered(hash, elementHash);
+                hash = SemanticHashing.ordered(hash, SemanticHashing.expressionHash(element));
             }
             return hash;
         }
