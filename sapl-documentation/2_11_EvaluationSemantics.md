@@ -29,7 +29,7 @@ SAPL categorizes expressions into three strata based on their evaluation cost:
 
 1. **Cross-strata ordering:** Lower (cheaper) strata are always evaluated before higher (more expensive) strata, regardless of operand position in the source.
 
-2. **Within-strata ordering:** Within the same stratum, the operands of the commutative operators `==`, `!=`, `*`, `&&`, `||`, `&`, `|` and `^` are evaluated in a canonical order that does not depend on the order written (see [Operand Order of Commutative Operators](../2_7_Expressions/#operand-order-of-commutative-operators)). Streaming operands keep the order written. The operands of all other operators are evaluated left-to-right as they appear in the source.
+2. **Within-strata ordering:** Within the same stratum, the operands of the commutative operators `==`, `!=`, `*`, `&&`, `||`, `&`, `|` and `^` are evaluated in a canonical order that follows the structure of the operands, not the order written (see [Operand Order of Commutative Operators](../2_7_Expressions/#operand-order-of-commutative-operators)). Streaming operands keep the order written. The operands of all other operators are evaluated left-to-right as they appear in the source.
 
 3. **Short-circuit behavior:** Only the dominating value short-circuits: `false` for AND, `true` for OR. When a dominating value is found, evaluation stops and the remaining operands are not evaluated. An error or undefined operand does **not** short-circuit, so it never lets the engine skip the remaining operands or their subscriptions.
 

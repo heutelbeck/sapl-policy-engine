@@ -24,6 +24,8 @@ import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
+import io.sapl.compiler.expressions.OperandStructure;
+import io.sapl.compiler.expressions.OperandStructure.StructuredOperator;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.ConfinedSchemaLoader;
@@ -38,6 +40,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -151,8 +154,13 @@ public class SchemaValidatorCompiler {
             SubscriptionElement element,
             ObjectValue schemaSource,
             Schema schema,
-            SourceLocation location) implements PureOperator {
+            SourceLocation location) implements StructuredOperator {
         private static final long KIND = SemanticHashing.kindHash(PrecompiledSchemaValidator.class);
+
+        @Override
+        public OperandStructure structure() {
+            return OperandStructure.of("schema", element.name().toLowerCase(Locale.ROOT), schemaSource);
+        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -196,8 +204,13 @@ public class SchemaValidatorCompiler {
      * OR semantics: at least one schema for the same subscription element must
      * pass.
      */
-    record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements PureOperator {
+    record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements StructuredOperator {
         private static final long KIND = SemanticHashing.kindHash(ElementSchemaValidator.class);
+
+        @Override
+        public OperandStructure structure() {
+            return new OperandStructure("schema:any", List.copyOf(validators));
+        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -239,8 +252,13 @@ public class SchemaValidatorCompiler {
     /**
      * AND semantics: all element validators must pass.
      */
-    record CombinedElementValidator(List<PureOperator> elementValidators) implements PureOperator {
+    record CombinedElementValidator(List<PureOperator> elementValidators) implements StructuredOperator {
         private static final long KIND = SemanticHashing.kindHash(CombinedElementValidator.class);
+
+        @Override
+        public OperandStructure structure() {
+            return new OperandStructure("schema:all", List.copyOf(elementValidators));
+        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
