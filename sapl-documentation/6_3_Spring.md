@@ -1131,6 +1131,7 @@ The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. O
 | `io.sapl.pdp.remote.tls` | `false` | Enable TLS for the connection. Used only when `type=rsocket`. The HTTP transport selects TLS via the `https://` scheme on `host`. |
 | `io.sapl.pdp.remote.keep-alive` | `20s` | RSocket KEEPALIVE frame interval. Used only when `type=rsocket`. |
 | `io.sapl.pdp.remote.max-life-time` | `90s` | Maximum time without an inbound KEEPALIVE before the connection is considered dead. Used only when `type=rsocket`. |
+| `io.sapl.pdp.remote.connections` | `1` | Number of RSocket connections to the node. Requests go to the connection with the fewest in flight, and a lost connection is reopened in the background while the others serve. Used only when `type=rsocket`. |
 | `io.sapl.pdp.remote.key` | empty | Username for basic authentication. |
 | `io.sapl.pdp.remote.secret` | empty | Password for basic authentication. |
 | `io.sapl.pdp.remote.bearer-token` | empty | Bearer token for token authentication. Carries either a SAPL API key (`sapl_*`) or a static JWT. Renamed from `api-key` in 4.1.0; the old name no longer binds. |
