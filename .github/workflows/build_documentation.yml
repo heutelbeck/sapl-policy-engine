@@ -58,7 +58,12 @@ jobs:
       - name: Get version
         id: get-version
         run: |
-          VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+          # Quiet on success, so the output is the version alone. On failure Maven runs once
+          # more with its output, which shows why.
+          if ! VERSION=$( mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout ); then
+            mvn -B help:evaluate -Dexpression=project.version
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build Required Modules Only
