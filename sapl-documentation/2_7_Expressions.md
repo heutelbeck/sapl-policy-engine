@@ -441,7 +441,7 @@ SAPL supports querying for specific parts of a JSON structure. Except for an **e
 
 #### Expression Step `[(Expression)]`
 
-An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array. When an expression evaluates to a non-integer number (e.g., `3.7`), the value is truncated toward zero to produce an integer index (e.g., `3`).
+An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array. A number is used as an index only if it is a whole number within the range of a 32 bit integer, such as `3` or `3.0`. Any other number, such as `3.7`, makes the step an error: `[1, 2, 3][(3.7)]` yields the error "Array subscript '3.7' is not a valid integer index."
 
 
 > The expression step can be used to refer to custom variables (`object.array[(anIndex+2)]`) or apply custom functions (`object.array[(max_value(object.array))]`.

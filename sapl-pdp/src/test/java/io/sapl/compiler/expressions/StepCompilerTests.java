@@ -433,7 +433,14 @@ class StepCompilerTests {
                     arguments("end beyond length [:10]", "[1, 2, 3][:10]",
                             array(Value.of(1), Value.of(2), Value.of(3))),
                     arguments("negative start beyond length [-10:]", "[1, 2, 3][-10:]",
-                            array(Value.of(1), Value.of(2), Value.of(3))));
+                            array(Value.of(1), Value.of(2), Value.of(3))),
+                    // Steps beyond the range of 32 bit integers do not wrap around
+                    arguments("largest step [5::2147483647]", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9][5::2147483647]",
+                            array(Value.of(5))),
+                    arguments("largest step from start [::2147483647]", "[0, 1, 2][::2147483647]",
+                            array(Value.of(0))),
+                    arguments("smallest step [5::-2147483648]", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9][5::-2147483648]",
+                            array(Value.of(5))));
         }
         // @formatter:on
 

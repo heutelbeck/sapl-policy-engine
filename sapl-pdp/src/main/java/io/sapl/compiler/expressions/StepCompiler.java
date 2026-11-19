@@ -280,8 +280,10 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileIndexUnionStep(IndexUnionStep step, CompilationContext ctx) {
-        val base    = ExpressionCompiler.compile(step.base(), ctx);
-        val indices = step.indices();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        // A repeated index selects nothing more, so a union compiles like its
+        // deduplicated form.
+        val indices = step.indices().stream().distinct().toList();
         val loc     = step.location();
 
         return switch (base) {
@@ -362,8 +364,10 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileAttributeUnionStep(AttributeUnionStep step, CompilationContext ctx) {
-        val base       = ExpressionCompiler.compile(step.base(), ctx);
-        val attributes = step.attributes();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        // A repeated key selects nothing more, so a union compiles like its
+        // deduplicated form.
+        val attributes = step.attributes().stream().distinct().toList();
         val loc        = step.location();
 
         return switch (base) {
@@ -434,8 +438,9 @@ public class StepCompiler {
         val base = ExpressionCompiler.compile(step.base(), ctx);
         val from = step.from();
         val to   = step.to();
-        val s    = step.step();
-        val loc  = step.location();
+        // An omitted step is a step of one, so that [:] and [::1] compile alike.
+        val s   = step.step() == null ? Integer.valueOf(1) : step.step();
+        val loc = step.location();
 
         // Validate step at compile time
         if (s != null && s == 0) {
@@ -464,16 +469,18 @@ public class StepCompiler {
         int toVal   = normalizeSliceIndex(to, size, stepVal > 0 ? size : -size - 1);
 
         val builder = ArrayValue.builder();
+        // The index runs in 64 bits, so that a step near the range of int cannot wrap
+        // it around into the array again.
         if (stepVal > 0) {
-            for (int i = fromVal; i < toVal && i < size; i += stepVal) {
+            for (long i = fromVal; i < toVal && i < size; i += stepVal) {
                 if (i >= 0) {
-                    builder.add(arr.get(i));
+                    builder.add(arr.get((int) i));
                 }
             }
         } else {
-            for (int i = fromVal; i > toVal && i >= 0; i += stepVal) {
+            for (long i = fromVal; i > toVal && i >= 0; i += stepVal) {
                 if (i < size) {
-                    builder.add(arr.get(i));
+                    builder.add(arr.get((int) i));
                 }
             }
         }

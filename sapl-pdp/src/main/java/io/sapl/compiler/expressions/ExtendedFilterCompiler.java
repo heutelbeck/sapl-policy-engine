@@ -694,8 +694,10 @@ public class ExtendedFilterCompiler {
         int     fromVal  = normalizeSliceBound(from, size, forward ? 0 : size - 1);
         int     toVal    = normalizeSliceBound(to, size, forward ? size : -1);
         val     indexSet = new HashSet<Integer>();
-        for (int i = fromVal; forward ? i < toVal : i > toVal; i += stepVal) {
-            indexSet.add(i);
+        // The index runs in 64 bits, so that a step near the range of int cannot wrap
+        // it around into the array again.
+        for (long i = fromVal; forward ? i < toVal : i > toVal; i += stepVal) {
+            indexSet.add((int) i);
         }
         return indexSet;
     }

@@ -149,7 +149,7 @@ public class ObjectCompiler {
                               };
                 hash = SemanticHashing.ordered(hash, SemanticHashing.textHash(keys[i]), entryHash);
             }
-            return SemanticHashing.ordered(hash, Objects.hashCode(location));
+            return hash;
         }
 
         @Override

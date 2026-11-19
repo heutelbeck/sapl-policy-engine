@@ -23,7 +23,6 @@ import static io.sapl.api.shared.NameValidator.requireValidName;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
@@ -167,7 +166,7 @@ public class FunctionCallCompiler {
                 };
                 hash = SemanticHashing.ordered(hash, argHash);
             }
-            return SemanticHashing.ordered(hash, Objects.hashCode(location));
+            return hash;
         }
     }
 

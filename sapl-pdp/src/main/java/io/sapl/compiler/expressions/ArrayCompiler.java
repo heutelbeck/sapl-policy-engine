@@ -220,7 +220,7 @@ public class ArrayCompiler {
                 };
                 hash = SemanticHashing.ordered(hash, elementHash);
             }
-            return SemanticHashing.ordered(hash, Objects.hashCode(location));
+            return hash;
         }
     }
 
