@@ -29,7 +29,7 @@ SAPL categorizes expressions into three strata based on their evaluation cost:
 
 1. **Cross-strata ordering:** Lower (cheaper) strata are always evaluated before higher (more expensive) strata, regardless of operand position in the source.
 
-2. **Within-strata ordering:** Within the same stratum, operands are evaluated strictly left-to-right as they appear in the source.
+2. **Within-strata ordering:** Within the same stratum, the operands of the commutative operators `==`, `!=`, `*`, `&&`, `||`, `&`, `|` and `^` are evaluated in a canonical order that does not depend on the order written (see [Operand Order of Commutative Operators](../2_7_Expressions/#operand-order-of-commutative-operators)). Streaming operands keep the order written. The operands of all other operators are evaluated left-to-right as they appear in the source.
 
 3. **Short-circuit behavior:** Only the dominating value short-circuits: `false` for AND, `true` for OR. When a dominating value is found, evaluation stops and the remaining operands are not evaluated. An error or undefined operand does **not** short-circuit, so it never lets the engine skip the remaining operands or their subscriptions.
 
@@ -61,13 +61,13 @@ If `subject.isAdmin` is `true`, the attribute finder `<pip.externalAuthCheck>` i
 
 Even though `<pip.sensor>` appears on the left, the constant `false` is evaluated first. The attribute stream is **never subscribed to**. This may be surprising if you expect strict left-to-right evaluation as in imperative programming languages.
 
-**Left-to-right within the same stratum**
+**Constants within the same stratum**
 
 ```sapl
 true || (1/0 > 0)
 ```
 
-Both operands are constants (same stratum). Left-to-right order applies: `true` is evaluated first and short-circuits. The division by zero is **never evaluated**, so no error occurs.
+Both operands are constants (same stratum). The dominating `true` decides the result, so no error occurs.
 
 ```sapl
 (1/0 > 0) || true

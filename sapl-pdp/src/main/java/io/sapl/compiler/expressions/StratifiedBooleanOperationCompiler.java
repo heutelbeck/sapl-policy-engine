@@ -59,8 +59,13 @@ public class StratifiedBooleanOperationCompiler {
         return compile(left, right, op, location);
     }
 
-    public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, BinaryOperatorType op,
-            SourceLocation location) {
+    public static CompiledExpression compile(CompiledExpression written, CompiledExpression other,
+            BinaryOperatorType op, SourceLocation location) {
+        // AND and OR are commutative: within a stratum the operands take their
+        // canonical order, so that a && b and b && a compile alike.
+        val swap      = CanonicalOperandOrder.precedes(other, written);
+        val left      = swap ? other : written;
+        val right     = swap ? written : other;
         val isAnd     = op == BinaryOperatorType.LAZY_AND || op == BinaryOperatorType.EAGER_AND;
         val dominator = isAnd ? Value.FALSE : Value.TRUE;
 

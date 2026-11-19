@@ -29,7 +29,9 @@ import io.sapl.compiler.operators.HasOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import static io.sapl.ast.BinaryOperatorType.*;
 
@@ -58,6 +60,12 @@ public class BinaryOperationCompiler {
             // XOR (the only non-short-circuit boolean operator)
             Map.entry(XOR, BooleanOperators::xor));
 
+    /**
+     * The commutative operators whose operands are compiled in canonical order.
+     * The operator {@code +} is not among them, as it concatenates texts.
+     */
+    private static final Set<BinaryOperatorType> CANONICALLY_ORDERED = EnumSet.of(EQ, NE, MUL, XOR);
+
     public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val special = tryCompileSpecialCase(binaryOperation, ctx);
         if (special != null) {
@@ -70,11 +78,30 @@ public class BinaryOperationCompiler {
             throw new SaplCompilerException(ERROR_UNIMPLEMENTED_BINARY_OPERATOR.formatted(operatorType),
                     binaryOperation);
         }
+        if (CANONICALLY_ORDERED.contains(operatorType)) {
+            return compileCanonicallyOrdered(operatorType, op, binaryOperation, ctx);
+        }
         val left = ExpressionCompiler.compile(binaryOperation.left(), ctx);
         if (left instanceof ErrorValue) {
             return left;
         }
         val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
+        if (right instanceof ErrorValue) {
+            return right;
+        }
+        return dispatchToShape(operatorType, op, left, right, binaryOperation.location());
+    }
+
+    private CompiledExpression compileCanonicallyOrdered(BinaryOperatorType operatorType, BinaryOperation op,
+            BinaryOperator binaryOperation, CompilationContext ctx) {
+        val written = ExpressionCompiler.compile(binaryOperation.left(), ctx);
+        val other   = ExpressionCompiler.compile(binaryOperation.right(), ctx);
+        val swap    = CanonicalOperandOrder.precedes(other, written);
+        val left    = swap ? other : written;
+        val right   = swap ? written : other;
+        if (left instanceof ErrorValue) {
+            return left;
+        }
         if (right instanceof ErrorValue) {
             return right;
         }

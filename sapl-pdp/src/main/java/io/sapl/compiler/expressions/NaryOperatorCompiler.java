@@ -69,8 +69,11 @@ public class NaryOperatorCompiler {
         val pures   = new ArrayList<PureOperator>();
         val streams = new ArrayList<StreamOperator>();
 
-        for (val operand : operands) {
-            val compiled = ExpressionCompiler.compile(operand, ctx);
+        // XOR and multiplication are commutative: within a stratum the operands take
+        // their canonical order, so that the order written changes neither the
+        // compiled operator nor which of several errors is the result.
+        val compiledOperands = operands.stream().map(operand -> ExpressionCompiler.compile(operand, ctx)).toList();
+        for (val compiled : CanonicalOperandOrder.sorted(compiledOperands)) {
             switch (compiled) {
             case Value v          -> values.add(v);
             case PureOperator p   -> pures.add(p);

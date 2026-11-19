@@ -99,7 +99,10 @@ public class NaryBooleanCompiler {
         val   pures        = new ArrayList<PureOperator>();
         val   streams      = new ArrayList<StreamOperator>();
         Value pendingError = null;
-        for (var op : operands) {
+        // AND and OR are commutative: within a stratum the operands take their
+        // canonical order, so that the order written changes neither the compiled
+        // operator nor which of several errors is the result.
+        for (var op : CanonicalOperandOrder.sorted(operands)) {
             switch (op) {
             case BooleanValue b when shortCircuitValue.equals(b) -> {
                 return shortCircuitValue;

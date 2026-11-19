@@ -93,10 +93,8 @@ class BooleanExpressionExtractionTests {
             val expr = extractBooleanExpression("((subject.x == 1) && (subject.y == 2)) || (resource.z == 3)");
 
             assertThat(expr).isInstanceOf(Or.class);
-            assertThat(((Or) expr).operands()).hasSize(2).satisfies(ops -> {
-                assertThat(ops.get(0)).isInstanceOf(And.class);
-                assertThat(ops.get(1)).isInstanceOf(Atom.class);
-            });
+            assertThat(((Or) expr).operands()).hasSize(2).anySatisfy(op -> assertThat(op).isInstanceOf(And.class))
+                    .anySatisfy(op -> assertThat(op).isInstanceOf(Atom.class));
         }
 
         @Test
@@ -128,11 +126,9 @@ class BooleanExpressionExtractionTests {
 
             assertThat(expr).isInstanceOf(Or.class);
             val or = (Or) expr;
-            assertThat(or.operands()).satisfies(ops -> {
-                assertThat(ops.get(0)).isInstanceOf(And.class);
-                assertThat(ops.get(1)).isInstanceOf(Not.class);
-                assertThat(((Not) ops.get(1)).operand()).isInstanceOf(Or.class);
-            });
+            assertThat(or.operands()).hasSize(2).anySatisfy(op -> assertThat(op).isInstanceOf(And.class))
+                    .anySatisfy(op -> assertThat(op).isInstanceOfSatisfying(Not.class,
+                            not -> assertThat(not.operand()).isInstanceOf(Or.class)));
         }
 
         @Test

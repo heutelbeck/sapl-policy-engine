@@ -350,6 +350,12 @@ Neither PIP is ever contacted. The constant `false` short-circuits the AND acros
 
 Only the dominating value short-circuits: `false` for AND, `true` for OR. An operand that is not `true` or `false`, an error, `undefined`, or any other non-boolean value, does not short-circuit. AND and OR follow Kleene strong three-valued logic, in which errors and undefined are treated alike as a third value, *unknown*. A dominating `false` (AND) or `true` (OR) in any operand wins regardless of position or stratum, so `(1/0 > 0) || true` is `true`, not an error. The result is an error only when no operand carries the dominating value.
 
+#### Operand Order of Commutative Operators
+
+The operators `==`, `!=`, `*`, `&&`, `||`, `&`, `|` and `^` are commutative. Within the stratum of constants and within the stratum of pure expressions, the engine puts their operands into a canonical order that does not depend on the order in which they are written. `subject.role == action.role` and `action.role == subject.role` therefore denote the same expression, and the policy index evaluates such a condition once for all policies that use it in either order. Streaming expressions keep the order written, and the strata keep their order of evaluation: constants, then pure expressions, then streams. The operator `+` is not reordered, as it concatenates texts.
+
+The canonical order decides which error is the result when several operands are errors: the result is the error of the first erroneous operand in canonical order, not in the order written. `(1/0) * ("a" * 2)` and `("a" * 2) * (1/0)` yield the same error. Which of the two errors that is cannot be told from the text of the policy.
+
 For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 
 #### Lazy vs Eager: Subscription Strategy Within the Streaming Stratum
