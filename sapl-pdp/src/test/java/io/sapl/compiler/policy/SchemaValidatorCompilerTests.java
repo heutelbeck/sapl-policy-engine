@@ -44,6 +44,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
+import static io.sapl.compiler.util.SchemaReferenceFixtures.UNRESOLVABLE_REFERENCE;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -573,6 +574,38 @@ class SchemaValidatorCompilerTests {
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, mainSchema));
             val result        = compileValidator(schemas, compilationContext(variables));
             assertThat(result).isInstanceOf(PrecompiledSchemaValidator.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Schemas a schema names")
+    class SchemaReferenceTests {
+
+        @ParameterizedTest(name = "when a schema names {1} by {0} then the document is refused")
+        @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#foreignReferences")
+        void whenSchemaNamesForeignReferenceThenDocumentIsRefused(String keyword, String reference) {
+            val schema  = (ObjectValue) obj(keyword, Value.of(reference), "type", Value.of("string"));
+            val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
+            val ctx     = compilationContext();
+            assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessage(NOT_A_JSON_SCHEMA + UNRESOLVABLE_REFERENCE.formatted(reference) + ".");
+        }
+
+        @ParameterizedTest(name = "when a schema names {0} then subjects are validated against it")
+        @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#builtInReferences")
+        void whenSchemaNamesBuiltInMetaSchemaThenSubjectsAreValidated(String description, String schema,
+                String compliant, String nonCompliant) {
+            val validator = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, json(schema))),
+                    compilationContext());
+            assertThat(List.of(evaluate(validator, subscriptionContext(subscriptionWithSubject(compliant))),
+                    evaluate(validator, subscriptionContext(subscriptionWithSubject(nonCompliant)))))
+                    .containsExactly(Value.TRUE, Value.FALSE);
+        }
+
+        private static String subscriptionWithSubject(String subject) {
+            return """
+                    {"subject": %s, "action": "read", "resource": "data"}
+                    """.formatted(subject);
         }
     }
 

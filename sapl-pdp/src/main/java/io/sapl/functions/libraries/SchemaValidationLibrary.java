@@ -22,12 +22,14 @@ import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
+import io.sapl.compiler.util.ConfinedSchemaLoader;
 import io.sapl.compiler.util.LinearRegularExpressionFactory;
 import io.sapl.compiler.util.SchemaErrors;
 import lombok.val;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
 public class SchemaValidationLibrary {
@@ -204,8 +206,7 @@ public class SchemaValidationLibrary {
             }
             """;
 
-    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
-            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12, LinearRegularExpressionFactory::applyTo);
+    private static final SchemaRegistry SCHEMA_REGISTRY = confinedSchemaRegistry(Map.of());
 
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
@@ -440,12 +441,16 @@ public class SchemaValidationLibrary {
         return schemaMap;
     }
 
-    private static SchemaRegistry createSchemaRegistry(HashMap<String, String> schemaMap) {
+    private static SchemaRegistry createSchemaRegistry(Map<String, String> schemaMap) {
         if (schemaMap.isEmpty()) {
             return SCHEMA_REGISTRY;
         }
+        return confinedSchemaRegistry(schemaMap);
+    }
+
+    private static SchemaRegistry confinedSchemaRegistry(Map<String, String> schemaMap) {
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
-            builder.schemas(schemaMap);
+            builder.schemaLoader(new ConfinedSchemaLoader(schemaMap));
             LinearRegularExpressionFactory.applyTo(builder);
         });
     }

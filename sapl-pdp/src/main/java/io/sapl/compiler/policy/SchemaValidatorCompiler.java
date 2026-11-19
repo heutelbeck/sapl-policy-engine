@@ -26,6 +26,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.ConfinedSchemaLoader;
 import io.sapl.compiler.util.LinearRegularExpressionFactory;
 import io.sapl.compiler.util.SchemaErrors;
 import lombok.NonNull;
@@ -127,27 +128,16 @@ public class SchemaValidatorCompiler {
     }
 
     private static SchemaRegistry buildSchemaRegistry(CompilationContext ctx) {
-        val schemasValue = ctx.getData().variables().get("schemas");
-        if (!(schemasValue instanceof ArrayValue schemas)) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                    LinearRegularExpressionFactory::applyTo);
-        }
         val schemaMap = new HashMap<String, String>();
-        for (val schema : schemas) {
-            if (schema instanceof ObjectValue obj && obj.containsKey(SCHEMA_ID_FIELD)) {
-                val id = obj.get(SCHEMA_ID_FIELD);
-                if (id instanceof TextValue(String value)) {
-                    val schemaNode = ValueJsonMarshaller.toJsonNode(obj);
-                    schemaMap.put(value, schemaNode.toString());
+        if (ctx.getData().variables().get("schemas") instanceof ArrayValue schemas) {
+            for (val schema : schemas) {
+                if (schema instanceof ObjectValue obj && obj.get(SCHEMA_ID_FIELD) instanceof TextValue(String id)) {
+                    schemaMap.put(id, ValueJsonMarshaller.toJsonNode(obj).toString());
                 }
             }
         }
-        if (schemaMap.isEmpty()) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                    LinearRegularExpressionFactory::applyTo);
-        }
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
-            builder.schemas(schemaMap);
+            builder.schemaLoader(new ConfinedSchemaLoader(schemaMap));
             LinearRegularExpressionFactory.applyTo(builder);
         });
     }

@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import com.github.valfirst.slf4jtest.TestLogger;
+import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.dialect.Dialect;
 import com.networknt.schema.keyword.PatternValidator;
 import io.sapl.api.model.*;
@@ -35,6 +36,7 @@ import java.util.stream.Stream;
 
 import static com.github.valfirst.slf4jtest.TestLoggerFactory.getTestLogger;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
+import static io.sapl.compiler.util.SchemaReferenceFixtures.UNRESOLVABLE_REFERENCE;
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -44,6 +46,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class SchemaValidationLibraryTests {
 
     private static final String INVALID_REGULAR_EXPRESSION = "The schema holds an invalid regular expression: %s.";
+    private static final String SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s.";
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
@@ -163,6 +166,36 @@ class SchemaValidationLibraryTests {
         val result = validateWithExternalSchemas(Value.of("x"), selfReferential, Value.EMPTY_ARRAY);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @ParameterizedTest(name = "when a schema names {1} by {0} then every function returns an error")
+    @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#foreignReferences")
+    @DisplayName("a schema may name only the built-in meta-schemas and the provided schemas, and a refusal leaves no trace in the log")
+    void whenSchemaNamesForeignReferenceThenEveryFunctionReturnsErrorAndNothingIsLogged(String keyword,
+            String reference) {
+        val jsonSchema   = ObjectValue.builder().put(keyword, Value.of(reference)).put("type", Value.of("string"))
+                .build();
+        val subject      = Value.of("text");
+        val networkntLog = getTestLogger(SchemaRegistry.class);
+        networkntLog.clearAll();
+
+        val results = List.of(isCompliant(subject, jsonSchema),
+                isCompliantWithExternalSchemas(subject, jsonSchema, Value.EMPTY_ARRAY), validate(subject, jsonSchema),
+                validateWithExternalSchemas(subject, jsonSchema, Value.EMPTY_ARRAY));
+
+        assertThat(results).allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message())
+                        .isEqualTo(SCHEMA_VALIDATION_FAILED.formatted(UNRESOLVABLE_REFERENCE.formatted(reference)))));
+        assertThat(networkntLog.getAllLoggingEvents()).isEmpty();
+    }
+
+    @ParameterizedTest(name = "when a schema names {0} then subjects are validated against it")
+    @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#builtInReferences")
+    void whenSchemaNamesBuiltInMetaSchemaThenSubjectsAreValidated(String description, String schema, String compliant,
+            String nonCompliant) {
+        val jsonSchema = (ObjectValue) json(schema);
+        assertThat(List.of(isCompliant(json(compliant), jsonSchema), isCompliant(json(nonCompliant), jsonSchema)))
+                .containsExactly(Value.TRUE, Value.FALSE);
     }
 
     @Test
