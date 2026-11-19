@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
+import com.networknt.schema.InvalidSchemaException;
 import com.networknt.schema.*;
 import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
@@ -24,7 +25,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.SchemaRegistries;
-import io.sapl.compiler.util.SchemaRegistries.UnresolvableSchemaReferenceException;
 import lombok.val;
 
 import java.util.HashMap;
@@ -400,7 +400,7 @@ public class SchemaValidationLibrary {
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
             val errors      = BoundedRegex.runWithSharedMatchBudget(() -> validator.validate(subjectNode));
             return createValidationResult(errors.isEmpty(), errors);
-        } catch (UnresolvableSchemaReferenceException e) {
+        } catch (InvalidSchemaException e) {
             return Value.error(e.getMessage());
         } catch (SchemaException e) {
             // An uncompilable schema (malformed, bad or unresolvable $ref) is an author

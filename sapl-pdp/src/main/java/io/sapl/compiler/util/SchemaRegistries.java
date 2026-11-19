@@ -28,7 +28,6 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.ByteArrayInputStream;
-import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
@@ -58,8 +57,6 @@ public class SchemaRegistries {
     private static final String ERROR_SCHEMA_REFERENCE_NOT_RESOLVABLE = "The schema reference '%s' cannot be resolved. Only the meta-schemas of the supported JSON Schema drafts and schemas supplied with a matching $id can be referenced.";
 
     private static final String FRAGMENT_SEPARATOR = "#";
-
-    private static final Set<String> META_SCHEMA_IRIS = metaSchemaIris();
 
     /**
      * Creates a registry for JSON Schema 2020-12 by default that resolves
@@ -102,6 +99,8 @@ public class SchemaRegistries {
      */
     private static final class SuppliedSchemasOnlyLoader extends SchemaLoader {
 
+        private static final Set<String> META_SCHEMA_IRIS = metaSchemaIris();
+
         private final Map<String, String> schemasById;
 
         SuppliedSchemasOnlyLoader(Map<String, String> schemasById) {
@@ -120,26 +119,12 @@ public class SchemaRegistries {
             if (schema != null) {
                 return () -> new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
             }
-            throw new UnresolvableSchemaReferenceException(iri);
+            throw new InvalidSchemaException(Error.builder()
+                    .messageSupplier(() -> ERROR_SCHEMA_REFERENCE_NOT_RESOLVABLE.formatted(iri)).build());
         }
 
         private static String withoutEmptyFragment(String iri) {
             return iri.endsWith(FRAGMENT_SEPARATOR) ? iri.substring(0, iri.length() - 1) : iri;
-        }
-    }
-
-    /**
-     * Signals a {@code $schema} or {@code $ref} that names neither a built-in
-     * meta-schema nor a supplied schema. The message names only the reference
-     * itself, never content of any resource.
-     */
-    public static final class UnresolvableSchemaReferenceException extends InvalidSchemaException {
-
-        @Serial
-        private static final long serialVersionUID = 1L;
-
-        UnresolvableSchemaReferenceException(String iri) {
-            super(Error.builder().messageSupplier(() -> ERROR_SCHEMA_REFERENCE_NOT_RESOLVABLE.formatted(iri)).build());
         }
     }
 }

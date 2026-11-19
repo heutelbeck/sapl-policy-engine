@@ -283,13 +283,9 @@ class SchemaReferenceResolutionTests {
      */
     private static final class ConnectionRecordingServer implements AutoCloseable {
 
-        private static final String RESPONSE = """
-                HTTP/1.1 200 OK\r
-                Content-Type: application/json\r
-                Content-Length: %d\r
-                Connection: close\r
-                \r
-                %s""".formatted(CLASSIFIED_SCHEMA.getBytes(StandardCharsets.UTF_8).length, CLASSIFIED_SCHEMA);
+        private static final String RESPONSE = String.join("\r\n", "HTTP/1.1 200 OK", "Content-Type: application/json",
+                "Content-Length: " + CLASSIFIED_SCHEMA.getBytes(StandardCharsets.UTF_8).length, "Connection: close", "",
+                CLASSIFIED_SCHEMA);
 
         private final AtomicInteger connections = new AtomicInteger();
         private final ServerSocket  serverSocket;
