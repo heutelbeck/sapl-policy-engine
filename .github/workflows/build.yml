@@ -1406,7 +1406,7 @@ jobs:
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
-          name: SAPL Node ${{ github.ref_name }}
+          name: SAPL ${{ github.ref_name }}
           body: |
             ## SAPL Node ${{ github.ref_name }}
 
@@ -1547,7 +1547,8 @@ jobs:
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
-          name: SAPL Language Server ${{ github.ref_name }}
+          name: SAPL ${{ github.ref_name }}
+          append_body: true
           body: |
             ## SAPL Language Server ${{ github.ref_name }}
 
