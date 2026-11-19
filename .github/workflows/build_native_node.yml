@@ -123,9 +123,9 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   build-native-macos:
-    name: Build (macos-14-xlarge)
+    name: Build (macos-15-xlarge)
     if: ${{ inputs.build_macos }}
-    runs-on: macos-14-xlarge
+    runs-on: macos-15-xlarge
     timeout-minutes: 120
 
     steps:
