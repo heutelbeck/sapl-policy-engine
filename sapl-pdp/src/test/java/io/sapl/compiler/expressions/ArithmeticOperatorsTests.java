@@ -176,6 +176,28 @@ class ArithmeticOperatorsTests {
     }
     // @formatter:on
 
+    @ParameterizedTest(name = "{0} is {1}")
+    @CsvSource(delimiter = '|', textBlock = """
+            "n=" + 5.0          | n=5
+            "n=" + 1E+3         | n=1000
+            "n=" + -0.0         | n=0
+            "n=" + 1E+20        | n=1E+20
+            "n=" + 12.50        | n=12.50
+            "n=" + 1E-7         | n=1E-7
+            "n=" + [5.0, 1E+3]  | n=[5, 1000]
+            "n=" + {"a": 2.0}   | n={"a"=2}
+            """)
+    void whenNumberIsAppendedToTextThenItIsWrittenInItsTextForm(String expression, String text) {
+        assertThat(compileExpression(expression)).isEqualTo(Value.of(text));
+    }
+
+    @Test
+    void whenNumberIsNamedInErrorMessageThenItIsWrittenInItsTextForm() {
+        assertThat(compileExpression("[5.0, 1E+3, 1E+20] * 2")).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message())
+                        .isEqualTo("Numeric operation requires number values, but found: [5, 1000, 1E+20]."));
+    }
+
     @ParameterizedTest(name = "{0} = {1} is within the range of numbers")
     @CsvSource(delimiter = '|', textBlock = """
             1E500 * 1E500   | 1E+1000
