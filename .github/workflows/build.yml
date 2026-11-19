@@ -17,12 +17,6 @@ name: Testing and Deployment
 
 on:
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: Publish only the native release assets of this existing version tag, such as v4.1.3
-        required: false
-        type: string
-        default: ''
   push:
     branches:
       - '**'
@@ -99,10 +93,8 @@ jobs:
 
       - name: Check Ref Type
         id: check-ref
-        env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* || -n "$RELEASE_TAG" ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             echo "is_tag=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_tag=false" >> "$GITHUB_OUTPUT"
@@ -883,7 +875,7 @@ jobs:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
-        !failure() && !cancelled() && !inputs.release_tag &&
+        !failure() && !cancelled() &&
         (
           (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
           || needs.version-check.outputs.is_tag == 'true'
@@ -964,7 +956,7 @@ jobs:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
-        !failure() && !cancelled() && !inputs.release_tag &&
+        !failure() && !cancelled() &&
         (
           (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
           || needs.version-check.outputs.is_tag == 'true'
@@ -1371,10 +1363,9 @@ jobs:
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         with:
-          tag_name: ${{ inputs.release_tag || github.ref_name }}
-          name: SAPL Node ${{ inputs.release_tag || github.ref_name }}
+          name: SAPL Node ${{ github.ref_name }}
           body: |
-            ## SAPL Node ${{ inputs.release_tag || github.ref_name }}
+            ## SAPL Node ${{ github.ref_name }}
 
             SAPL PDP Node server and CLI.
 
@@ -1528,10 +1519,9 @@ jobs:
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         with:
-          tag_name: ${{ inputs.release_tag || github.ref_name }}
-          name: SAPL Language Server ${{ inputs.release_tag || github.ref_name }}
+          name: SAPL Language Server ${{ github.ref_name }}
           body: |
-            ## SAPL Language Server ${{ inputs.release_tag || github.ref_name }}
+            ## SAPL Language Server ${{ github.ref_name }}
 
             Native executables for the SAPL Language Server.
 
@@ -1607,7 +1597,7 @@ jobs:
       - name: Download all current release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.release_tag || github.ref_name }}
+          TAG: ${{ github.ref_name }}
         run: |
           mkdir -p sums-staging
           gh release download "${TAG}" --repo "${{ github.repository }}" --dir sums-staging --pattern '*.tar.gz' --pattern '*.zip' --pattern '*.deb' --pattern '*.rpm' --pattern '*.jar' --pattern '*.cdx.json'
@@ -1628,7 +1618,7 @@ jobs:
       - name: Upload SHA256SUMS.txt to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.release_tag || github.ref_name }}
+          TAG: ${{ github.ref_name }}
         run: |
           gh release upload "${TAG}" sums-staging/SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
 
@@ -1636,7 +1626,7 @@ jobs:
     needs: [test, version-check]
     if: >-
       ${{
-        !failure() && !cancelled() && !inputs.release_tag &&
+        !failure() && !cancelled() &&
         (
           (github.ref == 'refs/heads/master' && needs.version-check.outputs.is_snapshot == 'true')
           || needs.version-check.outputs.is_tag == 'true'
@@ -1653,7 +1643,6 @@ jobs:
     needs: [publish-docker, version-check]
     if: >-
       ${{
-        !inputs.release_tag &&
         !failure() && !cancelled() &&
         needs.version-check.outputs.is_tag == 'true'
       }}
