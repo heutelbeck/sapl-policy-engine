@@ -24,10 +24,12 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -79,6 +81,25 @@ class LinearRegexTests {
                     arguments("a group left open", "(a{1000}" + "b{1000}".repeat(10)));
         }
 
+        @ParameterizedTest(name = "{0} is accepted")
+        @ValueSource(strings = { "\\p{L}{1,238}", "\\P{L}{1,238}", "\\pL{243}", "\\p{^L}{0,238}", "[\\p{L}]{1,238}",
+                "\\p{Lu}{1,370}", "\\p{Lo}{1,294}", "\\p{N}{1,1000}", "\\p{Greek}{1,1000}", ".{1,1000}", "[^a]{1,1000}",
+                "[\\p{L}\\p{N}]{1,196}" })
+        @DisplayName("a repetition of a large Unicode class up to its border is accepted")
+        void whenLargeUnicodeClassIsRepeatedUpToItsBorderThenAccepted(String regex) {
+            assertThatCode(() -> LinearRegex.compile(regex)).doesNotThrowAnyException();
+        }
+
+        @ParameterizedTest(name = "{0} is too large")
+        @ValueSource(strings = { "\\p{L}{1,1000}", "\\p{L}{1,239}", "\\P{L}{1,239}", "\\pL{244}", "\\p{^L}{0,239}",
+                "[\\p{L}]{1,239}", "[^\\p{L}]{1,239}", "\\p{Lu}{1,371}", "\\p{Lo}{1,295}", "[\\p{L}\\p{N}]{1,197}",
+                "(?:\\p{L}\\p{Lu}){1,200}" })
+        @DisplayName("a repetition of a large Unicode class beyond its border is refused as too large")
+        void whenLargeUnicodeClassIsRepeatedBeyondItsBorderThenRefusedAsTooLarge(String regex) {
+            assertThatThrownBy(() -> LinearRegex.compile(regex)).isInstanceOf(PatternSyntaxException.class)
+                    .extracting(e -> ((PatternSyntaxException) e).getDescription()).isEqualTo(TOO_LARGE);
+        }
+
         @Timeout(10)
         @MethodSource
         @ParameterizedTest(name = "{0}")
@@ -110,7 +131,7 @@ class LinearRegexTests {
             return Stream.of(arguments("the largest single repetition", "a{1000}", "a".repeat(1000), true),
                     arguments("nested repetitions just below the limit", "(?:a{100}){99}", "a".repeat(9900), true),
                     arguments("a bounded class repetition", "[a-z]{1,1000}", "abc", true),
-                    arguments("a Unicode category", "\\p{L}{1,1000}", "été", true),
+                    arguments("a Unicode category", "\\p{L}{1,100}", "été", true),
                     arguments("a host name", "(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.){1,10}[a-z]{2,63}",
                             "api.example.com", true),
                     arguments("groups nested to the limit",

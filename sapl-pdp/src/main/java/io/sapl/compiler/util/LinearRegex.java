@@ -23,6 +23,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.ArrayDeque;
+import java.util.Map;
 
 /**
  * Compiles the regular expressions of policies with RE2/J, which matches in
@@ -39,6 +40,13 @@ import java.util.ArrayDeque;
  * whose program would exceed {@value #MAX_PROGRAM_SIZE} instructions, or whose
  * groups nest deeper than {@value #MAX_NESTING_DEPTH} levels, is refused like a
  * pattern with a syntax error.
+ * <p>
+ * A large Unicode class such as {@code \p{L}} counts for more than one
+ * instruction. RE2/J matches a class with one instruction, but the automata
+ * other implementations of SAPL build grow with the number of UTF-8 byte
+ * sequences a class spans, so {@code \p{L}{1,1000}} needs about 48 MB there.
+ * The weights of the classes keep the patterns this engine accepts within
+ * those the other implementations accept.
  * <p>
  * The syntax is that of RE2. Look-around, backreferences, atomic groups and
  * possessive quantifiers do not exist in it and are refused. The classes
@@ -69,6 +77,22 @@ public class LinearRegex {
     private static final int CAPTURE_SIZE      = 2;
     private static final int MAX_OCTAL_DIGITS  = 3;
     private static final int MAX_REPEAT_DIGITS = 4;
+
+    /**
+     * The instructions a Unicode class counts for, by its name, where it is more
+     * than one. A class counts for about one instruction for every 800 bytes of
+     * the automaton that matches it backwards byte by byte, rounded up, so that
+     * a pattern within {@value #MAX_PROGRAM_SIZE} instructions needs an automaton
+     * of at most about 8 MB. The negated class counts alike.
+     */
+    private static final Map<String, Integer> UNICODE_CLASS_WEIGHTS = Map.ofEntries(Map.entry("L", 41),
+            Map.entry("Lo", 33), Map.entry("Ll", 27), Map.entry("Lu", 26), Map.entry("Mn", 19), Map.entry("M", 18),
+            Map.entry("S", 16), Map.entry("So", 13), Map.entry("Common", 13), Map.entry("P", 12), Map.entry("Po", 11),
+            Map.entry("N", 9), Map.entry("Mc", 9), Map.entry("No", 5), Map.entry("Nd", 5), Map.entry("Lm", 5),
+            Map.entry("Sm", 4), Map.entry("Ps", 4), Map.entry("Pe", 4), Map.entry("Han", 4), Map.entry("Arabic", 4),
+            Map.entry("Latin", 3), Map.entry("Inherited", 3), Map.entry("Greek", 3), Map.entry("C", 3),
+            Map.entry("Sk", 2), Map.entry("Sc", 2), Map.entry("Pd", 2), Map.entry("Nl", 2), Map.entry("Katakana", 2),
+            Map.entry("Hangul", 2), Map.entry("Ethiopic", 2), Map.entry("Cyrillic", 2), Map.entry("Cf", 2));
 
     /**
      * Compiles a pattern for matching in linear time.
@@ -153,7 +177,7 @@ public class LinearRegex {
             val escaped = regex.charAt(position++);
             switch (escaped) {
             case 'Q'      -> quotedSection();
-            case 'p', 'P' -> skipBracedOrSingle();
+            case 'p', 'P' -> current.atom(unicodeClassWeight());
             case 'x'      -> skipBracedOrHexadecimal();
             default       -> {
                 if (escaped >= '0' && escaped <= '7') {
@@ -175,13 +199,26 @@ public class LinearRegex {
             position = end < 0 ? regex.length() : end + 2;
         }
 
-        private void skipBracedOrSingle() {
-            if (position < regex.length() && regex.charAt(position) == '{') {
-                skipPast('}');
-            } else if (position < regex.length()) {
+        /**
+         * Reads the name of a Unicode class after {@code \p} or {@code \P}, braced
+         * or a single letter, and weighs the class.
+         *
+         * @return the instructions the class counts for
+         */
+        private long unicodeClassWeight() {
+            if (position >= regex.length()) {
+                return 1;
+            }
+            final String name;
+            if (regex.charAt(position) == '{') {
+                val end = regex.indexOf('}', position);
+                name     = end < 0 ? "" : regex.substring(position + 1, end);
+                position = end < 0 ? regex.length() : end + 1;
+            } else {
+                name = regex.substring(position, position + 1);
                 position++;
             }
-            current.atom(1);
+            return UNICODE_CLASS_WEIGHTS.getOrDefault(name.startsWith("^") ? name.substring(1) : name, 1);
         }
 
         private void skipBracedOrHexadecimal() {
@@ -215,6 +252,7 @@ public class LinearRegex {
             if (position < regex.length() && regex.charAt(position) == ']') {
                 position++;
             }
+            long weight = 0;
             while (position < regex.length()) {
                 val character = regex.charAt(position);
                 if (character == ']') {
@@ -223,7 +261,7 @@ public class LinearRegex {
                 }
                 if (character == '\\') {
                     position++;
-                    skipClassEscape();
+                    weight += classEscapeWeight();
                 } else if (regex.startsWith("[:", position)) {
                     val end = regex.indexOf(":]", position + 2);
                     position = end < 0 ? position + 1 : end + 2;
@@ -231,18 +269,27 @@ public class LinearRegex {
                     position++;
                 }
             }
-            current.atom(1);
+            current.atom(Math.max(1, weight));
         }
 
-        private void skipClassEscape() {
+        /**
+         * Skips an escape in a class and weighs it: a Unicode class by its weight,
+         * any other escape as nothing.
+         *
+         * @return the instructions the escape counts for
+         */
+        private long classEscapeWeight() {
             if (position >= regex.length()) {
-                return;
+                return 0;
             }
             val escaped = regex.charAt(position++);
-            if ((escaped == 'p' || escaped == 'P' || escaped == 'x') && position < regex.length()
-                    && regex.charAt(position) == '{') {
+            if (escaped == 'p' || escaped == 'P') {
+                return unicodeClassWeight();
+            }
+            if (escaped == 'x' && position < regex.length() && regex.charAt(position) == '{') {
                 skipPast('}');
             }
+            return 0;
         }
 
         private void openGroup() {

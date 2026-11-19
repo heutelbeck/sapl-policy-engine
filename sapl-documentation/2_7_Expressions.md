@@ -276,7 +276,7 @@ The `=~` operator, the `=~` conditions of the content filter and the `text with 
 
 #### Limits
 
-A pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. A single repetition count may be at most 1000, and nested repetitions multiply, so `(?:a{100}){101}` is too large. An invalid pattern, or one beyond these limits, is reported with the reason RE2 gives: a constant pattern in a policy when the policy is compiled, a pattern computed at evaluation time as an error of the expression.
+A pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. A single repetition count may be at most 1000, and nested repetitions multiply, so `(?:a{100}){101}` is too large. A large Unicode class counts for more than one instruction, as other implementations of SAPL build an automaton for it whose size grows with the class: `\p{L}` counts for 41 instructions, so `\p{L}{1,238}` is accepted and `\p{L}{1,239}` is too large. Smaller classes such as `\p{Lu}`, `\p{N}` or `\p{Greek}` count for fewer, and a class written in brackets counts for the Unicode classes it holds. An invalid pattern, or one beyond these limits, is reported with the reason RE2 gives: a constant pattern in a policy when the policy is compiled, a pattern computed at evaluation time as an error of the expression.
 
 ### Key Membership Operator
 
