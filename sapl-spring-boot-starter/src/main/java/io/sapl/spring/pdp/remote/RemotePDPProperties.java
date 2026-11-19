@@ -64,6 +64,9 @@ public class RemotePDPProperties implements Validator {
     private Duration keepAlive   = Duration.ofSeconds(20);
     private Duration maxLifeTime = Duration.ofSeconds(90);
 
+    // How many RSocket connections the client keeps to the node.
+    private int connections = 1;
+
     private String key    = "";
     private String secret = "";
 
@@ -149,6 +152,11 @@ public class RemotePDPProperties implements Validator {
                 errors.rejectValue("port", "port-invalid", new String[] { String.valueOf(properties.port) },
                         "port must be between 1 and 65535 for rsocket transport");
             }
+        }
+        if (properties.connections < 1) {
+            errors.rejectValue("connections", "connections-invalid",
+                    new String[] { String.valueOf(properties.connections) },
+                    "The number of connections must be at least 1.");
         }
         if (properties.tokenRelay) {
             errors.rejectValue("tokenRelay", "token-relay-rsocket",

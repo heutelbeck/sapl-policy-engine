@@ -21,9 +21,7 @@ import java.io.IOException;
 import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -86,16 +84,17 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     private static final String ERROR_ENCODE_MULTI_SUBSCRIPTION                  = "Failed to encode multi-subscription: {}";
     private static final String ERROR_ENCODE_SUBSCRIPTION                        = "Failed to encode subscription: {}";
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT              = "Refusing to send remote PDP credentials over a plaintext RSocket connection. Enable TLS with secure(...), or explicitly accept the risk with allowInsecureTransport().";
+    private static final String ERROR_INVALID_CONNECTIONS                        = "The number of connections must be at least 1.";
     private static final String ERROR_RSOCKET_CONNECTION                         = "RSocket connection error: {} ({})";
     private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT               = "Sending remote PDP credentials over a plaintext RSocket connection because allowInsecureTransport() is set. A network attacker can capture the credential. Do not use in production.";
 
     static final int RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
     private final @Nullable RSocketClientResources clientResources;
-    private final Mono<RSocket>                    rSocketMono;
-    private final AtomicReference<RSocket>         cachedSocket = new AtomicReference<>();
-    private final AtomicReference<Mono<RSocket>>   connecting   = new AtomicReference<>();
-    private final AtomicBoolean                    disposed     = new AtomicBoolean();
+    private final RSocketPool                      pool;
+
+    @Getter
+    private final int connections;
 
     @Getter
     private final int firstBackoffMillis;
@@ -108,10 +107,10 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     @Getter
     private final int timeoutMillis;
 
-    // Reconnecting cache: reuses the RSocket while alive, reconnects after
-    // connection drop. Mono.defer() re-evaluates on each subscription, so
-    // retryWhen in decide() naturally triggers reconnection when the cached
-    // socket is disposed.
+    // A pool of reconnecting connections: each is reused while alive and opened
+    // anew after it is lost. A request leases a connection at each subscription,
+    // so retryWhen in decide() naturally resubscribes on another or a reopened
+    // connection when its connection is lost.
     ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono, int firstBackoffMillis, int maxBackOffMillis) {
         this(rSocketMono, firstBackoffMillis, maxBackOffMillis, 5000);
     }
@@ -120,28 +119,27 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
             int firstBackoffMillis,
             int maxBackOffMillis,
             int timeoutMillis) {
-        this(rSocketMono, firstBackoffMillis, maxBackOffMillis, timeoutMillis, null);
+        this(rSocketMono, firstBackoffMillis, maxBackOffMillis, timeoutMillis, 1);
+    }
+
+    ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono,
+            int firstBackoffMillis,
+            int maxBackOffMillis,
+            int timeoutMillis,
+            int connections) {
+        this(rSocketMono, firstBackoffMillis, maxBackOffMillis, timeoutMillis, connections, null);
     }
 
     private ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono,
             int firstBackoffMillis,
             int maxBackOffMillis,
             int timeoutMillis,
+            int connections,
             @Nullable RSocketClientResources clientResources) {
-        this.clientResources = clientResources;
-        val connectMono = rSocketMono;
-        this.rSocketMono        = Mono.defer(() -> {
-                                    val existing = cachedSocket.get();
-                                    if (existing != null && !existing.isDisposed()) {
-                                        return Mono.just(existing);
-                                    }
-                                    // Single-flight the connect so concurrent first subscriptions share one attempt
-                                    // instead of each leaking a socket.
-                                    return connecting.updateAndGet(current -> current != null ? current
-                                            : connectMono.timeout(Duration.ofMillis(timeoutMillis))
-                                                    .doOnNext(this::cacheOrDisposeIfDisposed)
-                                                    .doFinally(signal -> connecting.set(null)).cache());
-                                });
+        this.clientResources    = clientResources;
+        this.pool               = new RSocketPool(rSocketMono.timeout(Duration.ofMillis(timeoutMillis)), connections,
+                firstBackoffMillis, maxBackOffMillis);
+        this.connections        = connections;
         this.firstBackoffMillis = firstBackoffMillis;
         this.maxBackOffMillis   = maxBackOffMillis;
         this.timeoutMillis      = timeoutMillis;
@@ -159,7 +157,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
         val consecutiveFailures = new AtomicLong();
-        return rSocketMono.flatMapMany(rSocket -> {
+        return pool.stream(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_DECIDE,
                         SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
@@ -185,7 +183,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        return rSocketMono.flatMap(rSocket -> {
+        return pool.request(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_DECIDE_ONCE,
                         SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
@@ -212,7 +210,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
         val consecutiveFailures = new AtomicLong();
-        return rSocketMono.flatMapMany(rSocket -> {
+        return pool.stream(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE,
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
@@ -240,7 +238,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
         val consecutiveFailures = new AtomicLong();
-        return rSocketMono.flatMapMany(rSocket -> {
+        return pool.stream(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE_ALL,
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
@@ -272,7 +270,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
      * @return the bundled authorization decisions
      */
     public Mono<MultiAuthorizationDecision> decideAllOnce(MultiAuthorizationSubscription multiAuthzSubscription) {
-        return rSocketMono.flatMap(rSocket -> {
+        return pool.request(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE_ALL_ONCE,
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
@@ -337,19 +335,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         return bytes;
     }
 
-    // Routes a freshly connected socket to the cache, unless dispose() has run in
-    // the meantime. A socket that arrives after dispose() is disposed here so an
-    // in-flight connect cannot leak a live connection past shutdown.
-    private void cacheOrDisposeIfDisposed(RSocket socket) {
-        if (disposed.get()) {
-            socket.dispose();
-        } else {
-            cachedSocket.set(socket);
-        }
-    }
-
     /**
-     * Closes the RSocket connection and releases its shared event loops.
+     * Closes the RSocket connections and releases their shared event loops.
      */
     @Override
     public void close() {
@@ -357,15 +344,10 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     }
 
     /**
-     * Dispose the RSocket connection and release its shared event loops.
+     * Dispose the RSocket connections and release their shared event loops.
      */
     public void dispose() {
-        disposed.set(true);
-        connecting.set(null);
-        val socket = cachedSocket.getAndSet(null);
-        if (socket != null) {
-            socket.dispose();
-        }
+        pool.dispose();
         if (clientResources != null) {
             clientResources.close();
         }
@@ -407,6 +389,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         private Mono<Payload> setupPayloadMono;
         private boolean       secure;
         private boolean       allowInsecureTransport;
+        private int           connections = 1;
 
         /**
          * Configure insecure SSL (development only).
@@ -610,6 +593,26 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         }
 
         /**
+         * Set how many connections the client keeps to the node, so that the node
+         * can serve its requests on as many of its cores. A one-shot request goes
+         * to the connection with the fewest requests in flight, a stream stays on
+         * the connection it was opened on. A connection that is lost is opened
+         * anew in the background while the others serve on. One connection unless
+         * set.
+         *
+         * @param connections the number of connections, at least 1
+         * @return this builder
+         * @throws IllegalArgumentException if the number is less than 1
+         */
+        public Builder connections(int connections) {
+            if (connections < 1) {
+                throw new IllegalArgumentException(ERROR_INVALID_CONNECTIONS);
+            }
+            this.connections = connections;
+            return this;
+        }
+
+        /**
          * Build the {@link ProtobufRemoteReactivePolicyDecisionPoint}.
          *
          * @return a new instance
@@ -630,7 +633,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
             val rSocketMono     = Mono
                     .defer(() -> connector.connect(TcpClientTransport.create(clientResources.configure(client))));
             // Sustained failure backs off to a 60s heartbeat, not a tight reconnect storm.
-            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 60000, 5000, clientResources);
+            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 60000, 5000, connections,
+                    clientResources);
         }
     }
 }
