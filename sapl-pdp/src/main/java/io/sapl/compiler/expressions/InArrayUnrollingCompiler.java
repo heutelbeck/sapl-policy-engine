@@ -39,10 +39,11 @@ import lombok.val;
  * <li>Three or more: n-ary {@code ||} via chained
  * {@link StratifiedBooleanOperationCompiler}</li>
  * </ul>
- * Unrolling fires only when every array element is a compile-time constant.
- * A runtime (pure/stream) element that errors would be masked by the unrolled
- * {@code ||} short-circuit, diverging from standard IN error propagation, so
- * such haystacks fall through to the standard IN compilation path.
+ * Unrolling fires only when every array element is a compile-time constant
+ * that is not an error. An element that errors, at compile time or at runtime,
+ * would be masked by the unrolled {@code ||} short-circuit, diverging from
+ * standard IN error propagation, so such haystacks fall through to the
+ * standard IN compilation path.
  */
 @UtilityClass
 class InArrayUnrollingCompiler {
@@ -64,10 +65,11 @@ class InArrayUnrollingCompiler {
         val haystack = arrayExpr.elements();
         val location = inOperator.location();
 
-        // Unroll only constant haystacks. A runtime element's error would be masked by
-        // the || short-circuit.
+        // Unroll only constant haystacks without errors. The error of an element would
+        // be masked by the || short-circuit.
         for (val element : haystack) {
-            if (!(ExpressionCompiler.compile(element, ctx) instanceof Value)) {
+            val compiledElement = ExpressionCompiler.compile(element, ctx);
+            if (!(compiledElement instanceof Value) || compiledElement instanceof ErrorValue) {
                 return null;
             }
         }

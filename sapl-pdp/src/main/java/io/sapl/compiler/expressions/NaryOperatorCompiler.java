@@ -111,10 +111,12 @@ public class NaryOperatorCompiler {
         if (values.isEmpty()) {
             return null;
         }
-        Value result = values.getFirst();
-        if (result instanceof ErrorValue) {
-            return result;
+        for (val value : values) {
+            if (value instanceof ErrorValue) {
+                return value;
+            }
         }
+        Value result = values.getFirst();
         for (int i = 1; i < values.size(); i++) {
             result = op.apply(result, values.get(i), location);
             if (result instanceof ErrorValue) {

@@ -26,8 +26,12 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.FUNCTION_BROKER;
 import static io.sapl.util.SaplTesting.compileExpression;
@@ -35,6 +39,7 @@ import static io.sapl.util.SaplTesting.evaluationContext;
 import static io.sapl.util.SaplTesting.parseExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("in-array unrolling")
 class InArrayUnrollingCompilerTests {
@@ -93,6 +98,28 @@ class InArrayUnrollingCompilerTests {
 
             assertThat(unrolled).isInstanceOf(ErrorValue.class);
             assertThat(baseline).isInstanceOf(ErrorValue.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("constant haystack elements that are errors")
+    class ErroringConstantHaystackElements {
+
+        @ParameterizedTest(name = "{0} is an error with unrolling {1}")
+        @MethodSource
+        void whenHaystackHasErroringConstantElementThenResultIsThatErrorWithAndWithoutUnrolling(String expression,
+                boolean unrolling) {
+            val ctx      = new CompilationContext(FUNCTION_BROKER);
+            val compiled = compileExpression(expression, unrolling ? unrollingContext(ctx) : ctx);
+            assertThat(compiled).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).isEqualTo("Division by zero."));
+        }
+
+        static Stream<Arguments> whenHaystackHasErroringConstantElementThenResultIsThatErrorWithAndWithoutUnrolling() {
+            return Stream
+                    .of("1 in [1, (1/0)]", "1 in [(1/0), 1]", "2 in [1, (1/0)]", "subject in [1, (1/0)]",
+                            "undefined in [1, (1/0)]")
+                    .flatMap(expression -> Stream.of(arguments(expression, true), arguments(expression, false)));
         }
     }
 

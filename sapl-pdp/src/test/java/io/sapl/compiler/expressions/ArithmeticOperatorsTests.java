@@ -26,7 +26,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -35,6 +37,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.compileExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -172,6 +175,25 @@ class ArithmeticOperatorsTests {
             arguments("modulo overflowing scales", MOD, HUGE_POSITIVE_SCALE, HUGE_NEGATIVE_SCALE));
     }
     // @formatter:on
+
+    @ParameterizedTest(name = "{0} = {1} is within the range of numbers")
+    @CsvSource(delimiter = '|', textBlock = """
+            1E500 * 1E500   | 1E+1000
+            1E-500 * 1E-500 | 1E-1000
+            1E-500 / 1E500  | 1E-1000
+            1E500 / 1E-500  | 1E+1000
+            """)
+    void whenResultScaleIsAtTheBoundThenResultIsNumber(String expression, String expected) {
+        assertThat(compileExpression(expression)).isEqualTo(Value.of(new BigDecimal(expected)));
+    }
+
+    @ParameterizedTest(name = "{0} exceeds the range of numbers")
+    @ValueSource(strings = { "1E500 * 1E501", "1E-500 * 1E-501", "1E600 * 1E600", "1E-600 * 1E-600", "1E-999 / 1E999",
+            "1E999 / 1E-999", "1E-500 / 1E501", "-1E-500 * 1E-501" })
+    void whenResultScaleExceedsTheBoundThenOverflowError(String expression) {
+        assertThat(compileExpression(expression)).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).isEqualTo("Numeric operation exceeded the supported range."));
+    }
 
     @Test
     void whenDivideNonTerminatingThenUsesDecimal128Precision() {

@@ -204,6 +204,25 @@ class NaryOperatorCompilerTests {
     }
 
     @Nested
+    @DisplayName("constant error operands")
+    class ConstantErrorOperandTests {
+
+        @ParameterizedTest(name = "{0} is the error of its constant operand")
+        @CsvSource(delimiter = '|', textBlock = """
+                2 * (1/0) * subject            | Division by zero.
+                2 * 3 * (1/0) * subject        | Division by zero.
+                2 * (1/0) * 3                  | Division by zero.
+                "a" * (1/0) * subject          | Division by zero.
+                true ^ (1/0) ^ subject         | Division by zero.
+                true ^ false ^ (1/0) ^ subject | Division by zero.
+                """)
+        void whenConstantOperandIsErrorThenResultIsThatError(String expression, String message) {
+            assertThat(compileExpression(expression)).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).isEqualTo(message));
+        }
+    }
+
+    @Nested
     class StrataTests {
 
         @ParameterizedTest(name = "{0} -> {1}")
