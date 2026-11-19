@@ -829,7 +829,7 @@ The full schema looks like this.
 }
 ```
 
-The optional `conditions` array narrows which elements the actions apply to. Each condition has a JSONPath, a comparison type (`==`, `!=`, `>=`, `<=`, `>`, `<`, or `=~` for regex), and a value. A `=~` condition matches the whole text against a pattern in RE2 syntax, matched in linear time like the `=~` operator of SAPL (see [Regular Expressions](../2_7_Expressions/#regular-expressions)). A condition whose pattern is invalid or too large cannot be fulfilled, so the constraint handler denies access with an `AccessDeniedException` that names the reason. All conditions must match (AND-joined) for the actions to apply. Action types are `delete` (remove the node), `blacken` (obfuscate text with optional partial disclosure), and `replace` (substitute the value). The provider works on `Optional`, `List`, `Set`, `Mono`, `Flux`, arrays, and single objects.
+The optional `conditions` array narrows which elements the actions apply to. Each condition has a JSONPath, a comparison type (`==`, `!=`, `>=`, `<=`, `>`, `<`, or `=~` for regex), and a value. A `=~` condition matches the whole text against a pattern in [RE2 syntax](../2_7_Expressions/#regular-expressions). A condition with an invalid or too large pattern denies access with an `AccessDeniedException` that names the reason. All conditions must match (AND-joined) for the actions to apply. Action types are `delete` (remove the node), `blacken` (obfuscate text with optional partial disclosure), and `replace` (substitute the value). The provider works on `Optional`, `List`, `Set`, `Mono`, `Flux`, arrays, and single objects.
 
 #### `jsonContentFilterPredicate`
 

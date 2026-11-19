@@ -98,12 +98,9 @@ public class PatternsFunctionLibrary {
             - Complex validation rules require regex capabilities
 
             Regular expressions are matched in time linear in the length of the input and never backtrack.
-            Constructs that need backtracking do not exist in this syntax and make a pattern invalid:
-            look-ahead and look-behind `(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`, backreferences `\\1`,
-            atomic groups `(?>...)` and possessive quantifiers `*+`, `++`, `?+`. The classes `\\d`, `\\w`, `\\s`
-            and `\\b` hold ASCII characters only. Use `\\p{L}`, `\\p{Nd}` and similar Unicode classes for other
-            scripts. Matching without regard to case with `(?i)` follows Unicode, and `.` matches every character
-            except a line feed.
+            Look-around, backreferences, atomic groups and possessive quantifiers do not exist in this syntax and
+            make a pattern invalid. The classes `\\d`, `\\w`, `\\s` and `\\b` hold ASCII characters only. Use
+            `\\p{L}`, `\\p{Nd}` and similar Unicode classes for other scripts.
 
             In the replacement of `replaceAll`, `$1` or `${name}` insert a captured group, and a backslash makes the
             next character literal.

@@ -27,6 +27,7 @@ import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.LinearRegularExpressionFactory;
+import io.sapl.compiler.util.SchemaErrors;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -61,11 +62,11 @@ import java.util.stream.Collectors;
 public class SchemaValidatorCompiler {
 
     private static final String ERROR_SCHEMA_EVALUATION_FAILED   = "Schema expression evaluation failed: %s";
-    private static final String ERROR_SCHEMA_INVALID_JSON_SCHEMA = "Invalid JSON Schema: %s";
+    private static final String ERROR_SCHEMA_INVALID_JSON_SCHEMA = "The schema is not a valid JSON Schema: %s.";
     private static final String ERROR_SCHEMA_MUST_BE_CONSTANT    = "Schema must be a constant object literal, not a runtime expression. "
             + "Variable references and function calls are not allowed in schema definitions.";
     private static final String ERROR_SCHEMA_MUST_BE_OBJECT      = "Schema must be an object, got: %s";
-    private static final String ERROR_SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s";
+    private static final String ERROR_SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s.";
 
     private static final String SCHEMA_ID_FIELD = "$id";
 
@@ -121,7 +122,7 @@ public class SchemaValidatorCompiler {
             precompiledSchema.initializeValidators();
             return new PrecompiledSchemaValidator(element, constantSchema, precompiledSchema, location);
         } catch (SchemaException e) {
-            throw new SaplCompilerException(ERROR_SCHEMA_INVALID_JSON_SCHEMA.formatted(e.getMessage()), e, location);
+            throw new SaplCompilerException(SchemaErrors.describe(e, ERROR_SCHEMA_INVALID_JSON_SCHEMA), e, location);
         }
     }
 
@@ -171,7 +172,7 @@ public class SchemaValidatorCompiler {
             } catch (Throwable e) {
                 // Third-party validation on hostile input must never crash evaluation. Surface
                 // an ErrorValue.
-                return Value.errorAt(location, ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
+                return Value.error(SchemaErrors.describe(e, ERROR_SCHEMA_VALIDATION_FAILED), location);
             }
         }
 

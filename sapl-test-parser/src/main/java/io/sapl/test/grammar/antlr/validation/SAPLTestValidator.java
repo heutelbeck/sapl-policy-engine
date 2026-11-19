@@ -44,7 +44,7 @@ import io.sapl.test.grammar.antlr.SAPLTestParserBaseListener;
 public class SAPLTestValidator {
 
     public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Repetition amount needs to be a natural number larger than 0.";
-    public static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The given regex has an invalid format.";
+    public static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The regular expression '%s' is invalid: %s.";
     public static final String MSG_INVALID_STRING_WITH_LENGTH              = "String length needs to be a natural number larger than 0.";
     public static final String MSG_DUPLICATE_REQUIREMENT_NAME              = "Requirement name must be unique.";
     public static final String MSG_DUPLICATE_SCENARIO_NAME                 = "Scenario name must be unique within a requirement.";
@@ -153,7 +153,8 @@ public class SAPLTestValidator {
         try {
             LinearRegex.compile(regex);
         } catch (PatternSyntaxException e) {
-            errorConsumer.accept(ValidationError.fromToken(MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX, context.regex));
+            errorConsumer.accept(ValidationError.fromToken(
+                    MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX.formatted(regex, e.getDescription()), context.regex));
         }
     }
 

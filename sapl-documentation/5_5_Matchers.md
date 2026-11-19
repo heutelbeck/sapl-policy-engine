@@ -57,7 +57,7 @@ String matchers provide detailed text matching within `matching text ...` or in 
 | `text with length 8`                               | Exact string length                 |
 | `text containing stream "a", "b", "c" in order`   | Contains substrings in order        |
 
-The pattern of `text with regex` follows the same [RE2 syntax](../2_7_Expressions/#regular-expressions) as the `=~` operator in policies and must match the whole text. A pattern that a policy would refuse, such as one with look-ahead, is marked as an error in the editor and makes the test fail when it runs. In the Java fixture API, `Matchers.textMatching` does the same and throws a `PatternSyntaxException` for such a pattern.
+The pattern of `text with regex` uses the [RE2 syntax](../2_7_Expressions/#regular-expressions) of policies and must match the whole text. An invalid pattern is marked as an error in the editor and fails the test. In the Java fixture API, `Matchers.textMatching` throws a `PatternSyntaxException` for it.
 
 ### Object Matchers
 

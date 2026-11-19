@@ -100,38 +100,18 @@ This subscription fails schema validation (missing required field `role`), so th
 
 ### Patterns in Schemas
 
-The `pattern` and `patternProperties` keywords use the [regular expressions](../2_7_Expressions/#regular-expressions) of SAPL, written in the syntax of RE2. As the JSON Schema specification demands, a pattern matches if it matches any part of the text. Anchor it with `^` and `$` to match the whole text.
+The `pattern` and `patternProperties` keywords use the [regular expressions](../2_7_Expressions/#regular-expressions) of SAPL in RE2 syntax, not the ECMA-262 syntax the JSON Schema specification names, so matching stays linear in time. A pattern matches if it matches any part of the text. Anchor it with `^` and `$` to match the whole text.
 
-The JSON Schema specification names the regular expressions of ECMA-262 (JavaScript) for these keywords, and they know look-ahead, look-behind and backreferences. SAPL deliberately uses RE2 for schemas as well. Matching stays linear in time, although the subscription it validates is untrusted input. A pattern means the same in a schema as with the `=~` operator. And every SAPL engine accepts the same schemas. Schemas taken from other projects may therefore need to be rewritten.
-
-A typical case is a password rule written with look-ahead:
-
-```json
-{
-    "type": "string",
-    "pattern": "^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z]).{12,}$"
-}
-```
-
-Each look-ahead becomes a pattern of its own under `allOf`, and the length becomes `minLength`:
+A rule written with look-ahead is written as several patterns under `allOf` instead. `"pattern": "^(?=.*[0-9])(?=.*[A-Z]).{12,}$"` becomes:
 
 ```json
 {
     "type": "string",
     "minLength": 12,
-    "allOf": [
-        { "pattern": "[0-9]" },
-        { "pattern": "[A-Z]" },
-        { "pattern": "[a-z]" }
-    ]
+    "allOf": [{ "pattern": "[0-9]" }, { "pattern": "[A-Z]" }]
 }
 ```
 
-A negative look-ahead becomes `not`. Instead of `"pattern": "^(?!.*admin).*$"`, write `"not": { "pattern": "admin" }`.
-
-A schema with a pattern that RE2 refuses, because it uses look-around, backreferences or other unsupported syntax, or because it is too large, never lets a subscription through:
-
-- An enforced schema statement with such a pattern is refused when the policy is compiled, and the error names the reason. This also holds for a pattern in a branch that a subscription might never reach, and for a pattern in a schema of the `schemas` variable that the schema references with `$ref`. A schema statement without `enforced` is used by editors only and is not checked.
-- The functions of the `jsonschema` library return an error naming the reason, never `true` and never a validation result.
+A schema with a pattern RE2 refuses never lets a subscription through, even if the subscription never reaches the pattern. An enforced schema statement with such a pattern is refused when the policy is compiled, and the functions of the `jsonschema` library return an error. Both name the reason.
 
 The `format` keyword is an annotation and is not checked. `"format": "regex"` does not test whether a text is a valid pattern. Use `patterns.isValidRegex` for that.

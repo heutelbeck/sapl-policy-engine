@@ -23,6 +23,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import io.sapl.compiler.util.LinearRegularExpressionFactory;
+import io.sapl.compiler.util.SchemaErrors;
 import lombok.val;
 
 import java.util.HashMap;
@@ -132,17 +133,10 @@ public class SchemaValidationLibrary {
             operator, and are matched in time linear in the length of the text. A
             pattern matches if it matches any part of the text, and `$` matches at
             the end of the text only. Look-around, backreferences, atomic groups and
-            possessive quantifiers do not exist in this syntax, and `\\d`, `\\w` and
-            `\\s` hold ASCII characters only. A schema with such a pattern, or with a
-            pattern too large to compile, is an error. The functions then return an
-            error, never `true` and never a validation result, even if the subject
-            never reaches the pattern.
-
-            The JSON Schema specification names ECMA-262 for patterns, which knows
-            look-ahead. SAPL uses RE2 for schemas on purpose: matching stays linear in
-            time, and the syntax is the same as for `=~` and in every SAPL engine. A
-            rule written with look-ahead, such as "at least one digit and one capital
-            letter", is written as several `pattern` keywords under `allOf` instead:
+            possessive quantifiers do not exist in this syntax. A schema with a pattern
+            RE2 refuses is an error, even if the subject never reaches the pattern. A
+            rule written with look-ahead is written as several `pattern` keywords under
+            `allOf` instead:
             `{"type": "string", "minLength": 12, "allOf": [{"pattern": "[0-9]"}, {"pattern": "[A-Z]"}]}`.
             """;
 
@@ -421,12 +415,12 @@ public class SchemaValidationLibrary {
         } catch (SchemaException e) {
             // An uncompilable schema (malformed, bad or unresolvable $ref) is an author
             // error, not a non-compliant subject. Surface it as an error.
-            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
+            return Value.error(SchemaErrors.describe(e, ERROR_SCHEMA_VALIDATION_FAILED));
         } catch (IllegalArgumentException e) {
             return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
         } catch (Throwable t) {
             // Third-party validation on hostile input must not crash evaluation.
-            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, t.getMessage());
+            return Value.error(SchemaErrors.describe(t, ERROR_SCHEMA_VALIDATION_FAILED));
         }
     }
 

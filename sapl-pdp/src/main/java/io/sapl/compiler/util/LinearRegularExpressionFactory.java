@@ -59,11 +59,13 @@ public final class LinearRegularExpressionFactory implements RegularExpressionFa
     /**
      * Installs this factory on a {@link SchemaRegistry} builder, so that every
      * {@code pattern} keyword evaluated by the resulting registry is matched in
-     * linear time.
+     * linear time, and a pattern RE2/J refuses fails the schema with a
+     * {@link com.networknt.schema.SchemaException} without being logged.
      *
      * @param builder the schema-registry builder to configure
      */
     public static void applyTo(SchemaRegistry.Builder builder) {
-        builder.schemaRegistryConfig(SchemaRegistryConfig.builder().regularExpressionFactory(INSTANCE).build());
+        builder.schemaRegistryConfig(SchemaRegistryConfig.builder().regularExpressionFactory(INSTANCE).build())
+                .dialectRegistry(new LinearRegexDialectRegistry());
     }
 }

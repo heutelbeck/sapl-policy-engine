@@ -23,6 +23,7 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedElementValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
 import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaException;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -50,6 +51,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("SchemaValidatorCompiler")
 class SchemaValidatorCompilerTests {
+
+    private static final String INVALID_REGULAR_EXPRESSION = "The schema holds an invalid regular expression: %s.";
+    private static final String NOT_A_JSON_SCHEMA          = "The schema is not a valid JSON Schema: ";
 
     private static final ObjectValue STRING_SCHEMA  = stringSchema();
     private static final ObjectValue NUMBER_SCHEMA  = numberSchema();
@@ -175,7 +179,7 @@ class SchemaValidatorCompilerTests {
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schemaWithRef));
             val ctx           = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema");
+                    .hasMessageStartingWith(NOT_A_JSON_SCHEMA).hasMessageNotContaining("Exception");
         }
 
         @Test
@@ -186,22 +190,22 @@ class SchemaValidatorCompilerTests {
             val schemas             = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schemaWithNestedRef));
             val ctx                 = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema");
+                    .hasMessageStartingWith(NOT_A_JSON_SCHEMA).hasMessageNotContaining("Exception");
         }
 
-        @ParameterizedTest(name = "when schema pattern is {0} then throws SaplCompilerException")
+        @ParameterizedTest(name = "when schema pattern is {0} then throws SaplCompilerException naming the reason")
         @MethodSource("invalidSchemaPatterns")
-        void whenSchemaPatternInvalidThenThrowsCompilerException(String description, String pattern) {
+        void whenSchemaPatternInvalidThenThrowsCompilerException(String description, String pattern, String reason) {
             val schema  = (ObjectValue) obj("type", Value.of("string"), "pattern", Value.of(pattern));
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
             val ctx     = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema");
+                    .hasMessage(INVALID_REGULAR_EXPRESSION.formatted(reason));
         }
 
         static Stream<Arguments> invalidSchemaPatterns() {
-            return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$"),
-                    arguments("too large to compile", "(?:a{1000}){1000}"));
+            return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$", "invalid or unsupported Perl syntax"),
+                    arguments("too large to compile", "(?:a{1000}){1000}", "expression too large"));
         }
 
         @ParameterizedTest(name = "when schema holds {0} then the document is refused at compile time")
@@ -211,7 +215,7 @@ class SchemaValidatorCompilerTests {
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, json(schema)));
             val ctx     = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema").hasMessageContaining(reason);
+                    .hasMessage(INVALID_REGULAR_EXPRESSION.formatted(reason));
         }
 
         static Stream<Arguments> whenSchemaHoldsPatternRefusedByRe2ThenThrowsCompilerException() {
@@ -236,8 +240,7 @@ class SchemaValidatorCompilerTests {
                     """)));
             val ctx       = compilationContext(variables);
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema")
-                    .hasMessageContaining("invalid or unsupported Perl syntax");
+                    .hasMessage(INVALID_REGULAR_EXPRESSION.formatted("invalid or unsupported Perl syntax"));
         }
 
         @Test
@@ -522,7 +525,7 @@ class SchemaValidatorCompilerTests {
             val schemas    = List.of(enforcedSchema(SubscriptionElement.SUBJECT, deepSchema));
             val ctx        = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema");
+                    .hasMessageStartingWith(NOT_A_JSON_SCHEMA).hasMessageNotContaining("Exception");
         }
 
         @Test
@@ -533,7 +536,7 @@ class SchemaValidatorCompilerTests {
             val schemas     = List.of(enforcedSchema(SubscriptionElement.SUBJECT, oneOfSchema));
             val ctx         = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema");
+                    .hasMessageStartingWith(NOT_A_JSON_SCHEMA).hasMessageNotContaining("Exception");
         }
 
         @Test
@@ -543,7 +546,7 @@ class SchemaValidatorCompilerTests {
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
             val ctx     = compilationContext();
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid JSON Schema");
+                    .hasMessageStartingWith(NOT_A_JSON_SCHEMA).hasMessageNotContaining("Exception");
         }
 
         @Test
@@ -638,19 +641,21 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("a validator that throws at evaluation time yields ErrorValue, not a thrown exception")
+        @DisplayName("a validator that throws at evaluation time yields ErrorValue with the plain reason, not a thrown exception")
         void whenValidateThrowsAtEvalTimeThenReturnsErrorValue() {
             // A networknt throw on adversarial input must surface as an ErrorValue, not
             // crash the eval path.
             val throwingSchema = mock(Schema.class);
-            when(throwingSchema.validate(any(JsonNode.class))).thenThrow(new RuntimeException("boom"));
+            when(throwingSchema.validate(any(JsonNode.class)))
+                    .thenThrow(new SchemaException(new IllegalStateException("boom")));
             val validator = new PrecompiledSchemaValidator(SubscriptionElement.SUBJECT, STRING_SCHEMA, throwingSchema,
                     TEST_LOCATION);
             val ctx       = subscriptionContext("""
                     { "subject": "anything", "action": "read", "resource": "data" }
                     """);
 
-            assertThat(validator.evaluate(ctx)).isInstanceOf(ErrorValue.class);
+            assertThat(validator.evaluate(ctx)).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).isEqualTo("Schema validation failed: boom."));
         }
     }
 }

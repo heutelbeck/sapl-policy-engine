@@ -17,6 +17,9 @@
  */
 package io.sapl.functions.libraries;
 
+import com.github.valfirst.slf4jtest.TestLogger;
+import com.networknt.schema.dialect.Dialect;
+import com.networknt.schema.keyword.PatternValidator;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
@@ -30,6 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static com.github.valfirst.slf4jtest.TestLoggerFactory.getTestLogger;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,6 +42,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
+
+    private static final String INVALID_REGULAR_EXPRESSION = "The schema holds an invalid regular expression: %s.";
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
@@ -87,7 +93,7 @@ class SchemaValidationLibraryTests {
                 validate(validationSubject, jsonSchema),
                 validateWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY)))
                 .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                        error -> assertThat(error.message()).contains(reason)));
+                        error -> assertThat(error.message()).isEqualTo(INVALID_REGULAR_EXPRESSION.formatted(reason))));
     }
 
     static Stream<Arguments> whenSchemaPatternRefusedThenEveryFunctionReturnsError() {
@@ -116,8 +122,35 @@ class SchemaValidationLibraryTests {
                 {"$ref": "https://example.com/password"}
                 """);
 
-        assertThat(isCompliantWithExternalSchemas(Value.of("password1"), schema, externals)).isInstanceOfSatisfying(
-                ErrorValue.class, error -> assertThat(error.message()).contains("invalid or unsupported Perl syntax"));
+        assertThat(isCompliantWithExternalSchemas(Value.of("password1"), schema, externals))
+                .isInstanceOfSatisfying(ErrorValue.class, error -> assertThat(error.message())
+                        .isEqualTo(INVALID_REGULAR_EXPRESSION.formatted("invalid or unsupported Perl syntax")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("a schema pattern RE2 refuses leaves no trace in the log, as subscriptions may supply schemas")
+    void whenSchemaPatternRefusedThenNothingIsLogged(String description, String schema) {
+        val jsonSchema    = (ObjectValue) json(schema);
+        val networkntLogs = List.of(getTestLogger(PatternValidator.class), getTestLogger(Dialect.class));
+        networkntLogs.forEach(TestLogger::clearAll);
+
+        val result = validate(Value.of("text"), jsonSchema);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(networkntLogs).allSatisfy(log -> assertThat(log.getAllLoggingEvents()).isEmpty());
+    }
+
+    static Stream<Arguments> whenSchemaPatternRefusedThenNothingIsLogged() {
+        return Stream.of(arguments("a look-ahead in pattern", """
+                {"type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}
+                """), arguments("a look-behind in a patternProperties key", """
+                {"type": "object", "patternProperties": {"(?<=x)y": {"type": "number"}}}
+                """), arguments("a look-behind in a patternProperties key next to additionalProperties", """
+                {"type": "object", "additionalProperties": false, "patternProperties": {"(?<=x)y": {"type": "number"}}}
+                """), arguments("a look-ahead in pattern under the draft-07 dialect", """
+                {"$schema": "http://json-schema.org/draft-07/schema#", "type": "string", "pattern": "(?!admin)"}
+                """));
     }
 
     @Test
