@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.document;
+package io.sapl.conformance;
 
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -24,10 +24,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 /**
@@ -42,30 +40,29 @@ import java.util.stream.IntStream;
 public class ConformanceCorpus {
 
     /**
-     * The report that says that a document has no problem.
+     * The mark that starts a case. The rest of its line is the heading.
      */
-    public static final String ACCEPTED = "accepted";
+    public static final String HEADING = "=== ";
 
     /**
-     * What separates the problems of a report: an empty line.
+     * The line between the document of a case and what is expected for it.
      */
-    public static final String BETWEEN_PROBLEMS = "\n\n";
-
-    /**
-     * A block of a report that stands for a run of problems of one class, one
-     * after the other: {@code <100 times assignment-instead-of-comparison>}. The
-     * groups "count" and "identifier" hold the number and the class.
-     */
-    public static final Pattern RUN_OF_PROBLEMS = Pattern.compile("<(?<count>\\d+) times (?<identifier>[a-z0-9-]+)>");
+    public static final String SEPARATOR = "---";
 
     /**
      * The system property that names the directory of the corpus.
      */
     private static final String DIRECTORY_PROPERTY = "sapl.conformance.directory";
 
+    /**
+     * The directory of the corpus if the system property does not name one: the
+     * corpus of the sapl-rust repository next to this one, seen from the module
+     * sapl-pdp, in which the tests run.
+     */
+    private static final String DEFAULT_DIRECTORY = "../../sapl-rust/conformance";
+
     private static final String ERROR_CARRIAGE_RETURN       = "The case file %s holds a carriage return. Lines end with a line feed, and a carriage return in a document is written as <U+000D>.";
     private static final String ERROR_DIRECTORY_MISSING     = "The conformance corpus was not found at '%s'. The system property '%s' names the directory that holds it.";
-    private static final String ERROR_DIRECTORY_NOT_NAMED   = "The system property '%s' is not set. It names the directory that holds the conformance corpus.";
     private static final String ERROR_HEADING_WITHOUT_SPACE = "Line %2$d of the case file %1$s starts with '===' and does not go on with a space. Such a line is a heading. In a document its first character is written as <U+003D>.";
     private static final String ERROR_NO_CASE               = "The directory '%s' of the conformance corpus holds no case.";
     private static final String ERROR_NO_CASE_FILE          = "The file %s is no case file. A directory of the corpus holds only files with the extension 'cases'.";
@@ -74,9 +71,7 @@ public class ConformanceCorpus {
 
     private static final String CASE_FILE_EXTENSION = ".cases";
     private static final String CODE_POINT          = "U+";
-    private static final String HEADING             = "=== ";
     private static final String HEADING_MARK        = "===";
-    private static final String SEPARATOR           = "---";
     private static final String TIMES               = " times ";
 
     private static final int HEXADECIMAL = 16;
@@ -87,11 +82,30 @@ public class ConformanceCorpus {
      * @param origin the file and the line where the case begins
      * @param heading what the case shows. In the parser corpus the verdict
      * precedes it.
-     * @param document the SAPL document
+     * @param documentAsWritten the document as the file writes it, with its
+     * placeholders
+     * @param document the SAPL document, with the placeholders replaced by the
+     * text they stand for
      * @param expectation what must be reported for the document. Empty in the
      * parser corpus.
      */
-    public record Case(String origin, String heading, String document, String expectation) {
+    public record Case(String origin, String heading, String documentAsWritten, String document, String expectation) {
+
+        /**
+         * @param newHeading the heading that replaces the one of this case
+         * @return this case with the heading
+         */
+        public Case withHeading(String newHeading) {
+            return new Case(origin, newHeading, documentAsWritten, document, expectation);
+        }
+
+        /**
+         * @param newExpectation the expectation that replaces the one of this case
+         * @return this case with the expectation
+         */
+        public Case withExpectation(String newExpectation) {
+            return new Case(origin, heading, documentAsWritten, document, newExpectation);
+        }
 
         /**
          * @return where the case begins and what it shows, which names it in a
@@ -104,32 +118,51 @@ public class ConformanceCorpus {
     }
 
     /**
+     * One case file of the corpus.
+     *
+     * @param path where the file is
+     * @param introduction the lines before the first case, which say what the
+     * file is about
+     * @param cases the cases of the file, in their order
+     */
+    public record CaseFile(Path path, List<String> introduction, List<Case> cases) {}
+
+    /**
      * Reads the cases of all files of a corpus, in the order of the file names.
      *
      * @param corpus the name of the corpus, which is a directory of the
      * conformance corpus, for example "parser"
      * @return the cases
-     * @throws IllegalStateException if the directory is not named, is missing,
-     * holds no case, or holds a file that does not follow the format
+     * @throws IllegalStateException if the directory is missing, holds no case,
+     * or holds a file that does not follow the format
      */
     public static List<Case> casesOf(String corpus) {
+        return caseFilesOf(corpus).stream().flatMap(file -> file.cases().stream()).toList();
+    }
+
+    /**
+     * Reads all files of a corpus, in the order of their names.
+     *
+     * @param corpus the name of the corpus, which is a directory of the
+     * conformance corpus, for example "parser"
+     * @return the case files
+     * @throws IllegalStateException if the directory is missing, holds no case,
+     * or holds a file that does not follow the format
+     */
+    public static List<CaseFile> caseFilesOf(String corpus) {
         val directory = directoryOf(corpus);
-        val cases     = new ArrayList<Case>();
-        for (val file : filesIn(directory)) {
-            cases.addAll(casesIn(corpus + "/" + file.getFileName(), file));
-        }
-        if (cases.isEmpty()) {
+        val files     = filesIn(directory).stream().map(file -> caseFileOf(corpus + "/" + file.getFileName(), file))
+                .toList();
+        if (files.stream().allMatch(file -> file.cases().isEmpty())) {
             throw new IllegalStateException(ERROR_NO_CASE.formatted(directory));
         }
-        return cases;
+        return files;
     }
 
     private static Path directoryOf(String corpus) {
-        val configured = System.getProperty(DIRECTORY_PROPERTY);
-        if (configured == null || configured.isBlank()) {
-            throw new IllegalStateException(ERROR_DIRECTORY_NOT_NAMED.formatted(DIRECTORY_PROPERTY));
-        }
-        val directory = Path.of(configured, corpus).toAbsolutePath().normalize();
+        val property   = System.getProperty(DIRECTORY_PROPERTY);
+        val configured = property == null || property.isBlank() ? DEFAULT_DIRECTORY : property;
+        val directory  = Path.of(configured, corpus).toAbsolutePath().normalize();
         if (!Files.isDirectory(directory)) {
             throw new IllegalStateException(ERROR_DIRECTORY_MISSING.formatted(directory, DIRECTORY_PROPERTY));
         }
@@ -144,21 +177,24 @@ public class ConformanceCorpus {
         }
     }
 
-    private static List<Case> casesIn(String name, Path file) {
+    private static CaseFile caseFileOf(String name, Path file) {
         if (!file.toString().endsWith(CASE_FILE_EXTENSION)) {
             throw new IllegalStateException(ERROR_NO_CASE_FILE.formatted(name));
         }
         val lines = linesOf(name, file);
         // A case reaches from its heading to the next one. The lines before the first
         // heading say what the file is about.
-        val headings = IntStream.range(0, lines.size()).filter(index -> lines.get(index).startsWith(HEADING)).boxed()
+        val headings     = IntStream.range(0, lines.size()).filter(index -> lines.get(index).startsWith(HEADING))
+                .boxed().toList();
+        val cases        = IntStream.range(0, headings.size()).mapToObj(number -> {
+                             val heading = headings.get(number);
+                             val next    = number + 1 < headings.size() ? headings.get(number + 1) : lines.size();
+                             return caseOf(name + ":" + (heading + 1), lines.get(heading).substring(HEADING.length()),
+                                     lines.subList(heading + 1, next));
+                         })
                 .toList();
-        return IntStream.range(0, headings.size()).mapToObj(number -> {
-            val heading = headings.get(number);
-            val next    = number + 1 < headings.size() ? headings.get(number + 1) : lines.size();
-            return caseOf(name + ":" + (heading + 1), lines.get(heading).substring(HEADING.length()),
-                    lines.subList(heading + 1, next));
-        }).toList();
+        val introduction = lines.subList(0, headings.isEmpty() ? lines.size() : headings.getFirst());
+        return new CaseFile(file, introduction, cases);
     }
 
     private static List<String> linesOf(String name, Path file) {
@@ -185,7 +221,8 @@ public class ConformanceCorpus {
         val separator   = body.indexOf(SEPARATOR);
         val document    = separator < 0 ? body : body.subList(0, separator);
         val expectation = separator < 0 ? List.<String>of() : body.subList(separator + 1, body.size());
-        return new Case(origin, heading, withPlaceholdersReplaced(joined(document), origin), joined(expectation));
+        val written     = joined(document);
+        return new Case(origin, heading, written, withPlaceholdersReplaced(written, origin), joined(expectation));
     }
 
     /**

@@ -47,9 +47,11 @@
 	
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
-		<!-- The tests tagged "conformance" read the corpus of the sapl-rust
-			repository. They run in the profile "conformance" only. -->
-		<excludedGroups>conformance</excludedGroups>
+		<!-- The tests tagged "conformance" check this engine against the
+			corpus of the sapl-rust repository, the tests tagged
+			"conformance-dump" write what this engine yields into it. They run
+			in the profiles "conformance" and "conformance-dump" only. -->
+		<excludedGroups>conformance,conformance-dump</excludedGroups>
 	</properties>
 	
 	<dependencies>
@@ -264,26 +266,32 @@
 		<profile>
 			<!-- Runs only the tests tagged "conformance". They expect the
 				sapl-rust repository next to this one. Another place is given with
-				-Dsapl.conformance.directory=... -->
+				-Dsapl.conformance.directory=..., which Surefire passes on to the
+				tests as a system property. -->
 			<id>conformance</id>
 			<properties>
 				<groups>conformance</groups>
 				<excludedGroups />
-				<sapl.conformance.directory>${project.basedir}/../../sapl-rust/conformance</sapl.conformance.directory>
 			</properties>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<configuration>
-							<systemPropertyVariables>
-								<sapl.conformance.directory>${sapl.conformance.directory}</sapl.conformance.directory>
-							</systemPropertyVariables>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
+		</profile>
+		<profile>
+			<!-- Runs only the tests tagged "conformance-dump". They rewrite the
+				case files of the corpus with what this engine yields: the verdicts
+				of "parser", the reports of "diagnostics" and "several-mistakes",
+				and the outcomes of "evaluation". Introductions, headings and
+				documents stay as they are written. Like the profile "conformance",
+				they expect the sapl-rust repository next to this one, and another
+				place is given with -Dsapl.conformance.directory=... To review the
+				result before it reaches the corpus, give a copy of the corpus and
+				compare it with the original:
+				cp -r ../sapl-rust/conformance /tmp/corpus
+				mvn -B verify -pl sapl-pdp -am -Pconformance-dump -Dsapl.conformance.directory=/tmp/corpus
+				diff -r ../sapl-rust/conformance /tmp/corpus -->
+			<id>conformance-dump</id>
+			<properties>
+				<groups>conformance-dump</groups>
+				<excludedGroups />
+			</properties>
 		</profile>
 	</profiles>
 </project>

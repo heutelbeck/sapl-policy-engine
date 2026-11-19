@@ -19,16 +19,18 @@ package io.sapl.compiler.document;
 
 import io.sapl.compiler.diagnostics.Diagnostic;
 import io.sapl.compiler.diagnostics.Problem;
-import io.sapl.compiler.document.ConformanceCorpus.Case;
+import io.sapl.conformance.ConformanceCorpus;
+import io.sapl.conformance.ConformanceCorpus.Case;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Optional;
 import java.util.stream.Stream;
 
+import static io.sapl.conformance.ParserVerdicts.isStatedValid;
+import static io.sapl.conformance.ParserVerdicts.refusalOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -40,12 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ParserConformanceTests {
 
     private static final String CORPUS = "parser";
-
-    private static final String VALID   = "valid: ";
-    private static final String INVALID = "invalid: ";
-
-    private static final String ERROR_HOLDS_A_REPORT = "The case at %s holds a report. A case of the parser corpus holds a verdict and a document, and no '---'.";
-    private static final String ERROR_NO_VERDICT     = "The heading of the case at %s does not start with 'valid: ' or 'invalid: '.";
 
     static Stream<Case> casesOfTheParserCorpus() {
         return ConformanceCorpus.casesOf(CORPUS).stream();
@@ -77,28 +73,6 @@ class ParserConformanceTests {
 
         assertThat(document.diagnostics()).as(document.errors()).extracting(Diagnostic::problem)
                 .doesNotContain(Problem.SYNTAX_ERROR);
-    }
-
-    private static boolean isStatedValid(Case conformanceCase) {
-        if (!conformanceCase.expectation().isEmpty()) {
-            throw new IllegalStateException(ERROR_HOLDS_A_REPORT.formatted(conformanceCase.origin()));
-        }
-        if (conformanceCase.heading().startsWith(VALID)) {
-            return true;
-        }
-        if (conformanceCase.heading().startsWith(INVALID)) {
-            return false;
-        }
-        throw new IllegalStateException(ERROR_NO_VERDICT.formatted(conformanceCase.origin()));
-    }
-
-    /**
-     * @return what the engine reports if it refuses the document, empty if it
-     * accepts the document
-     */
-    private static Optional<String> refusalOf(String document) {
-        val parsed = DocumentCompiler.parseDocument(document);
-        return parsed.isInvalid() ? Optional.of(parsed.errors()) : Optional.empty();
     }
 
 }

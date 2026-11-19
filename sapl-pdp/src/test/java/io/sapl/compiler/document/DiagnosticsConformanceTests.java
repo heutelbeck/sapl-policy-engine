@@ -18,26 +18,22 @@
 package io.sapl.compiler.document;
 
 import io.sapl.compiler.diagnostics.Diagnostic;
-import io.sapl.compiler.diagnostics.FurtherRegion;
-import io.sapl.compiler.diagnostics.Region;
-import io.sapl.compiler.document.ConformanceCorpus.Case;
+import io.sapl.conformance.ConformanceCorpus;
+import io.sapl.conformance.ConformanceCorpus.Case;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.document.ConformanceCorpus.ACCEPTED;
-import static io.sapl.compiler.document.ConformanceCorpus.BETWEEN_PROBLEMS;
-import static io.sapl.compiler.document.ConformanceCorpus.RUN_OF_PROBLEMS;
+import static io.sapl.conformance.DiagnosticReports.reportOf;
+import static io.sapl.conformance.DiagnosticReports.withRunsAsStated;
+import static io.sapl.conformance.DiagnosticReports.writtenReport;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -59,11 +55,6 @@ class DiagnosticsConformanceTests {
 
     private static final String DEVIATION           = "  expected:%n%s  reported:%n%s";
     private static final String LEFT_BY_QUICK_FIXES = "  the quick fixes leave problems:%n%s";
-    private static final String RUN                 = "<%d times %s>";
-    private static final String WRITTEN_FURTHER     = "also %s %s";
-    private static final String WRITTEN_PROBLEM     = "%s %s";
-    private static final String WRITTEN_QUICK_FIX   = "fix %s \"%s\"";
-    private static final String WRITTEN_REGION      = "%d:%d-%d:%d";
 
     private static final String ERROR_NOT_AS_STATED = "The engine does not report %s as the corpus states.";
 
@@ -117,74 +108,6 @@ class DiagnosticsConformanceTests {
             return Optional.empty();
         }
         return Optional.of(LEFT_BY_QUICK_FIXES.formatted(indented(writtenReport(remaining.diagnostics()))));
-    }
-
-    /**
-     * What the engine reports for a document, in the format of the corpus.
-     */
-    private static String reportOf(String document) {
-        val parsed = DocumentCompiler.parseDocument(document);
-        return parsed.isInvalid() ? writtenReport(parsed.diagnostics()) : ACCEPTED;
-    }
-
-    private static String writtenReport(List<Diagnostic> diagnostics) {
-        return diagnostics.stream().map(DiagnosticsConformanceTests::written)
-                .collect(Collectors.joining(BETWEEN_PROBLEMS)).stripTrailing();
-    }
-
-    private static String written(Diagnostic diagnostic) {
-        val lines = new ArrayList<String>();
-        lines.add(WRITTEN_PROBLEM.formatted(diagnostic.identifier(), written(diagnostic.region())));
-        lines.add(diagnostic.shortForm());
-        lines.add(diagnostic.explanation());
-        for (val furtherRegion : diagnostic.furtherRegions()) {
-            lines.add(written(furtherRegion));
-        }
-        val quickFix = diagnostic.quickFix();
-        if (quickFix != null) {
-            lines.add(WRITTEN_QUICK_FIX.formatted(written(quickFix.region()), quickFix.replacement()));
-        }
-        return String.join(String.valueOf(LINE_FEED), lines);
-    }
-
-    private static String written(FurtherRegion furtherRegion) {
-        return WRITTEN_FURTHER.formatted(written(furtherRegion.region()), furtherRegion.label().text());
-    }
-
-    private static String written(Region region) {
-        return WRITTEN_REGION.formatted(region.line(), region.column(), region.endLine(), region.endColumn());
-    }
-
-    /**
-     * The report with its problems written as runs wherever the stated report
-     * does so. A run of the stated report takes the problems of its class that
-     * follow each other, up to its number, so that a report with fewer of them
-     * differs in the number.
-     */
-    private static String withRunsAsStated(String reported, String stated) {
-        val reportedBlocks = new ArrayDeque<>(List.of(reported.split(BETWEEN_PROBLEMS)));
-        val blocks         = new ArrayList<String>();
-        for (val statedBlock : stated.split(BETWEEN_PROBLEMS)) {
-            val run = RUN_OF_PROBLEMS.matcher(statedBlock);
-            if (run.matches()) {
-                val count      = Integer.parseInt(run.group("count"));
-                val identifier = run.group("identifier");
-                var found      = 0;
-                while (found < count && !reportedBlocks.isEmpty() && isOfClass(reportedBlocks.getFirst(), identifier)) {
-                    reportedBlocks.removeFirst();
-                    found++;
-                }
-                blocks.add(RUN.formatted(found, identifier));
-            } else if (!reportedBlocks.isEmpty()) {
-                blocks.add(reportedBlocks.removeFirst());
-            }
-        }
-        blocks.addAll(reportedBlocks);
-        return String.join(BETWEEN_PROBLEMS, blocks);
-    }
-
-    private static boolean isOfClass(String block, String identifier) {
-        return block.startsWith(identifier + " ");
     }
 
     private static String indented(String text) {

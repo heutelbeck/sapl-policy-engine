@@ -18,8 +18,8 @@
 package io.sapl.compiler.diagnostics;
 
 import io.sapl.compiler.diagnostics.FurtherRegion.Label;
-import io.sapl.compiler.document.ConformanceCorpus;
-import io.sapl.compiler.document.ConformanceCorpus.Case;
+import io.sapl.conformance.ConformanceCorpus;
+import io.sapl.conformance.ConformanceCorpus.Case;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -39,9 +39,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.document.ConformanceCorpus.ACCEPTED;
-import static io.sapl.compiler.document.ConformanceCorpus.BETWEEN_PROBLEMS;
-import static io.sapl.compiler.document.ConformanceCorpus.RUN_OF_PROBLEMS;
+import static io.sapl.conformance.DiagnosticReports.ACCEPTED;
+import static io.sapl.conformance.DiagnosticReports.BETWEEN_PROBLEMS;
+import static io.sapl.conformance.DiagnosticReports.RUN_OF_PROBLEMS;
 import static io.sapl.util.PlacedDocuments.SOMEWHERE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
