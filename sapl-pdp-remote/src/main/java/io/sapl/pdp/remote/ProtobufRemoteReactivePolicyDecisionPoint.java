@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.EnumMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -41,7 +43,6 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.api.proto.SaplProtobufCodec;
 import javax.net.ssl.SSLException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +61,12 @@ import reactor.util.retry.Retry;
 
 /**
  * High-performance remote PDP client using direct RSocket API with protobuf
- * serialization. Bypasses Spring Messaging layer for minimal overhead.
+ * serialization, or the SAPL binary format if asked for with
+ * {@link Builder#binaryFormat()}. Bypasses Spring Messaging layer for minimal
+ * overhead.
+ * <p>
+ * A connection in the binary format to a node that does not speak it falls
+ * back to protobuf, and the next connection tries the format again.
  * <p>
  * Supports basic authentication, API key / static bearer token, and OAuth2
  * client_credentials grant via RSocket setup frame metadata. For OAuth2 the
@@ -96,6 +102,10 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     @Getter
     private final int connections;
 
+    // Whether the client asks for the SAPL binary format rather than protobuf.
+    @Getter
+    private final boolean binaryFormat;
+
     @Getter
     private final int firstBackoffMillis;
 
@@ -127,19 +137,23 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
             int maxBackOffMillis,
             int timeoutMillis,
             int connections) {
-        this(rSocketMono, firstBackoffMillis, maxBackOffMillis, timeoutMillis, connections, null);
+        this(format -> rSocketMono, PayloadFormat.PROTOBUF, firstBackoffMillis, maxBackOffMillis, timeoutMillis,
+                connections, null);
     }
 
-    private ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono,
+    private ProtobufRemoteReactivePolicyDecisionPoint(Function<PayloadFormat, Mono<RSocket>> connect,
+            PayloadFormat format,
             int firstBackoffMillis,
             int maxBackOffMillis,
             int timeoutMillis,
             int connections,
             @Nullable RSocketClientResources clientResources) {
         this.clientResources    = clientResources;
-        this.pool               = new RSocketPool(rSocketMono.timeout(Duration.ofMillis(timeoutMillis)), connections,
-                firstBackoffMillis, maxBackOffMillis);
+        this.pool               = new RSocketPool(
+                connectionFormat -> connect.apply(connectionFormat).timeout(Duration.ofMillis(timeoutMillis)), format,
+                connections, firstBackoffMillis, maxBackOffMillis);
         this.connections        = connections;
+        this.binaryFormat       = format == PayloadFormat.BINARY;
         this.firstBackoffMillis = firstBackoffMillis;
         this.maxBackOffMillis   = maxBackOffMillis;
         this.timeoutMillis      = timeoutMillis;
@@ -157,11 +171,11 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
         val consecutiveFailures = new AtomicLong();
-        return pool.stream(rSocket -> {
+        return pool.stream(connection -> {
             try {
-                val payload = createPayload(ROUTE_DECIDE,
-                        SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
-                return rSocket.requestStream(payload).map(this::decodeAuthorizationDecision)
+                val payload = createPayload(ROUTE_DECIDE, connection.format().write(authzSubscription));
+                return connection.socket().requestStream(payload)
+                        .map(answer -> decodeAuthorizationDecision(connection.format(), answer))
                         .doOnNext(d -> consecutiveFailures.set(0));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
@@ -183,11 +197,11 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        return pool.request(rSocket -> {
+        return pool.request(connection -> {
             try {
-                val payload = createPayload(ROUTE_DECIDE_ONCE,
-                        SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
-                return rSocket.requestResponse(payload).map(this::decodeAuthorizationDecision);
+                val payload = createPayload(ROUTE_DECIDE_ONCE, connection.format().write(authzSubscription));
+                return connection.socket().requestResponse(payload)
+                        .map(answer -> decodeAuthorizationDecision(connection.format(), answer));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Mono.just(AuthorizationDecision.INDETERMINATE);
@@ -210,11 +224,11 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
         val consecutiveFailures = new AtomicLong();
-        return pool.stream(rSocket -> {
+        return pool.stream(connection -> {
             try {
-                val payload = createPayload(ROUTE_MULTI_DECIDE,
-                        SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
-                return rSocket.requestStream(payload).map(this::decodeIdentifiableAuthorizationDecision)
+                val payload = createPayload(ROUTE_MULTI_DECIDE, connection.format().write(multiAuthzSubscription));
+                return connection.socket().requestStream(payload)
+                        .map(answer -> decodeIdentifiableAuthorizationDecision(connection.format(), answer))
                         .doOnNext(d -> consecutiveFailures.set(0));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
@@ -238,11 +252,11 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
         val consecutiveFailures = new AtomicLong();
-        return pool.stream(rSocket -> {
+        return pool.stream(connection -> {
             try {
-                val payload = createPayload(ROUTE_MULTI_DECIDE_ALL,
-                        SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
-                return rSocket.requestStream(payload).map(this::decodeMultiAuthorizationDecision)
+                val payload = createPayload(ROUTE_MULTI_DECIDE_ALL, connection.format().write(multiAuthzSubscription));
+                return connection.socket().requestStream(payload)
+                        .map(answer -> decodeMultiAuthorizationDecision(connection.format(), answer))
                         .doOnNext(d -> consecutiveFailures.set(0));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
@@ -270,11 +284,12 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
      * @return the bundled authorization decisions
      */
     public Mono<MultiAuthorizationDecision> decideAllOnce(MultiAuthorizationSubscription multiAuthzSubscription) {
-        return pool.request(rSocket -> {
+        return pool.request(connection -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE_ALL_ONCE,
-                        SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
-                return rSocket.requestResponse(payload).map(this::decodeMultiAuthorizationDecision);
+                        connection.format().write(multiAuthzSubscription));
+                return connection.socket().requestResponse(payload)
+                        .map(answer -> decodeMultiAuthorizationDecision(connection.format(), answer));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Mono.just(MultiAuthorizationDecision.indeterminate());
@@ -292,10 +307,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         return DefaultPayload.create(data, route.getBytes(StandardCharsets.UTF_8));
     }
 
-    private AuthorizationDecision decodeAuthorizationDecision(Payload payload) {
+    private AuthorizationDecision decodeAuthorizationDecision(PayloadFormat format, Payload payload) {
         try {
-            val data = extractData(payload);
-            return SaplProtobufCodec.readAuthorizationDecision(data);
+            return format.readDecision(extractData(payload));
         } catch (IOException e) {
             log.error(ERROR_DECODE_AUTHORIZATION_DECISION, e.getMessage());
             return AuthorizationDecision.INDETERMINATE;
@@ -304,10 +318,10 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         }
     }
 
-    private IdentifiableAuthorizationDecision decodeIdentifiableAuthorizationDecision(Payload payload) {
+    private IdentifiableAuthorizationDecision decodeIdentifiableAuthorizationDecision(PayloadFormat format,
+            Payload payload) {
         try {
-            val data = extractData(payload);
-            return SaplProtobufCodec.readIdentifiableAuthorizationDecision(data);
+            return format.readIdentifiableDecision(extractData(payload));
         } catch (IOException e) {
             log.error(ERROR_DECODE_IDENTIFIABLE_AUTHORIZATION_DECISION, e.getMessage());
             return IdentifiableAuthorizationDecision.INDETERMINATE;
@@ -316,10 +330,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         }
     }
 
-    private MultiAuthorizationDecision decodeMultiAuthorizationDecision(Payload payload) {
+    private MultiAuthorizationDecision decodeMultiAuthorizationDecision(PayloadFormat format, Payload payload) {
         try {
-            val data = extractData(payload);
-            return SaplProtobufCodec.readMultiAuthorizationDecision(data);
+            return format.readMultiDecision(extractData(payload));
         } catch (IOException e) {
             log.error(ERROR_DECODE_MULTI_AUTHORIZATION_DECISION, e.getMessage());
             return MultiAuthorizationDecision.indeterminate();
@@ -390,6 +403,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         private boolean       secure;
         private boolean       allowInsecureTransport;
         private int           connections = 1;
+        private PayloadFormat format      = PayloadFormat.PROTOBUF;
 
         /**
          * Configure insecure SSL (development only).
@@ -613,6 +627,19 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         }
 
         /**
+         * Speak the SAPL binary format instead of protobuf: smaller payloads that
+         * the node reads and writes faster. A connection to a node that does not
+         * speak the format falls back to protobuf, and the next connection tries
+         * the format again.
+         *
+         * @return this builder
+         */
+        public Builder binaryFormat() {
+            this.format = PayloadFormat.BINARY;
+            return this;
+        }
+
+        /**
          * Build the {@link ProtobufRemoteReactivePolicyDecisionPoint}.
          *
          * @return a new instance
@@ -624,16 +651,22 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 }
                 log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
             }
-            val connector = RSocketConnector.create().keepAlive(keepAlive, maxLifeTime);
-            if (setupPayloadMono != null) {
-                connector.setupPayload(setupPayloadMono);
+            val connectors = new EnumMap<PayloadFormat, RSocketConnector>(PayloadFormat.class);
+            for (val payloadFormat : PayloadFormat.values()) {
+                val connector = RSocketConnector.create().keepAlive(keepAlive, maxLifeTime)
+                        .dataMimeType(payloadFormat.mimeType());
+                if (setupPayloadMono != null) {
+                    connector.setupPayload(setupPayloadMono);
+                }
+                connectors.put(payloadFormat, connector);
             }
-            val clientResources = RSocketClientResources.acquire();
-            val client          = tcpClient;
-            val rSocketMono     = Mono
-                    .defer(() -> connector.connect(TcpClientTransport.create(clientResources.configure(client))));
+            val                                          clientResources = RSocketClientResources.acquire();
+            val                                          client          = tcpClient;
+            final Function<PayloadFormat, Mono<RSocket>> connect         = connectionFormat -> Mono
+                    .defer(() -> connectors.get(connectionFormat)
+                            .connect(TcpClientTransport.create(clientResources.configure(client))));
             // Sustained failure backs off to a 60s heartbeat, not a tight reconnect storm.
-            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 60000, 5000, connections,
+            return new ProtobufRemoteReactivePolicyDecisionPoint(connect, format, 500, 60000, 5000, connections,
                     clientResources);
         }
     }

@@ -1,0 +1,63 @@
+Multi-subscriptions in the SAPL binary format, as the RSocket API receives them on a connection
+with the data MIME type application/vnd.sapl.binary.
+
+A payload is the lead byte 00, the text region and the structure: the number of entries, then per entry the id as a
+length that names the next bytes of the region, and the subscription as in
+subscriptions-binary.cases. An id is neither empty nor blank, and no id occurs twice. At most 256
+entries are allowed; a larger number refuses the payload before any entry is read.
+
+The document is the payload in hexadecimal bytes. A '//' starts a comment to the end of the line.
+The expectation is either the ids in their order, as a JSON array, or 'refused' with the reason.
+
+=== two subscriptions
+00 0c 61 61 6c 69 63 65 62 61 6c 69 63 65   // region "aalicebalice"
+02                                        // two entries
+01 25 00 00 00 60                         // "a": subject "alice"
+01 25 00 00 00 60                         // "b": subject "alice"
+---
+ids: ["a","b"]
+
+=== no entries
+00 00 00
+---
+ids: []
+
+=== an empty id
+00 00 01 00 00 00 00 00 60
+---
+refused: blank id
+
+=== an id of a space
+00 01 20 01 01 00 00 00 00 60
+---
+refused: blank id
+
+=== an id given twice
+00 02 61 61 02 01 00 00 00 00 60 01 00 00 00 00 60
+---
+refused: duplicate id
+
+=== an entry whose subscription is malformed
+00 01 61 01 01 0b 00 00 00 60
+---
+refused: malformed
+
+=== an entry that is cut off
+00 01 61 01 01 00 00
+---
+refused: malformed
+
+=== fewer entries than announced
+00 01 61 02 01 00 00 00 00 60
+---
+refused: malformed
+
+=== a byte after the last entry
+00 01 61 01 01 00 00 00 00 60 00
+---
+refused: malformed
+
+=== 257 entries announced, refused before any is read
+00 00 81 02
+---
+refused: too many subscriptions

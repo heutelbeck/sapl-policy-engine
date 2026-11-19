@@ -25,6 +25,8 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import io.rsocket.RSocket;
+import io.rsocket.exceptions.InvalidException;
+import io.rsocket.exceptions.UnsupportedSetupException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
@@ -43,31 +45,46 @@ import reactor.util.retry.Retry;
  * the background, with the backoff of the streams, while the others serve.
  * When no connection is open, the next request opens the first one anew and
  * waits for it, as the client with a single connection does.
+ * <p>
+ * A connection in the SAPL binary format falls back to protobuf when the node
+ * does not speak the format: it refused the SETUP as unsupported, or refused a
+ * request as invalid before the connection answered any, as a node does that
+ * reads protobuf whatever the data MIME type. The connection is replaced by one
+ * in protobuf and the request is sent again on it. The next connection of its
+ * place in the pool tries the binary format again.
  */
 @Slf4j
 final class RSocketPool {
 
-    private static final String ERROR_REOPEN_FAILED = "A connection of the pool to the PDP cannot be opened ({}), it is tried again after a backoff.";
+    private static final String ERROR_REOPEN_FAILED       = "A connection of the pool to the PDP cannot be opened ({}), it is tried again after a backoff.";
+    private static final String WARN_FALLBACK_TO_PROTOBUF = "The PDP refused the SAPL binary format on a connection. The connection is opened anew in protobuf.";
 
-    private final Mono<RSocket> connect;
-    private final Slot[]        slots;
-    private final int           firstBackoffMillis;
-    private final int           maxBackOffMillis;
-    private final AtomicBoolean disposed = new AtomicBoolean();
+    private final Function<PayloadFormat, Mono<RSocket>> connect;
+    private final PayloadFormat                          format;
+    private final Slot[]                                 slots;
+    private final int                                    firstBackoffMillis;
+    private final int                                    maxBackOffMillis;
+    private final AtomicBoolean                          disposed = new AtomicBoolean();
     // Where the search for the connection with the fewest requests in flight
     // starts, so that connections with as many take turns.
     private final AtomicInteger turn = new AtomicInteger();
 
     /**
-     * @param connect opens a new connection at each subscription, within the
-     * timeout of the client
+     * @param connect opens a new connection in a format at each subscription,
+     * within the timeout of the client
+     * @param format the format the client asks for
      * @param connections how many connections the pool holds, at least one
      * @param firstBackoffMillis the first wait before a closed connection is
      * opened anew after a failure
      * @param maxBackOffMillis the longest wait
      */
-    RSocketPool(Mono<RSocket> connect, int connections, int firstBackoffMillis, int maxBackOffMillis) {
+    RSocketPool(Function<PayloadFormat, Mono<RSocket>> connect,
+            PayloadFormat format,
+            int connections,
+            int firstBackoffMillis,
+            int maxBackOffMillis) {
         this.connect            = connect;
+        this.format             = format;
         this.slots              = IntStream.range(0, connections).mapToObj(index -> new Slot()).toArray(Slot[]::new);
         this.firstBackoffMillis = firstBackoffMillis;
         this.maxBackOffMillis   = maxBackOffMillis;
@@ -75,18 +92,31 @@ final class RSocketPool {
 
     /**
      * Sends a one-shot request on the open connection with the fewest requests
-     * in flight. It counts as in flight on it until it ends.
+     * in flight. It counts as in flight on it until it ends. If the node refuses
+     * the binary format, the request is sent again on a connection in protobuf.
      */
-    <T> Mono<T> request(Function<RSocket, Mono<T>> send) {
-        return Mono.usingWhen(lease(), lease -> send.apply(lease.socket()), Lease::release);
+    <T> Mono<T> request(Function<Connection, Mono<T>> send) {
+        return Mono.usingWhen(lease(),
+                lease -> send.apply(lease.connection()).doOnNext(answer -> lease.connection().answered().set(true))
+                        .onErrorResume(lease.connection()::refusesFormat,
+                                refusal -> Mono.usingWhen(fallBack(lease),
+                                        fallback -> send.apply(fallback.connection()), Lease::release)),
+                Lease::release);
     }
 
     /**
      * Opens a stream on the open connection with the fewest requests in flight.
      * It stays on that connection and counts as in flight on it until it ends.
+     * If the node refuses the binary format, the stream is opened again on a
+     * connection in protobuf.
      */
-    <T> Flux<T> stream(Function<RSocket, Flux<T>> open) {
-        return Flux.usingWhen(lease(), lease -> open.apply(lease.socket()), Lease::release);
+    <T> Flux<T> stream(Function<Connection, Flux<T>> open) {
+        return Flux.usingWhen(lease(),
+                lease -> open.apply(lease.connection()).doOnNext(answer -> lease.connection().answered().set(true))
+                        .onErrorResume(lease.connection()::refusesFormat,
+                                refusal -> Flux.usingWhen(fallBack(lease),
+                                        fallback -> open.apply(fallback.connection()), Lease::release)),
+                Lease::release);
     }
 
     /**
@@ -106,29 +136,44 @@ final class RSocketPool {
                 return Mono.just(leastBusy);
             }
             val first = slots[0];
-            return open(first).doOnNext(socket -> reopenClosed()).map(socket -> Lease.on(first, socket));
+            return open(first).doOnNext(connection -> reopenClosed()).map(connection -> Lease.on(first, connection));
+        });
+    }
+
+    // Replaces the connection of a lease, on which the node refused the binary
+    // format, with one in protobuf, unless another request has done so meanwhile.
+    private Mono<Lease> fallBack(Lease refused) {
+        return Mono.defer(() -> {
+            val slot    = refused.slot();
+            val current = slot.liveConnection();
+            if (current != null && current.format() == PayloadFormat.PROTOBUF) {
+                return Mono.just(Lease.on(slot, current));
+            }
+            slot.forget(refused.connection());
+            slot.fallsBack.set(true);
+            return open(slot).map(connection -> Lease.on(slot, connection));
         });
     }
 
     private @Nullable Lease leastBusy() {
-        val     start       = Math.floorMod(turn.getAndIncrement(), slots.length);
-        Slot    best        = null;
-        RSocket bestSocket  = null;
-        var     fewest      = Integer.MAX_VALUE;
-        var     foundClosed = false;
+        val        start          = Math.floorMod(turn.getAndIncrement(), slots.length);
+        Slot       best           = null;
+        Connection bestConnection = null;
+        var        fewest         = Integer.MAX_VALUE;
+        var        foundClosed    = false;
         for (var offset = 0; offset < slots.length; offset++) {
             val slot     = slots[(start + offset) % slots.length];
             val inFlight = slot.inFlight.get();
             if (best != null && fewest <= inFlight) {
                 continue;
             }
-            val socket = slot.liveSocket();
-            if (socket == null) {
+            val connection = slot.liveConnection();
+            if (connection == null) {
                 foundClosed = true;
             } else {
-                best       = slot;
-                bestSocket = socket;
-                fewest     = inFlight;
+                best           = slot;
+                bestConnection = connection;
+                fewest         = inFlight;
             }
         }
         if (best == null) {
@@ -137,28 +182,39 @@ final class RSocketPool {
         if (foundClosed) {
             reopenClosed();
         }
-        return Lease.on(best, bestSocket);
+        return Lease.on(best, bestConnection);
     }
 
     // The open connection of the slot, or a new one. Requests that find none at
-    // the same time share one attempt instead of each opening a socket.
-    private Mono<RSocket> open(Slot slot) {
+    // the same time share one attempt instead of each opening a socket. A new
+    // connection is in protobuf if the slot falls back, else in the format the
+    // client asks for.
+    private Mono<Connection> open(Slot slot) {
         return Mono.defer(() -> {
-            val live = slot.liveSocket();
+            val live = slot.liveConnection();
             if (live != null) {
                 return Mono.just(live);
             }
-            return slot.connecting.updateAndGet(current -> current != null ? current
-                    : connect.doOnNext(socket -> slot.keepUnlessDisposed(socket, disposed.get()))
-                            .doFinally(signal -> slot.connecting.set(null)).cache());
+            return slot.connecting.updateAndGet(current -> current != null ? current : connectFor(slot));
         });
+    }
+
+    private Mono<Connection> connectFor(Slot slot) {
+        return Mono.defer(() -> {
+            val connectionFormat = slot.fallsBack.getAndSet(false) ? PayloadFormat.PROTOBUF : format;
+            if (connectionFormat != format) {
+                log.warn(WARN_FALLBACK_TO_PROTOBUF);
+            }
+            return connect.apply(connectionFormat).map(socket -> new Connection(socket, connectionFormat));
+        }).doOnNext(connection -> slot.keepUnlessDisposed(connection, disposed.get()))
+                .doFinally(signal -> slot.connecting.set(null)).cache();
     }
 
     // Opens each closed connection anew in the background, after a backoff after
     // each failure, unless the pool is disposed or another attempt is under way.
     private void reopenClosed() {
         for (val slot : slots) {
-            if (!disposed.get() && slot.liveSocket() == null && slot.reopening.compareAndSet(false, true)) {
+            if (!disposed.get() && slot.liveConnection() == null && slot.reopening.compareAndSet(false, true)) {
                 val failures = new AtomicLong();
                 val reopen   = open(slot).retryWhen(Retry.from(signals -> signals.concatMap(signal -> {
                                  if (disposed.get()) {
@@ -168,9 +224,30 @@ final class RSocketPool {
                                  return Mono.delay(RemotePdpRetry.backoffWithJitter(failures.incrementAndGet(),
                                          firstBackoffMillis, maxBackOffMillis));
                              })))
-                        .doFinally(signal -> slot.reopening.set(false)).subscribe(socket -> {}, error -> {});
+                        .doFinally(signal -> slot.reopening.set(false)).subscribe(connection -> {}, error -> {});
                 slot.replaceReopener(reopen);
             }
+        }
+    }
+
+    /**
+     * An open connection of the pool, the format its SETUP named, and whether the
+     * node has answered a request on it, which shows that it reads the format.
+     */
+    record Connection(RSocket socket, PayloadFormat format, AtomicBoolean answered) {
+
+        Connection(RSocket socket, PayloadFormat format) {
+            this(socket, format, new AtomicBoolean());
+        }
+
+        /**
+         * Whether an error shows that the node does not speak the binary format of
+         * the connection: it refused the SETUP as unsupported, or a request as
+         * invalid before it answered any.
+         */
+        boolean refusesFormat(Throwable error) {
+            return format == PayloadFormat.BINARY && (error instanceof UnsupportedSetupException
+                    || (error instanceof InvalidException && !answered.get()));
         }
     }
 
@@ -179,26 +256,41 @@ final class RSocketPool {
      */
     private static final class Slot {
 
-        private final AtomicReference<@Nullable RSocket>       socket     = new AtomicReference<>();
-        private final AtomicReference<@Nullable Mono<RSocket>> connecting = new AtomicReference<>();
-        private final AtomicReference<@Nullable Disposable>    reopener   = new AtomicReference<>();
-        private final AtomicBoolean                            reopening  = new AtomicBoolean();
-        private final AtomicInteger                            inFlight   = new AtomicInteger();
+        private final AtomicReference<@Nullable Connection>       connection = new AtomicReference<>();
+        private final AtomicReference<@Nullable Mono<Connection>> connecting = new AtomicReference<>();
+        private final AtomicReference<@Nullable Disposable>       reopener   = new AtomicReference<>();
+        private final AtomicBoolean                               reopening  = new AtomicBoolean();
+        // Whether the next connection falls back to protobuf, as the node refused the
+        // binary format at the SETUP of the one before.
+        private final AtomicBoolean fallsBack = new AtomicBoolean();
+        private final AtomicInteger inFlight  = new AtomicInteger();
 
         @Nullable
-        RSocket liveSocket() {
-            val current = socket.get();
-            return current != null && !current.isDisposed() ? current : null;
+        Connection liveConnection() {
+            val current = connection.get();
+            return current != null && !current.socket().isDisposed() ? current : null;
         }
 
-        // A socket that arrives after the pool is disposed is disposed here, so that
-        // an attempt under way cannot leak a live connection past shutdown.
-        void keepUnlessDisposed(RSocket opened, boolean poolDisposed) {
+        // A connection that arrives after the pool is disposed is disposed here, so that
+        // an attempt under way cannot leak a live connection past shutdown. A binary
+        // connection whose SETUP the node refuses makes the next one fall back.
+        void keepUnlessDisposed(Connection opened, boolean poolDisposed) {
             if (poolDisposed) {
-                opened.dispose();
-            } else {
-                socket.set(opened);
+                opened.socket().dispose();
+                return;
             }
+            connection.set(opened);
+            Mono.defer(opened.socket()::onClose).subscribe(closed -> {}, error -> {
+                // A connection that was replaced already has fallen back on its own.
+                if (opened.refusesFormat(error) && connection.get() == opened) {
+                    fallsBack.set(true);
+                }
+            });
+        }
+
+        // Forgets the connection unless another one has taken its place already.
+        void forget(Connection ended) {
+            connection.compareAndSet(ended, null);
         }
 
         void replaceReopener(Disposable reopen) {
@@ -214,9 +306,9 @@ final class RSocketPool {
                 reopen.dispose();
             }
             connecting.set(null);
-            val current = socket.getAndSet(null);
+            val current = connection.getAndSet(null);
             if (current != null) {
-                current.dispose();
+                current.socket().dispose();
             }
         }
     }
@@ -224,11 +316,11 @@ final class RSocketPool {
     /**
      * A connection with a request in flight on it, until it is released.
      */
-    private record Lease(Slot slot, RSocket socket) {
+    private record Lease(Slot slot, Connection connection) {
 
-        static Lease on(Slot slot, RSocket socket) {
+        static Lease on(Slot slot, Connection connection) {
             slot.inFlight.incrementAndGet();
-            return new Lease(slot, socket);
+            return new Lease(slot, connection);
         }
 
         Mono<Void> release() {

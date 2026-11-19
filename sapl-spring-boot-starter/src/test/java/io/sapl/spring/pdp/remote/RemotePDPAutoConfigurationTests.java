@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -205,6 +206,39 @@ class RemotePDPAutoConfigurationTests {
                         "io.sapl.pdp.remote.bearerToken=anApiKey", "io.sapl.pdp.remote.tls=true",
                         "io.sapl.pdp.remote.connections=" + connections)
                 .run(context -> assertThat(context).hasFailed());
+    }
+
+    @ParameterizedTest(name = "format={0}")
+    @CsvSource({ "protobuf, false", "binary, true" })
+    void whenRSocketFormatIsSetThenTheRemotePdpAsksForThatFormat(String format, boolean binaryFormat) {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                "io.sapl.pdp.remote.bearerToken=anApiKey", "io.sapl.pdp.remote.tls=true",
+                "io.sapl.pdp.remote.format=" + format).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(ProtobufRemoteReactivePolicyDecisionPoint.class).isBinaryFormat())
+                            .isEqualTo(binaryFormat);
+                });
+    }
+
+    @Test
+    void whenRSocketFormatIsNotSetThenTheRemotePdpSpeaksProtobuf() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                "io.sapl.pdp.remote.bearerToken=anApiKey", "io.sapl.pdp.remote.tls=true").run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(ProtobufRemoteReactivePolicyDecisionPoint.class).isBinaryFormat())
+                            .isFalse();
+                });
+    }
+
+    @ParameterizedTest(name = "format={0}")
+    @ValueSource(strings = { "json", "BINARY", "cbor", "" })
+    void whenRSocketFormatIsUnknownThenContextFails(String format) {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                "io.sapl.pdp.remote.bearerToken=anApiKey", "io.sapl.pdp.remote.tls=true",
+                "io.sapl.pdp.remote.format=" + format).run(context -> assertThat(context).hasFailed());
     }
 
     @Test

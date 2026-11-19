@@ -176,7 +176,9 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
     private CloseableChannel bind(SocketAcceptor acceptor, TcpServerTransport transport) {
         try {
-            return RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
+            return RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize)
+                    .interceptors(registry -> registry.forConnection(new UnsupportedSetupInterceptor()))
+                    .bindNow(transport);
         } catch (RuntimeException e) {
             if (isAddressInUse(e)) {
                 val bindError  = channelBindExceptionOf(e);

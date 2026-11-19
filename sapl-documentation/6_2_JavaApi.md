@@ -224,7 +224,7 @@ ReactivePolicyDecisionPoint pdp = RemotePolicyDecisionPoint.builder().rsocket()
         .build();
 ```
 
-Both builders expose `basicAuth(key, secret)`, `apiKey(key)`, and `oauth2(...)` for authentication. TLS differs by transport. The HTTP builder gets TLS from an `https://` base URL (it defaults to `https://localhost:8443`); use `secure(SslContext)` or `withUnsecureSSL()` only to customize certificate trust. The RSocket builder has no URL scheme, so it enables TLS via `secure()` (or `secure(SslContext)` / `withUnsecureSSL()`); it defaults `port` to `7000` and also accepts `socketPath(...)`, `keepAlive(...)` and `connections(...)`, the number of connections to the node (default 1). Requests go to the connection with the fewest in flight, and a lost connection is reopened in the background while the others serve.
+Both builders expose `basicAuth(key, secret)`, `apiKey(key)`, and `oauth2(...)` for authentication. TLS differs by transport. The HTTP builder gets TLS from an `https://` base URL (it defaults to `https://localhost:8443`); use `secure(SslContext)` or `withUnsecureSSL()` only to customize certificate trust. The RSocket builder has no URL scheme, so it enables TLS via `secure()` (or `secure(SslContext)` / `withUnsecureSSL()`); it defaults `port` to `7000` and also accepts `socketPath(...)`, `keepAlive(...)` and `connections(...)`, the number of connections to the node (default 1). Requests go to the connection with the fewest in flight, and a lost connection is reopened in the background while the others serve. `binaryFormat()` makes the RSocket client speak the SAPL binary format instead of protobuf. A connection to a node that does not speak it falls back to protobuf, and the next connection tries the format again.
 
 Sending credentials over a plaintext connection (an `http://` base URL, or an RSocket connection without TLS) is refused at `build()` time. Call `allowInsecureTransport()` to accept that risk for local development, or use an `https://` URL (or RSocket `secure()`) in production.
 
@@ -274,6 +274,7 @@ By default the embedded PDP is active. To connect to a remote PDP server instead
 | `keepAlive`          | duration  | `20s`    | RSocket keep-alive interval.                                            |
 | `maxLifeTime`        | duration  | `90s`    | RSocket connection maximum lifetime.                                    |
 | `connections`        | `int`     | `1`      | Number of RSocket connections to the node, at least 1.                  |
+| `format`             | `String`  | `"protobuf"` | RSocket data format, `protobuf` or `binary` (falls back to protobuf). |
 | `ignoreCertificates` | `boolean` | `false`  | Disables TLS certificate verification. For development only.            |
 
 Configure exactly one authentication method: `key` and `secret` together, `bearerToken` alone, `tokenRelay`, or `oauth2`.

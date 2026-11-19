@@ -411,9 +411,23 @@ The RSocket API provides the same five operations as HTTP using protobuf seriali
 Each RSocket payload has two parts:
 
 - **Metadata**: the route name as a UTF-8 string (e.g., `"decide-once"`)
-- **Data**: the protobuf-encoded request or response message
+- **Data**: the request or response message, in the data format of the connection
 
-No composite metadata, no MIME type negotiation. The route string alone determines the operation.
+No composite metadata. The route string alone determines the operation.
+
+### Data Formats
+
+The data MIME type of the SETUP frame selects the data format of all payloads of a connection, requests and responses. It is compared byte for byte.
+
+| Data MIME type | Data format |
+|----------------|-------------|
+| `application/binary` | Protobuf, see below. The default of rsocket-java, sent by clients that set no data MIME type. |
+| `application/x-protobuf` | Protobuf, the same as `application/binary`. |
+| `application/vnd.sapl.binary` | The SAPL binary format: a compact encoding that the node reads and writes faster than protobuf. Specified in `BINARY_FORMAT.md` of `sapl-rust`, with test vectors. Every payload starts with the byte `0x00`, which no protobuf message starts with. |
+
+The server refuses a connection with any other data MIME type with an `UNSUPPORTED_SETUP` error frame.
+
+A client that asks for the SAPL binary format falls back to protobuf for a connection whose SETUP the server refuses with `UNSUPPORTED_SETUP`, or whose first request the server refuses with `INVALID`, as a server does that does not know the format. It sends that request again in protobuf on a new connection, and tries the binary format again on its next connection. Clients speak protobuf unless asked for the binary format.
 
 ### Protobuf Specification
 
@@ -516,7 +530,7 @@ All operations return `INDETERMINATE` on unparseable requests, encoding failures
 
 | Aspect | HTTP | RSocket |
 |--------|------|---------|
-| Serialization | JSON | Protobuf |
+| Serialization | JSON | Protobuf or the SAPL binary format |
 | Streaming | Server-Sent Events | Native RSocket streams |
 | Connection | Per-request or multiplexed | Persistent TCP or UDS |
 | Authentication | Per-request HTTP headers | Once at connection setup |
