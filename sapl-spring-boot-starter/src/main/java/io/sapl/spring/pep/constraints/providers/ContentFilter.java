@@ -31,6 +31,8 @@ import java.util.stream.Stream;
 
 import org.reactivestreams.Publisher;
 
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.MapFunction;
@@ -59,6 +61,7 @@ public class ContentFilter {
     private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT = "Constraint enforcement failed. Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.";
     private static final String ERROR_CONVERTING_MODIFIED_OBJECT              = "Error converting modified object to original class type.";
     private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
+    private static final String ERROR_PREDICATE_REGEX_INVALID                 = "Invalid regular expression '%s' in a predicate condition: %s.";
 
     private static final String     DISCLOSE_LEFT                  = "discloseLeft";
     private static final String     DISCLOSE_RIGHT                 = "discloseRight";
@@ -300,7 +303,13 @@ public class ContentFilter {
         if (!(conditionValue instanceof TextValue(var patternText))) {
             throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
-        val regex = LinearRegex.compile(patternText);
+        final Pattern regex;
+        try {
+            regex = LinearRegex.compile(patternText);
+        } catch (PatternSyntaxException e) {
+            throw new AccessDeniedException(ERROR_PREDICATE_REGEX_INVALID.formatted(patternText, e.getDescription()),
+                    e);
+        }
         return original -> getValueAtPath(original, path, objectMapper) instanceof String stringValue
                 && regex.matches(stringValue);
     }

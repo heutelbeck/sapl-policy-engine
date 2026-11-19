@@ -27,8 +27,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -74,15 +76,48 @@ class SchemaValidationLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    @DisplayName("a schema with an invalid or too large pattern is an error, not a non-compliant subject")
-    void whenSchemaPatternInvalidThenError(String description, String pattern) {
-        val schema = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of(pattern)).build();
-        assertThat(isCompliant(Value.of("password1"), schema)).isInstanceOf(ErrorValue.class);
+    @DisplayName("a schema with a pattern RE2 refuses is an error in every function, never a compliant subject")
+    void whenSchemaPatternRefusedThenEveryFunctionReturnsError(String description, String schema, String subject,
+            String reason) {
+        val jsonSchema        = (ObjectValue) json(schema);
+        val validationSubject = json(subject);
+
+        assertThat(List.of(isCompliant(validationSubject, jsonSchema),
+                isCompliantWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY),
+                validate(validationSubject, jsonSchema),
+                validateWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY)))
+                .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                        error -> assertThat(error.message()).contains(reason)));
     }
 
-    static Stream<Arguments> whenSchemaPatternInvalidThenError() {
-        return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$"),
-                arguments("too large to compile", "(?:a{1000}){1000}"));
+    static Stream<Arguments> whenSchemaPatternRefusedThenEveryFunctionReturnsError() {
+        return Stream.of(arguments("a look-ahead in pattern", """
+                {"type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}
+                """, "\"password1\"", "invalid or unsupported Perl syntax"),
+                arguments("a backreference in a nested pattern", """
+                        {"type": "object", "properties": {"code": {"type": "string", "pattern": "(a)\\\\1"}}}
+                        """, "{}", "invalid escape sequence"), arguments("a look-behind in a patternProperties key", """
+                        {"type": "object", "patternProperties": {"(?<=x)y": {"type": "number"}}}
+                        """, "{\"other\": 1}", "invalid named capture"),
+                arguments("a look-ahead in a branch the subject does not need", """
+                        {"anyOf": [{"type": "number"}, {"type": "string", "pattern": "(?!admin)"}]}
+                        """, "1", "invalid or unsupported Perl syntax"), arguments("a pattern too large to compile", """
+                        {"type": "string", "pattern": "(?:a{1000}){1000}"}
+                        """, "\"a\"", "expression too large"));
+    }
+
+    @Test
+    @DisplayName("an external schema with a pattern RE2 refuses is an error, never a compliant subject")
+    void whenExternalSchemaPatternRefusedThenError() {
+        val externals = (ArrayValue) json("""
+                [{"$id": "https://example.com/password", "type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}]
+                """);
+        val schema    = (ObjectValue) json("""
+                {"$ref": "https://example.com/password"}
+                """);
+
+        assertThat(isCompliantWithExternalSchemas(Value.of("password1"), schema, externals)).isInstanceOfSatisfying(
+                ErrorValue.class, error -> assertThat(error.message()).contains("invalid or unsupported Perl syntax"));
     }
 
     @Test

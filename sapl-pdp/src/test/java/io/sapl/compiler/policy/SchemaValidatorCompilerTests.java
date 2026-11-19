@@ -41,6 +41,7 @@ import tools.jackson.databind.JsonNode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
+import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -201,6 +202,42 @@ class SchemaValidatorCompilerTests {
         static Stream<Arguments> invalidSchemaPatterns() {
             return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$"),
                     arguments("too large to compile", "(?:a{1000}){1000}"));
+        }
+
+        @ParameterizedTest(name = "when schema holds {0} then the document is refused at compile time")
+        @MethodSource
+        void whenSchemaHoldsPatternRefusedByRe2ThenThrowsCompilerException(String description, String schema,
+                String reason) {
+            val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, json(schema)));
+            val ctx     = compilationContext();
+            assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageContaining("Invalid JSON Schema").hasMessageContaining(reason);
+        }
+
+        static Stream<Arguments> whenSchemaHoldsPatternRefusedByRe2ThenThrowsCompilerException() {
+            return Stream.of(arguments("a backreference in a nested pattern", """
+                    {"type": "object", "properties": {"code": {"type": "string", "pattern": "(a)\\\\1"}}}
+                    """, "invalid escape sequence"), arguments("a look-behind in a patternProperties key", """
+                    {"type": "object", "patternProperties": {"(?<=x)y": {"type": "number"}}}
+                    """, "invalid named capture"), arguments("a look-ahead in a branch a subject need not take", """
+                    {"anyOf": [{"type": "number"}, {"type": "string", "pattern": "(?!admin)"}]}
+                    """, "invalid or unsupported Perl syntax"));
+        }
+
+        @Test
+        @DisplayName("when schema references a schema of the schemas variable whose pattern RE2 refuses then the document is refused at compile time")
+        void whenReferencedSchemaHoldsPatternRefusedByRe2ThenThrowsCompilerException() {
+            val variables = (ObjectValue) json(
+                    """
+                            {"schemas": [{"$id": "https://example.com/password", "type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}]}
+                            """);
+            val schemas   = List.of(enforcedSchema(SubscriptionElement.SUBJECT, json("""
+                    {"$ref": "https://example.com/password"}
+                    """)));
+            val ctx       = compilationContext(variables);
+            assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageContaining("Invalid JSON Schema")
+                    .hasMessageContaining("invalid or unsupported Perl syntax");
         }
 
         @Test

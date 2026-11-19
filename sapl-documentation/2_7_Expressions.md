@@ -230,16 +230,7 @@ Except for the unary operators, multiple operators with the same precedence (e.g
 
    The expression evaluates to `true` if the result of evaluating `exp1` matches the pattern contained in the result of evaluating `exp2`. The pattern must match the whole text: `"administrator" =~ "admin"` is `false`, `"administrator" =~ "admin.*"` is `true`. If `exp1` is not a string, the expression evaluates to `false`. If `exp2` is not a string or not a valid pattern, the expression evaluates to an error. A constant pattern that is not valid is reported when the policy is compiled.
 
-   Patterns are written in the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) and are matched in time linear in the length of the text, without backtracking. No pattern can make the PDP spend time exponential in the length of the text, even if the pattern or the text comes from the authorization subscription. The following rules apply:
-
-   - Constructs that need backtracking do not exist and make a pattern invalid: look-ahead and look-behind (`(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`), backreferences (`\1`), atomic groups (`(?>...)`) and possessive quantifiers (`*+`, `++`, `?+`).
-   - The classes `\d`, `\w`, `\s` and `\b` hold ASCII characters only. Use Unicode classes such as `\p{L}` (letters) or `\p{Nd}` (decimal digits) for other scripts.
-   - Matching without regard to case, `(?i)`, follows Unicode: `"É" =~ "(?i)é"` is `true`.
-   - `.` matches every character except the line feed. With `(?s)` it matches the line feed as well.
-   - `(?U)` makes repetitions lazy by default, `\v` is the vertical tab only, and `\Q...\E` quotes a literal section.
-   - A pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. Each repetition counts with its number of copies, so `(?:a{100}){101}` is too large. A single repetition count may be at most 1000.
-
-   Up to SAPL 4.1, patterns followed `java.util.regex`. Patterns that use look-around, backreferences, atomic groups, possessive quantifiers or syntax only Java knows, such as `\h`, `\R`, `\X`, `\G`, `\Z`, `\e`, `\cX`, `\0101` or `\p{javaLowerCase}`, must be rewritten. The same syntax applies to the functions of the `patterns` library, to the `pattern` keyword of JSON schemas, and to the `=~` conditions of the content filter constraints of the Spring integration.
+   Patterns are written in the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) and are matched in time linear in the length of the text, without backtracking. See [Regular Expressions](#regular-expressions) for the syntax, its limits and how to migrate patterns written for `java.util.regex`.
 
 4. `in` (element of)
 
@@ -267,6 +258,64 @@ Except for the unary operators, multiple operators with the same precedence (e.g
    Comparison operators (`<`, `>`, `<=`, `>=`, `in`, `any in`, `all in`) have precedence **7**. The `has` operator (see below) has precedence **6.5**. Equality operators (`==`, `!=`, `=~`) have precedence **6**. This is important for combining them with logical operators (see below).
 
    All comparison and equality operators are **non-associative**, i.e., an expression may not contain multiple comparison operators (like `3 < var < 5`). However, they can be combined with logical operators which have a different precedence (thus, the faulty example could be replaced by `3 < var && var < 5`).
+
+### Regular Expressions
+
+SAPL uses the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) for every regular expression: the `=~` operator, the functions of the `patterns` library, the `pattern` and `patternProperties` keywords of [JSON schemas](../2_10_Schemas/#patterns-in-schemas), the `=~` conditions of the content filter constraints of the [Spring integration](../6_3_Spring/), and the `text with regex` matcher of the [test language](../5_5_Matchers/). The syntax is the same in all SAPL engines, so a pattern accepted by one engine is accepted by all of them.
+
+RE2 matches in time linear in the length of the text and never backtracks. No pattern can make the PDP spend time exponential in the length of the text, even if the pattern or the text comes from the authorization subscription or from a policy information point.
+
+#### Whole Text or Any Part
+
+The `=~` operator, the `=~` conditions of the content filter and the `text with regex` matcher match the whole text: `"administrator" =~ "admin"` is `false`, `"administrator" =~ "admin.*"` is `true`. The `pattern` and `patternProperties` keywords of JSON schemas follow the JSON Schema specification and match if the pattern matches any part of the text: `"pattern": "admin"` accepts `"administrator"`. Anchor a schema pattern with `^` and `$` to match the whole text. The functions of the `patterns` library state in their documentation whether they match the whole text or search it.
+
+#### Constructs That Do Not Exist
+
+Constructs that need backtracking do not exist in RE2. A pattern that uses one of them is invalid:
+
+- look-ahead and look-behind: `(?=...)`, `(?!...)`, `(?<=...)`, `(?<!...)`
+- backreferences: `\1`, `\k<name>`
+- atomic groups: `(?>...)`
+- possessive quantifiers: `*+`, `++`, `?+`, `{n,m}+`
+
+Some syntax exists in `java.util.regex` only and makes a pattern invalid as well: `\h`, `\H`, `\R`, `\X`, `\G`, `\Z`, `\e`, `\cX`, `\uXXXX`, `\N{...}`, the comments mode `(?x)`, the flags `(?u)` and `(?d)`, and the Java classes such as `\p{javaLowerCase}`, `\p{IsAlphabetic}`, `\p{Alpha}` and `\p{InGreek}`.
+
+#### Characters, Classes and Case
+
+- The classes `\d`, `\w`, `\s` and the word boundary `\b` hold ASCII characters only. Use Unicode classes for other scripts: `\p{L}` (letters), `\p{Lu}` (capital letters), `\p{Ll}` (small letters), `\p{Nd}` (decimal digits), or a script such as `\p{Greek}`. The POSIX classes, such as `[[:alpha:]]`, hold ASCII characters only.
+- Matching without regard to case, `(?i)`, follows the simple case folding of Unicode: `"É" =~ "(?i)é"` is `true`, and `(?i)k` also matches the Kelvin sign. A character never folds to several characters, so `(?i)ß` does not match `SS`.
+- `.` matches every character except the line feed. With the flag `(?s)` it matches the line feed as well.
+- `^` and `$` match at the start and at the end of the text only, and `$` does not match before a final line feed. With the flag `(?m)` they match at the start and the end of each line. `\A` and `\z` always match at the start and the end of the text.
+- The flags are `i`, `m`, `s` and `U`. `(?U)` makes repetitions lazy by default.
+- `\x{41}` writes a character by its code point, `\Q...\E` quotes a literal section, `\v` is the vertical tab only, and `(?P<name>...)` or `(?<name>...)` name a group.
+
+#### Limits
+
+A pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. A single repetition count may be at most 1000. Each repetition counts with its number of copies, so `(?:a{100}){101}` is too large.
+
+An invalid pattern, or one beyond these limits, is reported with the reason RE2 gives. A constant pattern in a policy is reported when the policy is compiled. A pattern computed at evaluation time makes the expression an error.
+
+#### Migrating from `java.util.regex`
+
+Up to SAPL 4.1, patterns followed `java.util.regex`. Most patterns mean the same in both syntaxes. The following ones must be rewritten:
+
+| `java.util.regex`                     | RE2                                                                                  |
+|---------------------------------------|--------------------------------------------------------------------------------------|
+| Look-ahead, `^(?=.*[0-9])(?=.*[A-Z]).{8,}$` | Several conditions: `p =~ ".*[0-9].*" && p =~ ".*[A-Z].*" && p =~ ".{8,}"`, or several `pattern` keywords under `allOf` in a [schema](../2_10_Schemas/#patterns-in-schemas) |
+| Negative look-ahead, `^(?!admin$).*`  | A negated condition: `!(name =~ "admin")`                                            |
+| Backreference, `(\w)\1`               | No equivalent in a pattern. Capture the parts with `patterns.findAllSubmatch` and compare them in the policy. |
+| Possessive or atomic, `a*+`, `(?>a*)` | The plain quantifier `a*`, as RE2 never backtracks. A possessive quantifier that made a pattern fail on purpose needs a different pattern. |
+| `\h`                                  | `[\t \x{A0}\x{1680}\x{180E}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]`              |
+| `\R`                                  | `(?:\r\n\|[\n\v\f\r\x{85}\x{2028}\x{2029}])`                                         |
+| `\Z`                                  | `\n?\z`                                                                              |
+| `\e`, `\cA`, `A`                 | `\x1B`, `\x01`, `\x{0041}`                                                           |
+| `\0101` (octal)                       | `\101` or `\x{41}`. RE2 reads `\0101` as `\010` followed by `1`.                     |
+| `\p{Alpha}`, `\p{javaLowerCase}`, `\p{IsAlphabetic}`, `\p{InGreek}` | `[[:alpha:]]`, `\p{Ll}`, `\p{L}`, `\p{Greek}`                       |
+| Intersection, `[a-z&&[^aeiou]]`       | The characters themselves, `[b-df-hj-np-tv-z]`. RE2 reads `&&` as two literal `&` and does not report an error. |
+| Comments mode, `(?x)`                 | The pattern without whitespace and comments                                          |
+| `(?i)` matching ASCII only            | `(?i)` folds by Unicode. Restrict the text with `[a-zA-Z]` where only ASCII may match. |
+
+Two differences change the result without making a pattern invalid: `[a-z&&[^aeiou]]` and `\0101` above, and the line terminators. In `java.util.regex`, `.` excludes `\r`, `\x{85}`, `\x{2028}` and `\x{2029}` as well, and `$` matches before a final line terminator. In RE2, only the line feed is special.
 
 ### Key Membership Operator
 

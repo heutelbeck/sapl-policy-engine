@@ -134,7 +134,16 @@ public class SchemaValidationLibrary {
             the end of the text only. Look-around, backreferences, atomic groups and
             possessive quantifiers do not exist in this syntax, and `\\d`, `\\w` and
             `\\s` hold ASCII characters only. A schema with such a pattern, or with a
-            pattern too large to compile, is an error.
+            pattern too large to compile, is an error. The functions then return an
+            error, never `true` and never a validation result, even if the subject
+            never reaches the pattern.
+
+            The JSON Schema specification names ECMA-262 for patterns, which knows
+            look-ahead. SAPL uses RE2 for schemas on purpose: matching stays linear in
+            time, and the syntax is the same as for `=~` and in every SAPL engine. A
+            rule written with look-ahead, such as "at least one digit and one capital
+            letter", is written as several `pattern` keywords under `allOf` instead:
+            `{"type": "string", "minLength": 12, "allOf": [{"pattern": "[0-9]"}, {"pattern": "[A-Z]"}]}`.
             """;
 
     // JSON Schema field names

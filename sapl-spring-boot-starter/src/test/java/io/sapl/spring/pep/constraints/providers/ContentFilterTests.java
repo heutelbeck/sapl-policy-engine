@@ -37,8 +37,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.google.re2j.PatternSyntaxException;
-
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import org.springframework.security.access.AccessDeniedException;
@@ -406,16 +404,24 @@ class ContentFilterTests {
             assertThat(predicate.test(hostile)).isFalse();
         }
 
-        @Test
         @Timeout(15)
-        @DisplayName("a regex whose compiled program would be too large is refused when the constraint is read")
-        void regexTooLargeToCompileIsRefused() {
+        @MethodSource
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("a regex condition that is not a valid pattern denies access with the reason when the constraint is read")
+        void invalidRegexConditionDeniesAccessWithReason(String description, String pattern, String reason) {
             val constraint = v("""
-                    {"conditions": [{"path": "$.x", "type": "=~", "value": "(?:(?:a{1000}){1000}){1000}"}]}
-                    """);
+                    {"conditions": [{"path": "$.x", "type": "=~", "value": "%s"}]}
+                    """.formatted(pattern));
 
             assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
-                    .isInstanceOf(PatternSyntaxException.class).hasMessageContaining("expression too large");
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining(reason);
+        }
+
+        static Stream<Arguments> invalidRegexConditionDeniesAccessWithReason() {
+            return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$", "invalid or unsupported Perl syntax"),
+                    arguments("a backreference", "(a)\\\\1", "invalid escape sequence"),
+                    arguments("an unclosed group", "(abc", "missing closing )"),
+                    arguments("a program too large to compile", "(?:(?:a{1000}){1000}){1000}", "expression too large"));
         }
 
         @Test
