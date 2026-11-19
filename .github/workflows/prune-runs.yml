@@ -44,7 +44,8 @@ jobs:
           set -euo pipefail
           cutoff=$(date -u -d "-${MAX_AGE_DAYS} days" +%Y-%m-%dT%H:%M:%SZ)
           gh api --paginate "repos/${REPOSITORY}/actions/runs?per_page=100" --jq '.workflow_runs[] | [.id, .created_at, .status] | @tsv' > runs.tsv
-          tail -n +"$((KEEP_NEWEST + 1))" runs.tsv | awk -F '\t' -v cutoff="$cutoff" '$2 < cutoff && $3 == "completed" { print $1 }' | head -n "$MAX_DELETIONS" > doomed.txt
+          tail -n +"$((KEEP_NEWEST + 1))" runs.tsv | awk -F '\t' -v cutoff="$cutoff" '$2 < cutoff && $3 == "completed" { print $1 }' > candidates.txt
+          head -n "$MAX_DELETIONS" candidates.txt > doomed.txt
           echo "Runs listed: $(wc -l < runs.tsv), runs to delete now: $(wc -l < doomed.txt), cutoff: ${cutoff}"
           while read -r run; do
             gh api --method DELETE "repos/${REPOSITORY}/actions/runs/${run}" --silent
