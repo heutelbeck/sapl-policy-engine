@@ -141,8 +141,9 @@ class SseStreamServletTests {
         val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
         when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
         when(request.startAsync()).thenReturn(asyncContext);
+        val scheduledExpiry = mock(ScheduledFuture.class);
         when(keepAliveScheduler.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
-                .thenReturn(mock(ScheduledFuture.class));
+                .thenReturn(scheduledExpiry);
         val expiryTask = ArgumentCaptor.forClass(Runnable.class);
         val delay      = ArgumentCaptor.forClass(Long.class);
 

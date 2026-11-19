@@ -122,21 +122,23 @@ class SchemaReferenceResolutionTests {
         return (ObjectValue) json(jsonText);
     }
 
-    private static Stream<Arguments> foreignReferences() {
-        val references = List.of(arguments("http", "http://127.0.0.1:{port}/schema"),
-                arguments("https", "https://127.0.0.1:{port}/schema"),
-                arguments("cloud metadata style http", "http://127.0.0.1:{port}/latest/meta-data/"),
-                arguments("file", FILE_PLACEHOLDER), arguments("jar", "jar:" + FILE_PLACEHOLDER + "!/schema.json"),
-                arguments("classpath", "classpath:" + CLASSPATH_RESOURCE),
-                arguments("resource", "resource:" + CLASSPATH_RESOURCE),
-                arguments("unknown scheme", "unknown-scheme://127.0.0.1:{port}/schema"),
-                arguments("relative to the inline schema", "classified-schema.json"));
-        return Stream.of(SchemaEntryPoint.values()).flatMap(
-                entryPoint -> Stream.of("$ref", "$schema").flatMap(keyword -> references.stream().map(reference -> {
-                    val values = reference.get();
-                    return arguments(entryPoint, keyword, values[0], values[1]);
-                })));
+    static Stream<Arguments> foreignReferences() {
+        val references = List.of(new Reference("http", "http://127.0.0.1:{port}/schema"),
+                new Reference("https", "https://127.0.0.1:{port}/schema"),
+                new Reference("cloud metadata style http", "http://127.0.0.1:{port}/latest/meta-data/"),
+                new Reference("file", FILE_PLACEHOLDER),
+                new Reference("jar", "jar:" + FILE_PLACEHOLDER + "!/schema.json"),
+                new Reference("classpath", "classpath:" + CLASSPATH_RESOURCE),
+                new Reference("resource", "resource:" + CLASSPATH_RESOURCE),
+                new Reference("unknown scheme", "unknown-scheme://127.0.0.1:{port}/schema"),
+                new Reference("relative to the inline schema", "classified-schema.json"));
+        return Stream.of(SchemaEntryPoint.values())
+                .flatMap(entryPoint -> Stream.of("$ref", "$schema").flatMap(keyword -> references.stream()
+                        .map(reference -> arguments(entryPoint, keyword, reference.kind(), reference.template()))));
     }
+
+    /** A kind of foreign reference and the template of its IRI. */
+    private record Reference(String kind, String template) {}
 
     @Nested
     @DisplayName("Foreign references")
@@ -150,8 +152,7 @@ class SchemaReferenceResolutionTests {
             try (val server = new ConnectionRecordingServer()) {
                 val reference = resolve(referenceTemplate, server);
                 val result    = entryPoint.validate(Value.of(CLASSIFIED_CONTENT), schema("""
-                        { "%s": "%s" }
-                        """.formatted(keyword, reference)), Value.EMPTY_ARRAY);
+                        { "%s": "%s" }""".formatted(keyword, reference)), Value.EMPTY_ARRAY);
 
                 assertThat(server.connections()).as("connections received by %s", reference).isZero();
                 assertThat(result).isInstanceOfSatisfying(ErrorValue.class, error -> assertThat(error.message())
@@ -180,8 +181,8 @@ class SchemaReferenceResolutionTests {
                 throws IOException {
             try (val server = new ConnectionRecordingServer()) {
                 val supplied = schema("""
-                        { "$id": "https://schemas.example.com/relay", "$ref": "http://127.0.0.1:%d/schema" }
-                        """.formatted(server.port()));
+                        { "$id": "https://schemas.example.com/relay", "$ref": "http://127.0.0.1:%d/schema" }"""
+                        .formatted(server.port()));
                 val result   = entryPoint.validate(Value.of(CLASSIFIED_CONTENT), schema("""
                         { "$ref": "https://schemas.example.com/relay" }
                         """), Value.ofArray(supplied));
@@ -200,20 +201,19 @@ class SchemaReferenceResolutionTests {
             try (val server = new ConnectionRecordingServer()) {
                 val reference = resolve(referenceTemplate, server);
                 val result    = SchemaValidationLibrary.validate(Value.of("probe"), schema("""
-                        { "$ref": "%s" }
-                        """.formatted(reference)));
+                        { "$ref": "%s" }""".formatted(reference)));
 
                 assertThat(result).isInstanceOf(ErrorValue.class).asString().doesNotContain(CLASSIFIED_CONTENT);
             }
         }
     }
 
-    private static Stream<String> disclosingReferences() {
+    static Stream<String> disclosingReferences() {
         return Stream.of("http://127.0.0.1:{port}/schema", FILE_PLACEHOLDER, "classpath:" + CLASSPATH_RESOURCE,
                 "resource:" + CLASSPATH_RESOURCE);
     }
 
-    private static Stream<Arguments> builtInDrafts() {
+    static Stream<Arguments> builtInDrafts() {
         val drafts = List.of("http://json-schema.org/draft-04/schema#", "http://json-schema.org/draft-06/schema#",
                 "http://json-schema.org/draft-07/schema#", "https://json-schema.org/draft/2019-09/schema",
                 "https://json-schema.org/draft/2020-12/schema");
@@ -221,7 +221,7 @@ class SchemaReferenceResolutionTests {
                 .flatMap(entryPoint -> drafts.stream().map(draft -> arguments(entryPoint, draft)));
     }
 
-    private static Stream<Arguments> builtInMetaSchemaReferences() {
+    static Stream<Arguments> builtInMetaSchemaReferences() {
         val metaSchemas = List.of("http://json-schema.org/draft-07/schema#",
                 "https://json-schema.org/draft/2019-09/schema", "https://json-schema.org/draft/2020-12/schema",
                 "https://json-schema.org/draft/2020-12/meta/validation");
@@ -238,8 +238,7 @@ class SchemaReferenceResolutionTests {
         @DisplayName("every supported draft named by $schema keeps validating")
         void whenSchemaNamesSupportedDraftThenValidates(SchemaEntryPoint entryPoint, String draft) {
             val draftSchema = schema("""
-                    { "$schema": "%s", "type": "string" }
-                    """.formatted(draft));
+                    { "$schema": "%s", "type": "string" }""".formatted(draft));
 
             assertThat(List.of(entryPoint.validate(Value.of("text"), draftSchema, Value.EMPTY_ARRAY),
                     entryPoint.validate(Value.of(1), draftSchema, Value.EMPTY_ARRAY)))
@@ -251,8 +250,7 @@ class SchemaReferenceResolutionTests {
         @DisplayName("a $ref to a built-in meta-schema resolves from the validator's bundled copy")
         void whenSchemaReferencesBuiltInMetaSchemaThenValidates(SchemaEntryPoint entryPoint, String metaSchema) {
             val metaSchemaReference = schema("""
-                    { "$ref": "%s" }
-                    """.formatted(metaSchema));
+                    { "$ref": "%s" }""".formatted(metaSchema));
 
             assertThat(List.of(entryPoint.validate(schema("""
                     { "type": "string" }

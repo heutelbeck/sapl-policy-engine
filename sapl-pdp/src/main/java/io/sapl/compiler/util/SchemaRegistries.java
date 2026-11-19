@@ -30,11 +30,10 @@ import lombok.val;
 import java.io.ByteArrayInputStream;
 import java.io.Serial;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Creates the networknt {@link SchemaRegistry} instances used for JSON Schema
@@ -60,16 +59,7 @@ public class SchemaRegistries {
 
     private static final String FRAGMENT_SEPARATOR = "#";
 
-    private static final List<String> META_SCHEMA_PATHS = List.of("draft-04/schema", "draft-06/schema",
-            "draft-07/schema", "draft/2019-09/schema", "draft/2019-09/meta/applicator", "draft/2019-09/meta/content",
-            "draft/2019-09/meta/core", "draft/2019-09/meta/format", "draft/2019-09/meta/meta-data",
-            "draft/2019-09/meta/validation", "draft/2020-12/schema", "draft/2020-12/meta/applicator",
-            "draft/2020-12/meta/content", "draft/2020-12/meta/core", "draft/2020-12/meta/format-annotation",
-            "draft/2020-12/meta/format-assertion", "draft/2020-12/meta/meta-data", "draft/2020-12/meta/unevaluated",
-            "draft/2020-12/meta/validation");
-
-    private static final Set<String> META_SCHEMA_IRIS = Stream.of("http://json-schema.org/", "https://json-schema.org/")
-            .flatMap(origin -> META_SCHEMA_PATHS.stream().map(origin::concat)).collect(Collectors.toUnmodifiableSet());
+    private static final Set<String> META_SCHEMA_IRIS = metaSchemaIris();
 
     /**
      * Creates a registry for JSON Schema 2020-12 by default that resolves
@@ -87,8 +77,22 @@ public class SchemaRegistries {
         });
     }
 
-    private static String withoutEmptyFragment(String iri) {
-        return iri.endsWith(FRAGMENT_SEPARATOR) ? iri.substring(0, iri.length() - 1) : iri;
+    /** The IRIs of the meta-schemas that ship with the validator, under http and https. */
+    private static Set<String> metaSchemaIris() {
+        val paths = List.of("draft-04/schema", "draft-06/schema", "draft-07/schema", "draft/2019-09/schema",
+                "draft/2019-09/meta/applicator", "draft/2019-09/meta/content", "draft/2019-09/meta/core",
+                "draft/2019-09/meta/format", "draft/2019-09/meta/meta-data", "draft/2019-09/meta/validation",
+                "draft/2020-12/schema", "draft/2020-12/meta/applicator", "draft/2020-12/meta/content",
+                "draft/2020-12/meta/core", "draft/2020-12/meta/format-annotation",
+                "draft/2020-12/meta/format-assertion", "draft/2020-12/meta/meta-data", "draft/2020-12/meta/unevaluated",
+                "draft/2020-12/meta/validation");
+        val iris  = new HashSet<String>();
+        for (val origin : List.of("http://json-schema.org/", "https://json-schema.org/")) {
+            for (val path : paths) {
+                iris.add(origin + path);
+            }
+        }
+        return Set.copyOf(iris);
     }
 
     /**
@@ -117,6 +121,10 @@ public class SchemaRegistries {
                 return () -> new ByteArrayInputStream(schema.getBytes(StandardCharsets.UTF_8));
             }
             throw new UnresolvableSchemaReferenceException(iri);
+        }
+
+        private static String withoutEmptyFragment(String iri) {
+            return iri.endsWith(FRAGMENT_SEPARATOR) ? iri.substring(0, iri.length() - 1) : iri;
         }
     }
 
