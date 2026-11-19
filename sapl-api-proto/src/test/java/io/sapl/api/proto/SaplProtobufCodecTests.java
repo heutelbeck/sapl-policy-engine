@@ -28,6 +28,7 @@ import com.google.protobuf.CodedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.stream.Stream;
 
@@ -105,6 +106,50 @@ class SaplProtobufCodecTests {
             val bytes = SaplProtobufCodec.writeValue(value);
 
             assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
+        }
+
+        // Each level of objects and arrays holds a few values beside the next level, as nested
+        // resources do. Encoding sized every subtree again at every level above it, so the work
+        // grew with the square of the depth.
+        @Test
+        @Timeout(10)
+        @DisplayName("a value nested to the depth limit with values on every level encodes in linear time")
+        void whenValueNestedToTheLimitWithValuesOnEveryLevelThenEncodingTimeGrowsLinearly() throws IOException {
+            val shallow = nestedObjects(50);
+            val deep    = nestedObjects(450);
+            for (int warmup = 0; warmup < 200; warmup++) {
+                SaplProtobufCodec.writeValue(shallow);
+                SaplProtobufCodec.writeValue(deep);
+            }
+            val shallowTime = medianEncodeNanos(shallow);
+            val deepTime    = medianEncodeNanos(deep);
+
+            // Nine times the depth: linear encoding costs about nine times as much, the former
+            // quadratic encoding about eighty times.
+            assertThat(deepTime).isLessThan(30 * shallowTime);
+            assertThat(SaplProtobufCodec.readValue(SaplProtobufCodec.writeValue(deep))).isEqualTo(deep);
+        }
+
+        // Objects nested to a depth, each with a text, a number and an array beside the next level.
+        private static Value nestedObjects(int depth) {
+            Value value = Value.of("leaf");
+            for (int level = 0; level < depth; level++) {
+                value = ObjectValue.builder().put("name", Value.of("level " + level)).put("index", Value.of(level))
+                        .put("tags", ArrayValue.builder().add(Value.of("a")).add(Value.of("b")).build())
+                        .put("next", value).build();
+            }
+            return value;
+        }
+
+        private static long medianEncodeNanos(Value value) throws IOException {
+            val times = new long[21];
+            for (int run = 0; run < times.length; run++) {
+                val start = System.nanoTime();
+                SaplProtobufCodec.writeValue(value);
+                times[run] = System.nanoTime() - start;
+            }
+            Arrays.sort(times);
+            return times[times.length / 2];
         }
 
         @ParameterizedTest(name = "{0}")
