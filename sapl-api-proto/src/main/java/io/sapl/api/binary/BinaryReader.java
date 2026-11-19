@@ -61,13 +61,10 @@ final class BinaryReader {
     private int          position;
     private int          regionPosition;
 
-    private int[]                 frameRemaining;
-    private int[]                 frameStart;
-    private ObjectValue.Builder[] frameBuilder;
-    private String[]              frameKey;
-    private int                   depth;
-    private Value[]               scratch;
-    private int                   scratchSize;
+    private Frame[] frames;
+    private int     depth;
+    private Value[] scratch;
+    private int     scratchSize;
 
     /**
      * A reader at the start of the structure, behind the lead byte and the text
@@ -213,37 +210,48 @@ final class BinaryReader {
      */
     Value value() throws SaplBinaryFormatException {
         while (true) {
-            var value = scalarOrOpen(nextByte());
-            if (value == null) {
-                continue;
-            }
-            while (true) {
-                if (depth == 0) {
-                    return value;
+            val value = scalarOrOpen(nextByte());
+            if (value != null) {
+                val outermost = attach(value);
+                if (outermost != null) {
+                    return outermost;
                 }
-                val top     = depth - 1;
-                val builder = frameBuilder[top];
-                if (builder != null) {
-                    builder.put(frameKey[top], value);
-                } else {
-                    pushScratch(value);
-                }
-                if (--frameRemaining[top] > 0) {
-                    if (builder != null) {
-                        frameKey[top] = text();
-                    }
-                    break;
-                }
-                depth = top;
-                value = close(top, builder);
             }
         }
+    }
+
+    /**
+     * Puts a complete value into the frame it belongs to and closes every frame
+     * it completes.
+     *
+     * @return the outermost value once no frame is open, or null while the
+     * innermost frame still awaits values
+     */
+    private @Nullable Value attach(Value value) throws SaplBinaryFormatException {
+        var complete = value;
+        while (depth > 0) {
+            val frame = frames[depth - 1];
+            if (frame.builder != null) {
+                frame.builder.put(frame.key, complete);
+            } else {
+                pushScratch(complete);
+            }
+            if (--frame.remaining > 0) {
+                if (frame.builder != null) {
+                    frame.key = text();
+                }
+                return null;
+            }
+            depth--;
+            complete = close(frame);
+        }
+        return complete;
     }
 
     /** The value of a tag, or null if the tag opened an array or object that is not empty. */
     private @Nullable Value scalarOrOpen(int tag) throws SaplBinaryFormatException {
         if (tag >= Tag.SMALL_INTEGER) {
-            return Value.of((long) (tag - Tag.SMALL_INTEGER));
+            return Value.of(tag - Tag.SMALL_INTEGER);
         }
         if (tag >= Tag.SHORT_OBJECT) {
             return open(tag - Tag.SHORT_OBJECT, true);
@@ -312,44 +320,42 @@ final class BinaryReader {
         if (count > payload.length - position) {
             throw new SaplBinaryFormatException(MALFORMED);
         }
-        growFrames();
-        frameRemaining[depth] = count;
-        frameStart[depth]     = scratchSize;
+        val frame = nextFrame();
+        frame.remaining = count;
+        frame.start     = scratchSize;
         if (isObject) {
-            frameBuilder[depth] = ObjectValue.builder();
-            frameKey[depth]     = text();
+            frame.builder = ObjectValue.builder();
+            frame.key     = text();
         }
         depth++;
         return null;
     }
 
-    /** The array or object of the frame at {@code index}, from its elements or its builder. */
-    private Value close(int index, ObjectValue.Builder builder) {
+    /** The array or object of a frame, from its elements or its builder. */
+    private Value close(Frame frame) {
+        val builder = frame.builder;
         if (builder != null) {
-            frameBuilder[index] = null;
-            frameKey[index]     = null;
+            frame.builder = null;
+            frame.key     = null;
             return builder.build();
         }
-        val start    = frameStart[index];
-        val elements = Arrays.copyOfRange(scratch, start, scratchSize);
-        Arrays.fill(scratch, start, scratchSize, null);
-        scratchSize = start;
+        val elements = Arrays.copyOfRange(scratch, frame.start, scratchSize);
+        Arrays.fill(scratch, frame.start, scratchSize, null);
+        scratchSize = frame.start;
         return new ArrayValue(elements);
     }
 
-    private void growFrames() {
-        if (frameRemaining == null) {
-            frameRemaining = new int[8];
-            frameStart     = new int[8];
-            frameBuilder   = new ObjectValue.Builder[8];
-            frameKey       = new String[8];
-        } else if (depth == frameRemaining.length) {
-            val capacity = depth << 1;
-            frameRemaining = Arrays.copyOf(frameRemaining, capacity);
-            frameStart     = Arrays.copyOf(frameStart, capacity);
-            frameBuilder   = Arrays.copyOf(frameBuilder, capacity);
-            frameKey       = Arrays.copyOf(frameKey, capacity);
+    /** The frame at the current depth, made the first time a value reaches that depth. */
+    private Frame nextFrame() {
+        if (frames == null) {
+            frames = new Frame[8];
+        } else if (depth == frames.length) {
+            frames = Arrays.copyOf(frames, depth << 1);
         }
+        if (frames[depth] == null) {
+            frames[depth] = new Frame();
+        }
+        return frames[depth];
     }
 
     private void pushScratch(Value value) {
@@ -359,5 +365,18 @@ final class BinaryReader {
             scratch = Arrays.copyOf(scratch, scratchSize << 1);
         }
         scratch[scratchSize++] = value;
+    }
+
+    /**
+     * An array or object being read: how many elements or entries it still
+     * awaits, where its elements start on the scratch stack, and for an object
+     * its builder and the key of the entry being read. A frame is reused for
+     * every array or object at its depth.
+     */
+    private static final class Frame {
+        private int                           remaining;
+        private int                           start;
+        private ObjectValue.@Nullable Builder builder;
+        private @Nullable String              key;
     }
 }

@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.remote;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -169,7 +170,8 @@ class ProtobufRemoteReactivePolicyDecisionPointFallbackTests {
         val node     = start(Knows.BINARY_FORMAT);
         val pdp      = binaryClient(node, 1);
         val verdicts = requests.stream()
-                .map(ids -> verdictsOf(pdp.decideAllOnce(multiSubscription(ids)).block(PATIENCE))).toList();
+                .map(ids -> verdictsOf(requireNonNull(pdp.decideAllOnce(multiSubscription(ids)).block(PATIENCE))))
+                .toList();
         assertThat(List.of(verdicts, node.setups())).containsExactly(expectedVerdicts, expectedSetups);
     }
 
@@ -216,9 +218,10 @@ class ProtobufRemoteReactivePolicyDecisionPointFallbackTests {
 
     private static List<Decision> verdicts(ProtobufRemoteReactivePolicyDecisionPoint pdp, FirstRequest request) {
         return switch (request) {
-        case DECIDE_ONCE     -> List.of(pdp.decideOnce(SUBSCRIPTION).block(PATIENCE).decision());
-        case DECIDE_ALL_ONCE -> verdictsOf(pdp.decideAllOnce(multiSubscription(List.of("a", "b"))).block(PATIENCE));
-        case DECIDE          -> List.of(pdp.decide(SUBSCRIPTION).blockFirst(PATIENCE).decision());
+        case DECIDE_ONCE     -> List.of(requireNonNull(pdp.decideOnce(SUBSCRIPTION).block(PATIENCE)).decision());
+        case DECIDE_ALL_ONCE ->
+            verdictsOf(requireNonNull(pdp.decideAllOnce(multiSubscription(List.of("a", "b"))).block(PATIENCE)));
+        case DECIDE          -> List.of(requireNonNull(pdp.decide(SUBSCRIPTION).blockFirst(PATIENCE)).decision());
         };
     }
 
@@ -274,7 +277,7 @@ class ProtobufRemoteReactivePolicyDecisionPointFallbackTests {
             setups.add(mimeType);
             connections.add(sendingSocket);
             val readsBinary = knows == Knows.BINARY_FORMAT && BINARY.equals(mimeType);
-            if (!readsBinary && !PROTOBUF.equals(mimeType) && knows != Knows.PROTOBUF_IGNORING_SETUP) {
+            if (knows != Knows.PROTOBUF_IGNORING_SETUP && !readsBinary && !PROTOBUF.equals(mimeType)) {
                 return Mono.error(new UnsupportedSetupException(UNSUPPORTED_DATA_MIME_TYPE));
             }
             return Mono.just(new RSocket() {
@@ -316,7 +319,7 @@ class ProtobufRemoteReactivePolicyDecisionPointFallbackTests {
                 }
                 });
             } catch (IOException e) {
-                throw new InvalidException("Bad request");
+                throw new InvalidException("Bad request", e);
             } finally {
                 request.release();
             }

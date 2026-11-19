@@ -30,6 +30,7 @@ import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
+import lombok.ToString;
 import lombok.val;
 
 @Data
@@ -73,9 +74,13 @@ public class RemotePDPProperties implements Validator {
     // with a fallback to protobuf for a node that does not speak it.
     private String format = FORMAT_PROTOBUF;
 
-    private String key    = "";
+    private String key = "";
+
+    // Credentials stay out of the text form, which ends up in logs and error messages.
+    @ToString.Exclude
     private String secret = "";
 
+    @ToString.Exclude
     private String bearerToken = "";
 
     private boolean tokenRelay = false;

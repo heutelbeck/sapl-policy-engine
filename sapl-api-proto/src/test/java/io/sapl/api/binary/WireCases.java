@@ -82,10 +82,11 @@ class WireCases {
         while (index < lines.length && !lines[index].startsWith(HEADING)) {
             index++;
         }
+        val body = new ArrayList<String>();
         while (index < lines.length) {
             val heading = index;
             index++;
-            val body = new ArrayList<String>();
+            body.clear();
             while (index < lines.length && !lines[index].startsWith(HEADING)) {
                 body.add(lines[index++]);
             }
