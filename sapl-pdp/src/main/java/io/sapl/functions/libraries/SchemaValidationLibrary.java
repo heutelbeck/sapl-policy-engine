@@ -23,11 +23,13 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import io.sapl.compiler.util.BoundedRegex;
-import io.sapl.compiler.util.BoundedRegularExpressionFactory;
+import io.sapl.compiler.util.SchemaRegistries;
+import io.sapl.compiler.util.SchemaRegistries.UnresolvableSchemaReferenceException;
 import lombok.val;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
 public class SchemaValidationLibrary {
@@ -191,8 +193,7 @@ public class SchemaValidationLibrary {
             }
             """;
 
-    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
-            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12, BoundedRegularExpressionFactory::applyTo);
+    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistries.create(Map.of());
 
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
@@ -399,6 +400,8 @@ public class SchemaValidationLibrary {
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
             val errors      = BoundedRegex.runWithSharedMatchBudget(() -> validator.validate(subjectNode));
             return createValidationResult(errors.isEmpty(), errors);
+        } catch (UnresolvableSchemaReferenceException e) {
+            return Value.error(e.getMessage());
         } catch (SchemaException e) {
             // An uncompilable schema (malformed, bad or unresolvable $ref) is an author
             // error, not a non-compliant subject. Surface it as an error.
@@ -431,10 +434,7 @@ public class SchemaValidationLibrary {
         if (schemaMap.isEmpty()) {
             return SCHEMA_REGISTRY;
         }
-        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
-            builder.schemas(schemaMap);
-            BoundedRegularExpressionFactory.applyTo(builder);
-        });
+        return SchemaRegistries.create(schemaMap);
     }
 
     private static Value createValidationResult(boolean valid, List<Error> errors) {
