@@ -204,6 +204,7 @@ class RemotePDPPropertiesValidationTests {
         properties.setSecret("the-basic-auth-secret");
         properties.setBearerToken("the-bearer-token");
 
-        assertThat(properties.toString()).contains("client").doesNotContain("the-basic-auth-secret", "the-bearer-token");
+        assertThat(properties.toString()).contains("client").doesNotContain("the-basic-auth-secret",
+                "the-bearer-token");
     }
 }
