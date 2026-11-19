@@ -159,10 +159,19 @@ public class ConformanceCorpus {
         return files;
     }
 
-    private static Path directoryOf(String corpus) {
+    /**
+     * @param name the name of a file or directory of the conformance corpus, for
+     * example "function-catalogue.json"
+     * @return where it is, whether it exists or not
+     */
+    public static Path pathOf(String name) {
         val property   = System.getProperty(DIRECTORY_PROPERTY);
         val configured = property == null || property.isBlank() ? DEFAULT_DIRECTORY : property;
-        val directory  = Path.of(configured, corpus).toAbsolutePath().normalize();
+        return Path.of(configured, name).toAbsolutePath().normalize();
+    }
+
+    private static Path directoryOf(String corpus) {
+        val directory = pathOf(corpus);
         if (!Files.isDirectory(directory)) {
             throw new IllegalStateException(ERROR_DIRECTORY_MISSING.formatted(directory, DIRECTORY_PROPERTY));
         }
@@ -240,8 +249,13 @@ public class ConformanceCorpus {
     /**
      * The document as it is parsed: each placeholder in angle brackets is replaced
      * by the text it stands for. Every other angle bracket stands for itself.
+     *
+     * @param written a text with placeholders, as a case file writes it
+     * @param origin the file and the line of the case, which names it if a
+     * placeholder is malformed
+     * @return the text with the placeholders replaced
      */
-    private static String withPlaceholdersReplaced(String written, String origin) {
+    public static String withPlaceholdersReplaced(String written, String origin) {
         val document = new StringBuilder();
         var rest     = written;
         var bracket  = rest.indexOf('<');

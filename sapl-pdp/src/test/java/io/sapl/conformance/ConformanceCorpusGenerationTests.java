@@ -20,6 +20,7 @@ package io.sapl.conformance;
 import io.sapl.conformance.ConformanceCorpus.Case;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -34,7 +35,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * Writes what this engine yields into the case files of the conformance
  * corpus: the verdicts of the parser corpus, the reports of the corpora
  * "diagnostics" and "several-mistakes", and the outcomes of the evaluation
- * corpus. The introductions, headings and documents stay as they are written.
+ * corpus, and the outcomes of the function corpus with the catalogue of the
+ * function libraries it covers. The introductions, headings and documents stay
+ * as they are written.
  * <p>
  * These tests change the corpus they read. They run in the Maven profile
  * "conformance-dump" only, and a review of the difference in the corpus
@@ -48,7 +51,8 @@ class ConformanceCorpusGenerationTests {
         return Stream.of(arguments("parser", (UnaryOperator<Case>) ParserVerdicts::withVerdict),
                 arguments("diagnostics", (UnaryOperator<Case>) DiagnosticReports::withReport),
                 arguments("several-mistakes", (UnaryOperator<Case>) DiagnosticReports::withReport),
-                arguments("evaluation", (UnaryOperator<Case>) EvaluationOutcomes::withOutcome));
+                arguments("evaluation", (UnaryOperator<Case>) EvaluationOutcomes::withOutcome),
+                arguments("functions", (UnaryOperator<Case>) FunctionOutcomes::withOutcome));
     }
 
     @MethodSource("generatedCorpora")
@@ -59,5 +63,13 @@ class ConformanceCorpusGenerationTests {
 
         assertThat(ConformanceCorpus.casesOf(corpus))
                 .allSatisfy(generatedCase -> assertThat(generator.apply(generatedCase)).isEqualTo(generatedCase));
+    }
+
+    @Test
+    @DisplayName("the function catalogue is written with the libraries of this engine that the function corpus covers")
+    void whenFunctionCatalogueIsGeneratedThenItHoldsTheLibrariesOfThisEngine() {
+        FunctionCatalogue.write();
+
+        assertThat(FunctionCatalogue.stated()).isEqualTo(FunctionCatalogue.catalogue());
     }
 }
