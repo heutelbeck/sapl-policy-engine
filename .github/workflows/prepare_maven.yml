@@ -3,6 +3,7 @@
 name: Prepare Maven Dependencies
 
 on:
+  workflow_dispatch:
   workflow_call:
     outputs:
       cache_key:
@@ -28,6 +29,7 @@ jobs:
     concurrency:
       group: maven-preparation-${{ github.ref }}
       cancel-in-progress: false
+      queue: max
     outputs:
       cache_key: ${{ steps.key.outputs.key }}
       version: ${{ steps.version.outputs.version }}
