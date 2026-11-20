@@ -19,7 +19,11 @@ package io.sapl.conformance;
 
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -27,8 +31,14 @@ import io.sapl.conformance.ConformanceCorpus.Case;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 import static io.sapl.conformance.ConformanceCorpus.withPlaceholdersReplaced;
 
@@ -41,10 +51,12 @@ import static io.sapl.conformance.ConformanceCorpus.withPlaceholdersReplaced;
  * argument in a line of its own, as JSON or as {@code undefined}. Numbers are
  * read exactly. The outcome
  * is {@code value: } with the value or {@code error: } with the message of an
- * error value. Placeholders are replaced in the arguments and in the outcome,
- * so a stated outcome that means the same as the outcome of this engine stays
- * as it is written. A stated message that ends with a colon states only how
- * the message starts.
+ * error value. A case that states its outcome as {@code validation: } states
+ * a validation result by its validity and the instance locations of its
+ * errors, without their messages. Placeholders are replaced in the arguments
+ * and in the outcome, so a stated outcome that means the same as the outcome
+ * of this engine stays as it is written. A stated message that ends with a
+ * colon states only how the message starts.
  */
 @UtilityClass
 public class FunctionOutcomes {
@@ -52,7 +64,12 @@ public class FunctionOutcomes {
     private static final String ERROR           = "error: ";
     private static final String UNDEFINED       = "undefined";
     private static final String UNREPRESENTABLE = "UNREPRESENTABLE ";
+    private static final String VALIDATION      = "validation: ";
     private static final String VALUE           = "value: ";
+
+    private static final String FIELD_ERRORS = "errors";
+    private static final String FIELD_PATH   = "path";
+    private static final String FIELD_VALID  = "valid";
 
     private static final FunctionBroker BROKER = defaultBroker();
 
@@ -84,26 +101,33 @@ public class FunctionOutcomes {
     /**
      * @param functionCase a case of the function corpus
      * @return what the function of the case returns for its arguments, as an
-     * outcome line of the corpus
+     * outcome line of the corpus, in the form of a validation result if the
+     * case states one
      */
     public static String outcomeOf(Case functionCase) {
         val lines     = functionCase.documentAsWritten().lines().toList();
         val arguments = lines.stream().skip(1)
                 .map(line -> valueOf(withPlaceholdersReplaced(line, functionCase.origin()))).toList();
         val function  = lines.isEmpty() ? "" : lines.getFirst();
-        return written(BROKER.evaluateFunction(new FunctionInvocation(function, arguments)));
+        val result    = BROKER.evaluateFunction(new FunctionInvocation(function, arguments));
+        return functionCase.expectation().startsWith(VALIDATION) ? writtenAsValidation(result) : written(result);
     }
 
     /**
      * Values are compared as values, so that numbers agree by their quantity
      * and objects without regard to the order of their keys. Messages are
      * compared as text. A stated message that ends with a colon states only how
-     * the message starts.
+     * the message starts. Validation results agree in their validity and in the
+     * set of the instance locations of their errors.
      */
     private static boolean agrees(Case functionCase, String outcome) {
         val stated = withPlaceholdersReplaced(functionCase.expectation(), functionCase.origin());
         if (stated.startsWith(ERROR) && stated.endsWith(":")) {
             return outcome.startsWith(stated);
+        }
+        if (stated.startsWith(VALIDATION) && outcome.startsWith(VALIDATION)) {
+            val validation = validationOf(stated);
+            return validation.isPresent() && validation.equals(validationOf(outcome));
         }
         if (stated.startsWith(VALUE) && outcome.startsWith(VALUE) && !outcome.contains(UNREPRESENTABLE)) {
             return valueOf(stated.substring(VALUE.length())).equals(valueOf(outcome.substring(VALUE.length())));
@@ -128,6 +152,49 @@ public class FunctionOutcomes {
         }
         };
     }
+
+    /**
+     * Writes a validation result as its validity and the instance locations of
+     * its errors as a JSON array, sorted and each once. Any other value is
+     * written as a value.
+     */
+    private static String writtenAsValidation(Value value) {
+        if (!(value instanceof ObjectValue result && result.get(FIELD_VALID) instanceof BooleanValue(var valid)
+                && result.get(FIELD_ERRORS) instanceof ArrayValue errors)) {
+            return written(value);
+        }
+        val locations = new TreeSet<String>();
+        for (val error : errors) {
+            if (!(error instanceof ObjectValue fields && fields.get(FIELD_PATH) instanceof TextValue(var path))) {
+                return written(value);
+            }
+            locations.add(path);
+        }
+        return VALIDATION + valid + " " + JSON.writeValueAsString(locations);
+    }
+
+    /**
+     * Reads a validation outcome into its validity and the set of its instance
+     * locations.
+     *
+     * @return the validation, or empty if the outcome does not follow the form
+     */
+    private static Optional<Validation> validationOf(String outcome) {
+        val written   = outcome.substring(VALIDATION.length());
+        val separator = written.indexOf(' ');
+        if (separator < 0) {
+            return Optional.empty();
+        }
+        try {
+            val locations = new HashSet<String>();
+            JSON.readTree(written.substring(separator + 1)).forEach(location -> locations.add(location.asString()));
+            return Optional.of(new Validation(written.substring(0, separator), locations));
+        } catch (JacksonException notJson) {
+            return Optional.empty();
+        }
+    }
+
+    private record Validation(String validity, Set<String> locations) {}
 
     private static FunctionBroker defaultBroker() {
         val broker = new DefaultFunctionBroker(0);
