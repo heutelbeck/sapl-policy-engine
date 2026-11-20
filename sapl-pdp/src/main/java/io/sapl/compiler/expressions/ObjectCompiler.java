@@ -23,7 +23,6 @@ import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -49,13 +48,13 @@ public class ObjectCompiler {
         }
 
         val     keys      = new String[entries.size()];
-        val     compiled  = new ArrayList<CompiledExpression>(entries.size());
+        val     compiled  = entries.stream().map(entry -> ExpressionCompiler.compile(entry.value(), ctx)).toList();
         boolean allValues = true;
         boolean hasStream = false;
         for (int i = 0; i < entries.size(); i++) {
             val entry = entries.get(i);
             keys[i] = entry.key();
-            val result = ExpressionCompiler.compile(entry.value(), ctx);
+            val result = compiled.get(i);
             if (result instanceof ErrorValue) {
                 return result;
             }
@@ -65,7 +64,6 @@ public class ObjectCompiler {
             } else if (!(result instanceof Value)) {
                 allValues = false;
             }
-            compiled.add(result);
         }
 
         if (allValues) {

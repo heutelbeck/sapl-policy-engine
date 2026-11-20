@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Map;
 import java.util.stream.Stream;
@@ -64,6 +65,47 @@ class RegexCompilerTests {
     void whenInvalidRegexPatternThenThrowsException() {
         assertThatThrownBy(() -> compileExpression("\"hello\" =~ \"[invalid\""))
                 .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid regular expression");
+    }
+
+    @DisplayName("Fatal compiler errors survive folded evaluation errors")
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { """
+            [1 / 0, subject =~ "("]
+            """, """
+            {first: 1 / 0, second: subject =~ "("}
+            """, """
+            string.concat(1 / 0, subject =~ "(")
+            """, """
+            (1 / 0) =~ "("
+            """, """
+            true || ([1 / 0, subject =~ "("] == [])
+            """, """
+            (1 / 0) |- filter.replace(action =~ "(")
+            """, """
+            undefined |- each filter.replace(action =~ "(")
+            """, """
+            (1 / 0) |- { @.a : filter.replace(action =~ "(") }
+            """, """
+            subject |- { @[(action =~ "(")] : filter.replace(1 / 0) }
+            """, """
+            <test.attr(1 / 0, subject =~ "(")>
+            """, """
+            (1 / 0).<test.attr(subject =~ "(")>
+            """, """
+            <test.attr[subject =~ "("]>
+            """, """
+            subject.<test.attr[subject =~ "("]>
+            """ })
+    void whenEvaluationErrorPrecedesInvalidConstantPatternThenCompilationFails(String expression) {
+        assertThatThrownBy(() -> compileExpression(expression)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("Invalid regular expression");
+    }
+
+    @DisplayName("Ordinary evaluation errors remain short circuited")
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "true || (1 / 0)", "true || ((1 / 0) =~ \"a\")", "true || ([1 / 0, subject] == [])" })
+    void whenEvaluationErrorIsMaskedThenCompilationStillSucceeds(String expression) {
+        assertCompilesTo(expression, Value.TRUE);
     }
 
     @Test

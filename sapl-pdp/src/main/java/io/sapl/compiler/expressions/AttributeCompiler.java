@@ -99,18 +99,16 @@ public class AttributeCompiler {
         CompiledExpression compiledEntity = null;
         if (entityExpr != null) {
             compiledEntity = ExpressionCompiler.compile(entityExpr, ctx);
-            if (compiledEntity instanceof ErrorValue err) {
-                return err;
-            }
         }
 
-        val compiledArgs = new ArrayList<CompiledExpression>(arguments.size());
-        for (val argExpr : arguments) {
-            val compiled = ExpressionCompiler.compile(argExpr, ctx);
+        val compiledArgs = arguments.stream().map(argument -> ExpressionCompiler.compile(argument, ctx)).toList();
+        if (compiledEntity instanceof ErrorValue err) {
+            return err;
+        }
+        for (val compiled : compiledArgs) {
             if (compiled instanceof ErrorValue err) {
                 return err;
             }
-            compiledArgs.add(compiled);
         }
 
         return new Attribute(attributeName, compiledEntity, ctx.getData(), compiledArgs, options, head, location);

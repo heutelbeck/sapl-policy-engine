@@ -47,11 +47,10 @@ public class ArrayCompiler {
             return Value.EMPTY_ARRAY;
         }
 
-        val     compiled  = new ArrayList<CompiledExpression>(elements.size());
+        val     compiled  = elements.stream().map(element -> ExpressionCompiler.compile(element, ctx)).toList();
         boolean allValues = true;
         boolean hasStream = false;
-        for (val element : elements) {
-            val result = ExpressionCompiler.compile(element, ctx);
+        for (val result : compiled) {
             if (result instanceof ErrorValue) {
                 return result;
             }
@@ -61,7 +60,6 @@ public class ArrayCompiler {
             } else if (!(result instanceof Value)) {
                 allValues = false;
             }
-            compiled.add(result);
         }
 
         if (allValues) {

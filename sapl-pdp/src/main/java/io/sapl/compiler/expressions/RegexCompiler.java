@@ -54,13 +54,6 @@ public class RegexCompiler {
         val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
         val loc   = binaryOperation.location();
 
-        if (left instanceof ErrorValue) {
-            return left;
-        }
-        if (right instanceof ErrorValue) {
-            return right;
-        }
-
         // Pre-compile regex when pattern is a literal string.
         if (right instanceof TextValue(String value)) {
             final Pattern compiled;
@@ -70,6 +63,9 @@ public class RegexCompiler {
                 throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getDescription()), e,
                         binaryOperation);
             }
+            if (left instanceof ErrorValue) {
+                return left;
+            }
             if (left instanceof Value lv) {
                 return matchRegex(lv, compiled);
             }
@@ -77,6 +73,13 @@ public class RegexCompiler {
                 return new RegexPrecompiledStream(ls, compiled, loc);
             }
             return new RegexPrecompiledPure((PureOperator) left, value, compiled, loc);
+        }
+
+        if (left instanceof ErrorValue) {
+            return left;
+        }
+        if (right instanceof ErrorValue) {
+            return right;
         }
 
         // Runtime path: pattern is not a literal. Reject non-Pure/non-Stream.

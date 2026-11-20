@@ -67,17 +67,15 @@ public class FunctionCallCompiler {
             return new NoArgsFunction(functionName, location);
         }
 
-        val     compiled  = new ArrayList<CompiledExpression>(arguments.size());
+        val     compiled  = arguments.stream().map(argument -> ExpressionCompiler.compile(argument, ctx)).toList();
         boolean hasStream = false;
-        for (val argExpr : arguments) {
-            val result = ExpressionCompiler.compile(argExpr, ctx);
+        for (val result : compiled) {
             if (result instanceof ErrorValue err) {
                 return err;
             }
             if (result instanceof StreamOperator) {
                 hasStream = true;
             }
-            compiled.add(result);
         }
 
         if (hasStream) {

@@ -45,13 +45,16 @@ public class ExtendedFilterCompiler {
 
     public static CompiledExpression compile(ExtendedFilter ef, CompilationContext ctx) {
         val compiledBase = ExpressionCompiler.compile(ef.base(), ctx);
-        if (compiledBase instanceof ErrorValue) {
-            return compiledBase;
-        }
 
         val tempSimpleFilter = new SimpleFilter(new RelativeReference(RelativeType.VALUE, ef.location()), ef.name(),
                 ef.arguments(), ef.each(), ef.location());
         val compiledFilter   = FilterCompiler.compileSimpleUnfolded(tempSimpleFilter, ctx);
+        val path             = ef.target().elements();
+        val pathAnalysis     = analyzePath(path, ef.location(), ctx);
+
+        if (compiledBase instanceof ErrorValue) {
+            return compiledBase;
+        }
         if (compiledFilter instanceof ErrorValue) {
             return compiledFilter;
         }
@@ -59,9 +62,7 @@ public class ExtendedFilterCompiler {
             return ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS;
         }
 
-        val path         = ef.target().elements();
-        val pathAnalysis = analyzePath(path, ef.location(), ctx);
-        val canFoldPath  = !pathAnalysis.isDependingOnSubscription();
+        val canFoldPath = !pathAnalysis.isDependingOnSubscription();
 
         if (compiledBase instanceof Value vb && compiledFilter instanceof Value vf && canFoldPath) {
             return evaluateValueValue(vb, vf, path, pathAnalysis, ctx);
