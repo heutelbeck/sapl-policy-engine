@@ -109,7 +109,7 @@ public class FunctionCatalogue {
     }
 
     private static List<String> coveredLibraries() {
-        return ConformanceCorpus.caseFilesOf(FUNCTIONS).stream().map(file -> file.path().getFileName().toString())
+        return ConformanceCorpus.caseFilesOf(FUNCTIONS).stream().map(file -> file.path().toFile().getName())
                 .map(name -> name.substring(0, name.length() - CASE_FILE_EXTENSION.length())).toList();
     }
 

@@ -124,6 +124,11 @@ class CanonicalOperandOrder {
     private static final int OPERAND_PART      = 4;
     private static final int OTHER_PART        = 5;
 
+    private static final String KIND_CONDITION_STEP  = "step:condition";
+    private static final String KIND_EXPRESSION_STEP = "step:expression";
+    private static final String KIND_REGEX           = "binary:=~";
+    private static final String KIND_SUBTEMPLATE     = "subtemplate";
+
     private static final Comparator<CompiledExpression> ORDER = CanonicalOperandOrder::compareOperands;
 
     private static final Map<BinaryOperatorType, String> BINARY_KINDS = binaryKinds();
@@ -295,25 +300,28 @@ class CanonicalOperandOrder {
         case LazyOrPurePure or                -> OperandStructure.of("or", or.p1(), or.p2());
         case NaryBooleanPure junction         -> junctionStructure(junction);
         case RegexPrecompiledPure regex       ->
-            OperandStructure.of("binary:=~", regex.input(), Value.of(regex.patternSource()));
-        case RegexPure regex                  -> OperandStructure.of("binary:=~", regex.input(), regex.pattern());
+            OperandStructure.of(KIND_REGEX, regex.input(), Value.of(regex.patternSource()));
+        case RegexPure regex                  -> OperandStructure.of(KIND_REGEX, regex.input(), regex.pattern());
         case SubtemplateValuePure subtemplate ->
-            OperandStructure.of("subtemplate", subtemplate.parent(), subtemplate.template());
+            OperandStructure.of(KIND_SUBTEMPLATE, subtemplate.parent(), subtemplate.template());
         case SubtemplatePureValue subtemplate ->
-            OperandStructure.of("subtemplate", subtemplate.parent(), subtemplate.template());
+            OperandStructure.of(KIND_SUBTEMPLATE, subtemplate.parent(), subtemplate.template());
         case SubtemplatePurePure subtemplate  ->
-            OperandStructure.of("subtemplate", subtemplate.parent(), subtemplate.template());
+            OperandStructure.of(KIND_SUBTEMPLATE, subtemplate.parent(), subtemplate.template());
         case KeyStepPure step                 -> OperandStructure.of("step:key", step.base(), step.key());
         case IndexStepPure step               -> OperandStructure.of("step:index", step.base(), step.index());
         case WildcardStepPure step            -> OperandStructure.of("step:wildcard", step.base());
         case SliceStepPure step               ->
             OperandStructure.of("step:slice", step.base(), step.from(), step.to(), step.step());
-        case ExpressionStepPure step          -> OperandStructure.of("step:expression",
+        case ExpressionStepPure step          -> OperandStructure.of(KIND_EXPRESSION_STEP,
                 step.baseValue() != null ? step.baseValue() : step.baseOp(), step.expr());
-        case ExpressionStepPurePure step      -> OperandStructure.of("step:expression", step.base(), step.expr());
-        case ConditionStepConstBasePure step  -> OperandStructure.of("step:condition", step.base(), step.condition());
-        case ConditionStepPureConstCond step  -> OperandStructure.of("step:condition", step.base(), step.condition());
-        case ConditionStepPurePure step       -> OperandStructure.of("step:condition", step.base(), step.condition());
+        case ExpressionStepPurePure step      -> OperandStructure.of(KIND_EXPRESSION_STEP, step.base(), step.expr());
+        case ConditionStepConstBasePure step  ->
+            OperandStructure.of(KIND_CONDITION_STEP, step.base(), step.condition());
+        case ConditionStepPureConstCond step  ->
+            OperandStructure.of(KIND_CONDITION_STEP, step.base(), step.condition());
+        case ConditionStepPurePure step       ->
+            OperandStructure.of(KIND_CONDITION_STEP, step.base(), step.condition());
         case RecursiveKeyStepPure step        -> OperandStructure.of("step:recursive-key", step.base(), step.key());
         case RecursiveIndexStepPure step      -> OperandStructure.of("step:recursive-index", step.base(), step.index());
         case RecursiveWildcardStepPure step   -> OperandStructure.of("step:recursive-wildcard", step.base());
@@ -353,7 +361,7 @@ class CanonicalOperandOrder {
         kinds.put(BinaryOperatorType.HAS_ANY, "binary:has any");
         kinds.put(BinaryOperatorType.HAS_ALL, "binary:has all");
         kinds.put(BinaryOperatorType.XOR, "binary:^");
-        kinds.put(BinaryOperatorType.REGEX, "binary:=~");
+        kinds.put(BinaryOperatorType.REGEX, KIND_REGEX);
         return kinds;
     }
 
@@ -407,9 +415,9 @@ class CanonicalOperandOrder {
         case SlicePath(var from, var to, var step, var ignored) ->
             OperandStructure.of("step:slice", from, to, step == null ? Integer.valueOf(1) : step);
         case ExpressionPath ignored                             ->
-            OperandStructure.of("step:expression", compiledElements.get(element));
+            OperandStructure.of(KIND_EXPRESSION_STEP, compiledElements.get(element));
         case ConditionPath ignored                              ->
-            OperandStructure.of("step:condition", compiledElements.get(element));
+            OperandStructure.of(KIND_CONDITION_STEP, compiledElements.get(element));
         case RecursiveKeyPath(var key, var ignored)             -> OperandStructure.of("step:recursive-key", key);
         case RecursiveIndexPath(var index, var ignored)         -> OperandStructure.of("step:recursive-index", index);
         case RecursiveWildcardPath ignored                      -> OperandStructure.of("step:recursive-wildcard");
