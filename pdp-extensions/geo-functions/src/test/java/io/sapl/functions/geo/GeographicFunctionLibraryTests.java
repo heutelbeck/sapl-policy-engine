@@ -63,9 +63,13 @@ class GeographicFunctionLibraryTests {
 
     private static final int EXCESSIVE_WKT_NESTING_DEPTH = 130;
 
-    private static final GeoJsonWriter   GEOJSON_WRITER = new GeoJsonWriter();
-    private static final GeometryFactory GEO_FACTORY    = new GeometryFactory();
-    private static final GeometryFactory WGS84_FACTORY  = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final GeoJsonWriter GEOJSON_WRITER = new GeoJsonWriter();
+    static {
+        GEOJSON_WRITER.setEncodeCRS(false);
+    }
+
+    private static final GeometryFactory GEO_FACTORY   = new GeometryFactory();
+    private static final GeometryFactory WGS84_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 
     // @formatter:off
     private static final Point POINT_1_2_GEOMETRY         = GEO_FACTORY.createPoint(new Coordinate(1    , 2    ));
@@ -515,7 +519,7 @@ class GeographicFunctionLibraryTests {
 
     @SneakyThrows
     private static ObjectValue geometryToGeoJSON(Geometry geo) {
-        return (ObjectValue) json(GEOJSON_WRITER.write(geo));
+        return (ObjectValue) json(GEOJSON_WRITER.write(geo).replace("\"LinearRing\"", "\"LineString\""));
     }
 
     @TempDir
