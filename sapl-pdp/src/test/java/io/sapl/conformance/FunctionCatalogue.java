@@ -21,7 +21,6 @@ import io.sapl.api.documentation.EntryDocumentation;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.documentation.ParameterDocumentation;
 import io.sapl.documentation.LibraryDocumentationExtractor;
-import io.sapl.functions.DefaultLibraries;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import tools.jackson.databind.JsonNode;
@@ -71,7 +70,7 @@ public class FunctionCatalogue {
      */
     public static JsonNode catalogue() {
         val covered   = coveredLibraries();
-        val libraries = DefaultLibraries.defaults().stream()
+        val libraries = ConformanceLibraries.libraries().stream()
                 .map(library -> LibraryDocumentationExtractor.extractFunctionLibrary(library.getClass()))
                 .filter(library -> covered.contains(library.name()))
                 .sorted(Comparator.comparing(LibraryDocumentation::name)).toList();

@@ -76,6 +76,13 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- The pure function libraries of the extensions, which the conformance corpus covers too. -->
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>mqtt-functions</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>

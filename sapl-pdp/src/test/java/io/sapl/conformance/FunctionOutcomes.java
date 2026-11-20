@@ -25,7 +25,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.conformance.ConformanceCorpus.Case;
 import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.DefaultLibraries;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import tools.jackson.databind.cfg.JsonNodeFeature;
@@ -132,7 +131,7 @@ public class FunctionOutcomes {
 
     private static FunctionBroker defaultBroker() {
         val broker = new DefaultFunctionBroker(0);
-        DefaultLibraries.defaults().forEach(broker::load);
+        ConformanceLibraries.libraries().forEach(broker::load);
         return broker;
     }
 }
