@@ -577,6 +577,7 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Suitable for geodesic distance checks, especially for large-scale geographic data.
+            - The distance compared may vary by up to 1 millimeter between PDP implementations and their geo libraries.
             """)
     public static Value isWithinGeodesicDistance(ObjectValue thisGeometry, ObjectValue thatGeometry,
             NumberValue distance) {
@@ -738,6 +739,7 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Useful for creating buffer zones around points, lines, or polygons.
+            - The buffer may vary by up to 1 percent of its width between PDP implementations and their geo libraries.
             """)
     public static Value buffer(ObjectValue geometry, NumberValue bufferWidth) {
         return applyUnaryTransformation(geometry, g -> g.buffer(bufferWidth.value().doubleValue()));
@@ -1049,6 +1051,7 @@ public class GeographicFunctionLibrary {
 
             - Uses geodesic calculations suitable for geographic coordinates.
             - Ideal for large-scale or global distance computations.
+            - The distance may vary by up to 1 millimeter between PDP implementations and their geo libraries.
             """)
     public static Value geodesicDistance(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         try {
@@ -1087,6 +1090,7 @@ public class GeographicFunctionLibrary {
 
             - Uses geodesic calculations suitable for geographic coordinates.
             - Ideal for large-scale or global distance computations.
+            - The distance may vary by up to 1 millimeter between PDP implementations and their geo libraries.
             """)
     public static Value geoDistance(ObjectValue jsonGeometryThis, ObjectValue jsonGeometryThat,
             TextValue coordinateReferenceSystem) {
