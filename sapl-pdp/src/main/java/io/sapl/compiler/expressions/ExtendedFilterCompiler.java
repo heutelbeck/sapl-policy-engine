@@ -139,50 +139,48 @@ public class ExtendedFilterCompiler {
 
         @Override
         public long semanticHash() {
-            val baseHash   = base instanceof Value v ? SemanticHashing.valueHash(v)
-                    : ((PureOperator) base).semanticHash();
-            val filterHash = filter instanceof Value v ? SemanticHashing.valueHash(v)
-                    : ((PureOperator) filter).semanticHash();
-            return SemanticHashing.ordered(KIND, baseHash, filterHash, pathHash(path, pathAnalysis.compiledElements()));
+            val baseHash   = SemanticHashing.expressionHash(base);
+            val filterHash = SemanticHashing.expressionHash(filter);
+            return SemanticHashing.ordered(KIND, baseHash, filterHash, pathHash());
         }
-    }
 
-    /**
-     * Hashes a filter path through its stable parts only. The record hashCode()
-     * of a path element reaches enum constants and lambdas of its expressions,
-     * whose identity hashes differ from one run to the next, and its source
-     * location.
-     */
-    private static long pathHash(List<PathElement> path, Map<PathElement, CompiledExpression> compiledElements) {
-        long hash = PATH_KIND;
-        for (val element : path) {
-            hash = SemanticHashing.ordered(hash, pathElementHash(element, compiledElements));
+        /**
+         * Hashes a filter path through its stable parts only. The record hashCode()
+         * of a path element reaches enum constants and lambdas of its expressions,
+         * whose identity hashes differ from one run to the next, and its source
+         * location.
+         */
+        private long pathHash() {
+            long hash = PATH_KIND;
+            for (val element : path) {
+                hash = SemanticHashing.ordered(hash, pathElementHash(element));
+            }
+            return hash;
         }
-        return hash;
-    }
 
-    private static long pathElementHash(PathElement element, Map<PathElement, CompiledExpression> compiledElements) {
-        val kind = SemanticHashing.kindHash(element.getClass());
-        return switch (element) {
-        case KeyPath(var key, var ignored)                      ->
-            SemanticHashing.ordered(kind, SemanticHashing.textHash(key));
-        case RecursiveKeyPath(var key, var ignored)             ->
-            SemanticHashing.ordered(kind, SemanticHashing.textHash(key));
-        case IndexPath(var index, var ignored)                  -> SemanticHashing.ordered(kind, index);
-        case RecursiveIndexPath(var index, var ignored)         -> SemanticHashing.ordered(kind, index);
-        case IndexUnionPath(var indices, var ignored)           ->
-            SemanticHashing.ordered(kind, indices.stream().mapToLong(Integer::longValue).toArray());
-        case AttributeUnionPath(var keys, var ignored)          ->
-            SemanticHashing.ordered(kind, keys.stream().mapToLong(SemanticHashing::textHash).toArray());
-        case SlicePath(var from, var to, var step, var ignored) ->
-            SemanticHashing.ordered(kind, Objects.hashCode(from), Objects.hashCode(to), Objects.hashCode(step));
-        case WildcardPath ignored                               -> kind;
-        case RecursiveWildcardPath ignored                      -> kind;
-        case ExpressionPath ignored                             ->
-            SemanticHashing.ordered(kind, SemanticHashing.expressionHash(compiledElements.get(element)));
-        case ConditionPath ignored                              ->
-            SemanticHashing.ordered(kind, SemanticHashing.expressionHash(compiledElements.get(element)));
-        };
+        private long pathElementHash(PathElement element) {
+            val kind = SemanticHashing.kindHash(element.getClass());
+            return switch (element) {
+            case KeyPath(var key, var ignored)                      ->
+                SemanticHashing.ordered(kind, SemanticHashing.textHash(key));
+            case RecursiveKeyPath(var key, var ignored)             ->
+                SemanticHashing.ordered(kind, SemanticHashing.textHash(key));
+            case IndexPath(var index, var ignored)                  -> SemanticHashing.ordered(kind, index);
+            case RecursiveIndexPath(var index, var ignored)         -> SemanticHashing.ordered(kind, index);
+            case IndexUnionPath(var indices, var ignored)           ->
+                SemanticHashing.ordered(kind, indices.stream().mapToLong(Integer::longValue).toArray());
+            case AttributeUnionPath(var keys, var ignored)          ->
+                SemanticHashing.ordered(kind, keys.stream().mapToLong(SemanticHashing::textHash).toArray());
+            case SlicePath(var from, var to, var step, var ignored) ->
+                SemanticHashing.ordered(kind, Objects.hashCode(from), Objects.hashCode(to), Objects.hashCode(step));
+            case WildcardPath ignored                               -> kind;
+            case RecursiveWildcardPath ignored                      -> kind;
+            case ExpressionPath ignored                             -> SemanticHashing.ordered(kind,
+                    SemanticHashing.expressionHash(pathAnalysis.compiledElements().get(element)));
+            case ConditionPath ignored                              -> SemanticHashing.ordered(kind,
+                    SemanticHashing.expressionHash(pathAnalysis.compiledElements().get(element)));
+            };
+        }
     }
 
     /**

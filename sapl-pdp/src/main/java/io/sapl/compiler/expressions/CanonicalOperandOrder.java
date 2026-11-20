@@ -253,7 +253,10 @@ class CanonicalOperandOrder {
 
     private static int compareEntries(Map.Entry<String, Value> entry, Map.Entry<String, Value> other) {
         val byKey = compareTexts(entry.getKey(), other.getKey());
-        return byKey != 0 ? byKey : compareValues(entry.getValue(), other.getValue());
+        if (byKey != 0) {
+            return byKey;
+        }
+        return compareValues(entry.getValue(), other.getValue());
     }
 
     /**
@@ -311,8 +314,12 @@ class CanonicalOperandOrder {
         case WildcardStepPure step            -> OperandStructure.of("step:wildcard", step.base());
         case SliceStepPure step               ->
             OperandStructure.of("step:slice", step.base(), step.from(), step.to(), step.step());
-        case ExpressionStepPure step          -> OperandStructure.of(KIND_EXPRESSION_STEP,
-                step.baseValue() != null ? step.baseValue() : step.baseOp(), step.expr());
+        case ExpressionStepPure step          -> {
+            if (step.baseValue() != null) {
+                yield OperandStructure.of(KIND_EXPRESSION_STEP, step.baseValue(), step.expr());
+            }
+            yield OperandStructure.of(KIND_EXPRESSION_STEP, step.baseOp(), step.expr());
+        }
         case ExpressionStepPurePure step      -> OperandStructure.of(KIND_EXPRESSION_STEP, step.base(), step.expr());
         case ConditionStepConstBasePure step  ->
             OperandStructure.of(KIND_CONDITION_STEP, step.base(), step.condition());

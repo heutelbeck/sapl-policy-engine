@@ -331,14 +331,8 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidEd25519(TextValue message, TextValue signature, TextValue publicKeyPem) {
         try {
-            val          publicKey     = ed25519PublicKey(publicKeyPem.value());
-            val          signatureText = signature.value().strip();
-            final byte[] signatureBytes;
-            try {
-                signatureBytes = HexFormat.of().parseHex(signatureText);
-            } catch (IllegalArgumentException hexParsingFailed) {
-                return verifyEd25519(message.value(), Base64.getDecoder().decode(signatureText), publicKey);
-            }
+            val publicKey      = ed25519PublicKey(publicKeyPem.value());
+            val signatureBytes = parseEd25519Signature(signature.value());
             return verifyEd25519(message.value(), signatureBytes, publicKey);
         } catch (CryptoException exception) {
             return Value.error(exception.getMessage());
@@ -346,6 +340,15 @@ public class SignatureFunctionLibrary {
             return Value.error(ERROR_ED25519_SIGNATURE_FORMAT);
         } catch (IllegalStateException exception) {
             return Value.error(ERROR_ED25519_VERIFICATION);
+        }
+    }
+
+    private static byte[] parseEd25519Signature(String signature) {
+        val text = signature.strip();
+        try {
+            return HexFormat.of().parseHex(text);
+        } catch (IllegalArgumentException hexParsingFailed) {
+            return Base64.getDecoder().decode(text);
         }
     }
 

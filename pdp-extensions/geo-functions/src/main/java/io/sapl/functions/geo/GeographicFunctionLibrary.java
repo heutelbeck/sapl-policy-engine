@@ -1968,20 +1968,24 @@ public class GeographicFunctionLibrary {
             throw new GeometryProblem(ERROR_INVALID_GEOJSON);
         }
         if (depth == 0) {
-            if (allowEmpty && elements.isEmpty()) {
-                return;
-            }
-            if (elements.size() < 2) {
+            requirePosition(elements, allowEmpty);
+            return;
+        }
+        for (val element : elements) {
+            requirePositions(element, depth - 1, depth > 1);
+        }
+    }
+
+    private static void requirePosition(ArrayValue elements, boolean allowEmpty) {
+        if (allowEmpty && elements.isEmpty()) {
+            return;
+        }
+        if (elements.size() < 2) {
+            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
+        }
+        for (val element : elements) {
+            if (!(element instanceof NumberValue number) || !Double.isFinite(number.value().doubleValue())) {
                 throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-            }
-            for (val element : elements) {
-                if (!(element instanceof NumberValue number) || !Double.isFinite(number.value().doubleValue())) {
-                    throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-                }
-            }
-        } else {
-            for (val element : elements) {
-                requirePositions(element, depth - 1, depth > 1);
             }
         }
     }

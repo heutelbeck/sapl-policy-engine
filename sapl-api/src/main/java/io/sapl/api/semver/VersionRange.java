@@ -33,7 +33,7 @@ import lombok.val;
 public final class VersionRange {
     private static final String          ERROR_INVALID_RANGE = "Invalid range: '%s'.";
     private static final Pattern         PARTIAL             = Pattern.compile(
-            "v?([0-9]+|[xX*])(?:\\.([0-9]+|[xX*])(?:\\.([0-9]+|[xX*])((?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?))?)?");
+            "v?(\\d+|[xX*])(?:\\.(\\d+|[xX*])(?:\\.(\\d+|[xX*])((?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?))?)?");
     private static final Pattern         SIMPLE              = Pattern.compile("(<=|>=|<|>|=|~>|~|\\^)?(.*)");
     private static final Pattern         WHITESPACE          = Pattern.compile("[ \\t\\r\\n\\x0B\\f]+");
     private final List<List<Comparator>> alternatives;
@@ -78,18 +78,20 @@ public final class VersionRange {
     private static List<Comparator> parseSet(String section) {
         val tokens = WHITESPACE.splitAsStream(section).filter(token -> !token.isEmpty()).toArray(String[]::new);
         val result = new ArrayList<Comparator>();
-        for (int index = 0; index < tokens.length; index++) {
+        int index  = 0;
+        while (index < tokens.length) {
             if (index + 2 < tokens.length && "-".equals(tokens[index + 1])) {
                 hyphen(result, partial(tokens[index]), partial(tokens[index + 2]));
-                index += 2;
+                index += 3;
             } else {
                 val match = SIMPLE.matcher(tokens[index]);
                 if (!match.matches())
                     throw invalid();
                 val    operator = match.group(1) == null ? "=" : match.group(1);
                 String operand  = match.group(2);
-                if (operand.isEmpty() && index + 1 < tokens.length)
-                    operand = tokens[++index];
+                index++;
+                if (operand.isEmpty() && index < tokens.length)
+                    operand = tokens[index++];
                 expand(result, operator, partial(operand));
             }
         }
@@ -115,8 +117,11 @@ public final class VersionRange {
         val suffix = match.group(4) == null ? "" : match.group(4);
         // Validate even identifiers following a wildcard before desugaring it.
         val complete = Version.parse(major.number() + "." + minor.number() + "." + patch.number() + suffix);
-        val floor    = precision == 3 ? complete
-                : Version.boundary(major.number(), precision > 1 ? minor.number() : 0, 0, false);
+        if (precision == 3) {
+            return new Partial(complete, precision);
+        }
+        val minorNumber = precision > 1 ? minor.number() : 0;
+        val floor       = Version.boundary(major.number(), minorNumber, 0, false);
         return new Partial(floor, precision);
     }
 
@@ -130,16 +135,7 @@ public final class VersionRange {
         }
         if ("~".equals(operator) || "~>".equals(operator) || "^".equals(operator)) {
             result.add(new Comparator(">=", floor));
-            int component = precision == 1 ? 0 : 1;
-            if ("^".equals(operator)) {
-                if (floor.major() > 0 || precision == 1)
-                    component = 0;
-                else if (floor.minor() > 0 || precision == 2)
-                    component = 1;
-                else
-                    component = 2;
-            }
-            result.add(new Comparator("<", upper(floor, component)));
+            result.add(new Comparator("<", upper(floor, upperComponent(operator, partial))));
         } else if (precision == 3) {
             result.add(new Comparator(operator, floor));
         } else {
@@ -155,6 +151,21 @@ public final class VersionRange {
             default   -> throw invalid();
             }
         }
+    }
+
+    private static int upperComponent(String operator, Partial partial) {
+        val precision = partial.precision();
+        if (!"^".equals(operator)) {
+            return precision == 1 ? 0 : 1;
+        }
+        val floor = partial.floor();
+        if (floor.major() > 0 || precision == 1) {
+            return 0;
+        }
+        if (floor.minor() > 0 || precision == 2) {
+            return 1;
+        }
+        return 2;
     }
 
     private static void hyphen(List<Comparator> result, Partial lower, Partial upper) {

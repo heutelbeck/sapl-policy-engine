@@ -89,16 +89,7 @@ class InArrayUnrollingCompiler {
         // error operand and otherwise yields false. This matches the standard
         // (non-unrolled) IN path.
         if (haystack.isEmpty()) {
-            if (compiledNeedle instanceof Value) {
-                return Value.FALSE;
-            }
-            val inOp = BinaryOperationCompiler.BINARY_OPERATIONS.get(BinaryOperatorType.IN);
-            if (compiledNeedle instanceof StreamOperator s) {
-                return new BinaryOperationCompiler.BinaryStream(inOp, s, Value.EMPTY_ARRAY, location);
-            }
-            val p = (PureOperator) compiledNeedle;
-            return new BinaryOperationCompiler.BinaryPureValue(BinaryOperatorType.IN, inOp, p, Value.EMPTY_ARRAY,
-                    location, p.isDependingOnSubscription(), p.isRelativeExpression());
+            return compileEmptyHaystack(compiledNeedle, location);
         }
 
         // If needle is a compile-time constant undefined, fold to false
@@ -136,6 +127,19 @@ class InArrayUnrollingCompiler {
         }
         return StratifiedBooleanOperationCompiler.compile(undefinedGuard, orChain, BinaryOperatorType.LAZY_AND,
                 location);
+    }
+
+    private static CompiledExpression compileEmptyHaystack(CompiledExpression compiledNeedle, SourceLocation location) {
+        if (compiledNeedle instanceof Value) {
+            return Value.FALSE;
+        }
+        val inOp = BinaryOperationCompiler.BINARY_OPERATIONS.get(BinaryOperatorType.IN);
+        if (compiledNeedle instanceof StreamOperator s) {
+            return new BinaryOperationCompiler.BinaryStream(inOp, s, Value.EMPTY_ARRAY, location);
+        }
+        val p = (PureOperator) compiledNeedle;
+        return new BinaryOperationCompiler.BinaryPureValue(BinaryOperatorType.IN, inOp, p, Value.EMPTY_ARRAY, location,
+                p.isDependingOnSubscription(), p.isRelativeExpression());
     }
 
     private static CompiledExpression compileEquality(BinaryOperator inOperator, Expression arrayElement,

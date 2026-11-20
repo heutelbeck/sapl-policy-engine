@@ -80,23 +80,28 @@ class GeometryDocuments {
             return;
         }
         if (kml && "Placemark".equals(element.getLocalName())) {
-            val members = new ArrayList<Geometry>();
-            for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
-                if (child instanceof Element geometry && GEOMETRIES.contains(geometry.getLocalName())) {
-                    members.add(geometryOf(geometry, configuration));
-                }
-            }
-            if (members.size() == 1) {
-                result.addAll(members);
-            } else if (!members.isEmpty()) {
-                result.add(FACTORY.createGeometryCollection(members.toArray(Geometry[]::new)));
-            }
+            collectPlacemark(element, configuration, result);
             return;
         }
         for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
             if (child instanceof Element nested) {
                 collect(nested, configuration, kml, result, depth + 1);
             }
+        }
+    }
+
+    private static void collectPlacemark(Element element, Configuration configuration, List<Geometry> result)
+            throws ParserConfigurationException, SAXException, IOException, TransformerException {
+        val members = new ArrayList<Geometry>();
+        for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
+            if (child instanceof Element geometry && GEOMETRIES.contains(geometry.getLocalName())) {
+                members.add(geometryOf(geometry, configuration));
+            }
+        }
+        if (members.size() == 1) {
+            result.addAll(members);
+        } else if (!members.isEmpty()) {
+            result.add(FACTORY.createGeometryCollection(members.toArray(Geometry[]::new)));
         }
     }
 

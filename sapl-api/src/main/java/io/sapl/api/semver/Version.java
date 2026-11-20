@@ -37,9 +37,9 @@ public final class Version {
     private static final String  ERROR_INVALID_VERSION = "Invalid semantic version: '%s'.";
     private static final long    MAXIMUM_NUMBER        = 9007199254740991L;
     private static final Pattern FORMAT                = Pattern
-            .compile("v?([0-9]+)\\.([0-9]+)\\.([0-9]+)(?:-([0-9A-Za-z.-]+))?(?:\\+([0-9A-Za-z.-]+))?");
+            .compile("v?(\\d+)\\.(\\d+)\\.(\\d+)(?:-([0-9A-Za-z.-]+))?(?:\\+([0-9A-Za-z.-]+))?");
     private static final Pattern COERCION              = Pattern
-            .compile("(?:^|[^0-9])([0-9]{1,16})(?:\\.([0-9]{1,16}))?(?:\\.([0-9]{1,16}))?(?:$|[^0-9])");
+            .compile("(?:^|\\D)(\\d{1,16})(?:\\.(\\d{1,16}))?(?:\\.(\\d{1,16}))?(?:$|\\D)");
 
     private final long         major;
     private final long         minor;
