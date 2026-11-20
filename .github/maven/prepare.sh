@@ -34,6 +34,17 @@ resolve -N help:evaluate -Dexpression=project.version -q -DforceStdout
 # The standalone code style POM and the library smoke test have no plugin management.
 resolve -N -f sapl-code-style/pom.xml dependency:help javadoc:help
 
+# Include the installed library's dependency graph without reactor dependency management.
+sapl_version=$(property project.version)
+resolve -f .github/maven/pom.xml "$dependency_plugin:tree" \
+    -pl :editor-consumer -am "-Dsapl.version=$sapl_version" \
+    -DoutputType=json -DoutputFile=target/consumer-dependencies.json
+python3 .github/maven/editor-dependencies.py \
+    .github/maven/editor-consumer/target/consumer-dependencies.json \
+    .github/maven/editor-consumer/target/dependencies/pom.xml
+resolve -f .github/maven/editor-consumer/target/dependencies/pom.xml \
+    "$dependency_plugin:go-offline" -DexcludeReactor=true
+
 # Surefire selects these at runtime, outside the plugin's declared dependencies.
 surefire_version=$(property maven-surefire-plugin.version)
 junit_version=$(property jupiter.version)

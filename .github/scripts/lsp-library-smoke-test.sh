@@ -11,23 +11,10 @@ set -euo pipefail
 version="${1:?Supply the installed SAPL version}"
 shift
 work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+trap 'find "$work" -depth -delete' EXIT
+repository="$(cd "$(dirname "$0")/../.." && pwd)"
 
-cat >"$work/pom.xml" <<'XML'
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>io.sapl.smoke</groupId>
-  <artifactId>editor-consumer</artifactId>
-  <version>1.0.0</version>
-  <dependencies>
-    <dependency>
-      <groupId>io.sapl</groupId>
-      <artifactId>sapl-vaadin-editor</artifactId>
-      <version>${sapl.version}</version>
-    </dependency>
-  </dependencies>
-</project>
-XML
+cp "$repository/.github/maven/editor-consumer/pom.xml" "$work/pom.xml"
 
 mvn -B "$@" -f "$work/pom.xml" -Dsapl.version="$version" \
     dependency:build-classpath -Dmdep.outputFile="$work/classpath"

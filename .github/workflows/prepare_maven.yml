@@ -54,7 +54,7 @@ jobs:
       - name: Compute Maven cache key
         id: key
         env:
-          DEPENDENCY_HASH: ${{ hashFiles('**/pom.xml', '.mvn/**', '.github/maven/*.sh', '.github/actions/restore-maven/**', '.github/workflows/*.yml', '.github/workflows/*.yaml', '.github/scripts/lsp-library-smoke-test.sh', 'sapl-benchmark/scripts/build.sh') }}
+          DEPENDENCY_HASH: ${{ hashFiles('**/pom.xml', '.mvn/**', '.github/maven/*.sh', '.github/maven/*.py', '.github/actions/restore-maven/**', '.github/workflows/*.yml', '.github/workflows/*.yaml', '.github/scripts/lsp-library-smoke-test.sh', 'sapl-benchmark/scripts/build.sh') }}
         run: echo "key=maven-base-v1-$DEPENDENCY_HASH" >> "$GITHUB_OUTPUT"
 
       - name: Restore Maven base
