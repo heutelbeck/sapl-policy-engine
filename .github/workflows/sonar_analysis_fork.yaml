@@ -33,7 +33,12 @@ permissions:  # added using https://github.com/step-security/secure-repo
   actions: read  # lets the ephemeral GITHUB_TOKEN read the triggering run's artifacts
 
 jobs:
+  prepare-maven:
+    if: ${{ github.event.workflow_run.head_repository.fork && (github.event.workflow_run.conclusion == 'success') }}
+    uses: ./.github/workflows/prepare_maven.yml
+
   analyze:
+    needs: [prepare-maven]
     if: ${{ github.event.workflow_run.head_repository.fork && (github.event.workflow_run.conclusion == 'success') }}
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
@@ -44,6 +49,14 @@ jobs:
       uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
       with:
         egress-policy: audit
+
+    - name: Check out Maven helpers
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Restore Maven dependencies
+      uses: ./.github/actions/restore-maven
+      with:
+        key: ${{ needs.prepare-maven.outputs.cache_key }}
 
     - name: Download Artifact
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -57,7 +70,6 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 21
-        cache: 'maven'
 
       # The artifact downloaded above contains a file pr_data.text with the number of
       # the pull request that triggered the previous build workflow.
@@ -89,6 +101,3 @@ jobs:
         -Dsonar.pullrequest.key=${PR}
         -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
         -Pproduction
-
-    - name: Clean up Local Repository before Caching
-      run: rm -rf /.m2/repository/io/sapl

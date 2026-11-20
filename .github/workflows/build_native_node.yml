@@ -18,8 +18,17 @@
 name: Build Native SAPL Node
 
 on:
+  workflow_dispatch:
+    inputs:
+      build_macos:
+        description: Build the macOS native image.
+        type: boolean
+        default: false
   workflow_call:
     inputs:
+      maven_cache_key:
+        required: true
+        type: string
       build_macos:
         required: false
         type: boolean
@@ -29,7 +38,13 @@ permissions:
   contents: read
 
 jobs:
+  prepare-maven:
+    if: inputs.maven_cache_key == ''
+    uses: ./.github/workflows/prepare_maven.yml
+
   build-native:
+    needs: [prepare-maven]
+    if: ${{ !failure() && !cancelled() }}
     strategy:
       matrix:
         include:
@@ -92,23 +107,22 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
 
-      - name: Cache Maven packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore Maven dependencies
+        uses: ./.github/actions/restore-maven
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-native-node-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-native-node-
-            ${{ runner.os }}-maven-native-
-            ${{ runner.os }}-maven-
+          key: ${{ inputs.maven_cache_key || needs.prepare-maven.outputs.cache_key }}
 
       - name: Build Dependencies
         shell: bash
-        run: mvn -B install -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
+        run: mvn -o -B install -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
+
+      - name: Package Maven SBOM resources
+        shell: bash
+        run: bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true
 
       - name: Build Native Image
         shell: bash
-        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
+        run: mvn -o -B package -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -118,13 +132,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Clean up Local Repository before Caching
-        shell: bash
-        run: rm -rf ~/.m2/repository/io/sapl
-
   build-native-macos:
     name: Build (macos-15-xlarge)
-    if: ${{ inputs.build_macos }}
+    needs: [prepare-maven]
+    if: ${{ !failure() && !cancelled() && inputs.build_macos }}
     runs-on: macos-15-xlarge
     timeout-minutes: 120
 
@@ -141,23 +152,22 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
 
-      - name: Cache Maven packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore Maven dependencies
+        uses: ./.github/actions/restore-maven
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-native-node-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-native-node-
-            ${{ runner.os }}-maven-native-
-            ${{ runner.os }}-maven-
+          key: ${{ inputs.maven_cache_key || needs.prepare-maven.outputs.cache_key }}
 
       - name: Build Dependencies
         shell: bash
-        run: mvn -B install -pl sapl-node -am -DskipTests
+        run: mvn -o -B install -pl sapl-node -am -DskipTests
+
+      - name: Package Maven SBOM resources
+        shell: bash
+        run: bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true
 
       - name: Build Native Image
         shell: bash
-        run: mvn -B package -pl sapl-node -Pnative -DskipTests
+        run: mvn -o -B package -pl sapl-node -Pnative -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -168,7 +178,3 @@ jobs:
             sapl-node/target/classes/META-INF/sbom/application.cdx.json
           if-no-files-found: error
           retention-days: 7
-
-      - name: Clean up Local Repository before Caching
-        shell: bash
-        run: rm -rf ~/.m2/repository/io/sapl

@@ -1,0 +1,32 @@
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+# SPDX-License-Identifier: Apache-2.0
+name: Restore Maven dependencies
+description: Restore the complete Maven dependency base without saving consumer changes.
+inputs:
+  key:
+    description: Exact cache key published by Maven preparation.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Set up Maven
+      shell: bash
+      run: bash .github/maven/setup.sh
+    - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .github/maven/repository
+        key: ${{ inputs.key }}
+        enableCrossOsArchive: true
+        fail-on-cache-miss: true
+    - name: Configure Maven repository
+      shell: bash
+      env:
+        MAVEN_CACHE_KEY: ${{ inputs.key }}
+      run: |
+        test "$(cat .github/maven/repository/.complete)" = "$MAVEN_CACHE_KEY"
+        repository="$GITHUB_WORKSPACE/.github/maven/repository"
+        if [[ "$RUNNER_OS" == Windows ]]; then
+          repository=$(cygpath -m "$repository")
+        fi
+        echo "MAVEN_OPTS=${MAVEN_OPTS:-} -Dmaven.repo.local=$repository" >> "$GITHUB_ENV"
+        mvn -version
