@@ -149,8 +149,7 @@ final class RSocketPool {
             if (current != null && current.format() == PayloadFormat.PROTOBUF) {
                 return Mono.just(Lease.on(slot, current));
             }
-            slot.forget(refused.connection());
-            slot.fallsBack.set(true);
+            slot.fallBackFrom(refused.connection());
             return open(slot).map(connection -> Lease.on(slot, connection));
         });
     }
@@ -201,11 +200,21 @@ final class RSocketPool {
 
     private Mono<Connection> connectFor(Slot slot) {
         return Mono.defer(() -> {
-            val connectionFormat = slot.fallsBack.getAndSet(false) ? PayloadFormat.PROTOBUF : format;
-            if (connectionFormat != format) {
-                log.warn(WARN_FALLBACK_TO_PROTOBUF);
+            val                       previous = slot.connection.get();
+            final Mono<PayloadFormat> formatAfterClose;
+            if (previous == null) {
+                formatAfterClose = Mono.just(format);
+            } else {
+                formatAfterClose = previous.socket().onClose().thenReturn(format).onErrorResume(
+                        error -> Mono.just(previous.refusesFormat(error) ? PayloadFormat.PROTOBUF : format));
             }
-            return connect.apply(connectionFormat).map(socket -> new Connection(socket, connectionFormat));
+            return formatAfterClose.flatMap(nextFormat -> {
+                val connectionFormat = slot.fallsBack.getAndSet(false) ? PayloadFormat.PROTOBUF : nextFormat;
+                if (connectionFormat != format) {
+                    log.warn(WARN_FALLBACK_TO_PROTOBUF);
+                }
+                return connect.apply(connectionFormat).map(socket -> new Connection(socket, connectionFormat));
+            });
         }).doOnNext(connection -> slot.keepUnlessDisposed(connection, disposed.get()))
                 .doFinally(signal -> slot.connecting.set(null)).cache();
     }
@@ -260,8 +269,7 @@ final class RSocketPool {
         private final AtomicReference<@Nullable Mono<Connection>> connecting = new AtomicReference<>();
         private final AtomicReference<@Nullable Disposable>       reopener   = new AtomicReference<>();
         private final AtomicBoolean                               reopening  = new AtomicBoolean();
-        // Whether the next connection falls back to protobuf, as the node refused the
-        // binary format at the SETUP of the one before.
+        // Whether a refused request requires its replacement to use protobuf.
         private final AtomicBoolean fallsBack = new AtomicBoolean();
         private final AtomicInteger inFlight  = new AtomicInteger();
 
@@ -271,26 +279,21 @@ final class RSocketPool {
             return current != null && !current.socket().isDisposed() ? current : null;
         }
 
-        // A connection that arrives after the pool is disposed is disposed here, so that
-        // an attempt under way cannot leak a live connection past shutdown. A binary
-        // connection whose SETUP the node refuses makes the next one fall back.
-        void keepUnlessDisposed(Connection opened, boolean poolDisposed) {
+        // A connection that arrives after disposal cannot survive shutdown.
+        synchronized void keepUnlessDisposed(Connection opened, boolean poolDisposed) {
             if (poolDisposed) {
                 opened.socket().dispose();
                 return;
             }
             connection.set(opened);
-            Mono.defer(opened.socket()::onClose).subscribe(closed -> {}, error -> {
-                // A connection that was replaced already has fallen back on its own.
-                if (opened.refusesFormat(error) && connection.get() == opened) {
-                    fallsBack.set(true);
-                }
-            });
         }
 
-        // Forgets the connection unless another one has taken its place already.
-        void forget(Connection ended) {
-            connection.compareAndSet(ended, null);
+        // Publish the replacement format before another opener can see the empty slot.
+        synchronized void fallBackFrom(Connection refused) {
+            if (connection.get() == refused) {
+                fallsBack.set(true);
+                connection.set(null);
+            }
         }
 
         void replaceReopener(Disposable reopen) {

@@ -25,6 +25,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -66,6 +67,7 @@ import io.sapl.api.proto.SaplProtobufCodec;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 /**
  * A client in the SAPL binary format against nodes that do not speak it: one
@@ -194,6 +196,34 @@ class ProtobufRemoteReactivePolicyDecisionPointFallbackTests {
     }
 
     @Test
+    @DisplayName("A disposed connection's SETUP refusal is processed before its replacement chooses a format")
+    void whenSetupRefusalArrivesAfterDisposalThenReplacementUsesProtobuf() {
+        val formats = new ArrayList<PayloadFormat>();
+        val sockets = new ArrayList<ControlledSocket>();
+        val pool    = new RSocketPool(format -> Mono.fromSupplier(() -> {
+                        formats.add(format);
+                        val socket = new ControlledSocket();
+                        sockets.add(socket);
+                        return socket;
+                    }), PayloadFormat.BINARY, 2, 10, 100);
+        try {
+            assertThat(permitted(pool)).isEqualTo(AuthorizationDecision.PERMIT);
+            val background = sockets.get(1);
+            background.disposed = true;
+            assertThat(permitted(pool)).isEqualTo(AuthorizationDecision.PERMIT);
+            assertThat(formats).containsExactly(PayloadFormat.BINARY, PayloadFormat.BINARY, PayloadFormat.PROTOBUF);
+            background.refuse();
+            for (var request = 0; request < 4; request++) {
+                assertThat(permitted(pool)).isEqualTo(AuthorizationDecision.PERMIT);
+            }
+            assertThat(formats).containsExactly(PayloadFormat.BINARY, PayloadFormat.BINARY, PayloadFormat.PROTOBUF,
+                    PayloadFormat.PROTOBUF);
+        } finally {
+            pool.dispose();
+        }
+    }
+
+    @Test
     @DisplayName("A client not asked for the binary format speaks protobuf")
     void whenClientIsNotAskedForTheBinaryFormatThenItSpeaksProtobuf() {
         val node = start(Knows.BINARY_FORMAT);
@@ -235,6 +265,53 @@ class ProtobufRemoteReactivePolicyDecisionPointFallbackTests {
         val subscriptions = new MultiAuthorizationSubscription();
         ids.forEach(id -> subscriptions.addSubscription(id, SUBSCRIPTION));
         return subscriptions;
+    }
+
+    private record PendingRequest(RSocketPool.Connection connection, Sinks.One<AuthorizationDecision> answer) {}
+
+    private static AuthorizationDecision permitted(RSocketPool pool) {
+        val pending = new ArrayDeque<PendingRequest>();
+        val result  = pool.request(connection -> {
+                        val answer = Sinks.<AuthorizationDecision>one();
+                        pending.add(new PendingRequest(connection, answer));
+                        return answer.asMono();
+                    }).toFuture();
+        while (!result.isDone()) {
+            val request = pending.removeFirst();
+            if (request.connection().format() == PayloadFormat.BINARY) {
+                ((ControlledSocket) request.connection().socket()).refuse();
+                request.answer().tryEmitError(new UnsupportedSetupException(UNSUPPORTED_DATA_MIME_TYPE));
+            } else {
+                request.answer().tryEmitValue(AuthorizationDecision.PERMIT);
+            }
+        }
+        return result.join();
+    }
+
+    private static final class ControlledSocket implements RSocket {
+        private final Sinks.Empty<Void> closed = Sinks.empty();
+        private boolean                 disposed;
+
+        @Override
+        public boolean isDisposed() {
+            return disposed;
+        }
+
+        @Override
+        public Mono<Void> onClose() {
+            return closed.asMono();
+        }
+
+        @Override
+        public void dispose() {
+            disposed = true;
+            closed.tryEmitEmpty();
+        }
+
+        private void refuse() {
+            disposed = true;
+            closed.tryEmitError(new UnsupportedSetupException(UNSUPPORTED_DATA_MIME_TYPE));
+        }
     }
 
     /**
