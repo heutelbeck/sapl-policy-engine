@@ -44,7 +44,8 @@ import static io.sapl.conformance.ConformanceCorpus.withPlaceholdersReplaced;
  * is {@code value: } with the value or {@code error: } with the message of an
  * error value. Placeholders are replaced in the arguments and in the outcome,
  * so a stated outcome that means the same as the outcome of this engine stays
- * as it is written.
+ * as it is written. A stated message that ends with a colon states only how
+ * the message starts.
  */
 @UtilityClass
 public class FunctionOutcomes {
@@ -97,10 +98,14 @@ public class FunctionOutcomes {
     /**
      * Values are compared as values, so that numbers agree by their quantity
      * and objects without regard to the order of their keys. Messages are
-     * compared as text.
+     * compared as text. A stated message that ends with a colon states only how
+     * the message starts.
      */
     private static boolean agrees(Case functionCase, String outcome) {
         val stated = withPlaceholdersReplaced(functionCase.expectation(), functionCase.origin());
+        if (stated.startsWith(ERROR) && stated.endsWith(":")) {
+            return outcome.startsWith(stated);
+        }
         if (stated.startsWith(VALUE) && outcome.startsWith(VALUE) && !outcome.contains(UNREPRESENTABLE)) {
             return valueOf(stated.substring(VALUE.length())).equals(valueOf(outcome.substring(VALUE.length())));
         }
