@@ -149,10 +149,6 @@
             <artifactId>graphql-java</artifactId>
         </dependency>
         <!-- Semantic Versioning Support -->
-        <dependency>
-            <groupId>org.semver4j</groupId>
-            <artifactId>semver4j</artifactId>
-        </dependency>
         <!-- IP Address Support -->
         <dependency>
             <groupId>com.github.seancfoley</groupId>
