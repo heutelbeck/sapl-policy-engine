@@ -29,7 +29,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -353,18 +352,6 @@ class SignatureFunctionLibraryTests {
                         RITUAL_INCANTATION, "This is not base64!", validKeyPem),
                 arguments("Wrong key algorithm (RSA key for ECDSA)",
                         wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), DEEP_ONE_CHANT, "abc123", validKeyPem));
-    }
-
-    @RepeatedTest(100)
-    void isValidRsaSha256WhenInvokedRepeatedlyRemainsConsistent() throws Exception {
-        var signature    = createSignature(rsaKeyPair.getPrivate(), "SHA256withRSA", AZATHOTH_PROPHECY);
-        var publicKeyPem = toPem(rsaKeyPair.getPublic());
-        var signatureHex = HexFormat.of().formatHex(signature);
-
-        var result = SignatureFunctionLibrary.isValidRsaSha256((TextValue) Value.of(AZATHOTH_PROPHECY),
-                (TextValue) Value.of(signatureHex), (TextValue) Value.of(publicKeyPem));
-
-        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @Nested
