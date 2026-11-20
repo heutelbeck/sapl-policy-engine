@@ -22,6 +22,7 @@ import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
@@ -35,6 +36,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -53,7 +55,9 @@ import static io.sapl.conformance.ConformanceCorpus.withPlaceholdersReplaced;
  * is {@code value: } with the value or {@code error: } with the message of an
  * error value. A case that states its outcome as {@code validation: } states
  * a validation result by its validity and the instance locations of its
- * errors, without their messages. Placeholders are replaced in the arguments
+ * errors, without their messages. A case that states its outcome as
+ * {@code value within <tolerance>: } states a number that the returned number
+ * may differ from by at most the tolerance. Placeholders are replaced in the arguments
  * and in the outcome, so a stated outcome that means the same as the outcome
  * of this engine stays as it is written. A stated message that ends with a
  * colon states only how the message starts.
@@ -66,6 +70,8 @@ public class FunctionOutcomes {
     private static final String UNREPRESENTABLE = "UNREPRESENTABLE ";
     private static final String VALIDATION      = "validation: ";
     private static final String VALUE           = "value: ";
+    private static final String VALUE_WITHIN    = "value within ";
+    private static final String WITHIN_END      = ": ";
 
     private static final String FIELD_ERRORS = "errors";
     private static final String FIELD_PATH   = "path";
@@ -101,16 +107,33 @@ public class FunctionOutcomes {
     /**
      * @param functionCase a case of the function corpus
      * @return what the function of the case returns for its arguments, as an
-     * outcome line of the corpus, in the form of a validation result if the
-     * case states one
+     * outcome line of the corpus, in the form of a validation result or of a
+     * number within a tolerance if the case states one
      */
     public static String outcomeOf(Case functionCase) {
+        val result      = resultOf(functionCase);
+        val expectation = functionCase.expectation();
+        if (expectation.startsWith(VALIDATION)) {
+            return writtenAsValidation(result);
+        }
+        if (expectation.startsWith(VALUE_WITHIN) && expectation.contains(WITHIN_END) && result instanceof NumberValue) {
+            return expectation.substring(0, expectation.indexOf(WITHIN_END) + WITHIN_END.length())
+                    + ValueJsonMarshaller.toJsonString(result);
+        }
+        return written(result);
+    }
+
+    /**
+     * @param functionCase a case of the function corpus
+     * @return what the function of the case returns for its arguments, called
+     * through the function broker as a policy calls it
+     */
+    public static Value resultOf(Case functionCase) {
         val lines     = functionCase.documentAsWritten().lines().toList();
         val arguments = lines.stream().skip(1)
                 .map(line -> valueOf(withPlaceholdersReplaced(line, functionCase.origin()))).toList();
         val function  = lines.isEmpty() ? "" : lines.getFirst();
-        val result    = BROKER.evaluateFunction(new FunctionInvocation(function, arguments));
-        return functionCase.expectation().startsWith(VALIDATION) ? writtenAsValidation(result) : written(result);
+        return BROKER.evaluateFunction(new FunctionInvocation(function, arguments));
     }
 
     /**
@@ -118,7 +141,9 @@ public class FunctionOutcomes {
      * and objects without regard to the order of their keys. Messages are
      * compared as text. A stated message that ends with a colon states only how
      * the message starts. Validation results agree in their validity and in the
-     * set of the instance locations of their errors.
+     * set of the instance locations of their errors. A number within a
+     * tolerance agrees with a returned number that differs from it by at most
+     * the tolerance.
      */
     private static boolean agrees(Case functionCase, String outcome) {
         val stated = withPlaceholdersReplaced(functionCase.expectation(), functionCase.origin());
@@ -129,17 +154,45 @@ public class FunctionOutcomes {
             val validation = validationOf(stated);
             return validation.isPresent() && validation.equals(validationOf(outcome));
         }
+        if (stated.startsWith(VALUE_WITHIN) && outcome.startsWith(VALUE_WITHIN)) {
+            return isWithinTolerance(stated, outcome);
+        }
         if (stated.startsWith(VALUE) && outcome.startsWith(VALUE) && !outcome.contains(UNREPRESENTABLE)) {
             return valueOf(stated.substring(VALUE.length())).equals(valueOf(outcome.substring(VALUE.length())));
         }
         return stated.equals(outcome);
     }
 
+    /**
+     * Whether the number of an outcome differs from the stated number by at
+     * most the tolerance the stated outcome names.
+     */
+    private static boolean isWithinTolerance(String stated, String outcome) {
+        val statedEnd  = stated.indexOf(WITHIN_END);
+        val outcomeEnd = outcome.indexOf(WITHIN_END);
+        if (statedEnd < 0 || outcomeEnd < 0) {
+            return false;
+        }
+        try {
+            val tolerance = new BigDecimal(stated.substring(VALUE_WITHIN.length(), statedEnd));
+            val expected  = new BigDecimal(stated.substring(statedEnd + WITHIN_END.length()));
+            val returned  = new BigDecimal(outcome.substring(outcomeEnd + WITHIN_END.length()));
+            return expected.subtract(returned).abs().compareTo(tolerance) <= 0;
+        } catch (NumberFormatException notANumber) {
+            return false;
+        }
+    }
+
     private static Value valueOf(String written) {
         return UNDEFINED.equals(written) ? Value.UNDEFINED : ValueJsonMarshaller.fromJsonNode(JSON.readTree(written));
     }
 
-    private static String written(Value value) {
+    /**
+     * @param value what a function returned
+     * @return the value as an outcome line of the corpus: an error value with
+     * its message, any other value as JSON or as {@code undefined}
+     */
+    public static String written(Value value) {
         return switch (value) {
         case ErrorValue error       -> ERROR + error.message().replace('\n', ' ');
         case UndefinedValue ignored -> VALUE + UNDEFINED;

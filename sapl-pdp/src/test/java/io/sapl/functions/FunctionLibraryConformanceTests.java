@@ -19,8 +19,10 @@ package io.sapl.functions;
 
 import io.sapl.conformance.ConformanceCorpus;
 import io.sapl.conformance.ConformanceCorpus.Case;
+import io.sapl.conformance.ConformanceLibraries;
 import io.sapl.conformance.FunctionCatalogue;
 import io.sapl.conformance.FunctionOutcomes;
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -35,14 +37,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Every implementation of SAPL offers the same library functions, with the
  * same results and the same documentation. The function corpus states what a
  * function returns for its arguments, and the function catalogue describes the
- * libraries it covers.
+ * libraries it covers. The libraries of extensions that depend on this module
+ * are not on the class path here, and the tests of each such extension check
+ * its cases.
  */
 @Tag("conformance")
 @DisplayName("Function libraries against the conformance corpus")
 class FunctionLibraryConformanceTests {
 
     static Stream<Case> casesOfTheFunctionCorpus() {
-        return ConformanceCorpus.casesOf("functions").stream();
+        val absent = ConformanceLibraries.absentLibraries();
+        return ConformanceCorpus.casesOf("functions").stream()
+                .filter(functionCase -> !absent.contains(libraryOf(functionCase)));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -56,6 +62,12 @@ class FunctionLibraryConformanceTests {
     @Test
     @DisplayName("the libraries the corpus covers are described as the function catalogue states")
     void whenLibrariesAreDescribedThenTheyMatchTheFunctionCatalogue() {
-        assertThat(FunctionCatalogue.catalogue()).isEqualTo(FunctionCatalogue.stated());
+        assertThat(FunctionCatalogue.catalogue())
+                .isEqualTo(ConformanceLibraries.withoutAbsentLibraries(FunctionCatalogue.stated()));
+    }
+
+    private static String libraryOf(Case functionCase) {
+        val function = functionCase.documentAsWritten().lines().findFirst().orElse("");
+        return function.substring(0, Math.max(function.indexOf('.'), 0));
     }
 }
