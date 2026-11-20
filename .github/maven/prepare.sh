@@ -22,8 +22,9 @@ resolve() {
 }
 
 property() {
+    local expression="$1"
     mvn -o -B -N -q "-Dmaven.repo.local=$repository" help:evaluate \
-        "-Dexpression=$1" -DforceStdout
+        "-Dexpression=$expression" -DforceStdout
 }
 
 # Resolve the reactor first, then the additional CI profiles without running a lifecycle.
@@ -39,9 +40,7 @@ sapl_version=$(property project.version)
 resolve -f .github/maven/pom.xml "$dependency_plugin:tree" \
     -pl :editor-consumer -am "-Dsapl.version=$sapl_version" \
     -DoutputType=json -DoutputFile=target/consumer-dependencies.json
-python3 .github/maven/editor-dependencies.py \
-    .github/maven/editor-consumer/target/consumer-dependencies.json \
-    .github/maven/editor-consumer/target/dependencies/pom.xml
+python3 .github/maven/editor-dependencies.py
 resolve -f .github/maven/editor-consumer/target/dependencies/pom.xml \
     "$dependency_plugin:go-offline" -DexcludeReactor=true
 

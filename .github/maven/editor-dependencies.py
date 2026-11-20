@@ -2,7 +2,6 @@
 # Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 # SPDX-License-Identifier: Apache-2.0
 import json
-import sys
 from html import escape
 from pathlib import Path
 
@@ -19,7 +18,8 @@ def external_dependencies(node):
     return dependencies
 
 
-tree = json.loads(Path(sys.argv[1]).read_text())
+directory = Path(__file__).resolve().parent / "editor-consumer" / "target"
+tree = json.loads((directory / "consumer-dependencies.json").read_text())
 lines = [
     '<project xmlns="http://maven.apache.org/POM/4.0.0">',
     "<modelVersion>4.0.0</modelVersion>",
@@ -35,6 +35,6 @@ for dependency in sorted(external_dependencies(tree)):
     lines.append("<exclusions><exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion></exclusions>")
     lines.append("</dependency>")
 lines.append("</dependencies></project>")
-output = Path(sys.argv[2])
+output = directory / "dependencies" / "pom.xml"
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text("\n".join(lines) + "\n")
