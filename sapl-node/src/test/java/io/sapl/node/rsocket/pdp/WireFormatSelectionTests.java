@@ -148,9 +148,10 @@ class WireFormatSelectionTests {
             "application/vnd.sapl.value+binary;version=1" })
     @DisplayName("a connection in a data MIME type the node does not speak is refused as unsupported")
     void whenSetupNamesAnotherDataMimeTypeThenConnectionIsRefused(String mimeType) throws IOException {
+        // The refusal ends the connection, so no request is sent: the node would close with the
+        // request unread, the socket would reset, and the reset may discard the refusal.
         val rsocket = connect(mimeType);
-        StepVerifier.create(rsocket.requestResponse(request("decide-once", PROTOBUF.write(SUBSCRIPTION))))
-                .expectError(UnsupportedSetupException.class).verify(PATIENCE);
+        StepVerifier.create(rsocket.onClose()).expectError(UnsupportedSetupException.class).verify(PATIENCE);
         rsocket.dispose();
     }
 
