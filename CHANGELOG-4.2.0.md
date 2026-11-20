@@ -41,6 +41,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- `sapl.info()` returns the engine neutral keys `engine` and `engineVersion`, which every SAPL engine reports. The keys `jdkVersion`, `javaVersion` and `javaVendor` are deprecated and will be removed in the next release.
 - The SAPL Node authentication cache (`io.sapl.node.http.auth-cache.*`) now also covers RSocket connections. The keys keep their names.
 - A stack overflow while evaluating a policy answers INDETERMINATE for that subscription, and the decision stream stays open.
 - Unsealing errors now tell a malformed token apart from a key that does not fit the token.
