@@ -40,6 +40,12 @@ import java.util.stream.Collectors;
  */
 public enum Problem {
 
+    /** Expanded source depth exceeds the configured limit. Values: the limit. */
+    EXPRESSION_TOO_DEEP(
+            "expression-too-deep",
+            "Expression too deep.",
+            "The maximum expanded expression depth is %1$s."),
+
     /**
      * The document exceeds the size limit.
      * <p>

@@ -59,6 +59,7 @@ class ProblemTests {
             document-too-large
             effect-missing
             empty-document
+            expression-too-deep
             empty-statement
             escaped-bidirectional-control
             filter-function-missing

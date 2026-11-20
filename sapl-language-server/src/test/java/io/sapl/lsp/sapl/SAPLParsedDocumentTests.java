@@ -116,6 +116,8 @@ class SAPLParsedDocumentTests {
 
     static Stream<Arguments> documentsBeyondTheGuards() {
         return Stream.of(
+                arguments("a flat expression beyond the default depth",
+                        "policy \"test\" permit subject" + " + 1".repeat(256) + ";", Problem.EXPRESSION_TOO_DEEP),
                 arguments("a document beyond the size limit", "a".repeat(DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES + 1),
                         Problem.DOCUMENT_TOO_LARGE),
                 arguments("a trojan source character", "policy \u202E\"test\" permit", Problem.BIDIRECTIONAL_CONTROL),

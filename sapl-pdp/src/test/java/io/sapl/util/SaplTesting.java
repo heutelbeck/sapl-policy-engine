@@ -106,8 +106,14 @@ public class SaplTesting {
     }
 
     public static Expression parseExpression(String expressionSource) {
-        val parser = createParser(expressionSource);
-        return TRANSFORMER.expression(parser.expression());
+        return parseExpression(expressionSource, ExpressionDepthValidator.DEFAULT_MAX_EXPRESSION_DEPTH);
+    }
+
+    public static Expression parseExpression(String expressionSource, int maxExpressionDepth) {
+        val parser     = createParser(expressionSource);
+        val expression = TRANSFORMER.expression(parser.expression());
+        ExpressionDepthValidator.validateExpression(expression, maxExpressionDepth);
+        return expression;
     }
 
     public static Statement parseStatement(String statementSource) {

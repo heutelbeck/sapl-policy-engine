@@ -26,6 +26,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import io.sapl.compiler.diagnostics.Diagnostic;
 import io.sapl.compiler.document.SyntaxAnalysis;
+import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
@@ -71,7 +72,7 @@ public final class SAPLParsedDocument implements ParsedDocument {
         this.tokenStream   = analysis.tokenStream();
         this.saplParseTree = tree != null ? tree : emptyParseTree();
         this.syntaxValid   = analysis.syntaxIsValid();
-        this.diagnostics   = analysis.diagnostics();
+        this.diagnostics   = DocumentCompiler.parseDocument(analysis).diagnostics();
     }
 
     private static SaplContext emptyParseTree() {

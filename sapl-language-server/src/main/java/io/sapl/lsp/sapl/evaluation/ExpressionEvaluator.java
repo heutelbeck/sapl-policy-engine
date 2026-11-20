@@ -31,6 +31,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.document.AstTransformer;
+import io.sapl.compiler.document.ExpressionDepthValidator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
@@ -71,6 +72,7 @@ public class ExpressionEvaluator {
             var pdpData            = new PdpData(Value.ofObject(config.variables()), Value.EMPTY_OBJECT);
             var compilationContext = new CompilationContext(pdpData, config.functionBroker());
 
+            ExpressionDepthValidator.validateExpression(expression, compilationContext.maxExpressionDepth());
             var compiledExpression = ExpressionCompiler.compile(expression, compilationContext);
 
             if (compiledExpression == null || compiledExpression instanceof StreamOperator) {

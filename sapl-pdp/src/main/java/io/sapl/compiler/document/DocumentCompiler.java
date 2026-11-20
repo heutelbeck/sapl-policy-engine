@@ -62,7 +62,7 @@ public class DocumentCompiler {
     public static CompiledDocument compileDocument(String saplDocument, CompilationContext ctx) {
         val transformer = new AstTransformer();
         transformer.setContext(ctx.getPdpId(), ctx.getConfigurationId());
-        val parsedDocument = parseDocument(SyntaxAnalysis.of(saplDocument), transformer);
+        val parsedDocument = parseDocument(SyntaxAnalysis.of(saplDocument), transformer, ctx.maxExpressionDepth());
         if (parsedDocument.isInvalid()) {
             throw new SaplCompilerException(ERROR_PARSING_FAILED.formatted(parsedDocument.errors()));
         }
@@ -95,22 +95,27 @@ public class DocumentCompiler {
      * problems
      */
     public Document parseDocument(SyntaxAnalysis analysis) {
-        return parseDocument(analysis, new AstTransformer());
+        return parseDocument(analysis, new AstTransformer(), ExpressionDepthValidator.DEFAULT_MAX_EXPRESSION_DEPTH);
     }
 
     // The transformer is fresh for every document. It carries per-document mutable
     // state (import map, schemas), so sharing one instance would let concurrent
     // compilations of different documents race and resolve names against another
     // document's imports.
-    private Document parseDocument(SyntaxAnalysis analysis, AstTransformer transformer) {
+    private Document parseDocument(SyntaxAnalysis analysis, AstTransformer transformer, int maxExpressionDepth) {
         val parseTree = analysis.parseTree();
         val source    = analysis.source();
         if (parseTree == null || !analysis.diagnostics().isEmpty()) {
             return new Document(parseTree, null, source, analysis.diagnostics());
         }
-        return SyntaxAnalysis.refusingUnforeseenFailures(source,
-                () -> new Document(parseTree, transformer.visitSapl(parseTree), source, List.of()),
-                problem -> new Document(parseTree, null, source, List.of(problem)));
+        return SyntaxAnalysis.refusingUnforeseenFailures(source, () -> {
+            val ast         = transformer.visitSapl(parseTree);
+            val diagnostics = ExpressionDepthValidator.validateDocument(ast, maxExpressionDepth);
+            if (!diagnostics.isEmpty()) {
+                return new Document(parseTree, null, source, diagnostics);
+            }
+            return new Document(parseTree, ast, source, List.of());
+        }, problem -> new Document(parseTree, null, source, List.of(problem)));
     }
 
     private static CompiledDocument compileAst(SaplDocument saplDocument, CompilationContext ctx) {

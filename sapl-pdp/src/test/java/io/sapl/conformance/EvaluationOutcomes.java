@@ -113,7 +113,7 @@ public class EvaluationOutcomes {
         }
         final CompiledExpression compiled;
         try {
-            compiled = ExpressionCompiler.compile(parseExpression(expression), context);
+            compiled = ExpressionCompiler.compile(parseExpression(expression, context.maxExpressionDepth()), context);
         } catch (SaplCompilerException refusal) {
             return REFUSED + oneLine(refusal.getMessage());
         }

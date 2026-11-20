@@ -26,6 +26,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.Document;
+import io.sapl.compiler.document.ExpressionDepthValidator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 
 import lombok.Getter;
@@ -53,6 +54,7 @@ import lombok.val;
 public class CompilationContext {
     public static final String OPTION_INDEXING                  = "indexing";
     public static final String OPTION_LOW_LATENCY_MODE          = "lowLatencyMode";
+    public static final String OPTION_MAX_EXPRESSION_DEPTH      = "maxExpressionDepth";
     public static final String OPTION_MAX_DNF_CLAUSES           = "maxDnfClauses";
     public static final String OPTION_MAX_INDEX_NODES           = "maxIndexNodes";
     public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
@@ -68,6 +70,8 @@ public class CompilationContext {
     public static final int     DEFAULT_MAX_INDEX_NODES           = 500_000;
     public static final int     DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
     public static final int     DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
+
+    private static final String ERROR_MAX_EXPRESSION_DEPTH = "The compiler option maxExpressionDepth must be an integer from 1 to %s.";
 
     private String                          pdpId                    = "defaultPdp";
     private String                          configurationId          = "defaultConfiguration";
@@ -99,6 +103,38 @@ public class CompilationContext {
     public CompilationContext(FunctionBroker functionBroker) {
         this.functionBroker = functionBroker;
         this.data           = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+    }
+
+    /**
+     * @param options compiler options, with an exact bounded maxExpressionDepth
+     * @throws IllegalArgumentException if maxExpressionDepth is invalid
+     */
+    public void setCompilerOptions(ObjectValue options) {
+        expressionDepthOption(options);
+        compilerOptions = options;
+    }
+
+    /** @return maximum expanded source expression depth before folding */
+    public int maxExpressionDepth() {
+        return expressionDepthOption(compilerOptions);
+    }
+
+    private static int expressionDepthOption(ObjectValue options) {
+        if (!options.containsKey(OPTION_MAX_EXPRESSION_DEPTH)) {
+            return ExpressionDepthValidator.DEFAULT_MAX_EXPRESSION_DEPTH;
+        }
+        if (options.get(OPTION_MAX_EXPRESSION_DEPTH) instanceof NumberValue(var number)) {
+            try {
+                val limit = number.intValueExact();
+                ExpressionDepthValidator.validateLimit(limit);
+                return limit;
+            } catch (ArithmeticException invalid) {
+                throw new IllegalArgumentException(
+                        ERROR_MAX_EXPRESSION_DEPTH.formatted(ExpressionDepthValidator.MAX_EXPRESSION_DEPTH), invalid);
+            }
+        }
+        throw new IllegalArgumentException(
+                ERROR_MAX_EXPRESSION_DEPTH.formatted(ExpressionDepthValidator.MAX_EXPRESSION_DEPTH));
     }
 
     /**

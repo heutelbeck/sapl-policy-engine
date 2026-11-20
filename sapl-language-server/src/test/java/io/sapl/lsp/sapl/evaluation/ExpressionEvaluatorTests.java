@@ -138,6 +138,13 @@ class ExpressionEvaluatorTests {
         }
     }
 
+    @Test
+    @DisplayName("A constant schema beyond the source depth limit is refused before folding")
+    void whenSchemaSourceExceedsDefaultDepthThenNoSchemaIsProposed() {
+        val document = "subject schema {key: 1" + " + 1".repeat(256) + "}\npolicy \"p\" permit";
+        assertThat(schemaOf(document)).isEmpty();
+    }
+
     /**
      * Runs work on a thread of its own stack size and returns its result. What the
      * work throws fails the test.
