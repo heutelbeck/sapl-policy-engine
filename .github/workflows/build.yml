@@ -53,64 +53,13 @@ jobs:
   # ---------------------------------------------------------------------------
 
   version-check:
-    name: Check Version
-    runs-on: ubuntu-latest
+    name: Check Version and Prepare Maven
     permissions:
       contents: read
-    outputs:
-      version: ${{ steps.get-version.outputs.version }}
-      is_snapshot: ${{ steps.get-version.outputs.is_snapshot }}
-      is_tag: ${{ steps.check-ref.outputs.is_tag }}
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
-        with:
-          egress-policy: audit
-
-      - name: Check out
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
-        with:
-          distribution: 'temurin'
-          java-version: '25'
-          cache: 'maven'
-
-      - name: Extract Version
-        id: get-version
-        run: |
-          # Quiet on success, so the output is the version alone. On failure Maven runs once
-          # more with its output, which shows why.
-          if ! VERSION=$( mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout ); then
-            mvn -B help:evaluate -Dexpression=project.version
-            exit 1
-          fi
-          if [ -z "$VERSION" ]; then
-            echo "ERROR: Failed to extract version" >&2
-            exit 1
-          fi
-          echo "Extracted version: $VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if [[ "$VERSION" == *-SNAPSHOT ]]; then
-            echo "is_snapshot=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_snapshot=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check Ref Type
-        id: check-ref
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "is_tag=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_tag=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Clean up Local Repository before Caching
-        run: rm -rf ~/.m2/repository/io/sapl
+    uses: ./.github/workflows/prepare_maven.yml
 
   test:
+    needs: [version-check]
     strategy:
       matrix:
         java: [ '21', '25' ]
@@ -148,7 +97,11 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
-          cache: 'maven'
+
+      - name: Restore Maven dependencies
+        uses: ./.github/actions/restore-maven
+        with:
+          key: ${{ needs.version-check.outputs.cache_key }}
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -157,15 +110,17 @@ jobs:
 
       - name: Build Dependencies of SAPL Node
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -U -B install -pl sapl-node -am -Dmaven.test.skip=true
+        run: |
+          mvn -o -B install -pl sapl-node -am -Dmaven.test.skip=true
+          bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true
 
       - name: Build SAPL Node Image
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
+        run: mvn -o -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
 
       - name: Run Unit Tests Only
         if: env.RUN_ANALYSIS == 'false'
-        run: mvn -B package javadoc:jar
+        run: mvn -o -B package javadoc:jar
 
         # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
         # SonarCloud analysis. The SonarCloud analysis is run separately because a
@@ -173,15 +128,19 @@ jobs:
         # fork and workflows triggered by other events.
       - name: Run Unit Tests, Analysis, and Integration Tests
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T 1.5C
+        run: mvn -o -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T 1.5C
+
+      - name: Package Maven SBOM resources
+        shell: bash
+        run: bash .github/maven/package-sbom.sh sapl-node,sapl-language-server
 
       - name: Verify Installed Editor Dependencies
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          mvn -B install -pl sapl-vaadin-editor -am -DskipTests
-          version=$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)
-          bash .github/scripts/lsp-library-smoke-test.sh "$version"
+          mvn -o -B install -pl sapl-vaadin-editor -am -DskipTests
+          version=$(mvn -o -q help:evaluate -Dexpression=project.version -DforceStdout)
+          bash .github/scripts/lsp-library-smoke-test.sh "$version" -o
 
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -255,10 +214,6 @@ jobs:
         if: ${{ (success() || failure()) && (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
         uses: ScalableCapital/action-surefire-report@4004a71652495d6ed111f5b717c2cf9aa0f37627 # v2.0.5
 
-      - name: Clean up Local Repository before Caching
-        shell: bash
-        run: rm -rf ~/.m2/repository/io/sapl
-
   build-docker:
     # Dependabot-triggered runs get no repository secrets, and this job needs
     # the Maven server credentials.
@@ -287,12 +242,16 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '25'
-          cache: 'maven'
           server-id: central
           server-username-env-var: NEXUS_USERNAME
           server-password-env-var: NEXUS_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase-env-var: MAVEN_GPG_PASSPHRASE
+
+      - name: Restore Maven dependencies
+        uses: ./.github/actions/restore-maven
+        with:
+          key: ${{ needs.version-check.outputs.cache_key }}
 
       - name: Configure Servers
         uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
@@ -317,24 +276,26 @@ jobs:
       # The vaadin-maven-plugin of sapl-playground is not thread-safe. The playground
       # is built single-threaded against the artifacts installed by the parallel build.
       - name: Build All for Server
-        run: mvn -U -B clean install -Dmaven.test.skip=true -Psign,production -T 1.5C -pl '!sapl-playground'
+        run: |
+          mvn -o -B clean install -Dmaven.test.skip=true -Psign,production -T 1.5C -pl '!sapl-playground'
+          bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true -Psign,production
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Build SAPL Playground for Server
-        run: mvn -B clean install -Dmaven.test.skip=true -Psign,production -pl sapl-playground
+        run: mvn -o -B clean install -Dmaven.test.skip=true -Psign,production -pl sapl-playground
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Build SAPL Node Image
-        run: mvn -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
+        run: mvn -o -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
 
       - name: Build SAPL Playground Image
-        run: mvn -B spring-boot:build-image -pl sapl-playground -Dmaven.test.skip=true -Pproduction
+        run: mvn -o -B spring-boot:build-image -pl sapl-playground -Dmaven.test.skip=true -Pproduction
 
       - name: Save SAPL Node Image
         run: docker save ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }} | gzip > sapl-node-docker-image.tar.gz
@@ -366,9 +327,6 @@ jobs:
             sapl-node/target/site/io.*.spdx.json
           retention-days: 1
 
-      - name: Clean up Local Repository before Caching
-        run: rm -rf ~/.m2/repository/io/sapl
-
   build-native-node:
     needs: [version-check]
     if: ${{ github.event_name != 'pull_request' }}
@@ -376,13 +334,17 @@ jobs:
       contents: read
     uses: ./.github/workflows/build_native_node.yml
     with:
+      maven_cache_key: ${{ needs.version-check.outputs.cache_key }}
       build_macos: ${{ needs.version-check.outputs.is_tag == 'true' }}
 
   build-native-lsp:
+    needs: [version-check]
     if: ${{ github.event_name != 'pull_request' }}
     permissions:
       contents: read
     uses: ./.github/workflows/build_native_lsp.yml
+    with:
+      maven_cache_key: ${{ needs.version-check.outputs.cache_key }}
 
   smoke-test-native-node:
     needs: [build-native-node]
@@ -417,7 +379,7 @@ jobs:
           .github/scripts/native-node-smoke-test.sh ./artifacts/linux-amd64/sapl
 
   benchmark-scripts-test:
-    needs: [smoke-test-native-node]
+    needs: [version-check, smoke-test-native-node]
     if: ${{ github.event_name != 'pull_request' }}
     name: Benchmark Scripts Regression Test
     runs-on: ubuntu-24.04
@@ -440,12 +402,10 @@ jobs:
           distribution: 'temurin'
           java-version: '25'
 
-      - name: Cache Maven packages
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Restore Maven dependencies
+        uses: ./.github/actions/restore-maven
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+          key: ${{ needs.version-check.outputs.cache_key }}
 
       - name: Install wrk2 (HTTP load generator)
         shell: bash
@@ -477,7 +437,9 @@ jobs:
           # this binary untouched. The native image is never rebuilt here.
           cp artifacts/linux-amd64/sapl sapl-benchmark/bin/sapl
           chmod +x sapl-benchmark/bin/sapl
-          ./sapl-benchmark/scripts/build.sh
+          MAVEN_ARGS=-o ./sapl-benchmark/scripts/build.sh
+          bash .github/maven/package-sbom.sh sapl-node -Dlicense.skip
+          cp sapl-node/target/sapl-node-*.jar sapl-benchmark/bin/sapl-node.jar
           env BENCH_QUALITIES=test ./sapl-benchmark/scripts/run-all.sh "$RUNNER_TEMP/bench-results"
 
   build-min-docker:
@@ -929,12 +891,16 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '25'
-          cache: 'maven'
           server-id: central
           server-username-env-var: NEXUS_USERNAME
           server-password-env-var: NEXUS_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase-env-var: MAVEN_GPG_PASSPHRASE
+
+      - name: Restore Maven dependencies
+        uses: ./.github/actions/restore-maven
+        with:
+          key: ${{ needs.version-check.outputs.cache_key }}
 
       - name: Configure Servers
         uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
@@ -987,9 +953,6 @@ jobs:
             **/pom.xml
             **/target/*.jar
             **/target/**/*.spdx.json
-
-      - name: Clean up Local Repository before Caching
-        run: rm -rf ~/.m2/repository/io/sapl
 
   publish-docker:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
@@ -1756,6 +1719,8 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/build_documentation.yml
+    with:
+      maven_cache_key: ${{ needs.version-check.outputs.cache_key }}
     secrets:
       GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
