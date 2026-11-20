@@ -123,12 +123,35 @@ class GeometryDocuments {
             element.getOwnerDocument().renameNode(element, element.getNamespaceURI(), name);
         }
         if ("coordinates".equals(element.getLocalName())) {
-            element.setTextContent(element.getTextContent().replaceAll("\\s*,\\s*", ","));
+            element.setTextContent(normalizeCoordinateSeparators(element.getTextContent()));
         }
         for (Node child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
             if (child instanceof Element nested) {
                 normalizeCoordinates(nested, gml3);
             }
         }
+    }
+
+    private static String normalizeCoordinateSeparators(String text) {
+        val result     = new StringBuilder(text.length());
+        var afterComma = false;
+        for (var index = 0; index < text.length(); index++) {
+            val character = text.charAt(index);
+            if (character == ',') {
+                while (!result.isEmpty() && isCoordinateWhitespace(result.charAt(result.length() - 1))) {
+                    result.setLength(result.length() - 1);
+                }
+                result.append(character);
+                afterComma = true;
+            } else if (!afterComma || !isCoordinateWhitespace(character)) {
+                result.append(character);
+                afterComma = false;
+            }
+        }
+        return result.toString();
+    }
+
+    private static boolean isCoordinateWhitespace(char character) {
+        return character == ' ' || character >= '\t' && character <= '\r';
     }
 }

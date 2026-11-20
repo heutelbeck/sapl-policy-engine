@@ -41,7 +41,7 @@ class GeographicCoordinateSystems {
         try {
             number = Integer.parseInt(parts[1]);
         } catch (NumberFormatException e) {
-            throw new GeometryProblem(ERROR_UNSUPPORTED_CRS.formatted(code));
+            throw new GeometryProblem(ERROR_UNSUPPORTED_CRS.formatted(code), e);
         }
         return switch (number) {
         case 4019, 4140, 4152, 4167, 4171, 4258, 4269, 4283, 4612, 4674, 6318, 6668, 7844 ->

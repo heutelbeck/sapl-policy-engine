@@ -184,10 +184,10 @@ class ProtobufRemoteReactivePolicyDecisionPointFallbackTests {
         val node     = start(knows);
         val pdp      = binaryClient(node, 2);
         val verdicts = new ArrayList<AuthorizationDecision>();
-        for (var request = 0; request < 20; request++) {
+        await().atMost(PATIENCE).until(() -> {
             verdicts.add(pdp.decideOnce(SUBSCRIPTION).block(PATIENCE));
-        }
-        await().atMost(PATIENCE).until(() -> node.setups().stream().filter(PROTOBUF::equals).count() == 2);
+            return node.setups().stream().filter(PROTOBUF::equals).count() == 2;
+        });
         for (var request = 0; request < 20; request++) {
             verdicts.add(pdp.decideOnce(SUBSCRIPTION).block(PATIENCE));
         }
