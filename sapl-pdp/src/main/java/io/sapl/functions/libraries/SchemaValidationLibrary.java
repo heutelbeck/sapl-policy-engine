@@ -26,6 +26,8 @@ import io.sapl.compiler.util.ConfinedSchemaLoader;
 import io.sapl.compiler.util.LinearRegularExpressionFactory;
 import io.sapl.compiler.util.SchemaErrors;
 import lombok.val;
+import tools.jackson.databind.cfg.JsonNodeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -205,6 +207,10 @@ public class SchemaValidationLibrary {
                 "required": ["valid", "errors"]
             }
             """;
+
+    // External schemas are serialized and read again, including numbers beyond the range of doubles.
+    private static final JsonMapper SCHEMA_MAPPER = JsonMapper.builder()
+            .enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
 
     private static final SchemaRegistry SCHEMA_REGISTRY = confinedSchemaRegistry(Map.of());
 
@@ -450,6 +456,7 @@ public class SchemaValidationLibrary {
 
     private static SchemaRegistry confinedSchemaRegistry(Map<String, String> schemaMap) {
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
+            builder.nodeReader(reader -> reader.jsonMapper(SCHEMA_MAPPER));
             builder.schemaLoader(new ConfinedSchemaLoader(schemaMap));
             LinearRegularExpressionFactory.applyTo(builder);
         });

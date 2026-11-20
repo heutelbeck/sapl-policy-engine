@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -385,4 +386,145 @@ class SchemaValidationLibraryTests {
 
         assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.FALSE);
     }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("numeric schema constraints compare exact quantities in subjects and schemas")
+    void whenNumbersAreValidatedThenExactQuantitiesDetermineCompliance(String description, Value subject,
+            ObjectValue schema, boolean compliant) {
+        val external  = ObjectValue.builder().putAll(schema).put("$id", Value.of("https://example.com/exact-number"))
+                .build();
+        val externals = Value.ofArray(external);
+        val reference = ObjectValue.builder().put("$ref", Value.of("https://example.com/exact-number")).build();
+
+        assertThat(List.of(isCompliant(subject, schema), isCompliantWithExternalSchemas(subject, reference, externals)))
+                .containsOnly(Value.of(compliant));
+        assertThat(List.of(validate(subject, schema), validateWithExternalSchemas(subject, reference, externals)))
+                .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ObjectValue.class,
+                        object -> assertThat(object).containsEntry("valid", Value.of(compliant)).hasEntrySatisfying(
+                                "errors", errors -> assertThat(errors).isInstanceOfSatisfying(ArrayValue.class,
+                                        entries -> assertThat(entries.isEmpty()).isEqualTo(compliant)))));
+    }
+
+    static Stream<Arguments> whenNumbersAreValidatedThenExactQuantitiesDetermineCompliance() {
+        return Stream.of(
+                numericConstraint("a decimal above a maximum", "0.10000000000000000001", "maximum", "0.1", false),
+                numericConstraint("a decimal at a maximum", "0.10000000000000000001", "maximum",
+                        "0.10000000000000000001", true),
+                numericConstraint("a precise maximum below an integer", "1", "maximum", "0.99999999999999999", false),
+                numericConstraint("a decimal below a minimum", "0.09999999999999999999", "minimum", "0.1", false),
+                numericConstraint(
+                        "a precise minimum above a decimal", "0.1", "minimum", "0.10000000000000000001", false),
+                numericConstraint("a decimal at a minimum", "0.1", "minimum", "0.10", true),
+                numericConstraint("an integer below an exclusive maximum", "1", "exclusiveMaximum",
+                        "1.0000000000000000001", true),
+                numericConstraint("a decimal at an exclusive maximum", "1.0000000000000000001", "exclusiveMaximum",
+                        "1.0000000000000000001", false),
+                numericConstraint("a decimal above an exclusive maximum", "1.0000000000000000002", "exclusiveMaximum",
+                        "1.0000000000000000001", false),
+                numericConstraint("an integer above an exclusive minimum", "1", "exclusiveMinimum",
+                        "0.99999999999999999", true),
+                numericConstraint("a decimal at an exclusive minimum", "0.99999999999999999", "exclusiveMinimum",
+                        "0.99999999999999999", false),
+                numericConstraint("a decimal below an exclusive minimum", "0.99999999999999998", "exclusiveMinimum",
+                        "0.99999999999999999", false),
+                numericConstraint("a decimal different from an integer const", "1.0000000000000000001", "const", "1",
+                        false),
+                numericConstraint("an integer different from a decimal const", "1", "const", "1.0000000000000000001",
+                        false),
+                numericConstraint("equal decimals with different scales", "1.2300", "const", "123e-2", true),
+                numericConstraint("adjacent integers beyond u64", "18446744073709551617", "const",
+                        "18446744073709551616", false),
+                numericConstraint("the integer above u64 maximum", "18446744073709551616", "const",
+                        "18446744073709551615", false),
+                numericConstraint("the integer above i64 maximum", "9223372036854775808", "const",
+                        "9223372036854775807", false),
+                numericConstraint("the integer below i64 minimum", "-9223372036854775809", "const",
+                        "-9223372036854775808", false),
+                numericConstraint("adjacent negative integers beyond i64", "-9223372036854775810", "maximum",
+                        "-9223372036854775809", true),
+                numericConstraint("a negative integer above a maximum beyond i64", "-9223372036854775809", "maximum",
+                        "-9223372036854775810", false),
+                numericConstraint("adjacent integers beyond the f64 exact range", "9007199254740993", "const",
+                        "9007199254740992", false),
+                numericConstraint("adjacent negative integers beyond the f64 exact range", "-9007199254740993", "const",
+                        "-9007199254740992", false),
+                numericConstraint("an integer above a maximum beyond u64", "18446744073709551617", "maximum",
+                        "18446744073709551616", false),
+                numericConstraint("an integer below a minimum beyond u64", "18446744073709551616", "minimum",
+                        "18446744073709551617", false),
+                numericConstraint("an exact decimal multiple", "0.3", "multipleOf", "0.1", true),
+                numericConstraint("an inexact decimal multiple", "1.0000000000000000001", "multipleOf", "0.1", false),
+                numericConstraint("a precise divisor different from one tenth", "1", "multipleOf",
+                        "0.10000000000000000001", false),
+                numericConstraint("an odd integer beyond u64", "18446744073709551617", "multipleOf", "2", false),
+                numericConstraint("an even integer beyond u64", "18446744073709551616", "multipleOf", "2", true),
+                numericConstraint("a positive number at the smallest allowed scale", "1e-1000", "maximum", "0", false),
+                numericConstraint("zero below the smallest positive scale", "0", "minimum", "1e-1000", false),
+                numericConstraint("equal numbers at the smallest allowed scale", "1e-1000", "const", "1E-1000", true),
+                numericConstraint("a negative number at the smallest allowed scale", "-1e-1000", "minimum", "0", false),
+                numericConstraint("a number at the largest allowed exponent", "1e1000", "maximum", "9e999", false),
+                numericConstraint("a number at the largest allowed exponent equals itself", "1e1000", "const", "1e1000",
+                        true),
+                arguments("a decimal outside an enum", exactNumber("1.0000000000000000001"),
+                        ObjectValue.builder().put("enum", Value.ofArray(exactNumber("1"), exactNumber("2"))).build(),
+                        false),
+                arguments("an integer outside an enum beyond u64", exactNumber("18446744073709551617"),
+                        ObjectValue.builder()
+                                .put("enum", Value.ofArray(exactNumber("18446744073709551616"), exactNumber("0")))
+                                .build(),
+                        false),
+                arguments("equal enum members with different scales", exactNumber("1.2300"),
+                        ObjectValue.builder().put("enum", Value.ofArray(exactNumber("123e-2"), exactNumber("0")))
+                                .build(),
+                        true),
+                arguments("distinct precise decimals are unique",
+                        Value.ofArray(exactNumber("1"), exactNumber("1.0000000000000000001")),
+                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), true),
+                arguments("equal decimals with different scales are not unique",
+                        Value.ofArray(exactNumber("1.2300"), exactNumber("123e-2")),
+                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), false),
+                arguments("distinct integers beyond u64 are unique",
+                        Value.ofArray(exactNumber("18446744073709551616"), exactNumber("18446744073709551617")),
+                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), true),
+                arguments("nested numeric differences do not equal a const",
+                        ObjectValue.builder().put("amount", Value.ofArray(exactNumber("1.0000000000000000001")))
+                                .build(),
+                        ObjectValue.builder()
+                                .put("const",
+                                        ObjectValue.builder().put("amount", Value.ofArray(exactNumber("1"))).build())
+                                .build(),
+                        false),
+                arguments("nested equal numbers with different scales are not unique",
+                        Value.ofArray(ObjectValue.builder().put("amount", Value.ofArray(exactNumber("1.2300"))).build(),
+                                ObjectValue.builder().put("amount", Value.ofArray(exactNumber("123e-2"))).build()),
+                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), false),
+                arguments("a precise fraction is not an integer", exactNumber("1.0000000000000000001"),
+                        ObjectValue.builder().put("type", Value.of("integer")).build(), false),
+                arguments("a large scaled whole number is an integer", exactNumber("18446744073709551616.00"),
+                        ObjectValue.builder().put("type", Value.of("integer")).build(), true),
+                arguments("distinct precise decimals in a longer array are unique",
+                        Value.ofArray(exactNumber("1"), exactNumber("1.0000000000000000001"), Value.of(0), Value.of(2),
+                                Value.of(3), Value.of(4), Value.of(5), Value.of(6), Value.of(7), Value.of(8),
+                                Value.of(9), Value.of(10), Value.of(11), Value.of(12), Value.of(13), Value.of(14),
+                                Value.of(15)),
+                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), true),
+                arguments("equal decimals in a longer array are not unique",
+                        Value.ofArray(exactNumber("1.2300"), exactNumber("123e-2"), Value.of(0), Value.of(2),
+                                Value.of(3), Value.of(4), Value.of(5), Value.of(6), Value.of(7), Value.of(8),
+                                Value.of(9), Value.of(10), Value.of(11), Value.of(12), Value.of(13), Value.of(14),
+                                Value.of(15)),
+                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), false));
+    }
+
+    private static Arguments numericConstraint(String description, String subject, String keyword, String operand,
+            boolean compliant) {
+        val schema = ObjectValue.builder().put(keyword, exactNumber(operand)).build();
+        return arguments(description, exactNumber(subject), schema, compliant);
+    }
+
+    private static Value exactNumber(String number) {
+        return Value.of(new BigDecimal(number));
+    }
+
 }
