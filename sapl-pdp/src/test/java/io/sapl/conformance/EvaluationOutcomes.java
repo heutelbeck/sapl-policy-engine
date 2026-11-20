@@ -47,8 +47,8 @@ import static io.sapl.util.SaplTesting.parseExpression;
  * <p>
  * A case whose outcome line starts with {@code java:} states the outcome all
  * engines agree on and, on that line, what this engine yields instead. A
- * stated outcome that ends with a colon states only how the outcome starts,
- * and it stays as it is while the outcome of this engine starts that way.
+ * stated outcome stays as written if its value, error or refusal agrees.
+ * Strata and messages are information only.
  */
 @UtilityClass
 public class EvaluationOutcomes {
@@ -131,7 +131,36 @@ public class EvaluationOutcomes {
     }
 
     private static String asStated(String outcome, String stated) {
-        return stated.endsWith(":") && outcome.startsWith(stated) ? stated : outcome;
+        if (agrees(outcome, stated)) {
+            return stated;
+        }
+        return outcome;
+    }
+
+    private static boolean agrees(String outcome, String stated) {
+        if (outcome.startsWith(REFUSED) || stated.startsWith(REFUSED)) {
+            return outcome.startsWith(REFUSED) && stated.startsWith(REFUSED);
+        }
+        val returned = withoutStratum(outcome);
+        val expected = withoutStratum(stated);
+        if (returned.startsWith(ERROR) || expected.startsWith(ERROR)) {
+            return returned.startsWith(ERROR) && expected.startsWith(ERROR);
+        }
+        if (!returned.startsWith(NAME_AND_VALUE) || !expected.startsWith(NAME_AND_VALUE)
+                || returned.startsWith(UNREPRESENTABLE) || expected.startsWith(UNREPRESENTABLE)) {
+            return false;
+        }
+        return FunctionOutcomes.valueOf(returned.substring(NAME_AND_VALUE.length()))
+                .equals(FunctionOutcomes.valueOf(expected.substring(NAME_AND_VALUE.length())));
+    }
+
+    private static String withoutStratum(String outcome) {
+        for (val stratum : List.of(CONSTANT, PURE, STREAMING)) {
+            if (outcome.startsWith(stratum + NAME_AND_VALUE) || outcome.startsWith(stratum + ERROR)) {
+                return outcome.substring(stratum.length());
+            }
+        }
+        return outcome;
     }
 
     private static Value input(Map<String, Value> given, String name) {

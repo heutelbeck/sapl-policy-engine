@@ -99,9 +99,7 @@ import java.util.Map;
  * {@code b == a} compile to the same operator, so they are semantically equal,
  * hash alike and form one predicate in the policy index.
  * <p>
- * The order follows the structure of the operands, as the specification
- * {@code canonical-order.md} of the conformance corpus states it, so that
- * every implementation of SAPL orders alike. The strata keep their order of
+ * This engine orders operands by their structure. The strata keep their order of
  * evaluation: constants first, then pure operands, then streams. Constants are
  * ordered by their values, pure operands by the names of their kinds and then
  * by their parts. Streams keep the order written, and so do operands that

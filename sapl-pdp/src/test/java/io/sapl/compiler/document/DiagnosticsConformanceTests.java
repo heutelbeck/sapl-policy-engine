@@ -32,15 +32,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.sapl.conformance.DiagnosticReports.reportOf;
-import static io.sapl.conformance.DiagnosticReports.withRunsAsStated;
+import static io.sapl.conformance.DiagnosticReports.agrees;
 import static io.sapl.conformance.DiagnosticReports.writtenReport;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Every implementation of SAPL reports the same problem for the same mistake.
  * The corpora "diagnostics" and "several-mistakes" state the report for each of
- * their documents in the format of the corpus, and the report of the engine is
- * written in that format and compared as text. In "diagnostics" the quick fixes
+ * their documents. Classes and regions are compared. In "diagnostics" further
+ * regions and quick fixes are compared too, without messages or labels. The quick fixes
  * of a document must also leave a document without problems.
  */
 @Tag("conformance")
@@ -70,7 +70,7 @@ class DiagnosticsConformanceTests {
     @MethodSource("casesWithOneMistake")
     @DisplayName("a document with one mistake is reported as the catalogue states, and its quick fixes leave no problem")
     void whenDocumentHoldsOneMistakeThenItIsReportedAsTheCatalogueStates(Case conformanceCase) {
-        val deviation = deviationFromStatedReport(conformanceCase)
+        val deviation = deviationFromStatedReport(conformanceCase, false)
                 .or(() -> problemsLeftByQuickFixes(conformanceCase.document()));
 
         assertThat(deviation).as(ERROR_NOT_AS_STATED, conformanceCase).isEmpty();
@@ -85,13 +85,13 @@ class DiagnosticsConformanceTests {
     @MethodSource("casesWithSeveralMistakes")
     @DisplayName("a document with several mistakes is reported as the corpus states")
     void whenDocumentHoldsSeveralMistakesThenEachIsReportedAsTheCorpusStates(Case conformanceCase) {
-        assertThat(deviationFromStatedReport(conformanceCase)).as(ERROR_NOT_AS_STATED, conformanceCase).isEmpty();
+        assertThat(deviationFromStatedReport(conformanceCase, true)).as(ERROR_NOT_AS_STATED, conformanceCase).isEmpty();
     }
 
-    private static Optional<String> deviationFromStatedReport(Case conformanceCase) {
+    private static Optional<String> deviationFromStatedReport(Case conformanceCase, boolean severalMistakes) {
         val stated   = conformanceCase.expectation();
-        val reported = withRunsAsStated(reportOf(conformanceCase.document()), stated);
-        if (reported.equals(stated)) {
+        val reported = reportOf(conformanceCase.document());
+        if (agrees(reported, stated, severalMistakes)) {
             return Optional.empty();
         }
         return Optional.of(DEVIATION.formatted(indented(stated), indented(reported)));

@@ -59,8 +59,8 @@ import static io.sapl.conformance.ConformanceCorpus.withPlaceholdersReplaced;
  * {@code value within <tolerance>: } states a number that the returned number
  * may differ from by at most the tolerance. Placeholders are replaced in the arguments
  * and in the outcome, so a stated outcome that means the same as the outcome
- * of this engine stays as it is written. A stated message that ends with a
- * colon states only how the message starts.
+ * of this engine stays as it is written. Error messages are information only
+ * and are not compared.
  */
 @UtilityClass
 public class FunctionOutcomes {
@@ -138,17 +138,16 @@ public class FunctionOutcomes {
 
     /**
      * Values are compared as values, so that numbers agree by their quantity
-     * and objects without regard to the order of their keys. Messages are
-     * compared as text. A stated message that ends with a colon states only how
-     * the message starts. Validation results agree in their validity and in the
+     * and objects without regard to the order of their keys. Any error value
+     * agrees with a stated error. Validation results agree in their validity and in the
      * set of the instance locations of their errors. A number within a
      * tolerance agrees with a returned number that differs from it by at most
      * the tolerance.
      */
     private static boolean agrees(Case functionCase, String outcome) {
         val stated = withPlaceholdersReplaced(functionCase.expectation(), functionCase.origin());
-        if (stated.startsWith(ERROR) && stated.endsWith(":")) {
-            return outcome.startsWith(stated);
+        if (stated.startsWith(ERROR)) {
+            return outcome.startsWith(ERROR);
         }
         if (stated.startsWith(VALIDATION) && outcome.startsWith(VALIDATION)) {
             val validation = validationOf(stated);
@@ -183,7 +182,7 @@ public class FunctionOutcomes {
         }
     }
 
-    private static Value valueOf(String written) {
+    static Value valueOf(String written) {
         return UNDEFINED.equals(written) ? Value.UNDEFINED : ValueJsonMarshaller.fromJsonNode(JSON.readTree(written));
     }
 

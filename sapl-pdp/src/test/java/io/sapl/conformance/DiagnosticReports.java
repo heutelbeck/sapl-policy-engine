@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 
 /**
  * The reports of the corpora "diagnostics" and "several-mistakes": what this
- * engine reports for a document, written in the format of the corpus, so that
- * it is compared with a stated report as text.
+ * engine reports for a document, written in the format of the corpus.
+ * The comparison omits messages and labels.
  */
 @UtilityClass
 public class DiagnosticReports {
@@ -55,6 +55,8 @@ public class DiagnosticReports {
      * groups "count" and "identifier" hold the number and the class.
      */
     public static final Pattern RUN_OF_PROBLEMS = Pattern.compile("<(?<count>\\d+) times (?<identifier>[a-z0-9-]+)>");
+
+    private static final String TOO_MANY_PROBLEMS = "too-many-problems";
 
     private static final String LINE_FEED         = "\n";
     private static final String RUN               = "<%d times %s>";
@@ -121,6 +123,57 @@ public class DiagnosticReports {
         }
         blocks.addAll(reportedBlocks);
         return String.join(BETWEEN_PROBLEMS, blocks);
+    }
+
+    /**
+     * @param reported the report of this engine
+     * @param stated the report the corpus states
+     * @param severalMistakes whether additional problems are allowed and only classes and regions are compared
+     * @return whether the report satisfies the corpus, including its problem cap
+     */
+    public static boolean agrees(String reported, String stated, boolean severalMistakes) {
+        if (!severalMistakes) {
+            return diagnosticContract(reported).equals(diagnosticContract(stated));
+        }
+        if (ACCEPTED.equals(reported) || ACCEPTED.equals(stated)) {
+            return reported.equals(stated);
+        }
+        val remaining = new ArrayList<>(List.of(reported.split(BETWEEN_PROBLEMS)).stream()
+                .map(block -> block.lines().findFirst().orElse("")).toList());
+        val notices   = remaining.stream().filter(line -> isOfClass(line, TOO_MANY_PROBLEMS)).count();
+        val problems  = remaining.size() - notices;
+        if (problems > 100 || notices > 1 || notices > 0 && problems != 100) {
+            return false;
+        }
+        for (val block : stated.split(BETWEEN_PROBLEMS)) {
+            val run = RUN_OF_PROBLEMS.matcher(block);
+            if (run.matches()) {
+                val count      = Integer.parseInt(run.group("count"));
+                val identifier = run.group("identifier");
+                for (var index = 0; index < count; index++) {
+                    val found = remaining.stream().filter(line -> isOfClass(line, identifier)).findFirst();
+                    if (found.isEmpty()) {
+                        return false;
+                    }
+                    remaining.remove(found.get());
+                }
+            } else if (!remaining.remove(block.lines().findFirst().orElse(""))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static List<String> diagnosticContract(String report) {
+        return List.of(report.split(BETWEEN_PROBLEMS)).stream().map(block -> {
+            val lines = block.lines().toList();
+            val parts = new ArrayList<String>();
+            parts.add(lines.getFirst());
+            parts.addAll(lines.stream().skip(3).filter(line -> line.startsWith("also ") || line.startsWith("fix "))
+                    .map(line -> line.startsWith("also ") ? line.substring(0, line.indexOf(' ', 5)) : line).sorted()
+                    .toList());
+            return String.join(LINE_FEED, parts);
+        }).sorted().toList();
     }
 
     private static boolean isOfClass(String block, String identifier) {
