@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -84,7 +85,7 @@ public final class ConfinedSchemaLoader extends SchemaLoader {
                         "meta/format-assertion", "meta/meta-data", "meta/unevaluated", "meta/validation")
                 .map("draft/2020-12/"::concat);
         val olderDrafts = Stream.of("draft-04/schema", "draft-06/schema", "draft-07/schema");
-        return Stream.of(draft201909, draft202012, olderDrafts).flatMap(paths -> paths)
+        return Stream.of(draft201909, draft202012, olderDrafts).flatMap(Function.identity())
                 .flatMap(path -> Stream.of("http://json-schema.org/" + path, "https://json-schema.org/" + path))
                 .collect(Collectors.toUnmodifiableSet());
     }

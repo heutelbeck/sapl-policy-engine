@@ -71,7 +71,7 @@ public class RegexCompiler {
                         binaryOperation);
             }
             if (left instanceof Value lv) {
-                return matchRegex(lv, compiled, loc);
+                return matchRegex(lv, compiled);
             }
             if (left instanceof StreamOperator ls) {
                 return new RegexPrecompiledStream(ls, compiled, loc);
@@ -89,7 +89,7 @@ public class RegexCompiler {
         return new RegexPure(left, right, loc);
     }
 
-    static Value matchRegex(Value input, Pattern pattern, SourceLocation loc) {
+    static Value matchRegex(Value input, Pattern pattern) {
         if (!(input instanceof TextValue(String value))) {
             return Value.FALSE; // Non-text doesn't match
         }
@@ -127,7 +127,7 @@ public class RegexCompiler {
             if (v instanceof ErrorValue) {
                 return v;
             }
-            return matchRegex(v, pattern, location);
+            return matchRegex(v, pattern);
         }
 
         @Override
@@ -158,7 +158,7 @@ public class RegexCompiler {
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(matchRegex(v, pattern, location), deps);
+            return new ExpressionResult(matchRegex(v, pattern), deps);
         }
     }
 
