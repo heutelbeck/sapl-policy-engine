@@ -22,6 +22,9 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +36,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
@@ -70,6 +74,10 @@ class SignatureFunctionLibraryTests {
     private static final String NYARLATHOTEP_RIDDLE  = "The Crawling Chaos walks among mortals, wearing a thousand masks of deception.";
     private static final String MISKATONIC_RECORDS   = "The Miskatonic University archives contain fragments too terrible for human comprehension.";
     private static final String DUNWICH_HORROR       = "The hills of Dunwich concealed secrets that should have remained forever buried.";
+
+    private static final String RFC_ED25519_PUBLIC_KEY = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+    private static final String RFC_ED25519_SIGNATURE  = "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555f"
+            + "b8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b";
 
     private static final String CTHULHU_MULTILINGUAL = "Cthulhu 克苏鲁 Κθούλου 크툴루 クトゥルフ كثولو"; // Cthulhu in English,
                                                                                               // Chinese, Greek, Korean,
@@ -347,32 +355,6 @@ class SignatureFunctionLibraryTests {
                         wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256), DEEP_ONE_CHANT, "abc123", validKeyPem));
     }
 
-    @Test
-    void verifyWithRfc8032Ed25519TestVector1Succeeds() {
-        // RFC 8032 Test Vector 1 for Ed25519
-        var message   = "";
-        var publicKey = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n-----END PUBLIC KEY-----";
-        var signature = "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b";
-
-        var result = SignatureFunctionLibrary.isValidEd25519((TextValue) Value.of(message),
-                (TextValue) Value.of(signature), (TextValue) Value.of(publicKey));
-
-        assertThat(result).as("RFC 8032 test vector 1 should verify").isEqualTo(Value.TRUE);
-    }
-
-    @Test
-    void verifyWithRfc8032Ed25519TestVectorModifiedFails() {
-        // RFC 8032 Test Vector 1 with tampered message
-        var tamperedMessage = "tampered";
-        var publicKey       = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n-----END PUBLIC KEY-----";
-        var signature       = "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b";
-
-        var result = SignatureFunctionLibrary.isValidEd25519((TextValue) Value.of(tamperedMessage),
-                (TextValue) Value.of(signature), (TextValue) Value.of(publicKey));
-
-        assertThat(result).as("RFC test vector with tampered message should fail").isEqualTo(Value.FALSE);
-    }
-
     @RepeatedTest(100)
     void isValidRsaSha256WhenInvokedRepeatedlyRemainsConsistent() throws Exception {
         var signature    = createSignature(rsaKeyPair.getPrivate(), "SHA256withRSA", AZATHOTH_PROPHECY);
@@ -420,6 +402,67 @@ class SignatureFunctionLibraryTests {
                         ecP256KeyPair, "SHA512withECDSA"),
                 arguments("isValidEcdsaP521 with P-384 key", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521),
                         ecP384KeyPair, "SHA512withECDSA"));
+    }
+
+    @Nested
+    @DisplayName("Strict Ed25519 verification")
+    class StrictEd25519 {
+
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("Invalid public keys produce error values")
+        @MethodSource("io.sapl.functions.libraries.SignatureFunctionLibraryTests#invalidEd25519Keys")
+        void whenPublicKeyIsInvalidThenVerificationReturnsError(String name, String point) throws IOException {
+            val signature = "01" + "00".repeat(63);
+            val result    = wrapVerify(SignatureFunctionLibrary::isValidEd25519)
+                    .apply(new SignatureParams("An arbitrary message.", signature, ed25519PublicKey(point)));
+            assertThat(result).as(name).isInstanceOf(ErrorValue.class);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("Only valid canonical signatures are accepted")
+        @MethodSource("io.sapl.functions.libraries.SignatureFunctionLibraryTests#ed25519Signatures")
+        void whenSignatureIsCheckedThenStrictVerificationDeterminesValidity(String name, String message,
+                String signature, Value expected) throws IOException {
+            val result = wrapVerify(SignatureFunctionLibrary::isValidEd25519)
+                    .apply(new SignatureParams(message, signature, ed25519PublicKey(RFC_ED25519_PUBLIC_KEY)));
+            assertThat(result).as(name).isEqualTo(expected);
+        }
+    }
+
+    static Stream<Arguments> invalidEd25519Keys() {
+        return Stream.of(arguments("identity", "01" + "00".repeat(31)), arguments("order four", "00".repeat(32)),
+                arguments("order two", "ec" + "ff".repeat(30) + "7f"),
+                arguments("order eight", "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05"),
+                arguments("mixed order", "95" + "99".repeat(31)),
+                arguments("noncanonical identity", "ee" + "ff".repeat(30) + "7f"),
+                arguments("identity with sign bit", "01" + "00".repeat(30) + "80"),
+                arguments("not a point", "02" + "00".repeat(31)), arguments("one byte short", "00".repeat(31)),
+                arguments("one byte long", "00".repeat(33)), arguments("empty", ""));
+    }
+
+    static Stream<Arguments> ed25519Signatures() {
+        val r = RFC_ED25519_SIGNATURE.substring(0, 64);
+        val s = RFC_ED25519_SIGNATURE.substring(64);
+        return Stream.of(arguments("RFC 8032 empty message", "", RFC_ED25519_SIGNATURE, Value.TRUE),
+                arguments("wrong message", "An arbitrary message.", RFC_ED25519_SIGNATURE, Value.FALSE),
+                arguments("empty signature", "", "", Value.FALSE),
+                arguments("one byte short", "", RFC_ED25519_SIGNATURE.substring(0, 126), Value.FALSE),
+                arguments("one byte long", "", RFC_ED25519_SIGNATURE + "00", Value.FALSE),
+                arguments("wrong signature", "", "00".repeat(64), Value.FALSE),
+                arguments("identity R", "", "01" + "00".repeat(31) + s, Value.FALSE),
+                arguments("mixed order R", "", "95" + "99".repeat(31) + s, Value.FALSE),
+                arguments("noncanonical R", "", "ee" + "ff".repeat(30) + "7f" + s, Value.FALSE),
+                arguments("R not a point", "", "02" + "00".repeat(31) + s, Value.FALSE),
+                arguments("S equals group order", "",
+                        r + "edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010", Value.FALSE),
+                arguments("S above group order", "", r + "ff".repeat(32), Value.FALSE));
+    }
+
+    private static String ed25519PublicKey(String point) throws IOException {
+        val info = new SubjectPublicKeyInfo(new AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519),
+                HexFormat.of().parseHex(point));
+        return "-----BEGIN PUBLIC KEY-----\n" + Base64.getEncoder().encodeToString(info.getEncoded())
+                + "\n-----END PUBLIC KEY-----";
     }
 
     private static byte[] createSignature(PrivateKey privateKey, String algorithm, String message) throws Exception {
