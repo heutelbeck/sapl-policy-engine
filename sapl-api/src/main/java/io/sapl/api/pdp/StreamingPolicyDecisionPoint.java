@@ -94,7 +94,8 @@ public interface StreamingPolicyDecisionPoint {
      * changes. Each bundle uses the caller's item IDs.
      * <p>
      * If two items depend on the same attribute, a change affecting both
-     * decisions appears in one bundle. Separate calls open independent groups.
+     * decisions appears in one bundle. The group also sees assignments published
+     * atomically by an attribute repository together. Separate calls open independent groups.
      * For an empty group the stream returns {@link MultiAuthorizationDecision#indeterminate()}.
      *
      * @see DecisionInterceptor

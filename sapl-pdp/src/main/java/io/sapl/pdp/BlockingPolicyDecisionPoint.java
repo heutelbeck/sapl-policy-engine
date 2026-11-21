@@ -827,13 +827,14 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, InstantSource timestampSource,
             @Nullable BiConsumer<TracedVote, IdentifiableAuthorizationSubscription> perSubTraceObserver) {
         val round = evaluateGroup(items, pdp, subscriptionId, snapshot, depsAccumulator, functionBroker,
-                timestampSource, perSubTraceObserver != null);
+                perSubTraceObserver == null ? null : timestampSource);
         if (round == null) {
             return null;
         }
-        if (perSubTraceObserver != null && round.traceFor() != null) {
+        val traceFor = round.traceFor();
+        if (perSubTraceObserver != null && traceFor != null) {
             for (int index = 0; index < items.size(); index++) {
-                perSubTraceObserver.accept(round.traceFor().apply(index), items.get(index));
+                perSubTraceObserver.accept(traceFor.apply(index), items.get(index));
             }
         }
         return round.decisions();
@@ -841,10 +842,9 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     private static @Nullable GroupRound evaluateGroup(List<IdentifiableAuthorizationSubscription> items,
             CompiledPdp pdp, String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
-            Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, InstantSource timestampSource,
-            boolean traced) {
+            Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, @Nullable InstantSource traceClock) {
         val              multi   = new MultiAuthorizationDecision();
-        List<VoteResult> results = traced ? new ArrayList<>(items.size()) : List.of();
+        List<VoteResult> results = traceClock != null ? new ArrayList<>(items.size()) : List.of();
         for (val item : items) {
             val ctx = evaluationContext(pdp, item.subscription(), subscriptionId, functionBroker)
                     .withSnapshot(snapshot);
@@ -854,15 +854,15 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             if (vote == null) {
                 return null;
             }
-            if (traced) {
+            if (traceClock != null) {
                 results.add(r);
             }
             multi.setDecision(item.subscriptionId(), vote.authorizationDecision());
         }
-        if (results.isEmpty()) {
+        if (traceClock == null || results.isEmpty()) {
             return new GroupRound(multi, null);
         }
-        val completedAt = timestampSource.instant();
+        val completedAt = traceClock.instant();
         return new GroupRound(multi, index -> buildTracedVote(results.get(index), snapshot, completedAt));
     }
 
@@ -1022,7 +1022,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private @Nullable GroupRound evaluateRound(GroupSubscription group, CompiledPdp pdp, String subscriptionId,
             Map<SubscriptionKey, AttributeSnapshot> snapshot, Set<SubscriptionKey> depsAccumulator) {
         return evaluateGroup(group.items(), pdp, subscriptionId, snapshot, depsAccumulator,
-                pdp.plugins().functionBroker(), timestampSource, hasDecisionInterceptors());
+                pdp.plugins().functionBroker(), hasDecisionInterceptors() ? timestampSource : null);
     }
 
     /**

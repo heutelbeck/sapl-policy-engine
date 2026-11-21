@@ -428,9 +428,7 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds a decision interceptor that observes every
-     * {@link io.sapl.api.pdp.TracedDecision}
-     * produced by the PDP.
+     * Registers a {@link DecisionInterceptor} for single and grouped decisions.
      *
      * @param interceptor the decision interceptor to add
      * @return this builder
