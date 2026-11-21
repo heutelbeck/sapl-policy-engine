@@ -33,6 +33,7 @@
 
             // Strings
             { regex: /"(?:[^\\"]|\\.)*"/, token: "string" },
+            { regex: /'(?:[^\\']|\\.)*'/, token: "string" },
 
             // Numbers
             { regex: /-?\b\d+(\.\d+)?([eE][+-]?\d+)?\b/, token: "number" },

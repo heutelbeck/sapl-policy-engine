@@ -322,15 +322,16 @@ public class MathFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value clamp(NumberValue value, NumberValue minimum, NumberValue maximum) {
-        val clampValue = value.value().doubleValue();
-        val minValue   = minimum.value().doubleValue();
-        val maxValue   = maximum.value().doubleValue();
-
-        if (minValue > maxValue) {
+        if (minimum.value().compareTo(maximum.value()) > 0) {
             return Value.error(ERROR_MIN_GREATER_THAN_MAX);
         }
-
-        return Value.of(Math.clamp(clampValue, minValue, maxValue));
+        if (value.value().compareTo(minimum.value()) < 0) {
+            return minimum;
+        }
+        if (value.value().compareTo(maximum.value()) > 0) {
+            return maximum;
+        }
+        return value;
     }
 
     /**

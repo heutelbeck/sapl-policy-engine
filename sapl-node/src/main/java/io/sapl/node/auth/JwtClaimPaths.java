@@ -70,7 +70,7 @@ public class JwtClaimPaths {
      */
     public static @Nullable String resolveStringClaim(Jwt jwt, String path) {
         if (jwt.hasClaim(path)) {
-            return jwt.getClaimAsString(path);
+            return scalarText(jwt.getClaims().get(path));
         }
         Object current = jwt.getClaims();
         for (val segment : path.split("\\.")) {
@@ -79,7 +79,13 @@ public class JwtClaimPaths {
             }
             current = nested.get(segment);
         }
-        return switch (current) {
+        return scalarText(current);
+    }
+
+    // Only a text, a number or a boolean names a tenant. An object or a list
+    // is not turned into its string form.
+    private static @Nullable String scalarText(@Nullable Object claim) {
+        return switch (claim) {
         case String stringValue   -> stringValue;
         case Number numberValue   -> numberValue.toString();
         case Boolean booleanValue -> booleanValue.toString();

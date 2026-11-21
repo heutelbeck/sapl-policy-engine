@@ -796,21 +796,21 @@ class PriorityVoteCompilerTests {
                     policy "denying" deny
                     policy "suspending" suspend
                     """, Decision.SUSPEND),
-                    arguments("priority suspend: PERMIT vs DENY (no SUSPEND) - DENY wins per chain", """
+                    arguments("priority suspend: PERMIT vs DENY (no SUSPEND), DENY wins per chain", """
                             set "test"
                             priority suspend or abstain errors propagate
 
                             policy "permitting" permit
                             policy "denying" deny
                             """, Decision.DENY),
-                    arguments("priority deny: PERMIT vs SUSPEND (no DENY) - SUSPEND wins per chain", """
+                    arguments("priority deny: PERMIT vs SUSPEND (no DENY), SUSPEND wins per chain", """
                             set "test"
                             priority deny or abstain errors propagate
 
                             policy "permitting" permit
                             policy "suspending" suspend
                             """, Decision.SUSPEND),
-                    arguments("priority permit: DENY vs SUSPEND (no PERMIT) - SUSPEND wins per chain", """
+                    arguments("priority permit: DENY vs SUSPEND (no PERMIT), SUSPEND wins per chain", """
                             set "test"
                             priority permit or abstain errors propagate
 

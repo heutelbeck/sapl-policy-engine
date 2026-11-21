@@ -29,20 +29,27 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * {@link TimeScheduler} backed by a {@link ScheduledExecutorService}
- * with a virtual-thread task factory. Reads the current time from an
+ * with a single dedicated platform thread. Reads the current time from an
  * injectable {@link Clock} so tests can pin time without changing the
  * production wiring path.
+ * <p>
+ * The timer runs on a platform thread rather than a virtual thread because
+ * virtual threads are not preempted: while CPU-bound virtual threads occupy
+ * every carrier thread, a virtual timer thread could not wake up and time
+ * transitions such as token expiry would fire late. Tasks run inline on the
+ * timer thread, so they must be short and must not block.
  */
 @Slf4j
 public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
 
     private static final String ERROR_TASK_RAISED_UNHANDLED_EXCEPTION = "Scheduled task raised an unhandled exception";
+    private static final String TIMER_THREAD_NAME                     = "sapl-time-scheduler";
 
     private final Clock                    clock;
     private final ScheduledExecutorService executor;
 
     /**
-     * Creates a scheduler that runs tasks on virtual threads using
+     * Creates a scheduler that runs tasks on its timer thread using
      * the system UTC clock.
      */
     public RealTimeScheduler() {
@@ -50,12 +57,13 @@ public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
     }
 
     /**
-     * Creates a scheduler that runs tasks on virtual threads using
+     * Creates a scheduler that runs tasks on its timer thread using
      * the supplied clock.
      */
     public RealTimeScheduler(Clock clock) {
         this.clock    = clock;
-        this.executor = Executors.newScheduledThreadPool(1, Thread.ofVirtual().factory());
+        this.executor = Executors.newScheduledThreadPool(1,
+                Thread.ofPlatform().name(TIMER_THREAD_NAME).daemon().factory());
     }
 
     @Override

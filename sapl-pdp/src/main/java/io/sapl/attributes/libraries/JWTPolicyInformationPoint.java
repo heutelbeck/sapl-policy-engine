@@ -157,7 +157,7 @@ public class JWTPolicyInformationPoint {
             keyed by the token's key ID. The URI must use `https`: a key fetched over plain `http` can be
             substituted by a network attacker who could then forge tokens this PIP would accept as trusted.
             A non-`https` URI is rejected and the token is treated as untrusted. For local development only,
-            set `"allowInsecureHttp": true` in `publicKeyServer` to permit an `http` URI; this is logged with
+            set `"allowInsecureHttp": true` in `publicKeyServer` to permit an `http` URI. This is logged with
             a prominent warning and must never be used in production. TLS authenticates the key server and
             protects the keys in transit. Keys in the `whitelist` are configured locally and are not affected.
 

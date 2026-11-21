@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +46,7 @@ import reactor.test.StepVerifier;
 @DisplayName("Shared RSocket client event loops")
 class RSocketClientResourcesTests {
 
-    private final List<Connection> connections = new ArrayList<>();
+    private final List<Connection> connections = new CopyOnWriteArrayList<>();
     private DisposableServer       server;
 
     @BeforeEach
@@ -75,6 +75,29 @@ class RSocketClientResourcesTests {
             }
 
             assertThat(activeLoops).hasSizeGreaterThanOrEqualTo(LoopResources.DEFAULT_IO_WORKER_COUNT);
+        }
+    }
+
+    @Test
+    @DisplayName("Connections opened from a client event loop spread over distinct event loops")
+    void whenConnectingFromAnEventLoopThenConnectionsSpreadOverDistinctEventLoops() {
+        val pooled    = 4;
+        val loopsUsed = ConcurrentHashMap.<EventLoop>newKeySet();
+        try (val resources = RSocketClientResources.acquire()) {
+            val client = resources.configure(TcpClient.create()).host("127.0.0.1").port(server.port());
+            val first  = client.connectNow(Duration.ofSeconds(5));
+            connections.add(first);
+            first.channel().eventLoop().execute(() -> {
+                for (int i = 0; i < pooled; i++) {
+                    client.connect().subscribe(connection -> {
+                        connections.add(connection);
+                        loopsUsed.add(connection.channel().eventLoop());
+                    });
+                }
+            });
+
+            await().atMost(Duration.ofSeconds(10)).until(() -> connections.size() == pooled + 1);
+            assertThat(loopsUsed).hasSize(pooled);
         }
     }
 

@@ -510,6 +510,47 @@ class ValueJsonMarshallerTests {
         assertThat(((ErrorValue) result).message()).contains("Unknown JsonNode type: MISSING");
     }
 
+    @ParameterizedTest(name = "jsonAllowingComments parses: {0}")
+    @MethodSource("commentedJsonStrings")
+    @DisplayName("jsonAllowingComments() parses human-edited configuration with comments")
+    void whenCommentedJsonThenJsonAllowingCommentsIgnoresComments(String description, String json) {
+        var result = ValueJsonMarshaller.jsonAllowingComments(json);
+
+        assertThat(result).isEqualTo(Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU))));
+    }
+
+    @ParameterizedTest(name = "json rejects: {0}")
+    @MethodSource("commentedJsonStrings")
+    @DisplayName("json() stays strict and rejects comments")
+    void whenCommentedJsonThenStrictJsonReturnsErrorValue(String description, String json) {
+        var result = ValueJsonMarshaller.json(json);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> commentedJsonStrings() {
+        return Stream.of(arguments("double-slash line comment", """
+                {
+                  // the summoned entity
+                  "entity": "Cthulhu"
+                }"""), arguments("hash line comment", """
+                # the summoned entity
+                { "entity": "Cthulhu" }"""), arguments("block comment", """
+                { /* the summoned
+                     entity */ "entity": "Cthulhu" }"""), arguments("trailing comment", """
+                { "entity": "Cthulhu" } // end of file"""));
+    }
+
+    @ParameterizedTest(name = "jsonAllowingComments returns error for: {0}")
+    @MethodSource("invalidJsonStrings")
+    @DisplayName("jsonAllowingComments() still returns error for invalid JSON")
+    void whenInvalidJsonThenJsonAllowingCommentsReturnsErrorValue(String description, String json) {
+        var result = ValueJsonMarshaller.jsonAllowingComments(json);
+
+        assertThat(result).isInstanceOf(ErrorValue.class).extracting(error -> ((ErrorValue) error).message()).asString()
+                .contains("Failed to parse JSON");
+    }
+
     // toJsonString Tests
 
     @ParameterizedTest(name = "toJsonString serializes: {0}")

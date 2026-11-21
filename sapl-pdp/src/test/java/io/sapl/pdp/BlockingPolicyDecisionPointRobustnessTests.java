@@ -48,6 +48,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
@@ -235,6 +236,75 @@ class BlockingPolicyDecisionPointRobustnessTests {
 
                 assertThat(decision).isNotNull();
                 assertThat(decision.decision()).isEqualTo(Decision.INDETERMINATE);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("evaluation that overflows the stack")
+    class EvaluationOverflowTests {
+
+        // Each variable adds the subject to the one before. The chain has no bracket,
+        // compiles, and nests the evaluation once per variable.
+        private static final int VARIABLE_CHAIN_LENGTH = 40_000;
+
+        private static final AuthorizationSubscription NUMBER_SUBSCRIPTION = subscription(Value.of(1), Value.of("read"),
+                Value.of("tome"), Value.EMPTY_OBJECT);
+
+        private static String variableChainPolicy() {
+            val policy = new StringBuilder("policy \"deep\" permit\nvar v0 = subject;\n");
+            for (int i = 1; i < VARIABLE_CHAIN_LENGTH; i++) {
+                policy.append("var v").append(i).append(" = v").append(i - 1).append(" + subject;\n");
+            }
+            return policy.append('v').append(VARIABLE_CHAIN_LENGTH - 1).append(" > 0;").toString();
+        }
+
+        @Test
+        @Timeout(120)
+        @DisplayName("decideOnce answers INDETERMINATE when evaluating the policies overflows the stack")
+        void whenEvaluationOverflowsThenDecideOnceIsIndeterminate() {
+            try (val components = PolicyDecisionPointBuilder.withDefaults().withPolicy(variableChainPolicy()).build()) {
+                assertThat(components.pdp().decideOnce(NUMBER_SUBSCRIPTION).decision())
+                        .isEqualTo(Decision.INDETERMINATE);
+            }
+        }
+
+        @Test
+        @Timeout(120)
+        @DisplayName("a decision stream answers INDETERMINATE for an overflow and stays alive for the next configuration")
+        void whenEvaluationOverflowsThenStreamIsIndeterminateAndStaysAlive() throws InterruptedException {
+            try (val components = PolicyDecisionPointBuilder.withDefaults().withPolicy(variableChainPolicy()).build();
+                    val stream = components.pdp().decide(NUMBER_SUBSCRIPTION)) {
+                val overflowed = stream.awaitNext();
+                components.pdpVoterSource().loadConfiguration(configuration("policy \"shallow\" permit"));
+                val recovered = stream.awaitNext();
+
+                assertThat(List.of(overflowed.decision(), recovered.decision())).containsExactly(Decision.INDETERMINATE,
+                        Decision.PERMIT);
+            }
+        }
+
+        @Test
+        @Timeout(120)
+        @DisplayName("a multi-subscription stream answers INDETERMINATE for the subscription whose evaluation overflows")
+        void whenEvaluationOverflowsThenMultiStreamIsIndeterminateForThatSubscription() throws InterruptedException {
+            val multi = new MultiAuthorizationSubscription();
+            multi.addSubscription("deep", NUMBER_SUBSCRIPTION);
+            try (val components = PolicyDecisionPointBuilder.withDefaults().withPolicy(variableChainPolicy()).build();
+                    val stream = components.pdp().decideAll(multi)) {
+                val decisions = stream.awaitNext();
+
+                assertThat(decisions.getDecisionType("deep")).isEqualTo(Decision.INDETERMINATE);
+            }
+        }
+
+        @Test
+        @Timeout(120)
+        @DisplayName("an evaluation with coverage, as a test run makes it, answers INDETERMINATE when it overflows the stack")
+        void whenEvaluationWithCoverageOverflowsThenIndeterminate() {
+            try (val components = PolicyDecisionPointBuilder.withDefaults().withPolicy(variableChainPolicy()).build()) {
+                assertThat(components.pdp().decideOnceWithCoverage(NUMBER_SUBSCRIPTION).vote().authorizationDecision()
+                        .decision()).isEqualTo(Decision.INDETERMINATE);
             }
         }
     }

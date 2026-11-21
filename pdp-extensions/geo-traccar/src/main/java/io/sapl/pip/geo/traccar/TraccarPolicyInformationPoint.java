@@ -166,25 +166,28 @@ public class TraccarPolicyInformationPoint {
 
              ## Secrets Configuration
 
-             Credentials are sourced exclusively from the `secrets` section in `pdp.json`. They
-             are never read from `TRACCAR_CONFIG` or any policy-visible source.
+             Credentials are sourced exclusively from the PDP secrets file next to `pdp.json`
+             (`secrets.json`, sealed: `secrets.sealed.json`). They are never read from
+             `TRACCAR_CONFIG` or any policy-visible source.
 
              The server `name` is the join key. For a server named `prod`, the PDP looks up
              `secrets.traccar.prod`. A flat `secrets.traccar` (no per-server nesting) is used as
              the default server's credentials for back-compatibility.
 
-             Two authentication methods are supported per server:
+             Two authentication methods are supported per server. The examples show the content
+             of `secrets.json`, which is the secrets object itself, without a wrapping `secrets`
+             key:
 
              **API token authentication (recommended for Traccar 6.x):**
              The token is passed as a `?token=` query parameter on every API request.
              ```json
-             { "secrets": { "traccar": { "prod": { "token": "YOUR_API_TOKEN" } } } }
+             { "traccar": { "prod": { "token": "YOUR_API_TOKEN" } } }
              ```
 
              **Basic authentication with email and password:**
              An `Authorization: Basic ...` header is added to every API request.
              ```json
-             { "secrets": { "traccar": { "prod": { "userName": "email@address.org", "password": "password" } } } }
+             { "traccar": { "prod": { "userName": "email@address.org", "password": "password" } } }
              ```
 
              Per-server credential resolution:
@@ -215,8 +218,9 @@ public class TraccarPolicyInformationPoint {
              from `secrets.traccar.lab`, makes the API call. The `[{pollIntervalMs: 250}]`
              attribute option sets how often the engine re-evaluates the attribute and is optional.
 
-             ## Complete pdp.json Example
+             ## Complete Configuration Example
 
+             `pdp.json`:
              ```json
              {
                "variables": {
@@ -226,10 +230,14 @@ public class TraccarPolicyInformationPoint {
                      { "name": "prod", "baseUrl": "https://traccar.example.com" }
                    ]
                  }
-               },
-               "secrets": {
-                 "traccar": { "prod": { "token": "YOUR_API_TOKEN" } }
                }
+             }
+             ```
+
+             `secrets.json`:
+             ```json
+             {
+               "traccar": { "prod": { "token": "YOUR_API_TOKEN" } }
              }
              ```
 

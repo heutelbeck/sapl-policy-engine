@@ -496,7 +496,7 @@ class DefaultFunctionBrokerTests {
         }
     }
 
-    @FunctionLibrary(name = "nyarlathotep", description = "The Crawling Chaos - mixed static and instance methods")
+    @FunctionLibrary(name = "nyarlathotep", description = "The Crawling Chaos: mixed static and instance methods")
     public static class MixedMethodLibrary {
 
         private final String form;
@@ -505,17 +505,17 @@ class DefaultFunctionBrokerTests {
             this.form = "Haunter of the Dark";
         }
 
-        @Function(docs = "Static method - summons the messenger")
+        @Function(docs = "Static method: summons the messenger")
         public static Value summonMessenger() {
             return Value.of("Nyarlathotep approaches");
         }
 
-        @Function(docs = "Instance method - reveals current form")
+        @Function(docs = "Instance method: reveals current form")
         public Value revealForm() {
             return Value.of(form);
         }
 
-        @Function(docs = "Instance method - transforms with given name")
+        @Function(docs = "Instance method: transforms with given name")
         public Value transform(Value newForm) {
             if (newForm instanceof TextValue text) {
                 return Value.of("Transformed to " + text.value());

@@ -109,7 +109,7 @@ public class CoverageExtractor {
         case PolicyCoverage pc     -> extractPolicyCoverage(pc, vote, policySources);
         case PolicySetCoverage psc -> extractPolicySetCoverage(psc, vote, policySources);
         case PdpCoverage pdpc      -> throw new IllegalStateException(
-                "PdpCoverage is the top-level wrapper and cannot appear as a contained document; got " + pdpc);
+                "PdpCoverage is the top-level wrapper and cannot appear as a contained document, got " + pdpc);
         };
     }
 
@@ -176,7 +176,7 @@ public class CoverageExtractor {
             }
         }
         case PdpCoverage pdpc                            -> throw new IllegalStateException(
-                "PdpCoverage is the top-level wrapper and cannot appear nested in a PolicySetCoverage; got " + pdpc);
+                "PdpCoverage is the top-level wrapper and cannot appear nested in a PolicySetCoverage, got " + pdpc);
         }
     }
 

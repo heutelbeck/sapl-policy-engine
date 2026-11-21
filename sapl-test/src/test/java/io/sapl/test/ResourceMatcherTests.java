@@ -75,7 +75,7 @@ class ResourceMatcherTests {
     @DisplayName("resource equals wrong value should fail")
     void resourceEqualsWrongValue_shouldFail() {
         var result = runSingleScenario("with resource equals wrong value should fail",
-                "Resource Matcher Negative Tests - Object");
+                "Resource Matcher Negative Tests: Object");
         assertThat(result.status()).isEqualTo(TestStatus.FAILED);
     }
 
@@ -83,7 +83,7 @@ class ResourceMatcherTests {
     @DisplayName("resource matching object with wrong key value should fail")
     void resourceMatchingObjectWithWrongKeyValue_shouldFail() {
         var result = runSingleScenario("with resource matching object with wrong key value should fail",
-                "Resource Matcher Negative Tests - Object");
+                "Resource Matcher Negative Tests: Object");
         assertThat(result.status()).isEqualTo(TestStatus.FAILED);
     }
 

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.jspecify.annotations.Nullable;
@@ -35,6 +36,7 @@ import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.sapl.node.boot.SaplStartupConfigurationException;
+import io.sapl.node.boot.TransportTls;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
@@ -97,6 +99,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     // Reactor Netty's secure() before being handed to TcpServerTransport.
     // Resolution from a Spring Boot SslBundle happens in the @Configuration.
     private final @Nullable SslContext sslContext;
+    private final @Nullable String     plaintextSource;
 
     // ReentrantLock instead of synchronized to avoid carrier-thread pinning if
     // start()/stop() ever runs on a virtual thread under JDK 21.
@@ -114,6 +117,10 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             if (maxInboundPayloadSize < PROTOCOL_PAYLOAD_CEILING) {
                 throw new SaplStartupConfigurationException(ERROR_PAYLOAD_SIZE.formatted(maxInboundPayloadSize),
                         ACTION_PAYLOAD_SIZE);
+            }
+            if (socketPath == null) {
+                TransportTls.requireTlsOrPlaintextOptIn("RSocket", sslContext != null,
+                        Optional.ofNullable(plaintextSource));
             }
             if (authenticator != null) {
                 log.info("RSocket authentication enabled");
@@ -134,12 +141,6 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
                 log.debug("Protobuf RSocket PDP server started on Unix socket {} ({})", socketPath, scheme);
             } else {
                 log.debug("Protobuf RSocket PDP server started on {}:{} ({})", bindAddress, port, scheme);
-            }
-            if (sslContext == null && socketPath == null) {
-                log.warn("RSocket server bound on {}:{} without TLS. Connection-setup credentials "
-                        + "(basic auth, API key, JWT) and decision payloads traverse the network in cleartext. "
-                        + "Configure sapl.pdp.rsocket.ssl.bundle, or terminate TLS at an upstream load balancer.",
-                        bindAddress, port);
             }
         } finally {
             lifecycleLock.unlock();
@@ -175,7 +176,9 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
     private CloseableChannel bind(SocketAcceptor acceptor, TcpServerTransport transport) {
         try {
-            return RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
+            return RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize)
+                    .interceptors(registry -> registry.forConnection(new UnsupportedSetupInterceptor()))
+                    .bindNow(transport);
         } catch (RuntimeException e) {
             if (isAddressInUse(e)) {
                 val bindError  = channelBindExceptionOf(e);
@@ -229,8 +232,8 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         if (socketPath != null) {
             if (Files.exists(Path.of(socketPath))) {
                 log.warn("Unix socket file {} already exists. Removing it before binding. "
-                        + "If another SAPL Node instance is bound to this path it will be displaced; "
-                        + "verify your deployment if this is unexpected.", socketPath);
+                        + "If another SAPL Node instance is bound to this path it will be displaced. "
+                        + "Verify your deployment if this is unexpected.", socketPath);
             }
             deleteSocketFile(socketPath);
             val path = socketPath;

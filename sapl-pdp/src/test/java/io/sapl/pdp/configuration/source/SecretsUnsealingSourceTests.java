@@ -34,7 +34,9 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
+import io.sapl.secrets.Keyring;
 import io.sapl.secrets.SecretSealing;
+import io.sapl.secrets.ValueSealer;
 import lombok.val;
 
 @DisplayName("secrets unsealing source")
@@ -76,6 +78,21 @@ class SecretsUnsealingSourceTests {
     }
 
     @Test
+    @DisplayName("sealed secrets without any recipient key are reported as a configuration error that names the missing key")
+    void whenSecretsAreSealedAndNoKeyIsConfiguredThenErrorNamesTheMissingKey() {
+        val captured = new ArrayList<ConfigurationEvent>();
+        new SecretsUnsealingSource(delegate, Keyring.of(), false).subscribe(captured::add);
+        val sealed = ValueSealer.seal(recipientKey.toPublicJWK(), Value.of("SEALED"));
+
+        delegate.emit(new ConfigurationEvent.NewConfiguration(
+                configurationWithSecrets(ObjectValue.builder().put("apiKey", sealed).build())));
+
+        assertThat(captured).singleElement().isInstanceOfSatisfying(ConfigurationEvent.ConfigurationError.class,
+                error -> assertThat(error.reason())
+                        .isEqualTo("its secrets are sealed and no recipient key is configured"));
+    }
+
+    @Test
     @DisplayName("a remove event passes through unchanged")
     void whenRemoveArrivesThenPassedThroughUnchanged() {
         val captured = new ArrayList<ConfigurationEvent>();
@@ -113,7 +130,10 @@ class SecretsUnsealingSourceTests {
     }
 
     private static PDPConfiguration plaintextSecretConfiguration() {
-        val secrets = ObjectValue.builder().put("apiKey", Value.of("PLAINTEXT")).build();
+        return configurationWithSecrets(ObjectValue.builder().put("apiKey", Value.of("PLAINTEXT")).build());
+    }
+
+    private static PDPConfiguration configurationWithSecrets(ObjectValue secrets) {
         return new PDPConfiguration("pdp", "config", CombiningAlgorithm.DEFAULT, List.of(),
                 new PdpData(Value.EMPTY_OBJECT, secrets));
     }

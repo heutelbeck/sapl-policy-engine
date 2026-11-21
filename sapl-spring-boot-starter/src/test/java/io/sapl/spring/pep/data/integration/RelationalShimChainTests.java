@@ -280,7 +280,7 @@ class RelationalShimChainTests {
     class FailClosed {
 
         @Test
-        @DisplayName("Obligation with unsupported operator is unresolved by the provider; planner injects failure")
+        @DisplayName("Obligation with unsupported operator is unresolved by the provider, planner injects failure")
         void whenObligationOperatorUnsupportedThenAccessDenied() {
             val brokenCriterion = Value.ofObject(Map.of("column", Value.of("moon"), "op",
                     Value.of("is_secretly_equal_to_for_legal_reasons"), "value", Value.of(NUITARI)));

@@ -47,6 +47,11 @@
 	
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
+		<!-- The tests tagged "conformance" check this engine against the
+			corpus of the sapl-rust repository, the tests tagged
+			"conformance-dump" write what this engine yields into it. They run
+			in the profiles "conformance" and "conformance-dump" only. -->
+		<excludedGroups>conformance,conformance-dump</excludedGroups>
 	</properties>
 	
 	<dependencies>
@@ -71,6 +76,13 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- The pure function libraries of the extensions, which the conformance corpus covers too. -->
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>mqtt-functions</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
@@ -84,6 +96,11 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+        </dependency>
+        <!-- For the central directory of bundle archives -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
         </dependency>
         <dependency>
             <groupId>tools.jackson.dataformat</groupId>
@@ -116,6 +133,11 @@
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
         </dependency>
+        <!-- Linear time regular expressions -->
+        <dependency>
+            <groupId>com.google.re2j</groupId>
+            <artifactId>re2j</artifactId>
+        </dependency>
         <!-- JSON Web Token Support -->
         <dependency>
             <groupId>com.nimbusds</groupId>
@@ -127,10 +149,6 @@
             <artifactId>graphql-java</artifactId>
         </dependency>
         <!-- Semantic Versioning Support -->
-        <dependency>
-            <groupId>org.semver4j</groupId>
-            <artifactId>semver4j</artifactId>
-        </dependency>
         <!-- IP Address Support -->
         <dependency>
             <groupId>com.github.seancfoley</groupId>
@@ -246,4 +264,78 @@
             </plugin>
         </plugins>
     </build>
+
+	<profiles>
+		<profile>
+			<!-- Runs only the tests tagged "conformance". They expect the
+				sapl-rust repository next to this one. Another place is given with
+				-Dsapl.conformance.directory=..., which Surefire passes on to the
+				tests as a system property. -->
+			<id>conformance</id>
+			<properties>
+				<groups>conformance</groups>
+				<excludedGroups />
+			</properties>
+			<build>
+				<plugins>
+					<!-- The test classes of the corpus as a jar of their own, so that
+						the extensions that depend on this module can reuse the generator
+						and the checks for their libraries. Only in this profile, so that
+						it is never published. -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>test-jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<!-- Runs only the tests tagged "conformance-dump". They rewrite the
+				case files of the corpus with what this engine yields: the verdicts
+				of "parser", the reports of "diagnostics" and "several-mistakes",
+				and the outcomes of "evaluation" and "functions". Introductions,
+				headings and documents stay as they are written. Like the profile
+				"conformance", they expect the sapl-rust repository next to this one,
+				and another place is given with -Dsapl.conformance.directory=... The
+				extensions that depend on this module, such as geo-functions, write
+				the cases of their libraries and the whole function catalogue, so
+				they run in the same build. To review the result before it reaches
+				the corpus, give a copy of the corpus and compare it with the
+				original:
+				cp -r ../sapl-rust/conformance /tmp/corpus
+				mvn -B verify -pl sapl-pdp,pdp-extensions/geo-functions -am -Pconformance-dump -Dsapl.conformance.directory=/tmp/corpus
+				diff -r ../sapl-rust/conformance /tmp/corpus -->
+			<id>conformance-dump</id>
+			<properties>
+				<groups>conformance-dump</groups>
+				<excludedGroups />
+			</properties>
+			<build>
+				<plugins>
+					<!-- The test classes of the corpus as a jar of their own, so that
+						the extensions that depend on this module can reuse the generator
+						and the checks for their libraries. Only in this profile, so that
+						it is never published. -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<executions>
+							<execution>
+								<goals>
+									<goal>test-jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

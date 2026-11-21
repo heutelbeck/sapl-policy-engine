@@ -30,10 +30,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -178,6 +183,70 @@ class BundleSecurityPolicyTests {
 
     static Stream<Arguments> nonEd25519KeyAlgorithms() {
         return Stream.of(arguments("RSA"), arguments("EC"));
+    }
+
+    @Nested
+    @DisplayName("weak keys")
+    class WeakKeyTests {
+
+        private static final String ERROR_WEAK_KEY = "Public key must not be a weak Ed25519 key of small order.";
+
+        // The encodings of the points of small order, also with y not reduced
+        // modulo p, each with the sign bit of x clear and set.
+        static Stream<Arguments> weakKeyEncodings() {
+            val encodings = Stream.of("0000000000000000000000000000000000000000000000000000000000000000",
+                    "0100000000000000000000000000000000000000000000000000000000000000",
+                    "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+                    "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+                    "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+                    "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+                    "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f");
+            return encodings.flatMap(encoding -> Stream.of(arguments(encoding), arguments(encoding.substring(0, 62)
+                    + "%02x".formatted(Integer.parseInt(encoding.substring(62), 16) | 0x80))));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("weakKeyEncodings")
+        @DisplayName("a weak global key is refused when the policy is built")
+        void whenGlobalKeyIsWeakThenRefused(String encoding) throws Exception {
+            val weakKey = ed25519PublicKey(encoding);
+            assertThatThrownBy(() -> BundleSecurityPolicy.builder(weakKey)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(ERROR_WEAK_KEY);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("weakKeyEncodings")
+        @DisplayName("a weak key in the key catalogue is refused when the catalogue is set")
+        void whenCatalogueKeyIsWeakThenRefused(String encoding) throws Exception {
+            val catalogue = Map.of("weak-key", ed25519PublicKey(encoding));
+            val builder   = BundleSecurityPolicy.builder();
+            assertThatThrownBy(() -> builder.withKeyCatalogue(catalogue)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(ERROR_WEAK_KEY);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("weakKeyEncodings")
+        @DisplayName("a weak key is refused when a manifest is verified with it")
+        void whenVerifyingWithWeakKeyThenRefused(String encoding) throws Exception {
+            val weakKey  = ed25519PublicKey(encoding);
+            val manifest = BundleManifest.builder().configurationId("weak-key-test")
+                    .attribution(BundleManifest.attributionOfText("weak-key-test")).addFile("pdp.json", "{}")
+                    .buildUnsigned();
+            assertThatThrownBy(() -> BundleSigner.verifySignatureOnly(manifest, weakKey))
+                    .isInstanceOf(BundleSignatureException.class).hasMessage(ERROR_WEAK_KEY);
+        }
+
+        @Test
+        @DisplayName("a generated key is not weak and is accepted")
+        void whenKeyIsGeneratedThenAccepted() {
+            assertThat(BundleSecurityPolicy.builder(elderKeyPair.getPublic()).build().publicKey())
+                    .isEqualTo(elderKeyPair.getPublic());
+        }
+
+        private static PublicKey ed25519PublicKey(String hexEncoding) throws GeneralSecurityException {
+            val spki = HexFormat.of().parseHex("302a300506032b6570032100" + hexEncoding);
+            return KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(spki));
+        }
     }
 
     @Nested

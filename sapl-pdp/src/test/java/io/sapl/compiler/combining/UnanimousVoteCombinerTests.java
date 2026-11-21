@@ -162,7 +162,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineVotes pairwise - normal mode")
+    @DisplayName("combineVotes pairwise: normal mode")
     class CombineVotesPairwiseNormalModeTests {
 
         static Stream<Arguments> pairwiseCombinationDecisionTable() {
@@ -238,7 +238,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineVotes - constraint merging (normal mode)")
+    @DisplayName("combineVotes: constraint merging (normal mode)")
     class CombineVotesConstraintMergingTests {
 
         @Test
@@ -325,7 +325,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineVotes - strict mode")
+    @DisplayName("combineVotes: strict mode")
     class CombineVotesStrictModeTests {
 
         @Test
@@ -405,7 +405,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes - basic scenarios")
+    @DisplayName("combineMultipleVotes: basic scenarios")
     class CombineMultipleBasicTests {
 
         @Test
@@ -433,7 +433,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes - agreement scenarios (normal mode)")
+    @DisplayName("combineMultipleVotes: agreement scenarios (normal mode)")
     class CombineMultipleAgreementTests {
 
         @Test
@@ -468,7 +468,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes - disagreement scenarios")
+    @DisplayName("combineMultipleVotes: disagreement scenarios")
     class CombineMultipleDisagreementTests {
 
         @Test
@@ -500,7 +500,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes - strict mode")
+    @DisplayName("combineMultipleVotes: strict mode")
     class CombineMultipleStrictModeTests {
 
         @Test
@@ -533,7 +533,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes - INDETERMINATE handling")
+    @DisplayName("combineMultipleVotes: INDETERMINATE handling")
     class CombineMultipleIndeterminateTests {
 
         @Test
@@ -554,7 +554,7 @@ class UnanimousVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes - contributing votes")
+    @DisplayName("combineMultipleVotes: contributing votes")
     class CombineMultipleContributingVotesTests {
 
         @Test

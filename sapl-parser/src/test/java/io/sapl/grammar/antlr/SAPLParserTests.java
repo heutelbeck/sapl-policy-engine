@@ -712,6 +712,14 @@ class SAPLParserTests {
                         permit /* block */ action == "test";
                         """),
 
+                // Strings in Single Quotes
+                arguments("strings in single quotes", """
+                        policy 'single quotes' permit
+                            subject == 'text'; subject == 'it\\'s'; subject == 'say "hi"'; subject == "it\\'s";
+                            subject['key']; subject.'key'; subject..['key']; subject['a', "b"];
+                            { 'key': 'value' } == resource;
+                        """),
+
                 // Reserved Identifiers as Field Names
                 arguments("reserved identifiers as field names", """
                         policy "reserved identifiers" permit
@@ -816,6 +824,11 @@ class SAPLParserTests {
                 arguments("misplaced comma in target", "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432"),
                 // Additional syntax errors
                 arguments("unclosed string", "policy \"test permit"),
+                arguments("unclosed single-quoted string", "policy \"test\" permit subject == 'text"),
+                arguments("single-quoted string closed by a double quote",
+                        "policy \"test\" permit subject == 'text\";"),
+                arguments("single quote inside a single-quoted string", "policy \"test\" permit subject == 'it's';"),
+                arguments("unknown escape in a single-quoted string", "policy \"test\" permit subject == 'a\\xb';"),
                 arguments("invalid operator ===", "policy \"test\" permit subject === action"),
                 arguments("unclosed parenthesis", "policy \"test\" permit (subject == action"),
                 arguments("unclosed brace in object", "policy \"test\" permit { \"key\": \"value\""),

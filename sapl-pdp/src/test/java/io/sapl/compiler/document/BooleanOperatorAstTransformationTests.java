@@ -170,7 +170,7 @@ class BooleanOperatorAstTransformationTests {
     class PrecedenceWithoutParens {
 
         @Test
-        @DisplayName("a & b && c & d -> LAZY_AND(EAGER_AND, EAGER_AND) - & binds tighter than &&")
+        @DisplayName("a & b && c & d -> LAZY_AND(EAGER_AND, EAGER_AND), & binds tighter than &&")
         void whenEagerAndWithinLazyAndThenCorrectPrecedence() {
             var ast = parseExpression("true & false && true & false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -183,7 +183,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("a | b || c | d -> LAZY_OR(EAGER_OR, EAGER_OR) - | binds tighter than ||")
+        @DisplayName("a | b || c | d -> LAZY_OR(EAGER_OR, EAGER_OR), | binds tighter than ||")
         void whenEagerOrWithinLazyOrThenCorrectPrecedence() {
             var ast = parseExpression("true | false || true | false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -196,7 +196,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("a && b || c && d -> LAZY_OR(LAZY_AND, LAZY_AND) - && binds tighter than ||")
+        @DisplayName("a && b || c && d -> LAZY_OR(LAZY_AND, LAZY_AND), && binds tighter than ||")
         void whenLazyAndWithinLazyOrThenCorrectPrecedence() {
             var ast = parseExpression("true && false || true && false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -209,7 +209,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("a & b | c & d -> EAGER_OR(EAGER_AND, EAGER_AND) - & binds tighter than |")
+        @DisplayName("a & b | c & d -> EAGER_OR(EAGER_AND, EAGER_AND), & binds tighter than |")
         void whenEagerAndWithinEagerOrThenCorrectPrecedence() {
             var ast = parseExpression("true & false | true & false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -330,7 +330,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("(a & b) & c -> EAGER_AND(EAGER_AND, c) - parens prevent 3-way flattening")
+        @DisplayName("(a & b) & c -> EAGER_AND(EAGER_AND, c), parens prevent 3-way flattening")
         void whenParensPreventFlatteningThenBinaryNotConjunction() {
             var ast = parseExpression("(true & false) & true");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -341,7 +341,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("(a || b) & (c || d) -> EAGER_AND of two LAZY_OR - parens override precedence")
+        @DisplayName("(a || b) & (c || d) -> EAGER_AND of two LAZY_OR, parens override precedence")
         void whenParensOverridePrecedenceThenCorrectNesting() {
             var ast = parseExpression("(true || false) & (true || false)");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {

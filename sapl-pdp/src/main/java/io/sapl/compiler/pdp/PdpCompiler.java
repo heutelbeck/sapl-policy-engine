@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.sapl.compiler.document.DocumentCompiler.compileDocument;
+import static io.sapl.compiler.pdp.StackOverflowGuard.guarded;
 
 @UtilityClass
 public class PdpCompiler {
@@ -154,7 +155,8 @@ public class PdpCompiler {
                 defaultDecision, errorHandling);
         };
 
-        return new CompiledPdp(voterMetadata, voter, coverageVoter, plugins);
+        return new CompiledPdp(voterMetadata, guarded(voter, voterMetadata), guarded(coverageVoter, voterMetadata),
+                plugins);
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

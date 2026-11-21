@@ -27,6 +27,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
+import io.sapl.ast.PolicySet;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
 import io.sapl.attributes.broker.api.TestAttributeBroker;
@@ -62,7 +63,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -72,6 +72,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @UtilityClass
 public class SaplTesting {
+
+    private static final String ERROR_INVALID_DOCUMENT   = "The document has problems.%n%s";
+    private static final String ERROR_INVALID_POLICY_SET = "The policy set has problems.%n%s";
+    private static final String ERROR_NOT_A_POLICY       = "Expected a single policy, not a policy set.";
+    private static final String ERROR_NOT_A_POLICY_SET   = "The document is no policy set. Its type is %s.";
 
     private static final String  DEFAULT_PDP_ID    = "testPdp";
     private static final String  DEFAULT_CONFIG_ID = "testConfig";
@@ -101,8 +106,14 @@ public class SaplTesting {
     }
 
     public static Expression parseExpression(String expressionSource) {
-        val parser = createParser(expressionSource);
-        return TRANSFORMER.expression(parser.expression());
+        return parseExpression(expressionSource, ExpressionDepthValidator.DEFAULT_MAX_EXPRESSION_DEPTH);
+    }
+
+    public static Expression parseExpression(String expressionSource, int maxExpressionDepth) {
+        val parser     = createParser(expressionSource);
+        val expression = TRANSFORMER.expression(parser.expression());
+        ExpressionDepthValidator.validateExpression(expression, maxExpressionDepth);
+        return expression;
     }
 
     public static Statement parseStatement(String statementSource) {
@@ -116,12 +127,8 @@ public class SaplTesting {
 
     public static SaplDocument document(String documentSource) {
         val parsed = DocumentCompiler.parseDocument(documentSource);
-        if (!parsed.syntaxErrors().isEmpty()) {
-            throw new IllegalArgumentException("Syntax errors(s): " + String.join("; ", parsed.syntaxErrors()));
-        }
-        if (!parsed.validationErrors().isEmpty()) {
-            throw new IllegalArgumentException("Validation errors(s): "
-                    + parsed.validationErrors().stream().map(Object::toString).collect(Collectors.joining("; ")));
+        if (parsed.isInvalid()) {
+            throw new IllegalArgumentException(ERROR_INVALID_DOCUMENT.formatted(parsed.errors()));
         }
         return parsed.saplDocument();
     }
@@ -132,12 +139,15 @@ public class SaplTesting {
     }
 
     public static Policy parsePolicy(String policySource) {
-        val document = DocumentCompiler.parseDocument(policySource);
-        val element  = document.sapl().policyElement();
-        if (element instanceof PolicyOnlyElementContext policyOnly) {
+        val document  = DocumentCompiler.parseDocument(policySource);
+        val parseTree = document.sapl();
+        if (parseTree == null) {
+            throw new IllegalArgumentException(ERROR_INVALID_DOCUMENT.formatted(document.errors()));
+        }
+        if (parseTree.policyElement() instanceof PolicyOnlyElementContext policyOnly) {
             return (Policy) TRANSFORMER.visit(policyOnly.policy());
         }
-        throw new IllegalArgumentException("Expected a single policy, not a policy set");
+        throw new IllegalArgumentException(ERROR_NOT_A_POLICY);
     }
 
     private static SAPLParser createParser(String source) {
@@ -372,19 +382,11 @@ public class SaplTesting {
 
     public static CompiledPolicySet compilePolicySet(String source, CompilationContext ctx) {
         val parsed = DocumentCompiler.parseDocument(source);
-        if (!parsed.syntaxErrors().isEmpty()) {
-            val errors = String.join("; ", parsed.syntaxErrors());
-            throw new IllegalArgumentException("Syntax errors(s) in policy set: " + errors);
+        if (parsed.isInvalid()) {
+            throw new IllegalArgumentException(ERROR_INVALID_POLICY_SET.formatted(parsed.errors()));
         }
-        if (!parsed.validationErrors().isEmpty()) {
-            val errors = parsed.validationErrors().stream().map(Object::toString).collect(Collectors.joining("; "));
-            throw new IllegalArgumentException("Validation error(s) in policy set: " + errors);
-        }
-        val document = parsed.saplDocument();
-        if (!(document instanceof io.sapl.ast.PolicySet policySet)) {
-            throw new IllegalArgumentException("Expected a policy set document, got: "
-                    + (document == null ? "null" : document.getClass().getSimpleName()) + " | type: " + parsed.type()
-                    + " | errorMessage: " + parsed.errorMessage());
+        if (!(parsed.saplDocument() instanceof PolicySet policySet)) {
+            throw new IllegalArgumentException(ERROR_NOT_A_POLICY_SET.formatted(parsed.type()));
         }
         return PolicySetCompiler.compilePolicySet(policySet, ctx);
     }

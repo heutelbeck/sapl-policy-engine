@@ -26,19 +26,23 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.ast.*;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.util.SourceLocationUtil;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;
 import lombok.val;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 
-import static io.sapl.compiler.util.SourceLocationUtil.fromContext;
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
@@ -50,18 +54,17 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
  */
 public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
-    private static final String ERROR_UNHANDLED_CONTEXT            = "Unhandled parse context: %s - visitor method not implemented";
     private static final String ERROR_ATTRIBUTE_IN_FILTER_TARGET   = "Attribute finder steps not allowed in filter targets";
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
     private static final String ERROR_INDEX_NOT_REPRESENTABLE      = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
     private static final String ERROR_NUMBER_LITERAL_TOO_LONG      = "Numeric literal is too long (%d characters, max %d).";
     private static final String ERROR_NUMBER_NOT_REPRESENTABLE     = "Numeric literal '%s' is out of range and cannot be represented.";
+    private static final String ERROR_UNHANDLED_CONTEXT            = "Unhandled parse context: %s. The visitor method is not implemented.";
     private static final String ERROR_UNKNOWN_DEFAULT_VOTE         = "Unknown default vote.";
     private static final String ERROR_UNKNOWN_EFFECT               = "Unknown effect.";
     private static final String ERROR_UNKNOWN_ERROR_HANDLING       = "Unknown error handling.";
     private static final String ERROR_UNKNOWN_FILTER_TYPE          = "Unknown filter type: %s";
-    private static final String ERROR_UNKNOWN_VOTING_MODE          = "Unknown voting mode.";
     private static final String ERROR_UNKNOWN_PAIR_KEY_TYPE        = "Unknown pair key type.";
     private static final String ERROR_UNKNOWN_PATH_ELEMENT         = "Unknown step type in filter path: %s";
     private static final String ERROR_UNKNOWN_PATH_SUBSCRIPT       = "Unknown subscript type in filter path: %s";
@@ -69,10 +72,22 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_UNKNOWN_STEP_TYPE            = "Unknown step type: %s";
     private static final String ERROR_UNKNOWN_SUBSCRIPTION_ELEMENT = "Unknown subscription element.";
     private static final String ERROR_UNKNOWN_SUBSCRIPT_TYPE       = "Unknown subscript type: %s";
+    private static final String ERROR_UNKNOWN_VOTING_MODE          = "Unknown voting mode.";
     private static final String ERROR_UNRESOLVED_REFERENCE         = "Unresolved reference '%s': not imported and not fully qualified.";
 
-    /** Caps numeric literal length to bound BigDecimal construction cost. */
-    private static final int MAX_NUMBER_LITERAL_LENGTH = 1000;
+    /** A name in backticks has at least the two backticks. */
+    private static final int BACKTICKS = 2;
+
+    /**
+     * A number literal has at most this many characters, which bounds the cost
+     * of reading it.
+     */
+    static final int MAX_NUMBER_LITERAL_LENGTH = 1000;
+
+    /**
+     * A function or attribute finder is named by its library and its name.
+     */
+    private static final int MAX_NAME_SEGMENTS = 2;
 
     private static final String DEFAULT_PDP_ID           = "defaultPdpId";
     private static final String DEFAULT_CONFIGURATION_ID = "defaultConfigurationId";
@@ -91,6 +106,15 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private List<SchemaStatement> currentSchemas;
     private SourceLocation        schemaBlockLocation;
     private boolean               inPolicySet;
+
+    /**
+     * Whether a whole document is transformed. Then every location carries the
+     * name found once for the document, and once for each policy of a policy set.
+     * A single expression is transformed without its document, and each of its
+     * locations finds the name itself.
+     */
+    private boolean          transformingDocument;
+    private @Nullable String documentName;
 
     /**
      * Sets the context identifiers for document transformation.
@@ -117,7 +141,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
      * hard-to-debug NullPointerExceptions later.
      */
     @Override
-    public AstNode visit(org.antlr.v4.runtime.tree.ParseTree tree) {
+    public AstNode visit(ParseTree tree) {
         if (tree == null) {
             return null;
         }
@@ -148,6 +172,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public SaplDocument visitSapl(SaplContext ctx) {
+        this.transformingDocument = true;
+        this.documentName         = SourceLocationUtil.documentNameOf(ctx);
+
         // Parse imports and build import map
         val imports = ctx.importStatement().stream().map(this::visitImportStatement).toList();
         this.importMap      = buildImportMap(imports);
@@ -174,9 +201,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         val document = (SaplDocument) visit(ctx.policyElement());
 
         // Clear state for safety if transformer is reused
-        this.currentImports      = null;
-        this.currentSchemas      = null;
-        this.schemaBlockLocation = null;
+        this.currentImports       = null;
+        this.currentSchemas       = null;
+        this.schemaBlockLocation  = null;
+        this.transformingDocument = false;
+        this.documentName         = null;
 
         return document;
     }
@@ -202,15 +231,34 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public Import visitImportStatement(ImportStatementContext ctx) {
-        val libraryPath  = ctx.libSteps.stream().map(this::idText).toList();
+        return importOf(ctx, fromContext(ctx));
+    }
+
+    /**
+     * @param ctx a complete import statement
+     * @param location the location of the import statement
+     * @return the import it states
+     */
+    static Import importOf(ImportStatementContext ctx, SourceLocation location) {
+        val libraryPath  = ctx.libSteps.stream().map(AstTransformer::idText).toList();
         val functionName = idText(ctx.functionName);
         val alias        = ctx.functionAlias != null ? idText(ctx.functionAlias) : null;
-        return new Import(libraryPath, functionName, alias, fromContext(ctx));
+        return new Import(libraryPath, functionName, alias, location);
+    }
+
+    /**
+     * The location of a context. Finding the name of the document for each
+     * context anew would walk to the root of the parse tree and past every import
+     * and schema, for each context of the document.
+     */
+    private SourceLocation fromContext(ParserRuleContext ctx) {
+        return transformingDocument ? SourceLocationUtil.fromContext(ctx, documentName)
+                : SourceLocationUtil.fromContext(ctx);
     }
 
     @Override
     public SchemaStatement visitSchemaStatement(SchemaStatementContext ctx) {
-        val element  = toSubscriptionElement(ctx.subscriptionElement);
+        val element  = toSubscriptionElement(ctx);
         val enforced = ctx.enforced != null;
         val schema   = expr(ctx.schemaExpression);
         return new SchemaStatement(element, enforced, schema, fromContext(ctx));
@@ -241,7 +289,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         this.currentImports = List.of();
         this.inPolicySet    = true;
 
-        val policies = ctx.policy().stream().map(this::visitPolicy).toList();
+        val policies = ctx.policy().stream().map(this::visitPolicyOfSet).toList();
 
         this.inPolicySet = false;
 
@@ -257,6 +305,22 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
                 : null;
 
         return new PolicySet(policySetImports, metadata, target, match, variables, policies, fromContext(ctx));
+    }
+
+    /**
+     * A policy of a policy set. Its locations carry its name qualified by the
+     * name of the set.
+     */
+    private Policy visitPolicyOfSet(PolicyContext ctx) {
+        val setName = documentName;
+        if (setName != null) {
+            documentName = SourceLocationUtil.qualifiedPolicyName(setName, unquoteString(ctx.saplName.getText()));
+        }
+        try {
+            return visitPolicy(ctx);
+        } finally {
+            documentName = setName;
+        }
     }
 
     @Override
@@ -458,16 +522,16 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             return visit(operands.getFirst());
         }
         val operators = new ArrayList<BinaryOperatorType>();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
+        for (var i = 0; i < ctx.getChildCount(); i++) {
             val child = ctx.getChild(i);
-            if (child instanceof org.antlr.v4.runtime.tree.TerminalNode terminal) {
+            if (child instanceof TerminalNode terminal) {
                 operators.add(terminal.getSymbol().getType() == SAPLParser.PLUS ? BinaryOperatorType.ADD
                         : BinaryOperatorType.SUB);
             }
         }
-        // Note: We do NOT use Sum for addition chains because + is overloaded
-        // for string concatenation, which is not commutative. Always use
-        // left-associative binary operators to preserve evaluation order.
+        // Addition chains are never flattened into an N-ary node because + is
+        // overloaded for string concatenation, which is not commutative. Always
+        // use left-associative binary operators to preserve evaluation order.
         return buildLeftAssociativeBinaryWithOps(operands, operators, ctx);
     }
 
@@ -478,9 +542,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
             return visit(operands.getFirst());
         }
         val operators = new ArrayList<BinaryOperatorType>();
-        for (int i = 0; i < ctx.getChildCount(); i++) {
+        for (var i = 0; i < ctx.getChildCount(); i++) {
             val child = ctx.getChild(i);
-            if (child instanceof org.antlr.v4.runtime.tree.TerminalNode terminal) {
+            if (child instanceof TerminalNode terminal) {
                 operators.add(toMultiplicationOp(terminal.getSymbol().getType()));
             }
         }
@@ -696,20 +760,16 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     @Override
     public AstNode visitNumberLiteral(NumberLiteralContext ctx) {
         val text = ctx.NUMBER().getText();
-        if (text.length() > MAX_NUMBER_LITERAL_LENGTH) {
+        if (isTooLongNumber(text)) {
             throw new SaplCompilerException(
                     ERROR_NUMBER_LITERAL_TOO_LONG.formatted(text.length(), MAX_NUMBER_LITERAL_LENGTH),
                     fromContext(ctx));
         }
-        try {
-            val value = new BigDecimal(text);
-            if (Math.abs((long) value.scale()) > NumberValueLimits.MAX_SCALE) {
-                throw new SaplCompilerException(ERROR_NUMBER_NOT_REPRESENTABLE.formatted(text), fromContext(ctx));
-            }
-            return new Literal(Value.of(value), fromContext(ctx));
-        } catch (NumberFormatException e) {
-            throw new SaplCompilerException(ERROR_NUMBER_NOT_REPRESENTABLE.formatted(text), e, fromContext(ctx));
+        val value = numberValueOf(text);
+        if (value == null) {
+            throw new SaplCompilerException(ERROR_NUMBER_NOT_REPRESENTABLE.formatted(text), fromContext(ctx));
         }
+        return new Literal(Value.of(value), fromContext(ctx));
     }
 
     @Override
@@ -745,6 +805,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private PathElement buildPathElement(StepContext ctx) {
         val loc = fromContext(ctx);
+        if (attributeFinderOf(ctx) != null) {
+            throw new SaplCompilerException(ERROR_ATTRIBUTE_IN_FILTER_TARGET, loc);
+        }
         return switch (ctx) {
         case KeyDotStepContext c                  -> new KeyPath(idText(c.keyStep().saplId()), loc);
         case EscapedKeyDotStepContext c           -> new KeyPath(escapedKeyName(c.escapedKeyStep()), loc);
@@ -754,10 +817,6 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case RecursiveIndexDotDotStepContext c    ->
             new RecursiveIndexPath(parseSignedNumber(c.recursiveIndexStep().signedNumber()), loc);
         case BracketStepContext c                 -> buildSubscriptPath(c.subscript());
-        case AttributeFinderDotStepContext c      ->
-            throw new SaplCompilerException(ERROR_ATTRIBUTE_IN_FILTER_TARGET, loc);
-        case HeadAttributeFinderDotStepContext c  ->
-            throw new SaplCompilerException(ERROR_ATTRIBUTE_IN_FILTER_TARGET, loc);
         default                                   ->
             throw new SaplCompilerException(ERROR_UNKNOWN_PATH_ELEMENT.formatted(ctx.getClass().getSimpleName()), loc);
         };
@@ -799,14 +858,100 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         return (Expression) visit(ctx);
     }
 
-    private String idText(SaplIdContext ctx) {
+    /**
+     * @param segments the parts of the name of a function or attribute finder
+     * @return whether the name has more parts than a library and a name
+     */
+    static boolean isTooLongName(List<String> segments) {
+        return segments.size() > MAX_NAME_SEGMENTS;
+    }
+
+    /**
+     * @param segments the parts of the name of a function or attribute finder
+     * @return whether the name names its library. A name of one part must be the
+     * short name of an import.
+     */
+    static boolean isFullyQualified(List<String> segments) {
+        return segments.size() == MAX_NAME_SEGMENTS;
+    }
+
+    /**
+     * @param literal a number literal
+     * @return whether it has more than {@value #MAX_NUMBER_LITERAL_LENGTH}
+     * characters
+     */
+    static boolean isTooLongNumber(String literal) {
+        return literal.length() > MAX_NUMBER_LITERAL_LENGTH;
+    }
+
+    /**
+     * A number literal stands for a value whose exponent minus the number of
+     * digits after its decimal point is at most
+     * {@link NumberValueLimits#MAX_SCALE} in magnitude.
+     *
+     * @param literal a number literal that is not too long
+     * @return the value of the literal, or null if a number value cannot have
+     * it
+     */
+    static @Nullable BigDecimal numberValueOf(String literal) {
+        try {
+            val value = new BigDecimal(literal);
+            return Math.abs((long) value.scale()) <= NumberValueLimits.MAX_SCALE ? value : null;
+        } catch (NumberFormatException notANumber) {
+            return null;
+        }
+    }
+
+    /**
+     * An index is a whole number in the range of indices.
+     *
+     * @param literal an index as it is written
+     * @return the index, or empty if the literal is no index
+     */
+    static OptionalInt indexOf(String literal) {
+        try {
+            return OptionalInt.of(Integer.parseInt(literal));
+        } catch (NumberFormatException notAnIndex) {
+            return OptionalInt.empty();
+        }
+    }
+
+    /**
+     * A filter rewrites parts of a value it already has, so its target holds no
+     * attribute finders.
+     *
+     * @param step a step of the target of a filter
+     * @return the attribute finder the step is, or null if it is none
+     */
+    static @Nullable ParserRuleContext attributeFinderOf(StepContext step) {
+        return switch (step) {
+        case AttributeFinderDotStepContext dotStep         -> dotStep.attributeFinderStep();
+        case HeadAttributeFinderDotStepContext headDotStep -> headDotStep.headAttributeFinderStep();
+        default                                            -> null;
+        };
+    }
+
+    private static String idText(SaplIdContext ctx) {
         return stripBackticks(ctx.getText());
     }
 
-    // A backtick-escaped name (`permit`) carries its literal identifier without the
-    // backticks.
-    private static String stripBackticks(String text) {
-        return text.length() >= 2 && text.charAt(0) == '`' && text.charAt(text.length() - 1) == '`'
+    /**
+     * @param ctx the name of a function or an attribute finder
+     * @return the parts of the name, each without backticks
+     */
+    static List<String> segmentsOf(FunctionIdentifierContext ctx) {
+        return ctx.idFragment.stream().map(AstTransformer::idText).toList();
+    }
+
+    /**
+     * A backtick-escaped name (`permit`) carries its literal identifier without
+     * the backticks.
+     *
+     * @param text a name as it is written
+     * @return the name without backticks
+     */
+    static String stripBackticks(String text) {
+        return text.length() >= BACKTICKS && text.charAt(0) == '`' && text.charAt(text.length() - 1) == '`'
                 ? text.substring(1, text.length() - 1)
                 : text;
     }
@@ -826,20 +971,17 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private int parseSignedNumber(SignedNumberContext ctx) {
         val text = ctx.getText();
-        try {
-            return Integer.parseInt(text);
-        } catch (NumberFormatException e) {
-            throw new SaplCompilerException(ERROR_INDEX_NOT_REPRESENTABLE.formatted(text), e, fromContext(ctx));
-        }
+        return indexOf(text).orElseThrow(
+                () -> new SaplCompilerException(ERROR_INDEX_NOT_REPRESENTABLE.formatted(text), fromContext(ctx)));
     }
 
     private QualifiedName toQualifiedName(FunctionIdentifierContext ctx) {
-        val parts = ctx.idFragment.stream().map(this::idText).toList();
+        val parts = segmentsOf(ctx);
         val loc   = fromContext(ctx);
-        if (parts.size() > 2) {
+        if (isTooLongName(parts)) {
             throw new SaplCompilerException(ERROR_INVALID_QUALIFIED_NAME.formatted(String.join(".", parts)), loc);
         }
-        if (parts.size() == 2) {
+        if (isFullyQualified(parts)) {
             return new QualifiedName(parts);
         }
         // Single-part name resolved via imports. importMap is null on the
@@ -851,13 +993,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         throw new SaplCompilerException(ERROR_UNRESOLVED_REFERENCE.formatted(parts.getFirst()), loc);
     }
 
-    private SubscriptionElement toSubscriptionElement(ReservedIdContext ctx) {
-        return switch (ctx) {
-        case SubjectIdContext ignored     -> SubscriptionElement.SUBJECT;
-        case ActionIdContext ignored      -> SubscriptionElement.ACTION;
-        case ResourceIdContext ignored    -> SubscriptionElement.RESOURCE;
-        case EnvironmentIdContext ignored -> SubscriptionElement.ENVIRONMENT;
-        default                           ->
+    private SubscriptionElement toSubscriptionElement(SchemaStatementContext ctx) {
+        return switch (ctx.subscriptionElement.getType()) {
+        case SAPLParser.SUBJECT     -> SubscriptionElement.SUBJECT;
+        case SAPLParser.ACTION      -> SubscriptionElement.ACTION;
+        case SAPLParser.RESOURCE    -> SubscriptionElement.RESOURCE;
+        case SAPLParser.ENVIRONMENT -> SubscriptionElement.ENVIRONMENT;
+        default                     ->
             throw new SaplCompilerException(ERROR_UNKNOWN_SUBSCRIPTION_ELEMENT, fromContext(ctx));
         };
     }
@@ -916,7 +1058,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private <T extends ParserRuleContext> Expression buildLeftAssociativeBinaryWithOps(List<T> operands,
             List<BinaryOperatorType> operators, ParserRuleContext ctx) {
         var result = expr(operands.getFirst());
-        for (int i = 1; i < operands.size(); i++) {
+        for (var i = 1; i < operands.size(); i++) {
             val right = expr(operands.get(i));
             result = new BinaryOperator(operators.get(i - 1), result, right, fromContext(ctx));
         }

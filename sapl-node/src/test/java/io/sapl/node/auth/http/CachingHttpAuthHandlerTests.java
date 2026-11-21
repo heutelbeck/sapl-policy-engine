@@ -18,7 +18,6 @@
 package io.sapl.node.auth.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,14 +30,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -50,10 +49,8 @@ import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.SaplNodeProperties.BasicCredentials;
 import io.sapl.node.SaplNodeProperties.OAuthConfig;
 import io.sapl.node.SaplNodeProperties.UserEntry;
+import io.sapl.node.auth.AuthenticationCache;
 import io.sapl.node.auth.UserLookupService;
-import io.sapl.node.auth.http.CachingHttpAuthHandler.Outcome;
-import io.sapl.node.auth.http.CachingHttpAuthHandler.TtlExpiry;
-import io.sapl.node.auth.http.HttpAuthHandler.HttpAuthResult;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.val;
 
@@ -78,13 +75,15 @@ class CachingHttpAuthHandlerTests {
     private static final String TENANT_PDP    = "tenant-x";
 
     private CachingHttpAuthHandler handler() {
-        return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, Duration.ofMinutes(5),
-                Duration.ofSeconds(5), 100L);
+        return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, cache());
     }
 
     private CachingHttpAuthHandler handlerWithoutJwtDecoder() {
-        return new CachingHttpAuthHandler(properties, userLookupService, null, Duration.ofMinutes(5),
-                Duration.ofSeconds(5), 100L);
+        return new CachingHttpAuthHandler(properties, userLookupService, null, cache());
+    }
+
+    private static AuthenticationCache cache() {
+        return new AuthenticationCache(Duration.ofMinutes(5), Duration.ofSeconds(5), 100L);
     }
 
     private static String basicHeader(String username, String password) {
@@ -110,6 +109,24 @@ class CachingHttpAuthHandlerTests {
         entry.setPdpId(pdpId);
         entry.setApiKey(encodedKey);
         return entry;
+    }
+
+    @Nested
+    @DisplayName("two Authorization headers")
+    class TwoAuthorizationHeaders {
+
+        @Test
+        @DisplayName("a request with two Authorization headers is refused, even if the first one is valid")
+        void whenTwoAuthorizationHeadersThenRefused() {
+            when(request.getHeaders(AUTHORIZATION)).thenReturn(
+                    Collections.enumeration(List.of(basicHeader("alice", "valid"), basicHeader("bob", "other"))));
+
+            val sut = handler();
+
+            assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class)
+                    .hasMessage("Authentication failed.");
+            verify(userLookupService, never()).verifyBasicCredentials(anyString(), anyString());
+        }
     }
 
     @Nested
@@ -272,8 +289,7 @@ class CachingHttpAuthHandlerTests {
             when(request.getHeader(AUTHORIZATION)).thenReturn("Bearer " + rawKey);
             when(properties.isAllowApiKeyAuth()).thenReturn(false);
 
-            val sut = new CachingHttpAuthHandler(properties, userLookupService, null, Duration.ofMinutes(5),
-                    Duration.ofSeconds(5), 100L);
+            val sut = new CachingHttpAuthHandler(properties, userLookupService, null, cache());
 
             assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
             verify(userLookupService, never()).findByApiKey(anyString());
@@ -483,97 +499,6 @@ class CachingHttpAuthHandlerTests {
             assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
 
             verify(userLookupService, times(1)).verifyBasicCredentials(any(), any());
-        }
-    }
-
-    @Nested
-    @DisplayName("constructor")
-    class ConstructorTests {
-
-        @ParameterizedTest
-        @ValueSource(longs = { 0L, -1L })
-        @DisplayName("rejects non-positive maxSize")
-        void whenMaxSizeNotPositiveThenThrows(long maxSize) {
-            val positiveTtl = Duration.ofMinutes(5);
-            val negativeTtl = Duration.ofSeconds(5);
-            assertThatThrownBy(() -> new CachingHttpAuthHandler(properties, userLookupService, null, positiveTtl,
-                    negativeTtl, maxSize)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxSize");
-        }
-
-        @Test
-        @DisplayName("accepts positive maxSize")
-        void whenMaxSizePositiveThenConstructs() {
-            assertThatCode(() -> new CachingHttpAuthHandler(properties, userLookupService, null, Duration.ofMinutes(5),
-                    Duration.ofSeconds(5), 100L)).doesNotThrowAnyException();
-        }
-    }
-
-    @Nested
-    @DisplayName("TtlExpiry")
-    class TtlExpiryTests {
-
-        private static final Duration POSITIVE = Duration.ofMinutes(5);
-        private static final Duration NEGATIVE = Duration.ofSeconds(5);
-
-        @Test
-        @DisplayName("non-JWT success uses the configured positive TTL")
-        void whenSuccessHasNoExpiryThenPositiveTtlApplies() {
-            val expiry  = new TtlExpiry(POSITIVE, NEGATIVE);
-            val outcome = new Outcome.Success(new HttpAuthResult("default", null), null);
-
-            assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
-        }
-
-        @Test
-        @DisplayName("JWT success uses the token's exp when it is closer than positive TTL")
-        void whenJwtExpiresBeforePositiveTtlThenTtlIsShortened() {
-            val expiry           = new TtlExpiry(POSITIVE, NEGATIVE);
-            val thirtyOutFromNow = Instant.now().plusSeconds(30);
-            val outcome          = new Outcome.Success(new HttpAuthResult("default", null), thirtyOutFromNow);
-
-            val ttl = expiry.expireAfterCreate("k", outcome, 0L);
-
-            assertThat(ttl).isLessThan(POSITIVE.toNanos()).isGreaterThan(Duration.ofSeconds(25).toNanos())
-                    .isLessThanOrEqualTo(Duration.ofSeconds(30).toNanos());
-        }
-
-        @Test
-        @DisplayName("JWT success uses positive TTL when token exp is further away")
-        void whenJwtExpiresAfterPositiveTtlThenPositiveTtlApplies() {
-            val expiry  = new TtlExpiry(POSITIVE, NEGATIVE);
-            val farOut  = Instant.now().plus(Duration.ofHours(1));
-            val outcome = new Outcome.Success(new HttpAuthResult("default", null), farOut);
-
-            assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
-        }
-
-        @Test
-        @DisplayName("JWT success with an already-elapsed exp expires immediately")
-        void whenJwtExpiryAlreadyPastThenTtlIsZero() {
-            val expiry  = new TtlExpiry(POSITIVE, NEGATIVE);
-            val past    = Instant.now().minusSeconds(10);
-            val outcome = new Outcome.Success(new HttpAuthResult("default", null), past);
-
-            assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isZero();
-        }
-
-        @Test
-        @DisplayName("JWT success with an exp beyond the nanosecond range does not throw and clamps to the positive TTL")
-        void whenJwtExpiryBeyondNanoRangeThenPositiveTtlApplies() {
-            val expiry    = new TtlExpiry(POSITIVE, NEGATIVE);
-            val farBeyond = Instant.now().plus(Duration.ofDays(365L * 1000));
-            val outcome   = new Outcome.Success(new HttpAuthResult("default", null), farBeyond);
-
-            assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
-        }
-
-        @Test
-        @DisplayName("failure uses the configured negative TTL")
-        void whenFailureThenNegativeTtlApplies() {
-            val expiry  = new TtlExpiry(POSITIVE, NEGATIVE);
-            val outcome = new Outcome.Failure("denied");
-
-            assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(NEGATIVE.toNanos());
         }
     }
 }

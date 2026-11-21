@@ -18,8 +18,10 @@
 package io.sapl.functions.libraries;
 
 import inet.ipaddr.AddressStringException;
+import inet.ipaddr.AddressStringParameters.RangeParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IPAddressStringParameters;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
@@ -31,17 +33,20 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
+
+import static java.lang.Math.min;
+import static java.util.Arrays.sort;
+import static java.util.Comparator.comparing;
 
 /**
  * CIDR network operations for authorization policies.
  * <p>
  * Uses the IPAddress library for RFC-compliant IPv4 and IPv6 operations. All
  * IPv6 addresses use RFC 5952 canonical form
- * (compressed, lowercase). Address family mixing returns false rather than
- * errors for cleaner policy logic.
+ * (compressed, lowercase). IPv4 addresses are mapped into ::ffff:0:0/96
+ * for comparisons across address families.
  */
 @FunctionLibrary(name = CidrFunctionLibrary.NAME, description = CidrFunctionLibrary.DESCRIPTION, libraryDocumentation = CidrFunctionLibrary.DOCUMENTATION)
 public class CidrFunctionLibrary {
@@ -54,6 +59,15 @@ public class CidrFunctionLibrary {
             Network-based access control using IP addresses and CIDR notation. Test membership,
             validate configurations, anonymize addresses for privacy compliance, and calculate
             subnet properties.
+
+            ## Address Syntax
+
+            IPv4 addresses use four decimal parts from 0 to 255 without leading zeros.
+            IPv6 addresses use the text forms of RFC 4291 section 2.2, including embedded
+            IPv4 dotted quads. An optional prefix is a decimal number from 0 to 32 for IPv4
+            or 0 to 128 for IPv6, without leading zeros. Zones, masks, ranges, wildcards,
+            other numeric forms, empty text and surrounding whitespace are invalid.
+            Functions return an error for invalid addresses. `isValid` returns false.
 
             ## Access Control Patterns
 
@@ -102,11 +116,13 @@ public class CidrFunctionLibrary {
             To bound memory and computation on untrusted input, the following limits apply:
 
             - `expand` rejects a CIDR range that contains more than 65535 addresses, returning an error.
-            - `containsMatches` rejects more than 1000000 pairwise comparisons or more than 65535 emitted match tuples.
+            - `containsMatches` rejects more than 10000 addresses per array, more than 1000000 pairwise comparisons or more than 65535 emitted match tuples.
             - `merge` rejects more than 1000 input addresses, returning an error.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
+
+    private static final IPAddressStringParameters ADDRESS_PARAMETERS = addressParameters();
 
     private static final int MAX_CONTAINS_MATCH_COMPARISONS = 1_000_000;
     private static final int MAX_CONTAINS_MATCH_RESULTS     = 65535;
@@ -172,7 +188,8 @@ public class CidrFunctionLibrary {
             ```cidr.contains(STRING cidr, STRING cidrOrIp)```
 
             Tests if an IP address or CIDR range falls within another CIDR. Works with both
-            IPv4 and IPv6 addresses. Mixing address families returns false.
+            IPv4 and IPv6 addresses. Across families, IPv4 addresses are mapped into
+            ::ffff:0:0/96 before comparison.
 
             Parameters:
             - cidr: The containing CIDR range (e.g., "10.0.0.0/8")
@@ -180,7 +197,7 @@ public class CidrFunctionLibrary {
 
             Returns: Boolean indicating containment
 
-            Example - restrict API access to corporate network:
+            Example: restrict API access to corporate network
 
             ```sapl
             policy "corporate_api"
@@ -199,7 +216,7 @@ public class CidrFunctionLibrary {
             return Value.error(ERROR_INVALID_IP_ADDRESS, cidrOrIp.value());
         }
 
-        return Value.of(containingRange.toPrefixBlock().contains(testAddress));
+        return Value.of(containsAddresses(containingRange.toPrefixBlock(), testAddress));
     }
 
     /**
@@ -219,6 +236,9 @@ public class CidrFunctionLibrary {
             Batch containment checking across multiple CIDRs and IPs. Returns index pairs
             identifying all matches as [cidrIndex, ipIndex]. More efficient than individual
             contains() calls when checking many addresses against many ranges.
+            Each array is limited to 10000 addresses. At most 1000000 comparisons and
+            65535 match tuples are allowed. Across families, IPv4 addresses are mapped
+            into ::ffff:0:0/96 before comparison.
 
             Parameters:
             - cidrs: Array of CIDR strings to check against
@@ -226,7 +246,7 @@ public class CidrFunctionLibrary {
 
             Returns: Array of [cidrIndex, ipIndex] tuples for each match
 
-            Example - verify any user IP matches trusted networks:
+            Example: verify any user IP matches trusted networks
 
             ```sapl
             policy "multi_location"
@@ -251,7 +271,7 @@ public class CidrFunctionLibrary {
             for (int i = 0; i < cidrAddresses.size(); i++) {
                 val cidrBlock = cidrAddresses.get(i).toPrefixBlock();
                 for (int j = 0; j < testAddresses.size(); j++) {
-                    if (cidrBlock.contains(testAddresses.get(j))) {
+                    if (containsAddresses(cidrBlock, testAddresses.get(j))) {
                         matchCount++;
                         if (matchCount > MAX_CONTAINS_MATCH_RESULTS) {
                             return Value.error(ERROR_CIDR_MATCH_OUTPUT_EXCEEDS_MAXIMUM, MAX_CONTAINS_MATCH_RESULTS);
@@ -326,6 +346,7 @@ public class CidrFunctionLibrary {
 
             Tests whether two CIDR ranges share any addresses. Use this to validate network
             allocations don't conflict or to detect overlapping security zones.
+            Across families, IPv4 addresses are mapped into ::ffff:0:0/96 before comparison.
 
             Parameters:
             - cidr1: First CIDR range
@@ -347,6 +368,9 @@ public class CidrFunctionLibrary {
         val block1 = address1.toPrefixBlock();
         val block2 = address2.toPrefixBlock();
 
+        if (block1.isIPv4() != block2.isIPv4()) {
+            return Value.of(block1.toIPv6().intersect(block2.toIPv6()) != null);
+        }
         return Value.of(block1.intersect(block2) != null);
     }
 
@@ -386,7 +410,8 @@ public class CidrFunctionLibrary {
 
             Consolidates IP addresses and subnets into the minimal set of non-overlapping CIDRs.
             Eliminates duplicates, removes contained ranges, and combines adjacent blocks. IPv6
-            addresses use RFC 5952 canonical form.
+            addresses use RFC 5952 canonical form. Results are sorted by address family
+            with IPv4 first, then by lowest address.
 
             Parameters:
             - addresses: Array of IP addresses and CIDR strings
@@ -641,20 +666,21 @@ public class CidrFunctionLibrary {
     }
 
     /**
-     * Tests if an address is publicly routable.
+     * Checks the global reachability classification of the represented addresses.
      *
      * @param ipAddress
      * IP address to test
      *
-     * @return Value.TRUE if publicly routable, Value.FALSE otherwise, or ErrorValue
-     * on invalid input
+     * @return Value.TRUE if the represented addresses are classified as globally
+     * reachable, Value.FALSE otherwise, or ErrorValue on invalid input
      */
     @Function(docs = """
             ```cidr.isPublicRoutable(STRING ipAddress)```
 
-            Tests if an address is publicly routable. Returns true only if the address
-            is not private, loopback, link-local, multicast, documentation, CGNAT,
-            benchmark, reserved, or broadcast.
+            Checks whether every address represented by the input is classified as
+            globally reachable by the pinned IANA address registries. A prefix with
+            zero host bits represents the whole block. Nonzero host bits represent
+            the individual address. Network conditions determine actual reachability.
 
             Parameters:
             - ipAddress: IP address to test
@@ -662,16 +688,11 @@ public class CidrFunctionLibrary {
             Returns: Boolean indicating publicly routable address
             """)
     public static Value isPublicRoutable(TextValue ipAddress) {
-        if (parseAddress(ipAddress.value()) == null) {
+        val address = parseAddress(ipAddress.value());
+        if (address == null) {
             return Value.error(ERROR_INVALID_IP_ADDRESS, ipAddress.value());
         }
-
-        val checks = List.of(isPrivateIpv4(ipAddress), isLoopback(ipAddress), isLinkLocal(ipAddress),
-                isMulticast(ipAddress), isDocumentation(ipAddress), isCgnat(ipAddress), isBenchmark(ipAddress),
-                isReserved(ipAddress), isBroadcast(ipAddress));
-
-        val isSpecial = checks.stream().anyMatch(Value.TRUE::equals);
-        return Value.of(!isSpecial);
+        return Value.of(CidrPublicAddresses.isPublic(address));
     }
 
     /**
@@ -687,9 +708,9 @@ public class CidrFunctionLibrary {
     @Function(docs = """
             ```cidr.anonymizeIp(STRING ipAddress, INT prefixLength)```
 
-            Anonymizes an IP by zeroing host bits beyond the prefix length. All addresses
-            in the same subnet produce identical results. Enables GDPR-compliant logging
-            while maintaining geographic or organizational context.
+            Anonymizes an IP by zeroing host bits beyond the prefix length and returning
+            its CIDR block including the prefix. An input block with a shorter prefix keeps
+            that prefix. All addresses in the same subnet produce identical results.
 
             The prefix determines granularity. For IPv4, /24 preserves organization-level
             context (254 hosts), while /16 preserves city-level (65534 hosts). For IPv6,
@@ -701,7 +722,7 @@ public class CidrFunctionLibrary {
 
             Returns: Anonymized IP address string
 
-            Example - log client access with privacy protection:
+            Example: log client access with privacy protection
 
             ```sapl
             policy "privacy_log"
@@ -724,10 +745,10 @@ public class CidrFunctionLibrary {
         if (rangeError != null) {
             return rangeError;
         }
-        val prefix = prefixLength.value().intValue();
-
-        val masked = address.toZeroHost(prefix);
-        return Value.of(masked.withoutPrefixLength().toCanonicalString());
+        val inputPrefix = address.getNetworkPrefixLength();
+        val prefix      = inputPrefix == null ? prefixLength.value().intValue()
+                : min(inputPrefix, prefixLength.value().intValue());
+        return Value.of(address.getLower().withoutPrefixLength().toPrefixBlock(prefix).toCanonicalString());
     }
 
     /**
@@ -746,7 +767,7 @@ public class CidrFunctionLibrary {
             ```cidr.hashIpPrefix(STRING ipAddress, INT prefixLength, STRING salt)```
 
             Hashes an IP prefix with a salt for privacy-preserving analytics and rate limiting.
-            First anonymizes to subnet level, then applies SHA-256 to produce a pseudonymous
+            First anonymizes to a CIDR block including its prefix, then applies SHA-256 to produce a pseudonymous
             identifier. Same subnet and salt always produce the same hash.
 
             The salt must be secret and unique per application. Without it, attackers can
@@ -761,7 +782,7 @@ public class CidrFunctionLibrary {
 
             Returns: Hexadecimal SHA-256 hash (64 characters)
 
-            Example - rate limit by subnet without storing IPs:
+            Example: rate limit by subnet without storing IPs
 
             ```sapl
             policy "rate_limit"
@@ -875,9 +896,10 @@ public class CidrFunctionLibrary {
     @Function(docs = """
             ```cidr.getUsableHostCount(STRING cidr)```
 
-            Returns usable host addresses in a CIDR range. For IPv4, excludes network and
-            broadcast addresses. For /31 and /32, returns 0. Returns string to handle
-            large IPv6 ranges.
+            Returns usable host addresses as a string to handle large IPv6 ranges.
+            An address without a prefix is a block of one. IPv4 /31 and IPv6 /127 blocks
+            have two usable hosts. Larger IPv4 blocks exclude network and broadcast
+            addresses. Larger IPv6 blocks exclude the subnet router anycast address.
 
             Parameters:
             - cidr: CIDR range
@@ -893,14 +915,8 @@ public class CidrFunctionLibrary {
         val prefixBlock = address.toPrefixBlock();
         var count       = prefixBlock.getCount();
 
-        if (address.isIPv4()) {
-            val prefixLengthValue = prefixBlock.getNetworkPrefixLength();
-            if (prefixLengthValue != null && prefixLengthValue >= 31) {
-                return Value.of("0");
-            }
-            count = count.subtract(BigInteger.TWO);
-        } else {
-            count = count.subtract(BigInteger.ONE);
+        if (!usesAllAddresses(prefixBlock)) {
+            count = count.subtract(address.isIPv4() ? BigInteger.TWO : BigInteger.ONE);
         }
 
         return Value.of(count.toString());
@@ -917,7 +933,8 @@ public class CidrFunctionLibrary {
     @Function(docs = """
             ```cidr.getFirstUsableAddress(STRING cidr)```
 
-            Returns the first usable host address (network address + 1).
+            Returns the first usable host address. Blocks of one or two addresses use
+            all their addresses. Larger blocks exclude the network address.
 
             Parameters:
             - cidr: CIDR range
@@ -931,7 +948,7 @@ public class CidrFunctionLibrary {
         }
 
         val prefixBlock = address.toPrefixBlock();
-        val firstUsable = prefixBlock.getLower().increment(1);
+        val firstUsable = usesAllAddresses(prefixBlock) ? prefixBlock.getLower() : prefixBlock.getLower().increment(1);
         return Value.of(firstUsable.withoutPrefixLength().toCanonicalString());
     }
 
@@ -946,8 +963,9 @@ public class CidrFunctionLibrary {
     @Function(docs = """
             ```cidr.getLastUsableAddress(STRING cidr)```
 
-            Returns the last usable host address. For IPv4, returns broadcast address - 1.
-            For IPv6, returns the last address in the range.
+            Returns the last usable host address. Blocks of one or two addresses use
+            all their addresses. Larger IPv4 blocks exclude the broadcast address.
+            IPv6 uses the last address in the block.
 
             Parameters:
             - cidr: CIDR range
@@ -962,7 +980,7 @@ public class CidrFunctionLibrary {
 
         val prefixBlock = address.toPrefixBlock();
 
-        if (address.isIPv4()) {
+        if (address.isIPv4() && !usesAllAddresses(prefixBlock)) {
             val lastUsable = prefixBlock.getUpper().increment(-1);
             return Value.of(lastUsable.withoutPrefixLength().toCanonicalString());
         }
@@ -1147,8 +1165,20 @@ public class CidrFunctionLibrary {
      * @return parsed IPAddress or null if invalid
      */
     private static IPAddress parseAddress(String addressString) {
+        // IPAddressString trims its input regardless of the parsing parameters.
+        if (!addressString.equals(addressString.trim())) {
+            return null;
+        }
         try {
-            return new IPAddressString(addressString).toAddress();
+            // IPAddress rejects /0 when prefix leading zeros are disabled.
+            if (addressString.endsWith("/0")) {
+                val unprefixed = addressString.substring(0, addressString.length() - 2);
+                if (unprefixed.indexOf('/') >= 0 || !unprefixed.equals(unprefixed.trim())) {
+                    return null;
+                }
+                return new IPAddressString(unprefixed, ADDRESS_PARAMETERS).toAddress().setPrefixLength(0, false);
+            }
+            return new IPAddressString(addressString, ADDRESS_PARAMETERS).toAddress();
         } catch (AddressStringException exception) {
             return null;
         }
@@ -1207,106 +1237,46 @@ public class CidrFunctionLibrary {
         return Value.of(extracted.withoutPrefixLength().toCanonicalString());
     }
 
+    private static IPAddressStringParameters addressParameters() {
+        val builder = new IPAddressStringParameters.Builder().allowEmpty(false).allowAll(false)
+                .allowSingleSegment(false).allowMask(false).allowPrefixOnly(false)
+                .setRangeOptions(RangeParameters.NO_RANGE).allowWildcardedSeparator(false).allow_inet_aton(false);
+        builder.getIPv4AddressParametersBuilder().allowLeadingZeros(false).allowBinary(false)
+                .allowPrefixesBeyondAddressSize(false).allowPrefixLengthLeadingZeros(false);
+        val ipv6 = builder.getIPv6AddressParametersBuilder().allowZone(false).allowBase85(false).allowBinary(false)
+                .allowUnlimitedLeadingZeros(false).allowPrefixesBeyondAddressSize(false)
+                .allowPrefixLengthLeadingZeros(false);
+        ipv6.getEmbeddedIPv4AddressParametersBuilder().allow_inet_aton(false).allowLeadingZeros(false)
+                .allowBinary(false).allowPrefixLengthLeadingZeros(false);
+        return builder.toParams();
+    }
+
+    private static boolean usesAllAddresses(IPAddress block) {
+        return block.getCount().compareTo(BigInteger.TWO) <= 0;
+    }
+
+    private static boolean containsAddresses(IPAddress block, IPAddress tested) {
+        if (block.isIPv4() != tested.isIPv4()) {
+            return block.toIPv6().contains(tested.toIPv6());
+        }
+        return block.contains(tested);
+    }
+
     /**
-     * Adds merged addresses to result builder.
+     * Adds the minimal blocks of one address family in ascending address order.
      *
-     * @param resultBuilder
-     * builder to add to
-     * @param addresses
-     * addresses to merge
+     * @param resultBuilder builder to add to
+     * @param addresses addresses to merge
      */
     private static void addMergedAddresses(ArrayValue.Builder resultBuilder, List<IPAddress> addresses) {
         if (!addresses.isEmpty()) {
-            val merged = mergeAddressList(addresses);
-            for (IPAddress address : merged) {
+            val blocks = addresses.stream().map(IPAddress::toPrefixBlock).toArray(IPAddress[]::new);
+            val merged = addresses.getFirst().toPrefixBlock().mergeToPrefixBlocks(blocks);
+            sort(merged, comparing(IPAddress::getValue));
+            for (val address : merged) {
                 resultBuilder.add(Value.of(address.toCanonicalString()));
             }
         }
-    }
-
-    /**
-     * Merges address list into minimal prefix blocks.
-     *
-     * @param addresses
-     * list of addresses (same family)
-     *
-     * @return list of merged prefix blocks
-     */
-    private static List<IPAddress> mergeAddressList(List<IPAddress> addresses) {
-        if (addresses.isEmpty()) {
-            return List.of();
-        }
-
-        val prefixBlocks = addresses.stream().map(IPAddress::toPrefixBlock).toList();
-
-        val filtered = removeContainedAddresses(prefixBlocks);
-        if (filtered.isEmpty()) {
-            return List.of();
-        }
-
-        val sorted = new ArrayList<>(filtered);
-        sorted.sort(IPAddress::compareTo);
-
-        val result       = new ArrayList<IPAddress>();
-        var currentLower = sorted.getFirst().getLower();
-        var currentUpper = sorted.getFirst().getUpper();
-
-        for (int i = 1; i < sorted.size(); i++) {
-            val nextAddress = sorted.get(i);
-            val nextLower   = nextAddress.getLower();
-            val nextUpper   = nextAddress.getUpper();
-
-            if (nextLower.compareTo(currentUpper.increment(1)) <= 0) {
-                if (nextUpper.compareTo(currentUpper) > 0) {
-                    currentUpper = nextUpper;
-                }
-            } else {
-                addSpannedBlocks(result, currentLower, currentUpper);
-                currentLower = nextLower;
-                currentUpper = nextUpper;
-            }
-        }
-
-        addSpannedBlocks(result, currentLower, currentUpper);
-        return result;
-    }
-
-    /**
-     * Adds prefix blocks spanning the range to result list.
-     *
-     * @param result
-     * list to add to
-     * @param lower
-     * lower bound
-     * @param upper
-     * upper bound
-     */
-    private static void addSpannedBlocks(List<IPAddress> result, IPAddress lower, IPAddress upper) {
-        val range = lower.spanWithRange(upper);
-        result.addAll(Arrays.asList(range.spanWithPrefixBlocks()));
-    }
-
-    /**
-     * Removes addresses contained within other addresses.
-     *
-     * @param addresses
-     * list of addresses
-     *
-     * @return list with contained addresses removed
-     */
-    private static List<IPAddress> removeContainedAddresses(List<IPAddress> addresses) {
-        val result = new ArrayList<IPAddress>();
-
-        for (IPAddress address : addresses) {
-            val isContained = addresses.stream().filter(other -> !address.equals(other))
-                    .anyMatch(other -> other.contains(address));
-
-            if (!isContained && result.stream().noneMatch(existing -> existing.equals(address))) {
-                result.add(address);
-            }
-        }
-
-        return result;
     }
 
     /**

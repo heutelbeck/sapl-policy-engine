@@ -138,7 +138,7 @@ class PipBrokerSpecTests {
     class DispatchCoalescing {
 
         @Test
-        @DisplayName("rapid PIP emissions during a slow onUpdate yield far fewer fires than emissions; "
+        @DisplayName("rapid PIP emissions during a slow onUpdate yield far fewer fires than emissions, "
                 + "the last fire reflects the last published value")
         void whenRapidPipEmissionsAndSlowConsumerThenFiresCoalesce() {
             val broker = new PolicyInformationPointAttributeBroker();
@@ -426,7 +426,7 @@ class PipBrokerSpecTests {
         }
 
         @Test
-        @DisplayName("with grace, refcount-zero keeps the backing alive; a new fresh=false consumer "
+        @DisplayName("with grace, refcount-zero keeps the backing alive, a new fresh=false consumer "
                 + "in the window re-attaches without opening a new inner stream")
         void whenReattachWithinGraceThenBackingReused() {
             val broker = new PolicyInformationPointAttributeBroker(Duration.ofMillis(400));
@@ -510,7 +510,7 @@ class PipBrokerSpecTests {
 
         @Test
         @DisplayName("hot-swap to a replacement PIP whose first emission is slower than initialTimeOut: "
-                + "the consumer never observes a transient UNDEFINED; the prior real value persists "
+                + "the consumer never observes a transient UNDEFINED, the prior real value persists "
                 + "until the new stream emits a real value")
         void whenSwappingToSlowPipThenNoTransientUndefinedJitter() {
             val broker = new PolicyInformationPointAttributeBroker();

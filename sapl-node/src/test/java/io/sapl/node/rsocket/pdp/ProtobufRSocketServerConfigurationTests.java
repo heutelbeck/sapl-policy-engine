@@ -24,6 +24,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.security.KeyStore;
+import java.util.List;
 
 import javax.net.ssl.KeyManagerFactory;
 
@@ -38,8 +39,11 @@ import org.springframework.boot.ssl.NoSuchSslBundleException;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.boot.ssl.SslManagerBundle;
+import org.springframework.core.env.StandardEnvironment;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.netty.handler.ssl.SslContext;
+import io.sapl.node.testing.LogCapture;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.val;
@@ -64,6 +68,8 @@ class ProtobufRSocketServerConfigurationTests {
     private static final int    MAX_MULTI_SUBSCRIPTIONS = 256;
     private static final int    PAYLOAD_SIZE            = 65_536;
     private static final int    PORT                    = 7000;
+
+    private static final StandardEnvironment ENVIRONMENT = new StandardEnvironment();
 
     @Mock
     private BlockingPolicyDecisionPoint blockingPdp;
@@ -91,7 +97,7 @@ class ProtobufRSocketServerConfigurationTests {
         void whenNoBundleNameThenLifecycleBuiltWithoutSsl() {
             val lifecycle = sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
                     MAX_MULTI_SUBSCRIPTIONS, null, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
-                    meterRegistryProvider);
+                    meterRegistryProvider, ENVIRONMENT);
 
             assertThat(lifecycle).isNotNull().satisfies(l -> assertThat(l.isAutoStartup()).isTrue());
         }
@@ -101,7 +107,7 @@ class ProtobufRSocketServerConfigurationTests {
         void whenBlankBundleNameThenLifecycleBuiltWithoutSsl() {
             val lifecycle = sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
                     MAX_MULTI_SUBSCRIPTIONS, "   ", 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
-                    meterRegistryProvider);
+                    meterRegistryProvider, ENVIRONMENT);
 
             assertThat(lifecycle).isNotNull();
         }
@@ -113,8 +119,8 @@ class ProtobufRSocketServerConfigurationTests {
 
             assertThatThrownBy(() -> sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
                     MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
-                    meterRegistryProvider)).isInstanceOf(IllegalStateException.class).hasMessageContaining(BUNDLE_NAME)
-                    .hasMessageContaining("SslBundles");
+                    meterRegistryProvider, ENVIRONMENT)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(BUNDLE_NAME).hasMessageContaining("SslBundles");
         }
 
         @Test
@@ -126,8 +132,8 @@ class ProtobufRSocketServerConfigurationTests {
 
             assertThatThrownBy(() -> sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
                     MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
-                    meterRegistryProvider)).isInstanceOf(IllegalStateException.class).hasMessageContaining(BUNDLE_NAME)
-                    .hasCauseInstanceOf(NoSuchSslBundleException.class);
+                    meterRegistryProvider, ENVIRONMENT)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(BUNDLE_NAME).hasCauseInstanceOf(NoSuchSslBundleException.class);
         }
 
         @Test
@@ -145,7 +151,50 @@ class ProtobufRSocketServerConfigurationTests {
 
             assertThatCode(() -> sut.protobufRSocketServer(true, BIND_ADDRESS, PORT, null, PAYLOAD_SIZE,
                     MAX_MULTI_SUBSCRIPTIONS, BUNDLE_NAME, 0, 0, 0, blockingPdp, pdp, authenticators, sslBundlesProvider,
-                    meterRegistryProvider)).doesNotThrowAnyException();
+                    meterRegistryProvider, ENVIRONMENT)).doesNotThrowAnyException();
         }
     }
+
+    @Nested
+    @DisplayName("certificate reloading")
+    class CertificateReloading {
+
+        @Test
+        @DisplayName("a renewed bundle that cannot be used keeps the served certificate and warns")
+        void whenRenewedBundleIsBrokenThenServedContextStays(@Mock SslContext served, @Mock SslBundle broken) {
+            when(served.cipherSuites()).thenReturn(List.of("served"));
+            val sslContext = new ReloadableSslContext(served);
+            when(broken.getManagers()).thenThrow(new IllegalStateException("unable to read the private key"));
+
+            try (val log = LogCapture.of(ProtobufRSocketServerConfiguration.class)) {
+                ProtobufRSocketServerConfiguration.reload(sslContext, broken);
+
+                assertThat(List.of(sslContext.cipherSuites().equals(List.of("served")), log.lines())).containsExactly(
+                        true,
+                        List.of("WARN The TLS certificate of the RSocket API cannot be reloaded: unable to read the private key. The node keeps serving the previous certificate."));
+            }
+        }
+
+        @Test
+        @DisplayName("a renewed bundle serves new connections and the reload is logged")
+        void whenBundleIsRenewedThenNewConnectionsUseIt(@Mock SslContext served, @Mock SslBundle renewed,
+                @Mock SslManagerBundle managers) throws Exception {
+            val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            val keyStore          = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(null, null);
+            keyManagerFactory.init(keyStore, new char[0]);
+            when(renewed.getManagers()).thenReturn(managers);
+            when(managers.getKeyManagerFactory()).thenReturn(keyManagerFactory);
+            lenient().when(served.cipherSuites()).thenReturn(List.of("served"));
+            val sslContext = new ReloadableSslContext(served);
+
+            try (val log = LogCapture.of(ProtobufRSocketServerConfiguration.class)) {
+                ProtobufRSocketServerConfiguration.reload(sslContext, renewed);
+
+                assertThat(List.of(sslContext.cipherSuites().equals(List.of("served")), log.lines()))
+                        .containsExactly(false, List.of("INFO Reloaded the TLS certificate of the RSocket API."));
+            }
+        }
+    }
+
 }

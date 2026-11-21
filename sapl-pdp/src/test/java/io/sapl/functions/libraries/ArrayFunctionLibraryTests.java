@@ -26,11 +26,20 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
+
+import tools.jackson.databind.cfg.JsonNodeFeature;
+import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
@@ -38,6 +47,12 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  */
 @DisplayName("ArrayFunctionLibrary")
 class ArrayFunctionLibraryTests {
+    private static final JsonMapper EXACT_JSON = JsonMapper.builder().enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+            .disable(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES).build();
+
+    private static ArrayValue exactNumbers(String source) {
+        return (ArrayValue) fromJsonNode(EXACT_JSON.readTree(source));
+    }
 
     private static ArrayValue array(int... numbers) {
         return Value.ofArray(IntStream.of(numbers).mapToObj(Value::of).toArray(Value[]::new));
@@ -244,4 +259,33 @@ class ArrayFunctionLibraryTests {
         }
         return builder.build();
     }
+
+    @DisplayName("Numeric sorting preserves exact quantities")
+    @MethodSource
+    @ParameterizedTest(name = "{0} sorts to {1}")
+    void whenSortingNumbersThenComparisonIsExact(String input, String expected) {
+        val actual = ArrayFunctionLibrary.sort(exactNumbers(input));
+        assertThat(actual).isEqualTo(exactNumbers(expected));
+    }
+
+    private static Stream<Arguments> whenSortingNumbersThenComparisonIsExact() {
+        return Stream.of(arguments("[9007199254740993, 9007199254740992]", "[9007199254740992, 9007199254740993]"),
+                arguments("[-9007199254740992, -9007199254740993]", "[-9007199254740993, -9007199254740992]"),
+                arguments("[1.00000000000000000002, 1.00000000000000000001]",
+                        "[1.00000000000000000001, 1.00000000000000000002]"),
+                arguments("[2e1000, 1e1000, -1e1000]", "[-1e1000, 1e1000, 2e1000]"));
+    }
+
+    @Test
+    @DisplayName("Equal quantities keep their original representations and order")
+    void whenSortingEqualNumbersThenTheirRepresentationsStayInOrder() {
+        val first  = Value.of(new BigDecimal("2.5000"));
+        val second = Value.of(new BigDecimal("2.500"));
+        val third  = Value.of(new BigDecimal("2.5"));
+        val result = ArrayFunctionLibrary.sort(Value.ofArray(first, second, third));
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class,
+                sorted -> assertThat(sorted.stream().map(value -> ((NumberValue) value).value().toString()).toList())
+                        .containsExactly("2.5000", "2.500", "2.5"));
+    }
+
 }

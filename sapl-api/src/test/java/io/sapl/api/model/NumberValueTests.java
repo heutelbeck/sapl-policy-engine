@@ -21,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -145,6 +146,32 @@ class NumberValueTests {
     static Stream<Arguments> when_toStringCalled_then_showsValue() {
         return Stream.of(arguments(new BigDecimal("3.41"), "3.41"), arguments(BigDecimal.ZERO, "0"),
                 arguments(new BigDecimal("-5"), "-5"));
+    }
+
+    @ParameterizedTest(name = "{0} is written as {1}")
+    @CsvSource(textBlock = """
+            5.0,                       5
+            1E+3,                      1000
+            1.000E+3,                  1000
+            -0.0,                      0
+            0E+5,                      0
+            0.000,                     0
+            1E+18,                     1000000000000000000
+            9223372036854775807.0,     9223372036854775807
+            -9223372036854775808.00,   -9223372036854775808
+            9223372036854775808,       9223372036854775808
+            9.223372036854775808E+19,  9.223372036854775808E+19
+            1E+19,                     1E+19
+            1E+20,                     1E+20
+            12.50,                     12.50
+            0.5,                       0.5
+            1E-7,                      1E-7
+            1E+2147483647,             1E+2147483647
+            1E-2147483647,             1E-2147483647
+            """)
+    @DisplayName("a whole number in the range of a signed 64 bit integer is written plainly, any other number as BigDecimal writes it")
+    void whenWrittenAsTextThenWholeNumbersOf64BitsArePlain(String number, String text) {
+        assertThat(new NumberValue(new BigDecimal(number))).hasToString(text);
     }
 
     @Test

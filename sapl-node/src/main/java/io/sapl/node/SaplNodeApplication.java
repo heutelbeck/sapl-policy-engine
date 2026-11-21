@@ -21,6 +21,8 @@ import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -35,7 +37,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportRuntimeHints;
+import org.springframework.core.env.MapPropertySource;
 
+import io.sapl.node.boot.OptIn;
 import io.sapl.node.boot.SaplBanner;
 import io.sapl.node.cli.SaplNodeCli;
 
@@ -61,9 +65,7 @@ import picocli.CommandLine;
         "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
 public class SaplNodeApplication {
 
-    private static final String SERVER_COMMAND   = "server";
-    private static final String NO_AUTH_FLAG     = "--no-auth";
-    private static final String NO_AUTH_PROPERTY = "--io.sapl.node.allow-no-auth=true";
+    private static final String SERVER_COMMAND = "server";
 
     private static final Set<String> HELP_FLAGS = Set.of("--help", "-h", "--version", "-V");
 
@@ -79,13 +81,8 @@ public class SaplNodeApplication {
      */
     static int run(String[] args) {
         if (isServerMode(args)) {
-            val stripped   = args.length > 0 && SERVER_COMMAND.equals(args[0])
-                    ? Arrays.copyOfRange(args, 1, args.length)
-                    : args;
-            val springArgs = expandNoAuthShortcut(stripped);
-            val app        = new SpringApplication(SaplNodeApplication.class);
-            app.setBanner(new SaplBanner());
-            app.run(springArgs);
+            val arguments = serverArguments(args);
+            serverApplication(arguments).run(arguments.springArguments().toArray(new String[0]));
             return 0;
         }
         configureCliLogging();
@@ -152,19 +149,57 @@ public class SaplNodeApplication {
         root.addAppender(appender);
     }
 
-    private static String[] expandNoAuthShortcut(String[] args) {
-        val     out      = new ArrayList<String>(args.length + 1);
-        boolean expanded = false;
-        for (val arg : args) {
-            if (!expanded && NO_AUTH_FLAG.equals(arg)) {
-                out.add(NO_AUTH_PROPERTY);
-                expanded = true;
-            } else {
-                out.add(arg);
-            }
+    /**
+     * Separates the opt-in options of the server, such as {@code --no-tls},
+     * from the arguments that Spring reads.
+     *
+     * @param args the arguments of the server, with or without the leading
+     * {@code server} command
+     * @return the arguments for Spring and the opt-ins
+     */
+    static ServerArguments serverArguments(String[] args) {
+        val stripped        = args.length > 0 && SERVER_COMMAND.equals(args[0])
+                ? Arrays.copyOfRange(args, 1, args.length)
+                : args;
+        val springArguments = new ArrayList<String>(stripped.length);
+        val optIns          = EnumSet.noneOf(OptIn.class);
+        for (val argument : stripped) {
+            OptIn.ofOption(argument).ifPresentOrElse(optIns::add, () -> springArguments.add(argument));
         }
-        return out.toArray(new String[0]);
+        return new ServerArguments(List.copyOf(springArguments), Set.copyOf(optIns));
     }
+
+    /**
+     * Creates the server application with the opt-ins of the command line.
+     *
+     * @param arguments the arguments of the server
+     * @return the application, to be run with the arguments for Spring
+     */
+    static SpringApplication serverApplication(ServerArguments arguments) {
+        val app = new SpringApplication(SaplNodeApplication.class);
+        app.setBanner(new SaplBanner());
+        app.addInitializers(context -> context.getEnvironment().getPropertySources()
+                .addFirst(commandLineOptIns(arguments.optIns())));
+        return app;
+    }
+
+    // The opt-ins of the options take precedence over every other source, and
+    // their own source lets the warnings name the option.
+    private static MapPropertySource commandLineOptIns(Set<OptIn> optIns) {
+        val properties = new HashMap<String, Object>();
+        for (val optIn : optIns) {
+            properties.put(optIn.getKey(), Boolean.TRUE);
+        }
+        return new MapPropertySource(OptIn.COMMAND_LINE_OPTIONS, properties);
+    }
+
+    /**
+     * The arguments of the server.
+     *
+     * @param springArguments the arguments that Spring reads
+     * @param optIns the insecure modes allowed by their command-line options
+     */
+    record ServerArguments(List<String> springArguments, Set<OptIn> optIns) {}
 
     static boolean isServerMode(String[] args) {
         if (args.length == 0) {

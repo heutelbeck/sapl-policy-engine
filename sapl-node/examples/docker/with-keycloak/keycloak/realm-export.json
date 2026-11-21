@@ -39,6 +39,38 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "sapl-node-scalar",
+      "name": "SAPL Node Scalar API Reference",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["http://localhost:8443/scalar"],
+      "webOrigins": ["http://localhost:8443"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "sapl-pdp-id-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "sapl_pdp_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "sapl_pdp_id",
+            "jsonType.label": "String"
+          }
+        }
+      ]
     }
   ],
   "users": [

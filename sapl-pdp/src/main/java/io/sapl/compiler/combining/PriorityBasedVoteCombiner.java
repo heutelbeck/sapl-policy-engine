@@ -323,7 +323,7 @@ public class PriorityBasedVoteCombiner {
         case DENY    -> Effect.DENY;
         case SUSPEND -> Effect.SUSPEND;
         default      -> throw new IllegalArgumentException(
-                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
+                "Priority decision must be PERMIT, DENY, or SUSPEND, got " + priorityDecision);
         };
     }
 
@@ -346,7 +346,7 @@ public class PriorityBasedVoteCombiner {
         case PERMIT, DENY -> Decision.SUSPEND;
         case SUSPEND      -> Decision.DENY;
         default           -> throw new IllegalArgumentException(
-                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
+                "Priority decision must be PERMIT, DENY, or SUSPEND, got " + priorityDecision);
         };
     }
 

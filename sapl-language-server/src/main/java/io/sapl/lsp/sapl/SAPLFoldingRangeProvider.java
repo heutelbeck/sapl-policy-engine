@@ -28,6 +28,7 @@ import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.lsp.core.ProtocolPositions;
 import lombok.val;
 
 /**
@@ -51,11 +52,11 @@ class SAPLFoldingRangeProvider {
         for (var i = 0; i < tokenStream.size(); i++) {
             val token = tokenStream.get(i);
             if (token.getType() == SAPLLexer.ML_COMMENT) {
-                val startLine = token.getLine() - 1;
-                val text      = token.getText();
-                val lineCount = text.split("\n", -1).length - 1;
-                if (lineCount > 0) {
-                    val range = new FoldingRange(startLine, startLine + lineCount);
+                val positions = ProtocolPositions.of(token);
+                val startLine = positions.lineOf(token);
+                val endLine   = positions.lineOf(positions.endOf(token));
+                if (endLine > startLine) {
+                    val range = new FoldingRange(startLine, endLine);
                     range.setKind(FoldingRangeKind.Comment);
                     ranges.add(range);
                 }
@@ -81,8 +82,9 @@ class SAPLFoldingRangeProvider {
     }
 
     private void addRangeIfMultiLine(ParserRuleContext ctx, List<FoldingRange> ranges) {
-        val startLine = ctx.getStart().getLine() - 1;
-        val endLine   = ctx.getStop().getLine() - 1;
+        val positions = ProtocolPositions.of(ctx.getStart());
+        val startLine = positions.lineOf(ctx.getStart());
+        val endLine   = positions.lineOf(ctx.getStop());
         if (endLine > startLine) {
             ranges.add(new FoldingRange(startLine, endLine));
         }

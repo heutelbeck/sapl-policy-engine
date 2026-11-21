@@ -265,6 +265,11 @@
                             </excludes>
                             <image>
                                 <builder>paketobuildpacks/builder-jammy-base:latest@sha256:0ade7fc68caad21a863a7b1be454f4858c6a7d56282688dc1b241880f524b630</builder>
+                                <!-- The JVM buildpack is named ahead of the Java buildpack to pin the JRE release the image ships. -->
+                                <buildpacks>
+                                    <buildpack>docker://paketobuildpacks/bellsoft-liberica:11.10.6@sha256:d6b52a91e60a703b6fa4954591a4a6729e1f6b1ec64b15f9f1defbfc8b05be88</buildpack>
+                                    <buildpack>urn:cnb:builder:paketo-buildpacks/java</buildpack>
+                                </buildpacks>
                                 <name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
                                 <createdDate>now</createdDate>
                                 <env>

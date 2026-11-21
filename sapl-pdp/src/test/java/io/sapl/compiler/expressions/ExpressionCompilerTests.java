@@ -571,7 +571,7 @@ class ExpressionCompilerTests {
     class NestedRelativeValues {
 
         @Test
-        @DisplayName("nested condition steps - outer @ shadows inner")
+        @DisplayName("nested condition steps: outer @ shadows inner")
         void whenNestedConditionStepsThenOuterShadowsInner() {
             val compiled   = compileExpression("[[1, 2], [3, 4]][?(@[0] > 1)]");
             val innerArray = Value.ofArray(Value.of(3), Value.of(4));

@@ -22,5 +22,5 @@ package io.sapl.ast;
  */
 public sealed interface Expression extends AstNode permits Literal, Identifier, BinaryOperator, UnaryOperator,
         FunctionCall, EnvironmentAttribute, RelativeReference, SimpleFilter, ExtendedFilter, ArrayExpression,
-        ObjectExpression, Step, Conjunction, Disjunction, Sum, Product, ExclusiveDisjunction {
+        ObjectExpression, Step, Conjunction, Disjunction, Product, ExclusiveDisjunction {
 }

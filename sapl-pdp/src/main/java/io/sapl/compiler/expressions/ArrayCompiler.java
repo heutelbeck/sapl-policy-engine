@@ -47,11 +47,10 @@ public class ArrayCompiler {
             return Value.EMPTY_ARRAY;
         }
 
-        val     compiled  = new ArrayList<CompiledExpression>(elements.size());
+        val     compiled  = CompilationChildren.map(elements, element -> ExpressionCompiler.compile(element, ctx));
         boolean allValues = true;
         boolean hasStream = false;
-        for (val element : elements) {
-            val result = ExpressionCompiler.compile(element, ctx);
+        for (val result : compiled) {
             if (result instanceof ErrorValue) {
                 return result;
             }
@@ -61,7 +60,6 @@ public class ArrayCompiler {
             } else if (!(result instanceof Value)) {
                 allValues = false;
             }
-            compiled.add(result);
         }
 
         if (allValues) {
@@ -213,14 +211,9 @@ public class ArrayCompiler {
         public long semanticHash() {
             long hash = KIND;
             for (val element : elements) {
-                val elementHash = switch (element) {
-                case Value v                -> SemanticHashing.valueHash(v);
-                case PureOperator p         -> p.semanticHash();
-                case StreamOperator ignored -> (long) element.hashCode();
-                };
-                hash = SemanticHashing.ordered(hash, elementHash);
+                hash = SemanticHashing.ordered(hash, SemanticHashing.expressionHash(element));
             }
-            return SemanticHashing.ordered(hash, Objects.hashCode(location));
+            return hash;
         }
     }
 

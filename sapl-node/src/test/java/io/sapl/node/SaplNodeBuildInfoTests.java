@@ -24,7 +24,8 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.semver4j.Semver;
+
+import io.sapl.api.semver.Version;
 
 import lombok.val;
 
@@ -42,6 +43,6 @@ class SaplNodeBuildInfoTests {
 
         assertThat(properties).containsEntry("saplArtifactId", "sapl-node").containsEntry("saplGroupId", "io.sapl");
         assertThat(SaplNodeBuildInfo.version()).isEqualTo(properties.getProperty("saplVersion")).doesNotContain("${")
-                .isNotEqualTo("unknown").satisfies(value -> assertThat(Semver.isValid(value)).isTrue());
+                .isNotEqualTo("unknown").satisfies(value -> assertThat(Version.tryParse(value)).isNotNull());
     }
 }

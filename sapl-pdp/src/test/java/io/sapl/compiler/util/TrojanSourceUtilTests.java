@@ -25,12 +25,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("TrojanSourceUtil")
 class TrojanSourceUtilTests {
@@ -45,30 +48,39 @@ class TrojanSourceUtilTests {
     private static final char FSI = '\u2068';
     private static final char PDI = '\u2069';
 
+    private static final String TROJAN_SOURCE = "trojan source";
+    private static final String VALID_POLICY  = "policy \"test\" permit";
+
+    /**
+     * The text of a policy before the place of a trojan source character.
+     */
+    private static final String BEFORE_TROJAN_CHARACTER = "policy \"te";
+
+    /**
+     * The index that stands for no trojan source character.
+     */
+    private static final int NOT_FOUND = -1;
+
     @Nested
-    @DisplayName("assertNoTrojanSourceCharacters")
-    class AssertNoTrojanSourceCharactersTests {
+    @DisplayName("indexOfTrojanSourceCharacter")
+    class IndexOfTrojanSourceCharacterTests {
 
-        @Test
-        @DisplayName("accepts null input")
-        void whenNullThenNoException() {
-            assertThatCode(() -> TrojanSourceUtil.assertNoTrojanSourceCharacters(null)).doesNotThrowAnyException();
+        @NullSource
+        @ValueSource(strings = VALID_POLICY)
+        @ParameterizedTest(name = "finds nothing in {0}")
+        @DisplayName("finds nothing in null input and in a valid policy without trojan characters")
+        void whenInputHoldsNoTrojanCharacterThenNothingIsFound(String harmless) {
+            assertThat(TrojanSourceUtil.indexOfTrojanSourceCharacter(harmless)).isEqualTo(NOT_FOUND);
         }
 
-        @Test
-        @DisplayName("accepts valid policy without trojan characters")
-        void whenValidPolicyThenNoException() {
-            assertThatCode(() -> TrojanSourceUtil.assertNoTrojanSourceCharacters("policy \"test\" permit"))
-                    .doesNotThrowAnyException();
-        }
-
-        @ParameterizedTest(name = "rejects input containing {0}")
+        @ParameterizedTest(name = "finds {0}")
         @ValueSource(chars = { LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI })
-        @DisplayName("rejects input containing trojan source characters")
-        void whenTrojanCharacterThenThrows(char trojanChar) {
-            val malicious = "policy \"te" + trojanChar + "st\" permit";
-            assertThatThrownBy(() -> TrojanSourceUtil.assertNoTrojanSourceCharacters(malicious))
-                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("trojan source");
+        @DisplayName("finds the first trojan source character where it stands")
+        void whenTrojanCharactersStandInInputThenTheFirstIsFound(char trojanChar) {
+            val malicious = BEFORE_TROJAN_CHARACTER + trojanChar + "st\" permit " + RLO;
+
+            assertThat(TrojanSourceUtil.indexOfTrojanSourceCharacter(malicious))
+                    .isEqualTo(BEFORE_TROJAN_CHARACTER.length());
         }
     }
 
@@ -79,23 +91,22 @@ class TrojanSourceUtilTests {
         @Test
         @DisplayName("passes through valid input unchanged")
         void whenValidInputThenPassesThrough() throws Exception {
-            val valid  = "policy \"test\" permit";
             val stream = TrojanSourceUtil
-                    .guardInputStream(new ByteArrayInputStream(valid.getBytes(StandardCharsets.UTF_8)));
+                    .guardInputStream(new ByteArrayInputStream(VALID_POLICY.getBytes(StandardCharsets.UTF_8)));
 
-            assertThat(IOUtils.toString(stream, StandardCharsets.UTF_8)).isEqualTo(valid);
+            assertThat(IOUtils.toString(stream, StandardCharsets.UTF_8)).isEqualTo(VALID_POLICY);
         }
 
         @ParameterizedTest(name = "detects {0} in stream")
-        @ValueSource(chars = { LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI })
         @DisplayName("detects trojan source characters in stream")
+        @ValueSource(chars = { LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI })
         void whenTrojanCharacterInStreamThenThrows(char trojanChar) {
             val malicious = "policy \"te" + trojanChar + "st\" permit";
             val stream    = TrojanSourceUtil
                     .guardInputStream(new ByteArrayInputStream(malicious.getBytes(StandardCharsets.UTF_8)));
 
             assertThatThrownBy(() -> IOUtils.toString(stream, StandardCharsets.UTF_8))
-                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("trojan source");
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining(TROJAN_SOURCE);
         }
 
         @Test

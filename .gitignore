@@ -23,6 +23,9 @@ target/
 .sonarlint/
 **/.springBeans
 
+# Sonar scanner working files (e.g. spring-context-model.json)
+.sonar/
+
 # Generated code (ANTLR etc.)
 **/gen/
 

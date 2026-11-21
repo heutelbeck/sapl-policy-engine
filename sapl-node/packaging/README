@@ -5,9 +5,11 @@ This directory (/var/lib/sapl) is where the PDP looks for
 .saplbundle files. The node is configured in BUNDLES mode with
 signature verification enabled by default.
 
-The node will not start until bundle security is configured.
-You must either provide a signing key or explicitly allow unsigned
-bundles before the service can run.
+The node will not start until bundle security, TLS and an
+authentication mode are configured. You must provide a signing key
+(or explicitly allow unsigned bundles), a certificate (or explicitly
+allow plaintext), and credentials (or explicitly allow anonymous
+access) before the service can run.
 
 
 Quick Start (signed bundles)
@@ -38,13 +40,36 @@ service account to protect policy confidentiality.
      bundle-security:
        public-key-path: /etc/sapl/signing.pub
 
-4. Restart the service:
+4. Configure TLS in /etc/sapl/application.yml. Both APIs serve one
+   certificate from PEM files: the certificate followed by its chain,
+   and the private key. The files must be readable by the sapl user:
+
+   sudo chown root:sapl /etc/sapl/tls/server.pem /etc/sapl/tls/server.key
+   sudo chmod 640 /etc/sapl/tls/server.key
+
+   io.sapl.node:
+     tls:
+       certificate-chain: /etc/sapl/tls/server.pem
+       private-key: /etc/sapl/tls/server.key
+
+   A renewed certificate is served without a restart. The log reports
+   a certificate from 14 days before it expires.
+
+5. Configure authentication. Generate an API key and add the printed
+   user entry under io.sapl.node.users in /etc/sapl/application.yml:
+
+   sapl generate apikey --id my-client
+
+   io.sapl.node:
+     allow-api-key-auth: true
+
+6. Restart the service:
 
    sudo systemctl restart sapl
 
-5. Verify:
+7. Verify:
 
-   curl -s http://localhost:8080/actuator/health | jq .
+   curl -s --cacert /etc/sapl/tls/ca.pem https://localhost:8080/actuator/health | jq .
 
    You should see "status": "UP".
 
@@ -89,6 +114,21 @@ verification. Add to /etc/sapl/application.yml:
 
 The node logs a warning on every startup when signature verification
 is disabled. Do not use this setting in production.
+
+
+Plaintext and Anonymous Access
+------------------------------
+
+Where TLS is terminated upstream, by a proxy or a service mesh, or
+where an authenticating proxy owns the trust boundary, allow the
+insecure mode explicitly in /etc/sapl/application.yml:
+
+   io.sapl.node:
+     allow-no-tls: true
+     allow-no-auth: true
+
+The rule holds on every address, localhost included. The node logs a
+warning on every startup for each opt-in, naming where it was set.
 
 
 Documentation
