@@ -59,6 +59,14 @@ class LazyRepositoryEvaluationTests {
     @Test
     @DisplayName("an atomic swap after discovering B reevaluates A and cannot grant access from old A and new B")
     void whenAttributesSwapAfterLazyDiscoveryThenThePolicyReevaluatesAAndDropsB() throws Exception {
+        // The policy needs A and B, but discovers B lazily.
+        // Initially, A=true and B=false, so the correct result is false.
+        // After evaluating A and discovering B, but before evaluating B,
+        // an atomic update publishes A=false and B=true.
+        // If only B were reevaluated while retaining the old A=true,
+        // the result would incorrectly be true instead of false.
+        // The eval loop must therefore reevaluate A as well. With A=false,
+        // the result is false, and B is no longer needed.
         val policy       = lazyPolicy();
         val a            = policy.a();
         val b            = policy.b();
