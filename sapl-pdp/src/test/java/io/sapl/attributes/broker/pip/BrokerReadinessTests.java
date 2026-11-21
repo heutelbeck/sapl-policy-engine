@@ -97,7 +97,16 @@ class BrokerReadinessTests {
             for (val task : tasks) {
                 task.get(5, TimeUnit.SECONDS);
             }
-            assertThat(rounds).singleElement().satisfies(inputs -> assertThat(inputs).containsOnlyKeys(keys));
+            // A producer can join an existing drain and return before the callback runs.
+            awaitRounds(rounds, 1);
+            val changed = keys.getFirst();
+            publish(subscription, changed, Value.FALSE);
+            await().atMost(Duration.ofSeconds(5))
+                    .until(() -> Value.FALSE.equals(rounds.getLast().get(changed).value()));
+            assertThat(rounds).satisfiesExactly(
+                    first -> assertThat(first).containsOnlyKeys(keys)
+                            .allSatisfy((key, observation) -> assertThat(observation.value()).isEqualTo(Value.TRUE)),
+                    next -> assertThat(next).containsOnlyKeys(keys));
         }
     }
 
@@ -107,7 +116,7 @@ class BrokerReadinessTests {
     void whenInitialAttributesArriveThenEvaluationWaitsForTheWholeSet(int count) {
         val keys         = pendingKeys(count);
         val dependencies = Set.copyOf(keys);
-        val rounds       = new ArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+        val rounds       = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
         try (val broker = broker(null); val subscription = broker.open("initial", dependencies, inputs -> {
             rounds.add(inputs);
             return dependencies;
@@ -116,6 +125,7 @@ class BrokerReadinessTests {
                 assertThat(rounds).isEmpty();
                 publish(subscription, key, Value.TRUE);
             }
+            awaitRounds(rounds, 1);
             assertThat(rounds).singleElement().satisfies(inputs -> assertThat(inputs).containsOnlyKeys(keys));
         }
     }
@@ -126,13 +136,14 @@ class BrokerReadinessTests {
         val a        = key("work.a", List.of());
         val pending  = pendingKeys(20);
         val expanded = expanded(a, pending);
-        val rounds   = new ArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+        val rounds   = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
         try (val repository = new InMemoryAttributeRepository(); val broker = broker(repository)) {
             repository.publish(List.of(binding(a, Value.TRUE)));
             try (val subscription = broker.open("collecting", Set.of(a), inputs -> {
                 rounds.add(inputs);
                 return expanded;
             })) {
+                awaitRounds(rounds, 1);
                 publish(subscription, pending.getFirst(), Value.TRUE);
                 publish(subscription, pending.getFirst(), Value.FALSE);
                 assertThat(rounds).singleElement().satisfies(inputs -> assertThat(inputs).containsOnlyKeys(a));
@@ -140,7 +151,8 @@ class BrokerReadinessTests {
                     assertThat(rounds).hasSize(1);
                     publish(subscription, key, Value.TRUE);
                 }
-                assertThat(rounds).hasSize(2).last().satisfies(inputs -> {
+                awaitRounds(rounds, 2);
+                assertThat(rounds.getLast()).satisfies(inputs -> {
                     assertThat(inputs).containsOnlyKeys(expanded);
                     assertThat(inputs.get(pending.getFirst()).value()).isEqualTo(Value.FALSE);
                 });
@@ -154,8 +166,8 @@ class BrokerReadinessTests {
         val a          = key("work.a", List.of());
         val pending    = pendingKeys(2);
         val expanded   = expanded(a, pending);
-        val warmRounds = new ArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
-        val coldRounds = new ArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+        val warmRounds = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+        val coldRounds = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
         try (val repository = new InMemoryAttributeRepository(); val broker = broker(repository)) {
             repository.publish(List.of(binding(a, Value.TRUE)));
             try (val warm = broker.open("warm", Set.of(a), inputs -> {
@@ -165,8 +177,10 @@ class BrokerReadinessTests {
                 coldRounds.add(inputs);
                 return expanded;
             })) {
+                awaitRounds(warmRounds, 1);
                 repository.publish(List.of(binding(a, Value.FALSE)));
-                assertThat(warmRounds).hasSize(2).last().satisfies(inputs -> {
+                awaitRounds(warmRounds, 2);
+                assertThat(warmRounds.getLast()).satisfies(inputs -> {
                     assertThat(inputs).containsOnlyKeys(a);
                     assertThat(inputs.get(a).value()).isEqualTo(Value.FALSE);
                 });
@@ -175,8 +189,9 @@ class BrokerReadinessTests {
                 assertThat(warmRounds).hasSize(2);
                 assertThat(coldRounds).isEmpty();
                 publish(warm, pending.getLast(), Value.TRUE);
-                assertThat(warmRounds).hasSize(3).last()
-                        .satisfies(inputs -> assertThat(inputs).containsOnlyKeys(expanded));
+                awaitRounds(warmRounds, 3);
+                awaitRounds(coldRounds, 1);
+                assertThat(warmRounds.getLast()).satisfies(inputs -> assertThat(inputs).containsOnlyKeys(expanded));
                 assertThat(coldRounds).singleElement()
                         .satisfies(inputs -> assertThat(inputs).containsOnlyKeys(expanded));
             }
@@ -194,7 +209,7 @@ class BrokerReadinessTests {
             a = key("work.a", List.of());
         }
         val expanded = expanded(a, pendingKeys(1));
-        val rounds   = new ArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+        val rounds   = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
         try (val repository = new InMemoryAttributeRepository(); val broker = broker(repository)) {
             if (!pipSource) {
                 repository.publish(List.of(binding(a, Value.TRUE)));
@@ -205,11 +220,14 @@ class BrokerReadinessTests {
             })) {
                 if (pipSource) {
                     publish(subscription, a, Value.TRUE);
+                }
+                awaitRounds(rounds, 1);
+                if (pipSource) {
                     publish(subscription, a, Value.TRUE);
                 } else {
                     repository.publish(List.of(binding(a, Value.TRUE)));
                 }
-                assertThat(rounds).hasSize(2);
+                awaitRounds(rounds, 2);
                 assertThat(rounds.getFirst().get(a)).isEqualTo(rounds.getLast().get(a))
                         .isNotSameAs(rounds.getLast().get(a));
             }
@@ -227,7 +245,7 @@ class BrokerReadinessTests {
         val entered    = new CompletableFuture<Void>();
         val resume     = new CompletableFuture<Void>();
         val slowRounds = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
-        val fastRounds = new ArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+        val fastRounds = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
         try (val repository = new InMemoryAttributeRepository();
                 val broker = broker(repository);
                 val worker = Executors.newSingleThreadExecutor(Thread.ofVirtual().factory())) {
@@ -246,13 +264,14 @@ class BrokerReadinessTests {
                     fastRounds.add(inputs);
                     return expanded;
                 })) {
+                    awaitRounds(fastRounds, 1);
                     repository.publish(List.of(binding(a, Value.FALSE), binding(c, Value.TRUE)));
-                    assertThat(fastRounds).hasSize(2);
+                    awaitRounds(fastRounds, 2);
                     assertThat(slowRounds).singleElement()
                             .satisfies(inputs -> assertPair(inputs, a, c, Value.TRUE, Value.FALSE));
                     resume.complete(null);
                     try (val slow = opening.get(5, TimeUnit.SECONDS)) {
-                        assertThat(slowRounds).hasSize(2);
+                        awaitRounds(slowRounds, 2);
                         assertThat(slowRounds.getLast())
                                 .satisfies(inputs -> assertPair(inputs, a, c, Value.FALSE, Value.TRUE));
                         assertThat(fastRounds.getLast())
@@ -294,6 +313,11 @@ class BrokerReadinessTests {
                 assertThat(rounds).hasSize(1);
             }
         }
+    }
+
+    private static void awaitRounds(List<?> rounds, int expected) {
+        await().pollDelay(Duration.ZERO).atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(rounds).hasSize(expected));
     }
 
     private static void assertPair(Map<SubscriptionKey, AttributeSnapshot> inputs, SubscriptionKey a, SubscriptionKey c,
