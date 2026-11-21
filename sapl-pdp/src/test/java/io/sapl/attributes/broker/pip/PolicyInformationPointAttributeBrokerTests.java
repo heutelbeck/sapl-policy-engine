@@ -376,6 +376,8 @@ class PolicyInformationPointAttributeBrokerTests {
                         proceed.countDown();
                     }
                     evaluating.get(2, TimeUnit.SECONDS);
+                    // The queued update can finish before the newly discovered hot listener enrolls.
+                    Awaitility.await().atMost(Duration.ofSeconds(2)).until(() -> !ControllablePip.STREAMS.isEmpty());
                     ControllablePip.emitToAll(Value.of("ready"));
                     Awaitility.await().atMost(Duration.ofSeconds(2))
                             .until(() -> maps.stream().anyMatch(round -> round.containsKey(extra)));

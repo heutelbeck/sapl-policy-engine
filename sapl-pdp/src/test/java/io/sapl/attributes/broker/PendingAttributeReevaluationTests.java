@@ -93,7 +93,8 @@ class PendingAttributeReevaluationTests {
                             result.complete(round);
                         }
                     }, vote -> vote.dependencies().keySet(), terminations::add)) {
-                assertThat(pip.opened).hasValue(1);
+                // Discovery can return while the finder enrolls. Change A once B is enrolled and still has no value.
+                await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(pip.opened).hasValue(1));
                 repository.publish(List.of(new BoundValue(aKey, Value.FALSE, null)));
                 assertThat(rounds).singleElement().satisfies(round -> {
                     assertThat(round.inputs().get(a).value()).isEqualTo(Value.TRUE);
@@ -163,7 +164,8 @@ class PendingAttributeReevaluationTests {
                     assertThat(decisions).containsExactly(Decision.PERMIT);
                     repository.publish(List.of(new BoundValue(cKey, Value.FALSE, null)));
                 }
-                assertThat(pip.opened).hasValue(1);
+                // Discovery can return while the finder enrolls. Change A once B is enrolled and still has no value.
+                await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(pip.opened).hasValue(1));
                 assertThat(pip.delivered).hasValue(0);
                 assertThat(rounds).last().satisfies(round -> {
                     assertThat(round.result().vote()).isNull();

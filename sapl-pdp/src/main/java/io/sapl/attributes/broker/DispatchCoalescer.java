@@ -79,7 +79,24 @@ public final class DispatchCoalescer {
      */
     public void requestFire() {
         pending.set(true);
-        while (running.compareAndSet(false, true)) {
+        if (running.compareAndSet(false, true)) {
+            drain();
+        }
+    }
+
+    /**
+     * Requests a serialized round without invoking consumer code on a source enrollment or release stack.
+     * Only the requester that acquires the idle drain starts a worker.
+     */
+    public void requestFireAsync() {
+        pending.set(true);
+        if (running.compareAndSet(false, true)) {
+            Thread.startVirtualThread(this::drain);
+        }
+    }
+
+    private void drain() {
+        do {
             try {
                 while (pending.compareAndSet(true, false)) {
                     fire.run();
@@ -87,9 +104,6 @@ public final class DispatchCoalescer {
             } finally {
                 running.set(false);
             }
-            if (!pending.get()) {
-                return;
-            }
-        }
+        } while (pending.get() && running.compareAndSet(false, true));
     }
 }

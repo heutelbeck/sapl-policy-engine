@@ -333,7 +333,7 @@ final class AttributeStream implements Stream<Value> {
 
     private static void safeClose(Stream<Value> stream) {
         try {
-            stream.close();
+            AttributeSourceCall.close(stream);
         } catch (RuntimeException e) {
             log.debug(DEBUG_INNER_CLOSE_THREW, e.getMessage());
         }

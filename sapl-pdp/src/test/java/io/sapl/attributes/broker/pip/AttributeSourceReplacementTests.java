@@ -25,7 +25,6 @@ import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.InstantSource;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,11 +65,17 @@ class AttributeSourceReplacementTests {
     @Test
     @DisplayName("a retired source cannot publish a value it already read before replacement")
     void whenAReadCompletesBeforeReplacementThenItCannotChangeTheCurrentObservation() throws Exception {
-        val           firstPublisher = new AtomicReference<Thread>();
-        InstantSource clock          = () -> {
-                                         firstPublisher.compareAndSet(null, Thread.currentThread());
-                                         return Instant.EPOCH;
-                                     };
+        val           firstPublisher  = new AtomicReference<Thread>();
+        val           nextObservation = new CompletableFuture<Void>();
+        val           allowTimestamp  = new CompletableFuture<Void>();
+        InstantSource clock           = () -> {
+                                          if (!firstPublisher.compareAndSet(null, Thread.currentThread())
+                                                  && firstPublisher.get() == Thread.currentThread()) {
+                                              nextObservation.complete(null);
+                                              allowTimestamp.orTimeout(LIMIT.toMillis(), TimeUnit.MILLISECONDS).join();
+                                          }
+                                          return Instant.EPOCH;
+                                      };
         try (val broker = new PolicyInformationPointAttributeBroker(Duration.ZERO, null, clock)) {
             val old         = new LatestSlotStream<Value>();
             val replacement = new LatestSlotStream<Value>();
@@ -84,15 +89,13 @@ class AttributeSourceReplacementTests {
                 old.put(BLUE);
                 await().atMost(LIMIT).until(() -> received.contains(BLUE));
                 val publisher = firstPublisher.get();
-                await().atMost(LIMIT).until(() -> inMethod(publisher, AttributeStream.class, "awaitNext"));
-                val active = ((PolicyInformationPointAttributeBroker.BrokerSubscription) subscription).routingTable
-                        .get(key);
-                // Hold the mailbox until the old read has returned and the replacement owns the route.
-                synchronized (mailboxMonitor(active)) {
-                    old.put(RED);
-                    await().atMost(LIMIT).until(() -> publisher.getState() == Thread.State.BLOCKED
-                            && inMethod(publisher, ActivePolicyInformationPointInvocation.class, "publishInternal"));
+                old.put(RED);
+                try {
+                    nextObservation.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS);
+                    // The old pump has a real value, but cannot admit it until the timestamp is available.
                     broker.swap(handle, new Palette(() -> replacement));
+                } finally {
+                    allowTimestamp.complete(null);
                 }
                 assertThat(publisher.join(LIMIT)).isTrue();
                 assertThat(received).containsExactly(BLUE);
@@ -184,11 +187,6 @@ class AttributeSourceReplacementTests {
     static Object mailboxMonitor(ActiveInvocation active) throws ReflectiveOperationException {
         val type = ActivePolicyInformationPointInvocation.class;
         return privateLookupIn(type, lookup()).findVarHandle(type, "lock", Object.class).get(active);
-    }
-
-    private static boolean inMethod(Thread thread, Class<?> type, String method) {
-        return Arrays.stream(thread.getStackTrace())
-                .anyMatch(frame -> frame.getClassName().equals(type.getName()) && frame.getMethodName().equals(method));
     }
 
     private static Palette publishing(Value value) {

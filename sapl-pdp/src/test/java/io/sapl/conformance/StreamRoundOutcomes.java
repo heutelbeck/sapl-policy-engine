@@ -45,11 +45,11 @@ class StreamRoundOutcomes {
         val context = evaluationContext();
         val root    = (StreamOperator) compileExpression(source.document(), compilationContext());
         val written = new ArrayList<String>();
-        for (val input : source.expectation().lines().filter(line -> line.equals("given") || line.startsWith("given "))
+        for (val input : source.expectation().lines().filter(line -> "given".equals(line) || line.startsWith("given "))
                 .toList()) {
             val observations = new HashMap<SubscriptionKey, AttributeSnapshot>();
             for (val assignment : input.split(" ")) {
-                if (assignment.equals("given")) {
+                if ("given".equals(assignment)) {
                     continue;
                 }
                 val pair  = assignment.split("=", 2);

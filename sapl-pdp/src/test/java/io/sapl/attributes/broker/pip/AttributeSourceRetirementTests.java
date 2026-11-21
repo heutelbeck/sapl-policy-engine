@@ -22,7 +22,6 @@ import static io.sapl.attributes.broker.pip.AttributeSourceReplacementTests.key;
 import static io.sapl.attributes.broker.pip.AttributeSourceReplacementTests.mailboxMonitor;
 import static java.lang.invoke.MethodHandles.lookup;
 import static java.lang.invoke.MethodHandles.privateLookupIn;
-import static java.lang.invoke.MethodType.methodType;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -31,6 +30,7 @@ import java.time.Duration;
 import java.time.InstantSource;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -75,21 +75,28 @@ class AttributeSourceRetirementTests {
 
     @Test
     @DisplayName("a promotion discarded by broker shutdown releases its prepared source outside the routing lock")
-    void whenPromotionFinishesAfterShutdownThenItsUnusedSourceCanDisconnect() throws Throwable {
+    void whenPromotionFinishesAfterShutdownThenItsUnusedSourceCanDisconnect() throws Exception {
         try (val broker = new PolicyInformationPointAttributeBroker()) {
             val routing         = routingLock(broker);
             val heldDuringClose = new AtomicReference<Boolean>();
             val source          = new LatestSlotStream<Value>();
             source.onClose(() -> heldDuringClose.set(routing.isHeldByCurrentThread()));
-            val previous    = new ActiveRepositoryInvocation(key().invocation(), broker);
-            val replacement = active(source);
-            broker.close();
-            // The candidate has been created, but the closed broker rejects its installation.
-            val type    = PolicyInformationPointAttributeBroker.class;
-            val migrate = privateLookupIn(type, lookup()).findVirtual(type, "migrate",
-                    methodType(void.class, ActiveInvocation.class, ActiveInvocation.class));
-            migrate.invoke(broker, previous, replacement);
-            assertThat(replacement.isClosed()).isTrue();
+            val entered = new CompletableFuture<Void>();
+            val release = new CompletableFuture<Void>();
+            try (val reader = broker.open("reader", Set.of(key()), ignored -> Set.of(key()))) {
+                val promotion = CompletableFuture.runAsync(() -> broker.load(new Palette(() -> {
+                    entered.complete(null);
+                    release.orTimeout(LIMIT.toMillis(), TimeUnit.MILLISECONDS).join();
+                    return source;
+                })), Thread::startVirtualThread);
+                try {
+                    entered.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS);
+                    broker.close();
+                } finally {
+                    release.complete(null);
+                }
+                promotion.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS);
+            }
             assertThat(heldDuringClose).as("abandoned source disconnected outside the routing lock").hasValue(false);
         }
     }

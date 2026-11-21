@@ -131,6 +131,11 @@ public interface AttributeBroker extends AutoCloseable {
      * termination without passing an empty set to the broker; see
      * {@link BrokerEvalLoops#openWithHead}.
      *
+     * The PIP implementation recognizes an {@link AttributeSubscriptionObserver} as
+     * a result owner with a failure channel. A terminal infrastructure failure is
+     * serialized with its rounds even if no further complete input can be captured.
+     * Existing implementations can continue using the ordinary update function.
+     *
      * @param subscriptionId non-blank identifier, unique among open subscriptions;
      * reusable after the previous subscription is closed
      * @param initialDependencies non-empty keys discovered by an initial evaluation;

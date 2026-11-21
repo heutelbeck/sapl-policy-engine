@@ -19,7 +19,6 @@ package io.sapl.attributes.broker.pip;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.InstantSource;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -124,13 +124,13 @@ class SharedPipObservationTests {
                         pip.value.put(SECOND);
                         awaitValue(mailbox, SECOND);
                     }
-                    // The independent tick pump drives capture while the value pump remains able to publish.
+                    // The tick pump drives capture while the value pump can receive and timestamp its next observation.
                     audit.armed.set(true);
                     pip.tick.put(TICK);
                     audit.betweenReads.get(5, TimeUnit.SECONDS);
                     if (schedule == Schedule.BETWEEN) {
-                        pip.value.put(SECOND);
-                        awaitValue(mailbox, SECOND);
+                        audit.awaitPublicationDuringCapture(pip, SECOND);
+                        assertThat(mailbox.snapshot().orElseThrow().value()).isEqualTo(FIRST);
                     }
                     audit.resumeCapture.complete(null);
                     // Hold this callback until its first decision passes the public latest-value slot.
@@ -186,8 +186,8 @@ class SharedPipObservationTests {
                     audit.armed.set(true);
                     pip.tick.put(Value.TRUE);
                     audit.betweenReads.get(5, TimeUnit.SECONDS);
-                    pip.value.put(FIRST);
-                    awaitValue(mailbox, FIRST);
+                    audit.awaitPublicationDuringCapture(pip, FIRST);
+                    assertThat(mailbox.snapshot()).isEmpty();
                     audit.resumeCapture.complete(null);
                     val publicResult = stream.awaitNext(LIMIT);
                     assertThat(publicResult).satisfies(decision -> {
@@ -341,9 +341,27 @@ class SharedPipObservationTests {
         private final CompletableFuture<Void>                                                     resumeEvaluation = new CompletableFuture<>();
         private final List<Map<SubscriptionKey, AttributeSnapshot>>                               rounds           = new CopyOnWriteArrayList<>();
 
+        private final AtomicReference<CompletableFuture<Thread>> nextPublication = new AtomicReference<>();
+
+        void awaitPublicationDuringCapture(LabelPip pip, Value value) throws Exception {
+            val sampled = new CompletableFuture<Thread>();
+            nextPublication.set(sampled);
+            pip.value.put(value);
+            val publisher = sampled.get(5, TimeUnit.SECONDS);
+            val type      = PolicyInformationPointAttributeBroker.class;
+            val routing   = (ReentrantLock) privateLookupIn(type, lookup())
+                    .findVarHandle(type, "lock", ReentrantLock.class).get(broker);
+            await().atMost(LIMIT).until(() -> routing.hasQueuedThread(publisher));
+        }
+
         RecordingBroker(LabelPip pip) {
-            this.broker = new PolicyInformationPointAttributeBroker(Duration.ZERO, null,
-                    InstantSource.fixed(Instant.EPOCH));
+            this.broker = new PolicyInformationPointAttributeBroker(Duration.ZERO, null, () -> {
+                val publication = nextPublication.getAndSet(null);
+                if (publication != null) {
+                    publication.complete(Thread.currentThread());
+                }
+                return Instant.EPOCH;
+            });
             broker.load(pip);
         }
 

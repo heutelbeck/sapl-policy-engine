@@ -27,6 +27,7 @@ import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.InstantSource;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -46,21 +48,12 @@ import java.util.function.Consumer;
  * pushes each value into the slot, the subscriber index for dispatch, and the
  * refcount for lifecycle.
  * <p>
- * Hot-swap: {@link #rebind} replaces the source stream atomically without
- * clearing the slot. The prior value stays
- * visible until the new stream emits, so consumers don't see a transient
- * UNDEFINED while a replacement PIP spins up.
- * <p>
- * Locking: two locks in play. The broker's outer lock guards the subscriber
- * index and the refcount, so dispatch and
- * attach/detach stay consistent with the broker's wider state. This class's own
- * lock guards the mailbox plus
- * sourceStream and lifecycle flags. Callers of {@link #attach},
- * {@link #detach}, {@link #subscribers} and
- * {@link #refcount} must hold the broker lock.
- * The notification callback runs after releasing this class's mailbox lock.
- * Capture can acquire that lock while holding the broker lock, so notifying
- * while holding it would invert the lock order.
+ * A replacing PIP retains the previous observation at cutover. The broker
+ * serializes value admission with capture and source replacement. The mailbox monitor
+ * protects the stream identity and lifecycle. Value admission takes the routing lock
+ * before the mailbox monitor. Timestamp sampling, user callbacks and physical disconnect
+ * happen outside both. A retiring pump verifies its stream when committing a value.
+ * Subscriber counts and inverse routes are owned by the routing lock.
  * <p>
  * Accepted publications allocate distinct observation instances, including
  * repeated values under an unchanged clock. Mailbox reads retain that instance.
@@ -84,6 +77,9 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     private final AttributeFinderInvocation invocation;
     private final InstantSource             timestampSource;
     private final Consumer<Value>           onValue;
+
+    private final ReentrantLock              admission;
+    private final Consumer<RuntimeException> onFailure;
 
     // Subscriber index + refcount are guarded by the BROKER lock, not by this
     // class's internal lock. Walking only `subscriberRefs` keeps dispatch
@@ -134,6 +130,20 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
             @Nullable StreamAttributeFinderSpecification sourceSpec,
             InstantSource timestampSource,
             Consumer<Value> onValue) {
+        this(invocation, sourceStream, sourceSpec, timestampSource, onValue, new ReentrantLock(), failure -> {
+            throw failure;
+        });
+    }
+
+    ActivePolicyInformationPointInvocation(AttributeFinderInvocation invocation,
+            @Nullable Stream<Value> sourceStream,
+            @Nullable StreamAttributeFinderSpecification sourceSpec,
+            InstantSource timestampSource,
+            Consumer<Value> onValue,
+            ReentrantLock admission,
+            Consumer<RuntimeException> onFailure) {
+        this.admission       = admission;
+        this.onFailure       = onFailure;
         this.invocation      = invocation;
         this.sourceStream    = sourceStream;
         this.sourceSpec      = sourceSpec;
@@ -167,6 +177,18 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     public Optional<AttributeSnapshot> snapshot() {
         synchronized (lock) {
             return latestSnapshot;
+        }
+    }
+
+    void installPrepared(Stream<Value> prepared) {
+        synchronized (lock) {
+            sourceStream = prepared;
+        }
+    }
+
+    void retainObservation(Optional<AttributeSnapshot> prior) {
+        synchronized (lock) {
+            latestSnapshot = prior;
         }
     }
 
@@ -345,14 +367,34 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     }
 
     private void publishInternal(Value value, @Nullable Stream<Value> publisher) {
-        synchronized (lock) {
-            if (closed || publisher != null && (terminal || publisher != sourceStream)) {
-                return;
-            }
+        Instant observedAt;
+        try {
+            observedAt = timestampSource.instant();
+        } catch (RuntimeException failure) {
             if (publisher == null) {
-                terminal = true;
+                throw failure;
             }
-            latestSnapshot = Optional.of(new AttributeSnapshot(value, timestampSource.instant()));
+            synchronized (lock) {
+                if (closed || terminal || publisher != sourceStream) {
+                    return;
+                }
+            }
+            onFailure.accept(failure);
+            return;
+        }
+        admission.lock();
+        try {
+            synchronized (lock) {
+                if (closed || publisher != null && (terminal || publisher != sourceStream)) {
+                    return;
+                }
+                if (publisher == null) {
+                    terminal = true;
+                }
+                latestSnapshot = Optional.of(new AttributeSnapshot(value, observedAt));
+            }
+        } finally {
+            admission.unlock();
         }
         try {
             onValue.accept(value);

@@ -109,6 +109,29 @@ public record RepositoryState(
         return bindings.getOrDefault(key, ABSENT);
     }
 
+    /** The kind of source fact is independent of the signed binding generation. */
+    public enum Presence {
+        /** A stored binding, including an explicit UNDEFINED. */
+        BOUND,
+        /** Confirmed absence in a complete available view. */
+        UNBOUND,
+        /** The source cannot establish a view. */
+        UNAVAILABLE
+    }
+
+    /**
+     * Identifies the source fact behind a projected value.
+     *
+     * @param key key in this view
+     * @return whether the key is bound, unbound or its source unavailable
+     */
+    public Presence presence(RepositoryKey key) {
+        if (unavailable != null) {
+            return Presence.UNAVAILABLE;
+        }
+        return bindings.containsKey(key) ? Presence.BOUND : Presence.UNBOUND;
+    }
+
     /**
      * Returns the policy-visible value using the same availability and absence
      * rules as {@link #binding(RepositoryKey)}.

@@ -19,6 +19,7 @@ package io.sapl.attributes.broker.pip;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,10 +27,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -54,6 +58,7 @@ import io.sapl.api.shared.Match;
 import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.AttributeSubscriptionObserver;
 import io.sapl.attributes.broker.DispatchCoalescer;
 import io.sapl.attributes.broker.repository.RepositoryState;
 import io.sapl.documentation.LibraryDocumentationExtractor;
@@ -90,14 +95,21 @@ import lombok.val;
  * is propagated as UNDEFINED, never
  * silently replaced by the fallback.
  * <p>
- * Catalog mutations migrate routing as needed. A {@link #swap} that keeps a
- * spec rebinds the existing active invocation
- * in place. A {@link #swap} or {@link PipHandle#unload} that removes a spec
- * migrates the active invocation to the
- * fallback, or terminates it with UNDEFINED when no fallback is configured. A
- * {@link #load} that adds a spec promotes
- * any matching repository-backed or terminal active invocations to PIP-backed
- * ones.
+ * Catalog selection and physical enrollment have distinct lifetimes. A catalog change
+ * selects a source for every affected invocation under the routing lock. A prepared
+ * source can take over only while its selection is still current. Until then the
+ * previously admitted source serves the consumer. At same-shape PIP replacement
+ * its last observation carries forward until the replacement supplies a value.
+ * A consumer of an unloaded PIP retains its interest across fallback, including
+ * the terminal UNDEFINED value when no repository is configured.
+ * <p>
+ * An open reserves all logical interests before calling a finder or enrolling at a repository.
+ * Compatible openers share one physical enrollment. A normal open acknowledges enrollment of
+ * its initial keys before returning. A lazy round reserves newly reached keys and can finish
+ * while their finders are opening, so an update of a known input can withdraw that interest.
+ * Source code can open independent observations. A synchronous nested wait for an already
+ * unfinished enrollment is rejected because its owner can depend on the calling source.
+ * Broker-mediated wakes on a source stack are delivered by an independent, coalescing worker.
  * <p>
  * Repository values use one observation per active tenant/configuration route.
  * A callback supplies a complete {@link RepositoryState}. The broker rejects
@@ -153,6 +165,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_REPOSITORY_CLOSE        = "Failed to close the repository observation for '{}'.";
     private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set). Ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
+    private static final String ERROR_SOURCE_WAIT             = "A source cannot wait for another unfinished attribute registration.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE  = "subscriptionId already open: %s";
 
@@ -162,8 +175,23 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             true);
     private final Map<PipHandleImpl, List<StreamAttributeFinderSpecification>> handleSpecs                   = new LinkedHashMap<>();
     private final Map<AttributeFinderInvocation, List<ActiveInvocation>>       activeInvocationsByInvocation = new HashMap<>();
-    private final Map<ActiveInvocation, ScheduledFuture<?>>                    pendingTeardowns              = new HashMap<>();
-    private final Map<String, BrokerSubscription>                              consumerSubscriptions         = new HashMap<>();
+    // The current attempt, even when two successive changes choose the same provider.
+    private final Map<ActiveInvocation, SourceChange>  changingSources       = new HashMap<>();
+    private final Map<ActiveInvocation, GraceInterval> pendingTeardowns      = new HashMap<>();
+    private final Map<String, BrokerSubscription>      consumerSubscriptions = new HashMap<>();
+
+    // Private completions have only blocking waiters. No user continuation can run under the routing lock.
+    private final Map<ActiveInvocation, Enrollment> openings = new IdentityHashMap<>();
+
+    private record RoutingChanges(
+            List<ActiveInvocation> retired,
+            Map<ActiveInvocation, Enrollment> openings,
+            boolean ready) {}
+
+    private static final class Enrollment {
+        final CompletableFuture<@Nullable RuntimeException> ready = new CompletableFuture<>();
+        boolean                                             claimed;
+    }
 
     private final Map<RepositoryRoute, RepositoryObservation> repositoryObservations = new HashMap<>();
 
@@ -277,51 +305,88 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         val newSpecs      = extractSpecs(pipInstance, namespace);
         val documentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(pipInstance.getClass());
 
-        PipHandleImpl handle;
-        val           promotions = new LinkedHashMap<ActiveInvocation, StreamAttributeFinderSpecification>();
+        PipHandleImpl      handle;
+        List<SourceChange> promotions;
         lock.lock();
 
         try {
             checkCollisions(namespace, newSpecs, null);
             handle = new PipHandleImpl(namespace, documentation);
             handleSpecs.put(handle, List.copyOf(newSpecs));
-            promotions.putAll(collectPromotions());
+            promotions = selectChanges(Map.of(), List.of());
             log.debug("Loaded PIP '{}' with {} attribute(s)", namespace, newSpecs.size());
         } finally {
 
             lock.unlock();
 
         }
-        applyPromotions(promotions);
+        promotions.forEach(this::applyChange);
         return handle;
     }
 
-    /**
-     * Collects fallback-backed or terminal active invocations that now resolve to
-     * a registered spec, so they can be promoted to PIP-backed. Must be called
-     * holding {@link #lock} after the new specs are installed; the migrations
-     * themselves run outside the lock via {@link #applyPromotions}.
-     */
-    private Map<ActiveInvocation, StreamAttributeFinderSpecification> collectPromotions() {
-        val promotions = new LinkedHashMap<ActiveInvocation, StreamAttributeFinderSpecification>();
-        for (val active : allActive()) {
-            if (active.sourceSpec() != null) {
-                continue;
-            }
-            resolve(active.invocation()).ifPresent(spec -> promotions.put(active, spec));
-        }
-        return promotions;
-    }
+    private record SourceChange(ActiveInvocation previous, @Nullable StreamAttributeFinderSpecification desired) {}
 
     /**
-     * Migrates the collected promotions to PIP-backed invocations. Call outside
-     * {@link #lock}; {@link #migrate} preserves the prior value until the new
-     * source emits, so a promotion is invisible to consumers.
+     * Caller holds the routing lock. A later change follows the desired catalog entry even
+     * while its predecessor is still opening. Unrelated loads preserve an active PIP selection.
      */
-    private void applyPromotions(Map<ActiveInvocation, StreamAttributeFinderSpecification> promotions) {
-        for (val entry : promotions.entrySet()) {
-            migrate(entry.getKey(), newActivePipInvocation(entry.getKey().invocation(), entry.getValue()));
+    private List<SourceChange> selectChanges(
+            Map<StreamAttributeFinderSpecification, StreamAttributeFinderSpecification> swapped,
+            List<StreamAttributeFinderSpecification> evicted) {
+        val changes = new ArrayList<SourceChange>();
+        for (val active : allActive()) {
+            val prior    = changingSources.get(active);
+            val selected = prior == null ? active.sourceSpec() : prior.desired();
+            val desired  = desiredSource(active, selected, swapped, evicted);
+            if (desired == selected) {
+                continue;
+            }
+            if (desired == active.sourceSpec() && !openings.containsKey(active)) {
+                changingSources.remove(active);
+            } else {
+                val change = new SourceChange(active, desired);
+                changingSources.put(active, change);
+                changes.add(change);
+            }
         }
+        return changes;
+    }
+
+    private @Nullable StreamAttributeFinderSpecification desiredSource(ActiveInvocation active,
+            @Nullable StreamAttributeFinderSpecification selected,
+            Map<StreamAttributeFinderSpecification, StreamAttributeFinderSpecification> swapped,
+            List<StreamAttributeFinderSpecification> evicted) {
+        if (selected == null) {
+            return resolve(active.invocation()).orElse(null);
+        }
+        val replacement = swapped.get(selected);
+        if (replacement != null || evicted.contains(selected)) {
+            return replacement;
+        }
+        return selected;
+    }
+
+    private void applyChange(SourceChange change) {
+        val              previous    = change.previous();
+        val              invocation  = previous.invocation();
+        ActiveInvocation replacement = null;
+        try {
+            if (change.desired() != null) {
+                replacement = newActivePipInvocation(invocation, change.desired(), previous.sourceSpec() != null);
+            } else if (fallback != null) {
+                replacement = new ActiveRepositoryInvocation(invocation, this);
+                replacement.start();
+            } else {
+                replacement = newTerminalActiveInvocation(invocation);
+            }
+        } catch (RuntimeException failure) {
+            if (replacement != null) {
+                release(replacement);
+            }
+            failAdmission(previous, null, change, failure);
+            return;
+        }
+        migrate(previous, replacement, change);
     }
 
     /**
@@ -333,7 +398,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * {@code oldHandle} but have no shape match in
      * {@code newInstance} are evicted. Their active invocations migrate to the
      * fallback when one is configured,
-     * otherwise they publish {@link Value#UNDEFINED} and close. Specs new in
+     * otherwise their consumers observe {@link Value#UNDEFINED} until a matching PIP is loaded. Specs new in
      * {@code newInstance} promote any existing fallback-backed or terminal
      * active invocation that now resolves to them, exactly as {@link #load}
      * does, as well as serving future invocations.
@@ -364,11 +429,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         val newSpecs         = extractSpecs(newInstance, newNamespace);
         val newDocumentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(newInstance.getClass());
 
-        SwapPlan                                                  plan;
-        Affected                                                  affected;
-        PipHandleImpl                                             newHandle;
-        Map<ActiveInvocation, StreamAttributeFinderSpecification> promotions;
-
+        SwapPlan           plan;
+        PipHandleImpl      newHandle;
+        List<SourceChange> changes;
         lock.lock();
 
         try {
@@ -385,30 +448,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             newHandle = new PipHandleImpl(newNamespace, newDocumentation);
             handleSpecs.put(newHandle, List.copyOf(newSpecs));
 
-            affected = collectAffected(plan);
-            // New specs are installed. Promote any fallback/terminal invocation that now
-            // resolves to one of them, mirroring load(). Migration runs outside the lock.
-            promotions = collectPromotions();
+            changes = selectChanges(plan.swapped, plan.evictedOnly);
         } finally {
 
             lock.unlock();
 
         }
 
-        // Outside the lock: rebind / evict. invoke(...) on the new spec may throw or
-        // block.
-        val fallbackRepository = fallback;
-        for (val entry : affected.swapped.entrySet()) {
-            rebind(entry.getKey(), entry.getValue());
-        }
-        for (val active : affected.evicted) {
-            if (fallbackRepository != null) {
-                migrate(active, new ActiveRepositoryInvocation(active.invocation(), this));
-            } else {
-                discard(active);
-            }
-        }
-        applyPromotions(promotions);
+        changes.forEach(this::applyChange);
 
         log.debug("Swapped PIP '{}': {} attribute(s) rebound, {} evicted, {} added", newNamespace, plan.swapped.size(),
                 plan.evictedOnly.size(), plan.addedOnly.size());
@@ -432,35 +479,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         return new SwapPlan(swapped, evictedOnly, addedOnly);
     }
 
-    private Affected collectAffected(SwapPlan plan) {
-        val swapped = new LinkedHashMap<ActivePolicyInformationPointInvocation, StreamAttributeFinderSpecification>();
-        val evicted = new ArrayList<ActivePolicyInformationPointInvocation>();
-        for (val active : allActive()) {
-            if (!(active instanceof ActivePolicyInformationPointInvocation pip)) {
-                continue;
-            }
-            val oldSpec = pip.sourceSpec();
-            if (oldSpec == null) {
-                continue;
-            }
-            val newSpec = plan.swapped.get(oldSpec);
-            if (newSpec != null) {
-                swapped.put(pip, newSpec);
-            } else if (plan.evictedOnly.contains(oldSpec)) {
-                evicted.add(pip);
-            }
-        }
-        return new Affected(swapped, evicted);
-    }
-
     private record SwapPlan(
             Map<StreamAttributeFinderSpecification, StreamAttributeFinderSpecification> swapped,
             List<StreamAttributeFinderSpecification> evictedOnly,
             List<StreamAttributeFinderSpecification> addedOnly) {}
-
-    private record Affected(
-            Map<ActivePolicyInformationPointInvocation, StreamAttributeFinderSpecification> swapped,
-            List<ActivePolicyInformationPointInvocation> evicted) {}
 
     /**
      * Lists the currently loaded PIP handles.
@@ -553,76 +575,63 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         if (subscriptionId.isBlank()) {
             throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_BLANK);
         }
-        if (initialDependencies.isEmpty()) {
+        val keys = new LinkedHashSet<>(initialDependencies);
+        if (keys.isEmpty()) {
             throw new IllegalArgumentException(ERROR_DEPS_EMPTY);
         }
 
-        BrokerSubscription     subscription    = null;
-        RuntimeException       setupFailure    = null;
-        List<ActiveInvocation> rollback        = List.of();
-        boolean                fireImmediately = false;
-        lock.lock();
-
+        val subscription = new BrokerSubscription(subscriptionId, keys, onUpdate);
         try {
-            if (closed) {
-                throw new IllegalStateException(ERROR_BROKER_CLOSED);
+            subscription.reconcile(keys, true);
+            for (val key : keys) {
+                subscription.awaitEnrollment(key);
             }
-            if (consumerSubscriptions.containsKey(subscriptionId)) {
-                throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_IN_USE.formatted(subscriptionId));
+            lock.lock();
+            try {
+                if (subscription.pendingFailure != null) {
+                    throw subscription.pendingFailure;
+                }
+                subscription.enrolled = true;
+            } finally {
+                lock.unlock();
             }
-            subscription = new BrokerSubscription(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
-            for (val key : initialDependencies) {
-                // Get the active invocation for this key, reusing an existing one if possible.
-                val activeInvocation = activeInvocationFor(key);
-                // Record the route so dispatch can find the active invocation for this key.
-                subscription.routingTable.put(key, activeInvocation);
-                // Attach this subscription to the active invocation for refcount bookkeeping.
-                activeInvocation.attach(subscription);
-            }
-            // Register the subscription in the broker's consumer index.
-            consumerSubscriptions.put(subscriptionId, subscription);
-            fireImmediately = subscription.isReadyForRound();
-        } catch (RuntimeException e) {
-            // Roll back dependencies attached so far. The subscription was never
-            // registered.
-            if (subscription != null) {
-                rollback = subscription.detachUnderLock();
-            }
-            setupFailure = e;
-        } finally {
-
-            lock.unlock();
-
+        } catch (RuntimeException failure) {
+            subscription.close();
+            throw failure;
         }
-        if (setupFailure != null) {
-            if (subscription != null) {
-                rollback.forEach(subscription::handleRefcountZero);
-            }
-            throw setupFailure;
-        }
-        log.trace("Opened subscription '{}' with {} dependency(ies)", subscriptionId, initialDependencies.size());
-        if (fireImmediately) {
-            subscription.fireCallback();
-        }
+        subscription.fireCallback();
         return subscription;
     }
 
     @Override
     public void close() {
         Collection<ActiveInvocation> activeToClose;
+        val                          registrations = new HashMap<RepositoryRoute, AttributeRepository.StateRegistration>();
         lock.lock();
 
         try {
-            closed = true;
-            // Seal subscriptions under the activation lock before releasing any sources.
-            for (val subscription : consumerSubscriptions.values()) {
-                subscription.markClosed();
-            }
+            closed        = true;
             activeToClose = new ArrayList<>(allActive());
+            // Seal subscriptions under the activation lock before releasing any sources.
+            for (val subscription : List.copyOf(consumerSubscriptions.values())) {
+                subscription.detachUnderLock();
+            }
+            // A route preparing a catalog handoff can have a lease before its backing is in the sharing index.
+            repositoryObservations.forEach((route, observation) -> {
+                if (observation.registration != null) {
+                    registrations.put(route, observation.registration);
+                }
+                observation.opened.complete(null);
+                observation.active.clear();
+            });
+            repositoryObservations.clear();
+            openings.values().forEach(opening -> opening.ready.complete(null));
+            openings.clear();
+            changingSources.clear();
             consumerSubscriptions.clear();
             activeInvocationsByInvocation.clear();
             for (val teardownTask : pendingTeardowns.values()) {
-                teardownTask.cancel(false);
+                teardownTask.future.cancel(false);
             }
             pendingTeardowns.clear();
         } finally {
@@ -630,8 +639,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.unlock();
 
         }
+        registrations.forEach(this::closeRegistration);
         for (val active : activeToClose) {
-            active.close();
+            release(active);
         }
         teardownScheduler.shutdownNow();
     }
@@ -729,7 +739,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * own attachment; later non-fresh requests may reuse any live entry,
      * including one created for a still-attached fresh consumer.
      */
-    private ActiveInvocation activeInvocationFor(SubscriptionKey key) {
+    private ActiveInvocation activeInvocationFor(SubscriptionKey key, @Nullable Instant observedAt) {
         val invocation = key.invocation();
         // Normalize to ignore the "fresh" flag for deduping. Ugly but functional.
         val normalizedInvocation = normalizeInvocation(invocation);
@@ -748,10 +758,24 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
         }
         // No reusable entry or a fresh stream was explicitly requested. Create one.
-        val active = activateInvocationFor(normalizedInvocation);
-        // Add to per-invocation list so future non-fresh consumers can attach to it.
+        val              spec = resolve(normalizedInvocation).orElse(null);
+        ActiveInvocation active;
+        if (spec == null && fallback != null) {
+            active = new ActiveRepositoryInvocation(normalizedInvocation, this);
+        } else {
+            active = unstartedPip(normalizedInvocation, spec);
+        }
         activeInvocations.add(active);
+        if (!(active instanceof ActiveRepositoryInvocation repo && observedAt != null
+                && projectCurrentView(repo, observedAt))) {
+            openings.put(active, new Enrollment());
+        }
         return active;
+    }
+
+    /** A provisional cold source cannot contribute data until its enrollment wins admission. */
+    private Optional<AttributeSnapshot> admittedSnapshot(ActiveInvocation active) {
+        return openings.containsKey(active) ? Optional.empty() : active.snapshot();
     }
 
     /**
@@ -769,45 +793,114 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 invocation.pollInterval(), invocation.backoff(), invocation.retries(), false, invocation.ctx());
     }
 
-    /**
-     * Caller holds the broker lock.
-     * <p>
-     * Routes by catalog state at activation time. A PIP match yields an
-     * {@link ActivePolicyInformationPointInvocation}
-     * fed by an {@link AttributeStream} (poll / retry / timeout cycle around the
-     * PIP). No PIP match and a configured
-     * fallback yields an {@link ActiveRepositoryInvocation} observing the fallback.
-     * No PIP match and no fallback yields
-     * a terminal active invocation preloaded with {@link Value#UNDEFINED}.
-     * <p>
-     * The PIP receives the normalized invocation (with {@code fresh} zeroed).
-     * {@code fresh} is a broker-internal flag
-     * and never leaves this layer.
-     */
-    private ActiveInvocation activateInvocationFor(AttributeFinderInvocation invocation) {
-        val maybeAttributeFinderSpec = resolve(invocation);
-        if (maybeAttributeFinderSpec.isPresent()) {
-            val activeInvocation = newActivePipInvocation(invocation, maybeAttributeFinderSpec.get());
-            activeInvocation.start();
-            return activeInvocation;
-        }
-        val fallbackRepository = fallback;
-        if (fallbackRepository != null) {
-            val active = new ActiveRepositoryInvocation(invocation, this);
-            active.start();
-            return active;
-        }
-        return newTerminalActiveInvocation(invocation);
+    private Instant observationTime() {
+        return Objects.requireNonNull(AttributeSourceCall.invoke(timestampSource::instant));
     }
 
-    private ActivePolicyInformationPointInvocation newActivePipInvocation(AttributeFinderInvocation normalized,
-            StreamAttributeFinderSpecification spec) {
-        val                     holder    = new ActivePolicyInformationPointInvocation[1];
-        Supplier<Stream<Value>> innerOpen = openSyncFirstThenLazy(innerStreamSupplier(spec, normalized));
-        val                     stream    = new AttributeStream(normalized, innerOpen);
-        holder[0] = new ActivePolicyInformationPointInvocation(normalized, stream, spec, timestampSource,
-                value -> dispatchValue(holder[0]));
+    private ActivePolicyInformationPointInvocation unstartedPip(AttributeFinderInvocation invocation,
+            @Nullable StreamAttributeFinderSpecification spec) {
+        val holder = new ActivePolicyInformationPointInvocation[1];
+        holder[0] = new ActivePolicyInformationPointInvocation(invocation, null, spec, this::observationTime,
+                value -> dispatchValue(holder[0]), lock, failure -> failAdmission(holder[0], null, null, failure));
         return holder[0];
+    }
+
+    private static void release(ActiveInvocation active) {
+        AttributeSourceCall.invoke(() -> {
+            active.close();
+            return null;
+        });
+    }
+
+    private static void awaitEnrollment(CompletableFuture<@Nullable RuntimeException> ready) {
+        if (AttributeSourceCall.active() && !ready.isDone()) {
+            throw new IllegalStateException(ERROR_SOURCE_WAIT);
+        }
+        val failure = ready.join();
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    /** Initial callers acknowledge enrollment. A lazy reconciliation only reserves a worker. */
+    private void enroll(ActiveInvocation active, Enrollment opening, boolean wait) {
+        boolean claim;
+        lock.lock();
+        try {
+            if (openings.get(active) != opening) {
+                return;
+            }
+            claim           = !opening.claimed;
+            opening.claimed = true;
+        } finally {
+            lock.unlock();
+        }
+        if (claim) {
+            if (wait && AttributeSourceCall.active()) {
+                // An independent, unclaimed nested source can be prepared on this stack.
+                finishEnrollment(active, opening);
+            } else {
+                Thread.startVirtualThread(() -> finishEnrollment(active, opening));
+            }
+        }
+        if (wait) {
+            awaitEnrollment(opening.ready);
+        }
+    }
+
+    private void finishEnrollment(ActiveInvocation active, Enrollment opening) {
+        try {
+            prepare(active, opening);
+            lock.lock();
+            try {
+                if (!changingSources.containsKey(active) && openings.remove(active, opening)) {
+                    opening.ready.complete(null);
+                }
+            } finally {
+                lock.unlock();
+            }
+            dispatchValue(active);
+        } catch (RuntimeException failure) {
+            failAdmission(active, opening, null, failure);
+        }
+    }
+
+    private void prepare(ActiveInvocation active, Enrollment opening) {
+        if (!(active instanceof ActivePolicyInformationPointInvocation pip)) {
+            active.start();
+            return;
+        }
+        val spec = pip.sourceSpec();
+        if (spec == null) {
+            pip.publishImmediate(Value.UNDEFINED);
+            return;
+        }
+        val     invocation = active.invocation();
+        val     prepared   = AttributeSourceCall.invoke(() -> new AttributeStream(invocation,
+                openSyncFirstThenLazy(innerStreamSupplier(spec, invocation)), false));
+        boolean accepted;
+        lock.lock();
+        try {
+            accepted = openings.get(active) == opening && !changingSources.containsKey(active) && !closed;
+            if (accepted) {
+                pip.installPrepared(prepared);
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (accepted) {
+            pip.start();
+        } else {
+            prepared.close();
+        }
+    }
+
+    private ActivePolicyInformationPointInvocation newActivePipInvocation(AttributeFinderInvocation invocation,
+            StreamAttributeFinderSpecification spec, boolean replacing) {
+        val active = unstartedPip(invocation, spec);
+        active.installPrepared(AttributeSourceCall.invoke(() -> new AttributeStream(invocation,
+                openSyncFirstThenLazy(innerStreamSupplier(spec, invocation)), replacing)));
+        return active;
     }
 
     /**
@@ -865,7 +958,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             val unclaimed = first.getAndSet(null);
             if (unclaimed != null) {
                 try {
-                    unclaimed.close();
+                    AttributeSourceCall.close(unclaimed);
                 } catch (RuntimeException ignored) {
                     // best-effort cleanup of an abandoned synchronous open
                 }
@@ -880,85 +973,186 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     private static final class RepositoryObservation {
-        private final Set<ActiveRepositoryInvocation>           active = new HashSet<>();
-        private AttributeRepository.@Nullable StateRegistration registration;
-        private @Nullable RepositoryState                       latest;
+        final Set<ActiveRepositoryInvocation>               active = new HashSet<>();
+        final CompletableFuture<@Nullable RuntimeException> opened = new CompletableFuture<>();
+        AttributeRepository.@Nullable StateRegistration     registration;
+        @Nullable
+        RepositoryState                                     latest;
+        @Nullable
+        Instant                                             observedAt;
     }
 
-    /**
-     * Attaches a key to its route's shared source observation. Caller may already
-     * hold the routing lock. Register before consuming the fixed initial view:
-     * a successor callback can arrive first and must not be overwritten by an
-     * older initial revision. The key is then projected from the newest accepted
-     * view, without a separate source read that could cross a commit boundary.
-     */
+    /** An additional projection joins the latest accepted complete view under the capture lock. */
+    private boolean projectCurrentView(ActiveRepositoryInvocation active, Instant observedAt) {
+        val observation = repositoryObservations.get(new RepositoryRoute(active.invocation()));
+        if (observation == null || observation.registration == null) {
+            return false;
+        }
+        observation.active.add(active);
+        active.install(observation.latest, observedAt);
+        return true;
+    }
+
     void startRepositoryInvocation(ActiveRepositoryInvocation active) {
-        boolean changed;
+        val                   route = new RepositoryRoute(active.invocation());
+        RepositoryObservation observation;
+        boolean               acquire;
         lock.lock();
         try {
             if (closed || active.isClosed() || fallback == null) {
                 return;
             }
-            val route       = new RepositoryRoute(active.invocation());
-            var observation = repositoryObservations.get(route);
-            if (observation == null) {
-                val opened = new RepositoryObservation();
-                repositoryObservations.put(route, opened);
-                try {
-                    opened.registration = fallback.observeState(route.pdpId(), route.configurationId(),
-                            state -> installRepositoryState(route, opened, state));
-                    val initial = opened.registration.initialState();
-                    if (opened.latest == null || opened.latest.revision() < initial.revision()) {
-                        opened.latest = initial;
-                    }
-                } catch (RuntimeException e) {
-                    repositoryObservations.remove(route);
-                    if (opened.registration != null) {
-                        opened.registration.close();
-                    }
-                    throw e;
-                }
-                observation = opened;
+            observation = repositoryObservations.get(route);
+            acquire     = observation == null;
+            if (acquire) {
+                observation = new RepositoryObservation();
+                repositoryObservations.put(route, observation);
             }
             observation.active.add(active);
-            changed = active.install(observation.latest, timestampSource.instant());
+
         } finally {
             lock.unlock();
         }
-        if (changed) {
-            dispatchValue(active);
+        if (acquire) {
+            acquireRepository(route, observation);
+        }
+        awaitEnrollment(observation.opened);
+        if (!acquire) {
+            val observedAt = observationTime();
+            lock.lock();
+            try {
+                if (!active.isClosed() && repositoryObservations.get(route) == observation
+                        && observation.registration != null) {
+                    active.install(observation.latest, observedAt);
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
+        dispatchValue(active);
+    }
+
+    private void acquireRepository(RepositoryRoute route, RepositoryObservation observation) {
+        AttributeRepository.StateRegistration candidate = null;
+        try {
+            candidate = AttributeSourceCall.invoke(() -> fallback.observeState(route.pdpId(), route.configurationId(),
+                    state -> installRepositoryState(route, observation, state)));
+            val lease   = candidate;
+            val initial = AttributeSourceCall.invoke(lease::initialState);
+            installRepositoryState(route, observation, initial);
+            Set<BrokerSubscription> affected = Set.of();
+            lock.lock();
+            try {
+                if (!closed && repositoryObservations.get(route) == observation) {
+                    observation.registration = candidate;
+                    candidate                = null;
+                    affected                 = installProjections(observation);
+                    observation.opened.complete(null);
+                }
+            } finally {
+                lock.unlock();
+            }
+            affected.forEach(BrokerSubscription::fireCallback);
+        } catch (RuntimeException failure) {
+            failRepository(route, observation, null, failure);
+        } finally {
+            if (candidate != null) {
+                closeRegistration(route, candidate);
+            }
         }
     }
 
-    /**
-     * Installs one complete route view under the same lock as round capture.
-     * Check both registration identity and revision: numbering may restart for
-     * a replacement observation, and an old callback may survive detachment.
-     * Update every active projection before testing gates or requesting wakes.
-     * Full-view comparison also carries disjoint changes across skipped revisions.
-     */
+    private boolean newer(RepositoryRoute route, RepositoryObservation observation, RepositoryState state) {
+        return !closed && repositoryObservations.get(route) == observation
+                && (observation.latest == null || state.revision() > observation.latest.revision());
+    }
+
     private void installRepositoryState(RepositoryRoute route, RepositoryObservation observation,
             RepositoryState next) {
-        val affected = new HashSet<BrokerSubscription>();
         lock.lock();
         try {
-            if (closed || repositoryObservations.get(route) != observation
-                    || observation.latest != null && next.revision() <= observation.latest.revision()) {
+            if (!newer(route, observation, next)) {
                 return;
             }
-            val observedAt = timestampSource.instant();
-            observation.latest = next;
-            for (val active : observation.active) {
-                if (active.install(next, observedAt)) {
-                    affected.addAll(active.subscribers());
-                }
+        } finally {
+            lock.unlock();
+        }
+        Instant observedAt;
+        try {
+            observedAt = observationTime();
+        } catch (RuntimeException failure) {
+            failRepository(route, observation, next, failure);
+            return;
+        }
+        Set<BrokerSubscription> affected;
+        lock.lock();
+        try {
+            if (!newer(route, observation, next)) {
+                return;
             }
-            // Test readiness only after all aliases have moved to the same source revision.
-            affected.removeIf(subscription -> !subscription.isReadyForRound());
+            observation.latest     = next;
+            observation.observedAt = observedAt;
+            affected               = observation.registration == null ? Set.of() : installProjections(observation);
         } finally {
             lock.unlock();
         }
         affected.forEach(BrokerSubscription::fireCallback);
+    }
+
+    private static Set<BrokerSubscription> installProjections(RepositoryObservation observation) {
+        val affected = new HashSet<BrokerSubscription>();
+        for (val active : observation.active) {
+            if (active.install(observation.latest, observation.observedAt)) {
+                affected.addAll(active.subscribers());
+            }
+        }
+        affected.removeIf(subscription -> !subscription.isReadyForRound());
+        return affected;
+    }
+
+    private void failRepository(RepositoryRoute route, RepositoryObservation observation,
+            @Nullable RepositoryState failed, RuntimeException failure) {
+        val                                   affected = new HashSet<BrokerSubscription>();
+        AttributeRepository.StateRegistration registration;
+        lock.lock();
+        try {
+            if (closed || repositoryObservations.get(route) != observation
+                    || failed != null && !newer(route, observation, failed)) {
+                return;
+            }
+            repositoryObservations.remove(route);
+            registration = observation.registration;
+            observation.opened.complete(failure);
+            for (val active : observation.active) {
+                val opening = openings.get(active);
+                if (opening != null) {
+                    opening.ready.complete(failure);
+                }
+                affected.addAll(active.subscribers());
+                cancelPendingTeardown(active);
+                removeFromList(active);
+            }
+            observation.active.clear();
+            observation.registration = null;
+            affected.forEach(handle -> handle.pendingFailure = failure);
+        } finally {
+            lock.unlock();
+        }
+        affected.forEach(BrokerSubscription::fireCallback);
+        if (registration != null) {
+            closeRegistration(route, registration);
+        }
+    }
+
+    private void closeRegistration(RepositoryRoute route, AttributeRepository.StateRegistration registration) {
+        try {
+            AttributeSourceCall.invoke(() -> {
+                registration.close();
+                return null;
+            });
+        } catch (RuntimeException failure) {
+            log.error(ERROR_REPOSITORY_CLOSE, route.pdpId(), failure);
+        }
     }
 
     /**
@@ -975,26 +1169,47 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             val observation = repositoryObservations.get(route);
             if (observation != null && observation.active.remove(active) && observation.active.isEmpty()) {
                 repositoryObservations.remove(route);
+                observation.opened.complete(null);
                 toClose = observation.registration;
             }
         } finally {
             lock.unlock();
         }
         if (toClose != null) {
-            try {
-                toClose.close();
-            } catch (RuntimeException failure) {
-                log.error(ERROR_REPOSITORY_CLOSE, active.invocation().pdpId(), failure);
-            }
+            closeRegistration(new RepositoryRoute(active.invocation()), toClose);
         }
     }
 
     private ActivePolicyInformationPointInvocation newTerminalActiveInvocation(AttributeFinderInvocation normalized) {
-        val holder = new ActivePolicyInformationPointInvocation[1];
-        holder[0] = new ActivePolicyInformationPointInvocation(normalized, null, null, timestampSource,
-                value -> dispatchValue(holder[0]));
-        holder[0].publishImmediate(Value.UNDEFINED);
-        return holder[0];
+        val terminal = unstartedPip(normalized, null);
+        terminal.publishImmediate(Value.UNDEFINED);
+        return terminal;
+    }
+
+    /** Retires a failed producer or enrollment only while it owns the selected source. */
+    private void failAdmission(ActiveInvocation active, @Nullable Enrollment expected, @Nullable SourceChange selection,
+            RuntimeException failure) {
+        List<BrokerSubscription> affected;
+        lock.lock();
+        try {
+            val residents = activeInvocationsByInvocation.get(active.invocation());
+            if (residents == null || !residents.contains(active) || expected != null && openings.get(active) != expected
+                    || (expected != null || selection != null) && changingSources.get(active) != selection) {
+                return;
+            }
+            val opening = openings.get(active);
+            if (opening != null) {
+                opening.ready.complete(failure);
+            }
+            cancelPendingTeardown(active);
+            removeFromList(active);
+            affected = List.copyOf(active.subscribers());
+            affected.forEach(handle -> handle.pendingFailure = failure);
+        } finally {
+            lock.unlock();
+        }
+        affected.forEach(BrokerSubscription::fireCallback);
+        release(active);
     }
 
     /**
@@ -1011,33 +1226,42 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * demotes PIP-backed active invocations whose spec is gone to repository-backed
      * or terminal.
      */
-    private void migrate(ActiveInvocation previous, ActiveInvocation replacement) {
-        if (!replaceRoutes(previous, replacement)) {
-            replacement.close();
+    private void migrate(ActiveInvocation previous, ActiveInvocation replacement, SourceChange change) {
+        if (!replaceRoutes(previous, replacement, change)) {
+            release(replacement);
             return;
         }
-        replacement.start();
-        previous.close();
+        if (replacement instanceof ActivePolicyInformationPointInvocation) {
+            replacement.start();
+        }
+        release(previous);
+        dispatchValue(replacement);
         reclaimIfOrphaned(replacement);
     }
 
-    private boolean replaceRoutes(ActiveInvocation previous, ActiveInvocation replacement) {
+    private boolean replaceRoutes(ActiveInvocation previous, ActiveInvocation replacement, SourceChange change) {
         lock.lock();
         try {
-            if (closed) {
+            if (closed || changingSources.get(previous) != change) {
                 return false;
             }
-            val activeInvocations = activeInvocationsByInvocation.get(previous.invocation());
-            if (activeInvocations != null) {
-                val index = activeInvocations.indexOf(previous);
-                if (index >= 0) {
-                    activeInvocations.set(index, replacement);
-                } else {
-                    activeInvocations.add(replacement);
-                }
-            } else {
-                activeInvocationsByInvocation.computeIfAbsent(previous.invocation(), key -> new ArrayList<>())
-                        .add(replacement);
+            val residents = activeInvocationsByInvocation.get(previous.invocation());
+            if (residents == null) {
+                return false;
+            }
+            val index = residents.indexOf(previous);
+            if (index < 0) {
+                return false;
+            }
+            if (replacement instanceof ActivePolicyInformationPointInvocation pip && previous.sourceSpec() != null
+                    && replacement.sourceSpec() != null) {
+                pip.retainObservation(previous.snapshot());
+            }
+            changingSources.remove(previous);
+            residents.set(index, replacement);
+            val opening = openings.remove(previous);
+            if (opening != null) {
+                opening.ready.complete(null);
             }
             cancelPendingTeardown(previous);
             val subscribersSnapshot = new ArrayList<>(previous.subscribers());
@@ -1056,41 +1280,35 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
     }
 
-    /**
-     * Caller must not hold the broker lock. If {@code invocation} has no
-     * subscribers, applies the same teardown policy
-     * as a refcount-zero drop: schedules a grace-period teardown, or removes and
-     * closes it when there is no grace
-     * window. {@link #migrate} transfers the old invocation's subscribers to the
-     * replacement, but when the old
-     * invocation was in its refcount-zero grace window there are none to transfer,
-     * so the replacement is promoted with
-     * no subscribers. Because {@code handleRefcountZero} only fires on a consumer
-     * detach, such a born-orphaned
-     * replacement would never be reclaimed and its pump would run for the life of
-     * the broker. This closes that gap
-     * defensively.
-     */
-    private void reclaimIfOrphaned(ActiveInvocation invocation) {
+    /** A catalog handoff during a grace interval can create a replacement with no subscriber. */
+    private void reclaimIfOrphaned(ActiveInvocation active) {
+        boolean releaseNow;
         lock.lock();
         try {
-            if (invocation.refcount() > 0) {
-                return;
-            }
-            val activeInvocations = activeInvocationsByInvocation.get(invocation.invocation());
-            val teardownNow       = (activeInvocations != null && activeInvocations.size() > 1)
-                    || gracePeriodDuration.isZero();
-            if (!teardownNow) {
-                if (!pendingTeardowns.containsKey(invocation)) {
-                    scheduleTeardown(invocation);
-                }
-                return;
-            }
-            removeFromList(invocation);
+            releaseNow = retireIfUnused(active);
         } finally {
             lock.unlock();
         }
-        invocation.close();
+        if (releaseNow) {
+            release(active);
+        }
+    }
+
+    /** Drops zero-grace ownership in the same transition as the last detach. */
+    private boolean retireIfUnused(ActiveInvocation active) {
+        val residents = activeInvocationsByInvocation.get(active.invocation());
+        if (active.refcount() > 0 || residents == null || !residents.contains(active)) {
+            return false;
+        }
+        if (!closed && residents.size() == 1 && !gracePeriodDuration.isZero()) {
+            if (!pendingTeardowns.containsKey(active)) {
+                scheduleTeardown(active);
+            }
+            return false;
+        }
+        cancelPendingTeardown(active);
+        removeFromList(active);
+        return true;
     }
 
     /**
@@ -1106,7 +1324,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      */
     private static Supplier<Stream<Value>> innerStreamSupplier(StreamAttributeFinderSpecification spec,
             AttributeFinderInvocation invocation) {
-        return () -> spec.attributeFinder().invoke(invocation);
+        return () -> AttributeSourceCall.invoke(() -> spec.attributeFinder().invoke(invocation));
     }
 
     /**
@@ -1121,40 +1339,17 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         return everyActive;
     }
 
-    private void rebind(ActivePolicyInformationPointInvocation active, StreamAttributeFinderSpecification newSpec) {
-        val           supplier  = openSyncFirstThenLazy(innerStreamSupplier(newSpec, active.invocation()));
-        Stream<Value> newStream = new AttributeStream(active.invocation(), supplier, true);
-        active.rebind(newStream, newSpec);
-    }
-
-    /**
-     * Publishes UNDEFINED to the active invocation's mailbox, removes it from the
-     * per-invocation list and any pending
-     * teardown registration, and closes it. Used by catalog mutations that remove
-     * the serving PIP when no fallback
-     * exists.
-     */
-    private void discard(ActivePolicyInformationPointInvocation active) {
-        active.publishImmediate(Value.UNDEFINED);
-        lock.lock();
-
-        try {
-            removeFromList(active);
-            cancelPendingTeardown(active);
-        } finally {
-
-            lock.unlock();
-
-        }
-        active.close();
-    }
-
     /**
      * Caller holds the broker lock. Removes the active invocation from its
      * invocation's list, dropping the list itself
      * when it becomes empty.
      */
     private void removeFromList(ActiveInvocation activeInvocation) {
+        val opening = openings.remove(activeInvocation);
+        if (opening != null) {
+            opening.ready.complete(null);
+        }
+        changingSources.remove(activeInvocation);
         val activeInvocations = activeInvocationsByInvocation.get(activeInvocation.invocation());
         if (activeInvocations == null) {
             return;
@@ -1173,7 +1368,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private void cancelPendingTeardown(ActiveInvocation activeInvocation) {
         val teardownTask = pendingTeardowns.remove(activeInvocation);
         if (teardownTask != null) {
-            teardownTask.cancel(false);
+            teardownTask.future.cancel(false);
         }
     }
 
@@ -1187,16 +1382,21 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             // close() already tears down everything and shut down the scheduler.
             return;
         }
-        val teardownTask = teardownScheduler.schedule(() -> runScheduledTeardown(activeInvocation),
+        val interval = new GraceInterval();
+        interval.future = teardownScheduler.schedule(() -> runScheduledTeardown(activeInvocation, interval),
                 gracePeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
-        pendingTeardowns.put(activeInvocation, teardownTask);
+        pendingTeardowns.put(activeInvocation, interval);
     }
 
-    private void runScheduledTeardown(ActiveInvocation activeInvocation) {
+    private static final class GraceInterval {
+        private ScheduledFuture<?> future;
+    }
+
+    private void runScheduledTeardown(ActiveInvocation activeInvocation, GraceInterval interval) {
         lock.lock();
 
         try {
-            if (pendingTeardowns.remove(activeInvocation) == null) {
+            if (!pendingTeardowns.remove(activeInvocation, interval)) {
                 return;
             }
             if (activeInvocation.refcount() > 0) {
@@ -1208,7 +1408,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.unlock();
 
         }
-        activeInvocation.close();
+        release(activeInvocation);
     }
 
     /**
@@ -1239,8 +1439,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     void unloadHandle(PipHandleImpl handle) {
-        List<StreamAttributeFinderSpecification>     evicted;
-        List<ActivePolicyInformationPointInvocation> evictedActive;
+        List<StreamAttributeFinderSpecification> evicted;
+        List<SourceChange>                       changes;
         lock.lock();
 
         try {
@@ -1250,29 +1450,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
             handle.loaded.set(false);
 
-            evictedActive = new ArrayList<>();
-            for (val active : allActive()) {
-                if (!(active instanceof ActivePolicyInformationPointInvocation pip)) {
-                    continue;
-                }
-                val oldSpec = pip.sourceSpec();
-                if (oldSpec != null && evicted.contains(oldSpec)) {
-                    evictedActive.add(pip);
-                }
-            }
+            changes = selectChanges(Map.of(), evicted);
         } finally {
 
             lock.unlock();
 
         }
-        val fallbackRepository = fallback;
-        for (val active : evictedActive) {
-            if (fallbackRepository != null) {
-                migrate(active, new ActiveRepositoryInvocation(active.invocation(), this));
-            } else {
-                discard(active);
-            }
-        }
+        changes.forEach(this::applyChange);
         log.debug("Unloaded PIP '{}' ({} attribute(s) removed)", handle.pipName(), evicted.size());
     }
 
@@ -1292,6 +1476,31 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         Set<SubscriptionKey>                                                          dependencies;
         Map<SubscriptionKey, ActiveInvocation>                                        routingTable       = new HashMap<>();
         boolean                                                                       subscriptionClosed = false;
+
+        private boolean                    opening = true;
+        private boolean                    enrolled;
+        private @Nullable RuntimeException pendingFailure;
+
+        private void awaitEnrollment(SubscriptionKey key) {
+            while (true) {
+                ActiveInvocation active;
+                Enrollment       pending;
+                lock.lock();
+                try {
+                    if (pendingFailure != null) {
+                        throw pendingFailure;
+                    }
+                    active  = routingTable.get(key);
+                    pending = openings.get(active);
+                } finally {
+                    lock.unlock();
+                }
+                if (pending == null) {
+                    return;
+                }
+                enroll(active, pending, true);
+            }
+        }
 
         private final Map<SubscriptionKey, AttributeSnapshot> deliveredInputs = new HashMap<>();
 
@@ -1325,7 +1534,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
             }
             for (val active : refcountZeroed) {
-                handleRefcountZero(active);
+                release(active);
             }
             log.trace("Closed subscription '{}'", id);
         }
@@ -1335,26 +1544,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             consumerSubscriptions.remove(id, this);
             val zeroed = new ArrayList<ActiveInvocation>();
             for (val active : routingTable.values()) {
-                if (active.detach(this) <= 0) {
+                if (active.detach(this) <= 0 && retireIfUnused(active)) {
                     zeroed.add(active);
                 }
             }
             routingTable.clear();
             deliveredInputs.clear();
+            dependencies = Set.of();
             return zeroed;
-        }
-
-        void markClosed() {
-            lock.lock();
-
-            try {
-                subscriptionClosed = true;
-                deliveredInputs.clear();
-            } finally {
-
-                lock.unlock();
-
-            }
         }
 
         /**
@@ -1364,11 +1561,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
          * value and clock are equal, and suppresses already captured notifications.
          */
         boolean isReadyForRound() {
+            if (subscriptionClosed || pendingFailure != null || opening) {
+                return false;
+            }
             boolean allFulfilled  = true;
             boolean hasFirstValue = false;
             for (val key : dependencies) {
                 val active  = routingTable.get(key);
-                val current = active == null ? null : active.snapshot().orElse(null);
+                val current = active == null ? null : admittedSnapshot(active).orElse(null);
                 if (current == null) {
                     allFulfilled = false;
                     continue;
@@ -1389,9 +1589,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
          * immutable result stays fixed after the lock is released. This is a
          * round's input subset, not the entire repository view. A newly
          * discovered key enters a subsequent round through dependency handling.
-         * PIPs can publish while capture holds the routing lock. Sample each
-         * physical invocation once, including an empty mailbox, so all aliases
-         * of that invocation see the same observation in this round.
+         * PIP admissions use the same lock. Sample each physical invocation once,
+         * including a pending one, so aliases share the observation and timestamp.
          */
         Map<SubscriptionKey, AttributeSnapshot> currentSnapshots() {
             val snapshotsByKey = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(dependencies.size());
@@ -1402,14 +1601,18 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 if (active == null) {
                     continue;
                 }
-                observations.computeIfAbsent(active, ActiveInvocation::snapshot)
+                observations.computeIfAbsent(active, PolicyInformationPointAttributeBroker.this::admittedSnapshot)
                         .ifPresent(snapshot -> snapshotsByKey.put(key, snapshot));
             }
             return Map.copyOf(snapshotsByKey);
         }
 
         void fireCallback() {
-            coalescer.requestFire();
+            if (!AttributeSourceCall.active()) {
+                coalescer.requestFire();
+            } else {
+                coalescer.requestFireAsync();
+            }
         }
 
         /**
@@ -1423,19 +1626,37 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         private void runOneFire() {
             Map<SubscriptionKey, AttributeSnapshot>                                 snapshotsByKey;
             Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> updateCallback;
+            RuntimeException                                                        failure;
             lock.lock();
-
             try {
-                if (subscriptionClosed || !isReadyForRound()) {
+                failure = pendingFailure;
+                if (subscriptionClosed || opening && !enrolled) {
                     return;
                 }
-                snapshotsByKey = currentSnapshots();
-                deliveredInputs.putAll(snapshotsByKey);
-                updateCallback = onUpdate;
+                opening = false;
+                if (failure != null) {
+                    snapshotsByKey = Map.of();
+                    updateCallback = onUpdate;
+                } else {
+                    if (!isReadyForRound()) {
+                        return;
+                    }
+                    snapshotsByKey = currentSnapshots();
+                    deliveredInputs.putAll(snapshotsByKey);
+                    updateCallback = onUpdate;
+                }
             } finally {
-
                 lock.unlock();
-
+            }
+            if (failure != null) {
+                try {
+                    if (updateCallback instanceof AttributeSubscriptionObserver observer) {
+                        observer.onFailure().accept(failure);
+                    }
+                } finally {
+                    close();
+                }
+                return;
             }
             Set<SubscriptionKey> nextDependencies;
             try {
@@ -1453,7 +1674,17 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 logRateLimited(() -> log.error(ERROR_RETURNED_DEPS_INVALID, id));
                 return;
             }
-            applyDependencyDiff(nextDependencies);
+            try {
+                applyDependencyDiff(Set.copyOf(nextDependencies));
+            } catch (RuntimeException setupFailure) {
+                lock.lock();
+                try {
+                    pendingFailure = setupFailure;
+                } finally {
+                    lock.unlock();
+                }
+                fireCallback();
+            }
         }
 
         private void logRateLimited(Runnable logCall) {
@@ -1473,86 +1704,114 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
          * consumer's references and do not by themselves request another round.
          */
         private void applyDependencyDiff(Set<SubscriptionKey> nextDependencies) {
-            List<ActiveInvocation> refcountZeroed = new ArrayList<>();
-            boolean                refire;
-            lock.lock();
-
-            try {
-                if (closed || subscriptionClosed) {
-                    return;
-                }
-                if (nextDependencies.equals(dependencies)) {
-                    return;
-                }
-                val added = new HashSet<>(nextDependencies);
-                added.removeAll(dependencies);
-                val removed = new HashSet<>(dependencies);
-                removed.removeAll(nextDependencies);
-
-                for (val key : added) {
-                    val active = activeInvocationFor(key);
-                    routingTable.put(key, active);
-                    active.attach(this);
-                }
-                for (val key : removed) {
-                    val active = routingTable.remove(key);
-                    if (active != null && active.detach(this) <= 0) {
-                        refcountZeroed.add(active);
-                    }
-                }
-                dependencies = new HashSet<>(nextDependencies);
-                deliveredInputs.keySet().removeAll(removed);
-                refire = isReadyForRound();
-            } finally {
-
-                lock.unlock();
-
+            val changes = reconcile(nextDependencies, false);
+            if (changes == null) {
+                return;
             }
-            for (val active : refcountZeroed) {
-                handleRefcountZero(active);
+            for (val active : changes.retired()) {
+                Thread.startVirtualThread(() -> release(active));
             }
-            if (refire) {
+            changes.openings().forEach((active, pending) -> enroll(active, pending, false));
+            if (changes.ready()) {
                 fireCallback();
             }
         }
 
         /**
-         * Called when an active invocation's refcount drops to zero as a result of this
-         * consumer detaching from it.
-         * <p>
-         * Three cases:
-         * <ul>
-         * <li>The per-invocation list has more than one entry: tear down immediately.
-         * The other entries already serve
-         * future {@code fresh=false} arrivals, so a grace window here would just delay
-         * reclaiming the resource.</li>
-         * <li>Grace duration is zero: tear down immediately.</li>
-         * <li>Otherwise: schedule teardown after the grace duration. The active
-         * invocation stays in the list during the
-         * window. A re-attaching {@code fresh=false} consumer cancels the scheduled
-         * teardown and reuses the warm
-         * connection.</li>
-         * </ul>
+         * Both initial interest and a returned dependency set use the same atomic routing transition.
+         * A newly attached projection of a live repository route needs a first-observation time.
+         * Release the routing lock before sampling. After reacquiring it, recheck the handle, the
+         * source selection and the need for the timestamp, including when sampling failed.
          */
-        private void handleRefcountZero(ActiveInvocation activeInvocation) {
-            lock.lock();
-            try {
-                if (activeInvocation.refcount() > 0) {
-                    return;
+        private @Nullable RoutingChanges reconcile(Set<SubscriptionKey> next, boolean initial) {
+            Instant          observedAt    = null;
+            RuntimeException sampleFailure = null;
+            while (true) {
+                lock.lock();
+                try {
+                    if (initial) {
+                        validateNewHandle();
+                    } else if (closed || subscriptionClosed || pendingFailure != null || next.equals(dependencies)) {
+                        return null;
+                    }
+                    if (observedAt != null || !needsProjectionTime(next)) {
+                        if (initial) {
+                            consumerSubscriptions.put(id, this);
+                        }
+                        return installRoutes(next, observedAt);
+                    }
+                    if (sampleFailure != null) {
+                        throw sampleFailure;
+                    }
+                } finally {
+                    lock.unlock();
                 }
-                val activeInvocations = activeInvocationsByInvocation.get(activeInvocation.invocation());
-                val teardownNow       = (activeInvocations != null && activeInvocations.size() > 1)
-                        || gracePeriodDuration.isZero();
-                if (!teardownNow) {
-                    scheduleTeardown(activeInvocation);
-                    return;
+                try {
+                    observedAt = observationTime();
+                } catch (RuntimeException failure) {
+                    sampleFailure = failure;
                 }
-                removeFromList(activeInvocation);
-            } finally {
-                lock.unlock();
             }
-            activeInvocation.close();
         }
+
+        private boolean needsProjectionTime(Set<SubscriptionKey> keys) {
+            if (closed || subscriptionClosed || repositoryObservations.isEmpty()) {
+                return false;
+            }
+            for (val key : keys) {
+                if (routingTable.containsKey(key)) {
+                    continue;
+                }
+                val invocation = normalizeInvocation(key.invocation());
+                val route      = repositoryObservations.get(new RepositoryRoute(invocation));
+                if (route != null && route.registration != null
+                        && (key.invocation().fresh() || !activeInvocationsByInvocation.containsKey(invocation))
+                        && resolve(invocation).isEmpty()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void validateNewHandle() {
+            if (closed) {
+                throw new IllegalStateException(ERROR_BROKER_CLOSED);
+            }
+            if (consumerSubscriptions.containsKey(id)) {
+                throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_IN_USE.formatted(id));
+            }
+        }
+
+        private RoutingChanges installRoutes(Set<SubscriptionKey> next, @Nullable Instant observedAt) {
+            val retired = new ArrayList<ActiveInvocation>();
+            val pending = new LinkedHashMap<ActiveInvocation, Enrollment>();
+            for (val key : next) {
+                if (!routingTable.containsKey(key)) {
+                    val active = activeInvocationFor(key, observedAt);
+                    routingTable.put(key, active);
+                    active.attach(this);
+                    val enrollment = openings.get(active);
+                    if (enrollment != null) {
+                        pending.put(active, enrollment);
+                    }
+                }
+            }
+            val entries = routingTable.entrySet().iterator();
+            while (entries.hasNext()) {
+                val entry = entries.next();
+                if (!next.contains(entry.getKey())) {
+                    val active = entry.getValue();
+                    if (active.detach(this) <= 0 && retireIfUnused(active)) {
+                        retired.add(active);
+                    }
+                    deliveredInputs.remove(entry.getKey());
+                    entries.remove();
+                }
+            }
+            dependencies = next;
+            return new RoutingChanges(retired, pending, isReadyForRound());
+        }
+
     }
 
     /**

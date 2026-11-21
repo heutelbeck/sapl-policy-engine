@@ -165,7 +165,7 @@ public class BrokerEvalLoops {
         val headCache         = new HeadCache();
         val initialBrokerDeps = headCache.brokerDepsFor(initialDeps);
         val terminated        = new AtomicBoolean(false);
-        return broker.open(subscriptionId, initialBrokerDeps, brokerSnap -> {
+        return broker.open(subscriptionId, initialBrokerDeps, new AttributeSubscriptionObserver(brokerSnap -> {
             if (terminated.get()) {
                 // A prior round already terminated the loop. Idle on the last dep set
                 // (broker requires non-empty) until the consumer closes the stream.
@@ -194,7 +194,11 @@ public class BrokerEvalLoops {
                 onTerminate.accept(e);
                 return initialBrokerDeps;
             }
-        });
+        }, failure -> {
+            if (terminated.compareAndSet(false, true)) {
+                onTerminate.accept(failure);
+            }
+        }));
     }
 
     /**

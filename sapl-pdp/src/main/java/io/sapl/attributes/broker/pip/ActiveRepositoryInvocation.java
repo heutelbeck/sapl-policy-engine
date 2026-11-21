@@ -59,8 +59,9 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private final AtomicBoolean                         closed         = new AtomicBoolean();
 
     // Installed and read under the broker's routing lock.
-    private RepositoryState.@Nullable Binding binding;
-    private Optional<AttributeSnapshot>       latestSnapshot = Optional.empty();
+    private RepositoryState.@Nullable Presence previousKind;
+    private RepositoryState.@Nullable Binding  binding;
+    private Optional<AttributeSnapshot>        latestSnapshot = Optional.empty();
 
     ActiveRepositoryInvocation(AttributeFinderInvocation invocation, PolicyInformationPointAttributeBroker broker) {
         this.invocation = invocation;
@@ -137,10 +138,12 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
 
     boolean install(RepositoryState state, Instant observedAt) {
         val next = state.binding(key);
-        if (next.equals(binding)) {
+        val kind = state.presence(key);
+        if (kind == previousKind && next.equals(binding)) {
             return false;
         }
         binding        = next;
+        previousKind   = kind;
         latestSnapshot = Optional.of(new AttributeSnapshot(next.value(), observedAt));
         return true;
     }
