@@ -33,6 +33,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import lombok.val;
+
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -68,6 +70,7 @@ class RegexCompilerTests {
     }
 
     @DisplayName("Fatal compiler errors survive folded evaluation errors")
+    @MethodSource("binaryExpressionsContainingInvalidPatterns")
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { """
             [1 / 0, subject =~ "("]
@@ -99,6 +102,18 @@ class RegexCompilerTests {
     void whenEvaluationErrorPrecedesInvalidConstantPatternThenCompilationFails(String expression) {
         assertThatThrownBy(() -> compileExpression(expression)).isInstanceOf(SaplCompilerException.class)
                 .hasMessageContaining("Invalid regular expression");
+    }
+
+    private static Stream<String> binaryExpressionsContainingInvalidPatterns() {
+        val invalid = """
+                (subject =~ "(")""";
+        val error   = "(1 / 0)";
+        return Stream
+                .of("+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=", "in", "any in", "all in", "has",
+                        "has any", "has all", "^", "&&", "&", "||", "|", "=~", "::")
+                .flatMap(operator -> Stream.of("%s %s %s".formatted(error, operator, invalid),
+                        "%s %s %s".formatted(invalid, operator, error)))
+                .flatMap(expression -> Stream.of(expression, "true || (" + expression + ")"));
     }
 
     @DisplayName("Ordinary evaluation errors remain short circuited")

@@ -81,11 +81,11 @@ public class BinaryOperationCompiler {
         if (CANONICALLY_ORDERED.contains(operatorType)) {
             return compileCanonicallyOrdered(operatorType, op, binaryOperation, ctx);
         }
-        val left = ExpressionCompiler.compile(binaryOperation.left(), ctx);
+        val left  = ExpressionCompiler.compile(binaryOperation.left(), ctx);
+        val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
         if (left instanceof ErrorValue) {
             return left;
         }
-        val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
         if (right instanceof ErrorValue) {
             return right;
         }
