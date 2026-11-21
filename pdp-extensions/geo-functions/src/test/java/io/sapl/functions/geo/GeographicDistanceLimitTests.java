@@ -118,7 +118,7 @@ class GeographicDistanceLimitTests {
     }
 
     private static ObjectValue line(int segments) {
-        val positions = IntStream.rangeClosed(0, segments).mapToObj(x -> "[%d,0]".formatted(x)).collect(joining(","));
+        val positions = IntStream.rangeClosed(0, segments).mapToObj("[%d,0]"::formatted).collect(joining(","));
         return (ObjectValue) json("""
                 {"type":"LineString","coordinates":[%s]}
                 """.formatted(positions));

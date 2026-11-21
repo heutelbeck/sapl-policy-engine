@@ -10,7 +10,7 @@ if [[ "${RUNNER_OS:-}" == Windows ]]; then
     directory=$(cygpath -u "$directory")
 fi
 archive="$directory/apache-maven-$version-bin.tar.gz"
-curl --proto '=https' -fsSL --retry 3 --retry-max-time 180 \
+curl --proto '=https' -fsSL --retry 3 --retry-all-errors --retry-max-time 180 \
     --connect-timeout 30 --max-time 180 \
     "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$version/apache-maven-$version-bin.tar.gz" \
     -o "$archive"

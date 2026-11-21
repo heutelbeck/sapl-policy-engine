@@ -142,12 +142,12 @@ public class SaplCompilerException extends RuntimeException {
         @Override
         public String getMessage() {
             return diagnostics().stream().map(failure -> {
-                val location = failure.getLocation();
-                if (location == null) {
+                val failureLocation = failure.getLocation();
+                if (failureLocation == null) {
                     return failure.getMessage();
                 }
-                return ERROR_WITH_LOCATION.formatted(failure.getMessage(), location.line(), location.start(),
-                        location.end());
+                return ERROR_WITH_LOCATION.formatted(failure.getMessage(), failureLocation.line(),
+                        failureLocation.start(), failureLocation.end());
             }).collect(joining("\n"));
         }
     }

@@ -146,9 +146,9 @@ class RegexCompilerTests {
                 subject =~ "("
                 """);
         val call    = new FunctionCall(QualifiedName.simple("invalid"), List.of(pattern), pattern.location());
-        assertThatThrownBy(() -> ExpressionCompiler.compile(call, compilationContext()))
-                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid function name")
-                .hasMessageContaining("Invalid regular expression '('");
+        val context = compilationContext();
+        assertThatThrownBy(() -> ExpressionCompiler.compile(call, context)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("Invalid function name").hasMessageContaining("Invalid regular expression '('");
     }
 
     @Test
@@ -158,7 +158,8 @@ class RegexCompilerTests {
                 """);
         val attribute = new EnvironmentAttribute(QualifiedName.simple("invalid"), List.of(pattern), null, false,
                 pattern.location());
-        assertThatThrownBy(() -> ExpressionCompiler.compile(attribute, compilationContext()))
+        val context   = compilationContext();
+        assertThatThrownBy(() -> ExpressionCompiler.compile(attribute, context))
                 .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid regular expression '('");
     }
 
@@ -167,9 +168,9 @@ class RegexCompilerTests {
         val variables  = ObjectValue.builder().put("attributeFinderOptions", Value.FALSE).build();
         val expression = """
                 <test.attr[subject =~ "("]>""";
-        assertThatThrownBy(() -> compileExpression(expression, compilationContext(variables)))
-                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("PDP wide defaults")
-                .hasMessageContaining("Invalid regular expression '('");
+        val context    = compilationContext(variables);
+        assertThatThrownBy(() -> compileExpression(expression, context)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("PDP wide defaults").hasMessageContaining("Invalid regular expression '('");
     }
 
     @Test

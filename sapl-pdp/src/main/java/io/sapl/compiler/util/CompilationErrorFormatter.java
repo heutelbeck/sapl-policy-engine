@@ -107,9 +107,9 @@ public class CompilationErrorFormatter {
             String suffix = "";
             if (clipped) {
                 val endColumn = lines.columnOf(end);
-                caret       = Math.min(caret, endColumn);
-                firstColumn = Math.max(1,
-                        Math.min(caret - MULTIPLE_ERROR_LINE_WIDTH / 2, endColumn - MULTIPLE_ERROR_LINE_WIDTH));
+                caret = Math.min(caret, endColumn);
+                val lastStartColumn = Math.max(1, endColumn - MULTIPLE_ERROR_LINE_WIDTH);
+                firstColumn = Math.clamp(caret - MULTIPLE_ERROR_LINE_WIDTH / 2, 1, lastStartColumn);
                 if (firstColumn > 1) {
                     start  = lines.offsetOfColumn(line, firstColumn);
                     prefix = ELLIPSIS;

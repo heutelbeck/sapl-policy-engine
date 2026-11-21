@@ -63,14 +63,18 @@ class InArrayUnrollingCompiler {
                     || current instanceof ExpressionCompiler.RelativeLocationOp) {
                 return cost;
             }
-            if (current instanceof StepCompiler.KeyStepPure step) {
+            switch (current) {
+            case StepCompiler.KeyStepPure step   -> {
                 cost    += 1L + step.key().length();
                 current  = step.base();
-            } else if (current instanceof StepCompiler.IndexStepPure step) {
+            }
+            case StepCompiler.IndexStepPure step -> {
                 cost++;
                 current = step.base();
-            } else {
+            }
+            case null, default                   -> {
                 return 0;
+            }
             }
         }
         return 0;
