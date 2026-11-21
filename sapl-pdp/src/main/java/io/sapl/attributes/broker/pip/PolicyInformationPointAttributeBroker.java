@@ -54,6 +54,7 @@ import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.DispatchCoalescer;
+import io.sapl.attributes.broker.repository.RepositoryState;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 
 import lombok.NonNull;
@@ -110,6 +111,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
     private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
     private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw). Ignoring this fire: {}";
+    private static final String ERROR_REPOSITORY_CLOSE        = "Failed to close the repository observation for '{}'.";
     private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set). Ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
@@ -123,6 +125,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private final Map<AttributeFinderInvocation, List<ActiveInvocation>>       activeInvocationsByInvocation = new HashMap<>();
     private final Map<ActiveInvocation, ScheduledFuture<?>>                    pendingTeardowns              = new HashMap<>();
     private final Map<String, BrokerSubscription>                              consumerSubscriptions         = new HashMap<>();
+
+    private final Map<RepositoryRoute, RepositoryObservation> repositoryObservations = new HashMap<>();
 
     private final Duration                      gracePeriodDuration;
     private final ScheduledExecutorService      teardownScheduler;
@@ -358,7 +362,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
         for (val active : affected.evicted) {
             if (fallbackRepository != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
+                migrate(active, new ActiveRepositoryInvocation(active.invocation(), this));
             } else {
                 discard(active);
             }
@@ -740,7 +744,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
         val fallbackRepository = fallback;
         if (fallbackRepository != null) {
-            val active = newActiveRepositoryInvocation(invocation, fallbackRepository);
+            val active = new ActiveRepositoryInvocation(invocation, this);
             active.start();
             return active;
         }
@@ -820,12 +824,100 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
     }
 
-    private ActiveRepositoryInvocation newActiveRepositoryInvocation(AttributeFinderInvocation normalized,
-            AttributeRepository repository) {
-        val holder = new ActiveRepositoryInvocation[1];
-        holder[0] = new ActiveRepositoryInvocation(normalized, repository, timestampSource,
-                value -> dispatchValue(holder[0]));
-        return holder[0];
+    private record RepositoryRoute(String pdpId, String configurationId) {
+        RepositoryRoute(AttributeFinderInvocation invocation) {
+            this(invocation.pdpId(), invocation.configurationId());
+        }
+    }
+
+    private static final class RepositoryObservation {
+        private final Set<ActiveRepositoryInvocation>           active = new HashSet<>();
+        private AttributeRepository.@Nullable StateRegistration registration;
+        private @Nullable RepositoryState                       latest;
+    }
+
+    void startRepositoryInvocation(ActiveRepositoryInvocation active) {
+        boolean changed;
+        lock.lock();
+        try {
+            if (closed || active.isClosed() || fallback == null) {
+                return;
+            }
+            val route       = new RepositoryRoute(active.invocation());
+            var observation = repositoryObservations.get(route);
+            if (observation == null) {
+                val opened = new RepositoryObservation();
+                repositoryObservations.put(route, opened);
+                try {
+                    opened.registration = fallback.observeState(route.pdpId(), route.configurationId(),
+                            state -> installRepositoryState(route, opened, state));
+                    val initial = opened.registration.initialState();
+                    if (opened.latest == null || opened.latest.revision() < initial.revision()) {
+                        opened.latest = initial;
+                    }
+                } catch (RuntimeException e) {
+                    repositoryObservations.remove(route);
+                    if (opened.registration != null) {
+                        opened.registration.close();
+                    }
+                    throw e;
+                }
+                observation = opened;
+            }
+            observation.active.add(active);
+            changed = active.install(observation.latest, timestampSource.instant());
+        } finally {
+            lock.unlock();
+        }
+        if (changed) {
+            dispatchValue(active);
+        }
+    }
+
+    private void installRepositoryState(RepositoryRoute route, RepositoryObservation observation,
+            RepositoryState next) {
+        val affected = new HashSet<BrokerSubscription>();
+        lock.lock();
+        try {
+            if (closed || repositoryObservations.get(route) != observation
+                    || observation.latest != null && next.revision() <= observation.latest.revision()) {
+                return;
+            }
+            val observedAt = timestampSource.instant();
+            observation.latest = next;
+            for (val active : observation.active) {
+                if (active.install(next, observedAt)) {
+                    affected.addAll(active.subscribers());
+                }
+            }
+            // Gate only after all aliases have moved to the same source revision.
+            affected.removeIf(subscription -> !subscription.tryFireGate());
+        } finally {
+            lock.unlock();
+        }
+        affected.forEach(BrokerSubscription::fireCallback);
+    }
+
+    void stopRepositoryInvocation(ActiveRepositoryInvocation active) {
+        AttributeRepository.StateRegistration toClose = null;
+        lock.lock();
+        try {
+            val route       = new RepositoryRoute(active.invocation());
+            val observation = repositoryObservations.get(route);
+            if (observation != null && observation.active.remove(active) && observation.active.isEmpty()) {
+                repositoryObservations.remove(route);
+                toClose = observation.registration;
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (toClose != null) {
+            try {
+                toClose.close();
+            } catch (RuntimeException failure) {
+                log.error(ERROR_REPOSITORY_CLOSE, active.invocation().pdpId(), failure);
+            }
+        }
     }
 
     private ActivePolicyInformationPointInvocation newTerminalActiveInvocation(AttributeFinderInvocation normalized) {
@@ -1105,7 +1197,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         val fallbackRepository = fallback;
         for (val active : evictedActive) {
             if (fallbackRepository != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
+                migrate(active, new ActiveRepositoryInvocation(active.invocation(), this));
             } else {
                 discard(active);
             }
@@ -1248,7 +1340,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
 
             try {
-                if (subscriptionClosed) {
+                if (subscriptionClosed || !allDependenciesHaveValues()) {
                     return;
                 }
                 snapshotsByKey = currentSnapshots();

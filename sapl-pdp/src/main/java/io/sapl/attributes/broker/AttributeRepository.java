@@ -19,19 +19,23 @@ package io.sapl.attributes.broker;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
+import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
+import io.sapl.attributes.broker.repository.AttributeAssignment.UnboundValue;
 import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.RepositoryState;
+import lombok.val;
 import lombok.NonNull;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Repository of attribute values: a write surface for producers and a
- * narrow single-key read surface for the PIP broker's fallback path.
- * Producers push values into the repository keyed by
- * {@link RepositoryKey}. Observers register a per-invocation listener
- * via {@link #observe} and receive the current value plus every
- * subsequent change.
+ * Repository of tenant-scoped attribute values. Producers publish an ordered
+ * list of assignments as one change. A broker observes complete source states
+ * for a PDP configuration and evaluates its active keys from one such state.
+ * Single-key operations project these same writes and observations.
  * <p>
  * Absence is {@link Value#UNDEFINED}. A key with no published entry,
  * an entry that has been explicitly removed, and an entry whose TTL
@@ -43,11 +47,22 @@ import java.util.function.Consumer;
 public interface AttributeRepository extends AutoCloseable {
 
     /**
-     * Releases every observer registration and any internal resources.
-     * Idempotent. No further callbacks fire after this returns.
+     * Publishes a final unavailable state to live observations, then releases
+     * registrations and owned resources. Idempotent. Deliveries already in
+     * flight may finish after closure.
      */
     @Override
     void close();
+
+    /**
+     * Publishes one atomic change to one repository tenant. Assignments are
+     * applied in list order. Only the final binding of each key is visible.
+     * An empty list leaves the state unchanged.
+     *
+     * @param assignments bindings and removals
+     * @throws IllegalArgumentException if the publication spans tenants
+     */
+    void publish(@NonNull List<AttributeAssignment> assignments);
 
     /**
      * Publishes a value with no TTL. The value stays in the
@@ -57,7 +72,9 @@ public interface AttributeRepository extends AutoCloseable {
      * @param key the repository key
      * @param value the value to publish
      */
-    void publish(@NonNull RepositoryKey key, @NonNull Value value);
+    default void publish(@NonNull RepositoryKey key, @NonNull Value value) {
+        publish(List.of(new BoundValue(key, value, null)));
+    }
 
     /**
      * Publishes a value with a time-to-live. The value is removed
@@ -71,7 +88,9 @@ public interface AttributeRepository extends AutoCloseable {
      * expires; {@link Duration#ZERO} and negative durations are
      * rejected with {@link IllegalArgumentException}
      */
-    void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl);
+    default void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
+        publish(List.of(new BoundValue(key, value, ttl)));
+    }
 
     /**
      * Removes the entry under {@code key}, if any. Subscribers
@@ -80,7 +99,36 @@ public interface AttributeRepository extends AutoCloseable {
      *
      * @param key the repository key
      */
-    void remove(@NonNull RepositoryKey key);
+    default void remove(@NonNull RepositoryKey key) {
+        publish(List.of(new UnboundValue(key)));
+    }
+
+    /**
+     * Atomically captures the current state and registers for complete successor
+     * states. Callbacks may overlap, arrive out of revision order or start before
+     * this method returns. Consumers install a state only if its revision is newer
+     * than the last state they installed, including the initial state. No callback
+     * needs to finish for registration to return.
+     *
+     * @param pdpId tenant whose bindings are observed
+     * @param configurationId configuration used to resolve the source
+     * @param onUpdate receives complete successor states outside the source lock
+     * @return the initial state and its observation handle
+     */
+    StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate);
+
+    /** A source registration and the state captured when it was installed. */
+    interface StateRegistration extends Registration {
+        /** @return the initial state captured atomically with registration */
+        RepositoryState initialState();
+
+        /**
+         * Detaches this observation without waiting for an in-flight callback.
+         * Such a callback may still reach the consumer after detachment.
+         */
+        @Override
+        void close();
+    }
 
     /**
      * Registers {@code onValue} to receive value changes for
@@ -93,12 +141,25 @@ public interface AttributeRepository extends AutoCloseable {
      * the observer sees changes in order.
      *
      * @param invocation the invocation to observe
-     * @param onValue receives the current value and every subsequent
-     * change
+     * @param onValue receives the current value and subsequent changes;
+     * superseded states may be coalesced
      * @return idempotent, thread-safe handle that unregisters
      * {@code onValue} when closed
      */
-    Registration observe(@NonNull AttributeFinderInvocation invocation, @NonNull Consumer<Value> onValue);
+    default Registration observe(@NonNull AttributeFinderInvocation invocation, @NonNull Consumer<Value> onValue) {
+        val projection   = new RepositoryValueProjection(RepositoryKey.fromInvocation(invocation), onValue);
+        val registration = observeState(invocation.pdpId(), invocation.configurationId(), projection);
+        try {
+            projection.start(registration.initialState());
+        } catch (RuntimeException failure) {
+            registration.close();
+            throw failure;
+        }
+        return () -> {
+            projection.close();
+            registration.close();
+        };
+    }
 
     /**
      * Observer registration handle. Narrowed {@link AutoCloseable}

@@ -17,20 +17,11 @@
  */
 package io.sapl.attributes.broker.repository;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.Value;
-import io.sapl.attributes.broker.AttributeRepository;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.jspecify.annotations.Nullable;
-
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,297 +29,208 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
+import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
+import io.sapl.attributes.broker.repository.AttributeAssignment.UnboundValue;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+
 /**
- * In-memory {@link AttributeRepository}. Producers publish values
- * keyed by {@link RepositoryKey}; observers register a per-invocation
- * listener via {@link #observe} and receive the current value plus
- * every subsequent change.
- * <p>
- * State is volatile: lost on close. TTL expiry removes the entry and
- * notifies observers (who observe {@link Value#UNDEFINED}).
- * <p>
- * Thread-safety. All state mutations occur under a single internal
- * lock. Observer callbacks fire outside the lock.
- *
- * @since 4.1.0
+ * Publishes one complete, immutable tenant state per commit. Concurrent
+ * producers deliver outside the repository lock. A reader can retain the
+ * newest revision even when a slower producer delivers an older view later.
  */
 @Slf4j
 public final class InMemoryAttributeRepository implements AttributeRepository {
 
-    private static final String ERROR_CLOSED           = "Repository is closed.";
-    private static final String ERROR_TTL_NOT_POSITIVE = "Ttl must be a strictly positive Duration.";
-    private static final String WARN_OBSERVER_THREW    = "Observer {} threw: {}.";
+    private static final String          ERROR_CLOSED        = "Repository is closed.";
+    private static final String          ERROR_MIXED_TENANTS = "All attribute assignments must belong to one tenant.";
+    private static final String          ERROR_OBSERVER      = "Repository state observer for tenant '{}' threw.";
+    private static final RepositoryState EMPTY               = new RepositoryState(0, Map.of(), null);
 
-    private final ScheduledExecutorService scheduler;
-
-    private final ReentrantLock                        lock           = new ReentrantLock(true);
-    private final Map<RepositoryKey, Entry>            entries        = new HashMap<>();
-    private final Map<RepositoryKey, Set<KeyObserver>> observersByKey = new HashMap<>();
-
-    private boolean closed = false;
-
-    /**
-     * Monotonic per-mutation sequence, assigned under {@link #lock}. Observers
-     * fire outside the lock, so concurrent publishes for the same key can race
-     * in delivery order. Each observer uses this sequence to drop a delivery a
-     * newer mutation has already superseded, so the latest value always wins.
-     */
-    private long sequenceCounter = 0L;
+    private final Object                                 lock      = new Object();
+    private final Map<String, RepositoryState>           states    = new HashMap<>();
+    private final Map<String, Set<StateObserver>>        observers = new HashMap<>();
+    private final Map<RepositoryKey, ScheduledFuture<?>> timers    = new HashMap<>();
+    private final ScheduledExecutorService               scheduler;
+    private boolean                                      closed;
 
     public InMemoryAttributeRepository() {
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            val thread = Thread.ofVirtual().unstarted(runnable);
-            thread.setName("InMemoryAttributeRepository-ttl");
-            return thread;
-        });
+        scheduler = Executors
+                .newSingleThreadScheduledExecutor(Thread.ofVirtual().name("InMemoryAttributeRepository-ttl").factory());
     }
 
     @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
-        publishInternal(key, value, null);
-    }
-
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
-        if (ttl.isZero() || ttl.isNegative()) {
-            throw new IllegalArgumentException(ERROR_TTL_NOT_POSITIVE);
+    public void publish(@NonNull List<AttributeAssignment> assignments) {
+        val changes = List.copyOf(assignments);
+        if (changes.isEmpty()) {
+            return;
         }
-        publishInternal(key, value, ttl);
-    }
-
-    @Override
-    public void remove(@NonNull RepositoryKey key) {
-        List<KeyObserver> toFire;
-        long              seq;
-        lock.lock();
-
-        try {
+        val pdpId            = changes.getFirst().key().pdpId();
+        val finalAssignments = new LinkedHashMap<RepositoryKey, AttributeAssignment>();
+        for (val assignment : changes) {
+            if (!pdpId.equals(assignment.key().pdpId())) {
+                throw new IllegalArgumentException(ERROR_MIXED_TENANTS);
+            }
+            finalAssignments.put(assignment.key(), assignment);
+        }
+        Delivery delivery;
+        synchronized (lock) {
             if (closed) {
                 return;
             }
-            val prior = entries.remove(key);
-            if (prior == null) {
+            val before      = states.getOrDefault(pdpId, EMPTY);
+            val revision    = before.revision() + 1;
+            val bindings    = new HashMap<>(before.bindings());
+            val publishedAt = System.nanoTime();
+            for (val assignment : finalAssignments.values()) {
+                val key = assignment.key();
+                cancelTimer(key);
+                switch (assignment) {
+                case BoundValue(var ignored, var value, var ttl) -> {
+                    val binding = new RepositoryState.Binding(revision, value);
+                    bindings.put(key, binding);
+                    if (ttl != null) {
+                        scheduleExpiry(key, binding, publishedAt, ttl);
+                    }
+                }
+                case UnboundValue(var ignored)                   -> bindings.remove(key);
+                }
+            }
+            if (bindings.equals(before.bindings())) {
                 return;
             }
-            if (prior.expiryTask != null) {
-                prior.expiryTask.cancel(false);
-            }
-            toFire = observers(key);
-            seq    = ++sequenceCounter;
-        } finally {
-
-            lock.unlock();
-
+            delivery = install(pdpId, new RepositoryState(revision, bindings, null));
         }
-        fireObservers(toFire, Value.UNDEFINED, seq);
+        delivery.fire();
     }
 
     @Override
-    public AttributeRepository.Registration observe(@NonNull AttributeFinderInvocation invocation,
-            @NonNull Consumer<Value> onValue) {
-        val   repoKey  = RepositoryKey.fromInvocation(invocation);
-        val   observer = new KeyObserver(repoKey, onValue);
-        Value initial;
-        long  seqInit;
-        lock.lock();
-
-        try {
-            if (closed) {
-                initial = Value.error(ERROR_CLOSED);
-            } else {
-                observersByKey.computeIfAbsent(repoKey, k -> new HashSet<>()).add(observer);
-                val entry = entries.get(repoKey);
-                initial = entry != null ? entry.value : Value.UNDEFINED;
+    public StateRegistration observeState(@NonNull String pdpId, @NonNull String configurationId,
+            @NonNull Consumer<RepositoryState> onUpdate) {
+        synchronized (lock) {
+            val initial  = closed ? new RepositoryState(0, Map.of(), Value.error(ERROR_CLOSED))
+                    : states.getOrDefault(pdpId, EMPTY);
+            val observer = new StateObserver(pdpId, onUpdate, initial);
+            if (!closed) {
+                observers.computeIfAbsent(pdpId, ignored -> new HashSet<>()).add(observer);
             }
-            seqInit = sequenceCounter;
-        } finally {
-
-            lock.unlock();
-
+            return observer;
         }
-        observer.deliver(initial, seqInit);
-        return observer;
     }
 
     @Override
     public void close() {
-        Collection<Entry> toCancel;
-        lock.lock();
-
-        try {
+        val terminal = new ArrayList<Delivery>();
+        synchronized (lock) {
             if (closed) {
                 return;
             }
-            closed   = true;
-            toCancel = new ArrayList<>(entries.values());
-            // Mark every observer closed so in-flight fires (already past the
-            // observers gate, about to call deliver) become no-ops.
-            for (val bucket : observersByKey.values()) {
-                for (val observer : bucket) {
-                    observer.observerClosed = true;
-                }
-            }
-            entries.clear();
-            observersByKey.clear();
-        } finally {
-
-            lock.unlock();
-
-        }
-        for (val e : toCancel) {
-            if (e.expiryTask != null) {
-                e.expiryTask.cancel(false);
-            }
+            closed = true;
+            observers.forEach((pdpId, bucket) -> {
+                val revision    = states.getOrDefault(pdpId, EMPTY).revision() + 1;
+                val unavailable = new RepositoryState(revision, Map.of(), Value.error(ERROR_CLOSED));
+                terminal.add(new Delivery(unavailable, List.copyOf(bucket)));
+            });
+            observers.clear();
+            timers.values().forEach(timer -> timer.cancel(false));
+            timers.clear();
+            states.clear();
         }
         scheduler.shutdownNow();
+        terminal.forEach(Delivery::fire);
     }
 
-    private void publishInternal(RepositoryKey key, Value value, @Nullable Duration ttl) {
-        List<KeyObserver> toFire;
-        long              seq;
-        lock.lock();
+    private void cancelTimer(RepositoryKey key) {
+        val timer = timers.remove(key);
+        if (timer != null) {
+            timer.cancel(false);
+        }
+    }
 
-        try {
-            if (closed) {
+    private void scheduleExpiry(RepositoryKey key, RepositoryState.Binding binding, long publishedAt, Duration ttl) {
+        val elapsed   = System.nanoTime() - publishedAt;
+        val remaining = Math.max(0L, TimeUnit.NANOSECONDS.convert(ttl) - elapsed);
+        timers.put(key, scheduler.schedule(() -> expire(key, binding), remaining, TimeUnit.NANOSECONDS));
+    }
+
+    private void expire(RepositoryKey key, RepositoryState.Binding expected) {
+        Delivery delivery;
+        synchronized (lock) {
+            val before = states.getOrDefault(key.pdpId(), EMPTY);
+            if (before.bindings().get(key) != expected) {
                 return;
             }
-            val prior = entries.get(key);
-            if (prior != null && prior.expiryTask != null) {
-                prior.expiryTask.cancel(false);
-            }
-            val entry = new Entry(value);
-            entries.put(key, entry);
-            if (ttl != null) {
-                entry.expiryTask = scheduler.schedule(() -> expireKey(key, entry), ttl.toMillis(),
-                        TimeUnit.MILLISECONDS);
-            }
-            toFire = observers(key);
-            seq    = ++sequenceCounter;
-        } finally {
-
-            lock.unlock();
-
+            timers.remove(key);
+            val bindings = new HashMap<>(before.bindings());
+            bindings.remove(key);
+            delivery = install(key.pdpId(), new RepositoryState(before.revision() + 1, bindings, null));
         }
-        fireObservers(toFire, value, seq);
+        delivery.fire();
     }
 
-    private void expireKey(RepositoryKey key, Entry expectedEntry) {
-        List<KeyObserver> toFire;
-        long              seq;
-        lock.lock();
-
-        try {
-            val current = entries.get(key);
-            if (current != expectedEntry) {
-                return;
-            }
-            entries.remove(key);
-            toFire = observers(key);
-            seq    = ++sequenceCounter;
-        } finally {
-
-            lock.unlock();
-
+    private Delivery install(String pdpId, RepositoryState state) {
+        val interested = observers.getOrDefault(pdpId, Set.of());
+        if (interested.isEmpty() && state.bindings().isEmpty()) {
+            states.remove(pdpId);
+        } else {
+            states.put(pdpId, state);
         }
-        fireObservers(toFire, Value.UNDEFINED, seq);
+        return new Delivery(state, List.copyOf(interested));
     }
 
-    /** Caller holds the lock. */
-    private List<KeyObserver> observers(RepositoryKey repositoryKey) {
-        val bucket = observersByKey.get(repositoryKey);
-        return bucket == null ? List.of() : new ArrayList<>(bucket);
-    }
-
-    private void fireObservers(List<KeyObserver> observers, Value value, long seq) {
-        for (val observer : observers) {
-            observer.deliver(value, seq);
+    private record Delivery(RepositoryState state, List<StateObserver> observers) {
+        void fire() {
+            observers.forEach(observer -> observer.deliver(state));
         }
     }
 
-    /**
-     * Per-entry storage. {@code expiryTask} is settable so the
-     * publisher can install it after constructing the entry record
-     * that the task closure captures.
-     */
-    private static final class Entry {
-        private final Value        value;
-        @Nullable
-        private ScheduledFuture<?> expiryTask;
+    private final class StateObserver implements StateRegistration {
 
-        private Entry(Value value) {
-            this.value = value;
-        }
-    }
+        private final String                    pdpId;
+        private final Consumer<RepositoryState> onUpdate;
+        private final RepositoryState           initial;
+        private volatile boolean                closed;
 
-    /**
-     * Single-key observer registered via {@link #observe}. The
-     * repository indexes observers in {@link #observersByKey} and
-     * fires them on publish, expire and remove.
-     */
-    @RequiredArgsConstructor
-    private final class KeyObserver implements AttributeRepository.Registration {
-
-        private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
-
-        private static final long WARN_LOG_INTERVAL_NANOS = Duration.ofMinutes(1).toNanos();
-
-        private final long            id             = NEXT_ID.getAndIncrement();
-        private final RepositoryKey   repositoryKey;
-        private final Consumer<Value> onValue;
-        private volatile boolean      observerClosed = false;
-        private long                  lastDelivered  = Long.MIN_VALUE;
-
-        // Rate-limits the observer-threw warning to one per minute.
-        private long    lastWarnLogNanos;
-        private boolean warnLogged;
-
-        synchronized void deliver(Value value, long seq) {
-            if (observerClosed || seq <= lastDelivered) {
-                return;
-            }
-            // Serialize and order deliveries so a delivery superseded by a newer
-            // mutation cannot win when observers fire outside the repository lock.
-            lastDelivered = seq;
-            try {
-                onValue.accept(value);
-            } catch (RuntimeException e) {
-                logObserverFailure(e);
-            }
+        StateObserver(String pdpId, Consumer<RepositoryState> onUpdate, RepositoryState initial) {
+            this.pdpId    = pdpId;
+            this.onUpdate = onUpdate;
+            this.initial  = initial;
         }
 
-        private void logObserverFailure(RuntimeException failure) {
-            val now = System.nanoTime();
-            if (!warnLogged || now - lastWarnLogNanos >= WARN_LOG_INTERVAL_NANOS) {
-                log.warn(WARN_OBSERVER_THREW, id, failure.getMessage(), failure);
-                lastWarnLogNanos = now;
-                warnLogged       = true;
+        @Override
+        public RepositoryState initialState() {
+            return initial;
+        }
+
+        void deliver(RepositoryState state) {
+            if (!closed) {
+                try {
+                    onUpdate.accept(state);
+                } catch (RuntimeException failure) {
+                    log.error(ERROR_OBSERVER, pdpId, failure);
+                }
             }
         }
 
         @Override
         public void close() {
-            lock.lock();
-
-            try {
-                if (observerClosed) {
-                    return;
-                }
-                observerClosed = true;
-                val bucket = observersByKey.get(repositoryKey);
+            synchronized (lock) {
+                closed = true;
+                val bucket = observers.get(pdpId);
                 if (bucket != null) {
                     bucket.remove(this);
                     if (bucket.isEmpty()) {
-                        observersByKey.remove(repositoryKey);
+                        observers.remove(pdpId);
+                        if (states.getOrDefault(pdpId, EMPTY).bindings().isEmpty()) {
+                            states.remove(pdpId);
+                        }
                     }
                 }
-            } finally {
-
-                lock.unlock();
-
             }
         }
     }
