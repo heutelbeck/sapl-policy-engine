@@ -97,6 +97,39 @@ import lombok.val;
  * {@link #load} that adds a spec promotes
  * any matching repository-backed or terminal active invocations to PIP-backed
  * ones.
+ * <p>
+ * Repository values use one observation per active tenant/configuration route.
+ * A callback supplies a complete {@link RepositoryState}. The broker rejects
+ * callbacks from retired observations and revisions no newer than the installed
+ * view. Under its routing lock it installs every affected active projection,
+ * including different timing or fresh variants of the same repository key.
+ * Capturing a consumer's input map uses that same lock. Thus no evaluation can
+ * capture only half of a related repository update. Notifications are requested
+ * after installation, outside the lock; the eventual round may use an even
+ * newer view if updates coalesce.
+ * <p>
+ * New repository dependencies read from the installed complete view. Comparing
+ * all active bindings is necessary when notifications skip intermediate
+ * revisions: changes to a different key in an earlier revision still matter.
+ * Binding generations distinguish renewal from an unrelated source update, so
+ * unchanged keys keep their existing observation timestamps. These timestamps
+ * describe observation time, not source transaction identity.
+ * <p>
+ * Each consumer has its own {@link DispatchCoalescer}, which serializes callbacks
+ * without a dedicated thread. The subscription captures a new input map before each round.
+ * The fulfillment gate is checked again at capture because an older wake can
+ * outlive an expansion of the dependency set. A genuinely unfulfilled external
+ * dependency can keep that gate closed until it receives a value. An absent key
+ * in an available repository view supplies a fulfilled {@link Value#UNDEFINED};
+ * an unavailable view supplies an error value.
+ * <p>
+ * Source sharing uses compatible normalized invocations, not attribute names
+ * alone. A fresh request creates a new active invocation instead of reusing
+ * one at attachment time. A later non-fresh request can reuse that invocation;
+ * fresh is not an exclusive lifetime lease or a transaction boundary. Head
+ * freezing belongs to the evaluation-side cache, not this broker. Zero-reference
+ * invocations can remain alive for the configured grace period, allowing a new
+ * consumer to reuse them without reopening the source.
  *
  * @since 4.1.0
  */
@@ -422,6 +455,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             List<ActivePolicyInformationPointInvocation> evicted) {}
 
     /**
+     * Lists the currently loaded PIP handles.
+     *
      * @return an unmodifiable snapshot of currently loaded handles
      */
     public Set<PipHandle> catalog() {
@@ -437,6 +472,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
+     * Returns documentation for the currently loaded PIPs.
+     *
      * @return the {@link LibraryDocumentation} for every PIP currently in the
      * catalog, suitable for IDE
      * hover/completion and offline documentation generation. Returned in load
@@ -558,13 +595,15 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     @Override
     public void close() {
-        List<BrokerSubscription>     toClose;
         Collection<ActiveInvocation> activeToClose;
         lock.lock();
 
         try {
-            closed        = true;
-            toClose       = new ArrayList<>(consumerSubscriptions.values());
+            closed = true;
+            // Seal subscriptions under the activation lock before releasing any sources.
+            for (val subscription : consumerSubscriptions.values()) {
+                subscription.markClosed();
+            }
             activeToClose = new ArrayList<>(allActive());
             consumerSubscriptions.clear();
             activeInvocationsByInvocation.clear();
@@ -576,9 +615,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
             lock.unlock();
 
-        }
-        for (val subscription : toClose) {
-            subscription.markClosed();
         }
         for (val active : activeToClose) {
             active.close();
@@ -674,11 +710,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * reconnect during the grace window).
      * <p>
      * The list is keyed by the normalized invocation, which drops the {@code fresh}
-     * flag. So fresh and non-fresh
-     * subscriptions for an otherwise-identical invocation land in the same list. A
-     * fresh stream stays private while
-     * it's alive, but a later non-fresh consumer can attach to it once the original
-     * head has been torn down.
+     * flag. Fresh and non-fresh subscriptions for an otherwise-identical
+     * invocation land in the same list. Fresh requests bypass reuse for their
+     * own attachment; later non-fresh requests may reuse any live entry,
+     * including one created for a still-attached fresh consumer.
      */
     private ActiveInvocation activeInvocationFor(SubscriptionKey key) {
         val invocation = key.invocation();
@@ -836,6 +871,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         private @Nullable RepositoryState                       latest;
     }
 
+    /**
+     * Attaches a key to its route's shared source observation. Caller may already
+     * hold the routing lock. Register before consuming the fixed initial view:
+     * a successor callback can arrive first and must not be overwritten by an
+     * older initial revision. The key is then projected from the newest accepted
+     * view, without a separate source read that could cross a commit boundary.
+     */
     void startRepositoryInvocation(ActiveRepositoryInvocation active) {
         boolean changed;
         lock.lock();
@@ -874,6 +916,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
     }
 
+    /**
+     * Installs one complete route view under the same lock as round capture.
+     * Check both registration identity and revision: numbering may restart for
+     * a replacement observation, and an old callback may survive detachment.
+     * Update every active projection before testing gates or requesting wakes.
+     * Full-view comparison also carries disjoint changes across skipped revisions.
+     */
     private void installRepositoryState(RepositoryRoute route, RepositoryObservation observation,
             RepositoryState next) {
         val affected = new HashSet<BrokerSubscription>();
@@ -898,6 +947,12 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         affected.forEach(BrokerSubscription::fireCallback);
     }
 
+    /**
+     * Retires the route's observation when its final active projection closes.
+     * Remove its identity under the routing lock before detaching, so a callback
+     * already in flight cannot revive the retired view. Other active repository
+     * keys on the route keep their shared observation.
+     */
     void stopRepositoryInvocation(ActiveRepositoryInvocation active) {
         AttributeRepository.StateRegistration toClose = null;
         lock.lock();
@@ -1311,6 +1366,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             return true;
         }
 
+        /**
+         * Captures this consumer's registered keys; caller holds the routing
+         * lock. Repository projections move together under that lock, and the
+         * immutable result stays fixed after the lock is released. This is a
+         * round's input subset, not the entire repository view. A newly
+         * discovered key enters a subsequent round through dependency handling.
+         */
         Map<SubscriptionKey, AttributeSnapshot> currentSnapshots() {
             val snapshotsByKey = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(dependencies.size());
             for (val key : dependencies) {
@@ -1328,11 +1390,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Body of a single coalesced fire. Reads the current snapshot under the broker
-         * lock, invokes the consumer
-         * callback outside the lock, and applies the returned dep diff. See
-         * {@link DispatchCoalescer} for the
-         * surrounding flag dance.
+         * Runs one serialized round. Recheck closure and fulfillment under the
+         * capture lock: a queued wake may precede discovery of a still-missing
+         * dependency. Capture current inputs, release the lock, invoke the
+         * evaluator, then reconcile its full dependency set. An in-flight round
+         * keeps its captured inputs even if newer values arrive meanwhile.
          */
         private void runOneFire() {
             Map<SubscriptionKey, AttributeSnapshot>                                 snapshotsByKey;
@@ -1378,13 +1440,20 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
         }
 
+        /**
+         * Reconciles the full set returned by this round, not a delta. New keys
+         * attach to current sources. If they are already fulfilled, request a
+         * new evaluation so a lazy discovery can complete without another source
+         * update. Otherwise wait for fulfillment. Removed keys release this
+         * consumer's references and do not by themselves request another round.
+         */
         private void applyDependencyDiff(Set<SubscriptionKey> nextDependencies) {
             List<ActiveInvocation> refcountZeroed = new ArrayList<>();
             boolean                refire;
             lock.lock();
 
             try {
-                if (subscriptionClosed) {
+                if (closed || subscriptionClosed) {
                     return;
                 }
                 if (nextDependencies.equals(dependencies)) {

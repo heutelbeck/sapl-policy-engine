@@ -28,16 +28,19 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Per-subscription cache of "head" attribute values.
+ * Per-subscription first-observation cache for {@code |head} attributes.
  * <p>
  * What: stores the first value observed for each {@code head=true}
  * SubscriptionKey, and serves that value on every subsequent read
- * until the key leaves the eval's dep set.
+ * until the caller removes it through {@link #retainOnly}.
  * <p>
- * Why: the {@link AttributeBroker} always delivers the latest value
- * for every key. Policies that wrote {@code |head} want
- * "value frozen at first observation" instead. That semantic lives
- * in the eval, not in the broker.
+ * The broker supplies current live inputs. A policy using {@code |head}
+ * deliberately keeps the first delivered {@link AttributeSnapshot}, including
+ * its value and timestamp, while the caller retains that dependency. The
+ * standard loop retains the current logical dependency set after each round.
+ * UNDEFINED and error values can also be first observations. This freezing is
+ * evaluation semantics and does not change the repository binding or another
+ * consumer's live observation. Ordinary live attributes are not cached here.
  * <p>
  * How: five-step pipeline per fire, one method per step.
  * <ol>
@@ -46,20 +49,23 @@ import java.util.Set;
  * <li>(evaluate the policy)</li>
  * <li>{@link #captureFrom}: putIfAbsent for any head key the broker
  * just delivered. First observation wins. Nothing overwrites.</li>
- * <li>{@link #retainOnly}: drop cache entries the policy no longer
- * references. If a head dep re-enters later, it captures a fresh
- * value at that point (not the original one).</li>
- * <li>{@link #brokerDepsFor}: drop head keys from broker deps if
- * the cache already serves them. The broker stops delivering them.</li>
+ * <li>{@link #retainOnly}: drop cache entries outside the caller's retained
+ * set. If a removed head dep reenters later, its next delivered observation
+ * becomes the new first value, possibly from an existing warm invocation.</li>
+ * <li>{@link #brokerDepsFor}: omit cached head keys when other broker
+ * dependencies remain. If every remaining dependency is a cached head, keep
+ * the original non-empty set to satisfy the broker contract. Redundant wakes
+ * then reevaluate against the same frozen values.</li>
  * </ol>
  * <p>
- * Thread safety: none needed. The broker's
- * {@link DispatchCoalescer} serializes onUpdate per consumer, so
- * the cache only ever sees one thread.
+ * Callers must serialize access to this cache. The broker serializes callbacks
+ * for one open subscription, so {@link BrokerEvalLoops} uses one cache without
+ * additional locking. Successive callbacks may run on different threads;
+ * serialization does not imply thread confinement.
  * <p>
  * Cost when no head deps are used: one empty {@link HashMap} per
- * subscription. Every method short-circuits on the empty-cache
- * branch.
+ * subscription. Merge, retention and dependency filtering have empty-cache fast
+ * paths; capture still examines the delivered keys for newly reached heads.
  *
  * @since 4.1.0
  */
@@ -73,8 +79,9 @@ public final class HeadCache {
      * value the broker may have delivered for that key.
      *
      * @param brokerSnapshot the snapshot the broker fired with
-     * @return a merged snapshot suitable for the policy evaluator.
-     * Returns the broker snapshot unchanged when the cache is empty
+     * @return stable inputs that the evaluator must treat as read-only. Returns
+     * the broker map unchanged when the cache is empty, or a private mutable map
+     * containing the head overrides
      */
     public @NonNull Map<SubscriptionKey, AttributeSnapshot> merge(
             @NonNull Map<SubscriptionKey, AttributeSnapshot> brokerSnapshot) {
@@ -105,13 +112,13 @@ public final class HeadCache {
     }
 
     /**
-     * Step 4: drops cache entries whose keys are no longer in the
-     * evaluator's logical dep set. A head dep that later re-enters
-     * the dep set re-subscribes through the broker and re-captures
+     * Step 4: drops cache entries whose keys are outside the caller's retained
+     * set. The standard evaluation loop supplies its current logical set.
+     * A head dep that later reenters re-subscribes through the broker and recaptures
      * on its next fire.
      *
-     * @param newEvalDeps the evaluator's logical dep set after the
-     * round just completed
+     * @param newEvalDeps dependencies whose cached heads the caller retains
+     * after the round just completed
      */
     public void retainOnly(@NonNull Set<SubscriptionKey> newEvalDeps) {
         if (!cache.isEmpty()) {
@@ -128,8 +135,8 @@ public final class HeadCache {
      * If filtering would leave the result empty (the policy depends
      * only on cached head values), the original set is returned
      * instead. The broker's contract requires a non-empty dep set,
-     * and the eval ignores the broker's redundant fires via the
-     * cache during merge.
+     * and the evaluator still runs on redundant fires, using the cached head
+     * values instead of their newer broker values.
      *
      * @param evalDeps the evaluator's logical dep set
      * @return the broker dep set; {@code evalDeps} unchanged when

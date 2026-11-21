@@ -194,7 +194,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         private final String                    pdpId;
         private final Consumer<RepositoryState> onUpdate;
         private final RepositoryState           initial;
-        private volatile boolean                closed;
+        private volatile boolean                observerClosed;
 
         StateObserver(String pdpId, Consumer<RepositoryState> onUpdate, RepositoryState initial) {
             this.pdpId    = pdpId;
@@ -208,7 +208,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         }
 
         void deliver(RepositoryState state) {
-            if (!closed) {
+            if (!observerClosed) {
                 try {
                     onUpdate.accept(state);
                 } catch (RuntimeException failure) {
@@ -220,7 +220,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         @Override
         public void close() {
             synchronized (lock) {
-                closed = true;
+                observerClosed = true;
                 val bucket = observers.get(pdpId);
                 if (bucket != null) {
                     bucket.remove(this);
