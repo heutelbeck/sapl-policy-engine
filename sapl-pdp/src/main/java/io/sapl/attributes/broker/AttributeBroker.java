@@ -37,7 +37,10 @@ import java.util.function.Function;
  * containing the currently available registered values. A pending key can be
  * absent when an update of a previously delivered input starts a round before
  * new dependencies are fulfilled. Later source changes cannot modify that map
- * while the policy uses it. A new callback starts a new
+ * while the policy uses it. Keys sharing one active invocation receive the same
+ * observation, or are all absent when that invocation is unfulfilled. An
+ * evaluation-side head cache can then supply an earlier frozen observation.
+ * A new callback starts a new
  * evaluation against a newly captured map; it does not resume an expression
  * using attribute results from the previous round.</li>
  * <li><b>Preserve source consistency.</b> For changes a source identifies as one

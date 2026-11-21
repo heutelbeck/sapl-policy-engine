@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1371,15 +1372,21 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
          * immutable result stays fixed after the lock is released. This is a
          * round's input subset, not the entire repository view. A newly
          * discovered key enters a subsequent round through dependency handling.
+         * PIPs can publish while capture holds the routing lock. Sample each
+         * physical invocation once, including an empty mailbox, so all aliases
+         * of that invocation see the same observation in this round.
          */
         Map<SubscriptionKey, AttributeSnapshot> currentSnapshots() {
             val snapshotsByKey = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(dependencies.size());
+            val observations   = new IdentityHashMap<ActiveInvocation, Optional<AttributeSnapshot>>(
+                    dependencies.size());
             for (val key : dependencies) {
                 val active = routingTable.get(key);
                 if (active == null) {
                     continue;
                 }
-                active.snapshot().ifPresent(snapshot -> snapshotsByKey.put(key, snapshot));
+                observations.computeIfAbsent(active, ActiveInvocation::snapshot)
+                        .ifPresent(snapshot -> snapshotsByKey.put(key, snapshot));
             }
             return Map.copyOf(snapshotsByKey);
         }
