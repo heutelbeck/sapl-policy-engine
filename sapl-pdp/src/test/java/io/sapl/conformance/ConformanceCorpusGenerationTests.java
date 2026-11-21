@@ -57,6 +57,7 @@ class ConformanceCorpusGenerationTests {
                 arguments("diagnostics", (UnaryOperator<Case>) DiagnosticReports::withReport),
                 arguments("several-mistakes", (UnaryOperator<Case>) DiagnosticReports::withReport),
                 arguments("evaluation", (UnaryOperator<Case>) EvaluationOutcomes::withOutcome),
+                arguments("stream-rounds", (UnaryOperator<Case>) StreamRoundOutcomes::withOutcome),
                 arguments("functions", (UnaryOperator<Case>) FunctionOutcomes::withOutcome));
     }
 
