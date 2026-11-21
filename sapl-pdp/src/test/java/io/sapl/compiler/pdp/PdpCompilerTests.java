@@ -49,6 +49,7 @@ import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.*;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PdpCompiler")
@@ -99,6 +100,26 @@ class PdpCompilerTests {
 
             assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, context))
                     .isInstanceOf(SaplCompilerException.class);
+        }
+
+        @Test
+        void whenBothOperandsAreInvalidThenErrorVoterReportsBothLocations() {
+            val policy  = """
+                    policy "broken"
+                    permit
+                    (subject =~ "(") ||
+                    (action =~ "[");
+                    """;
+            val config  = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(policy),
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+            val failure = catchThrowableOfType(SaplCompilerException.class,
+                    () -> PdpCompiler.compilePDPConfiguration(config, compilationContext()));
+            val voter   = PdpCompiler.createErrorVoter(config, failure, new PluginsBundle(SaplTesting.FUNCTION_BROKER));
+            assertThat(evaluate(voter, DEFAULT_SUBSCRIPTION).errors()).singleElement()
+                    .satisfies(error -> assertThat(error.message()).contains("Invalid regular expression '('",
+                            "Invalid regular expression '['", "from offset " + policy.indexOf("subject") + " to",
+                            "from offset " + policy.indexOf("action") + " to"));
         }
 
         @Test

@@ -27,14 +27,53 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+
 import static io.sapl.util.PlacedDocuments.GRINNING_FACE;
 import static io.sapl.util.PlacedDocuments.documentOf;
 import static io.sapl.util.SaplTesting.compilationContext;
+import static io.sapl.util.SaplTesting.compileExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 @DisplayName("CompilationErrorFormatter")
 class CompilationErrorFormatterTests {
+
+    @Test
+    void whenIndependentErrorsOccurThenEachSnippetIdentifiesItsLocation() {
+        val expression = """
+                subject =~ "(<" ||
+                action =~ "["
+                """;
+        val failure    = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(expression));
+        assertThat(CompilationErrorFormatter.format(failure)).contains("Invalid regular expression '(<",
+                "Location: line 1, column 1", "Invalid regular expression '['", "Location: line 2, column 1");
+        assertThat(CompilationErrorFormatter.formatHtml(failure)).contains("Invalid regular expression '(&lt;",
+                "Line 1, column 1", "Invalid regular expression '['", "Line 2, column 1").doesNotContain("(<");
+    }
+
+    @Test
+    void whenManyErrorsShareALongUnicodeLineThenEveryExcerptHasABoundedWidth() {
+        val count       = 96;
+        val pattern     = "subject =~ \"(\"";
+        val source      = "/*" + GRINNING_FACE.repeat(400) + "*/ ["
+                + String.join(", ", Collections.nCopies(count, pattern)) + "]";
+        val failure     = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(source));
+        val plain       = CompilationErrorFormatter.format(failure);
+        val html        = CompilationErrorFormatter.formatHtml(failure);
+        val firstColumn = failure.diagnostics().getFirst().getLocation().column();
+        val snippet     = plain.lines().dropWhile(line -> !line.startsWith("> ")).limit(2).toList();
+        val sourceLine  = snippet.getFirst();
+        assertThat(plain).hasSizeLessThan(600 * count).contains("...", "Location: line 1, column " + firstColumn);
+        assertThat(html).hasSizeLessThan(1100 * count).contains("...", "Line 1, column " + firstColumn,
+                "<span class=\"error-char\">s</span>");
+        assertThat(plain.lines().filter(line -> line.startsWith("> "))).hasSize(count);
+        assertThat(snippet.getLast().indexOf('^'))
+                .isEqualTo(sourceLine.codePointCount(0, sourceLine.indexOf("subject")));
+        assertThat(StandardCharsets.UTF_8.newEncoder().canEncode(plain)).isTrue();
+        assertThat(StandardCharsets.UTF_8.newEncoder().canEncode(html)).isTrue();
+    }
 
     @Nested
     @DisplayName("Plain text formatting")

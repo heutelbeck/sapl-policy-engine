@@ -666,20 +666,21 @@ public class CidrFunctionLibrary {
     }
 
     /**
-     * Tests if an address is publicly routable.
+     * Checks the global reachability classification of the represented addresses.
      *
      * @param ipAddress
      * IP address to test
      *
-     * @return Value.TRUE if publicly routable, Value.FALSE otherwise, or ErrorValue
-     * on invalid input
+     * @return Value.TRUE if the represented addresses are classified as globally
+     * reachable, Value.FALSE otherwise, or ErrorValue on invalid input
      */
     @Function(docs = """
             ```cidr.isPublicRoutable(STRING ipAddress)```
 
-            Tests if an address is publicly routable. Returns true only if the address
-            is not private, loopback, link-local, multicast, documentation, CGNAT,
-            benchmark, reserved, or broadcast.
+            Checks whether every address represented by the input is classified as
+            globally reachable by the pinned IANA address registries. A prefix with
+            zero host bits represents the whole block. Nonzero host bits represent
+            the individual address. Network conditions determine actual reachability.
 
             Parameters:
             - ipAddress: IP address to test
@@ -687,16 +688,11 @@ public class CidrFunctionLibrary {
             Returns: Boolean indicating publicly routable address
             """)
     public static Value isPublicRoutable(TextValue ipAddress) {
-        if (parseAddress(ipAddress.value()) == null) {
+        val address = parseAddress(ipAddress.value());
+        if (address == null) {
             return Value.error(ERROR_INVALID_IP_ADDRESS, ipAddress.value());
         }
-
-        val checks = List.of(isPrivateIpv4(ipAddress), isLoopback(ipAddress), isLinkLocal(ipAddress),
-                isMulticast(ipAddress), isDocumentation(ipAddress), isCgnat(ipAddress), isBenchmark(ipAddress),
-                isReserved(ipAddress), isBroadcast(ipAddress));
-
-        val isSpecial = checks.stream().anyMatch(Value.TRUE::equals);
-        return Value.of(!isSpecial);
+        return Value.of(CidrPublicAddresses.isPublic(address));
     }
 
     /**

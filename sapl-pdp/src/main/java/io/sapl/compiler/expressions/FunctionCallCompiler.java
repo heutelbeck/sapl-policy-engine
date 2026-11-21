@@ -58,16 +58,13 @@ public class FunctionCallCompiler {
 
     public static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
             CompilationContext ctx) {
-        try {
-            requireValidName(functionName);
-        } catch (IllegalArgumentException e) {
-            throw new SaplCompilerException(ERROR_INVALID_FUNCTION_NAME.formatted(functionName), e, location);
-        }
         if (arguments.isEmpty()) {
-            return new NoArgsFunction(functionName, location);
+            return new NoArgsFunction(validateFunctionName(functionName, location), location);
         }
 
-        val     compiled  = arguments.stream().map(argument -> ExpressionCompiler.compile(argument, ctx)).toList();
+        val     inputs    = CompilationChildren.pair(() -> validateFunctionName(functionName, location),
+                () -> CompilationChildren.map(arguments, argument -> ExpressionCompiler.compile(argument, ctx)));
+        val     compiled  = inputs.second();
         boolean hasStream = false;
         for (val result : compiled) {
             if (result instanceof ErrorValue err) {
@@ -79,9 +76,18 @@ public class FunctionCallCompiler {
         }
 
         if (hasStream) {
-            return new StreamFunction(functionName, compiled, location);
+            return new StreamFunction(inputs.first(), compiled, location);
         }
-        return new PureFunction(functionName, compiled, location);
+        return new PureFunction(inputs.first(), compiled, location);
+    }
+
+    private static String validateFunctionName(String functionName, SourceLocation location) {
+        try {
+            requireValidName(functionName);
+            return functionName;
+        } catch (IllegalArgumentException e) {
+            throw new SaplCompilerException(ERROR_INVALID_FUNCTION_NAME.formatted(functionName), e, location);
+        }
     }
 
     /**

@@ -131,6 +131,7 @@ public class GeographicFunctionLibrary {
             For more details, refer to individual function documentation.
             """;
 
+    static final String ERROR_DISTANCE_COMPARISON_LIMIT      = "Geometry distance calculation exceeds the maximum of %d comparisons.";
     static final String ERROR_EMPTY_DISTANCE                 = "Distances require nonempty geometries.";
     static final String ERROR_FAILED_TO_PARSE_GML            = "Failed to parse GML.";
     static final String ERROR_FAILED_TO_PARSE_KML            = "Failed to parse KML.";
@@ -561,6 +562,7 @@ public class GeographicFunctionLibrary {
     public static Value isWithinDistance(ObjectValue thisGeometry, ObjectValue thatGeometry, NumberValue distance) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, (thiz, that) -> {
             requireNonempty(thiz, that);
+            requireDistanceWork(thiz, that);
             return thiz.isWithinDistance(that, distance.value().doubleValue());
         });
     }
@@ -1036,6 +1038,7 @@ public class GeographicFunctionLibrary {
             val first  = geoJsonToGeometry(thisGeometry);
             val second = geoJsonToGeometry(thatGeometry);
             requireNonempty(first, second);
+            requireDistanceWork(first, second);
             return Value.of(first.distance(second));
         } catch (Exception e) {
             return geometryError(e);
@@ -1133,7 +1136,8 @@ public class GeographicFunctionLibrary {
     private static double geodesicDistance(Geometry thisGeometry, Geometry thatGeometry,
             String coordinateReferenceSystem) {
         requireNonempty(thisGeometry, thatGeometry);
-        val ellipsoid     = GeographicCoordinateSystems.ellipsoidOf(coordinateReferenceSystem);
+        val ellipsoid = GeographicCoordinateSystems.ellipsoidOf(coordinateReferenceSystem);
+        requireDistanceWork(thisGeometry, thatGeometry);
         val nearestPoints = new DistanceOp(thisGeometry, thatGeometry).nearestPoints();
         val gc            = new GeodeticCalculator(ellipsoid);
         gc.setStartingGeographicPoint(nearestPoints[0].x, nearestPoints[0].y);
@@ -1913,6 +1917,45 @@ public class GeographicFunctionLibrary {
         return Value.error(exception instanceof GeometryProblem ? exception.getMessage() : ERROR_INVALID_GEOJSON);
     }
 
+    private static void requireDistanceWork(Geometry first, Geometry second) {
+        val left  = DistancePrimitives.of(first);
+        val right = DistancePrimitives.of(second);
+        val pairs = left.facets * right.facets + left.polygonEdges * right.locations
+                + right.polygonEdges * left.locations;
+        if (pairs > MAX_PAIRWISE_COMPARISONS) {
+            throw new GeometryProblem(ERROR_DISTANCE_COMPARISON_LIMIT.formatted(MAX_PAIRWISE_COMPARISONS));
+        }
+    }
+
+    private static final class DistancePrimitives {
+        private long facets;
+        private long polygonEdges;
+        private long locations;
+
+        static DistancePrimitives of(Geometry geometry) {
+            val primitives = new DistancePrimitives();
+            geometry.apply((GeometryFilter) primitives::count);
+            return primitives;
+        }
+
+        private void count(Geometry component) {
+            if (component instanceof GeometryCollection) {
+                return;
+            }
+            locations++;
+            switch (component) {
+            case Point ignored   -> facets++;
+            case LineString line -> facets += line.getNumPoints() - 1L;
+            case Polygon polygon -> {
+                val edges = polygon.getNumPoints() - polygon.getNumInteriorRing() - 1L;
+                facets       += edges;
+                polygonEdges += edges;
+            }
+            default              -> throw new GeometryProblem(ERROR_INVALID_GEOJSON);
+            }
+        }
+    }
+
     private static void requireNonempty(Geometry first, Geometry second) {
         if (hasEmptyComponent(first) || hasEmptyComponent(second)) {
             throw new GeometryProblem(ERROR_EMPTY_DISTANCE);
@@ -1950,16 +1993,36 @@ public class GeographicFunctionLibrary {
             }
             return;
         }
-        val depth       = switch (name) {
-                        case "Point"                      -> 0;
-                        case "LineString", "MultiPoint"   -> 1;
-                        case "Polygon", "MultiLineString" -> 2;
-                        case "MultiPolygon"               -> 3;
-                        default                           -> throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-                        };
-        val coordinates = object.get("coordinates");
-        if (coordinates != null && coordinates != Value.NULL) {
-            requirePositions(coordinates, depth, true);
+        if (!(object.get("coordinates") instanceof ArrayValue coordinates)) {
+            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
+        }
+        switch (name) {
+        case "Point"                    -> requirePosition(coordinates, true);
+        case "LineString", "MultiPoint" -> requirePositions(coordinates, 1, true);
+        case "MultiLineString"          -> requirePositions(coordinates, 2, true);
+        case "Polygon"                  -> requirePolygon(coordinates, true);
+        case "MultiPolygon"             -> {
+            for (val polygon : coordinates) {
+                requirePolygon(polygon, false);
+            }
+        }
+        default                         -> throw new GeometryProblem(ERROR_INVALID_GEOJSON);
+        }
+    }
+
+    private static void requirePolygon(Value value, boolean allowEmpty) {
+        if (!(value instanceof ArrayValue rings) || (rings.isEmpty() && !allowEmpty)) {
+            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
+        }
+        if (rings.size() == 1 && rings.getFirst() instanceof ArrayValue shell && shell.isEmpty()) {
+            return;
+        }
+        for (val ring : rings) {
+            if (!(ring instanceof ArrayValue positions) || positions.size() < 4
+                    || !positions.getFirst().equals(positions.getLast())) {
+                throw new GeometryProblem(ERROR_INVALID_GEOJSON);
+            }
+            requirePositions(positions, 1, false);
         }
     }
 

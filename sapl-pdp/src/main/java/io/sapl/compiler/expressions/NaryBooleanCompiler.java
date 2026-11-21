@@ -66,7 +66,7 @@ public class NaryBooleanCompiler {
      * {@code a & b & c & ...}). Short-circuits on first {@code false}.
      */
     public static CompiledExpression compileConjunction(Conjunction c, CompilationContext ctx) {
-        val compiled = c.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
+        val compiled = CompilationChildren.map(c.operands(), o -> ExpressionCompiler.compile(o, ctx));
         return compile(compiled, c.location(), Value.FALSE, Value.TRUE, c.isEager());
     }
 
@@ -75,7 +75,7 @@ public class NaryBooleanCompiler {
      * {@code a | b | c | ...}). Short-circuits on first {@code true}.
      */
     public static CompiledExpression compileDisjunction(Disjunction d, CompilationContext ctx) {
-        val compiled = d.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
+        val compiled = CompilationChildren.map(d.operands(), o -> ExpressionCompiler.compile(o, ctx));
         return compile(compiled, d.location(), Value.TRUE, Value.FALSE, d.isEager());
     }
 

@@ -29,6 +29,7 @@ import io.sapl.compiler.document.Document;
 import io.sapl.compiler.document.ExpressionDepthValidator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -72,6 +73,14 @@ public class CompilationContext {
     public static final int     DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
 
     private static final String ERROR_MAX_EXPRESSION_DEPTH = "The compiler option maxExpressionDepth must be an integer from 1 to %s.";
+
+    // A single configuration may generate at most this much extra predicate work for indexing.
+    private static final int MAX_MEMBERSHIP_EXPANSION = 4_096;
+
+    @ToString.Exclude
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private int remainingMembershipExpansion = MAX_MEMBERSHIP_EXPANSION;
 
     private String                          pdpId                    = "defaultPdp";
     private String                          configurationId          = "defaultConfiguration";
@@ -244,6 +253,14 @@ public class CompilationContext {
         val result         = dedupeValue(po.evaluate(foldingContext));
         foldingCache.put(key, result);
         return result;
+    }
+
+    boolean reserveMembershipExpansion(long cost) {
+        if (cost > remainingMembershipExpansion) {
+            return false;
+        }
+        remainingMembershipExpansion -= (int) cost;
+        return true;
     }
 
     /**

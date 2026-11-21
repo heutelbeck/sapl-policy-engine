@@ -59,8 +59,10 @@ public class SubtemplateCompiler {
     private static final String ERROR_STREAMING_TEMPLATE = "Subtemplate cannot contain streaming expressions.";
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
-        val parent   = ExpressionCompiler.compile(binaryOperation.left(), ctx);
-        val template = ExpressionCompiler.compile(binaryOperation.right(), ctx);
+        val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(binaryOperation.left(), ctx),
+                () -> ExpressionCompiler.compile(binaryOperation.right(), ctx));
+        val parent   = operands.first();
+        val template = operands.second();
         val loc      = binaryOperation.location();
 
         // Propagate errors

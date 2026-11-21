@@ -60,12 +60,14 @@ public class FilterCompiler {
     }
 
     private static CompiledExpression compileSimpleForEach(SimpleFilter sf, CompilationContext ctx) {
-        val base      = ExpressionCompiler.compile(sf.base(), ctx);
         val arguments = new ArrayList<Expression>();
         arguments.add(new RelativeReference(RelativeType.VALUE, sf.base().location()));
         val location = sf.location();
         arguments.addAll(sf.arguments());
-        val filter = FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx);
+        val inputs = CompilationChildren.pair(() -> ExpressionCompiler.compile(sf.base(), ctx),
+                () -> FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx));
+        val base   = inputs.first();
+        val filter = inputs.second();
         if (base instanceof ErrorValue || base instanceof UndefinedValue) {
             return base;
         }

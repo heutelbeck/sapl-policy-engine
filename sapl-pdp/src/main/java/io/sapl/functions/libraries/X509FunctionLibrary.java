@@ -552,8 +552,8 @@ public class X509FunctionLibrary {
             ```isValidAt(TEXT certPem, TEXT isoTimestamp)```: Checks if certificate is valid at a specific time.
 
             Returns true if the given timestamp falls within the certificate's validity period
-            (between notBefore and notAfter). Use this for time-based access or historical
-            audit validation.
+            (including notBefore and notAfter). The timestamp uses the SAPL instant format with seconds
+            and an explicit offset such as Z or +01:00.
 
             Example: Check validity during maintenance window
             ```sapl
@@ -641,7 +641,7 @@ public class X509FunctionLibrary {
      */
     private static Instant parseTimestamp(String isoTimestamp) {
         try {
-            return Instant.parse(isoTimestamp);
+            return SaplInstant.parse(isoTimestamp);
         } catch (DateTimeParseException exception) {
             throw new CryptoException(ERROR_INVALID_ISO8601_FORMAT.formatted(isoTimestamp), exception);
         }

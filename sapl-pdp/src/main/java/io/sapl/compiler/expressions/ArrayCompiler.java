@@ -47,7 +47,7 @@ public class ArrayCompiler {
             return Value.EMPTY_ARRAY;
         }
 
-        val     compiled  = elements.stream().map(element -> ExpressionCompiler.compile(element, ctx)).toList();
+        val     compiled  = CompilationChildren.map(elements, element -> ExpressionCompiler.compile(element, ctx));
         boolean allValues = true;
         boolean hasStream = false;
         for (val result : compiled) {

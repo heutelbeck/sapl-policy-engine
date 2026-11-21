@@ -289,4 +289,39 @@ class MathFunctionLibraryTests {
                 arguments("logb(10, 0): zero base", MathFunctionLibrary.logb(num(10.0), num(0.0)),
                         "Logarithm base must be positive and not equal to 1"));
     }
+
+    @DisplayName("Clamp compares exactly and retains the selected number")
+    @MethodSource
+    @ParameterizedTest(name = "clamp({0}, {1}, {2}) selects {3}")
+    void whenClampingExactNumbersThenTheOriginalSelectedNumberIsReturned(String number, String lower, String upper,
+            String selected) {
+        val value    = (NumberValue) Value.of(new BigDecimal(number));
+        val minimum  = (NumberValue) Value.of(new BigDecimal(lower));
+        val maximum  = (NumberValue) Value.of(new BigDecimal(upper));
+        val expected = switch (selected) {
+                     case "minimum" -> minimum;
+                     case "maximum" -> maximum;
+                     default        -> value;
+                     };
+        assertThat(MathFunctionLibrary.clamp(value, minimum, maximum)).isSameAs(expected);
+    }
+
+    private static Stream<Arguments> whenClampingExactNumbersThenTheOriginalSelectedNumberIsReturned() {
+        return Stream.of(arguments("9007199254740993", "9007199254740993", "9007199254740993", "value"),
+                arguments("9007199254740992", "9007199254740993", "9007199254740994", "minimum"),
+                arguments("9007199254740995", "9007199254740993", "9007199254740994", "maximum"),
+                arguments("1.23456789012345678901", "0", "10", "value"), arguments("1.0", "2.5000", "3.0", "minimum"),
+                arguments("4.0", "2.0", "3.5000", "maximum"), arguments("1e1000", "0", "2e1000", "value"));
+    }
+
+    @Test
+    @DisplayName("Reversed bounds are invalid even when their double approximations are equal")
+    void whenClampBoundsDifferBeyondDoublePrecisionThenTheirOrderIsStillValidated() {
+        val value   = (NumberValue) Value.of(new BigDecimal("9007199254740992"));
+        val minimum = (NumberValue) Value.of(new BigDecimal("9007199254740993"));
+        val maximum = (NumberValue) Value.of(new BigDecimal("9007199254740992"));
+        assertThat(MathFunctionLibrary.clamp(value, minimum, maximum))
+                .isEqualTo(Value.error("Minimum must be less than or equal to maximum."));
+    }
+
 }

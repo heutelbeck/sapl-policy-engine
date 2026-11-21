@@ -72,7 +72,7 @@ public class NaryOperatorCompiler {
         // XOR and multiplication are commutative: within a stratum the operands take
         // their canonical order, so that the order written changes neither the
         // compiled operator nor which of several errors is the result.
-        val compiledOperands = operands.stream().map(operand -> ExpressionCompiler.compile(operand, ctx)).toList();
+        val compiledOperands = CompilationChildren.map(operands, operand -> ExpressionCompiler.compile(operand, ctx));
         for (val compiled : CanonicalOperandOrder.sorted(compiledOperands)) {
             switch (compiled) {
             case Value v          -> values.add(v);

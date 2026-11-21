@@ -593,6 +593,104 @@ class CidrFunctionLibraryTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
     }
 
+    @DisplayName("Public address classification follows the pinned special-purpose registries")
+    @ParameterizedTest(name = "{0} is public: {1}")
+    @CsvSource(delimiter = '|', textBlock = """
+            0.0.0.0/8             | false
+            0.0.0.0/32            | false
+            10.0.0.0/8            | false
+            100.64.0.0/10         | false
+            127.0.0.0/8           | false
+            169.254.0.0/16        | false
+            172.16.0.0/12         | false
+            192.0.0.0/24          | false
+            192.0.0.0/29          | false
+            192.0.0.8/32          | false
+            192.0.0.9/32          | true
+            192.0.0.10/32         | true
+            192.0.0.170/32        | false
+            192.0.0.171/32        | false
+            192.0.2.0/24          | false
+            192.31.196.0/24       | true
+            192.52.193.0/24       | true
+            192.88.99.0/24        | false
+            192.88.99.2/32        | false
+            192.168.0.0/16        | false
+            192.175.48.0/24       | true
+            198.18.0.0/15         | false
+            198.51.100.0/24       | false
+            203.0.113.0/24        | false
+            240.0.0.0/4           | false
+            255.255.255.255/32    | false
+            ::1/128               | false
+            ::/128                | false
+            ::ffff:0:0/96         | false
+            64:ff9b::/96          | true
+            64:ff9b:1::/48        | false
+            100::/64              | false
+            100:0:0:1::/64        | false
+            2001::/23             | false
+            2001::/32             | false
+            2001:1::1/128         | true
+            2001:1::2/128         | true
+            2001:1::3/128         | true
+            2001:2::/48           | false
+            2001:3::/32           | true
+            2001:4:112::/48       | true
+            2001:10::/28          | false
+            2001:20::/28          | true
+            2001:30::/28          | true
+            2001:db8::/32         | false
+            2002::/16             | false
+            2620:4f:8000::/48     | true
+            3fff::/20             | false
+            5f00::/16             | false
+            fc00::/7              | false
+            fe80::/10             | false
+            """)
+    void whenAddressIsInSpecialPurposeRegistriesThenPinnedReachabilityApplies(String address, boolean expected) {
+        assertThat(CidrFunctionLibrary.isPublicRoutable(Value.of(address))).isEqualTo(Value.of(expected));
+    }
+
+    @DisplayName("Every address in an aligned block must be public")
+    @ParameterizedTest(name = "{0} is public: {1}")
+    @CsvSource(delimiter = '|', textBlock = """
+            0.0.0.0               | false
+            8.8.8.8               | true
+            8.0.0.0/6             | false
+            192.0.0.8             | false
+            192.0.0.8/31          | false
+            192.0.0.9/31          | true
+            192.0.0.10/31         | false
+            192.0.0.11/31         | false
+            192.0.0.9/24          | true
+            192.0.1.0/24          | true
+            223.255.255.255       | true
+            224.0.0.0/4           | false
+            239.255.255.255       | false
+            0.0.0.0/0             | false
+            ::/0                  | false
+            ::ffff:8.8.8.8        | false
+            64:ff9b::808:808      | true
+            64:ff9b::/95          | false
+            64:ff9b::1/95         | true
+            2000::/3              | false
+            2001:1::/126          | false
+            2001:1::2/127         | true
+            2001:1::1/64          | true
+            2001:3::1             | true
+            2001:db0::/28         | false
+            2606:4700::/32        | true
+            3fff::1               | false
+            3fff:fff::1           | false
+            3fff:1000::           | true
+            4000::1               | false
+            ff02::1               | false
+            """)
+    void whenAddressIsPublicThenItsWholeAlignedBlockIsPublic(String address, boolean expected) {
+        assertThat(CidrFunctionLibrary.isPublicRoutable(Value.of(address))).isEqualTo(Value.of(expected));
+    }
+
     @ParameterizedTest(name = "anonymizeIp({0}, {1}) = {2}")
     @CsvSource(delimiterString = "|", textBlock = """
             # IPv4 Anonymization

@@ -50,19 +50,14 @@ public class RegexCompiler {
     private static final BinaryOperation MATCHER                    = RegexCompiler::matchRegex;
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
-        val left  = ExpressionCompiler.compile(binaryOperation.left(), ctx);
-        val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
-        val loc   = binaryOperation.location();
+        val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(binaryOperation.left(), ctx),
+                () -> preparePattern(binaryOperation, ctx));
+        val left     = operands.first();
+        val right    = operands.second().operand();
+        val loc      = binaryOperation.location();
 
-        // Pre-compile regex when pattern is a literal string.
         if (right instanceof TextValue(String value)) {
-            final Pattern compiled;
-            try {
-                compiled = LinearRegex.compile(value);
-            } catch (PatternSyntaxException e) {
-                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getDescription()), e,
-                        binaryOperation);
-            }
+            val compiled = operands.second().pattern();
             if (left instanceof ErrorValue) {
                 return left;
             }
@@ -90,6 +85,20 @@ public class RegexCompiler {
             return new RegexStream(left, right, loc);
         }
         return new RegexPure(left, right, loc);
+    }
+
+    private record PreparedPattern(CompiledExpression operand, Pattern pattern) {}
+
+    private static PreparedPattern preparePattern(BinaryOperator operation, CompilationContext ctx) {
+        val operand = ExpressionCompiler.compile(operation.right(), ctx);
+        if (operand instanceof TextValue(String value)) {
+            try {
+                return new PreparedPattern(operand, LinearRegex.compile(value));
+            } catch (PatternSyntaxException e) {
+                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getDescription()), e, operation);
+            }
+        }
+        return new PreparedPattern(operand, null);
     }
 
     static Value matchRegex(Value input, Pattern pattern) {

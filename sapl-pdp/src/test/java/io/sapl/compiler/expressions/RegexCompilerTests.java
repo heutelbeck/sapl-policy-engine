@@ -17,10 +17,15 @@
  */
 package io.sapl.compiler.expressions;
 
+import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.ast.EnvironmentAttribute;
+import io.sapl.ast.FunctionCall;
+import io.sapl.ast.QualifiedName;
 import io.sapl.compiler.util.Stratum;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +35,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -38,6 +44,7 @@ import lombok.val;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("RegexCompiler")
@@ -102,6 +109,116 @@ class RegexCompilerTests {
     void whenEvaluationErrorPrecedesInvalidConstantPatternThenCompilationFails(String expression) {
         assertThatThrownBy(() -> compileExpression(expression)).isInstanceOf(SaplCompilerException.class)
                 .hasMessageContaining("Invalid regular expression");
+    }
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenTwoPatternsAreInvalidThenBothCompilationErrorsAreReported(String expression) {
+        assertThatThrownBy(() -> compileExpression(expression)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("Invalid regular expression '('")
+                .hasMessageContaining("Invalid regular expression '['");
+    }
+
+    private static Stream<String> whenTwoPatternsAreInvalidThenBothCompilationErrorsAreReported() {
+        val first  = "(subject =~ \"(\")";
+        val second = "(action =~ \"[\")";
+        return Stream
+                .of("%s + %s", "%s && %s", "%s :: %s", "%s + 2 + %s", "%s && true && %s", "%s || false || %s",
+                        "[%s, %s]", "{first: %s, second: %s}", "string.concat(%s, %s)", "%s[%s]", "%s[?(%s)]",
+                        "%s |- each filter.replace(%s)", "%s |- filter.replace(%s)",
+                        "%s |- { @.a : filter.replace(%s) }", "subject |- { @[%s][%s] : filter.replace(0) }",
+                        "%s.<test.attr(%s)>", "<test.attr(%s, %s)>", "<test.attr(%s)[%s]>")
+                .map(template -> template.formatted(first, second));
+    }
+
+    @Test
+    void whenOuterFoldedPatternIsInvalidThenItsErrorSurvivesAFatalInput() {
+        val expression = """
+                (subject =~ "(") =~ ("[" + "")""";
+        assertThatThrownBy(() -> compileExpression(expression)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("Invalid regular expression '('")
+                .hasMessageContaining("Invalid regular expression '['");
+    }
+
+    @Test
+    void whenInvalidFunctionNameHasInvalidArgumentThenBothErrorsAreReported() {
+        val pattern = parseExpression("""
+                subject =~ "("
+                """);
+        val call    = new FunctionCall(QualifiedName.simple("invalid"), List.of(pattern), pattern.location());
+        assertThatThrownBy(() -> ExpressionCompiler.compile(call, compilationContext()))
+                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid function name")
+                .hasMessageContaining("Invalid regular expression '('");
+    }
+
+    @Test
+    void whenInvalidAttributeNameHasInvalidArgumentThenCompilationFails() {
+        val pattern   = parseExpression("""
+                subject =~ "("
+                """);
+        val attribute = new EnvironmentAttribute(QualifiedName.simple("invalid"), List.of(pattern), null, false,
+                pattern.location());
+        assertThatThrownBy(() -> ExpressionCompiler.compile(attribute, compilationContext()))
+                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("Invalid regular expression '('");
+    }
+
+    @Test
+    void whenDefaultsAndPolicyOptionsAreInvalidThenBothDiagnosticsSurvive() {
+        val variables  = ObjectValue.builder().put("attributeFinderOptions", Value.FALSE).build();
+        val expression = """
+                <test.attr[subject =~ "("]>""";
+        assertThatThrownBy(() -> compileExpression(expression, compilationContext(variables)))
+                .isInstanceOf(SaplCompilerException.class).hasMessageContaining("PDP wide defaults")
+                .hasMessageContaining("Invalid regular expression '('");
+    }
+
+    @Test
+    void whenFiveMergedOptionsAreInvalidThenEachFieldReportsItsOwnFailure() {
+        val options    = """
+                {"initialTimeOutMs": 0, "pollIntervalMs": 0, "backoffMs": -1, "retries": -1, "fresh": 0}""";
+        val expression = "<test.attr[" + options + "]>";
+        val failure    = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(expression));
+        assertThat(failure.diagnostics()).allSatisfy(leaf -> {
+            val location = leaf.getLocation();
+            assertThat(expression.substring(location.start(), location.end())).isEqualTo(options);
+        }).extracting(Throwable::getMessage).containsExactly(
+                "Attribute option 'initialTimeOutMs' must be positive, but was: 0.",
+                "Attribute option 'pollIntervalMs' must be positive, but was: 0.",
+                "Attribute option 'backoffMs' must be at least 50 ms, but was: -1.",
+                "Attribute option 'retries' must be non-negative, but was: -1.",
+                "Attribute option 'fresh' must be a boolean, but was: 0.");
+    }
+
+    @Test
+    void whenLocalOptionsRepairInvalidDefaultsThenAttributeCompiles() {
+        val defaults  = ObjectValue.builder().put("retries", Value.of(-1)).put("fresh", Value.of(0)).build();
+        val variables = ObjectValue.builder().put("attributeFinderOptions", defaults).build();
+        assertStratumOfCompiledExpression("<test.attr[{retries: 0, fresh: true}]>", compilationContext(variables),
+                Stratum.STREAM);
+    }
+
+    @Test
+    void whenNestedBranchesFailThenEveryOccurrenceRetainsItsOriginalRangeAndCause() {
+        val expression = """
+                [subject =~ "(", [action =~ "[", resource =~ "("]]""";
+        val failure    = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(expression));
+        assertThat(failure.diagnostics())
+                .allSatisfy(leaf -> assertThat(leaf).hasCauseInstanceOf(PatternSyntaxException.class))
+                .extracting(leaf -> {
+                    val location = leaf.getLocation();
+                    return expression.substring(location.start(), location.end());
+                }).containsExactly("subject =~ \"(\"", "action =~ \"[\"", "resource =~ \"(\"");
+        assertThat(failure.getLocation()).isEqualTo(failure.diagnostics().getFirst().getLocation());
+    }
+
+    @Test
+    void whenOnlyOneBranchFailsThenTheOriginalExceptionIsReported() {
+        val expression = """
+                [1 / 0, subject =~ "(", 3]""";
+        val failure    = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(expression));
+        assertThat(failure).hasMessage("Invalid regular expression '(': missing closing ).")
+                .hasCauseInstanceOf(PatternSyntaxException.class);
+        assertThat(failure.diagnostics()).singleElement().isSameAs(failure);
     }
 
     private static Stream<String> binaryExpressionsContainingInvalidPatterns() {

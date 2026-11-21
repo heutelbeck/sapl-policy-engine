@@ -538,9 +538,11 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileExpressionStep(ExpressionStep step, CompilationContext ctx) {
-        val base = ExpressionCompiler.compile(step.base(), ctx);
-        val expr = ExpressionCompiler.compile(step.expression(), ctx);
-        val loc  = step.location();
+        val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(step.base(), ctx),
+                () -> ExpressionCompiler.compile(step.expression(), ctx));
+        val base     = operands.first();
+        val expr     = operands.second();
+        val loc      = step.location();
 
         if (base instanceof ErrorValue e)
             return e;
@@ -686,8 +688,10 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileConditionStep(ConditionStep step, CompilationContext compilationCtx) {
-        val base      = ExpressionCompiler.compile(step.base(), compilationCtx);
-        val condition = ExpressionCompiler.compile(step.condition(), compilationCtx);
+        val operands  = CompilationChildren.pair(() -> ExpressionCompiler.compile(step.base(), compilationCtx),
+                () -> ExpressionCompiler.compile(step.condition(), compilationCtx));
+        val base      = operands.first();
+        val condition = operands.second();
         val loc       = step.location();
 
         if (base instanceof ErrorValue e)

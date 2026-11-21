@@ -87,21 +87,16 @@ public class AttributeCompiler {
             @NonNull List<Expression> arguments, Expression optionsExpr, boolean head, @NonNull SourceLocation location,
             CompilationContext ctx) {
 
-        // Reject identifiers that are not valid attribute names.
-        try {
-            requireValidName(attributeName);
-        } catch (IllegalArgumentException e) {
-            return Value.errorAt(location, "%s", e.getMessage());
+        val nameError      = validateAttributeName(attributeName, location);
+        val inputs         = CompilationChildren.three(() -> compileOptions(optionsExpr, ctx),
+                () -> compileEntity(entityExpr, ctx),
+                () -> CompilationChildren.map(arguments, argument -> ExpressionCompiler.compile(argument, ctx)));
+        val options        = inputs.first();
+        val compiledEntity = inputs.second();
+        val compiledArgs   = inputs.third();
+        if (nameError != null) {
+            return nameError;
         }
-
-        val options = compileOptions(optionsExpr, ctx);
-
-        CompiledExpression compiledEntity = null;
-        if (entityExpr != null) {
-            compiledEntity = ExpressionCompiler.compile(entityExpr, ctx);
-        }
-
-        val compiledArgs = arguments.stream().map(argument -> ExpressionCompiler.compile(argument, ctx)).toList();
         if (compiledEntity instanceof ErrorValue err) {
             return err;
         }
@@ -112,6 +107,22 @@ public class AttributeCompiler {
         }
 
         return new Attribute(attributeName, compiledEntity, ctx.getData(), compiledArgs, options, head, location);
+    }
+
+    private static ErrorValue validateAttributeName(String attributeName, SourceLocation location) {
+        try {
+            requireValidName(attributeName);
+            return null;
+        } catch (IllegalArgumentException e) {
+            return Value.errorAt(location, "%s", e.getMessage());
+        }
+    }
+
+    private static CompiledExpression compileEntity(Expression entity, CompilationContext ctx) {
+        if (entity == null) {
+            return null;
+        }
+        return ExpressionCompiler.compile(entity, ctx);
     }
 
     /**
@@ -128,21 +139,34 @@ public class AttributeCompiler {
      * or use attributes
      */
     public static ObjectValue compileOptions(Expression optionsExpression, CompilationContext ctx) {
-        val location    = optionsExpression == null ? null : optionsExpression.location();
-        var settings    = DEFAULT_SETTINGS;
-        var pdpSettings = ctx.data.variables().get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
-        if (pdpSettings != null) {
-            if (!(pdpSettings instanceof ObjectValue pdpSettingsObjectValue)) {
-                throw new SaplCompilerException(
-                        ERROR_PDP_DEFAULTS_MUST_BE_OBJECT.formatted(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpSettings),
-                        location);
-            }
-            settings = mergeSettings(settings, pdpSettingsObjectValue);
-        }
         if (optionsExpression == null) {
-            validateSettings(settings, null);
-            return settings;
+            val defaults = defaultSettings(ctx, null);
+            validateSettings(defaults, null);
+            return defaults;
         }
+        val location = optionsExpression.location();
+        val settings = CompilationChildren.pair(() -> defaultSettings(ctx, location),
+                () -> policySettings(optionsExpression, ctx));
+        val merged   = mergeSettings(settings.first(), settings.second());
+        validateSettings(merged, location);
+        return merged;
+    }
+
+    private static ObjectValue defaultSettings(CompilationContext ctx, SourceLocation location) {
+        val defaults = ctx.data.variables().get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
+        if (defaults == null) {
+            return DEFAULT_SETTINGS;
+        }
+        if (!(defaults instanceof ObjectValue overrides)) {
+            throw new SaplCompilerException(
+                    ERROR_PDP_DEFAULTS_MUST_BE_OBJECT.formatted(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, defaults),
+                    location);
+        }
+        return mergeSettings(DEFAULT_SETTINGS, overrides);
+    }
+
+    private static ObjectValue policySettings(Expression optionsExpression, CompilationContext ctx) {
+        val location            = optionsExpression.location();
         val policyLocalSettings = ExpressionCompiler.compile(optionsExpression, ctx);
         if (policyLocalSettings instanceof StreamOperator) {
             throw new SaplCompilerException(ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED, location);
@@ -153,9 +177,7 @@ public class AttributeCompiler {
         if (!(policyLocalSettings instanceof ObjectValue localOverrides)) {
             throw new SaplCompilerException(ERROR_OPTIONS_MUST_BE_OBJECT.formatted(policyLocalSettings), location);
         }
-        val merged = mergeSettings(settings, localOverrides);
-        validateSettings(merged, location);
-        return merged;
+        return localOverrides;
     }
 
     private static ObjectValue mergeSettings(ObjectValue original, ObjectValue override) {
@@ -173,14 +195,13 @@ public class AttributeCompiler {
     }
 
     private static void validateSettings(ObjectValue settings, @Nullable SourceLocation location) {
-        requirePositive(settings, OPTION_INITIAL_TIMEOUT, location);
-        requirePositive(settings, OPTION_POLL_INTERVAL, location);
-        // A sub-50ms retry backoff cannot help an I/O failure and only hammers a
-        // struggling dependency,
-        // so reject it at compile time.
-        requireAtLeast(settings, OPTION_BACKOFF, MIN_BACKOFF_MS, location);
-        requireNonNegative(settings, OPTION_RETRIES, location);
-        requireBoolean(settings, OPTION_FRESH, location);
+        val checks = List.<Runnable>of(() -> requirePositive(settings, OPTION_INITIAL_TIMEOUT, location),
+                () -> requirePositive(settings, OPTION_POLL_INTERVAL, location),
+                // Very short retry backoffs increase the load on a struggling dependency.
+                () -> requireAtLeast(settings, OPTION_BACKOFF, MIN_BACKOFF_MS, location),
+                () -> requireNonNegative(settings, OPTION_RETRIES, location),
+                () -> requireBoolean(settings, OPTION_FRESH, location));
+        CompilationChildren.forEach(checks, Runnable::run);
     }
 
     private static void requireAtLeast(ObjectValue settings, String key, long minimum,

@@ -48,7 +48,7 @@ public class ObjectCompiler {
         }
 
         val     keys      = new String[entries.size()];
-        val     compiled  = entries.stream().map(entry -> ExpressionCompiler.compile(entry.value(), ctx)).toList();
+        val     compiled  = CompilationChildren.map(entries, entry -> ExpressionCompiler.compile(entry.value(), ctx));
         boolean allValues = true;
         boolean hasStream = false;
         for (int i = 0; i < entries.size(); i++) {

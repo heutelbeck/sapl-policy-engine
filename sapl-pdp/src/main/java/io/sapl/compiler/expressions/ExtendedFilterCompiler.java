@@ -44,13 +44,15 @@ public class ExtendedFilterCompiler {
     public static final String     ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_PATH               = "Stream operators not allowed in filter path.";
 
     public static CompiledExpression compile(ExtendedFilter ef, CompilationContext ctx) {
-        val compiledBase = ExpressionCompiler.compile(ef.base(), ctx);
-
         val tempSimpleFilter = new SimpleFilter(new RelativeReference(RelativeType.VALUE, ef.location()), ef.name(),
                 ef.arguments(), ef.each(), ef.location());
-        val compiledFilter   = FilterCompiler.compileSimpleUnfolded(tempSimpleFilter, ctx);
         val path             = ef.target().elements();
-        val pathAnalysis     = analyzePath(path, ef.location(), ctx);
+        val inputs           = CompilationChildren.three(() -> ExpressionCompiler.compile(ef.base(), ctx),
+                () -> FilterCompiler.compileSimpleUnfolded(tempSimpleFilter, ctx),
+                () -> analyzePath(path, ef.location(), ctx));
+        val compiledBase     = inputs.first();
+        val compiledFilter   = inputs.second();
+        val pathAnalysis     = inputs.third();
 
         if (compiledBase instanceof ErrorValue) {
             return compiledBase;
@@ -756,23 +758,16 @@ public class ExtendedFilterCompiler {
 
     private static PathAnalysis analyzePath(List<PathElement> path, SourceLocation filterLocation,
             CompilationContext ctx) {
-        val compiled              = new HashMap<PathElement, CompiledExpression>();
-        var dependsOnSubscription = false;
-        for (val element : path) {
+        val compiled = new HashMap<PathElement, CompiledExpression>();
+        CompilationChildren.forEach(path, element -> {
             switch (element) {
-            case ExpressionPath ep -> {
-                val expr = compilePathExpr(ep.expression(), ep.location(), ctx);
-                dependsOnSubscription |= expr instanceof PureOperator po && po.isDependingOnSubscription();
-                compiled.put(ep, expr);
+            case ExpressionPath ep -> compiled.put(ep, compilePathExpr(ep.expression(), ep.location(), ctx));
+            case ConditionPath cp  -> compiled.put(cp, compilePathExpr(cp.condition(), cp.location(), ctx));
+            default                -> { /* Static path elements do not depend on an expression. */ }
             }
-            case ConditionPath cp  -> {
-                val cond = compilePathExpr(cp.condition(), cp.location(), ctx);
-                dependsOnSubscription |= cond instanceof PureOperator po && po.isDependingOnSubscription();
-                compiled.put(cp, cond);
-            }
-            default                -> { /* static element, nothing to compile */ }
-            }
-        }
+        });
+        val dependsOnSubscription = compiled.values().stream()
+                .anyMatch(expr -> expr instanceof PureOperator po && po.isDependingOnSubscription());
         return new PathAnalysis(compiled, dependsOnSubscription, filterLocation);
     }
 
