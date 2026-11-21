@@ -33,6 +33,7 @@ import java.util.function.Consumer;
 
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.DispatchCoalescer;
 import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
 import io.sapl.attributes.broker.repository.AttributeAssignment.UnboundValue;
 import lombok.NonNull;
@@ -43,6 +44,9 @@ import lombok.val;
  * Publishes one complete, immutable tenant state per commit. Concurrent
  * producers deliver outside the repository lock. A reader can retain the
  * newest revision even when a slower producer delivers an older view later.
+ * The TTL scheduler commits expiries. Each registration delivers expiry updates
+ * on an independent worker, coalescing outstanding notifications into the
+ * latest complete tenant view. A blocked observer cannot hold up another expiry.
  */
 @Slf4j
 public final class InMemoryAttributeRepository implements AttributeRepository {
@@ -172,7 +176,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             bindings.remove(key);
             delivery = install(key.pdpId(), new RepositoryState(before.revision() + 1, bindings, null));
         }
-        delivery.fire();
+        delivery.observers().forEach(observer -> observer.expiries.requestFireAsync());
     }
 
     private Delivery install(String pdpId, RepositoryState state) {
@@ -196,6 +200,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         private final String                    pdpId;
         private final Consumer<RepositoryState> onUpdate;
         private final RepositoryState           initial;
+        private final DispatchCoalescer         expiries = new DispatchCoalescer(this::deliverCurrent);
         private volatile boolean                observerClosed;
 
         StateObserver(String pdpId, Consumer<RepositoryState> onUpdate, RepositoryState initial) {
@@ -207,6 +212,17 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         @Override
         public RepositoryState initialState() {
             return initial;
+        }
+
+        private void deliverCurrent() {
+            RepositoryState current;
+            synchronized (lock) {
+                if (closed || observerClosed) {
+                    return;
+                }
+                current = states.get(pdpId);
+            }
+            deliver(current);
         }
 
         void deliver(RepositoryState state) {

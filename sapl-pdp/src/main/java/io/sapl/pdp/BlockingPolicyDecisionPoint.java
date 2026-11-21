@@ -21,7 +21,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.InstantSource;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,8 +87,9 @@ import lombok.val;
  * decisions through the SAPL {@link Stream} primitive. Consumers block on each
  * {@link Stream#awaitNext()} call.
  * <p>
- * Registered {@link DecisionInterceptor}s observe each decision the PDP
- * publishes. Registered
+ * Registered {@link DecisionInterceptor}s observe completed evaluations before
+ * output deduplication. A grouped evaluation reports its elements once every
+ * element has a vote. Registered
  * {@link SubscriptionLifecycleListener}s receive one {@code onSubscribe} call
  * when each subscription stream begins and
  * one {@code onUnsubscribe} call when it ends.
@@ -226,32 +229,37 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             return singleton(MultiAuthorizationDecision.indeterminate());
         }
         val subscriptionId = idFactory.newRandom();
-        val listenerIds    = notifyOnSubscribePerElement(multiSubscription, pdpId);
-        val raw            = rewireOnConfigChange(pdpId,
-                maybePdp -> evaluateMulti(maybePdp, multiSubscription, subscriptionId));
+        val group          = openGroup(multiSubscription, pdpId);
+        val raw            = rewireOnConfigChange(pdpId, maybePdp -> evaluateMulti(maybePdp, group, subscriptionId));
         val deduped        = Streams.distinctUntilChanged(raw, e -> MultiAuthorizationDecision.indeterminate());
-        return withUnsubscribeNotification(deduped, listenerIds);
+        return withUnsubscribeNotification(deduped, group.observerIds().values());
     }
 
-    private List<String> notifyOnSubscribePerElement(MultiAuthorizationSubscription multiSubscription, String pdpId) {
+    private record GroupSubscription(
+            List<IdentifiableAuthorizationSubscription> items,
+            Map<String, String> observerIds) {}
+
+    private GroupSubscription openGroup(MultiAuthorizationSubscription subscriptions, String pdpId) {
         val listeners   = lifecycleListeners();
-        val listenerIds = new ArrayList<String>();
-        for (val identifiable : multiSubscription) {
-            val listenerId = idFactory.newRandom();
-            listenerIds.add(listenerId);
-            notifyOnSubscribe(listeners, listenerId, identifiable.subscription(), pdpId);
+        val items       = new ArrayList<IdentifiableAuthorizationSubscription>();
+        val observerIds = new LinkedHashMap<String, String>();
+        for (val item : subscriptions) {
+            val id = idFactory.newRandom();
+            items.add(item);
+            observerIds.put(item.subscriptionId(), id);
+            notifyOnSubscribe(listeners, id, item.subscription(), pdpId);
         }
-        return listenerIds;
+        return new GroupSubscription(items, observerIds);
     }
 
-    private Stream<MultiAuthorizationDecision> evaluateMulti(Optional<CompiledPdp> maybePdp,
-            MultiAuthorizationSubscription multiSubscription, String subscriptionId) {
+    private Stream<MultiAuthorizationDecision> evaluateMulti(Optional<CompiledPdp> maybePdp, GroupSubscription group,
+            String subscriptionId) {
         try {
-            return maybePdp.map(pdp -> multiVoteStream(multiSubscription, pdp, subscriptionId))
-                    .orElseGet(() -> singleton(indeterminateFor(multiSubscription)));
+            return maybePdp.map(pdp -> multiVoteStream(group, pdp, subscriptionId))
+                    .orElseGet(() -> singleton(indeterminateFor(group.items())));
         } catch (RuntimeException e) {
             log.warn(ERROR_UNEXPECTED_EVALUATION, e);
-            return singleton(indeterminateFor(multiSubscription));
+            return singleton(indeterminateFor(group.items()));
         }
     }
 
@@ -686,19 +694,19 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      */
     public static TracedVote buildTracedVote(VoteResult result, Map<SubscriptionKey, AttributeSnapshot> snapshot,
             InstantSource timestampSource) {
-        return new TracedVote(result.vote(), timestampSource.instant(), result.dependencies(),
-                Voters.readSnapshot(result, snapshot));
+        return buildTracedVote(result, snapshot, timestampSource.instant());
     }
 
-    private Stream<MultiAuthorizationDecision> multiVoteStream(MultiAuthorizationSubscription multiSubscription,
-            CompiledPdp pdp, String subscriptionId) {
-        val items = new ArrayList<IdentifiableAuthorizationSubscription>();
-        for (val item : multiSubscription) {
-            items.add(item);
-        }
+    private static TracedVote buildTracedVote(VoteResult result, Map<SubscriptionKey, AttributeSnapshot> snapshot,
+            Instant completedAt) {
+        return new TracedVote(result.vote(), completedAt, result.dependencies(), Voters.readSnapshot(result, snapshot));
+    }
+
+    private Stream<MultiAuthorizationDecision> multiVoteStream(GroupSubscription group, CompiledPdp pdp,
+            String subscriptionId) {
         val out         = new LatestSlotStream<MultiAuthorizationDecision>();
         val initialDeps = new HashSet<SubscriptionKey>();
-        val initial     = evaluateRound(items, pdp, subscriptionId, Map.of(), initialDeps);
+        val initial     = evaluateRound(group, pdp, subscriptionId, Map.of(), initialDeps);
         if (initial != null) {
             out.put(initial);
         }
@@ -718,7 +726,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                                    }
                                    try {
                                        val newDeps = new HashSet<SubscriptionKey>();
-                                       val multi = evaluateRound(items, pdp, subscriptionId, headCache.merge(brokerSnap),
+                                       val multi = evaluateRound(group, pdp, subscriptionId, headCache.merge(brokerSnap),
                                                newDeps);
                                        if (multi != null) {
                                            out.put(multi);
@@ -733,7 +741,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                                        // so surface a fail-closed INDETERMINATE and complete the stream.
                                        terminated.set(true);
                                        log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, e.getMessage(), e);
-                                       out.put(indeterminateFor(items));
+                                       out.put(indeterminateFor(group.items()));
                                        out.complete();
                                        return firstDeps;
                                    }
@@ -741,7 +749,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                         failure -> {
                             if (terminated.compareAndSet(false, true)) {
                                 log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, failure.getMessage(), failure);
-                                out.put(indeterminateFor(items));
+                                out.put(indeterminateFor(group.items()));
                                 out.complete();
                             }
                         }));
@@ -750,21 +758,18 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     /**
-     * Evaluates one snapshot round across every sub in a multi- subscription
-     * bundle. Returns {@code null} when any sub
-     * fails to produce a vote (the round is suppressed). Otherwise returns the
-     * combined
-     * {@link MultiAuthorizationDecision}, accumulates every dependency the round
-     * read into {@code depsAccumulator}, and
-     * (if supplied) hands each per-sub traced vote to {@code
-     * perSubTraceObserver}. Shared between both PDPs so the multi-vote loop is one
-     * implementation.
+     * Evaluates group items against one captured input map, collecting reached
+     * dependencies through the first pending item. An incomplete round returns
+     * {@code null}. After every item has a vote, an installed observer receives
+     * one trace per item with the group's completion timestamp, including when
+     * the resulting bundle equals the previous one.
      */
     public static MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items,
             CompiledPdp pdp, String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
             Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, InstantSource timestampSource,
             BiConsumer<TracedVote, IdentifiableAuthorizationSubscription> perSubTraceObserver) {
-        val multi = new MultiAuthorizationDecision();
+        val              multi   = new MultiAuthorizationDecision();
+        List<VoteResult> results = perSubTraceObserver == null ? List.of() : new ArrayList<>(items.size());
         for (val item : items) {
             val ctx = evaluationContext(pdp, item.subscription(), subscriptionId, functionBroker)
                     .withSnapshot(snapshot);
@@ -775,9 +780,16 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                 return null;
             }
             if (perSubTraceObserver != null) {
-                perSubTraceObserver.accept(buildTracedVote(r, snapshot, timestampSource), item);
+                results.add(r);
             }
             multi.setDecision(item.subscriptionId(), vote.authorizationDecision());
+        }
+        if (perSubTraceObserver != null && !results.isEmpty()) {
+            val completedAt = timestampSource.instant();
+            for (int index = 0; index < results.size(); index++) {
+                perSubTraceObserver.accept(buildTracedVote(results.get(index), snapshot, completedAt),
+                        items.get(index));
+            }
         }
         return multi;
     }
@@ -888,7 +900,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return withUnsubscribeNotification(source, List.of(subscriptionId));
     }
 
-    private <T> Stream<T> withUnsubscribeNotification(Stream<T> source, List<String> subscriptionIds) {
+    private <T> Stream<T> withUnsubscribeNotification(Stream<T> source, Collection<String> subscriptionIds) {
         val out  = new LatestSlotStream<T>();
         val pump = Thread.startVirtualThread(() -> {
                      try {
@@ -932,16 +944,16 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return evaluationContext(pdp, sub, subscriptionId, pdp.plugins().functionBroker());
     }
 
-    private MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items, CompiledPdp pdp,
-            String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
-            Set<SubscriptionKey> depsAccumulator) {
-        return evaluateRound(items, pdp, subscriptionId, snapshot, depsAccumulator, pdp.plugins().functionBroker(),
-                timestampSource, hasDecisionInterceptors() ? this::observePerSubTrace : null);
-    }
-
-    private void observePerSubTrace(TracedVote perSubTraced, IdentifiableAuthorizationSubscription item) {
-        dispatchDecisionObservers(decisionInterceptors(), perSubTraced, perSubTraced.timestamp(), item.subscriptionId(),
-                item.subscription());
+    private MultiAuthorizationDecision evaluateRound(GroupSubscription group, CompiledPdp pdp, String subscriptionId,
+            Map<SubscriptionKey, AttributeSnapshot> snapshot, Set<SubscriptionKey> depsAccumulator) {
+        val                                                           interceptors = decisionInterceptors();
+        BiConsumer<TracedVote, IdentifiableAuthorizationSubscription> observer     = null;
+        if (!interceptors.isEmpty()) {
+            observer = (trace, item) -> dispatchDecisionObservers(interceptors, trace, trace.timestamp(),
+                    group.observerIds().get(item.subscriptionId()), item.subscription());
+        }
+        return evaluateRound(group.items(), pdp, subscriptionId, snapshot, depsAccumulator,
+                pdp.plugins().functionBroker(), timestampSource, observer);
     }
 
     /**

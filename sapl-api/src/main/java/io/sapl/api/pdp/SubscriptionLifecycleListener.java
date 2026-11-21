@@ -38,7 +38,10 @@ public interface SubscriptionLifecycleListener {
     /**
      * Called once when an authorization subscription stream begins.
      *
-     * @param subscriptionId the per-evaluation subscription identifier
+     * @param subscriptionId the PDP-generated identifier for this subscription lifetime.
+     * Each element of a multi-subscription has its own identifier, shared
+     * by its decision and lifecycle callbacks. The public decision bundle
+     * uses the element identifier supplied by the caller
      * @param authorizationSubscription the subscription being evaluated
      * @param pdpId the tenant identifier the request was routed to
      */
@@ -48,7 +51,8 @@ public interface SubscriptionLifecycleListener {
      * Called once when an authorization subscription stream ends,
      * regardless of how the stream terminated.
      *
-     * @param subscriptionId the per-evaluation subscription identifier
+     * @param subscriptionId the identifier previously passed to
+     * {@link #onSubscribe(String, AuthorizationSubscription, String)}
      */
     void onUnsubscribe(String subscriptionId);
 }

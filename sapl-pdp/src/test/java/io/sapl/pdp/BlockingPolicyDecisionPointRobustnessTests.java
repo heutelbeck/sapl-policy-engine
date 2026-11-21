@@ -29,14 +29,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.InstantSource;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.DisplayName;
@@ -48,9 +54,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.AttributeSnapshot;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -60,6 +69,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.compiler.document.PureVoter;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
@@ -166,28 +176,69 @@ class BlockingPolicyDecisionPointRobustnessTests {
                 DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
         @Test
-        @DisplayName("decideAll fires one onSubscribe and one onUnsubscribe per contained subscription")
-        void whenDecideAllThenListenerNotifiedPerContainedSubscription() throws Exception {
-            val recording      = new RecordingListener(2);
-            val components     = PolicyDecisionPointBuilder.withoutDefaults()
-                    .withSubscriptionLifecycleListener(recording).build();
-            val pdpVoterSource = components.pdpVoterSource();
-            val pdp            = new BlockingPolicyDecisionPoint(pdpVoterSource, components.attributeBroker(),
-                    new ThreadLocalRandomIdFactory());
-            pdpVoterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, """
-                    policy "permit cultists" permit subject == "cultist";
-                    """));
+        @DisplayName("an incomplete group produces no item callbacks and each complete round reports every item")
+        void whenTheLastElementIsPendingThenItemTracesStartWithTheFirstCompleteRound() {
+            val                                                           items        = List.of(
+                    new IdentifiableAuthorizationSubscription("first", subscription("local", "read", "file")),
+                    new IdentifiableAuthorizationSubscription("second", subscription("visitor", "read", "file")));
+            val                                                           dependencies = new HashSet<SubscriptionKey>();
+            val                                                           reported     = new ArrayList<String>();
+            BiConsumer<TracedVote, IdentifiableAuthorizationSubscription> observer     = (trace, item) -> reported
+                    .add(item.subscriptionId());
+            val                                                           clock        = InstantSource
+                    .fixed(Instant.EPOCH);
+            try (val components = PolicyDecisionPointBuilder.withoutDefaults().build()) {
+                val source = components.pdpVoterSource();
+                source.loadConfiguration(configuration(DENY_UNLESS_PERMIT,
+                        "policy \"Read access\" permit subject == \"local\" || <approval.granted>;"));
+                val pdp        = source.getCurrentConfiguration("default").orElseThrow();
+                val functions  = pdp.plugins().functionBroker();
+                val incomplete = BlockingPolicyDecisionPoint.evaluateRound(items, pdp, "group", Map.of(), dependencies,
+                        functions, clock, observer);
+                assertThat(incomplete).isNull();
+                assertThat(dependencies).hasSize(1);
+                assertThat(reported).isEmpty();
 
-            val multi = new MultiAuthorizationSubscription();
-            multi.addSubscription("first", subscription("cultist", "summon", "deep_one"));
-            multi.addSubscription("second", subscription("investigator", "summon", "deep_one"));
-
-            try (val stream = pdp.decideAll(multi)) {
-                assertThat(stream.awaitNext()).isNotNull();
-                assertThat(recording.subscribed).hasSize(2);
+                val snapshot = Map.of(dependencies.iterator().next(), new AttributeSnapshot(Value.TRUE, Instant.EPOCH));
+                for (int round = 0; round < 2; round++) {
+                    val complete = BlockingPolicyDecisionPoint.evaluateRound(items, pdp, "group", snapshot,
+                            new HashSet<>(), functions, clock, observer);
+                    assertThat(List.of(complete.getDecisionType("first"), complete.getDecisionType("second")))
+                            .containsExactly(Decision.PERMIT, Decision.PERMIT);
+                }
+                assertThat(reported).containsExactly("first", "second", "first", "second");
             }
+        }
 
-            assertThat(recording.unsubscribed.await(5, TimeUnit.SECONDS)).isTrue();
+        @Test
+        @DisplayName("independent groups with the same item IDs have distinct, correlated observer lifetimes")
+        void whenTwoGroupsReuseClientIdsThenEachDecisionMatchesItsElementLifetime() throws Exception {
+            val recording = new RecordingListener(4);
+            val decisions = new CopyOnWriteArrayList<ObservedSubscription>();
+            val group     = new MultiAuthorizationSubscription()
+                    .addSubscription("first", subscription("cultist", "summon", "deep_one"))
+                    .addSubscription("second", subscription("investigator", "summon", "deep_one"));
+            try (val components = PolicyDecisionPointBuilder.withoutDefaults()
+                    .withSubscriptionLifecycleListener(recording).withDecisionInterceptor(
+                            (trace, timestamp, id, sub) -> decisions.add(new ObservedSubscription(id, sub)))
+                    .build()) {
+                components.pdpVoterSource().loadConfiguration(configuration(DENY_UNLESS_PERMIT, """
+                        policy "permit cultists" permit subject == "cultist";
+                        """));
+                try (val first = components.pdp().decideAll(group); val second = components.pdp().decideAll(group)) {
+                    for (val stream : List.of(first, second)) {
+                        val bundle = stream.awaitNext(Duration.ofSeconds(5));
+                        assertThat(List.of(bundle.getDecisionType("first"), bundle.getDecisionType("second")))
+                                .containsExactly(Decision.PERMIT, Decision.DENY);
+                    }
+                    assertThat(recording.subscribed).hasSize(4).extracting(ObservedSubscription::id)
+                            .doesNotHaveDuplicates();
+                    assertThat(decisions).containsExactlyInAnyOrderElementsOf(recording.subscribed);
+                }
+                assertThat(recording.unsubscribed.await(5, TimeUnit.SECONDS)).isTrue();
+                assertThat(recording.closedIds).containsExactlyInAnyOrderElementsOf(
+                        recording.subscribed.stream().map(ObservedSubscription::id).toList());
+            }
         }
     }
 
@@ -309,10 +360,13 @@ class BlockingPolicyDecisionPointRobustnessTests {
         }
     }
 
+    private record ObservedSubscription(String id, AuthorizationSubscription subscription) {}
+
     private static final class RecordingListener implements SubscriptionLifecycleListener {
 
-        private final List<String>   subscribed = new CopyOnWriteArrayList<>();
-        private final CountDownLatch unsubscribed;
+        private final List<ObservedSubscription> subscribed = new CopyOnWriteArrayList<>();
+        private final List<String>               closedIds  = new CopyOnWriteArrayList<>();
+        private final CountDownLatch             unsubscribed;
 
         private RecordingListener(int expectedUnsubscribes) {
             this.unsubscribed = new CountDownLatch(expectedUnsubscribes);
@@ -320,11 +374,12 @@ class BlockingPolicyDecisionPointRobustnessTests {
 
         @Override
         public void onSubscribe(String subscriptionId, AuthorizationSubscription sub, String pdpId) {
-            subscribed.add(subscriptionId);
+            subscribed.add(new ObservedSubscription(subscriptionId, sub));
         }
 
         @Override
         public void onUnsubscribe(String subscriptionId) {
+            closedIds.add(subscriptionId);
             unsubscribed.countDown();
         }
     }

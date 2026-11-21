@@ -35,12 +35,19 @@ import java.time.Instant;
 public interface DecisionInterceptor {
 
     /**
-     * Called once per decision emitted by the PDP.
+     * Observes a completed evaluation before equal public decisions are
+     * deduplicated. A completed group round supplies one callback per element.
+     * An incomplete group round supplies none. Equal results from successive
+     * completed rounds can produce distinct callbacks even when the public
+     * stream delivers a single bundle.
      *
      * @param decision the decision and its trace
      * @param timestamp wall-clock timestamp at which the PDP produced
      * the decision
-     * @param subscriptionId the per-evaluation subscription identifier
+     * @param subscriptionId the PDP-generated identifier for this subscription lifetime.
+     * Each element of a multi-subscription has its own identifier, shared
+     * by its decision and lifecycle callbacks. The public decision bundle
+     * uses the element identifier supplied by the caller
      * @param authorizationSubscription the subscription the PDP
      * evaluated to produce the decision
      */
