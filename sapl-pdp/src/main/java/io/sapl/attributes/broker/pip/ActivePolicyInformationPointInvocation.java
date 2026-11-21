@@ -97,14 +97,13 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
     private final AtomicInteger                    refcount       = new AtomicInteger();
 
-    private final Object                                 lock               = new Object();
+    private final Object                                 lock           = new Object();
     private Stream<Value>                                sourceStream;
-    private boolean                                      pumpStarted        = false;
-    private Optional<AttributeSnapshot>                  latestSnapshot     = Optional.empty();
+    private boolean                                      pumpStarted    = false;
+    private Optional<AttributeSnapshot>                  latestSnapshot = Optional.empty();
     private @Nullable StreamAttributeFinderSpecification sourceSpec;
-    private boolean                                      closed             = false;
-    private boolean                                      inRebindTransition = false;
-    private boolean                                      terminal           = false;
+    private boolean                                      closed         = false;
+    private boolean                                      terminal       = false;
 
     // Rate-limits the onValue-handler-threw warning to one per minute.
     // Guarded by `lock`: the pump thread and the broker thread both reach
@@ -243,17 +242,13 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
      * swap-eviction, an ErrorValue on rebind
      * failure) before discarding the active invocation.
      * <p>
-     * Bypasses the rebind-transition gate (see {@link #rebind}): the caller has
-     * explicitly chosen this value as
-     * terminal.
-     * <p>
      * Marks the active invocation as terminal so a still-running pump cannot
      * overwrite this terminal value with a stale
      * source value after the PIP was unloaded or evicted: subsequent pump-path
      * publishes are suppressed.
      */
     void publishImmediate(Value value) {
-        publishInternal(value, false);
+        publishInternal(value, null);
     }
 
     /**
@@ -263,14 +258,9 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
      * its first value. Closes the old
      * stream so its pump exits naturally.
      * <p>
-     * Marks the active invocation as in a rebind transition. Pump-path publishes of
-     * {@link Value#UNDEFINED} are
-     * suppressed until the new stream emits a non-UNDEFINED value. This prevents
-     * transient absence jitter during a
-     * hot-swap when the replacement stream's initial-value timeout would otherwise
-     * propagate UNDEFINED to consumers
-     * that were observing a real prior value. Terminal UNDEFINED (via
-     * {@link #publishImmediate}) is unaffected.
+     * A previous pump can already hold a value when the rebind commits. The
+     * mailbox verifies which stream supplied a value when accepting it, so a
+     * delayed old pump cannot overwrite the replacement's observation.
      *
      * @param newSourceStream
      * the freshly opened replacement stream
@@ -281,16 +271,13 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
         Stream<Value> oldStream;
         synchronized (lock) {
             if (closed) {
-                if (newSourceStream != null) {
-                    safeClose(newSourceStream);
-                }
-                return;
+                oldStream = newSourceStream;
+            } else {
+                oldStream    = sourceStream;
+                sourceStream = newSourceStream;
+                sourceSpec   = newSourceSpec;
+                pumpStarted  = false;
             }
-            oldStream          = sourceStream;
-            sourceStream       = newSourceStream;
-            sourceSpec         = newSourceSpec;
-            pumpStarted        = false;
-            inRebindTransition = true;
         }
         if (oldStream != null) {
             safeClose(oldStream);
@@ -353,34 +340,19 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
             if (next == null) {
                 return;
             }
-            publishInternal(next, true);
+            publishInternal(next, boundStream);
         }
     }
 
-    /**
-     * @param value
-     * the value to publish
-     * @param gatedByRebind
-     * {@code true} when this publish flows from the source-stream pump (subject to
-     * the rebind-transition
-     * gate); {@code false} for immediate / terminal publishes that bypass the gate
-     */
-    private void publishInternal(Value value, boolean gatedByRebind) {
+    private void publishInternal(Value value, @Nullable Stream<Value> publisher) {
         synchronized (lock) {
-            if (closed) {
+            if (closed || publisher != null && (terminal || publisher != sourceStream)) {
                 return;
             }
-            if (gatedByRebind && terminal) {
-                return;
-            }
-            if (gatedByRebind && inRebindTransition && Value.UNDEFINED.equals(value)) {
-                return;
-            }
-            if (!gatedByRebind) {
+            if (publisher == null) {
                 terminal = true;
             }
-            inRebindTransition = false;
-            latestSnapshot     = Optional.of(new AttributeSnapshot(value, timestampSource.instant()));
+            latestSnapshot = Optional.of(new AttributeSnapshot(value, timestampSource.instant()));
         }
         try {
             onValue.accept(value);

@@ -30,9 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -243,11 +243,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         this.gracePeriodDuration = gracePeriodDuration;
         this.fallback            = fallback;
         this.timestampSource     = timestampSource;
-        this.teardownScheduler   = Executors.newSingleThreadScheduledExecutor(runnable -> {
-                                     val thread = Thread.ofVirtual().unstarted(runnable);
-                                     thread.setName("PolicyInformationPointAttributeBroker-teardown");
-                                     return thread;
-                                 });
+        val scheduler = new ScheduledThreadPoolExecutor(1, runnable -> {
+            val thread = Thread.ofVirtual().unstarted(runnable);
+            thread.setName("PolicyInformationPointAttributeBroker-teardown");
+            return thread;
+        });
+        scheduler.setRemoveOnCancelPolicy(true);
+        this.teardownScheduler = scheduler;
     }
 
     /**
@@ -555,8 +557,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             throw new IllegalArgumentException(ERROR_DEPS_EMPTY);
         }
 
-        BrokerSubscription subscription = null;
-        boolean            fireImmediately;
+        BrokerSubscription     subscription    = null;
+        RuntimeException       setupFailure    = null;
+        List<ActiveInvocation> rollback        = List.of();
+        boolean                fireImmediately = false;
         lock.lock();
 
         try {
@@ -582,13 +586,19 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             // Roll back dependencies attached so far. The subscription was never
             // registered.
             if (subscription != null) {
-                subscription.close();
+                rollback = subscription.detachUnderLock();
             }
-            throw e;
+            setupFailure = e;
         } finally {
 
             lock.unlock();
 
+        }
+        if (setupFailure != null) {
+            if (subscription != null) {
+                rollback.forEach(subscription::handleRefcountZero);
+            }
+            throw setupFailure;
         }
         log.trace("Opened subscription '{}' with {} dependency(ies)", subscriptionId, initialDependencies.size());
         if (fireImmediately) {
@@ -1002,14 +1012,20 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * or terminal.
      */
     private void migrate(ActiveInvocation previous, ActiveInvocation replacement) {
-        lock.lock();
+        if (!replaceRoutes(previous, replacement)) {
+            replacement.close();
+            return;
+        }
+        replacement.start();
+        previous.close();
+        reclaimIfOrphaned(replacement);
+    }
 
+    private boolean replaceRoutes(ActiveInvocation previous, ActiveInvocation replacement) {
+        lock.lock();
         try {
             if (closed) {
-                // close() already drained and closed everything. Do not re-insert
-                // or start the replacement. That would leak its pump and source.
-                replacement.close();
-                return;
+                return false;
             }
             val activeInvocations = activeInvocationsByInvocation.get(previous.invocation());
             if (activeInvocations != null) {
@@ -1034,14 +1050,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                     }
                 }
             }
+            return true;
         } finally {
-
             lock.unlock();
-
         }
-        replacement.start();
-        previous.close();
-        reclaimIfOrphaned(replacement);
     }
 
     /**
@@ -1111,7 +1123,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     private void rebind(ActivePolicyInformationPointInvocation active, StreamAttributeFinderSpecification newSpec) {
         val           supplier  = openSyncFirstThenLazy(innerStreamSupplier(newSpec, active.invocation()));
-        Stream<Value> newStream = new AttributeStream(active.invocation(), supplier);
+        Stream<Value> newStream = new AttributeStream(active.invocation(), supplier, true);
         active.rebind(newStream, newSpec);
     }
 
@@ -1306,16 +1318,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 if (subscriptionClosed) {
                     return;
                 }
-                subscriptionClosed = true;
-                consumerSubscriptions.remove(id);
-                refcountZeroed = new ArrayList<>();
-                for (val active : routingTable.values()) {
-                    if (active.detach(this) <= 0) {
-                        refcountZeroed.add(active);
-                    }
-                }
-                routingTable.clear();
-                deliveredInputs.clear();
+                refcountZeroed = detachUnderLock();
             } finally {
 
                 lock.unlock();
@@ -1325,6 +1328,20 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 handleRefcountZero(active);
             }
             log.trace("Closed subscription '{}'", id);
+        }
+
+        private List<ActiveInvocation> detachUnderLock() {
+            subscriptionClosed = true;
+            consumerSubscriptions.remove(id, this);
+            val zeroed = new ArrayList<ActiveInvocation>();
+            for (val active : routingTable.values()) {
+                if (active.detach(this) <= 0) {
+                    zeroed.add(active);
+                }
+            }
+            routingTable.clear();
+            deliveredInputs.clear();
+            return zeroed;
         }
 
         void markClosed() {

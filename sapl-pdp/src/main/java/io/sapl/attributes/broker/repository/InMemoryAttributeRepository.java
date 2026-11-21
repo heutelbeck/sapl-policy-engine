@@ -25,9 +25,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -60,8 +60,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     private boolean                                      closed;
 
     public InMemoryAttributeRepository() {
-        scheduler = Executors
-                .newSingleThreadScheduledExecutor(Thread.ofVirtual().name("InMemoryAttributeRepository-ttl").factory());
+        val ttlScheduler = new ScheduledThreadPoolExecutor(1,
+                Thread.ofVirtual().name("InMemoryAttributeRepository-ttl").factory());
+        ttlScheduler.setRemoveOnCancelPolicy(true);
+        scheduler = ttlScheduler;
     }
 
     @Override

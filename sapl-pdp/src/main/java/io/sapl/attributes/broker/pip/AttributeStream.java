@@ -52,6 +52,11 @@ import java.util.function.Supplier;
  * terminal error state. Every error placeholder may be overwritten
  * by the next successful cycle's value.
  * <p>
+ * During replacement startup, the active invocation retains its previous
+ * observation. This stream suppresses only framework-created first-value
+ * absence from timeouts or empty completion. A source-supplied UNDEFINED or
+ * error is still a real publication and ends that startup interval.
+ * <p>
  * Cancellation is best-effort. {@link Stream#awaitNext(Duration)}
  * uses cooperative interrupt to enforce {@code initialTimeOut}, and
  * the framework calls {@code inner.close()} on cycle teardown. An
@@ -80,6 +85,9 @@ final class AttributeStream implements Stream<Value> {
     private final LatestSlotStream<Value> output = new LatestSlotStream<>();
     private volatile boolean              closed = false;
 
+    // The pump distinguishes real source values from synthetic first-value absence before they share a mailbox.
+    private boolean awaitingReplacementValue;
+
     // Interrupted on close() so a pump parked in a sleep exits promptly.
     // Package-private for lifecycle tests.
     final Thread pumpThread;
@@ -89,9 +97,16 @@ final class AttributeStream implements Stream<Value> {
     private boolean failureLogged;
 
     AttributeStream(@NonNull AttributeFinderInvocation invocation, @NonNull Supplier<Stream<Value>> innerSupplier) {
-        this.invocation    = invocation;
-        this.innerSupplier = innerSupplier;
-        this.pumpThread    = Thread.ofVirtual().name("AttributeStream-pump-" + invocation.attributeName())
+        this(invocation, innerSupplier, false);
+    }
+
+    AttributeStream(@NonNull AttributeFinderInvocation invocation,
+            @NonNull Supplier<Stream<Value>> innerSupplier,
+            boolean awaitingReplacementValue) {
+        this.invocation               = invocation;
+        this.innerSupplier            = innerSupplier;
+        this.awaitingReplacementValue = awaitingReplacementValue;
+        this.pumpThread               = Thread.ofVirtual().name("AttributeStream-pump-" + invocation.attributeName())
                 .start(this::runLoop);
     }
 
@@ -183,7 +198,7 @@ final class AttributeStream implements Stream<Value> {
                 attempt();
                 return;
             } catch (TimeoutException e) {
-                publish(Value.UNDEFINED);
+                publishInitialAbsence();
                 lastCause = new RuntimeException("timeout after " + invocation.initialTimeOut());
             } catch (RuntimeException e) {
                 log.debug(DEBUG_ATTEMPT_FAILED, invocation.attributeName(), e.getMessage());
@@ -259,7 +274,7 @@ final class AttributeStream implements Stream<Value> {
             }
             val first = firstValue(inner);
             if (first == null) {
-                publish(Value.UNDEFINED);
+                publishInitialAbsence();
                 return;
             }
             publish(first);
@@ -287,8 +302,15 @@ final class AttributeStream implements Stream<Value> {
         }
     }
 
+    private void publishInitialAbsence() {
+        if (!awaitingReplacementValue) {
+            publish(Value.UNDEFINED);
+        }
+    }
+
     private void publish(Value value) {
         if (!closed) {
+            awaitingReplacementValue = false;
             output.put(value);
         }
     }
