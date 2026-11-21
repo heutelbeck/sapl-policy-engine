@@ -20,7 +20,7 @@ package io.sapl.api.pdp;
 import java.time.Instant;
 
 /**
- * Observes every {@link TracedDecision} produced by the PDP. Implementations
+ * Receives {@link TracedDecision}s for single subscriptions and groups. Implementations
  * are observation plugins (logging, metrics, audit). The PDP catches and
  * logs any exception thrown from {@link #onDecision}; misbehaving
  * interceptors must not affect authorization correctness.
@@ -35,11 +35,14 @@ import java.time.Instant;
 public interface DecisionInterceptor {
 
     /**
-     * Observes a completed evaluation before equal public decisions are
-     * deduplicated. A completed group round supplies one callback per element.
-     * An incomplete group round supplies none. Equal results from successive
-     * completed rounds can produce distinct callbacks even when the public
-     * stream delivers a single bundle.
+     * For a single subscription, observes the evaluation before the PDP
+     * suppresses equal public decisions. For a group, callbacks start when
+     * every item has a decision. The interceptor receives one call for each
+     * item in the first complete bundle, then one call per item whose
+     * {@link AuthorizationDecision} changed since the previous bundle.
+     * Changes to obligations, advice or the returned resource count even when
+     * the decision verb stays the same. Items reported from the same round
+     * share its completion timestamp.
      *
      * @param decision the decision and its trace
      * @param timestamp wall-clock timestamp at which the PDP produced

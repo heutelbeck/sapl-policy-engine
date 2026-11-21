@@ -64,6 +64,8 @@ The two access styles correspond to two interfaces.
 | `decide(MultiAuthorizationSubscription)`    | `Flux<IdentifiableAuthorizationDecision>` | Streaming individual.              |
 | `decideAll(MultiAuthorizationSubscription)` | `Flux<MultiAuthorizationDecision>`      | Streaming batch.                     |
 
+`decideAll` waits until every item has a decision and evaluates the group against the same attribute values, so a change to a shared attribute appears in one complete bundle. A PDP-side `DecisionInterceptor` receives one callback for each item in the first bundle and then only for items whose decision changed, including changes to obligations, advice or the returned resource.
+
 Every method also has an overload taking a `String pdpId` for routing to a named PDP in a multi-tenant deployment.
 
 ### Embedded PDP

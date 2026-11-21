@@ -25,7 +25,8 @@ package io.sapl.api.pdp;
  * {@link #onSubscribe(String, AuthorizationSubscription, String)} call
  * followed by zero or more decision emissions and exactly one
  * {@link #onUnsubscribe(String)} call when the stream ends (normally,
- * via error, or via consumer cancellation).
+ * via error, or via consumer cancellation). In a group, each item has its
+ * own lifetime across attribute updates and PDP configuration changes.
  * <p>
  * Listeners are observability concerns: misbehaving listeners must not
  * affect authorization correctness. The PDP catches and logs exceptions

@@ -68,6 +68,9 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
+import io.sapl.attributes.broker.repository.RepositoryKey;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.pdp.CompiledPdp;
@@ -176,7 +179,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
                 DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
         @Test
-        @DisplayName("an incomplete group produces no item callbacks and each complete round reports every item")
+        @DisplayName("a pending item withholds the whole round from the trace collector")
         void whenTheLastElementIsPendingThenItemTracesStartWithTheFirstCompleteRound() {
             val                                                           items        = List.of(
                     new IdentifiableAuthorizationSubscription("first", subscription("local", "read", "file")),
@@ -207,6 +210,88 @@ class BlockingPolicyDecisionPointRobustnessTests {
                             .containsExactly(Decision.PERMIT, Decision.PERMIT);
                 }
                 assertThat(reported).containsExactly("first", "second", "first", "second");
+            }
+        }
+
+        @Test
+        @Timeout(15)
+        @DisplayName("the client receives whole bundles while the interceptor receives changed elements")
+        void whenAdviceOrASharedGrantChangesThenOnlyChangedItemsAreReported() throws Exception {
+            val left      = subscription("left", "read", "file");
+            val right     = subscription("right", "read", "file");
+            val group     = new MultiAuthorizationSubscription().addSubscription("a", left).addSubscription("b", right);
+            val granted   = new RepositoryKey(null, "access.granted", List.of(), "default");
+            val label     = new RepositoryKey(null, "labels.left", List.of(), "default");
+            val callbacks = new CopyOnWriteArrayList<AuthorizationSubscription>();
+            val limit     = Duration.ofSeconds(4);
+            try (val repository = new InMemoryAttributeRepository();
+                    val components = PolicyDecisionPointBuilder.withoutDefaults().withRepository(repository)
+                            .withDecisionInterceptor((decision, timestamp, id, sub) -> callbacks.add(sub)).build()) {
+                val config = configuration(DENY_UNLESS_PERMIT, """
+                        policy "left access" permit subject == "left"; <access.granted>; advice <labels.left>
+                        """, """
+                        policy "right access" permit subject == "right"; <access.granted>;
+                        """);
+                components.pdpVoterSource().loadConfiguration(config);
+                repository.publish(List.of(new BoundValue(granted, Value.TRUE, null),
+                        new BoundValue(label, Value.of("initial"), null)));
+                try (val stream = components.pdp().decideAll(group)) {
+                    val initial = stream.awaitNext(limit);
+                    assertThat(List.of(initial.getDecisionType("a"), initial.getDecisionType("b")))
+                            .containsExactly(Decision.PERMIT, Decision.PERMIT);
+                    assertThat(callbacks).containsExactlyInAnyOrder(left, right);
+                    callbacks.clear();
+
+                    repository.publish(label, Value.of("initial"));
+                    repository.publish(label, Value.of("revised"));
+                    val revised = stream.awaitNext(limit);
+                    assertThat(revised.getDecision("a").advice()).containsExactly(Value.of("revised"));
+                    assertThat(revised.getDecision("b")).isEqualTo(initial.getDecision("b"));
+                    assertThat(callbacks).containsExactly(left);
+                    callbacks.clear();
+
+                    repository.publish(granted, Value.FALSE);
+                    val revoked = stream.awaitNext(limit);
+                    assertThat(List.of(revoked.getDecisionType("a"), revoked.getDecisionType("b")))
+                            .containsExactly(Decision.DENY, Decision.DENY);
+                    assertThat(callbacks).containsExactlyInAnyOrder(left, right);
+                }
+            }
+        }
+
+        @Test
+        @Timeout(15)
+        @DisplayName("recovering from a missing configuration preserves the group's decision history")
+        void whenAConfigurationChangesThenTheGroupReportsOnlyNewDecisions() throws Exception {
+            val local     = subscription("local", "read", "file");
+            val guest     = subscription("guest", "read", "file");
+            val group     = new MultiAuthorizationSubscription().addSubscription("local", local)
+                    .addSubscription("guest", guest);
+            val callbacks = new CopyOnWriteArrayList<AuthorizationSubscription>();
+            val limit     = Duration.ofSeconds(4);
+            try (val components = PolicyDecisionPointBuilder.withoutDefaults()
+                    .withDecisionInterceptor((decision, timestamp, id, sub) -> callbacks.add(sub)).build();
+                    val stream = components.pdp().decideAll(group)) {
+                val missing = stream.awaitNext(limit);
+                assertThat(List.of(missing.getDecisionType("local"), missing.getDecisionType("guest")))
+                        .containsExactly(Decision.INDETERMINATE, Decision.INDETERMINATE);
+                assertThat(callbacks).containsExactlyInAnyOrder(local, guest);
+                callbacks.clear();
+
+                val source = components.pdpVoterSource();
+                source.loadConfiguration(configuration(DENY_UNLESS_PERMIT, "policy \"read access\" permit"));
+                val available = stream.awaitNext(limit);
+                assertThat(List.of(available.getDecisionType("local"), available.getDecisionType("guest")))
+                        .containsExactly(Decision.PERMIT, Decision.PERMIT);
+                assertThat(callbacks).containsExactlyInAnyOrder(local, guest);
+                callbacks.clear();
+
+                source.loadConfiguration(
+                        configuration(DENY_UNLESS_PERMIT, "policy \"local access\" permit subject == \"local\";"));
+                val restricted = stream.awaitNext(limit);
+                assertThat(List.of(restricted.getDecisionType("local"), restricted.getDecisionType("guest")))
+                        .containsExactly(Decision.PERMIT, Decision.DENY);
+                assertThat(callbacks).containsExactly(guest);
             }
         }
 
