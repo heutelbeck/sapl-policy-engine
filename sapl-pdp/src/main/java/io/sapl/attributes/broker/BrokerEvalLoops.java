@@ -50,6 +50,12 @@ import java.util.function.Supplier;
  * the next round must reread A=false. It can then finish false without reading
  * B. Carrying the old A=true into evaluation of the new B would create a false grant.
  * <p>
+ * An update of a previously observed live input can start a round while a newly
+ * requested attribute still has no value. The broker omits that pending key.
+ * Reevaluation can drop it after a short circuit or remain incomplete, without
+ * emitting a decision for the incomplete result. First deliveries of a new
+ * dependency set are collected together unless a known input changes.
+ * <p>
  * Each callback follows this order:
  * <ol>
  * <li>Merge the broker's current inputs with deliberately frozen head values.

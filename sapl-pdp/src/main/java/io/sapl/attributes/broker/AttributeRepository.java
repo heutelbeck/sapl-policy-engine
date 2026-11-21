@@ -50,6 +50,11 @@ import java.util.function.Consumer;
  * the dependencies of that round. Dropping a dependency changes that consumer's
  * observation, not the repository's bindings.
  * <p>
+ * A broker may reevaluate changed known inputs while an unrelated source is
+ * still pending. Every view delivered here must therefore already contain the
+ * complete committed group. Delaying notifications cannot repair a view whose
+ * individual bindings are exposed before their common commit.
+ * <p>
  * In an available view, a missing binding is {@link Value#UNDEFINED}, whether
  * it was never published, removed or expired. SAPL null remains a bound value.
  * If the source cannot establish its state, it reports

@@ -37,9 +37,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Active invocation fed by a PIP. One instance per unique invocation across the
- * broker's consumers. Many consumers can
- * attach to the same instance.
+ * Active invocation fed by a PIP. Compatible consumers can share one instance.
+ * A fresh request creates another instance at attachment time. A later non-fresh
+ * request may reuse it, so freshness is not an exclusive lifetime lease.
  * <p>
  * What it owns: a single-slot mailbox (the latest value), a pump on a virtual
  * thread that reads the PIP's stream and
@@ -58,6 +58,14 @@ import java.util.function.Consumer;
  * sourceStream and lifecycle flags. Callers of {@link #attach},
  * {@link #detach}, {@link #subscribers} and
  * {@link #refcount} must hold the broker lock.
+ * The notification callback runs after releasing this class's mailbox lock.
+ * Capture can acquire that lock while holding the broker lock, so notifying
+ * while holding it would invert the lock order.
+ * <p>
+ * Accepted publications allocate distinct observation instances, including
+ * repeated values under an unchanged clock. Mailbox reads retain that instance.
+ * This lets each consumer recognize updates independently while first values
+ * of its newly requested keys are still being collected.
  */
 @Slf4j
 final class ActivePolicyInformationPointInvocation implements ActiveInvocation {

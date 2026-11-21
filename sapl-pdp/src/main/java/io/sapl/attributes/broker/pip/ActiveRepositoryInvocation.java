@@ -35,7 +35,17 @@ import io.sapl.attributes.broker.repository.RepositoryKey;
 import io.sapl.attributes.broker.repository.RepositoryState;
 import lombok.val;
 
-/** A repository key projected from its broker's shared, routed repository state. */
+/**
+ * A repository key projected from its broker's shared, routed repository state.
+ * The broker owns registration, revision ordering and atomic installation of all
+ * active keys in the route. This projection must not request an independent
+ * latest value or notify a consumer before the other projections are installed.
+ * <p>
+ * Installation and capture use the broker routing lock. A changed binding keeps
+ * one new observation instance until its next change. An unchanged binding keeps
+ * the old instance, so a change to another repository key does not become a false
+ * update here. Confirmed absence and source errors are fulfilled observations.
+ */
 final class ActiveRepositoryInvocation implements ActiveInvocation {
 
     private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);

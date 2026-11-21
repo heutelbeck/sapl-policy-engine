@@ -45,6 +45,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * or one-run-per-trigger guarantee follows. The runnable must handle its own
  * failures: this helper restores its running flag but does not convert thrown
  * exceptions into policy results.
+ * <p>
+ * First-value collection belongs to broker readiness. This coalescer combines
+ * overlapping triggers but does not batch sequential first arrivals. Before
+ * invoking the consumer, the broker must recheck which inputs have changed
+ * since its previous capture. Otherwise delayed notifications can repeat a
+ * round whose values were already consumed.
  *
  * @since 4.1.0
  */

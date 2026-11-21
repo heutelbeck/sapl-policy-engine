@@ -337,8 +337,8 @@ class PolicyInformationPointAttributeBrokerTests {
         }
 
         @Test
-        @DisplayName("a queued wake waits for a dependency discovered by an in-flight evaluation")
-        void whenRoundAddsAnUnfulfilledKeyThenAPreviousWakeCannotDeliverAnIncompleteRound() throws Exception {
+        @DisplayName("a queued known-input update survives discovery of a pending dependency")
+        void whenAKnownInputChangesDuringDiscoveryThenTheQueuedRoundUsesAvailableInputs() throws Exception {
             val source    = new ManualSource(baseline());
             val extra     = envKey("ctrl.latest");
             val initial   = Set.of(department);
@@ -379,7 +379,9 @@ class PolicyInformationPointAttributeBrokerTests {
                     ControllablePip.emitToAll(Value.of("ready"));
                     Awaitility.await().atMost(Duration.ofSeconds(2))
                             .until(() -> maps.stream().anyMatch(round -> round.containsKey(extra)));
-                    assertThat(maps).extracting(Map::keySet).containsExactly(initial, initial, expanded);
+                    assertThat(maps).extracting(Map::keySet).containsExactly(initial, initial, initial, expanded);
+                    assertThat(maps.get(2)).containsOnlyKeys(department);
+                    assertThat(maps.get(2).get(department).value()).isEqualTo(Value.of("legal"));
                     assertThat(maps.getLast().get(department).value()).isEqualTo(Value.of("legal"));
                 } finally {
                     proceed.countDown();

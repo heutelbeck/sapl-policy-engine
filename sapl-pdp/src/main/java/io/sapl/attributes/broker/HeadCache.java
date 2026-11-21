@@ -41,6 +41,10 @@ import java.util.Set;
  * UNDEFINED and error values can also be first observations. This freezing is
  * evaluation semantics and does not change the repository binding or another
  * consumer's live observation. Ordinary live attributes are not cached here.
+ * A missing input is still pending and cannot become a cached observation.
+ * Partial broker rounds may update live inputs while a requested head is
+ * absent. Retain head lifetimes by logical dependencies, not by presence in
+ * that particular broker input map.
  * <p>
  * How: five-step pipeline per fire, one method per step.
  * <ol>

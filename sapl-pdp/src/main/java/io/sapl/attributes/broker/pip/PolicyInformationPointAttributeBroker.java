@@ -117,9 +117,14 @@ import lombok.val;
  * <p>
  * Each consumer has its own {@link DispatchCoalescer}, which serializes callbacks
  * without a dedicated thread. The subscription captures a new input map before each round.
- * The fulfillment gate is checked again at capture because an older wake can
- * outlive an expansion of the dependency set. A genuinely unfulfilled external
- * dependency can keep that gate closed until it receives a value. An absent key
+ * Readiness is checked again at capture. First values of a new dependency set
+ * are collected together. Updates of values previously delivered to this
+ * consumer can start a partial round while new keys are still pending. The
+ * consumer must reevaluate from the root and report an incomplete result when
+ * the available inputs do not suffice. Snapshot identities distinguish accepted
+ * publications from already captured notifications, including equal-value
+ * renewals under a fixed clock. These identities are private observation tokens,
+ * not part of policy value equality. An absent key
  * in an available repository view supplies a fulfilled {@link Value#UNDEFINED};
  * an unavailable view supplies an error value.
  * <p>
@@ -571,9 +576,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
             // Register the subscription in the broker's consumer index.
             consumerSubscriptions.put(subscriptionId, subscription);
-            // If every dep is already in its active invocation's mailbox (warm-attach),
-            // open the gate and fire synchronously with the cached snapshot.
-            fireImmediately = subscription.tryFireGate();
+            fireImmediately = subscription.isReadyForRound();
         } catch (RuntimeException e) {
             // Roll back dependencies attached so far. The subscription was never
             // registered.
@@ -939,8 +942,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                     affected.addAll(active.subscribers());
                 }
             }
-            // Gate only after all aliases have moved to the same source revision.
-            affected.removeIf(subscription -> !subscription.tryFireGate());
+            // Test readiness only after all aliases have moved to the same source revision.
+            affected.removeIf(subscription -> !subscription.isReadyForRound());
         } finally {
             lock.unlock();
         }
@@ -1208,7 +1211,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         try {
             toFire = new ArrayList<>();
             for (val consumer : active.subscribers()) {
-                if (consumer.tryFireGate()) {
+                if (consumer.isReadyForRound()) {
                     toFire.add(consumer);
                 }
             }
@@ -1262,7 +1265,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     /**
      * Subscription handle for one consumer. Owns the per-consumer routing table,
-     * the gate state, and the callback.
+     * the previously delivered inputs, and the callback.
      * Serializes onUpdate firing through a {@link DispatchCoalescer}: rapid
      * publishes during an in-flight
      * {@code onUpdate} collapse into one re-fire afterwards, against the latest
@@ -1275,8 +1278,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
         Set<SubscriptionKey>                                                          dependencies;
         Map<SubscriptionKey, ActiveInvocation>                                        routingTable       = new HashMap<>();
-        boolean                                                                       gateOpen           = false;
         boolean                                                                       subscriptionClosed = false;
+
+        private final Map<SubscriptionKey, AttributeSnapshot> deliveredInputs = new HashMap<>();
 
         // Rate-limits the should-never-happen onUpdate contract-violation error logs to
         // one per minute.
@@ -1310,6 +1314,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                     }
                 }
                 routingTable.clear();
+                deliveredInputs.clear();
             } finally {
 
                 lock.unlock();
@@ -1326,6 +1331,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
             try {
                 subscriptionClosed = true;
+                deliveredInputs.clear();
             } finally {
 
                 lock.unlock();
@@ -1334,36 +1340,29 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Caller holds the broker lock. Returns {@code true} iff every current dep has
-         * a value in its active
-         * invocation's mailbox.
+         * Caller holds the routing lock. First values wait for the entire current
+         * set. A new observation of a previously delivered live key can start a
+         * partial round. Snapshot identity distinguishes renewals even when the
+         * value and clock are equal, and suppresses already captured notifications.
          */
-        boolean allDependenciesHaveValues() {
+        boolean isReadyForRound() {
+            boolean allFulfilled  = true;
+            boolean hasFirstValue = false;
             for (val key : dependencies) {
-                val active = routingTable.get(key);
-                if (active == null || active.snapshot().isEmpty()) {
-                    return false;
+                val active  = routingTable.get(key);
+                val current = active == null ? null : active.snapshot().orElse(null);
+                if (current == null) {
+                    allFulfilled = false;
+                    continue;
+                }
+                val previous = deliveredInputs.get(key);
+                if (previous == null) {
+                    hasFirstValue = true;
+                } else if (previous != current) {
+                    return true;
                 }
             }
-            return true;
-        }
-
-        /**
-         * Caller holds the broker lock. Returns {@code true} iff the consumer is ready
-         * to fire: the gate is already
-         * open, or it opens now because every dep has a value. The caller is
-         * responsible for invoking
-         * {@link #fireCallback} after the lock is released.
-         */
-        boolean tryFireGate() {
-            if (gateOpen) {
-                return true;
-            }
-            if (!allDependenciesHaveValues()) {
-                return false;
-            }
-            gateOpen = true;
-            return true;
+            return allFulfilled && hasFirstValue;
         }
 
         /**
@@ -1390,9 +1389,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Runs one serialized round. Recheck closure and fulfillment under the
-         * capture lock: a queued wake may precede discovery of a still-missing
-         * dependency. Capture current inputs, release the lock, invoke the
+         * Runs one serialized round. Recheck closure and readiness under the
+         * capture lock. Remember the actual inputs before invoking the callback,
+         * so an update during evaluation survives discovery of missing keys.
+         * Capture current inputs, release the lock, invoke the
          * evaluator, then reconcile its full dependency set. An in-flight round
          * keeps its captured inputs even if newer values arrive meanwhile.
          */
@@ -1402,10 +1402,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
 
             try {
-                if (subscriptionClosed || !allDependenciesHaveValues()) {
+                if (subscriptionClosed || !isReadyForRound()) {
                     return;
                 }
                 snapshotsByKey = currentSnapshots();
+                deliveredInputs.putAll(snapshotsByKey);
                 updateCallback = onUpdate;
             } finally {
 
@@ -1442,9 +1443,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
         /**
          * Reconciles the full set returned by this round, not a delta. New keys
-         * attach to current sources. If they are already fulfilled, request a
-         * new evaluation so a lazy discovery can complete without another source
-         * update. Otherwise wait for fulfillment. Removed keys release this
+         * attach to current sources. Recheck readiness after the set changes:
+         * a complete first-value set or an update of a retained known key can
+         * complete lazy discovery without another source notification. Removed keys release this
          * consumer's references and do not by themselves request another round.
          */
         private void applyDependencyDiff(Set<SubscriptionKey> nextDependencies) {
@@ -1476,8 +1477,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                     }
                 }
                 dependencies = new HashSet<>(nextDependencies);
-                gateOpen     = allDependenciesHaveValues();
-                refire       = gateOpen && added.stream().anyMatch(key -> routingTable.get(key).snapshot().isPresent());
+                deliveredInputs.keySet().removeAll(removed);
+                refire = isReadyForRound();
             } finally {
 
                 lock.unlock();
