@@ -64,7 +64,7 @@ jobs:
     steps:
       - name: Harden Runner
         if: runner.os == 'Linux'
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
         with:
           egress-policy: audit
 
@@ -84,7 +84,7 @@ jobs:
           sudo cp /tmp/alpine-zlib/libz.a "/usr/lib/$(uname -m)-linux-musl/"
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@d6eca2595046623d69d636041513c80abf745406 # v1.6.9
+        uses: graalvm/setup-graalvm@60e76998d25690099182b796e99b8804da582d90 # v1.6.10
         with:
           version: '25.0.5.0.3'
           java-version: '25'
