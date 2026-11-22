@@ -18,6 +18,7 @@
 package io.sapl.attributes.libraries;
 
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.test.stream.MutableClock;
@@ -36,9 +37,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -74,6 +76,69 @@ class X509PolicyInformationPointTests {
         val keyPairGenerator = KeyPairGenerator.getInstance("RSA");
         keyPairGenerator.initialize(2048);
         keyPair = keyPairGenerator.generateKeyPair();
+    }
+
+    @ParameterizedTest(name = "validity window lasting {0} seconds")
+    @ValueSource(ints = { 0, 2 })
+    @DisplayName("continuous and newly opened finders agree at both inclusive endpoints")
+    void whenCertificateReachesItsBoundariesThenBothObserversAgree(int seconds)
+            throws OperatorCreationException, CertificateException, IOException {
+        val end       = NOW.plusSeconds(seconds);
+        val cert      = Value.of(toPem(generateCertificate(CTHULHU_DN, NOW, end)));
+        val clock     = new MutableClock(NOW.minusNanos(1));
+        val scheduler = new TestTimeScheduler(clock.instant());
+        val pip       = new X509PolicyInformationPoint(clock, scheduler);
+        try (val valid = pip.isCurrentlyValid(cert); val expired = pip.isExpired(cert)) {
+            StreamAssertions.assertThat(valid).awaitsNext(Value.FALSE);
+            StreamAssertions.assertThat(expired).awaitsNext(Value.FALSE);
+            clock.setInstant(NOW);
+            scheduler.advanceTo(NOW);
+            StreamAssertions.assertThat(valid).awaitsNext(Value.TRUE);
+            try (val reopened = pip.isCurrentlyValid(cert)) {
+                StreamAssertions.assertThat(reopened).awaitsNext(Value.TRUE);
+            }
+            clock.setInstant(end);
+            scheduler.advanceTo(end);
+            try (val reopenedValid = pip.isCurrentlyValid(cert); val reopenedExpired = pip.isExpired(cert)) {
+                StreamAssertions.assertThat(reopenedValid).awaitsNext(Value.TRUE);
+                StreamAssertions.assertThat(reopenedExpired).awaitsNext(Value.FALSE);
+                assertThat(valid.tryNext()).isEqualTo(Poll.empty());
+                assertThat(expired.tryNext()).isEqualTo(Poll.empty());
+                clock.advance(Duration.ofNanos(1));
+                scheduler.advanceTo(clock.instant());
+                StreamAssertions.assertThat(valid).awaitsNext(Value.FALSE).awaitsCompletion();
+                StreamAssertions.assertThat(expired).awaitsNext(Value.TRUE).awaitsCompletion();
+                StreamAssertions.assertThat(reopenedValid).awaitsNext(Value.FALSE).awaitsCompletion();
+                StreamAssertions.assertThat(reopenedExpired).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
+            try (val after = pip.isExpired(cert)) {
+                StreamAssertions.assertThat(after).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("a continuous observer still sees expiry beyond one timer horizon")
+    void whenExpiryIsMoreThanACenturyAwayThenObserverExpiresAtTheSameTimeAsANewReader()
+            throws OperatorCreationException, CertificateException, IOException {
+        val end       = NOW.plus(101L * 365, ChronoUnit.DAYS);
+        val cert      = Value.of(toPem(generateCertificate(CTHULHU_DN, NOW, end)));
+        val clock     = new MutableClock(NOW);
+        val scheduler = new TestTimeScheduler(NOW);
+        val pip       = new X509PolicyInformationPoint(clock, scheduler);
+        try (val live = pip.isExpired(cert)) {
+            StreamAssertions.assertThat(live).awaitsNext(Value.FALSE);
+            clock.setInstant(end);
+            scheduler.advanceTo(end);
+            try (val reopened = pip.isExpired(cert)) {
+                StreamAssertions.assertThat(reopened).awaitsNext(Value.FALSE);
+                assertThat(live.tryNext()).isEqualTo(Poll.empty());
+                clock.advance(Duration.ofNanos(1));
+                scheduler.advanceTo(clock.instant());
+                StreamAssertions.assertThat(live).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.TRUE);
+                StreamAssertions.assertThat(reopened).awaitsNext(Value.TRUE);
+            }
+        }
     }
 
     @Nested
@@ -128,8 +193,8 @@ class X509PolicyInformationPointTests {
         }
 
         @Test
-        @DisplayName("when cert is valid then emits true then false at notAfter")
-        void whenCertIsValidThenEmitsTrueThenFalseAtNotAfter()
+        @DisplayName("when cert is valid then emits true then false after notAfter")
+        void whenCertIsValidThenEmitsTrueThenFalseAfterNotAfter()
                 throws OperatorCreationException, CertificateException, IOException {
             val notAfter  = NOW.plus(30, ChronoUnit.SECONDS);
             val certPem   = toPem(generateCertificate(CTHULHU_DN, NOW.minus(1, ChronoUnit.DAYS), notAfter));
@@ -139,7 +204,7 @@ class X509PolicyInformationPointTests {
 
             try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                scheduler.advanceTo(notAfter);
+                scheduler.advanceTo(notAfter.plusNanos(1));
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
             }
         }
@@ -159,7 +224,7 @@ class X509PolicyInformationPointTests {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
                 scheduler.advanceTo(notBefore);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                scheduler.advanceTo(notAfter);
+                scheduler.advanceTo(notAfter.plusNanos(1));
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
             }
         }
@@ -196,39 +261,20 @@ class X509PolicyInformationPointTests {
             }
         }
 
-        @Test
-        @DisplayName("when valid cert has far-future notAfter then emits true without crashing the PIP")
-        void whenValidCertHasFarFutureNotAfterThenEmitsTrueWithoutCrashing()
+        @ParameterizedTest(name = "valid on opening: {0}")
+        @ValueSource(booleans = { true, false })
+        @DisplayName("a year-9999 certificate works with the real scheduler")
+        void whenCertificateHasFarFutureExpiryThenCurrentValidityIsAvailable(boolean valid)
                 throws OperatorCreationException, CertificateException, IOException {
-            val certPem   = toPem(
-                    generateCertificate(CTHULHU_DN, NOW.minus(1, ChronoUnit.DAYS), RFC5280_NO_EXPIRATION));
-            val clock     = new MutableClock(NOW);
-            val scheduler = new RealTimeScheduler(clock);
-            val sut       = new X509PolicyInformationPoint(clock, scheduler);
-
-            assertThatCode(() -> {
-                try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
-                    StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                }
-            }).doesNotThrowAnyException();
+            val start = valid ? NOW.minusSeconds(10) : NOW.plusSeconds(10);
+            val cert  = Value.of(toPem(generateCertificate(CTHULHU_DN, start, RFC5280_NO_EXPIRATION)));
+            val clock = new MutableClock(NOW);
+            try (val scheduler = new RealTimeScheduler(clock);
+                    val stream = new X509PolicyInformationPoint(clock, scheduler).isCurrentlyValid(cert)) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.of(valid));
+            }
         }
 
-        @Test
-        @DisplayName("when not-yet-valid cert has far-future notAfter then emits false without crashing the PIP")
-        void whenNotYetValidCertHasFarFutureNotAfterThenEmitsFalseWithoutCrashing()
-                throws OperatorCreationException, CertificateException, IOException {
-            val notBefore = NOW.plus(10, ChronoUnit.SECONDS);
-            val certPem   = toPem(generateCertificate(CTHULHU_DN, notBefore, RFC5280_NO_EXPIRATION));
-            val clock     = new MutableClock(NOW);
-            val scheduler = new RealTimeScheduler(clock);
-            val sut       = new X509PolicyInformationPoint(clock, scheduler);
-
-            assertThatCode(() -> {
-                try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
-                    StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
-                }
-            }).doesNotThrowAnyException();
-        }
     }
 
     @Nested

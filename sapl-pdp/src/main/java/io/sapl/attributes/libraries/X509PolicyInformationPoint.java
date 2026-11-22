@@ -19,7 +19,6 @@ package io.sapl.attributes.libraries;
 
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
-import io.sapl.api.model.BooleanValue;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -33,13 +32,15 @@ import lombok.val;
 import java.security.cert.CertificateException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Policy Information Point for reactive X.509 certificate validity monitoring.
  * <p>
  * Provides entity attributes that emit boolean values reflecting the current
  * validity state of an X.509 certificate, automatically transitioning when the
- * certificate reaches its notBefore or notAfter boundaries.
+ * certificate becomes valid or expires.
  *
  * @see io.sapl.functions.libraries.X509FunctionLibrary
  */
@@ -53,28 +54,16 @@ public class X509PolicyInformationPoint {
     public static final String DOCUMENTATION = """
             # X.509 Certificate Validity Monitoring
 
-            This Policy Information Point reactively monitors the validity state of X.509
-            certificates. Attributes emit boolean values that automatically update when
-            a certificate transitions between validity states at its notBefore and notAfter
-            boundaries.
+            Both attributes emit their current value as soon as an observer opens.
 
-            ## Validity States and Transitions
+            | Certificate time | `isCurrentlyValid` | `isExpired` |
+            | --- | --- | --- |
+            | Before `notBefore` | false | false |
+            | From `notBefore` through `notAfter`, including both endpoints | true | false |
+            | After `notAfter` | false | true |
 
-            A certificate progresses through up to three states:
-
-            * **Not yet valid** (before notBefore): `isCurrentlyValid` emits `false`, `isExpired` emits `true`
-            * **Valid** (between notBefore and notAfter): `isCurrentlyValid` emits `true`, `isExpired` emits `false`
-            * **Expired** (after notAfter): `isCurrentlyValid` emits `false`, `isExpired` emits `true`
-
-            State transitions happen automatically at the exact boundary instants with zero
-            polling overhead. Each transition triggers policy re-evaluation.
-
-            ## Reactive Behavior
-
-            Example timeline for a certificate with notBefore=now+10s and notAfter=now+60s:
-            * t=0s:  Emits false (not yet valid)
-            * t=10s: Emits true (certificate became valid, policy re-evaluated)
-            * t=60s: Emits false (certificate expired, policy re-evaluated)
+            A continuing validity observer receives `true` at `notBefore`. Expiry takes effect
+            one nanosecond after `notAfter`, when validity becomes false and expiration becomes true.
 
             ## Usage Examples
 
@@ -95,16 +84,8 @@ public class X509PolicyInformationPoint {
 
     private static final String ERROR_FAILED_TO_PARSE_CERTIFICATE = "Failed to parse certificate: %s.";
 
-    /**
-     * Upper bound on how far ahead a validity transition may be scheduled. The
-     * scheduler converts the delay to nanoseconds, and
-     * {@link java.time.Duration#toNanos()} overflows for delays beyond roughly
-     * 292 years. Certificates with a far-future boundary such as the RFC 5280
-     * "no well-defined expiration" value 99991231235959Z are common for CA
-     * roots. A boundary beyond this bound is treated as never reached, so the
-     * certificate simply stays in its current validity state.
-     */
-    private static final long MAX_SCHEDULABLE_DELAY_MILLIS = 100L * 365 * 24 * 60 * 60 * 1000;
+    // Each individual timer delay must fit in signed nanoseconds even for year-9999 certificates.
+    private static final Duration TIMER_HORIZON = Duration.ofDays(100L * 365);
 
     private final Clock         clock;
     private final TimeScheduler scheduler;
@@ -114,19 +95,17 @@ public class X509PolicyInformationPoint {
      * validity period.
      * <p>
      * Emits {@code true} when the current time is between the certificate's
-     * notBefore and notAfter dates, and {@code false} otherwise. Automatically
-     * transitions at the exact boundary instants.
+     * notBefore and notAfter dates, including both endpoints, and {@code false} otherwise.
      *
      * @param certPem the PEM-encoded X.509 certificate
      * @return a reactive stream of boolean values reflecting current validity
      */
     @Attribute(docs = """
             ```(TEXT certPem).<isCurrentlyValid>``` reactively monitors whether an X.509 certificate
-            is currently within its validity period (between notBefore and notAfter).
+            is currently within its validity period from notBefore through notAfter.
 
             Emits `true` when the certificate is valid, `false` when it is not yet valid or has
-            expired. Automatically transitions at the exact boundary instants, triggering policy
-            re-evaluation with zero polling overhead.
+            expired. Both endpoints are included.
 
             Example:
             ```sapl
@@ -136,63 +115,19 @@ public class X509PolicyInformationPoint {
             ```
             """)
     public Stream<Value> isCurrentlyValid(TextValue certPem) {
-        try {
-            val certificate = CertificateUtils.parseCertificate(certPem.value());
-            val notBefore   = certificate.getNotBefore().toInstant();
-            val notAfter    = certificate.getNotAfter().toInstant();
-            val now         = clock.instant();
-
-            if (!notAfter.isAfter(notBefore)) {
-                return Streams.just(Value.FALSE);
-            }
-
-            if (now.isAfter(notAfter)) {
-                return Streams.just(Value.FALSE);
-            }
-
-            if (now.isBefore(notBefore)) {
-                if (isBeyondSchedulingHorizon(notBefore, now)) {
-                    return Streams.just(Value.FALSE);
-                }
-                if (isBeyondSchedulingHorizon(notAfter, now)) {
-                    return Streams.concat(Streams.just(Value.FALSE),
-                            Streams.scheduledAt(Value.TRUE, notBefore, scheduler));
-                }
-                return Streams.concat(Streams.just(Value.FALSE), Streams.scheduledAt(Value.TRUE, notBefore, scheduler),
-                        Streams.scheduledAt(Value.FALSE, notAfter, scheduler));
-            }
-
-            if (isBeyondSchedulingHorizon(notAfter, now)) {
-                return Streams.just(Value.TRUE);
-            }
-
-            return Streams.concat(Streams.just(Value.TRUE), Streams.scheduledAt(Value.FALSE, notAfter, scheduler));
-
-        } catch (CertificateException | CryptoException exception) {
-            return Streams.error(ERROR_FAILED_TO_PARSE_CERTIFICATE.formatted(exception.getMessage()));
-        }
+        return validityStream(certPem, false);
     }
 
     /**
-     * Reactively monitors whether an X.509 certificate has expired or is not
-     * yet valid.
-     * <p>
-     * This is the logical inverse of {@link #isCurrentlyValid(TextValue)}.
-     * Emits {@code true} when the certificate is outside its validity period,
-     * and {@code false} when it is valid.
+     * Monitors whether the current instant is strictly after the certificate's notAfter.
      *
      * @param certPem the PEM-encoded X.509 certificate
-     * @return a reactive stream of boolean values reflecting expiration state
+     * @return a stream that becomes true when the certificate expires
      */
     @Attribute(docs = """
-            ```(TEXT certPem).<isExpired>``` reactively monitors whether an X.509 certificate
-            has expired or is not yet valid. This is the inverse of `isCurrentlyValid`.
+            ```(TEXT certPem).<isExpired>``` is true only after the certificate's `notAfter`
+            instant. It is false before the validity period begins and throughout the validity period.
 
-            Emits `true` when the certificate is outside its validity period (before notBefore
-            or after notAfter), `false` when the certificate is valid. Automatically transitions
-            at the exact boundary instants.
-
-            Example:
             ```sapl
             policy "reject expired certs"
             deny
@@ -200,11 +135,54 @@ public class X509PolicyInformationPoint {
             ```
             """)
     public Stream<Value> isExpired(TextValue certPem) {
-        return Streams.map(isCurrentlyValid(certPem), v -> v instanceof BooleanValue(var b) ? Value.of(!b) : v);
+        return validityStream(certPem, true);
     }
 
-    private static boolean isBeyondSchedulingHorizon(Instant when, Instant now) {
-        return when.toEpochMilli() - now.toEpochMilli() > MAX_SCHEDULABLE_DELAY_MILLIS;
+    private Stream<Value> validityStream(TextValue certPem, boolean expiry) {
+        try {
+            val certificate = CertificateUtils.parseCertificate(certPem.value());
+            val start       = certificate.getNotBefore().toInstant();
+            val end         = certificate.getNotAfter().toInstant();
+            val now         = clock.instant();
+            if (now.isAfter(end)) {
+                return Streams.just(Value.of(expiry));
+            }
+            if (!expiry && end.isBefore(start)) {
+                return Streams.just(Value.FALSE);
+            }
+            Stream<Value> initial = Streams.just(Value.of(!expiry && !now.isBefore(start)));
+            if (!expiry && now.isBefore(start)) {
+                initial = Streams.concat(initial, atBoundary(Value.TRUE, start, now));
+            }
+            val expiredAt = end.plusNanos(1);
+            return Streams.concat(initial, atBoundary(Value.of(expiry), expiredAt, now));
+        } catch (CertificateException | CryptoException exception) {
+            return Streams.error(ERROR_FAILED_TO_PARSE_CERTIFICATE.formatted(exception.getMessage()));
+        }
+    }
+
+    private Stream<Value> atBoundary(Value state, Instant boundary, Instant now) {
+        if (Duration.between(now, boundary).compareTo(TIMER_HORIZON) <= 0) {
+            return Streams.scheduledAt(state, boundary, scheduler);
+        }
+        val delivered = new AtomicBoolean();
+        return Streams.fromBlockingSource(() -> {
+            if (delivered.getAndSet(true)) {
+                return null;
+            }
+            var cursor = now;
+            while (Duration.between(cursor, boundary).compareTo(TIMER_HORIZON) > 0) {
+                val recheck = cursor.plus(TIMER_HORIZON);
+                try (val wait = Streams.scheduledAt(state, recheck, scheduler)) {
+                    wait.awaitNext();
+                }
+                val observed = clock.instant();
+                cursor = observed.isAfter(recheck) ? observed : recheck;
+            }
+            try (val wait = Streams.scheduledAt(state, boundary, scheduler)) {
+                return wait.awaitNext();
+            }
+        });
     }
 
 }

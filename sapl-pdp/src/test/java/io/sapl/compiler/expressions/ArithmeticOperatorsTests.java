@@ -183,6 +183,7 @@ class ArithmeticOperatorsTests {
             "n=" + -0.0         | n=0
             "n=" + 1E+20        | n=1E+20
             "n=" + 12.50        | n=12.50
+            "n=" + (12.51 * 2.0) | n=25.020
             "n=" + 1E-7         | n=1E-7
             "n=" + [5.0, 1E+3]  | n=[5, 1000]
             "n=" + {"a": 2.0}   | n={"a"=2}
@@ -199,22 +200,42 @@ class ArithmeticOperatorsTests {
     }
 
     @ParameterizedTest(name = "{0} = {1} is within the range of numbers")
+    @DisplayName("exactly representable arithmetic results remain usable as operands")
     @CsvSource(delimiter = '|', textBlock = """
             1E500 * 1E500   | 1E+1000
             1E-500 * 1E-500 | 1E-1000
             1E-500 / 1E500  | 1E-1000
             1E500 / 1E-500  | 1E+1000
+            1E-1000 * 2.0   | 2E-1000
+            1E-999 * -0.20  | -2E-1000
+            1E500 * 1E501   | 1E1001
+            1E600 * 1E600   | 1E1200
+            1E999 / 1E-999  | 1E1998
+            1E1000 * 1E999  | 1E1999
+            (1E1000 * 1E999) / 1E999 | 1E1000
             """)
-    void whenResultScaleIsAtTheBoundThenResultIsNumber(String expression, String expected) {
-        assertThat(compileExpression(expression)).isEqualTo(Value.of(new BigDecimal(expected)));
+    void whenResultFitsExactlyThenItIsWithinTheOperandBounds(String expression, String expected) {
+        assertThat(compileExpression(expression)).isInstanceOfSatisfying(NumberValue.class, number -> {
+            assertThat(number.value()).isEqualByComparingTo(new BigDecimal(expected));
+            assertThat(number.value().scale()).isBetween(-1000, 1000);
+            assertThat(number.value().precision()).isLessThanOrEqualTo(1000);
+        });
     }
 
     @ParameterizedTest(name = "{0} exceeds the range of numbers")
-    @ValueSource(strings = { "1E500 * 1E501", "1E-500 * 1E-501", "1E600 * 1E600", "1E-600 * 1E-600", "1E-999 / 1E999",
-            "1E999 / 1E-999", "1E-500 / 1E501", "-1E-500 * 1E-501" })
+    @ValueSource(strings = { "1E1000 * 1E1000", "1E-500 * 1E-501", "1E-600 * 1E-600", "1E-999 / 1E999",
+            "1E-1000 * 1.01", "1E-500 / 1E501", "-1E-500 * 1E-501" })
     void whenResultScaleExceedsTheBoundThenOverflowError(String expression) {
         assertThat(compileExpression(expression)).isInstanceOfSatisfying(ErrorValue.class,
                 error -> assertThat(error.message()).isEqualTo("Numeric operation exceeded the supported range."));
+    }
+
+    @Test
+    @DisplayName("a zero product with an excessive result scale fits at scale zero")
+    void whenZeroProductExceedsTheScaleLimitThenItIsExactlyZero() {
+        val operand = new NumberValue(BigDecimal.ZERO.setScale(1000));
+        assertThat(MUL.apply(operand, operand)).isInstanceOfSatisfying(NumberValue.class,
+                zero -> assertThat(zero.value()).isZero().hasScaleOf(0));
     }
 
     @Test

@@ -19,9 +19,11 @@ package io.sapl.compiler.operators;
 
 import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 
 /**
  * Arithmetic and comparison operations for SAPL expression evaluation.
@@ -158,9 +160,23 @@ public class ArithmeticOperators {
      */
     private static Value bounded(BigDecimal result, SourceLocation location) {
         if (isPathological(result)) {
-            return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            return fitResult(result, location);
         }
         return new NumberValue(result);
+    }
+
+    private static Value fitResult(BigDecimal result, SourceLocation location) {
+        if (result.signum() == 0) {
+            return Value.ZERO;
+        }
+        val scale     = result.scale();
+        val precision = result.precision();
+        // Each additional scale position adds one coefficient digit.
+        val targetScale = Math.min(Math.clamp(scale, -MAX_SCALE, MAX_SCALE), (long) scale + MAX_PRECISION - precision);
+        if (targetScale < -MAX_SCALE || scale - targetScale >= precision) {
+            return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+        }
+        return new NumberValue(result.setScale((int) targetScale, RoundingMode.UNNECESSARY));
     }
 
     /** True if precision or scale exceeds the supported bounds. */

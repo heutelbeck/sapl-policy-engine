@@ -92,6 +92,43 @@ class TimePolicyInformationPointTests {
                 arguments("2021-11-08T13:00:00Z", 11L, 11L, Value.TRUE, "same start and end means single month"));
     }
 
+    @ParameterizedTest(name = "{0} at {1}")
+    @MethodSource("displayedTimeChanges")
+    @DisplayName("continuous and reopened observers follow displayed Berlin time")
+    void whenDisplayedTimeCrossesBoundaryThenLiveAndNewReadersAgree(String finder, String at, boolean expected) {
+        val boundary = Instant.parse(at);
+        val f        = fixtureAt(boundary.minusSeconds(60).toString());
+        try (val live = openBerlinRule(f, finder)) {
+            StreamAssertions.assertThat(live).awaitsNext(Value.of(!expected));
+            f.advanceTo(boundary);
+            StreamAssertions.assertThat(live).withinTimeout(Duration.ofSeconds(1)).awaitsNext(Value.of(expected));
+            try (val reopened = openBerlinRule(f, finder)) {
+                StreamAssertions.assertThat(reopened).awaitsNext(Value.of(expected));
+            }
+        }
+    }
+
+    private static io.sapl.api.stream.Stream<Value> openBerlinRule(Fixture fixture, String finder) {
+        val zone  = Value.of("Europe/Berlin");
+        val start = Value.of("02:17");
+        val end   = Value.of("03:15");
+        return switch (finder) {
+        case "before"  -> fixture.sut.localTimeIsBefore(start, zone);
+        case "after"   -> fixture.sut.localTimeIsAfter(start, zone);
+        case "between" -> fixture.sut.localTimeIsBetween(start, end, zone);
+        default        -> fixture.sut.localTimeIsBetween(end, start, zone);
+        };
+    }
+
+    static Stream<Arguments> displayedTimeChanges() {
+        return Stream.of("before", "after", "between", "overnight").flatMap(finder -> {
+            val after = "after".equals(finder) || "between".equals(finder);
+            return Stream.of(arguments(finder, "2025-03-30T01:00:00Z", after),
+                    arguments(finder, "2025-10-26T01:00:00Z", !after), arguments(finder, "2025-10-26T01:17:00Z", after),
+                    arguments(finder, "2025-10-27T01:17:00Z", after));
+        });
+    }
+
     @Nested
     @DisplayName("now")
     class Now {
