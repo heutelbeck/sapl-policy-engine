@@ -52,6 +52,10 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - Move the contents of `pdp.json`'s `secrets` object, including MQTT and Traccar credentials, into a sibling `secrets.json` and seal it or enable cleartext explicitly. For HTTP, set `secretsKey` to the name of the credential whose `allowedBaseUrls` covers the request.
 - Rename invalid Java function and finder names such as `item-count` to `item_count`. Give ambiguous finders within a PIP distinct names. Custom `AttributeRepository` implementations must implement atomic `publish(List<AttributeAssignment>)` and `observeState(pdpId, configurationId, onUpdate)`, registering the observer and capturing its initial view atomically.
 
+## Policy evaluation fixes
+
+- CANONICAL and SMTDD preserve errors in complementary conditions. For example, with a text subject, `subject && !subject` produces a type error just as it does with NAIVE. Boolean subjects still make this condition false.
+
 ## Other changes
 
 - Rust PDPs now verify Ed448-signed JWTs by default, matching Java PDPs.

@@ -20,6 +20,7 @@ package io.sapl.compiler.index;
 import static io.sapl.util.SaplTesting.compilePolicyFull;
 import static io.sapl.util.SaplTesting.subscriptionContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.ArrayList;
@@ -34,9 +35,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyMatches;
@@ -139,6 +142,70 @@ class IndexDifferentialTests {
             return true;
         });
         return new PolicyMatches(trueMatches, errorMatches);
+    }
+
+    @ParameterizedTest(name = "{0}, subject={1}, action={2} gives {3}")
+    @DisplayName("complementary predicates preserve ordinary applicability and its error")
+    @CsvSource(delimiter = ';', textBlock = """
+            subject && !subject                          ; true   ; false ; NOT_APPLICABLE
+            subject && !subject                          ; false  ; false ; NOT_APPLICABLE
+            subject && !subject                          ; 1      ; false ; INDETERMINATE
+            subject && !subject                          ; "text" ; false ; INDETERMINATE
+            subject.missing && !subject.missing          ; {}     ; false ; INDETERMINATE
+            subject || !subject                          ; true   ; false ; PERMIT
+            subject || !subject                          ; false  ; false ; PERMIT
+            subject || !subject                          ; 1      ; false ; INDETERMINATE
+            !subject && subject                          ; "text" ; false ; INDETERMINATE
+            (subject && !subject) || action              ; 1      ; false ; INDETERMINATE
+            (subject && !subject) || action              ; 1      ; true  ; PERMIT
+            action && (subject || !subject)              ; 1      ; false ; NOT_APPLICABLE
+            action && (subject || !subject)              ; 1      ; true  ; INDETERMINATE
+            (subject || action) && !(subject || action)  ; "text" ; false ; INDETERMINATE
+            (subject || action) && !(subject || action)  ; "text" ; true  ; NOT_APPLICABLE
+            (subject && action) || !(subject && action)  ; "text" ; true  ; INDETERMINATE
+            (subject && action) || !(subject && action)  ; "text" ; false ; PERMIT
+            (10 / subject) && !(10 / subject)            ; 0      ; false ; INDETERMINATE
+            (10 / subject > 0) && !(10 / subject > 0)    ; 0      ; false ; INDETERMINATE
+            """)
+    void whenDynamicPredicateOccursInBothPolaritiesThenIndexesAgreeWithNaive(String condition, String subject,
+            boolean action, Decision expected) {
+        val documents = policies("policy \"p\" permit " + condition);
+        val ctx       = subscriptionContext("""
+                {"subject":%s,"action":%s,"resource":null}""".formatted(subject, action));
+        val oracle    = NaivePolicyIndex.create(documents).matchKleene(ctx);
+        assertThat(oracle.trueMatches()).hasSize(expected == Decision.PERMIT ? 1 : 0);
+        assertThat(oracle.errorMatches()).hasSize(expected == Decision.INDETERMINATE ? 1 : 0);
+
+        assertComplementMatches(documents, ctx, oracle);
+    }
+
+    @Test
+    @DisplayName("merging complementary predicates keeps each policy's error and an independent match")
+    void whenPoliciesShareAContradictionThenEachKeepsItsOwnError() {
+        val documents = policies("policy \"first\" permit subject && !subject", """
+                policy "second" permit
+                    subject && !subject;
+                """, "policy \"read\" permit action == \"a\"");
+        val ctx       = subscriptionContext(wrap("1"));
+        val oracle    = NaivePolicyIndex.create(documents).matchKleene(ctx);
+        assertThat(matchedKleene(oracle)).containsExactly("read");
+        assertThat(erroredKleene(oracle)).containsExactlyInAnyOrder("first", "second");
+        assertComplementMatches(documents, ctx, oracle);
+    }
+
+    private static void assertComplementMatches(List<CompiledDocument> documents, EvaluationContext ctx,
+            PolicyMatches oracle) {
+        assertAll(Stream.of(CanonicalPolicyIndex.create(documents), SmtddPolicyIndex.create(documents, 0))
+                .map(index -> () -> {
+                    for (val actual : List.of(index.matchKleene(ctx), collectKleeneWhile(index, ctx))) {
+                        assertThat(actual.trueMatches()).as("%s true matches", index.getClass().getSimpleName())
+                                .containsExactlyInAnyOrderElementsOf(oracle.trueMatches());
+                        assertThat(actual.errorMatches()).as("%s errors", index.getClass().getSimpleName())
+                                .usingRecursiveFieldByFieldElementComparatorOnFields("document", "error.message",
+                                        "error.location")
+                                .containsExactlyInAnyOrderElementsOf(oracle.errorMatches());
+                    }
+                }));
     }
 
     private static Stream<Arguments> subscriptions() {

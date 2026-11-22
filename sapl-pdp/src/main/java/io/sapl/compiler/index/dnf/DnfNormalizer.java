@@ -28,8 +28,8 @@ import java.util.List;
 
 /**
  * Converts a {@link BooleanExpression} tree into Disjunctive Normal Form
- * (DNF). The result is a {@link DisjunctiveFormula} suitable for use in the
- * canonical policy index.
+ * (DNF). The canonical policy index uses
+ * {@link #normalizeKleene(BooleanExpression, int)} for dynamic predicates.
  * <p>
  * The conversion applies:
  * <ul>
@@ -38,14 +38,13 @@ import java.util.List;
  * <li>Double negation elimination</li>
  * <li>Constant propagation (true/false absorption)</li>
  * </ul>
- * The resulting formula is reduced (unsatisfiable, duplicate, and subsumed
- * clauses removed).
+ * Duplicate and subsumed clauses are removed.
  */
 @UtilityClass
 public class DnfNormalizer {
 
     /**
-     * Normalizes a boolean expression to DNF.
+     * Normalizes a two-valued boolean expression to DNF.
      *
      * @param expression the boolean expression tree
      * @return the equivalent formula in disjunctive normal form, reduced
@@ -55,8 +54,8 @@ public class DnfNormalizer {
     }
 
     /**
-     * Normalizes a boolean expression to DNF, bounding the intermediate clause
-     * count so a pathological AND-of-ORs cannot explode the heap at compile time.
+     * Normalizes a two-valued boolean expression to DNF, bounding the intermediate
+     * clause count so a pathological AND-of-ORs cannot explode the heap at compile time.
      *
      * @param expression the boolean expression tree
      * @param maxClauses the maximum number of conjunctive clauses permitted in any
@@ -68,6 +67,21 @@ public class DnfNormalizer {
      */
     public static DisjunctiveFormula normalize(BooleanExpression expression, int maxClauses) {
         return toDnf(expression, maxClauses).reduce();
+    }
+
+    /**
+     * Normalizes applicability under strong Kleene semantics. A clause containing
+     * both polarities of a dynamic predicate can still error. Keeping both literals
+     * lets a boolean result eliminate the clause and a non-boolean trigger ordinary
+     * applicability evaluation, including masking by other operands.
+     *
+     * @param expression the applicability expression
+     * @param maxClauses maximum intermediate clause count
+     * @return the reduced three-valued formula
+     * @throws IndexSizeLimitExceededException if a distribution or disjunction exceeds the budget
+     */
+    public static DisjunctiveFormula normalizeKleene(BooleanExpression expression, int maxClauses) {
+        return DisjunctiveFormula.reduceBySubsumption(toDnf(expression, maxClauses).clauses());
     }
 
     private static DisjunctiveFormula toDnf(BooleanExpression expression, int maxClauses) {

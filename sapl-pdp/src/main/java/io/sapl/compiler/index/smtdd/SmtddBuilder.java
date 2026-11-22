@@ -208,7 +208,7 @@ public class SmtddBuilder {
                 // In the correct branch, this predicate is always true -> matched
                 yield matched;
             }
-            yield table.binaryDecision(level, matched, SmtddUniqueTable.EMPTY, SmtddUniqueTable.EMPTY);
+            yield table.literal(level, matched, false);
         }
         case Not(var operand)    -> buildBddNot(table, order, operand, matched);
         case Or(var operands)    -> {
@@ -238,7 +238,7 @@ public class SmtddBuilder {
                 // Negated equality predicate in correct branch -> always false
                 yield SmtddUniqueTable.EMPTY;
             }
-            yield table.binaryDecision(level, SmtddUniqueTable.EMPTY, matched, SmtddUniqueTable.EMPTY);
+            yield table.literal(level, matched, true);
         }
         case Not(var inner)      -> buildBdd(table, order, inner, matched);
         case Or(var operands)    -> {
