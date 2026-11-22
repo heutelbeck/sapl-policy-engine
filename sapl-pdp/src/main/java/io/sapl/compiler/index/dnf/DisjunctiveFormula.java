@@ -77,8 +77,8 @@ public record DisjunctiveFormula(List<ConjunctiveClause> clauses) {
     }
 
     /**
-     * Returns a reduced copy of this formula with unsatisfiable, duplicate, and
-     * subsumed clauses removed.
+     * Reduces this formula for two-valued predicates, removing unsatisfiable,
+     * duplicate, and subsumed clauses.
      * <ul>
      * <li>Unsatisfiable: a clause containing both {@code p} and {@code !p}</li>
      * <li>Duplicate: identical clauses (by set equality)</li>
@@ -89,10 +89,14 @@ public record DisjunctiveFormula(List<ConjunctiveClause> clauses) {
      * @return reduced formula
      */
     public DisjunctiveFormula reduce() {
+        return reduceBySubsumption(clauses.stream().filter(clause -> !clause.isUnsatisfiable()).toList());
+    }
+
+    static DisjunctiveFormula reduceBySubsumption(List<ConjunctiveClause> clauses) {
         var unique  = new ArrayList<>(new HashSet<>(clauses));
         var reduced = new ArrayList<ConjunctiveClause>(unique.size());
         for (var candidate : unique) {
-            if (!candidate.isUnsatisfiable() && !isSubsumed(candidate, unique)) {
+            if (!isSubsumed(candidate, unique)) {
                 reduced.add(candidate);
             }
         }

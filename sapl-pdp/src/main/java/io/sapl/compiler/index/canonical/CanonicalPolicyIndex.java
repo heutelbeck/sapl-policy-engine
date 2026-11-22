@@ -99,7 +99,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
             case BooleanValue ignored       -> { /* constant false, drop */ }
             case ErrorValue error           -> alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
             case PureOperator pureOp        -> {
-                val formula = DnfNormalizer.normalize(pureOp.booleanExpression(), maxClauses);
+                val formula = DnfNormalizer.normalizeKleene(pureOp.booleanExpression(), maxClauses);
                 formulaToDocuments.computeIfAbsent(formula, k -> new ArrayList<>()).add(document);
             }
             default                         ->
