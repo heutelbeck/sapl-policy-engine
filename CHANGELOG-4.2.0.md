@@ -16,6 +16,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- The expression compiler rejects `<`, `<=`, `>` and `>=` when an operand folds to a boolean. The diagnostic points to that operand. Operand types that depend on the request are checked during evaluation.
 - SAPL number-to-text conversion is exact and independent of decimal scale. `standard.toString(1.50)` now yields `"1.5"` and `"n=" + 1.50` yields `"n=1.5"`. Nonzero magnitudes below `1e-6` or at least `1e21` use scientific notation.
 - Bundle manifests require a JSON string for `configurationId`. Producers with numeric internal IDs must emit, for example, `"configurationId": "42"`.
 - The `secrets` of an authorization subscription are an object on the RSocket wire (protobuf field 5 is now `ObjectValue`). RSocket clients and SDKs of 4.1.x cannot talk to a 4.2 node. Upgrade clients and node together.
