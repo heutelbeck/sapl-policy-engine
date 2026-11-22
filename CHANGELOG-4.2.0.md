@@ -56,6 +56,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Policy evaluation fixes
 
+- A policy set's target or enforced schema could read a variable declared in its last policy, changing which requests matched the set. Policy-local variables are now visible only inside the declaring policy.
 - CANONICAL and SMTDD preserve errors in complementary conditions. For example, with a text subject, `subject && !subject` produces a type error just as it does with NAIVE. Boolean subjects still make this condition false.
 
 ## Other changes

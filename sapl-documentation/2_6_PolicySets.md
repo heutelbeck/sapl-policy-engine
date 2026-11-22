@@ -27,23 +27,23 @@ set "example-policies" priority deny or deny
 
 ### Target Expression
 
-After the combining algorithm, an **optional** target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression that must evaluate to either `true` or `false`. If the condition evaluates to `true` for a certain authorization subscription, the policy set *matches* this subscription. In case the target expression is missing, the policy set matches any authorization subscription.
+After the combining algorithm, an **optional** target expression can be specified. The target expression is a condition for applying the policy set. It starts with the keyword `for` followed by an expression that must evaluate to either `true` or `false`. To match the set, a subscription must satisfy its enforced schema requirements. If the set declares a target, the target must also evaluate to `true`.
 
 The policy sets' target expression is used to select matching policy sets from a large collection of policy documents before evaluating them. As this needs to be done efficiently, there are no [attribute finder steps](../2_8_FunctionsAndAttributes/#attribute-finders-and-policy-information-points) allowed at this place.
 
 ### Variable Assignments
 
-The target expression can be followed by any number of variable assignments. Variable assignments are used to make a value available in all later policies under a certain name. An assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression.
+Set variable assignments follow the optional target expression and precede the policies. The set target, enforced schema declarations, and every policy in the set can refer to these variables. An assignment consists of `var`, a name, `=`, an expression, and a semicolon.
 
-Since variable assignments are only evaluated if the policy set's target matches, attribute finders may be used.
+A set variable used in the target must follow the target's restrictions on attribute finders. A set variable used only in policies may use an attribute finder.
 
-In case a policy within the policy set assigns a variable already assigned in the policy set, the assignment in the policy overwrites the old. The overwritten value only exists within the particular policy. In other policies, the variable has the value defined in the policy set.
+A variable declared inside a policy is visible only within that policy. Two policies in the same set may each declare a local variable with the same name. A policy that redeclares a set variable fails to compile.
 
 ### Policies
 
 Each policy set must contain one or more policies. [See above](../2_4_PolicyStructure/#policy-syntax) how to describe a SAPL policy. If the combining algorithm uses the `first` voting style, the policies are evaluated in the order in which they appear in the policy set.
 
-In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name. All variables assigned for the policy set (see [Variable Assignments](#variable-assignments) above) are available within the policies but can be overwritten by a variable assignment within a particular policy.
+In each policy, functions and attribute finders imported at the beginning of the SAPL document can be used under their shorter name.
 
 ### Example: First Applicable Policy
 

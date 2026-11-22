@@ -49,6 +49,7 @@ public class PolicySetCompiler {
         val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
                 .toList();
         assertPolicyNamesAreUnique(compiledPolicies);
+        ctx.resetForNextPolicy();
         val schemaValidator  = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
         val isApplicable     = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
                 ctx);
