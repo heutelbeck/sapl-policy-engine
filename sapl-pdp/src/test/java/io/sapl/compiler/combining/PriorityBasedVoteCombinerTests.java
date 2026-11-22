@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
@@ -278,6 +279,23 @@ class PriorityBasedVoteCombinerTests {
     @Nested
     @DisplayName("combineVotes extended indeterminate logic")
     class CombineVotesExtendedIndeterminateTests {
+
+        @ParameterizedTest(name = "priority {0}")
+        @EnumSource(value = Decision.class, names = { "PERMIT", "DENY", "SUSPEND" })
+        @DisplayName("an abstaining policy preserves the other policy's error and possible effects in either order")
+        void whenAPolicyAbstainsThenTheErrorAndItsPossibleEffectsSurvive(Decision priority) {
+            val error      = indeterminateVote("alarm", Outcome.DENY);
+            val abstention = Vote.abstain(testMetadata("exception", Outcome.PERMIT));
+
+            for (val votes : List.of(List.of(error, abstention), List.of(abstention, error))) {
+                val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(votes.getFirst(), TEST_METADATA);
+                val result      = PriorityBasedVoteCombiner.combineVotes(accumulator, votes.getLast(), priority,
+                        TEST_METADATA);
+
+                assertThat(result).isEqualTo(
+                        new Vote(error.authorizationDecision(), error.errors(), votes, TEST_METADATA, error.outcome()));
+            }
+        }
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("extendedIndeterminateCases")

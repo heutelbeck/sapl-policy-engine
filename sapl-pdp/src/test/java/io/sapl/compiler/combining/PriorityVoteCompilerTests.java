@@ -282,6 +282,13 @@ class PriorityVoteCompilerTests {
                             """, """
                             { "subject": "simple-string", "action": "read", "resource": "data" }
                             """, Decision.INDETERMINATE),
+                    arguments("an abstaining policy preserves an earlier policy error", """
+                            set "status check"
+                            priority permit or deny errors propagate
+
+                            policy "check status" deny (1/0) > 0;
+                            policy "exception" permit !<test.attr>;
+                            """, aliceReads, Decision.INDETERMINATE),
                     arguments("FALSE applicability skips stream and yields next combiner outcome", """
                             set "test"
                             priority deny or abstain
