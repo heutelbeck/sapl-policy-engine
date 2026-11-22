@@ -42,7 +42,10 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.RepositoryState;
 import lombok.val;
 import io.sapl.pdp.configuration.PreparationResult;
 
@@ -185,6 +188,40 @@ class RoutingAttributeRepositoryTests {
             });
         }
 
+        @Test
+        @DisplayName("then null arguments in observeState are rejected")
+        void thenNullArgumentsInObserveStateAreRejected() {
+            Consumer<RepositoryState> callback = state -> {};
+
+            assertThatThrownBy(() -> router.observeState(null, CONFIG_ID, callback))
+                    .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> router.observeState(PDP_ID, null, callback))
+                    .isInstanceOf(NullPointerException.class);
+            assertThatThrownBy(() -> router.observeState(PDP_ID, CONFIG_ID, null))
+                    .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then a queued state listener starts unavailable and receives the real view after the build")
+        void thenQueuedStateListenerIsUnavailableUntilBuild() {
+            val updates  = new CopyOnWriteArrayList<RepositoryState>();
+            val expiries = new CopyOnWriteArrayList<RepositoryState>();
+            val listener = new AttributeRepository.StateListener(updates::add, expiries::add);
+
+            // Register before the repository is available
+            val registration = router.observeState(PDP_ID, CONFIG_ID, listener);
+            assertThat(registration.initialState().unavailable()).isNotNull();
+
+            // Now build the repository, wait and check view
+            router.buildOrRoute(PDP_ID, configForInMemory(PDP_ID, CONFIG_ID));
+
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> !updates.isEmpty());
+            assertThat(updates.getFirst().unavailable()).isNull();
+            assertThat(updates.getFirst().revision()).isGreaterThan(registration.initialState().revision());
+            assertThat(expiries).isEmpty();
+            registration.close();
+        }
+
         @AfterEach
         void closeRouter() {
             router.close();
@@ -273,6 +310,13 @@ class RoutingAttributeRepositoryTests {
             assertThatThrownBy(() -> router.publish(null, VALUE, TTL)).isInstanceOf(NullPointerException.class);
             assertThatThrownBy(() -> router.publish(KEY, VALUE, null)).isInstanceOf(NullPointerException.class);
             assertThatThrownBy(() -> router.publish(KEY, null, TTL)).isInstanceOf(NullPointerException.class);
+        }
+
+        @ParameterizedTest
+        @NullSource
+        @DisplayName("then a null list in publish is rejected on that layer")
+        void thenNullListInPublishIsRejected(List<AttributeAssignment> assignments) {
+            assertThatThrownBy(() -> router.publish(assignments)).isInstanceOf(NullPointerException.class);
         }
 
         @Test

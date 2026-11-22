@@ -100,8 +100,8 @@ public class RoutingAttributeRepository implements AttributeRepository {
 
     /**
      * Routes the observation to the repository built for its pdp id and
-     * configuration id. While it's unknown or still building the observer
-     * starts unavailable and is attached once it's built.
+     * configuration id. While it's unknown or still building the observer starts
+     * unavailable and is attached once it's built.
      */
     @Override
     public StateRegistration observeState(@NonNull String pdpId, @NonNull String configurationId,
@@ -152,9 +152,11 @@ public class RoutingAttributeRepository implements AttributeRepository {
         cache.values().forEach(AttributeRepository::close);
     }
 
-    // Builds the repository asynchronously, using a retry-with-backoff to tolerate
-    // transient connection failures, that a slow connection never blocks the
-    // configuration event processing.
+    /*
+     * Builds the repository asynchronously, using a retry-with-backoff to tolerate
+     * transient connection failures, that a slow connection never blocks the
+     * configuration event processing.
+     */
     private void buildWithRetry(RouteKey key, Value repoNode) {
         // @formatter:off
         val disposable = Mono.fromCallable(() -> createRepository(repoNode, key.pdpId()))
@@ -175,8 +177,7 @@ public class RoutingAttributeRepository implements AttributeRepository {
         pendingBuilds.put(key, disposable);
     }
 
-    // Repository is built, put it in the repo cache, re-run the missed observe
-    // calls
+    // Repository is built, put it in repo cache, re-run the missed observe calls
     private void onRepositoryBuilt(RouteKey key, AttributeRepository repository) {
         pendingBuilds.remove(key);
 
@@ -304,9 +305,16 @@ public class RoutingAttributeRepository implements AttributeRepository {
             return;
         }
 
-        val registration = repository.observeState(pending.pdpId(), pending.configurationId(),
-                state -> pending.onUpdate().accept(shifted(state)));
+        // two callback: onUpdate (change via publish), onExpiry (ttl expired)
+        Consumer<RepositoryState> forward = pending
+                .onUpdate() instanceof AttributeRepository.StateListener(var onUpdate, var onExpiry)
+                        ? new AttributeRepository.StateListener(state -> onUpdate.accept(shifted(state)),
+                                state -> onExpiry.accept(shifted(state)))
+                        : state -> pending.onUpdate().accept(shifted(state));
+
+        val registration = repository.observeState(pending.pdpId(), pending.configurationId(), forward);
         pending.live().set(registration);
+
         if (pending.closed().get()) {
             registration.close();
             return;
