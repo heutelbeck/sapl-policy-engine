@@ -101,7 +101,7 @@ spec:
     spec:
       containers:
         - name: sapl
-          image: ghcr.io/heutelbeck/sapl-node:4.1.4
+          image: ghcr.io/heutelbeck/sapl-node:4.1.5
           ports:
             - containerPort: 8443
           livenessProbe:

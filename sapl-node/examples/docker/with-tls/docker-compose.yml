@@ -22,7 +22,7 @@
 
 services:
   sapl-node:
-    image: ghcr.io/heutelbeck/sapl-node:4.1.4
+    image: ghcr.io/heutelbeck/sapl-node:4.1.5
     container_name: sapl-node-tls
     ports:
       - "8443:8443"
