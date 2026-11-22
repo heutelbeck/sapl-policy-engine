@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.policyset;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -42,6 +43,63 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  */
 @DisplayName("PolicySetCompiler")
 class PolicySetCompilerTests {
+
+    @Nested
+    @DisplayName("Policy set variable scope")
+    class SetVariableScope {
+
+        @Test
+        @DisplayName("A set variable is visible to the target and every policy")
+        void whenSetVariableIsUsedByTargetAndEveryPolicyThenAllPoliciesContribute() {
+            val compiled = compilePolicySet("""
+                    set "building"
+                    unanimous or abstain
+                    for open
+                    var open = subject;
+                    policy "lobby" permit open; obligation "lobby"
+                    policy "office" permit open; obligation "office"
+                    policy "archive" permit open; obligation "archive"
+                    """);
+            val ctx      = subscriptionContext("""
+                    { "subject": true, "action": "read", "resource": "building" }
+                    """);
+            val decision = evaluatePolicySet(compiled, ctx).authorizationDecision();
+
+            assertThat(decision).satisfies(vote -> assertThat(vote.decision()).isEqualTo(Decision.PERMIT),
+                    vote -> assertThat(List.copyOf(vote.obligations())).containsExactlyInAnyOrder(Value.of("lobby"),
+                            Value.of("office"), Value.of("archive")));
+        }
+
+        @Test
+        @DisplayName("After the last policy the compiler exposes only the enclosing set bindings")
+        void whenAllPoliciesHaveCompiledThenOnlySetVariablesRemainInScope() {
+            val ctx = compilationContext();
+            compilePolicySet("""
+                    set "scope" first or abstain
+                    var setMarker = 1;
+                    policy "first" deny
+                    var childMarker = 2;
+                    policy "last" deny
+                    var childMarker = 3;
+                    """, ctx);
+
+            assertThat(ctx.getVariable("setMarker")).isEqualTo(Value.of(1));
+            assertThat(ctx.getVariable("childMarker")).isEqualTo(Value.UNDEFINED);
+        }
+
+        @Test
+        @DisplayName("The set schema cannot read the last policy's local schema")
+        void whenLastPolicyDefinesLocalSchemaThenSetSchemaCannotReadIt() {
+            assertThatThrownBy(() -> compilePolicySet("""
+                    subject enforced schema buildingSchema
+                    set "building" first or abstain
+                    policy "office" permit
+                    var buildingSchema = {"type":"boolean"};
+                    """)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageContaining("Schema must be an object, got: UndefinedValue");
+        }
+
+    }
 
     @Nested
     @DisplayName("Variable definition errors")
