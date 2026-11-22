@@ -132,7 +132,7 @@ public class SaplFlatBuffersCodec {
         }
         case NumberValue(BigDecimal n) -> {
             kindType = VALUE_NUMBER;
-            int strOffset = builder.createString(n.toString());
+            int strOffset = builder.createString(NumberValueLimits.wireNumber(n).toString());
             kindOffset = FbNumberValue.createFbNumberValue(builder, strOffset);
         }
         case TextValue(String s)       -> {

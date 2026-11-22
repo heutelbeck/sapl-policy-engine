@@ -27,6 +27,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.util.List;
+import lombok.val;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -45,6 +47,38 @@ class ValueJsonMarshallerTests {
     private static final String LOCATION_RLYEH      = "R'lyeh";
     private static final int    SANITY_THRESHOLD    = 42;
     private static final int    HORROR_LEVEL_MAX    = 100;
+
+    @Test
+    @DisplayName("an arithmetic result at the decimal limit round-trips through both JSON readers")
+    void whenLargeArithmeticResultIsWrittenThenBothJsonReadersRecoverTheNumber() {
+        val result = Value.of(new BigDecimal("1E1999").setScale(-1000));
+        val json   = ValueJsonMarshaller.toJsonString(result);
+        assertThat(json).isEqualTo("1E+1999");
+        assertThat(List.of(ValueJsonMarshaller.json(json), ValueJsonMarshaller.jsonAllowingComments(json)))
+                .containsExactly(result, result);
+    }
+
+    @Test
+    @DisplayName("JSON admits a full signed coefficient with exponent and enforces the raw zero limit")
+    void whenWireTokenNeedsOverheadThenBothJsonReadersApplyTheSameBounds() {
+        val dense   = Value.of(new BigDecimal("-" + "9".repeat(1000) + "e1000"));
+        val encoded = ValueJsonMarshaller.toJsonString(dense);
+        assertThat(ValueJsonMarshaller.json(encoded)).isEqualTo(dense);
+        assertThat(ValueJsonMarshaller.jsonAllowingComments("/* header */" + encoded)).isEqualTo(dense);
+        assertThat(ValueJsonMarshaller.json("1".repeat(1001))).isInstanceOf(ErrorValue.class);
+        assertThat(ValueJsonMarshaller.json("0e1000000")).isEqualTo(Value.ZERO);
+        assertThat(ValueJsonMarshaller.json("0." + "0".repeat(1009))).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    @DisplayName("the innermost JSON value counts towards the nesting limit")
+    void whenReadingANestedScalarThenTheSameDepthLimitAppliesAsForTrees() {
+        val open  = "[".repeat(ValueJsonMarshaller.MAX_DEPTH);
+        val close = "]".repeat(ValueJsonMarshaller.MAX_DEPTH);
+        assertThat(ValueJsonMarshaller.json(open + close)).isEqualTo(Value.error("Maximum nesting depth exceeded."));
+        assertThat(ValueJsonMarshaller.json(open + "0" + close))
+                .isEqualTo(Value.error("Maximum nesting depth exceeded."));
+    }
 
     // Round-trip Conversion Tests - Primitives
 

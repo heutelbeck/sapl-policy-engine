@@ -218,6 +218,13 @@ class JsonFunctionLibraryTests {
     }
 
     @Test
+    void whenReadingFullPrecisionWithExponentThenWireLimitsApply() {
+        val literal = "-" + "9".repeat(1000) + "e1000";
+        assertThat(JsonFunctionLibrary.jsonToVal(Value.of(literal))).isEqualTo(Value.of(new BigDecimal(literal)));
+        assertThat(JsonFunctionLibrary.jsonToVal(Value.of("1".repeat(1001)))).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
     void whenHighPrecisionDecimalThenPreservesAllDigits() {
         val literal = "0.1234567890123456789012345678";
         val result  = JsonFunctionLibrary.jsonToVal(Value.of("{\"x\": " + literal + "}"));

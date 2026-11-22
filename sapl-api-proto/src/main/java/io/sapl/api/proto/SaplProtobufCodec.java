@@ -300,7 +300,7 @@ public class SaplProtobufCodec {
             output.writeUInt32NoTag(0); // empty message
         }
         case BooleanValue(boolean b)   -> output.writeBool(VALUE_BOOL, b);
-        case NumberValue(BigDecimal n) -> output.writeString(VALUE_NUMBER, n.toPlainString());
+        case NumberValue(BigDecimal n) -> output.writeString(VALUE_NUMBER, NumberValueLimits.wireNumber(n).toString());
         case TextValue(String s)       -> output.writeString(VALUE_TEXT, s);
         case ArrayValue arr            -> writeArrayValue(sizes, arr, output);
         case ObjectValue obj           -> writeObjectValue(sizes, obj, output);
@@ -342,7 +342,8 @@ public class SaplProtobufCodec {
         return switch (value) {
         case NullValue ignored         -> 1 + 1; // tag + 0 length
         case BooleanValue ignored      -> 1 + 1; // tag + bool
-        case NumberValue(BigDecimal n) -> CodedOutputStream.computeStringSize(VALUE_NUMBER, n.toPlainString());
+        case NumberValue(BigDecimal n) ->
+            CodedOutputStream.computeStringSize(VALUE_NUMBER, NumberValueLimits.wireNumber(n).toString());
         case TextValue(String s)       -> CodedOutputStream.computeStringSize(VALUE_TEXT, s);
         case ArrayValue arr            -> {
             // Compute the content size once. Sizing twice per level is exponential in the

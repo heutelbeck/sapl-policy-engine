@@ -131,8 +131,8 @@ public class PDPConfigurationLoader {
     private static final JsonMapper MAPPER = createMapper();
 
     private static JsonMapper createMapper() {
-        return JsonMapper.builder().enable(JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_YAML_COMMENTS)
-                .addModule(new SaplJacksonModule()).build();
+        return SaplJacksonModule.jsonMapperBuilder()
+                .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_YAML_COMMENTS).build();
     }
 
     /**

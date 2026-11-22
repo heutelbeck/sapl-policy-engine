@@ -18,11 +18,18 @@
 package io.sapl.api.model;
 
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.util.JsonParserDelegate;
 import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.SaplVersion;
+import io.sapl.api.model.jackson.ValueDeserializer;
+import tools.jackson.core.StreamReadConstraints;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.databind.module.SimpleModule;
 import lombok.experimental.UtilityClass;
 
 import java.io.Serial;
@@ -42,11 +49,20 @@ import lombok.val;
 @UtilityClass
 public class ValueJsonMarshaller {
 
+    /** Maximum nesting depth of a JSON value. */
+    public static final int MAX_DEPTH = 500;
+
+    /** JSON factory with SAPL wire number and nesting limits. */
+    public static final JsonFactory JSON_FACTORY = JsonFactory.builder()
+            .streamReadConstraints(StreamReadConstraints.defaults().rebuild().maxNestingDepth(MAX_DEPTH)
+                    .maxNumberLength(NumberValueLimits.MAX_WIRE_NUMBER_LENGTH).build())
+            .build();
+
     private static final JsonNodeFactory FACTORY               = JsonNodeFactory.instance;
-    private static final JsonMapper      OBJECT_MAPPER         = JsonMapper.builder().build();
-    private static final JsonMapper      COMMENTED_JSON_MAPPER = JsonMapper.builder()
+    private static final JsonMapper      OBJECT_MAPPER         = JsonMapper.builder(JSON_FACTORY)
+            .addModule(new SimpleModule().addDeserializer(Value.class, new ValueDeserializer())).build();
+    private static final JsonMapper      COMMENTED_JSON_MAPPER = OBJECT_MAPPER.rebuild()
             .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_YAML_COMMENTS).build();
-    static final int                     MAX_DEPTH             = 500;
 
     private static final String ERROR_CANNOT_MARSHALL_ERROR_VALUE     = "Cannot marshall ErrorValue to JSON: %s.";
     private static final String ERROR_CANNOT_MARSHALL_NULL            = "Cannot marshall null to JsonNode.";
@@ -306,8 +322,15 @@ public class ValueJsonMarshaller {
     }
 
     private static Value parse(JsonMapper mapper, String json) {
-        try {
-            return fromJsonNode(mapper.readTree(json));
+        try (val parser = new DepthCheckingParser(mapper.createParser(json))) {
+            if (parser.nextToken() == null) {
+                return fromJsonNode(FACTORY.missingNode());
+            }
+            val value = mapper.readValue(parser, Value.class);
+            if (parser.reachedDepthLimit) {
+                return Value.error(ERROR_MAXIMUM_NESTING_DEPTH_EXCEEDED);
+            }
+            return value;
         } catch (JacksonException e) {
             return Value.error(ERROR_FAILED_TO_PARSE_JSON.formatted(e.getMessage()));
         }
@@ -330,7 +353,7 @@ public class ValueJsonMarshaller {
         return switch (value) {
         case NullValue ignored           -> FACTORY.nullNode();
         case BooleanValue(boolean b)     -> FACTORY.booleanNode(b);
-        case NumberValue(BigDecimal num) -> FACTORY.numberNode(num);
+        case NumberValue(BigDecimal num) -> FACTORY.numberNode(NumberValueLimits.wireNumber(num));
         case TextValue(String text)      -> FACTORY.stringNode(text);
         case ArrayValue array            -> toJsonArray(array, depth + 1, lenient);
         case ObjectValue object          -> toJsonObject(object, depth + 1, lenient);
@@ -419,6 +442,24 @@ public class ValueJsonMarshaller {
         val builder = ObjectValue.builder();
         objectNode.properties().forEach(entry -> builder.put(entry.getKey(), fromJsonNode(entry.getValue(), depth)));
         return builder.build();
+    }
+
+    // Complete the parse so malformed input takes precedence over the value depth limit.
+    private static final class DepthCheckingParser extends JsonParserDelegate {
+        private boolean reachedDepthLimit;
+
+        private DepthCheckingParser(JsonParser parser) {
+            super(parser);
+        }
+
+        @Override
+        public JsonToken nextToken() {
+            val token = super.nextToken();
+            if (token != null && token.isStructStart() && streamReadContext().getNestingDepth() >= MAX_DEPTH) {
+                reachedDepthLimit = true;
+            }
+            return token;
+        }
     }
 
     /**

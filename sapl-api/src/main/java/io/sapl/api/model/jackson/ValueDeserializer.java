@@ -50,6 +50,7 @@ public class ValueDeserializer extends StdDeserializer<Value> {
         super(Value.class);
     }
 
+    private static final String ERROR_NUMBER_TOO_LONG  = "JSON number exceeds the maximum length of %d characters.";
     private static final String ERROR_UNEXPECTED_TOKEN = "Unexpected JSON token: %s";
 
     @Override
@@ -68,13 +69,22 @@ public class ValueDeserializer extends StdDeserializer<Value> {
         case VALUE_NULL                           -> Value.NULL;
         case VALUE_TRUE                           -> Value.TRUE;
         case VALUE_FALSE                          -> Value.FALSE;
-        case VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT -> NumberValueLimits.parseBoundedNumber(parser.getString());
+        case VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT -> deserializeNumber(parser, context);
         case VALUE_STRING                         -> Value.of(parser.getString());
         case START_ARRAY                          -> deserializeArray(parser, context);
         case START_OBJECT                         -> deserializeObject(parser, context);
         default                                   ->
             context.reportInputMismatch(Value.class, ERROR_UNEXPECTED_TOKEN.formatted(token));
         };
+    }
+
+    private Value deserializeNumber(JsonParser parser, DeserializationContext context) {
+        val literal = parser.getString();
+        if (literal.length() > NumberValueLimits.MAX_WIRE_NUMBER_LENGTH) {
+            return context.reportInputMismatch(Value.class, ERROR_NUMBER_TOO_LONG,
+                    NumberValueLimits.MAX_WIRE_NUMBER_LENGTH);
+        }
+        return NumberValueLimits.parseBoundedNumber(literal);
     }
 
     private Value deserializeArray(JsonParser parser, DeserializationContext context) {

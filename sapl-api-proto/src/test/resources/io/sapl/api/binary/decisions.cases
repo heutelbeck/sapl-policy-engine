@@ -5,7 +5,7 @@ in the order decision, obligations, advice, resource. A whole number within 64 b
 plainly, whatever notation it came in. Any other number without exponent is written plainly, one
 with an exponent in scientific notation unless it is a small negative one. Undefined and error
 values have no JSON form. Protobuf is AuthorizationDecision of sapl_types.proto; fields that hold
-their default are left out, and numbers are written plainly. The binary form (BINARY_FORMAT.md of
+their default are left out, and numbers are decimal strings that may use an exponent. The binary form (BINARY_FORMAT.md of
 this crate) is the lead byte 00, the text region, the verdict byte, the obligations and the advice each as a count
 and values, and the resource, undefined when absent.
 
@@ -93,12 +93,6 @@ decision: PERMIT
 obligations: [1E+3,1E-7,2.50,-0.5,123.456]
 ---
 json: {"decision":"PERMIT","obligations":[1000,1E-7,2.50,-0.5,123.456]}
-protobuf: 08 01 12 30
-   0a 06 1a 04 31 30 30 30                     // "1000"
-   0a 0b 1a 09 30 2e 30 30 30 30 30 30 31      // "0.0000001"
-   0a 06 1a 04 32 2e 35 30                     // "2.50"
-   0a 06 1a 04 2d 30 2e 35                     // "-0.5"
-   0a 09 1a 07 31 32 33 2e 34 35 36            // "123.456"
 binary: 00 00 01 05 04 d0 0f 05 02 0e 05 f4 03 04 05 09 02 05 80 89 0f 06 00 00
 
 === numbers at the border of the plain notation

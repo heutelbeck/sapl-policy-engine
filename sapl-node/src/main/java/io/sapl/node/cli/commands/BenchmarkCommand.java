@@ -28,7 +28,6 @@ import io.sapl.node.cli.support.SubscriptionResolver;
 import lombok.val;
 import picocli.CommandLine.*;
 import picocli.CommandLine.Model.CommandSpec;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -161,7 +160,7 @@ public class BenchmarkCommand implements Callable<Integer> {
             err.println(ERROR_SUBSCRIPTION_MISSING);
             return null;
         }
-        val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+        val mapper       = SaplJacksonModule.jsonMapperBuilder().build();
         val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
         val subJson      = mapper.writeValueAsString(subscription);
         val resolved     = PolicySourceResolver.resolve(policySource, bundleVerification, null, err);
