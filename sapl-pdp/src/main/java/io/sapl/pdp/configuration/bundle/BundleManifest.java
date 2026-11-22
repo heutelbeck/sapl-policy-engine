@@ -47,7 +47,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
  * signature for a SAPL bundle.
  * <p>
  * The manifest is the carrier of the bundle's {@code configurationId} (its
- * publication identity) and provides integrity verification for bundle contents
+ * publication identity), encoded as a JSON string. It provides integrity verification for bundle contents
  * by recording SHA-256 hashes of all files and an Ed25519 signature over the
  * canonical JSON representation. This ensures that any modification to bundle
  * contents can be detected during verification.
@@ -140,6 +140,7 @@ public record BundleManifest(
     private static final String ERROR_ATTRIBUTION_NOT_STRING_OR_OBJECT = "Manifest field 'attribution' must be a JSON string or object.";
     private static final String ERROR_ATTRIBUTION_TOO_LARGE = "Manifest field 'attribution' exceeds the maximum serialized size of %d bytes.";
     private static final String ERROR_AUDIENCE_SEALING_RECIPIENT_BLANK = "Manifest field 'audience.sealingRecipient' must not be blank when the audience block is present.";
+    private static final String ERROR_CONFIGURATION_ID_NOT_STRING = "Manifest field 'configurationId' must be a JSON string.";
     private static final String ERROR_CONFIGURATION_ID_INVALID = "Manifest field 'configurationId' with value '%s' is invalid. "
             + ConfigurationIds.VALIDITY_RULE;
     private static final String ERROR_CONFIGURATION_ID_MISSING = "Manifest is missing required field 'configurationId'. "
@@ -297,7 +298,12 @@ public record BundleManifest(
     public static BundleManifest fromJson(String json) {
         BundleManifest manifest;
         try {
-            requireUtcInstant(CANONICAL_MAPPER.readTree(json).get(CREATED_FIELD));
+            val root = CANONICAL_MAPPER.readTree(json);
+            requireUtcInstant(root.get(CREATED_FIELD));
+            val configurationId = root.get("configurationId");
+            if (configurationId != null && !configurationId.isNull() && !configurationId.isString()) {
+                throw new BundleSignatureException(ERROR_CONFIGURATION_ID_NOT_STRING);
+            }
             manifest = CANONICAL_MAPPER.readValue(json, BundleManifest.class);
         } catch (JacksonException e) {
             throw new BundleSignatureException(ERROR_FAILED_TO_PARSE_MANIFEST.formatted(e.getMessage()), e);

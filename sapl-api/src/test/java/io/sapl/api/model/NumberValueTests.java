@@ -160,18 +160,29 @@ class NumberValueTests {
             9223372036854775807.0,     9223372036854775807
             -9223372036854775808.00,   -9223372036854775808
             9223372036854775808,       9223372036854775808
-            9.223372036854775808E+19,  9.223372036854775808E+19
-            1E+19,                     1E+19
-            1E+20,                     1E+20
-            12.50,                     12.50
+            9.223372036854775808E+19,  92233720368547758080
+            1E+19,                     10000000000000000000
+            1E+20,                     100000000000000000000
+            12.50,                     12.5
+            150E-2,                    1.5
+            0.00000100,                0.000001
+            1000000000000000000001,    1.000000000000000000001E+21
+            1E+21,                     1E+21
+            -1.2300E+21,               -1.23E+21
             0.5,                       0.5
             1E-7,                      1E-7
             1E+2147483647,             1E+2147483647
             1E-2147483647,             1E-2147483647
             """)
-    @DisplayName("a whole number in the range of a signed 64 bit integer is written plainly, any other number as BigDecimal writes it")
-    void whenWrittenAsTextThenWholeNumbersOf64BitsArePlain(String number, String text) {
+    @DisplayName("numbers have an exact text independent of scale")
+    void whenWrittenAsTextThenTheExactValueDeterminesTheNotation(String number, String text) {
         assertThat(new NumberValue(new BigDecimal(number))).hasToString(text);
+    }
+
+    @Test
+    void whenRemovingZerosWouldUnderflowTheScaleThenTheExponentIsStillExact() {
+        var number = new NumberValue(new BigDecimal(BigInteger.TEN, Integer.MIN_VALUE));
+        assertThat(number).hasToString("1E+2147483649");
     }
 
     @Test

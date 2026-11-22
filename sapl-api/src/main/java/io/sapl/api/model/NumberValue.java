@@ -19,6 +19,7 @@ package io.sapl.api.model;
 
 import io.sapl.api.SaplVersion;
 import lombok.NonNull;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serial;
@@ -35,21 +36,27 @@ public record NumberValue(@NonNull BigDecimal value) implements Value {
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * The text form of the number, as the SAPL value model writes it: a whole
-     * number in the range of a signed 64 bit integer plainly, such as {@code 5}
-     * for {@code 5.0} and {@code 1000} for {@code 1E+3}, and any other number as
-     * {@link BigDecimal#toString()} writes it, such as {@code 12.50},
-     * {@code 1E-7} and {@code 1E+20}.
+     * The exact SAPL text of this number. Magnitudes from 10<sup>-6</sup>
+     * inclusive to 10<sup>21</sup> exclusive use plain decimal notation.
+     * Other nonzero values use scientific notation. Equal numbers have the same
+     * text regardless of their scale.
      *
-     * @return the text form of the number
+     * @return the SAPL text of this number
      */
     @Override
     public @NotNull String toString() {
-        try {
-            return Long.toString(value.longValueExact());
-        } catch (ArithmeticException notAWholeNumberOf64Bits) {
-            return value.toString();
+        if (value.signum() == 0) {
+            return "0";
         }
+        val precision = value.precision();
+        val exponent  = (long) precision - 1 - value.scale();
+        if (exponent >= -6 && exponent < 21) {
+            return value.scale() <= 0 ? value.toPlainString() : value.stripTrailingZeros().toPlainString();
+        }
+        // Normalizing the significand at scale precision - 1 also works when the
+        // original BigDecimal is already at its minimum or maximum scale.
+        val significand = new BigDecimal(value.unscaledValue(), precision - 1).stripTrailingZeros();
+        return significand.toPlainString() + (exponent > 0 ? "E+" : "E") + exponent;
     }
 
     @Override

@@ -137,6 +137,22 @@ class BundleManifestTests {
                     .hasMessageContaining("configurationId");
         }
 
+        @ParameterizedTest(name = "rejects configurationId {0}")
+        @ValueSource(strings = { "42", "true", "{}", "[]" })
+        void whenConfigurationIdIsNotAJsonStringThenTheManifestIsRejected(String value) {
+            val json = validManifestJson().replace("\"test-config\"", value);
+
+            assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
+                    .hasMessageContaining("configurationId").hasMessageContaining("JSON string");
+        }
+
+        @Test
+        void whenAQuotedConfigurationIdLooksNumericThenItsTextIsPreserved() {
+            val json = validManifestJson().replace("\"test-config\"", "\"0042\"");
+
+            assertThat(BundleManifest.fromJson(json).configurationId()).isEqualTo("0042");
+        }
+
         @Test
         @DisplayName("accepts string and object attribution")
         void whenAttributionIsStringOrObjectThenAccepted() {

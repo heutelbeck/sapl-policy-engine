@@ -588,7 +588,7 @@ public class StepCompiler {
             try {
                 index = num.intValueExact();
             } catch (ArithmeticException ignored) {
-                yield Value.errorAt(loc, ERROR_INDEX_NOT_REPRESENTABLE, num);
+                yield Value.errorAt(loc, ERROR_INDEX_NOT_REPRESENTABLE, expr);
             }
             yield applyIndexStep(base, index, loc);
         }

@@ -181,9 +181,9 @@ class ArithmeticOperatorsTests {
             "n=" + 5.0          | n=5
             "n=" + 1E+3         | n=1000
             "n=" + -0.0         | n=0
-            "n=" + 1E+20        | n=1E+20
-            "n=" + 12.50        | n=12.50
-            "n=" + (12.51 * 2.0) | n=25.020
+            "n=" + 1E+20        | n=100000000000000000000
+            "n=" + 12.50        | n=12.5
+            "n=" + (12.51 * 2.0) | n=25.02
             "n=" + 1E-7         | n=1E-7
             "n=" + [5.0, 1E+3]  | n=[5, 1000]
             "n=" + {"a": 2.0}   | n={"a"=2}
@@ -195,8 +195,8 @@ class ArithmeticOperatorsTests {
     @Test
     void whenNumberIsNamedInErrorMessageThenItIsWrittenInItsTextForm() {
         assertThat(compileExpression("[5.0, 1E+3, 1E+20] * 2")).isInstanceOfSatisfying(ErrorValue.class,
-                error -> assertThat(error.message())
-                        .isEqualTo("Numeric operation requires number values, but found: [5, 1000, 1E+20]."));
+                error -> assertThat(error.message()).isEqualTo(
+                        "Numeric operation requires number values, but found: [5, 1000, 100000000000000000000]."));
     }
 
     @ParameterizedTest(name = "{0} = {1} is within the range of numbers")
