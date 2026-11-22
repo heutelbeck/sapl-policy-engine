@@ -77,6 +77,15 @@ class GeographicDistanceLimitTests {
     }
 
     @Test
+    @DisplayName("Distant routes are outside the threshold even when a segment search would exceed the budget")
+    void whenDetailedRoutesHaveSeparatedEnvelopesThenOnlyPossibleMatchesNeedTheSearchBudget() {
+        val first  = line(1001);
+        val second = line(1001, 50);
+        assertThat(isWithinDistance(first, second, Value.of(49))).isEqualTo(Value.FALSE);
+        assertThat(isWithinDistance(first, second, Value.of(50))).isEqualTo(OVER_LIMIT);
+    }
+
+    @Test
     @DisplayName("Nested polygon holes count toward boundary and containment comparisons")
     void whenNestedPolygonHasHoleThenDistanceBudgetsBoundaryAndContainment() {
         val hole = new ArrayList<String>();
@@ -118,7 +127,12 @@ class GeographicDistanceLimitTests {
     }
 
     private static ObjectValue line(int segments) {
-        val positions = IntStream.rangeClosed(0, segments).mapToObj("[%d,0]"::formatted).collect(joining(","));
+        return line(segments, 0);
+    }
+
+    private static ObjectValue line(int segments, int y) {
+        val positions = IntStream.rangeClosed(0, segments).mapToObj(x -> "[%d,%d]".formatted(x, y))
+                .collect(joining(","));
         return (ObjectValue) json("""
                 {"type":"LineString","coordinates":[%s]}
                 """.formatted(positions));

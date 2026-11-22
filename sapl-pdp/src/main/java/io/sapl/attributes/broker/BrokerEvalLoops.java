@@ -36,24 +36,57 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Two helpers that drive the standard eval loop against an
- * {@link AttributeBroker} with eval-side head caching threaded
- * in via {@link HeadCache}.
+ * Evaluation-side lifecycle for callbacks registered with an
+ * {@link AttributeBroker}. The broker captures attribute inputs and manages
+ * source subscriptions. These helpers invoke the supplied evaluator for each
+ * round, report its result, reconcile logical dependencies and implement
+ * {@code |head} through a per-subscription {@link HeadCache}.
  * <p>
- * The standard loop, on every broker fire: merge cache into the snapshot,
- * evaluate, emit, capture head values, evict
- * cache entries the eval dropped, filter head keys out of the next broker dep
- * set. The same pattern across many call
- * sites. These helpers exist so it's written once.
+ * Every round invokes the evaluator again against one stable input map. It
+ * must reevaluate the compiled expression or voter using that map, rather than
+ * resume an incomplete expression with live attribute results from an earlier
+ * round. If a lazy A-and-B condition first reads A=true and discovers B, then
+ * the broker installs an atomic A=false/B=true update before the next capture,
+ * the next round must reread A=false. It can then finish false without reading
+ * B. Carrying the old A=true into evaluation of the new B would create a false grant.
  * <p>
- * Two flavors:
+ * Each callback follows this order:
+ * <ol>
+ * <li>Merge the broker's current inputs with deliberately frozen head values.
+ * The evaluator and result callback must treat this map as read-only.</li>
+ * <li>Invoke the evaluator and pass the round result to the result callback.
+ * A round can discover missing attributes and remain incomplete; reporting
+ * that result is not permission to emit a completed decision.</li>
+ * <li>Extract the complete logical dependency set discovered by this round,
+ * including already read live attributes and missing attributes. This set is
+ * not a delta, and discovering B does not make A cease to be a dependency.</li>
+ * <li>Capture newly delivered head values and evict cached heads that are no
+ * longer referenced. A head that later reenters can capture a new first value.</li>
+ * <li>Return the effective broker dependencies. Adding a fulfilled key can
+ * request another round; dropping a key alone does not. If the logical set is
+ * empty, handle termination instead of violating the broker's non-empty-set
+ * requirement.</li>
+ * </ol>
+ * {@code |head} intentionally retains a first observation across rounds; it is
+ * not permission to retain arbitrary live intermediate results. Concurrent
+ * source changes may be reflected by a later round while the current one
+ * finishes with its captured inputs. Wake requests can coalesce, so callback,
+ * source-commit and emitted-decision counts need not match.
+ * <p>
+ * Ordinary SAPL error values remain policy data and can resolve or recover in
+ * later rounds. Unexpected Java runtime exceptions in evaluation callbacks are
+ * a separate failure: the streaming helper stops evaluating and asks its caller
+ * to emit a fail-closed result and complete. The caller owns the output sink
+ * and subscription handle; the broker cannot perform those actions for it.
+ * The one-shot helper reports setup, unhandled round or release failures as
+ * {@link EvaluationException} and releases an opened handle on exit.
+ * <p>
+ * The two entry points are:
  * <ul>
- * <li>{@link #openWithHead}: streaming. Keeps the subscription open; emits via
- * a caller-supplied consumer on every
- * fire.</li>
- * <li>{@link #awaitFirstResult}: blocking. Returns the first non-null value the
- * builder produces, then closes the
- * subscription.</li>
+ * <li>{@link #openWithHead}: keeps an observation open and lets the caller
+ * interpret each result, including incomplete results.</li>
+ * <li>{@link #awaitFirstResult}: waits for the first non-null completion value
+ * supplied by the caller's builder, then releases the observation.</li>
  * </ul>
  *
  * @since 4.1.0
@@ -66,15 +99,33 @@ public class BrokerEvalLoops {
     private static final String ERROR_NO_DECISION         = "Evaluation produced no decision and no remaining dependencies.";
 
     /**
-     * Streaming flavor: opens a broker subscription that runs the eval loop on
-     * every fire until the caller closes the
-     * returned handle.
+     * Opens a streaming evaluation. Broker callbacks for this subscription are
+     * serialized but may use different threads, including the opening thread.
+     * The evaluator, result handler and termination handler must be ready before
+     * this method returns its handle.
      * <p>
-     * Each fire: merge HeadCache into the broker snapshot, run {@code evaluator},
-     * hand the result to {@code onResult},
-     * extract next-round deps via {@code nextDeps}, update the HeadCache, return
-     * the filtered broker deps for the next
-     * round.
+     * {@code onResult} receives every evaluated round, including incomplete
+     * results. It owns the rule for emitting completed results and any decision
+     * deduplication. {@code nextDeps} must return the full logical set actually
+     * needed or touched in the same round, not just newly missing keys.
+     * <p>
+     * An unexpected runtime exception in {@code evaluator}, {@code onResult} or
+     * {@code nextDeps} ends evaluation and reaches {@code onTerminate}. A normal
+     * round with no logical dependencies calls {@code onTerminate} with null
+     * after {@code onResult} has handled its final result. The termination
+     * handler must return normally. Later broker callbacks do not reevaluate
+     * the policy after termination.
+     * <p>
+     * An exception from opening the broker subscription itself is outside this
+     * callback guard and propagates to the caller without calling the handler.
+     * <p>
+     * Termination does not close the handle. The helper retains the initial
+     * effective broker dependencies as an idle, non-empty return value until
+     * the caller closes it. This avoids closing a handle that may not yet have
+     * returned from a synchronous open. Closing the handle alone does not call
+     * {@code onTerminate}; nor does it join a callback already selected for
+     * delivery. The owner must guard its sink if cancellation must suppress
+     * late results.
      *
      * @param <R>
      * per-round result type
@@ -85,27 +136,21 @@ public class BrokerEvalLoops {
      * @param initialDeps
      * eval's initial dep set
      * @param evaluator
-     * runs against the merged snapshot, returns the round result
+     * reevaluates the compiled expression or voter against the current merged inputs
      * @param onResult
-     * side-effecting consumer of the result and the merged snapshot. The typical
-     * body is "if the result is
-     * terminal, emit it on a sink"
+     * handles the round result and read-only inputs; emits a decision only when
+     * the result supports one, rather than treating every callback as terminal
      * @param nextDeps
-     * extracts the eval's logical dep set from the result for the next round
+     * returns the complete non-null logical dependency set for that round;
+     * an empty set requests normal evaluation termination
      * @param onTerminate
-     * invoked once when the loop will not continue, with the cause: a non-null
-     * {@link RuntimeException} when
-     * a round's {@code evaluator}, {@code onResult}, or {@code nextDeps} threw (the
-     * broker holds no decision
-     * sink, so the caller must emit a fail-closed decision and complete the
-     * stream), or {@code null} when
-     * the policy collapsed to a constant (no attribute deps remain; the final
-     * decision was already emitted
-     * via {@code onResult}, so the caller need only complete the stream). After it
-     * fires, the loop stops
-     * re-evaluating and the subscription idles until the consumer closes it
+     * non-throwing handler called once on evaluation termination: a runtime
+     * exception requires fail-closed output and completion by the owner; null
+     * means normal termination after the final result was handled. The owner
+     * remains responsible for closing the returned subscription
      *
      * @return the subscription handle. The caller closes it
+     * @throws RuntimeException if the broker cannot open the subscription
      */
     public static <R> AttributeBroker.Subscription openWithHead(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDeps, Function<Map<SubscriptionKey, AttributeSnapshot>, R> evaluator,
@@ -147,14 +192,18 @@ public class BrokerEvalLoops {
     }
 
     /**
-     * Blocking flavor: drives the eval loop until {@code builder} produces a
-     * non-null value, returns that value,
-     * releases the subscription.
+     * Drives rounds until {@code builder} accepts one as a non-null completion
+     * value, returns it and releases the subscription. This is not necessarily
+     * the first broker callback: earlier rounds can discover more dependencies
+     * and remain incomplete.
      * <p>
-     * Built on {@link #openWithHead}. The builder is consulted on every fire and
-     * returns {@code null} when the round is
-     * not terminal (e.g., a dep is still missing) or the completion value when the
-     * round resolves.
+     * The builder returns null to keep waiting. For round callbacks the first
+     * completion wins: a later callback failure cannot replace a value already
+     * accepted by the future. Opening or releasing the subscription can still
+     * fail with {@link EvaluationException}, including a release failure after
+     * a value was accepted. Interruption, exceptional completion and normal
+     * return all release an opened handle; an in-flight callback is not joined
+     * by that release.
      *
      * @param <R>
      * per-round result type
@@ -167,27 +216,28 @@ public class BrokerEvalLoops {
      * @param initialDeps
      * eval's initial dep set
      * @param evaluator
-     * runs against the merged snapshot, returns the round result
+     * reevaluates against the current merged inputs on each round
      * @param builder
      * maps a result + merged snapshot to a completion value, or {@code null} if the
      * round is not terminal
      * @param nextDeps
-     * extracts the eval's logical dep set from the result for the next round
+     * extracts the complete logical dependency set discovered in that round
      *
      * @return the first non-null value the builder produced
      *
      * @throws InterruptedException
      * if the caller is interrupted while waiting
      * @throws EvaluationException
-     * if {@code evaluator} or {@code builder} threw during dispatch
+     * if opening or releasing the subscription fails, a round callback fails
+     * before a completion value is accepted, or evaluation terminates without one
      */
     public static <R, V> V awaitFirstResult(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDeps, Function<Map<SubscriptionKey, AttributeSnapshot>, R> evaluator,
             BiFunction<R, Map<SubscriptionKey, AttributeSnapshot>, V> builder,
             Function<R, Set<SubscriptionKey>> nextDeps) throws InterruptedException, EvaluationException {
         val future = new CompletableFuture<V>();
-        // The broker dispatches the callback off the caller's thread and
-        // swallows any throw from it. Each callback stage is wrapped so a
+        // The broker may dispatch inline or on a producer thread and catches
+        // callback failures. Each stage is wrapped so a
         // failure completes the future exceptionally instead of leaving
         // future.get() blocked forever.
         final Function<Map<SubscriptionKey, AttributeSnapshot>, R> guardedEvaluator = snap -> failFuture(future,

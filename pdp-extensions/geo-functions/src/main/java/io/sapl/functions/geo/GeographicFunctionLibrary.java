@@ -93,6 +93,9 @@ public class GeographicFunctionLibrary {
 
             ## Numerical Tolerances
             PDP implementations use different geometry libraries and may approximate computed results differently.
+            Planar predicates use the supplied coordinate units and the floating-point topology of JTS.
+            Use ordinary coordinate ranges for the chosen reference system. Extreme scales and nearly degenerate shapes
+            can change a predicate result. For geofencing, verify who supplies the location and the perimeter used by the policy.
             - `buffer`: Up to 1 percent of the absolute buffer width in coordinate units, because circular arcs are approximated by line segments.
             - `geoDistance`, `geodesicDistance`, `isWithinGeodesicDistance`: Up to 1 millimeter in the computed distance, because ellipsoidal geodesics use numerical approximations. Threshold decisions within this distance may differ.
             - `union`, `intersection`, `difference`, `symDifference`: Up to 0.000001 coordinate units in the symmetric discrete Hausdorff distance between result boundaries. Overlay algorithms use different precision grids and intersection calculations. This tolerance applies to ordinary finite coordinate ranges and does not guarantee accuracy for arbitrary coordinate magnitudes or degenerate inputs.
@@ -118,6 +121,8 @@ public class GeographicFunctionLibrary {
             - A geometry collection may contain at most 50,000 members.
             - The collection comparisons `subset` and `atLeastOneMemberOf` are quadratic, so they are
               additionally capped at 1,000,000 pairwise checks.
+            - Distance searches allow up to 1,000,000 candidate comparisons. Planar `isWithinDistance` returns
+              false immediately when the bounding boxes are already farther apart than the threshold.
 
             These limits comfortably accommodate detailed real-world boundaries. They apply because
             this input may originate from the authorization subscription or from policy information
@@ -562,8 +567,12 @@ public class GeographicFunctionLibrary {
     public static Value isWithinDistance(ObjectValue thisGeometry, ObjectValue thatGeometry, NumberValue distance) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, (thiz, that) -> {
             requireNonempty(thiz, that);
+            val threshold = distance.value().doubleValue();
+            if (thiz.getEnvelopeInternal().distance(that.getEnvelopeInternal()) > threshold) {
+                return false;
+            }
             requireDistanceWork(thiz, that);
-            return thiz.isWithinDistance(that, distance.value().doubleValue());
+            return new DistanceOp(thiz, that, threshold).distance() <= threshold;
         });
     }
 

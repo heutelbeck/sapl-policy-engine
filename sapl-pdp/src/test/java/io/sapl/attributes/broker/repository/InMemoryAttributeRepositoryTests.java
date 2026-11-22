@@ -21,6 +21,8 @@ import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
+import io.sapl.attributes.broker.repository.AttributeAssignment.UnboundValue;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -131,6 +133,58 @@ class InMemoryAttributeRepositoryTests {
         @Override
         public void accept(Value value) {
             values.add(value);
+        }
+    }
+
+    @Test
+    @DisplayName("one transfer publishes one complete state, with the final assignment for each key")
+    void whenTransferCommitsThenObserversReceiveItsFinalState() {
+        val department = repoKey("work.department");
+        val clearance  = repoKey("work.clearance");
+        val views      = new CopyOnWriteArrayList<RepositoryState>();
+        try (val watch = repository.observeState(TEST_PDP_ID, "default", views::add)) {
+            repository.publish(List.of(new BoundValue(department, Value.of("HR"), null),
+                    new BoundValue(clearance, Value.of(5), null)));
+            repository.publish(List.of(new UnboundValue(department), new BoundValue(department, Value.of("IT"), null),
+                    new BoundValue(clearance, Value.of(1), null)));
+            assertThat(watch.initialState().bindings()).isEmpty();
+            assertThat(views).extracting(state -> List.of(state.value(department), state.value(clearance)))
+                    .containsExactly(List.of(Value.of("HR"), Value.of(5)), List.of(Value.of("IT"), Value.of(1)));
+        }
+    }
+
+    @Test
+    @DisplayName("a publication spanning tenants leaves both tenants and their observers untouched")
+    void whenPublicationSpansTenantsThenNoAssignmentIsPublished() {
+        val first   = repoKey("work.department");
+        val other   = new RepositoryKey(null, "work.clearance", List.of(), "other");
+        val changes = List.<AttributeAssignment>of(new BoundValue(first, Value.of("IT"), null),
+                new BoundValue(other, Value.of(5), null));
+        val updates = new CopyOnWriteArrayList<RepositoryState>();
+        try (val watch = repository.observeState(TEST_PDP_ID, "default", updates::add)) {
+            assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> repository.publish(changes));
+            try (val current = repository.observeState(TEST_PDP_ID, "default", updates::add)) {
+                assertThat(current.initialState()).isEqualTo(watch.initialState());
+            }
+            assertThat(updates).isEmpty();
+        }
+    }
+
+    @Test
+    @DisplayName("renewing the same value cancels its former expiry without extending another binding")
+    void whenEqualValueIsReboundThenOnlyItsCurrentLifetimeApplies() {
+        val renewed  = repoKey("work.renewed");
+        val expires  = repoKey("work.expires");
+        val value    = Value.of("active");
+        val observed = new CopyOnWriteArrayList<RepositoryState>();
+        try (val ignored = repository.observeState(TEST_PDP_ID, "default", observed::add)) {
+            repository.publish(renewed, value, Duration.ofMillis(80));
+            repository.publish(List.of(new BoundValue(renewed, value, null),
+                    new BoundValue(expires, value, Duration.ofMillis(160))));
+            Awaitility.await().atMost(Duration.ofSeconds(2))
+                    .until(() -> observed.getLast().value(expires).equals(Value.UNDEFINED));
+            assertThat(observed.getLast().value(expires)).isEqualTo(Value.UNDEFINED);
+            assertThat(observed.getLast().value(renewed)).isEqualTo(value);
         }
     }
 
@@ -309,12 +363,12 @@ class InMemoryAttributeRepositoryTests {
         void thenSubsequentPublishesAreSilentlyIgnored() {
             val recorder = new Recorder();
             repository.observe(invocation("env.x"), recorder);
-            val before = recorder.values.size();
-
             repository.close();
+            val atClose = List.copyOf(recorder.values);
             repository.publish(repoKey("env.x"), Value.of("v1"));
 
-            assertThat(recorder.values).hasSize(before);
+            assertThat(recorder.values).containsExactlyElementsOf(atClose);
+            assertThat(atClose.getLast()).isInstanceOf(ErrorValue.class);
         }
 
         @Test

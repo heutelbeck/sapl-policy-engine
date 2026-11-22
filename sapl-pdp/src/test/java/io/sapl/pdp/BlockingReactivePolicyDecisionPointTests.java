@@ -27,6 +27,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import io.sapl.pdp.configuration.PdpVoterSource;
@@ -360,6 +361,31 @@ class BlockingReactivePolicyDecisionPointTests {
 
             assertThat(first).isNotNull();
             assertThat(first.vote().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+        }
+    }
+
+    @Test
+    @DisplayName("a department transfer never permits a clearance which belonged to the former department")
+    void whenDepartmentAndClearanceChangeTogetherThenEveryTransferVoteDenies() throws Exception {
+        val department = environmentAttribute("work.department");
+        val clearance  = environmentAttribute("work.clearance");
+        repository.publish(List.of(new BoundValue(department, Value.of("HR"), null),
+                new BoundValue(clearance, Value.of(5), null)));
+        loadConfiguration(DENY_UNLESS_PERMIT, """
+                policy "allow IT at clearance five"
+                permit
+                    [<work.department>, <work.clearance>] == ["IT", 5];
+                """);
+        val employee = subscription("employee", "read", "records");
+        try (val rounds = pdp.decideWithCoverage(employee)) {
+            assertThat(rounds.awaitNext().vote().authorizationDecision().decision()).isEqualTo(Decision.DENY);
+
+            repository.publish(List.of(new BoundValue(department, Value.of("IT"), null),
+                    new BoundValue(clearance, Value.of(1), null)));
+            assertThat(rounds.awaitNext().vote().authorizationDecision().decision()).isEqualTo(Decision.DENY);
+
+            repository.publish(clearance, Value.of(5));
+            assertThat(rounds.awaitNext().vote().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
     }
 

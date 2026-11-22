@@ -22,6 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -32,6 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import static io.sapl.functions.geo.GeographicFunctionLibrary.ERROR_INVALID_GEOJSON;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.area;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -91,6 +93,23 @@ class GeoJsonGeometryTests {
                 """.formatted(multiPolygon);
         assertThat(Stream.of(polygon, multiPolygon, collection).map(document -> area(geometry(document))))
                 .as(description).containsOnly(Value.error(ERROR_INVALID_GEOJSON));
+    }
+
+    @Test
+    @DisplayName("A geofence handles a valid location after rejecting an incomplete position")
+    void whenLocationIsMalformedThenTheNextValidLocationCanStillBeChecked() {
+        val facility  = geometry(
+                """
+                        {"type":"Polygon","coordinates":[[[13.38,52.50],[13.42,52.50],[13.42,52.53],[13.38,52.53],[13.38,52.50]]]}
+                        """);
+        val malformed = geometry("""
+                {"type":"Point","coordinates":[13.405]}
+                """);
+        val location  = geometry("""
+                {"type":"Point","coordinates":[13.405,52.52]}
+                """);
+        assertThat(Stream.of(malformed, location).map(point -> within(point, facility)))
+                .containsExactly(Value.error(ERROR_INVALID_GEOJSON), Value.TRUE);
     }
 
     static Stream<Arguments> validGeometries() {

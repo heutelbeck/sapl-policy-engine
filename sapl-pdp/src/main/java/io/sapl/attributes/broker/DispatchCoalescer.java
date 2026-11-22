@@ -38,6 +38,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * runnable on its thread (plus any follow-up runs triggered while
  * it was running). Other concurrent callers set the re-run bit and
  * return without waiting.
+ * <p>
+ * This provides serialization, not a source transaction or an event queue. The
+ * caller must publish a coherent source change before requesting a run, and the
+ * runnable must capture its own current inputs. No particular thread, fairness
+ * or one-run-per-trigger guarantee follows. The runnable must handle its own
+ * failures: this helper restores its running flag but does not convert thrown
+ * exceptions into policy results.
  *
  * @since 4.1.0
  */
@@ -47,6 +54,13 @@ public final class DispatchCoalescer {
     private final AtomicBoolean pending = new AtomicBoolean(false);
     private final Runnable      fire;
 
+    /**
+     * Creates an independent serialization boundary for one consumer.
+     *
+     * @param fire body invoked by whichever caller starts a drain; it must not
+     * throw onto a shared producer thread
+     * @throws NullPointerException if fire is null
+     */
     public DispatchCoalescer(@NonNull Runnable fire) {
         this.fire = fire;
     }

@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,6 +54,7 @@ import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.DispatchCoalescer;
+import io.sapl.attributes.broker.repository.RepositoryState;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 
 import lombok.NonNull;
@@ -97,6 +97,39 @@ import lombok.val;
  * {@link #load} that adds a spec promotes
  * any matching repository-backed or terminal active invocations to PIP-backed
  * ones.
+ * <p>
+ * Repository values use one observation per active tenant/configuration route.
+ * A callback supplies a complete {@link RepositoryState}. The broker rejects
+ * callbacks from retired observations and revisions no newer than the installed
+ * view. Under its routing lock it installs every affected active projection,
+ * including different timing or fresh variants of the same repository key.
+ * Capturing a consumer's input map uses that same lock. Thus no evaluation can
+ * capture only half of a related repository update. Notifications are requested
+ * after installation, outside the lock; the eventual round may use an even
+ * newer view if updates coalesce.
+ * <p>
+ * New repository dependencies read from the installed complete view. Comparing
+ * all active bindings is necessary when notifications skip intermediate
+ * revisions: changes to a different key in an earlier revision still matter.
+ * Binding generations distinguish renewal from an unrelated source update, so
+ * unchanged keys keep their existing observation timestamps. These timestamps
+ * describe observation time, not source transaction identity.
+ * <p>
+ * Each consumer has its own {@link DispatchCoalescer}, which serializes callbacks
+ * without a dedicated thread. The subscription captures a new input map before each round.
+ * The fulfillment gate is checked again at capture because an older wake can
+ * outlive an expansion of the dependency set. A genuinely unfulfilled external
+ * dependency can keep that gate closed until it receives a value. An absent key
+ * in an available repository view supplies a fulfilled {@link Value#UNDEFINED};
+ * an unavailable view supplies an error value.
+ * <p>
+ * Source sharing uses compatible normalized invocations, not attribute names
+ * alone. A fresh request creates a new active invocation instead of reusing
+ * one at attachment time. A later non-fresh request can reuse that invocation;
+ * fresh is not an exclusive lifetime lease or a transaction boundary. Head
+ * freezing belongs to the evaluation-side cache, not this broker. Zero-reference
+ * invocations can remain alive for the configured grace period, allowing a new
+ * consumer to reuse them without reopening the source.
  *
  * @since 4.1.0
  */
@@ -111,6 +144,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
     private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
     private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw). Ignoring this fire: {}";
+    private static final String ERROR_REPOSITORY_CLOSE        = "Failed to close the repository observation for '{}'.";
     private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set). Ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
@@ -125,6 +159,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private final Map<ActiveInvocation, ScheduledFuture<?>>                    pendingTeardowns              = new HashMap<>();
     private final Map<String, BrokerSubscription>                              consumerSubscriptions         = new HashMap<>();
 
+    private final Map<RepositoryRoute, RepositoryObservation> repositoryObservations = new HashMap<>();
+
     private final Duration                      gracePeriodDuration;
     private final ScheduledExecutorService      teardownScheduler;
     private final @Nullable AttributeRepository fallback;
@@ -132,8 +168,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     // Set in close(). Guards open() and teardown scheduling.
     private volatile boolean closed = false;
-
-    private static final ThreadLocal<Set<BrokerSubscription>> DEFERRED_SUBSCRIPTIONS = new ThreadLocal<>();
 
     /** No grace period, no fallback. */
     public PolicyInformationPointAttributeBroker() {
@@ -361,7 +395,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
         for (val active : affected.evicted) {
             if (fallbackRepository != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
+                migrate(active, new ActiveRepositoryInvocation(active.invocation(), this));
             } else {
                 discard(active);
             }
@@ -421,6 +455,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             List<ActivePolicyInformationPointInvocation> evicted) {}
 
     /**
+     * Lists the currently loaded PIP handles.
+     *
      * @return an unmodifiable snapshot of currently loaded handles
      */
     public Set<PipHandle> catalog() {
@@ -436,6 +472,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
+     * Returns documentation for the currently loaded PIPs.
+     *
      * @return the {@link LibraryDocumentation} for every PIP currently in the
      * catalog, suitable for IDE
      * hover/completion and offline documentation generation. Returned in load
@@ -557,13 +595,15 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     @Override
     public void close() {
-        List<BrokerSubscription>     toClose;
         Collection<ActiveInvocation> activeToClose;
         lock.lock();
 
         try {
-            closed        = true;
-            toClose       = new ArrayList<>(consumerSubscriptions.values());
+            closed = true;
+            // Seal subscriptions under the activation lock before releasing any sources.
+            for (val subscription : consumerSubscriptions.values()) {
+                subscription.markClosed();
+            }
             activeToClose = new ArrayList<>(allActive());
             consumerSubscriptions.clear();
             activeInvocationsByInvocation.clear();
@@ -575,9 +615,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
             lock.unlock();
 
-        }
-        for (val subscription : toClose) {
-            subscription.markClosed();
         }
         for (val active : activeToClose) {
             active.close();
@@ -673,11 +710,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * reconnect during the grace window).
      * <p>
      * The list is keyed by the normalized invocation, which drops the {@code fresh}
-     * flag. So fresh and non-fresh
-     * subscriptions for an otherwise-identical invocation land in the same list. A
-     * fresh stream stays private while
-     * it's alive, but a later non-fresh consumer can attach to it once the original
-     * head has been torn down.
+     * flag. Fresh and non-fresh subscriptions for an otherwise-identical
+     * invocation land in the same list. Fresh requests bypass reuse for their
+     * own attachment; later non-fresh requests may reuse any live entry,
+     * including one created for a still-attached fresh consumer.
      */
     private ActiveInvocation activeInvocationFor(SubscriptionKey key) {
         val invocation = key.invocation();
@@ -743,7 +779,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
         val fallbackRepository = fallback;
         if (fallbackRepository != null) {
-            val active = newActiveRepositoryInvocation(invocation, fallbackRepository);
+            val active = new ActiveRepositoryInvocation(invocation, this);
             active.start();
             return active;
         }
@@ -823,12 +859,120 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
     }
 
-    private ActiveRepositoryInvocation newActiveRepositoryInvocation(AttributeFinderInvocation normalized,
-            AttributeRepository repository) {
-        val holder = new ActiveRepositoryInvocation[1];
-        holder[0] = new ActiveRepositoryInvocation(normalized, repository, timestampSource,
-                value -> dispatchValue(holder[0]));
-        return holder[0];
+    private record RepositoryRoute(String pdpId, String configurationId) {
+        RepositoryRoute(AttributeFinderInvocation invocation) {
+            this(invocation.pdpId(), invocation.configurationId());
+        }
+    }
+
+    private static final class RepositoryObservation {
+        private final Set<ActiveRepositoryInvocation>           active = new HashSet<>();
+        private AttributeRepository.@Nullable StateRegistration registration;
+        private @Nullable RepositoryState                       latest;
+    }
+
+    /**
+     * Attaches a key to its route's shared source observation. Caller may already
+     * hold the routing lock. Register before consuming the fixed initial view:
+     * a successor callback can arrive first and must not be overwritten by an
+     * older initial revision. The key is then projected from the newest accepted
+     * view, without a separate source read that could cross a commit boundary.
+     */
+    void startRepositoryInvocation(ActiveRepositoryInvocation active) {
+        boolean changed;
+        lock.lock();
+        try {
+            if (closed || active.isClosed() || fallback == null) {
+                return;
+            }
+            val route       = new RepositoryRoute(active.invocation());
+            var observation = repositoryObservations.get(route);
+            if (observation == null) {
+                val opened = new RepositoryObservation();
+                repositoryObservations.put(route, opened);
+                try {
+                    opened.registration = fallback.observeState(route.pdpId(), route.configurationId(),
+                            state -> installRepositoryState(route, opened, state));
+                    val initial = opened.registration.initialState();
+                    if (opened.latest == null || opened.latest.revision() < initial.revision()) {
+                        opened.latest = initial;
+                    }
+                } catch (RuntimeException e) {
+                    repositoryObservations.remove(route);
+                    if (opened.registration != null) {
+                        opened.registration.close();
+                    }
+                    throw e;
+                }
+                observation = opened;
+            }
+            observation.active.add(active);
+            changed = active.install(observation.latest, timestampSource.instant());
+        } finally {
+            lock.unlock();
+        }
+        if (changed) {
+            dispatchValue(active);
+        }
+    }
+
+    /**
+     * Installs one complete route view under the same lock as round capture.
+     * Check both registration identity and revision: numbering may restart for
+     * a replacement observation, and an old callback may survive detachment.
+     * Update every active projection before testing gates or requesting wakes.
+     * Full-view comparison also carries disjoint changes across skipped revisions.
+     */
+    private void installRepositoryState(RepositoryRoute route, RepositoryObservation observation,
+            RepositoryState next) {
+        val affected = new HashSet<BrokerSubscription>();
+        lock.lock();
+        try {
+            if (closed || repositoryObservations.get(route) != observation
+                    || observation.latest != null && next.revision() <= observation.latest.revision()) {
+                return;
+            }
+            val observedAt = timestampSource.instant();
+            observation.latest = next;
+            for (val active : observation.active) {
+                if (active.install(next, observedAt)) {
+                    affected.addAll(active.subscribers());
+                }
+            }
+            // Gate only after all aliases have moved to the same source revision.
+            affected.removeIf(subscription -> !subscription.tryFireGate());
+        } finally {
+            lock.unlock();
+        }
+        affected.forEach(BrokerSubscription::fireCallback);
+    }
+
+    /**
+     * Retires the route's observation when its final active projection closes.
+     * Remove its identity under the routing lock before detaching, so a callback
+     * already in flight cannot revive the retired view. Other active repository
+     * keys on the route keep their shared observation.
+     */
+    void stopRepositoryInvocation(ActiveRepositoryInvocation active) {
+        AttributeRepository.StateRegistration toClose = null;
+        lock.lock();
+        try {
+            val route       = new RepositoryRoute(active.invocation());
+            val observation = repositoryObservations.get(route);
+            if (observation != null && observation.active.remove(active) && observation.active.isEmpty()) {
+                repositoryObservations.remove(route);
+                toClose = observation.registration;
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (toClose != null) {
+            try {
+                toClose.close();
+            } catch (RuntimeException failure) {
+                log.error(ERROR_REPOSITORY_CLOSE, active.invocation().pdpId(), failure);
+            }
+        }
     }
 
     private ActivePolicyInformationPointInvocation newTerminalActiveInvocation(AttributeFinderInvocation normalized) {
@@ -1073,17 +1217,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.unlock();
 
         }
-
-        // If batch mode, then only collect the subscriptions. batch() will re-evaluate them at the end
-        val batched = DEFERRED_SUBSCRIPTIONS.get();
-
-        // Yes: add them
-        if (batched != null) {
-            batched.addAll(toFire);
-            return;
-        }
-
-        // No: finished and re-evaluate them
         for (val subscription : toFire) {
             subscription.fireCallback();
         }
@@ -1119,7 +1252,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         val fallbackRepository = fallback;
         for (val active : evictedActive) {
             if (fallbackRepository != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
+                migrate(active, new ActiveRepositoryInvocation(active.invocation(), this));
             } else {
                 discard(active);
             }
@@ -1233,6 +1366,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             return true;
         }
 
+        /**
+         * Captures this consumer's registered keys; caller holds the routing
+         * lock. Repository projections move together under that lock, and the
+         * immutable result stays fixed after the lock is released. This is a
+         * round's input subset, not the entire repository view. A newly
+         * discovered key enters a subsequent round through dependency handling.
+         */
         Map<SubscriptionKey, AttributeSnapshot> currentSnapshots() {
             val snapshotsByKey = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(dependencies.size());
             for (val key : dependencies) {
@@ -1250,11 +1390,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Body of a single coalesced fire. Reads the current snapshot under the broker
-         * lock, invokes the consumer
-         * callback outside the lock, and applies the returned dep diff. See
-         * {@link DispatchCoalescer} for the
-         * surrounding flag dance.
+         * Runs one serialized round. Recheck closure and fulfillment under the
+         * capture lock: a queued wake may precede discovery of a still-missing
+         * dependency. Capture current inputs, release the lock, invoke the
+         * evaluator, then reconcile its full dependency set. An in-flight round
+         * keeps its captured inputs even if newer values arrive meanwhile.
          */
         private void runOneFire() {
             Map<SubscriptionKey, AttributeSnapshot>                                 snapshotsByKey;
@@ -1262,7 +1402,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.lock();
 
             try {
-                if (subscriptionClosed) {
+                if (subscriptionClosed || !allDependenciesHaveValues()) {
                     return;
                 }
                 snapshotsByKey = currentSnapshots();
@@ -1300,13 +1440,20 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
         }
 
+        /**
+         * Reconciles the full set returned by this round, not a delta. New keys
+         * attach to current sources. If they are already fulfilled, request a
+         * new evaluation so a lazy discovery can complete without another source
+         * update. Otherwise wait for fulfillment. Removed keys release this
+         * consumer's references and do not by themselves request another round.
+         */
         private void applyDependencyDiff(Set<SubscriptionKey> nextDependencies) {
             List<ActiveInvocation> refcountZeroed = new ArrayList<>();
             boolean                refire;
             lock.lock();
 
             try {
-                if (subscriptionClosed) {
+                if (closed || subscriptionClosed) {
                     return;
                 }
                 if (nextDependencies.equals(dependencies)) {
@@ -1426,38 +1573,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         @Override
         public String toString() {
             return "PipHandle[" + pipName + (loaded.get() ? "" : " unloaded") + "]";
-        }
-    }
-
-    /**
-     * Run {@code notifications} in a batch mode. While the batch mode is running, value changes
-     * do not re-evaluate the affected subscriptions immediately. When {@code notifications} returns,
-     * each collected subscription is re-evaluated exactly once. All new values will be seen together.
-     * It prevents a policy from evaluating an unwanted intermediate state between two changes of an
-     * atomic batch.
-     * <p>
-     * The batch phase is per thread. The outermost call ends the batch mode.
-     * If {@code notifications} throws, the processed values are still re-evaluated.
-     *
-     * @param notifications Applies the changed attribute values. It is provided by an attribute repository.
-     */
-    public void batch(@NonNull Runnable notifications) {
-        if (DEFERRED_SUBSCRIPTIONS.get() != null) {
-            notifications.run();
-            return;
-        }
-
-        val collected = new LinkedHashSet<BrokerSubscription>();
-        DEFERRED_SUBSCRIPTIONS.set(collected);
-
-        try {
-            notifications.run();
-        } finally {
-            DEFERRED_SUBSCRIPTIONS.remove();
-
-            for (val subscription : collected) {
-                subscription.fireCallback();
-            }
         }
     }
 }
