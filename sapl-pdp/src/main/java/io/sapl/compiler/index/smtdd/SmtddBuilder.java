@@ -117,7 +117,7 @@ public class SmtddBuilder {
                 maxIndexNodes);
 
         return new EqualityBranch(group.getSharedOperand(), branches, defaultChild, defaultChild,
-                compacted.affectedFormulas());
+                compacted.affectedFormulas(), compacted.keyFormulas());
     }
 
     private static SmtddNode mergeBucket(BitSet formulasInBucket, SmtddNode[] formulaBdds, SmtddUniqueTable table,
