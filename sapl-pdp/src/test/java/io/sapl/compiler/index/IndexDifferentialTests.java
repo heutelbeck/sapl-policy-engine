@@ -37,6 +37,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.Decision;
@@ -215,6 +216,30 @@ class IndexDifferentialTests {
             streams.add(arguments(s, randomSubject(random)));
         }
         return streams.stream();
+    }
+
+    @ParameterizedTest(name = "subject {0}")
+    @ValueSource(strings = { "{}", "{\"key\":3}", "{\"key\":null}", "{\"key\":false}", "{\"key\":\"staff\"}",
+            "{\"key\":\"unknown\"}" })
+    @DisplayName("grouped object-key and equality guards agree with the authored policies")
+    void whenKeyMembershipSharesAnOperandWithEqualityThenBothSearchesPreserveEachGuard(String subject) {
+        val documents = policies("""
+                policy "directory" permit {"operator":true,"staff":false} has subject.key;
+                """, """
+                policy "badge" permit subject.key == 3;
+                """, """
+                policy "visitor" permit subject.key != 3;
+                """, """
+                policy "restricted" permit {"staff":false} has subject.key && subject.enabled == true;
+                """);
+        val ctx       = subscriptionContext(wrap(subject));
+        val naive     = NaivePolicyIndex.create(documents).matchKleene(ctx);
+        val index     = SmtddPolicyIndex.create(documents, 0);
+
+        for (val matches : List.of(index.matchKleene(ctx), collectKleeneWhile(index, ctx))) {
+            assertThat(matches.trueMatches()).containsExactlyInAnyOrderElementsOf(naive.trueMatches());
+            assertThat(matches.errorMatches()).containsExactlyInAnyOrderElementsOf(naive.errorMatches());
+        }
     }
 
     @Nested

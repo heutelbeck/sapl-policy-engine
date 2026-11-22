@@ -84,7 +84,7 @@ public sealed interface SmtddNode {
         nodeIds.put(node, id);
 
         switch (node) {
-        case Terminal(var matched)                                                                     -> {
+        case Terminal(var matched)                                                                                  -> {
             if (matched.isEmpty()) {
                 output.append(prefix).append(connector).append(label).append('#').append(id).append(" EMPTY\n");
             } else {
@@ -92,7 +92,7 @@ public sealed interface SmtddNode {
                         .append(matched).append('\n');
             }
         }
-        case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected) -> {
+        case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected, var ignored) -> {
             output.append(prefix).append(connector).append(label).append('#').append(id).append(" EQ(hash=")
                     .append(operand.semanticHash()).append(", ").append(branches.size()).append(" branches)\n");
             var branchIndex = 0;
@@ -111,7 +111,7 @@ public sealed interface SmtddNode {
                 renderNode(errorChild, nextPrefix, true, "error:", output, nodeIds, binaryOrder);
             }
         }
-        case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                  -> {
+        case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                               -> {
             val predicateLabel = binaryOrder != null ? "p" + binaryOrder.predicateAt(level).semanticHash()
                     : "level" + level;
             output.append(prefix).append(connector).append(label).append('#').append(id).append(' ')
@@ -144,13 +144,33 @@ public sealed interface SmtddNode {
      * @param defaultChild child when the evaluated value matches no constant
      * @param errorChild child when operand evaluation errors
      * @param affectedFormulas formulas referencing this operand (killed on error)
+     * @param keyFormulas formulas using the operand as an object key
      */
     record EqualityBranch(
             PureOperator operand,
             Map<Value, SmtddNode> branches,
             SmtddNode defaultChild,
             SmtddNode errorChild,
-            BitSet affectedFormulas) implements SmtddNode {}
+            BitSet affectedFormulas,
+            BitSet keyFormulas) implements SmtddNode {
+
+        /**
+         * Constructs a branch containing ordinary equality constraints.
+         *
+         * @param operand the shared operand
+         * @param branches children by constant value
+         * @param defaultChild child for an unlisted value
+         * @param errorChild child for an operand error
+         * @param affectedFormulas formulas referencing the operand
+         */
+        public EqualityBranch(PureOperator operand,
+                Map<Value, SmtddNode> branches,
+                SmtddNode defaultChild,
+                SmtddNode errorChild,
+                BitSet affectedFormulas) {
+            this(operand, branches, defaultChild, errorChild, affectedFormulas, new BitSet());
+        }
+    }
 
     /**
      * Standard ternary decision node for non-groupable predicates.
