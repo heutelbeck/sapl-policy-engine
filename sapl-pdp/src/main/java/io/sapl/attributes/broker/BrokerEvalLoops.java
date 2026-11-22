@@ -50,6 +50,12 @@ import java.util.function.Supplier;
  * the next round must reread A=false. It can then finish false without reading
  * B. Carrying the old A=true into evaluation of the new B would create a false grant.
  * <p>
+ * An update of a previously observed live input can start a round while a newly
+ * requested attribute still has no value. The broker omits that pending key.
+ * Reevaluation can drop it after a short circuit or remain incomplete, without
+ * emitting a decision for the incomplete result. First deliveries of a new
+ * dependency set are collected together unless a known input changes.
+ * <p>
  * Each callback follows this order:
  * <ol>
  * <li>Merge the broker's current inputs with deliberately frozen head values.
@@ -159,7 +165,7 @@ public class BrokerEvalLoops {
         val headCache         = new HeadCache();
         val initialBrokerDeps = headCache.brokerDepsFor(initialDeps);
         val terminated        = new AtomicBoolean(false);
-        return broker.open(subscriptionId, initialBrokerDeps, brokerSnap -> {
+        return broker.open(subscriptionId, initialBrokerDeps, new AttributeSubscriptionObserver(brokerSnap -> {
             if (terminated.get()) {
                 // A prior round already terminated the loop. Idle on the last dep set
                 // (broker requires non-empty) until the consumer closes the stream.
@@ -188,7 +194,11 @@ public class BrokerEvalLoops {
                 onTerminate.accept(e);
                 return initialBrokerDeps;
             }
-        });
+        }, failure -> {
+            if (terminated.compareAndSet(false, true)) {
+                onTerminate.accept(failure);
+            }
+        }));
     }
 
     /**

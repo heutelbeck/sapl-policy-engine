@@ -44,6 +44,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -57,6 +60,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,6 +68,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static java.lang.invoke.MethodHandles.lookup;
+import static java.lang.invoke.MethodHandles.privateLookupIn;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -313,6 +319,69 @@ class PolicyInformationPointAttributeBrokerTests {
         private final RepositoryKey   clearanceKey  = RepositoryKey
                 .fromInvocation(envKey("work.clearance").invocation());
 
+        @Test
+        @DisplayName("a blocked expiry round leaves the same route free to deliver a second expiry")
+        void whenAnExpiryRoundIsBlockedThenAnotherConsumerOnTheRouteCanObserveItsExpiry() throws Exception {
+            val clearance = envKey("work.clearance");
+            val entered   = new CompletableFuture<Void>();
+            val release   = new CompletableFuture<Void>();
+            val committed = new CompletableFuture<Void>();
+            val expired   = new CompletableFuture<Void>();
+            val joined    = new CompletableFuture<Value>();
+            val ttl       = Duration.ofMillis(20);
+            try (val repository = new InMemoryAttributeRepository();
+                    val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, repository)) {
+                repository.publish(List.of(new BoundValue(departmentKey, Value.TRUE, null),
+                        new BoundValue(clearanceKey, Value.TRUE, null)));
+                try (val slow = scoped.open("department", Set.of(department), inputs -> {
+                    if (Value.UNDEFINED.equals(inputs.get(department).value())) {
+                        entered.complete(null);
+                        release.join();
+                    }
+                    return Set.of(department);
+                }); val live = scoped.open("clearance", Set.of(clearance), inputs -> {
+                    if (Value.UNDEFINED.equals(inputs.get(clearance).value())) {
+                        expired.complete(null);
+                    }
+                    return Set.of(clearance);
+                }); val witness = repository.observeState(clearanceKey.pdpId(), "default", state -> {
+                    if (Value.UNDEFINED.equals(state.value(clearanceKey))) {
+                        committed.complete(null);
+                    }
+                })) {
+                    try {
+                        // Keep the ordinary publisher from racing the first expiry for the same idle subscription.
+                        val schedulerField = privateLookupIn(InMemoryAttributeRepository.class, lookup()).findVarHandle(
+                                InMemoryAttributeRepository.class, "scheduler", ScheduledExecutorService.class);
+                        val scheduler      = (ScheduledExecutorService) schedulerField.get(repository);
+                        val published      = new CompletableFuture<Void>();
+                        scheduler.execute(published::join);
+                        try {
+                            repository.publish(departmentKey, Value.TRUE, ttl);
+                        } finally {
+                            published.complete(null);
+                        }
+                        entered.get(5, TimeUnit.SECONDS);
+                        repository.publish(clearanceKey, Value.TRUE, ttl);
+                        committed.get(5, TimeUnit.SECONDS);
+                        assertThat(expired).as("live clearance consumer after confirmed repository expiry")
+                                .succeedsWithin(Duration.ofSeconds(5));
+                        try (val later = scoped.open("joined", Set.of(clearance), inputs -> {
+                            joined.complete(inputs.get(clearance).value());
+                            return Set.of(clearance);
+                        })) {
+                            assertThat(joined.get(5, TimeUnit.SECONDS)).isEqualTo(Value.UNDEFINED);
+                        }
+                        assertThat(CompletableFuture.runAsync(slow::close))
+                                .as("cancellation while the expiry callback is still blocked")
+                                .succeedsWithin(Duration.ofSeconds(5));
+                    } finally {
+                        release.complete(null);
+                    }
+                }
+            }
+        }
+
         private RepositoryState baseline() {
             return new RepositoryState(0, Map.of(departmentKey, new RepositoryState.Binding(0, Value.of("HR")),
                     clearanceKey, new RepositoryState.Binding(0, Value.of(5))), null);
@@ -337,8 +406,8 @@ class PolicyInformationPointAttributeBrokerTests {
         }
 
         @Test
-        @DisplayName("a queued wake waits for a dependency discovered by an in-flight evaluation")
-        void whenRoundAddsAnUnfulfilledKeyThenAPreviousWakeCannotDeliverAnIncompleteRound() throws Exception {
+        @DisplayName("a queued known-input update survives discovery of a pending dependency")
+        void whenAKnownInputChangesDuringDiscoveryThenTheQueuedRoundUsesAvailableInputs() throws Exception {
             val source    = new ManualSource(baseline());
             val extra     = envKey("ctrl.latest");
             val initial   = Set.of(department);
@@ -376,10 +445,14 @@ class PolicyInformationPointAttributeBrokerTests {
                         proceed.countDown();
                     }
                     evaluating.get(2, TimeUnit.SECONDS);
+                    // The queued update can finish before the newly discovered hot listener enrolls.
+                    Awaitility.await().atMost(Duration.ofSeconds(2)).until(() -> !ControllablePip.STREAMS.isEmpty());
                     ControllablePip.emitToAll(Value.of("ready"));
                     Awaitility.await().atMost(Duration.ofSeconds(2))
                             .until(() -> maps.stream().anyMatch(round -> round.containsKey(extra)));
-                    assertThat(maps).extracting(Map::keySet).containsExactly(initial, initial, expanded);
+                    assertThat(maps).extracting(Map::keySet).containsExactly(initial, initial, initial, expanded);
+                    assertThat(maps.get(2)).containsOnlyKeys(department);
+                    assertThat(maps.get(2).get(department).value()).isEqualTo(Value.of("legal"));
                     assertThat(maps.getLast().get(department).value()).isEqualTo(Value.of("legal"));
                 } finally {
                     proceed.countDown();
@@ -517,6 +590,37 @@ class PolicyInformationPointAttributeBrokerTests {
             assertThatThrownBy(() -> broker.load(invalid)).isInstanceOf(PipLoadException.class);
             assertThat(broker.catalog()).isEqualTo(before);
             assertThat(broker.resolve(envInvocation("invalidreturn.good"))).isEmpty();
+        }
+
+        @ParameterizedTest(name = "{1}")
+        @MethodSource("invalidDeclarations")
+        @DisplayName("an invalid finder declaration leaves the catalogue intact on load")
+        void whenANewLibraryDeclaresAnInvalidFinderThenLoadKeepsTheOriginal(Object candidate, String reason) {
+            val serving = broker.load(new StaticPip());
+
+            assertThatThrownBy(() -> broker.load(candidate)).isInstanceOf(PipLoadException.class)
+                    .hasMessageContaining(reason);
+
+            assertThat(broker.catalog()).containsExactly(serving);
+            assertThat(broker.resolve(envInvocation("stock.available"))).isEmpty();
+        }
+
+        @ParameterizedTest(name = "{1}")
+        @MethodSource("invalidDeclarations")
+        @DisplayName("an invalid replacement leaves the original finder available")
+        void whenAReplacementDeclaresAnInvalidFinderThenSwapKeepsTheOriginal(Object candidate, String reason) {
+            val serving = broker.load(new StaticPip());
+
+            assertThatThrownBy(() -> broker.swap(serving, candidate)).isInstanceOf(PipLoadException.class)
+                    .hasMessageContaining(reason);
+
+            assertThat(broker.catalog()).containsExactly(serving);
+            assertThat(broker.resolve(envInvocation("static.greeting"))).isPresent();
+        }
+
+        static List<Arguments> invalidDeclarations() {
+            return List.of(Arguments.of(new InvalidFinderName(), "stock.item-count"),
+                    Arguments.of(new AmbiguousFinders(), "stock.available"));
         }
 
         @Test
@@ -1324,6 +1428,27 @@ class PolicyInformationPointAttributeBrokerTests {
         @EnvironmentAttribute(name = "greeting")
         public static Value greetingThatCollides() {
             return Value.of("collides");
+        }
+    }
+
+    @PolicyInformationPoint(name = "stock")
+    static class InvalidFinderName {
+        @EnvironmentAttribute(name = "item-count")
+        public static Value itemCount() {
+            return Value.of(3);
+        }
+    }
+
+    @PolicyInformationPoint(name = "stock")
+    static class AmbiguousFinders {
+        @EnvironmentAttribute(name = "available")
+        public static Value warehouse() {
+            return Value.TRUE;
+        }
+
+        @EnvironmentAttribute(name = "available")
+        public static Value supplier() {
+            return Value.FALSE;
         }
     }
 

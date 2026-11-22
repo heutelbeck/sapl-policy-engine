@@ -19,6 +19,7 @@ package io.sapl.functions.geo.conformance;
 
 import io.sapl.conformance.CaseFileWriter;
 import io.sapl.conformance.ConformanceCorpus;
+import io.sapl.conformance.ConformanceLibraries;
 import io.sapl.conformance.ConformanceCorpus.CaseFile;
 import io.sapl.conformance.FunctionCatalogue;
 import org.junit.jupiter.api.DisplayName;
@@ -53,10 +54,11 @@ class GeographicCorpusGenerationTests {
     }
 
     @Test
-    @DisplayName("the function catalogue is written with all libraries the function corpus covers")
+    @DisplayName("the geographic library matches its entry in the function catalogue")
     void whenFunctionCatalogueIsGeneratedThenItHoldsAllLibraries() {
         FunctionCatalogue.write();
 
-        assertThat(FunctionCatalogue.stated()).isEqualTo(FunctionCatalogue.catalogue());
+        assertThat(ConformanceLibraries.withoutAbsentLibraries(FunctionCatalogue.stated()))
+                .isEqualTo(FunctionCatalogue.catalogue());
     }
 }

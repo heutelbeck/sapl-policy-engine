@@ -60,7 +60,7 @@ public class SubtemplateCompiler {
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(binaryOperation.left(), ctx),
-                () -> ExpressionCompiler.compile(binaryOperation.right(), ctx));
+                () -> ExpressionCompiler.compileNonStreaming(binaryOperation.right(), ctx, ERROR_STREAMING_TEMPLATE));
         val parent   = operands.first();
         val template = operands.second();
         val loc      = binaryOperation.location();
@@ -71,11 +71,6 @@ public class SubtemplateCompiler {
         }
         if (template instanceof ErrorValue) {
             return template;
-        }
-
-        // Streaming templates are not supported
-        if (template instanceof StreamOperator) {
-            return Value.errorAt(loc, ERROR_STREAMING_TEMPLATE);
         }
 
         return switch (parent) {

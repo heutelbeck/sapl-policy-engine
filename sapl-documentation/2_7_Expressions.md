@@ -112,6 +112,8 @@ Each of these basic expressions can contain one or more **selection steps** (e.g
 
 **Operator expressions** can be constructed using prefix or infix **operators** (e.g., `1 + subject.age` or `! subject.isBlocked`). SAPL supports infix and prefix operators. They may be applied in connection with any expression. An operator expression within parentheses (e.g., `(1 + subject.age)`) is a basic expression again and thus may contain selection steps, filter, or subtemplate statements.
 
+A selection index or condition, the right operand of `::`, and the target path and function arguments of an extended filter must compile to a constant or a pure expression. The compiler rejects a streaming operand in any of these positions, including in a branch that would be skipped during evaluation. The value being selected, transformed, or filtered may itself come from an attribute finder.
+
 ### Value Expressions
 
 A basic value expression is the simplest type. The value is denoted in the corresponding JSON format.

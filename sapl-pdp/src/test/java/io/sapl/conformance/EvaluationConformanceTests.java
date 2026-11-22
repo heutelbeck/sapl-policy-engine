@@ -44,4 +44,59 @@ class EvaluationConformanceTests {
     void whenExpressionIsEvaluatedThenItsOutcomeAgreesWithTheCorpus(Case evaluationCase) {
         assertThat(EvaluationOutcomes.withOutcome(evaluationCase)).isEqualTo(evaluationCase);
     }
+
+    static Stream<Case> coverageCases() {
+        return ConformanceCorpus.casesOf("policy-coverage").stream();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("coverageCases")
+    @DisplayName("a policy records the decision, condition hits and dependencies of each covered round")
+    void whenAPolicyRecordsCoverageThenBothLatencyModesMatchItsStatedRounds(Case example) {
+        assertThat(PolicyCoverageOutcomes.withOutcome(example)).isEqualTo(example);
+    }
+
+    static Stream<Case> streamCases() {
+        return ConformanceCorpus.casesOf("stream-rounds").stream();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("streamCases")
+    @DisplayName("stream expressions reach the stated dependencies and values")
+    void whenAnExpressionReadsAttributesThenItsRoundsMatchTheCorpus(Case example) {
+        assertThat(StreamRoundOutcomes.withOutcome(example).expectation()).isEqualTo(example.expectation());
+    }
+
+    static Stream<Case> policyCases() {
+        return ConformanceCorpus.casesOf("policy-votes").stream();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("policyCases")
+    @DisplayName("a policy or set returns the stated votes")
+    void whenADocumentVotesThenItsRoundsMatchTheCorpus(Case example) {
+        assertThat(PolicyVoteOutcomes.withOutcome(example).expectation()).isEqualTo(example.expectation());
+    }
+
+    static Stream<Case> configurationCases() {
+        return ConformanceCorpus.casesOf("configuration-votes").stream();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("configurationCases")
+    @DisplayName("an entire PDP configuration returns the stated decisions")
+    void whenAConfigurationVotesThenItsRoundsMatchTheCorpus(Case example) {
+        assertThat(PolicyVoteOutcomes.configurationOutcome(example).expectation()).isEqualTo(example.expectation());
+    }
+
+    static Stream<Case> configurationCoverageCases() {
+        return ConformanceCorpus.casesOf("configuration-coverage").stream();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("configurationCoverageCases")
+    @DisplayName("PDP coverage identifies reached policy conditions, set targets and incomplete rounds")
+    void whenAConfigurationCollectsCoverageThenItsReportsMatchTheCorpus(Case example) {
+        assertThat(ConfigurationCoverageOutcomes.withOutcome(example).expectation()).isEqualTo(example.expectation());
+    }
 }

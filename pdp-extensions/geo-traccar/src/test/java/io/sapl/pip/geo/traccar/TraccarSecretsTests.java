@@ -30,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static io.sapl.pip.geo.traccar.TraccarTestContext.context;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,19 +53,16 @@ class TraccarSecretsTests {
     private BlockingWebClient mockWebClient;
 
     private static ObjectValue secretsWithBasicAuth(String userName, String password) {
-        return ObjectValue.builder().put("traccar",
-                ObjectValue.builder().put("userName", Value.of(userName)).put("password", Value.of(password)).build())
-                .build();
+        return ObjectValue.builder().put("userName", Value.of(userName)).put("password", Value.of(password)).build();
     }
 
     private static ObjectValue secretsWithToken(String token) {
-        return ObjectValue.builder().put("traccar", ObjectValue.builder().put("token", Value.of(token)).build())
-                .build();
+        return ObjectValue.builder().put("token", Value.of(token)).build();
     }
 
     private static ObjectValue secretsWithTokenAndBasicAuth(String token, String userName, String password) {
-        return ObjectValue.builder().put("traccar", ObjectValue.builder().put("token", Value.of(token))
-                .put("userName", Value.of(userName)).put("password", Value.of(password)).build()).build();
+        return ObjectValue.builder().put("token", Value.of(token)).put("userName", Value.of(userName))
+                .put("password", Value.of(password)).build();
     }
 
     @Test
@@ -74,7 +72,7 @@ class TraccarSecretsTests {
         val pip     = new TraccarPolicyInformationPoint(mockWebClient);
         val secrets = secretsWithBasicAuth("user@example.com", "secret");
 
-        try (val stream = pip.server(BASE_CONFIG, secrets)) {
+        try (val stream = pip.server(context(BASE_CONFIG, secrets))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
         }
 
@@ -91,7 +89,7 @@ class TraccarSecretsTests {
         val pip     = new TraccarPolicyInformationPoint(mockWebClient);
         val secrets = secretsWithToken("my-api-token");
 
-        try (val stream = pip.server(BASE_CONFIG, secrets)) {
+        try (val stream = pip.server(context(BASE_CONFIG, secrets))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
         }
 
@@ -108,7 +106,7 @@ class TraccarSecretsTests {
         val pip     = new TraccarPolicyInformationPoint(mockWebClient);
         val secrets = secretsWithTokenAndBasicAuth("my-api-token", "user@example.com", "secret");
 
-        try (val stream = pip.server(BASE_CONFIG, secrets)) {
+        try (val stream = pip.server(context(BASE_CONFIG, secrets))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
         }
 
@@ -124,7 +122,7 @@ class TraccarSecretsTests {
     void whenNoSecretsThenErrorReturned() {
         val pip = new TraccarPolicyInformationPoint(mockWebClient);
 
-        try (val stream = pip.server(BASE_CONFIG, Value.EMPTY_OBJECT)) {
+        try (val stream = pip.server(context(BASE_CONFIG, Value.EMPTY_OBJECT))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class))
                     .awaitsCompletion();
         }
@@ -143,7 +141,7 @@ class TraccarSecretsTests {
                 }
                 """);
 
-        try (val stream = pip.server(configWithCreds, Value.EMPTY_OBJECT)) {
+        try (val stream = pip.server(context(configWithCreds, Value.EMPTY_OBJECT))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class))
                     .awaitsCompletion();
         }

@@ -41,6 +41,7 @@
 
 	<properties>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
+		<excludedGroups>conformance,conformance-dump</excludedGroups>
 		<main.basedir>${project.basedir}/../</main.basedir>	</properties>
 	
 	<dependencies>
@@ -569,6 +570,20 @@
 		</plugins>
 	</build>
 	<profiles>
+		<profile>
+			<id>conformance</id>
+			<properties>
+				<groups>conformance</groups>
+				<excludedGroups />
+			</properties>
+		</profile>
+		<profile>
+			<id>conformance-dump</id>
+			<properties>
+				<groups>conformance-dump</groups>
+				<excludedGroups />
+			</properties>
+		</profile>
 		<profile>
 			<id>sign</id>
 			<build>

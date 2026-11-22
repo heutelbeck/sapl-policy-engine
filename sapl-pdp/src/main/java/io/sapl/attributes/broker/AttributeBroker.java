@@ -34,8 +34,13 @@ import java.util.function.Function;
  * The guarantees have separate purposes:
  * <ol>
  * <li><b>One stable input per round.</b> Each callback receives an immutable map
- * containing a value for every currently registered key. Later source changes
- * cannot modify that map while the policy uses it. A new callback starts a new
+ * containing the currently available registered values. A pending key can be
+ * absent when an update of a previously delivered input starts a round before
+ * new dependencies are fulfilled. Later source changes cannot modify that map
+ * while the policy uses it. Keys sharing one active invocation receive the same
+ * observation, or are all absent when that invocation is unfulfilled. An
+ * evaluation-side head cache can then supply an earlier frozen observation.
+ * A new callback starts a new
  * evaluation against a newly captured map; it does not resume an expression
  * using attribute results from the previous round.</li>
  * <li><b>Preserve source consistency.</b> For changes a source identifies as one
@@ -52,12 +57,20 @@ import java.util.function.Function;
  * Adding a key attaches its source; removing a key releases only this consumer's
  * interest. Removal does not change repository data or by itself request
  * another evaluation.</li>
- * <li><b>Fulfillment before delivery.</b> An absent mailbox means the source has
- * not delivered a value yet. The callback waits until all registered keys are
- * fulfilled. A new missing dependency closes this gate again. A materialized
- * {@code UNDEFINED}, SAPL null or an error value is fulfilled data and is handled
- * by policy semantics. In particular, an unresolved external PIP can delay a
- * new round even if another key has changed.</li>
+ * <li><b>Collect first values, react to known inputs.</b> The initial keys wait
+ * for a complete first input. Newly discovered keys also collect their first
+ * values before requesting another round on their own. A value becomes known
+ * to this subscription when it has been included in a captured callback input,
+ * not merely when it reaches a mailbox or another consumer. An update of a
+ * still-observed known key can request a round while new keys remain pending.
+ * This lets a changed A make a missing B unnecessary without evaluating once
+ * for every first arrival in a newly requested group. Updates arriving during
+ * a callback survive its discovery of further missing dependencies.</li>
+ * <li><b>Absence stays distinct from data.</b> An absent mailbox has not
+ * delivered a value yet. Omit it from the input map rather than inventing a
+ * placeholder. A materialized {@code UNDEFINED}, SAPL null or an error value
+ * is fulfilled data and follows policy semantics. The callback must be able to
+ * report an incomplete result when its available inputs do not suffice.</li>
  * <li><b>Serialization without thread affinity.</b> Callbacks for one open
  * subscription never overlap. They run outside the broker lock but may use the
  * opening thread or a source notification thread. Separate subscriptions may
@@ -70,7 +83,9 @@ import java.util.function.Function;
  * policy results to publish or suppress.</li>
  * </ol>
  * The callback must handle evaluation failures without throwing onto a shared
- * source thread. The broker has no decision sink and cannot manufacture a
+ * source thread. Only the result owner publishes completed policy results.
+ * An incomplete evaluation is not itself a reason to reevaluate unchanged
+ * inputs. The broker has no decision sink and cannot manufacture a
  * fail-closed policy decision for it. {@link BrokerEvalLoops} supplies the usual
  * evaluation-side guard and lifecycle handling.
  *
@@ -86,9 +101,9 @@ public interface AttributeBroker extends AutoCloseable {
      * handle. A racing producer may own delivery instead; callers cannot rely
      * on a particular callback thread or completion before return. They must
      * be ready to receive results before obtaining the handle. Otherwise
-     * delivery waits for the last missing value.
+     * the initial delivery waits for the last missing value.
      * <p>
-     * {@code onUpdate} receives a complete map for the current dependency set
+     * {@code onUpdate} receives an immutable map of available registered values
      * and returns its full, non-empty effective observation set. Already evaluated
      * live attributes remain dependencies if their changes can affect the
      * result. For example, discovering B after A=true keeps both A and B until
@@ -98,10 +113,13 @@ public interface AttributeBroker extends AutoCloseable {
      * them from the broker's effective observation set.
      * <p>
      * The broker applies additions and removals after the callback returns.
-     * Adding a fulfilled key requests another round when the whole resulting
-     * set is fulfilled, so a policy can complete without another publication.
-     * Adding an unfulfilled key waits for its value. Removing keys alone does
-     * not request a round. Shared source invocations are reference-counted;
+     * A completed first-value set requests another round, so a policy can
+     * complete without another publication. An update of a retained known key
+     * also requests a round even when newly added keys are still missing.
+     * A first arrival for only part of a new set does not request a round on
+     * its own. Already captured notifications can coalesce without repeating
+     * the same input. Removing keys alone does not request a round. Shared
+     * source invocations are reference-counted;
      * releasing this handle need not stop a source still used by others.
      * <p>
      * Callbacks must return normally with a non-null, non-empty set. A thrown
@@ -112,6 +130,11 @@ public interface AttributeBroker extends AutoCloseable {
      * A completed evaluation with no remaining logical dependencies must handle
      * termination without passing an empty set to the broker; see
      * {@link BrokerEvalLoops#openWithHead}.
+     *
+     * The PIP implementation recognizes an {@link AttributeSubscriptionObserver} as
+     * a result owner with a failure channel. A terminal infrastructure failure is
+     * serialized with its rounds even if no further complete input can be captured.
+     * Existing implementations can continue using the ordinary update function.
      *
      * @param subscriptionId non-blank identifier, unique among open subscriptions;
      * reusable after the previous subscription is closed

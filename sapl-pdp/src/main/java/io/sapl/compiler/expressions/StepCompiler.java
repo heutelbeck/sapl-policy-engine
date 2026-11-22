@@ -50,9 +50,9 @@ public class StepCompiler {
     private static final String ERROR_ATTR_UNION_ON_INVALID           = "Cannot apply attribute union to %s.";
     private static final String ERROR_CONDITION_NON_BOOLEAN           = "Condition must evaluate to boolean, got %s.";
     private static final String ERROR_CONDITION_ON_INVALID            = "Cannot apply condition step to %s.";
-    private static final String ERROR_CONDITION_STREAMING_UNSUPPORTED = "Condition step with streaming condition not yet supported";
+    private static final String ERROR_CONDITION_STREAMING_UNSUPPORTED = "Stream operators are not allowed in a selection condition.";
     private static final String ERROR_EXPR_STEP_INVALID_TYPE          = "Expression step requires number or string, got %s.";
-    private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Expression step with streaming expression not yet supported";
+    private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Stream operators are not allowed in a selection index.";
     private static final String ERROR_HANDLED_ABOVE                   = "Handled above";
     private static final String ERROR_INDEX_NOT_REPRESENTABLE         = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INDEX_ON_NON_ARRAY              = "Cannot apply index step to %s.";
@@ -539,7 +539,8 @@ public class StepCompiler {
 
     public CompiledExpression compileExpressionStep(ExpressionStep step, CompilationContext ctx) {
         val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(step.base(), ctx),
-                () -> ExpressionCompiler.compile(step.expression(), ctx));
+                () -> ExpressionCompiler.compileNonStreaming(step.expression(), ctx,
+                        ERROR_EXPR_STEP_STREAMING_UNSUPPORTED));
         val base     = operands.first();
         val expr     = operands.second();
         val loc      = step.location();
@@ -548,11 +549,6 @@ public class StepCompiler {
             return e;
         if (expr instanceof ErrorValue e)
             return e;
-
-        // If expression is streaming, result is streaming
-        if (expr instanceof StreamOperator) {
-            return Value.error(ERROR_EXPR_STEP_STREAMING_UNSUPPORTED);
-        }
 
         return switch (base) {
         case Value baseVal             -> switch (expr) {
@@ -689,7 +685,8 @@ public class StepCompiler {
 
     public CompiledExpression compileConditionStep(ConditionStep step, CompilationContext compilationCtx) {
         val operands  = CompilationChildren.pair(() -> ExpressionCompiler.compile(step.base(), compilationCtx),
-                () -> ExpressionCompiler.compile(step.condition(), compilationCtx));
+                () -> ExpressionCompiler.compileNonStreaming(step.condition(), compilationCtx,
+                        ERROR_CONDITION_STREAMING_UNSUPPORTED));
         val base      = operands.first();
         val condition = operands.second();
         val loc       = step.location();
@@ -698,11 +695,6 @@ public class StepCompiler {
             return e;
         if (condition instanceof ErrorValue e)
             return e;
-
-        // If condition is streaming, result is streaming
-        if (condition instanceof StreamOperator) {
-            return Value.error(ERROR_CONDITION_STREAMING_UNSUPPORTED);
-        }
 
         return switch (base) {
         case Value baseVal             -> switch (condition) {

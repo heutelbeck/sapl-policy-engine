@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.TreeMap;
 
 /**
  * The catalogue of the function libraries that the function corpus covers:
@@ -98,10 +99,32 @@ public class FunctionCatalogue {
      */
     public static void write() {
         try {
-            Files.writeString(path(), MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(catalogue()) + "\n");
+            Files.writeString(path(),
+                    MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(completeCatalogue()) + "\n");
         } catch (IOException e) {
             throw new UncheckedIOException(ERROR_UNWRITABLE.formatted(path()), e);
         }
+    }
+
+    /** Keeps the checked-in entries for covered extensions outside this generator's class path. */
+    private static JsonNode completeCatalogue() {
+        val current = catalogue();
+        val absent  = ConformanceLibraries.absentLibraries();
+        if (absent.isEmpty() || !Files.exists(path())) {
+            return current;
+        }
+        val entries = new TreeMap<String, JsonNode>();
+        val covered = coveredLibraries();
+        stated().forEach(library -> {
+            val name = library.get("name").asString();
+            if (absent.contains(name) && covered.contains(name)) {
+                entries.put(name, library);
+            }
+        });
+        current.forEach(library -> entries.put(library.get("name").asString(), library));
+        val result = NODES.arrayNode();
+        entries.values().forEach(result::add);
+        return result;
     }
 
     private static Path path() {

@@ -23,60 +23,79 @@ var pdp = PolicyDecisionPointBuilder.withDefaults(objectMapper, clock)
 
 ### Traccar
 
-After establishing a session with the Traccar server the PIP uses the Traccar socket endpoint to provide the current position of a device. Additionally, all the devices geofences are responded too.
-You can use the "within" function from the GeoFunctions-library to check if the device is inside a fence.
+## Configure TLS trust
 
-#### Example policy
-```
-permit
-  var positionAndGeoFences = <geo.traccar({"user":"TraccarUser", "password":"123Secret", "server":"123.45.67.1:8082", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
-  var position = positionAndGeoFences.position;
-  var geofence = positionAndGeoFences.geoFences[0].area;
-  geoFunctions.within(position, geofence);
-```
-
-#### Parameters
-
-* "user": the Traccar user account
-* "password": the password of the account
-* "server": the ip/dns-name of the Traccar server
-* "protocol": "http"/"https". (default is "http")
-* "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is recommended as the GeoFunction-library needs GeoJson as parameters)
-* "deviceId": the id of the device (int)
-* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
-
-
-#### Response
+The Traccar PIP reads its endpoint from the public PDP configuration. For a private CA, start with the following `pdp.json` settings and install the referenced profile before deployment. Multiple endpoints and PIPs can reference the same profile.
 
 ```json
 {
-	"deviceId":1,
-	"position":{"type":"Point","coordinates":[22.8518509,36.6304242],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}},
-	"altitude":409.1,
-	"lastUpdate":"2024-04-17T17:54:09.000+00:00",
-	"accuracy":3.24399995803833,
-	"geoFences":
-		[
-		    {
-			"id":"1",
-			"attributes":{},
-			"calendarId":"0",
-			"name":"home",
-			"description":"null",
-			"area":{"type":"Polygon","coordinates":[[[38.63064114,22.85146998],[38.63063834,22.85193789],[38.63032237,22.85192263],[38.63033917,22.85144285],[38.63064114,22.85146998]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}},
-		   {
-			"id":"2",
-		    	"attributes":{},
-			"calendarId":"0",
-			"name":"notHome",
-			"description":"null",
-			"area":{"type":"Polygon","coordinates":[[[38.63106758,22.8511551],[38.63101144,22.85210792],[38.63071854,22.8518531],[38.63106758,22.8511551]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}}
-		]
+  "variables": {
+    "traccar": {
+      "default": "depot",
+      "servers": {
+        "depot": {
+          "baseUrl": "https://fleet.example.org",
+          "trustProfile": "site-ca"
+        }
+      }
+    }
+  }
 }
 ```
 
-As you can see traccar delivers its coordinates in WGS84 (EPSG:4326).
+Read the named server with `<traccar.devices("depot")>`. Without a name, the PIP selects the configured `default`, or the server named `default` if the setting is absent. An unknown server is an error.
 
+The operator supplies a token or a `userName` and `password` pair under the exact server name. Replace the sample token with a Traccar API token.
+
+```json
+{
+  "traccar": {
+    "depot": {
+      "token": "REPLACE_WITH_TRACCAR_TOKEN"
+    }
+  }
+}
+```
+
+The operator secrets file is `secrets.json` for explicitly enabled cleartext development or `secrets.sealed.json` for sealed deployment. Broker and server credentials are selected only by their configured name.
+
+### Obtain and verify the CA certificate
+
+Ask the administrator of the Traccar server or its HTTPS reverse proxy for its public CA certificate and confirm its SHA-256 fingerprint through your organization's PKI or another authenticated channel. A PEM file contains a `-----BEGIN CERTIFICATE-----` block. If the administrator provides a binary DER certificate, convert it first.
+
+```sh
+openssl x509 -inform DER -in issuer.cer -out ca.pem
+```
+
+If the CA is already in an approved Java truststore, export its trusted-certificate alias. `keytool` prompts for the store password.
+
+```sh
+keytool -exportcert -rfc -keystore truststore.p12 -alias issuing-ca -file ca.pem
+```
+
+Check the identity and fingerprint of each certificate before installing it.
+
+```sh
+openssl x509 -in ca.pem -noout -subject -issuer -fingerprint -sha256
+```
+
+### Install the named profile
+
+In the following command, `pdp.input.json` is the complete configuration with the endpoint settings above. `jq --rawfile` reads the public certificate including its PEM delimiters and line breaks. The resulting `pdp.json` keeps the other configuration fields.
+
+```sh
+jq --rawfile ca ca.pem '.variables.tlsTrustProfiles["site-ca"] = {trustedCaPem: $ca, includeDefaultTrustRoots: false}' pdp.input.json > pdp.json
+```
+
+| Endpoint setting | Trusted roots |
+| --- | --- |
+| Omit `trustProfile` | Runtime defaults. |
+| Select a profile with `includeDefaultTrustRoots` absent or `false` | Only the CA certificates in that profile. |
+| Select a profile with `includeDefaultTrustRoots: true` | Profile certificates and runtime defaults. |
+
+A named profile requires a nonempty `trustedCaPem` string. Each PEM block must contain a public X.509 certificate. The Java client uses the JVM trust configuration by default. The certificate must match the server's hostname. An invalid bundle, an unknown profile, or a profile on a plaintext endpoint prevents the new PDP configuration from taking effect.
+
+For a CA rollover, deploy the old and new CA certificates together as consecutive PEM blocks in the profile. After the service switches certificates, remove the retired CA and deploy the configuration again.
 
 ### OwnTracks
 
@@ -276,4 +295,4 @@ permit
   var fence = geoConverter.gmlToGeoJsonString(fences[0].geo);
   var res = geoFunctions.within(pos, fence);
   res == true;
- ``` 
+ ```

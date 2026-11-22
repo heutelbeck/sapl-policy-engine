@@ -115,8 +115,8 @@ public non-sealed interface PureOperator extends CompiledExpression {
         }
         return switch (mine) {
         case PureOperator minePure -> yours instanceof PureOperator yoursPure && minePure.semanticEquals(yoursPure);
+        case Value value           -> yours instanceof Value candidate && ValueRepresentation.same(value, candidate);
         case List<?> mineList      -> yours instanceof List<?> yoursList && semanticListEquals(mineList, yoursList);
-        case Value ignored         -> mine.equals(yours);
         case Object[] mineArray    -> yours instanceof Object[] yoursArray
                 && semanticListEquals(Arrays.asList(mineArray), Arrays.asList(yoursArray));
         // A primitive array compares by content, a known leaf by value. Any other type

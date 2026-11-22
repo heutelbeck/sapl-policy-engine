@@ -243,6 +243,13 @@ public class PdpVoterSource implements AutoCloseable {
                     ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, versionError));
             return;
         }
+        try {
+            OutboundEndpointConfiguration.validate(pdpConfiguration.data());
+        } catch (IllegalArgumentException e) {
+            reportConfigurationErrorLocked(pdpId,
+                    ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, e.getMessage()));
+            return;
+        }
         // The configuration goes live only if the runtime environment accepts its
         // extension slice. A rejection keeps the last-good configuration and compiles
         // and swaps nothing.
@@ -317,7 +324,7 @@ public class PdpVoterSource implements AutoCloseable {
     private void compileConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
             PluginsBundle plugins) {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
-                pdpConfiguration.data(), plugins.functionBroker());
+                pdpConfiguration.data(), plugins.functionBroker().forConfiguration());
         compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
         CompiledPdp newConfiguration;
         try {

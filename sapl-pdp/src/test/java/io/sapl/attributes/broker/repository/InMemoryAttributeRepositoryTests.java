@@ -35,8 +35,12 @@ import org.junit.jupiter.api.Timeout;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
@@ -185,6 +189,83 @@ class InMemoryAttributeRepositoryTests {
                     .until(() -> observed.getLast().value(expires).equals(Value.UNDEFINED));
             assertThat(observed.getLast().value(expires)).isEqualTo(Value.UNDEFINED);
             assertThat(observed.getLast().value(renewed)).isEqualTo(value);
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("an expiry observer in one tenant cannot extend another tenant's grant")
+    void whenAnExpiryObserverIsBlockedThenAnotherTenantExpiresAndIsNotified() throws Exception {
+        val first   = repoKey("access.grant");
+        val second  = new RepositoryKey(null, "access.grant", List.of(), "other");
+        val entered = new CompletableFuture<Void>();
+        val release = new CompletableFuture<Void>();
+        val expired = new CompletableFuture<RepositoryState>();
+        val ttl     = Duration.ofMillis(20);
+        try (val slow = repository.observeState(first.pdpId(), "default", state -> {
+            if (state.value(first).equals(Value.UNDEFINED)) {
+                entered.complete(null);
+                release.join();
+            }
+        }); val fast = repository.observeState(second.pdpId(), "default", state -> {
+            if (state.value(second).equals(Value.UNDEFINED)) {
+                expired.complete(state);
+            }
+        })) {
+            repository.publish(first, Value.TRUE, ttl);
+            entered.get(2, TimeUnit.SECONDS);
+            repository.publish(second, Value.TRUE, ttl);
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                try (val reader = repository.observeState(second.pdpId(), "default", ignored -> {})) {
+                    assertThat(reader.initialState().value(second)).isEqualTo(Value.UNDEFINED);
+                }
+            });
+            assertThat(expired.get(2, TimeUnit.SECONDS).bindings()).doesNotContainKey(second);
+        } finally {
+            release.complete(null);
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("a slow registration catches up to the latest complete expiry while a second observer keeps receiving")
+    void whenExpiriesAccumulateThenTheSlowObserverReceivesTheCurrentView() throws Exception {
+        val key          = repoKey("access.grant");
+        val entered      = new CompletableFuture<Void>();
+        val release      = new CompletableFuture<Void>();
+        val caughtUp     = new CompletableFuture<RepositoryState>();
+        val slowExpiries = new CopyOnWriteArrayList<RepositoryState>();
+        val fastExpiries = new LinkedBlockingQueue<RepositoryState>();
+        try (val slow = repository.observeState(TEST_PDP_ID, "default", state -> {
+            if (state.bindings().isEmpty()) {
+                slowExpiries.add(state);
+                if (entered.complete(null)) {
+                    release.join();
+                } else {
+                    caughtUp.complete(state);
+                }
+            }
+        }); val fast = repository.observeState(TEST_PDP_ID, "default", state -> {
+            if (state.bindings().isEmpty()) {
+                fastExpiries.add(state);
+            }
+        })) {
+            val ttl = Duration.ofMillis(20);
+            repository.publish(key, Value.TRUE, ttl);
+            entered.get(2, TimeUnit.SECONDS);
+            val first = fastExpiries.poll(2, TimeUnit.SECONDS);
+            assertThat(first).isNotNull();
+            RepositoryState latest = first;
+            for (int renewal = 0; renewal < 3; renewal++) {
+                repository.publish(key, Value.TRUE, ttl);
+                latest = fastExpiries.poll(2, TimeUnit.SECONDS);
+                assertThat(latest).isNotNull();
+            }
+            assertThat(slowExpiries).containsExactly(first);
+            release.complete(null);
+            assertThat(caughtUp.get(2, TimeUnit.SECONDS)).isEqualTo(latest);
+        } finally {
+            release.complete(null);
         }
     }
 
@@ -359,6 +440,36 @@ class InMemoryAttributeRepositoryTests {
     class WhenTheRepositoryIsClosed {
 
         @Test
+        @Timeout(20)
+        @DisplayName("each live registration receives its terminal view while another terminal callback is blocked")
+        void whenTheFirstTerminalObserverIsBlockedThenTheOtherStillReceivesTheFinalView() throws Exception {
+            val firstView  = new CompletableFuture<RepositoryState>();
+            val secondView = new CompletableFuture<RepositoryState>();
+            val release    = new CompletableFuture<Void>();
+            try (val first = repository.observeState(TEST_PDP_ID, "default", state -> {
+                firstView.complete(state);
+                release.join();
+            }); val second = repository.observeState(TEST_PDP_ID, "default", state -> {
+                secondView.complete(state);
+                release.join();
+            }); val worker = Executors.newVirtualThreadPerTaskExecutor()) {
+                val closing = worker.submit(repository::close);
+                try {
+                    assertThat(CompletableFuture.allOf(firstView, secondView))
+                            .as("both terminal observations before releasing either callback")
+                            .succeedsWithin(Duration.ofSeconds(5));
+                    val terminal = firstView.join();
+                    assertThat(terminal.unavailable()).isNotNull();
+                    assertThat(terminal.revision()).isGreaterThan(first.initialState().revision());
+                    assertThat(secondView.join()).isEqualTo(terminal);
+                } finally {
+                    release.complete(null);
+                }
+                closing.get(5, TimeUnit.SECONDS);
+            }
+        }
+
+        @Test
         @DisplayName("then subsequent publishes are silently ignored")
         void thenSubsequentPublishesAreSilentlyIgnored() {
             val recorder = new Recorder();
@@ -441,7 +552,7 @@ class InMemoryAttributeRepositoryTests {
                         .as("slow observer must be entered before we test TTL on unrelated key").isTrue();
 
                 // Publish to the unrelated key with a short TTL. Expiry fires
-                // on the scheduler thread. The slow observer is still parked
+                // independently. The slow observer is still parked
                 // in its accept(...) call right now.
                 repository.publish(repoKey("env.ttl"), Value.of("with-ttl"), Duration.ofMillis(50));
 

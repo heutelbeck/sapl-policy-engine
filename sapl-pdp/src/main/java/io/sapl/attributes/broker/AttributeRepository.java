@@ -50,6 +50,11 @@ import java.util.function.Consumer;
  * the dependencies of that round. Dropping a dependency changes that consumer's
  * observation, not the repository's bindings.
  * <p>
+ * A broker may reevaluate changed known inputs while an unrelated source is
+ * still pending. Every view delivered here must therefore already contain the
+ * complete committed group. Delaying notifications cannot repair a view whose
+ * individual bindings are exposed before their common commit.
+ * <p>
  * In an available view, a missing binding is {@link Value#UNDEFINED}, whether
  * it was never published, removed or expired. SAPL null remains a bound value.
  * If the source cannot establish its state, it reports
@@ -176,10 +181,29 @@ public interface AttributeRepository extends AutoCloseable {
      * @param pdpId tenant whose bindings are observed
      * @param configurationId configuration used to select the backing source;
      * not an additional field of an attribute's binding key
-     * @param onUpdate receives complete available or unavailable successor views
+     * @param onUpdate receives complete available or unavailable successor views;
+     * a source with a dedicated expiry worker can use {@link StateListener#onExpiry()}
+     * when the observer supplies it
      * @return the captured initial view and its observation handle
      */
     StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate);
+
+    /**
+     * A state observer with a separate callback for expiry workers. Both
+     * callbacks receive complete views within the same registration. A worker
+     * can deliver a newer coalesced view. Sources can use {@link #accept}
+     * for every update.
+     *
+     * @param onUpdate receives ordinary state notifications
+     * @param onExpiry receives the latest complete view on an expiry worker
+     */
+    record StateListener(@NonNull Consumer<RepositoryState> onUpdate, @NonNull Consumer<RepositoryState> onExpiry)
+            implements Consumer<RepositoryState> {
+        @Override
+        public void accept(RepositoryState state) {
+            onUpdate.accept(state);
+        }
+    }
 
     /**
      * One source observation and its captured initial state. Returning the state

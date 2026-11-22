@@ -48,6 +48,10 @@ import lombok.NonNull;
  * unbound data. The map is defensively copied. The contract requires an
  * immutable complete view, without prescribing how the source stores or
  * assembles its data.
+ * <p>
+ * This is the source's complete view, even when a broker callback contains only
+ * the currently available registered keys. A pending external attribute
+ * does not permit mixing bindings from different revisions of this view.
  *
  * @param revision order of this view within its observation, greater than
  * {@link Long#MIN_VALUE}
@@ -103,6 +107,29 @@ public record RepositoryState(
             return new Binding(revision, unavailable);
         }
         return bindings.getOrDefault(key, ABSENT);
+    }
+
+    /** The kind of source fact is independent of the signed binding generation. */
+    public enum Presence {
+        /** A stored binding, including an explicit UNDEFINED. */
+        BOUND,
+        /** Confirmed absence in a complete available view. */
+        UNBOUND,
+        /** The source cannot establish a view. */
+        UNAVAILABLE
+    }
+
+    /**
+     * Identifies the source fact behind a projected value.
+     *
+     * @param key key in this view
+     * @return whether the key is bound, unbound or its source unavailable
+     */
+    public Presence presence(RepositoryKey key) {
+        if (unavailable != null) {
+            return Presence.UNAVAILABLE;
+        }
+        return bindings.containsKey(key) ? Presence.BOUND : Presence.UNBOUND;
     }
 
     /**

@@ -48,7 +48,9 @@ public class ExtendedFilterCompiler {
                 ef.arguments(), ef.each(), ef.location());
         val path             = ef.target().elements();
         val inputs           = CompilationChildren.three(() -> ExpressionCompiler.compile(ef.base(), ctx),
-                () -> FilterCompiler.compileSimpleUnfolded(tempSimpleFilter, ctx),
+                () -> FilterCompiler.compileSimpleUnfolded(tempSimpleFilter, ctx,
+                        arg -> ExpressionCompiler.compileNonStreaming(arg, ctx,
+                                ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS.message())),
                 () -> analyzePath(path, ef.location(), ctx));
         val compiledBase     = inputs.first();
         val compiledFilter   = inputs.second();
@@ -59,9 +61,6 @@ public class ExtendedFilterCompiler {
         }
         if (compiledFilter instanceof ErrorValue) {
             return compiledFilter;
-        }
-        if (compiledFilter instanceof StreamOperator) {
-            return ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS;
         }
 
         val canFoldPath = !pathAnalysis.isDependingOnSubscription();
@@ -92,20 +91,6 @@ public class ExtendedFilterCompiler {
                 pathAnalysis, evalCtx);
     }
 
-    interface ExtendedFilterPureOperator extends PureOperator {
-        PathAnalysis pathAnalysis();
-
-        @Override
-        default boolean isDependingOnSubscription() {
-            return true;
-        }
-
-        @Override
-        default SourceLocation location() {
-            return pathAnalysis().filterLocation();
-        }
-    }
-
     /**
      * Pure-stratum extended filter. Both {@code base} and {@code filter} are
      * {@link Value} or {@link PureOperator}; the {@link StreamOperator} branch
@@ -116,8 +101,20 @@ public class ExtendedFilterCompiler {
             CompiledExpression base,
             CompiledExpression filter,
             List<PathElement> path,
-            PathAnalysis pathAnalysis) implements ExtendedFilterPureOperator {
+            PathAnalysis pathAnalysis) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(ExtendedFilterPure.class);
+
+        @Override
+        public boolean isDependingOnSubscription() {
+            return pathAnalysis.isDependingOnSubscription()
+                    || base instanceof PureOperator parent && parent.isDependingOnSubscription()
+                    || filter instanceof PureOperator replacement && replacement.isDependingOnSubscription();
+        }
+
+        @Override
+        public SourceLocation location() {
+            return pathAnalysis.filterLocation();
+        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -761,23 +758,16 @@ public class ExtendedFilterCompiler {
         val compiled = new HashMap<PathElement, CompiledExpression>();
         CompilationChildren.forEach(path, element -> {
             switch (element) {
-            case ExpressionPath ep -> compiled.put(ep, compilePathExpr(ep.expression(), ep.location(), ctx));
-            case ConditionPath cp  -> compiled.put(cp, compilePathExpr(cp.condition(), cp.location(), ctx));
+            case ExpressionPath ep -> compiled.put(ep, ExpressionCompiler.compileNonStreaming(ep.expression(), ctx,
+                    ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_PATH));
+            case ConditionPath cp  -> compiled.put(cp, ExpressionCompiler.compileNonStreaming(cp.condition(), ctx,
+                    ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_PATH));
             default                -> { /* Static path elements do not depend on an expression. */ }
             }
         });
         val dependsOnSubscription = compiled.values().stream()
                 .anyMatch(expr -> expr instanceof PureOperator po && po.isDependingOnSubscription());
         return new PathAnalysis(compiled, dependsOnSubscription, filterLocation);
-    }
-
-    private static CompiledExpression compilePathExpr(Expression expr, SourceLocation location,
-            CompilationContext ctx) {
-        val compiled = ExpressionCompiler.compile(expr, ctx);
-        if (compiled instanceof StreamOperator) {
-            throw new SaplCompilerException(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_PATH, location);
-        }
-        return compiled;
     }
 
 }

@@ -35,9 +35,30 @@ import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class ExpressionCompilerTests {
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("A forbidden streaming operand refuses compilation even in a dominated branch")
+    void whenStreamingOperandIsForbiddenThenCompilationReportsEveryOccurrence(String source, int occurrences) {
+        val expression = "false && ((" + source + ") == true)";
+        assertThatExceptionOfType(SaplCompilerException.class).isThrownBy(() -> compileExpression(expression))
+                .satisfies(failure -> assertThat(failure.diagnostics()).extracting(diagnostic -> {
+                    val location = diagnostic.getLocation();
+                    return expression.substring(location.start(), location.end());
+                }).containsExactlyInAnyOrderElementsOf(List.of("<audit.a>", "<audit.b>").subList(0, occurrences)));
+    }
+
+    private static Stream<Arguments> whenStreamingOperandIsForbiddenThenCompilationReportsEveryOccurrence() {
+        return Stream.of(arguments("subject[(<audit.a>)]", 1), arguments("subject[?(<audit.a>)]", 1),
+                arguments("(1 / 0) :: <audit.a>", 1), arguments("subject |- { @.x : filter.replace(<audit.a>) }", 1),
+                arguments("subject |- { @[(<audit.a>)] : filter.remove }", 1),
+                arguments("subject |- { @[(<audit.a>)] : string.concat(1 / 0, <audit.b>) }", 2),
+                arguments("subject[(<audit.a>)] :: <audit.b>", 2));
+    }
 
     @Nested
     @DisplayName("Escaped String Literals")

@@ -367,10 +367,10 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets the maximum number of entries in the function result cache.
-     * SAPL functions are pure and side-effect-free, so results are cached
-     * across evaluations. Uses Window-TinyLFU eviction via Caffeine.
-     * Default is 10,000 entries.
+     * Sets the capacity of the standard broker's cache for each compiled PDP configuration.
+     * Successful pure function calls can be reused across requests. Each entry is charged
+     * at least 1 KiB against a budget of {@code size} KiB. Errors and oversized calls bypass
+     * the cache. The default is 10,000 entries.
      *
      * @param size maximum cache entries
      * @return this builder
@@ -428,9 +428,7 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds a decision interceptor that observes every
-     * {@link io.sapl.api.pdp.TracedDecision}
-     * produced by the PDP.
+     * Registers a {@link DecisionInterceptor} for single and grouped decisions.
      *
      * @param interceptor the decision interceptor to add
      * @return this builder

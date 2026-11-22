@@ -20,6 +20,7 @@ package io.sapl.compiler.index.smtdd;
 import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -44,9 +45,37 @@ public class EqualityGroup {
     private final Map<Value, BitSet>  excludeFormulas     = new LinkedHashMap<>();
     private final Set<IndexPredicate> tentativePredicates = new HashSet<>();
 
+    @Getter(AccessLevel.NONE)
+    private final Map<Integer, Set<Value>> allowedValuesByFormula = new HashMap<>();
+    @Getter(AccessLevel.NONE)
+    private final BitSet                   formulasWithEquality   = new BitSet();
+
     void addEquals(Value constant, int formulaIndex, IndexPredicate predicate) {
-        equalsFormulas.computeIfAbsent(constant, k -> new BitSet()).set(formulaIndex);
+        addAlternatives(List.of(constant), formulaIndex, predicate);
+    }
+
+    // Values within a single membership predicate are alternatives. Separate
+    // predicates on the same operand in one conjunction must all hold.
+    void addAlternatives(Collection<Value> alternatives, int formulaIndex, IndexPredicate predicate) {
         tentativePredicates.add(predicate);
+        val previous = allowedValuesByFormula.get(formulaIndex);
+        if (previous == null) {
+            val allowed = new LinkedHashSet<>(alternatives);
+            allowedValuesByFormula.put(formulaIndex, allowed);
+            formulasWithEquality.set(formulaIndex);
+            for (val value : allowed) {
+                equalsFormulas.computeIfAbsent(value, ignored -> new BitSet()).set(formulaIndex);
+            }
+            return;
+        }
+        val accepted = new HashSet<>(alternatives);
+        previous.removeIf(value -> {
+            if (accepted.contains(value)) {
+                return false;
+            }
+            equalsFormulas.get(value).clear(formulaIndex);
+            return true;
+        });
     }
 
     void addExclude(Value constant, int formulaIndex, IndexPredicate predicate) {
@@ -79,8 +108,11 @@ public class EqualityGroup {
         val equalsInBucket  = intersectWithBucket(equalsFormulas, formulasInBucket);
         val excludeInBucket = intersectWithBucket(excludeFormulas, formulasInBucket);
 
-        val equalityConstrained = union(equalsInBucket.values());
-        val excludeConstrained  = union(excludeInBucket.values());
+        // Empty intersections still constrain the formula. They match no ordinary
+        // branch, including the default, and still participate in error handling.
+        val equalityConstrained = (BitSet) formulasWithEquality.clone();
+        equalityConstrained.and(formulasInBucket);
+        val excludeConstrained = union(excludeInBucket.values());
 
         // Formulas with no equality constraint on this operand satisfy the equality
         // test for any value, including a default value distinct from every constant.

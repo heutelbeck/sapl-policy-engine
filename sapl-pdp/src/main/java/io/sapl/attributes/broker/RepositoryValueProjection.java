@@ -40,6 +40,7 @@ final class RepositoryValueProjection implements Consumer<RepositoryState> {
     private final Consumer<Value>                  onValue;
     private final AtomicReference<RepositoryState> pending       = new AtomicReference<>();
     private final DispatchCoalescer                coalescer     = new DispatchCoalescer(this::deliverLatest);
+    private RepositoryState.@Nullable Presence     previousKind;
     private RepositoryState.@Nullable Binding      previous;
     private long                                   lastDelivered = Long.MIN_VALUE;
     private volatile boolean                       started;
@@ -73,8 +74,10 @@ final class RepositoryValueProjection implements Consumer<RepositoryState> {
         }
         lastDelivered = state.revision();
         val binding = state.binding(key);
-        if (!binding.equals(previous)) {
-            previous = binding;
+        val kind    = state.presence(key);
+        if (kind != previousKind || !binding.equals(previous)) {
+            previous     = binding;
+            previousKind = kind;
             try {
                 onValue.accept(binding.value());
             } catch (RuntimeException failure) {

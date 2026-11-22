@@ -28,11 +28,13 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.DispatchCoalescer;
 import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
 import io.sapl.attributes.broker.repository.AttributeAssignment.UnboundValue;
 import lombok.NonNull;
@@ -43,6 +45,11 @@ import lombok.val;
  * Publishes one complete, immutable tenant state per commit. Concurrent
  * producers deliver outside the repository lock. A reader can retain the
  * newest revision even when a slower producer delivers an older view later.
+ * The TTL scheduler commits expiries. Each registration delivers expiry updates
+ * on an independent worker, coalescing outstanding notifications into the
+ * latest complete tenant view. A blocked observer cannot hold up another expiry.
+ * Closing with multiple live registrations delivers their terminal views on
+ * independent workers and waits for those deliveries before returning.
  */
 @Slf4j
 public final class InMemoryAttributeRepository implements AttributeRepository {
@@ -60,8 +67,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     private boolean                                      closed;
 
     public InMemoryAttributeRepository() {
-        scheduler = Executors
-                .newSingleThreadScheduledExecutor(Thread.ofVirtual().name("InMemoryAttributeRepository-ttl").factory());
+        val ttlScheduler = new ScheduledThreadPoolExecutor(1,
+                Thread.ofVirtual().name("InMemoryAttributeRepository-ttl").factory());
+        ttlScheduler.setRemoveOnCancelPolicy(true);
+        scheduler = ttlScheduler;
     }
 
     @Override
@@ -125,7 +134,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
     @Override
     public void close() {
-        val terminal = new ArrayList<Delivery>();
+        val terminal = new ArrayList<Runnable>();
         synchronized (lock) {
             if (closed) {
                 return;
@@ -134,7 +143,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             observers.forEach((pdpId, bucket) -> {
                 val revision    = states.getOrDefault(pdpId, EMPTY).revision() + 1;
                 val unavailable = new RepositoryState(revision, Map.of(), Value.error(ERROR_CLOSED));
-                terminal.add(new Delivery(unavailable, List.copyOf(bucket)));
+                bucket.forEach(observer -> terminal.add(() -> observer.deliver(unavailable)));
             });
             observers.clear();
             timers.values().forEach(timer -> timer.cancel(false));
@@ -142,7 +151,14 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             states.clear();
         }
         scheduler.shutdownNow();
-        terminal.forEach(Delivery::fire);
+        if (terminal.size() <= 1) {
+            terminal.forEach(Runnable::run);
+            return;
+        }
+        // Start every registration before waiting for any terminal callback to finish.
+        try (val workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            terminal.forEach(workers::execute);
+        }
     }
 
     private void cancelTimer(RepositoryKey key) {
@@ -170,7 +186,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             bindings.remove(key);
             delivery = install(key.pdpId(), new RepositoryState(before.revision() + 1, bindings, null));
         }
-        delivery.fire();
+        delivery.observers().forEach(observer -> observer.expiries.requestFireAsync());
     }
 
     private Delivery install(String pdpId, RepositoryState state) {
@@ -194,6 +210,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         private final String                    pdpId;
         private final Consumer<RepositoryState> onUpdate;
         private final RepositoryState           initial;
+        private final DispatchCoalescer         expiries = new DispatchCoalescer(this::deliverCurrent);
         private volatile boolean                observerClosed;
 
         StateObserver(String pdpId, Consumer<RepositoryState> onUpdate, RepositoryState initial) {
@@ -207,10 +224,25 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             return initial;
         }
 
-        void deliver(RepositoryState state) {
+        private void deliverCurrent() {
+            RepositoryState current;
+            synchronized (lock) {
+                if (closed || observerClosed) {
+                    return;
+                }
+                current = states.get(pdpId);
+            }
+            deliver(current, onUpdate instanceof StateListener listener ? listener.onExpiry() : onUpdate);
+        }
+
+        private void deliver(RepositoryState state) {
+            deliver(state, onUpdate);
+        }
+
+        private void deliver(RepositoryState state, Consumer<RepositoryState> listener) {
             if (!observerClosed) {
                 try {
-                    onUpdate.accept(state);
+                    listener.accept(state);
                 } catch (RuntimeException failure) {
                     log.error(ERROR_OBSERVER, pdpId, failure);
                 }

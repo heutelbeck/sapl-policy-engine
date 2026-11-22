@@ -570,6 +570,24 @@ class HttpPolicyInformationPointTests {
     @DisplayName("Credential guards")
     class CredentialGuards {
 
+        @MethodSource("malformedSelectors")
+        @ParameterizedTest
+        @DisplayName("a malformed secretsKey is rejected before dispatch")
+        void whenSecretsKeyIsMalformedThenNoRequest(Value key) {
+            val settings = ObjectValue.builder().putAll(baseRequest("https://api.corp")).put("secretsKey", key).build();
+            val pip      = new HttpPolicyInformationPoint(mockClient);
+            val stream   = pip.get(EMPTY_CTX, settings);
+            verify(mockClient, never()).httpRequest(any(), any());
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5)).awaitsNext(
+                    v -> assertThat(v).isInstanceOfSatisfying(ErrorValue.class, error -> assertThat(error.message())
+                            .isEqualTo("The HTTP secretsKey must be a nonempty name.")));
+        }
+
+        static java.util.stream.Stream<Value> malformedSelectors() {
+            return java.util.stream.Stream.of(Value.NULL, Value.of(42), Value.EMPTY_OBJECT, Value.EMPTY_TEXT,
+                    Value.of("  "), Value.of("\u00a0"));
+        }
+
         @MethodSource("rejectedRequests")
         @ParameterizedTest(name = "{0}")
         @DisplayName("a credential-unsafe request errors and never reaches the client")

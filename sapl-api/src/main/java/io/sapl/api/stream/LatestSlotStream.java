@@ -20,15 +20,15 @@ package io.sapl.api.stream;
 import io.sapl.api.model.Poll;
 import lombok.val;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Producer-facing {@link Stream} backed by a single-slot, latest-wins
  * mailbox. Producers push values via {@link #put(Object)}; a lagging
- * consumer reads only the latest. Producers signal end-of-stream via
- * {@link #complete()} or via {@link #close()}.
+ * consumer reads only the latest. Producer completion via {@link #complete()}
+ * leaves the pending value readable. Consumer cancellation via {@link #close()}
+ * discards it.
  * <p>
  * Coordination uses {@link ReentrantLock} + {@link Condition} rather
  * than {@code synchronized} + {@code Object.wait()} so a virtual-thread
@@ -40,7 +40,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class LatestSlotStream<T> implements Stream<T> {
 
-    private final AtomicBoolean closed    = new AtomicBoolean(false);
     private final ReentrantLock lock      = new ReentrantLock();
     private final Condition     slotReady = lock.newCondition();
 
@@ -48,14 +47,22 @@ public final class LatestSlotStream<T> implements Stream<T> {
     private T        value;
     private boolean  hasValue;
     private boolean  completed;
+    private boolean  closed;
 
     /**
      * Sets the action run when {@link #close()} is called. Used to
      * release any underlying subscription that feeds this stream.
+     *
+     * @param closeAction the cleanup to run on cancellation
      */
     public void onClose(Runnable closeAction) {
-        if (!closed.get()) {
-            this.closeAction = closeAction;
+        lock.lock();
+        try {
+            if (!closed) {
+                this.closeAction = closeAction;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -132,9 +139,19 @@ public final class LatestSlotStream<T> implements Stream<T> {
 
     @Override
     public void close() {
-        if (closed.compareAndSet(false, true)) {
-            complete();
-            closeAction.run();
+        lock.lock();
+        try {
+            if (closed) {
+                return;
+            }
+            closed    = true;
+            completed = true;
+            value     = null;
+            hasValue  = false;
+            slotReady.signalAll();
+        } finally {
+            lock.unlock();
         }
+        closeAction.run();
     }
 }

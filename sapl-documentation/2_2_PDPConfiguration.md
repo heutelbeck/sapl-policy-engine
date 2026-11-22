@@ -27,6 +27,12 @@ Common uses include:
 
 Variables are not to be confused with the `environment` field of the authorization subscription. The `environment` carries request-scoped context sent by the PEP, while variables are operator-configured constants shared across all evaluations.
 
+### Outbound PIP connections
+
+Endpoint addresses and public CA certificates belong in `pdp.json`. Define a CA bundle once under `variables.tlsTrustProfiles.<name>.trustedCaPem` and select it with `trustProfile` on an MQTT broker, Traccar server, HTTP service or JWT public-key server. Without a profile, the transport uses its default roots. Setting `includeDefaultTrustRoots` to `true` in a profile adds those roots to the bundle. Invalid profiles prevent activation of the new configuration.
+
+MQTT and Traccar use named objects under `variables.mqtt.brokers` and `variables.traccar.servers`. Their credentials use the same names in the PDP secrets. HTTP services live under `variables.http.services`. A selected service and every credential source must each permit the final URL. The JWT key server is configured under `variables.jwt.publicKeyServer`; the PEP supplies the JWT in subscription secrets. Time and X.509 attributes operate locally.
+
 ### Secrets
 
 Secrets are optional PDP-level credentials available to PIPs during evaluation. They complement subscription-level secrets (see [Authorization Subscriptions](../2_1_AuthorizationSubscriptions/#secrets)) and are the right choice for infrastructure credentials shared across all evaluations, such as database connection strings or API keys for external services.
@@ -122,7 +128,7 @@ The `compilerOptions` object and all its fields are optional. Omitted fields use
 * <span id="maxIndexNodes"></span>`maxIndexNodes`: maximum number of diagram nodes for SMTDD index construction. If exceeded, AUTO falls back to CANONICAL. Default: `500000`.
 * <span id="maxExpressionDepth"></span>`maxExpressionDepth`: maximum expanded source expression depth, checked before expression compilation and constant folding. Default and hard ceiling: `256`. Supply an exact integer from `1` to `256`. Zero, negative values, fractions, other types and larger values reject the configuration. There is no unlimited mode.
 * <span id="maxDnfClauses"></span>`maxDnfClauses`: maximum number of disjunctive normal form (DNF) clauses per policy applicability expression for the canonical index. Exceeding the limit falls back to the naive index. Default: `10000`.
-* <span id="lowLatencyMode"></span>`lowLatencyMode`: when `true`, the compiler emits eager operator variants that subscribe all children in parallel for the lowest end-to-end decision latency, at the cost of subscribing to children whose values may turn out to be unneeded. When `false`, operators emit lazy variants that short-circuit on the first incomplete or error child, minimizing the per-pass subscription set. The observable decision is identical in both modes. Default: `true`.
+* <span id="lowLatencyMode"></span>`lowLatencyMode` controls attribute discovery when collecting policy condition coverage. Both modes check constant and pure conditions first. With the default value `true`, the coverage voter can request attributes for several streaming conditions in one round. With `false`, it reads conditions in order and stops at the first missing value or false condition. Ordinary policy evaluation follows the operators in the policy, including the distinction between `&&` and `&`.
 * <span id="maxPolicyDocuments"></span>`maxPolicyDocuments`: maximum number of `*.sapl` documents loaded from a directory source. Loading stops once this cap is reached. Default: `10000`.
 * <span id="maxTotalSizeMegabytes"></span>`maxTotalSizeMegabytes`: maximum combined size of `*.sapl` documents loaded from a directory, in MiB. Exceeding the limit rejects the configuration. Default: `1024`.
 
