@@ -40,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,11 +76,30 @@ public final class Vote implements Voter, TracedDecision {
     private final List<Vote>            contributingVotes;
     private final VoterMetadata         voter;
     private final Outcome               outcome;
+    // Retains the rank of a noncritical transformation conflict until this combining scope is finalized.
+    private final @Nullable Decision conflictingTransformationEffect;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @Getter(AccessLevel.NONE)
     private ObjectValue cachedTrace;
+
+    /**
+     * Creates a vote for a policy or a combined result.
+     *
+     * @param authorizationDecision the decision and constraints
+     * @param errors the diagnostics carried by the vote
+     * @param contributingVotes the votes reached by the combiner
+     * @param voter the originating voter
+     * @param outcome the possible effects
+     */
+    public Vote(AuthorizationDecision authorizationDecision,
+            List<ErrorValue> errors,
+            List<Vote> contributingVotes,
+            VoterMetadata voter,
+            Outcome outcome) {
+        this(authorizationDecision, errors, contributingVotes, voter, outcome, null);
+    }
 
     @Override
     public Value trace() {
@@ -163,7 +183,8 @@ public final class Vote implements Voter, TracedDecision {
         if (authorizationDecision.decision() == Decision.INDETERMINATE) {
             return switch (errorHandling) {
             case ABSTAIN   -> replaceDecision(Decision.NOT_APPLICABLE, outcome);
-            case PROPAGATE -> this;
+            case PROPAGATE -> conflictingTransformationEffect == null ? this
+                    : new Vote(authorizationDecision, errors, contributingVotes, voter, outcome);
             };
         }
         return this;
