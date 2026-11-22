@@ -57,9 +57,6 @@ public class MongoAttributeStore implements AttributeStore {
     private static final String VALUE_FIELD      = "value";
     private static final String EXPIRES_AT_FIELD = "expiresAt";
     private static final String ID_FIELD         = "_id";
-    private static final String KEYS_FIELD       = "keys";
-    private static final String CREATED_AT_FIELD = "createdAt";
-    private static final String BATCH_COLLECTION = "attribute_batches";
 
     private final ReactiveMongoTemplate mongo;
     private final TransactionalOperator transactions;
@@ -85,9 +82,6 @@ public class MongoAttributeStore implements AttributeStore {
 
         mongo.indexOps(collection)
                 .createIndex(new Index().on(EXPIRES_AT_FIELD, Sort.Direction.ASC).expire(Duration.ZERO)).block();
-
-        mongo.indexOps(BATCH_COLLECTION)
-                .createIndex(new Index().on(CREATED_AT_FIELD, Sort.Direction.ASC).expire(Duration.ofHours(1))).block();
     }
 
     @Override
@@ -153,12 +147,11 @@ public class MongoAttributeStore implements AttributeStore {
 
     @Override
     public void applyAll(List<Change> changes, String pdpId) {
-        Flux.fromIterable(changes).concatMap(
-                change -> change.isDelete() ? mongo.remove(doMongoQuery(change.key(), pdpId), collection).then()
+        Flux.fromIterable(changes)
+                .concatMap(change -> change.isDelete()
+                        ? mongo.remove(doMongoQuery(change.key(), pdpId), collection).then()
                         : mongo.upsert(doMongoQuery(change.key(), pdpId), updateFor(change, pdpId), collection).then())
-                .then(mongo.insert(batchDocument(changes, pdpId), BATCH_COLLECTION).then())
-                .as(transactions::transactional).block();
-
+                .then().as(transactions::transactional).block();
     }
 
     @Override
@@ -231,17 +224,6 @@ public class MongoAttributeStore implements AttributeStore {
         } catch (DataAccessException e) {
             log.warn(WARN_PRE_POST_IMAGES, collection, e.getMessage());
         }
-    }
-
-    private Document batchDocument(List<Change> changes, @Nullable String pdpId) {
-        var keys = changes.stream().map(change -> {
-            var key = change.key();
-            return new Document(NAME_FIELD, key.name())
-                    .append(ENTITY_FIELD, key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null)
-                    .append(ARGUMENTS_FIELD, valuesToJson(key.arguments()));
-        }).toList();
-
-        return new Document(PDP_ID_FIELD, pdpId).append(KEYS_FIELD, keys).append(CREATED_AT_FIELD, Instant.now());
     }
 
     private UpdateDefinition updateFor(Change change, String pdpId) {

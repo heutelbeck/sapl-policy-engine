@@ -28,11 +28,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+
 import io.sapl.api.model.ValueJsonMarshaller;
 import org.jspecify.annotations.Nullable;
 import io.lettuce.core.KeyScanCursor;
 import io.lettuce.core.ScanArgs;
 import io.lettuce.core.TransactionResult;
+import io.lettuce.core.ZAddArgs;
 
 /**
  * Implementation of the attribute store for a Redis backend.
@@ -56,6 +59,9 @@ public class RedisAttributeStore implements AttributeStore {
     private final RedisClient                             client;
     private final StatefulRedisConnection<String, String> connection;
     private final RedisCommands<String, String>           commands;
+    private final StatefulRedisConnection<String, String> txConnection;
+    private final RedisCommands<String, String>           txCommands;
+    private final ReentrantLock                           txLock = new ReentrantLock();
 
     /**
      * Creates the Redis attribute store object to connect to the database.
@@ -63,9 +69,11 @@ public class RedisAttributeStore implements AttributeStore {
      * @param client The Redis client to communicate with the database.
      */
     public RedisAttributeStore(RedisClient client) {
-        this.client     = client;
-        this.connection = client.connect();
-        this.commands   = connection.sync();
+        this.client       = client;
+        this.connection   = client.connect();
+        this.commands     = connection.sync();
+        this.txConnection = client.connect();
+        this.txCommands   = txConnection.sync();
     }
 
     @Override
@@ -84,54 +92,47 @@ public class RedisAttributeStore implements AttributeStore {
     private boolean publishInternal(AttributeKey key, Value value, @Nullable Duration ttl, String pdpId) {
         String redisKey   = toRedisKey(key, pdpId);
         String redisValue = ValueJsonMarshaller.toJsonString(value);
+        long   sequence   = commands.incr(getSequenceKey(pdpId));
 
-        Map<String, String> fields = new HashMap<>();
-        fields.put(NAME_FIELD, key.name());
-        fields.put(ARGUMENTS_FIELD, valuesToJson(key.arguments()));
-        fields.put(VALUE_FIELD, redisValue);
-        if (key.entity() != null) {
-            fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(key.entity()));
+        txLock.lock();
+        try {
+            txCommands.multi();
+            txCommands.hsetnx(redisKey, NAME_FIELD, key.name());
+            txCommands.hset(redisKey, toFields(key, redisValue));
+            txCommands.zadd(getOrderKey(pdpId), ZAddArgs.Builder.nx(), sequence, redisKey);
+            if (ttl == null) {
+                txCommands.persist(redisKey);
+            } else {
+                txCommands.pexpire(redisKey, ttl.toMillis());
+            }
+            txCommands.publish(REDIS_CHANGES_PREFIX + redisKey, redisValue);
+            TransactionResult result = txCommands.exec();
+
+            // hsetnx returns true if attribute was created
+            return Boolean.TRUE.equals(result.get(0));
+        } finally {
+            txLock.unlock();
         }
-
-        /*
-         * HSETNX sets a field only if it does not exist yet, and does so atomically.
-         * Redis does process commands strictly sequentially. Two concurrent calls can't
-         * get both created = true because of the sequential processing. The HSET just
-         * writes the fields into the (now) existing key. The HSET is not critical and
-         * last write wins. The command EXISTS was removed because it could cause a bug
-         * if two parallel requests tried to set the same attribute key. The counter
-         * would have been increased twice and both would return a HTTP 201 CREATED
-         * instead of a HTTP 200 OK and HTTP 201.
-         */
-        boolean created = commands.hsetnx(redisKey, NAME_FIELD, key.name());
-        commands.hset(redisKey, fields);
-
-        // Increment the sequence number within Redis, stores it add the current key to
-        // the sorted set (ZSET)
-        if (created) {
-            Long sequence = commands.incr(getSequenceKey(pdpId));
-            commands.zadd(getOrderKey(pdpId), sequence.doubleValue(), redisKey);
-        }
-
-        if (ttl == null) {
-            commands.persist(redisKey);
-        } else {
-            commands.expire(redisKey, ttl.toSeconds());
-        }
-        commands.publish(REDIS_CHANGES_PREFIX + redisKey, redisValue);
-
-        return created;
     }
 
     @Override
     public boolean remove(AttributeKey key, String pdpId) {
         String redisKey = toRedisKey(key, pdpId);
-        long   deleted  = commands.del(redisKey);
 
-        commands.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
-        commands.zrem(getOrderKey(pdpId), redisKey);
+        txLock.lock();
+        try {
+            txCommands.multi();
+            txCommands.del(redisKey);
+            txCommands.zrem(getOrderKey(pdpId), redisKey);
+            txCommands.publish(REDIS_CHANGES_PREFIX + redisKey, UNDEFINED_STRING);
+            TransactionResult result = txCommands.exec();
 
-        return deleted > 0;
+            // delete as first commands returns the number of deletions
+            Long deleted = result.get(0);
+            return deleted != null && deleted > 0;
+        } finally {
+            txLock.unlock();
+        }
     }
 
     // Escape special characters before adding them to the Redis Keys. Avoids
@@ -204,6 +205,7 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public void close() {
+        txConnection.close();
         connection.close();
         client.close();
     }
@@ -244,10 +246,15 @@ public class RedisAttributeStore implements AttributeStore {
 
     @Override
     public void applyAll(List<Change> changes, String pdpId) {
-        var batchEntries  = new ArrayList<Value>();
-        var newKeys       = new ArrayList<String>();
-        var hsetnxIndexes = new HashMap<Integer, String>();
-        int index         = 0;
+        var batchEntries = new ArrayList<Value>();
+        var sequences    = new HashMap<String, Long>();
+
+        // Prepare the changes
+        for (var change : changes) {
+            if (!change.isDelete()) {
+                sequences.put(toRedisKey(change.key(), pdpId), commands.incr(getSequenceKey(pdpId)));
+            }
+        }
 
         // Use a own connection for MULTI command to ensure the statements are set
         // exclusively
@@ -261,7 +268,6 @@ public class RedisAttributeStore implements AttributeStore {
                 if (change.isDelete()) {
                     command.del(redisKey);
                     command.zrem(getOrderKey(pdpId), redisKey);
-                    index += 2;
                     batchEntries.add(batchEntry(redisKey, UNDEFINED_STRING));
                 } else {
                     // Case of a key too add or update
@@ -275,10 +281,8 @@ public class RedisAttributeStore implements AttributeStore {
                         fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(change.key().entity()));
                     }
 
-                    hsetnxIndexes.put(index, redisKey);
-                    command.hsetnx(redisKey, NAME_FIELD, change.key().name());
                     command.hset(redisKey, fields);
-                    index += 3;
+                    command.zadd(getOrderKey(pdpId), ZAddArgs.Builder.nx(), sequences.get(redisKey), redisKey);
 
                     // Optional ttl is handled
                     var ttl = change.ttl();
@@ -293,24 +297,24 @@ public class RedisAttributeStore implements AttributeStore {
 
             // If all keys are added publish the message and store the results
             command.publish(REDIS_BATCH_PREFIX + pdpId, ValueJsonMarshaller.toJsonString(Value.ofArray(batchEntries)));
-            TransactionResult result = command.exec();
-
-            // Increment the global counter
-            hsetnxIndexes.forEach((i, key) -> {
-                if (Boolean.TRUE.equals(result.get(i))) {
-                    newKeys.add(key);
-                }
-            });
-        }
-
-        for (var redisKey : newKeys) {
-            Long sequence = commands.incr(getSequenceKey(pdpId));
-            commands.zadd(getOrderKey(pdpId), sequence.doubleValue(), redisKey);
+            command.exec();
         }
     }
 
     private static Value batchEntry(String redisKey, String redisValue) {
         return ObjectValue.builder().put(BATCH_KEY_FIELD, Value.of(redisKey)).put(VALUE_FIELD, Value.of(redisValue))
                 .build();
+    }
+
+    // Helper for correct Redis keys
+    private Map<String, String> toFields(AttributeKey key, String redisValue) {
+        Map<String, String> fields = new HashMap<>();
+        fields.put(NAME_FIELD, key.name());
+        fields.put(ARGUMENTS_FIELD, valuesToJson(key.arguments()));
+        fields.put(VALUE_FIELD, redisValue);
+        if (key.entity() != null) {
+            fields.put(ENTITY_FIELD, ValueJsonMarshaller.toJsonString(key.entity()));
+        }
+        return fields;
     }
 }

@@ -23,13 +23,15 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.model.*;
 import io.sapl.attributes.broker.AttributeRepository;
 import lombok.NonNull;
-import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -39,15 +41,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import reactor.core.Disposable;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.RepositoryState;
 
 /**
  * Repository implementation that persists attributes in PostgreSQL and
@@ -62,6 +65,7 @@ import io.sapl.attributes.broker.repository.RepositoryKey;
  */
 @Slf4j
 public final class PostgresAttributeRepository implements AttributeRepository {
+    private static final String ERROR_FOREIGN_PDP_ID                = "Assignment for pdpId '%s' rejected by repository for pdpId '%s'.";
     private static final String ERROR_BACKEND_DISCONNECTED          = "The backend is currently disconnected for pdp with id %s.";
     private static final String ERROR_HANDLE_NOTIFICATION           = "Error while handling attribute_changes notification for pdpId '{}'";
     private static final String WARN_RECONNECTING                   = "Lost notification stream connection for pdpId '{}', reconnecting: {}";
@@ -69,7 +73,6 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final String DEBUG_STALE_CONNECTION_CLOSE_FAILED = "Error closing stale connection for pdpId '{}': {}";
     private static final String DEBUG_RECONNECT_FAILED              = "Reconnect attempt failed for pdpId '{}': {}";
     private static final String ERROR_NO_CONNECTION_FROM_FACTORY    = "Connection factory returned no connection for pdpId '";
-    private static final String WARN_INVALID_BATCH_ENTRY            = "Ignoring an invalid batch entry for pdpId '{}': {}";
     private static final String WARN_TTL_CLEANUP                    = "Could not schedule pg_cron TTL cleanup job. Install pg_cron extension"
             + "or grant right to the user. Expired attributes will still be filtered"
             + "at query time but Postgres-side cleanup will not happen for pdp with id {} : {}";
@@ -124,28 +127,30 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private static final Duration                       HEARTBEAT_INTERVAL       = Duration.ofSeconds(5);
     private static final Duration                       CONNECT_TIMEOUT          = Duration.ofSeconds(5);
     private static final Duration                       QUERY_TIMEOUT            = Duration.ofSeconds(30);
-    private static final Duration                       LOAD_TIMEOUT             = Duration.ofMinutes(2);
-    private static final String                         HEARTBEAT_PDP_ID         = "__heartbeat__";
+    private static final Duration                       LOAD_IDLE_TIMEOUT        = Duration.ofSeconds(5);
+    private static final Duration                       RELOAD_RETRY_DELAY       = Duration.ofSeconds(1);
     private static final Duration                       RECONNECT_RETRY_INTERVAL = Duration.ofSeconds(1);
+    private static final String                         HEARTBEAT_PDP_ID         = "__heartbeat__";
     private final AtomicReference<PostgresqlConnection> connection               = new AtomicReference<>();
     private final AtomicReference<Disposable>           heartbeat                = new AtomicReference<>();
     private final AtomicReference<Disposable>           notificationSubscription = new AtomicReference<>();
     private final ConnectionFactory                     connectionFactory;
     private final ReentrantLock                         reloadLock               = new ReentrantLock();
     private volatile boolean                            closed                   = false;
-    private final AtomicBoolean                         resyncPending            = new AtomicBoolean(false);
     private final AtomicBoolean                         disconnected             = new AtomicBoolean(false);
+    private final AtomicReference<Disposable>           reloadRetry              = new AtomicReference<>();
     private final DatabaseClient                        client;
+    private final TransactionalOperator                 transactions;
     private final String                                pdpId;
     private final String                                getAllSql;
-    private final String                                getSql;
     private final String                                upsertSql;
     private final String                                deleteSql;
-    private final AtomicReference<Consumer<Runnable>>   batchRunner              = new AtomicReference<>(Runnable::run);
+    private Map<RepositoryKey, ViewEntry>               lastView                 = Map.of();
 
     private record DBEntry(String name, String entity, String arguments, String value, OffsetDateTime expiresAt) {}
 
-    @Delegate(excludes = ExcludedMethods.class)
+    private record ViewEntry(Value value, @Nullable Instant expiresAt) {}
+
     private final InMemoryAttributeRepository internalRepository;
 
     /**
@@ -166,6 +171,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         this.client            = client;
         this.connectionFactory = connectionFactory;
         this.pdpId             = pdpId;
+        this.transactions      = TransactionalOperator
+                .create(new R2dbcTransactionManager(client.getConnectionFactory()));
 
         client.sql(CREATE_TABLE_SQL.replace("{table}", table)).then().block();
 
@@ -176,11 +183,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             log.warn(WARN_TTL_CLEANUP, pdpId, e.getMessage());
         }
 
-        this.getAllSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " WHERE pdp_id = :pdpId";
-
-        this.getSql = "SELECT name, entity, arguments, value, expires_at FROM " + table + " "
-                + "WHERE pdp_id = :pdpId AND name = :name AND entity IS NOT DISTINCT FROM CAST(:entity AS jsonb) "
-                + "AND arguments = CAST(:arguments AS jsonb)";
+        this.getAllSql = "SELECT name, entity, arguments, value, expires_at FROM " + table
+                + " WHERE pdp_id = :pdpId AND (expires_at IS NULL OR expires_at > :now)";
 
         this.upsertSql = "INSERT INTO " + table + " (pdp_id, name, entity, arguments, value, expires_at) "
                 + "VALUES (:pdpId, :name, CAST(:entity AS jsonb), CAST(:arguments AS jsonb), CAST(:value AS jsonb), :expiresAt) "
@@ -192,8 +196,8 @@ public final class PostgresAttributeRepository implements AttributeRepository {
                 + "AND arguments = CAST(:arguments AS jsonb)";
 
         // Attribute loading
+        this.internalRepository = new InMemoryAttributeRepository();
         connectAndListen();
-        this.internalRepository = new InMemoryAttributeRepository(this::deleteFromDB);
         loadFromDB();
     }
 
@@ -205,7 +209,9 @@ public final class PostgresAttributeRepository implements AttributeRepository {
 				.get().getNotifications())
 				.mapNotNull(Notification::getParameter)
 				.timeout(LIVENESS_TIMEOUT)
-				.publishOn(Schedulers.boundedElastic())
+				.filter(this::isForThisPdp)
+				.onBackpressureLatest()
+				.publishOn(Schedulers.boundedElastic(), 1)
 				.retryWhen(Retry.fixedDelay(Long.MAX_VALUE, Duration.ofSeconds(0))
 						.filter(throwable -> !closed)
 						.doBeforeRetry(this::handleNotificationStreamRetry))
@@ -237,43 +243,18 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         }
     }
 
-    private interface ExcludedMethods {
-        void publish(RepositoryKey key, Value value);
-
-        void publish(RepositoryKey key, Value value, Duration ttl);
-
-        void remove(RepositoryKey key);
-
-        void close();
-    }
-
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
-        internalRepository.publish(key, value);
-        upsertToDB(key, value, null);
-        notifyOthers(key);
-    }
-
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
-        internalRepository.publish(key, value, ttl);
-        upsertToDB(key, value, Instant.now().plus(ttl));
-        notifyOthers(key);
-    }
-
-    @Override
-    public void remove(@NonNull RepositoryKey key) {
-        internalRepository.remove(key);
-        deleteFromDB(key);
-        notifyOthers(key);
-    }
-
     @Override
     public void close() {
         closed = true;
         internalRepository.close();
         heartbeat.get().dispose();
         notificationSubscription.get().dispose();
+
+        var retry = reloadRetry.get();
+        if (retry != null) {
+            retry.dispose();
+        }
+
         Mono.from(connection.get().close()).timeout(QUERY_TIMEOUT).block();
     }
 
@@ -282,204 +263,120 @@ public final class PostgresAttributeRepository implements AttributeRepository {
 		reloadLock.lock();
 
 		try {
-			var rows = Objects.requireNonNull(client.sql(getAllSql).bind(FIELD_PDP_ID, pdpId)
+			var newView = new HashMap<RepositoryKey, ViewEntry>();
+			var now  = OffsetDateTime.now(ZoneOffset.UTC);
+			var rows = Objects.requireNonNull(client.sql(getAllSql).bind(FIELD_PDP_ID, pdpId).bind("now", now)
 					.map(row -> new DBEntry(
 							row.get(FIELD_NAME, String.class),
 							row.get(FIELD_ENTITY, String.class),
 							row.get(FIELD_ARGUMENTS, String.class),
 							row.get(FIELD_VALUE, String.class),
 							row.get("expires_at", OffsetDateTime.class)))
-					.all().collectList().timeout(LOAD_TIMEOUT).block());
+					.all().timeout(LOAD_IDLE_TIMEOUT).collectList().block());
 
-			var seenKeys = new HashSet<RepositoryKey>();
-
+			// View of the current state in DB
 			for (var row : rows) {
-				restoreKey(row, seenKeys);
+				newView.put(toKey(row), toViewEntry(row));
 			}
 
-			removeStaleKeys(seenKeys);
+			// Build the changes of the current known keys to bound values
+			var changes = new ArrayList<AttributeAssignment>();
+			for (var item : newView.entrySet()) {
+				var key   = item.getKey();
+				var entry = item.getValue();
+				var old   = lastView.get(key);
+
+				if (old == null || !old.equals(entry)) {
+					var ttl = entry.expiresAt() != null ? Duration.between(now.toInstant(), entry.expiresAt()) : null;
+					changes.add(new AttributeAssignment.BoundValue(key, entry.value(), ttl));
+				}
+			}
+
+			// Build the changes of the current known keys to unbound values
+			for (var key : lastView.keySet()) {
+			    if (!newView.containsKey(key)) {
+			        changes.add(new AttributeAssignment.UnboundValue(key));
+			    }
+			}
+
+			internalRepository.publish(changes);
+			lastView = newView;
 		} finally {
 			reloadLock.unlock();
 		}
 	}
 	// @formatter:on
 
-    private void upsertToDB(RepositoryKey key, Value value, @Nullable Instant expiresAt) {
-        var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
-        var argumentsJson = valuesToJson(key.arguments());
-        var valueJson     = ValueJsonMarshaller.toJsonString(value);
+    private ViewEntry toViewEntry(DBEntry row) {
+        var value     = ValueJsonMarshaller.json(row.value());
+        var expiresAt = row.expiresAt() != null ? row.expiresAt().toInstant() : null;
+        return new ViewEntry(value, expiresAt);
+    }
+
+    private RepositoryKey toKey(DBEntry row) {
+        var entity = row.entity != null ? ValueJsonMarshaller.json(row.entity) : null;
+        return new RepositoryKey(entity, row.name(), jsonToValues(row.arguments()), pdpId);
+    }
+
+    // Generates the upsert spec for the SQL query
+    private DatabaseClient.GenericExecuteSpec upsertSpec(RepositoryKey key, Value value, @Nullable Instant expiresAt) {
+        var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
 
         // @formatter:off
-        var upsertSpec = client.sql(upsertSql)
-        		.bind(FIELD_PDP_ID, pdpId)
-        		.bind(FIELD_NAME, key.name())
-                .bind(FIELD_ARGUMENTS, argumentsJson)
-                .bind(FIELD_VALUE, valueJson);
+		var upsertSpec = client.sql(upsertSql)
+	            .bind(FIELD_PDP_ID, pdpId)
+	            .bind(FIELD_NAME, key.name())
+	            .bind(FIELD_ARGUMENTS, valuesToJson(key.arguments()))
+	            .bind(FIELD_VALUE, ValueJsonMarshaller.toJsonString(value));
         // @formatter:on
 
         upsertSpec = expiresAt != null ? upsertSpec.bind("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
                 : upsertSpec.bindNull("expiresAt", OffsetDateTime.class);
 
-        (entityJson != null ? upsertSpec.bind(FIELD_ENTITY, entityJson)
-                : upsertSpec.bindNull(FIELD_ENTITY, String.class)).then().timeout(QUERY_TIMEOUT).block();
+        return entityJson != null ? upsertSpec.bind(FIELD_ENTITY, entityJson)
+                : upsertSpec.bindNull(FIELD_ENTITY, String.class);
     }
 
-    /**
-     * Delete the attribute for the given attribute key from the database.
-     *
-     * @param key the attribute key.
-     */
-    public void deleteFromDB(@NonNull RepositoryKey key) {
-        var entityJson    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
-        var argumentsJson = valuesToJson(key.arguments());
-
-        // @formatter:off
-		var spec = client.sql(deleteSql)
-				.bind(FIELD_PDP_ID, pdpId)
-				.bind(FIELD_NAME, key.name())
-				.bind(FIELD_ARGUMENTS,
-				argumentsJson);
-		// @formatter:on
-
-        (entityJson != null ? spec.bind(FIELD_ENTITY, entityJson) : spec.bindNull(FIELD_ENTITY, String.class)).then()
-                .timeout(QUERY_TIMEOUT).block();
-    }
-
-    private static String valuesToJson(List<Value> values) {
-        return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
-    }
-
-    private static List<Value> jsonToValues(String json) {
-        return (ArrayValue) ValueJsonMarshaller.json(json);
-    }
-
-    private void notifyOthers(RepositoryKey key) {
-        // SELECT triggers notify
-        client.sql(NOTIFY_SQL).bind("payload", keyToPayload(key)).then().timeout(QUERY_TIMEOUT).block();
-    }
-
-    private void handleNotification(String payload) {
-        reloadLock.lock();
-        try {
-            handleNotificationLocked(payload);
-        } catch (Exception e) {
-            log.error(ERROR_HANDLE_NOTIFICATION, pdpId, e);
-        } finally {
-            reloadLock.unlock();
-        }
-    }
-
-    private void handleNotificationLocked(String payload) {
-        var node              = (ObjectValue) ValueJsonMarshaller.json(payload);
-        var notificationPdpId = ((TextValue) Objects.requireNonNull(node.get(FIELD_PDP_ID))).value();
-
-        // Ignore notifications for other pdpIds
-        if (!pdpId.equals(notificationPdpId)) {
-            return;
-        }
-
-        // Batch-Mode for atomic updates when > 1 attribute is updated at once
-        if (node.get("keys") instanceof ArrayValue keys) {
-            var batchKeys = new ArrayList<RepositoryKey>();
-            for (var keyNode : keys) {
-                if (keyNode instanceof ObjectValue keyObject) {
-                    batchKeys.add(payloadToKey(keyObject));
-                } else {
-                    log.warn(WARN_INVALID_BATCH_ENTRY, pdpId, keyNode);
-                }
-            }
-            batchRunner.get().accept(() -> batchKeys.forEach(this::applyKey));
-            return;
-        }
-        applyKey(payloadToKey(node));
-    }
-
-    private void applyKey(RepositoryKey key) {
+    // Generates the delete spec for the SQL query
+    private DatabaseClient.GenericExecuteSpec deleteSpec(@NonNull RepositoryKey key) {
         var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
 
-        // Query the key from the notification to decide if it's an update or delete
-        var spec = client.sql(getSql).bind(FIELD_PDP_ID, pdpId).bind(FIELD_NAME, key.name()).bind(FIELD_ARGUMENTS,
-                valuesToJson(key.arguments()));
+        // @formatter:off
+		var deleteSpec = client.sql(deleteSql)
+				.bind(FIELD_PDP_ID, pdpId)
+				.bind(FIELD_NAME, key.name())
+				.bind(FIELD_ARGUMENTS, valuesToJson(key.arguments()));
+		// @formatter:on
 
-        var row = (entityJson != null ? spec.bind(FIELD_ENTITY, entityJson) : spec.bindNull(FIELD_ENTITY, String.class))
-                .map(r -> new DBEntry(r.get(FIELD_NAME, String.class), r.get(FIELD_ENTITY, String.class),
-                        r.get(FIELD_ARGUMENTS, String.class), r.get(FIELD_VALUE, String.class),
-                        r.get("expires_at", OffsetDateTime.class)))
-                .one().timeout(CONNECT_TIMEOUT).block();
+        return entityJson != null ? deleteSpec.bind(FIELD_ENTITY, entityJson)
+                : deleteSpec.bindNull(FIELD_ENTITY, String.class);
+    }
 
-        // if key deleted -> delete in cache, key is updated -> publish key in cache
-        if (row == null) {
-            internalRepository.remove(key);
-        } else {
-            var value     = ValueJsonMarshaller.json(row.value());
-            var expiresAt = row.expiresAt() != null ? row.expiresAt().toInstant() : null;
-
-            if (expiresAt != null) {
-                var ttl = Duration.between(Instant.now(), expiresAt);
-                if (!ttl.isNegative())
-                    internalRepository.publish(key, value, ttl);
-            } else {
-                internalRepository.publish(key, value);
-            }
+    // Handles a notification from Postgres LISTEN/NOTIFY
+    private void handleNotification(String payload) {
+        try {
+            loadFromDB();
+        } catch (RuntimeException e) {
+            log.error(ERROR_HANDLE_NOTIFICATION, pdpId, e);
+            scheduleReloadRetry();
         }
     }
 
-    private String keyToPayload(RepositoryKey key) {
-        return ValueJsonMarshaller.toJsonString(
-                ObjectValue.builder().put(FIELD_PDP_ID, Value.of(pdpId)).put(FIELD_NAME, Value.of(key.name()))
-                        .put(FIELD_ENTITY, key.entity() != null ? key.entity() : Value.NULL)
-                        .put(FIELD_ARGUMENTS, Value.ofArray(key.arguments())).build());
-    }
-
-    private RepositoryKey payloadToKey(ObjectValue node) {
-        var name      = ((TextValue) Objects.requireNonNull(node.get(FIELD_NAME))).value();
-        var entityVal = node.get(FIELD_ENTITY);
-        var entity    = entityVal == Value.NULL ? null : entityVal;
-        var arguments = ((ArrayValue) Objects.requireNonNull(node.get(FIELD_ARGUMENTS))).stream().toList();
-
-        return new RepositoryKey(entity, name, arguments, pdpId);
-    }
-
-    private void removeStaleKeys(Set<RepositoryKey> seenKeys) {
-        // cache cleanup after a resync
-        for (var staleKey : internalRepository.knownKeys()) {
-            if (!seenKeys.contains(staleKey)) {
-                internalRepository.remove(staleKey);
-            }
+    private void handleNotificationStreamRetry(RetrySignal signal) {
+        log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
+        if (disconnected.compareAndSet(false, true)) {
+            markAsDisconnected();
         }
+        reconnectAndReload();
     }
 
-    private void restoreKey(DBEntry row, Set<RepositoryKey> seenKeys) {
-        var key       = new RepositoryKey(row.entity() != null ? ValueJsonMarshaller.json(row.entity()) : null,
-                row.name(), jsonToValues(row.arguments()), pdpId);
-        var value     = ValueJsonMarshaller.json(row.value());
-        var expiresAt = row.expiresAt() != null ? row.expiresAt().toInstant() : null;
-
-        if (expiresAt == null) {
-            internalRepository.publish(key, value);
-            seenKeys.add(key);
-            return;
-        }
-
-        var remainingTTL = Duration.between(Instant.now(), expiresAt);
-        if (remainingTTL.isNegative()) {
-            deleteFromDB(key);
-            return;
-        }
-
-        internalRepository.publish(key, value, remainingTTL);
-        seenKeys.add(key);
-    }
-
-    private void reconnectUntilSuccessfulOrClosed() {
+    // Handles the reconnect loop and load all attributes from the DB
+    private void reconnectAndReload() {
         while (!closed) {
             try {
                 establishConnection();
-                disconnected.set(false);
-
                 loadFromDB();
-                resyncPending.set(true);
-
+                disconnected.set(false);
                 return;
             } catch (Exception e) {
                 log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());
@@ -493,21 +390,96 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         }
     }
 
-    private void handleNotificationStreamRetry(RetrySignal signal) {
-        log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
-        if (disconnected.compareAndSet(false, true)) {
-            var keys = new HashSet<>(internalRepository.knownKeys());
+    private void markAsDisconnected() {
+        reloadLock.lock();
+        try {
+            var error     = Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId));
+            var changes   = new ArrayList<AttributeAssignment>();
+            var errorView = new HashMap<RepositoryKey, ViewEntry>();
 
-            keys.addAll(internalRepository.observedKeys());
-            for (var key : keys) {
-                internalRepository.publish(key, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
+            for (var key : lastView.keySet()) {
+                changes.add(new AttributeAssignment.BoundValue(key, error, null));
+                errorView.put(key, new ViewEntry(error, null));
             }
+            internalRepository.publish(changes);
+            lastView = errorView;
+
+        } finally {
+            reloadLock.unlock();
         }
-        reconnectUntilSuccessfulOrClosed();
+    }
+
+    private void scheduleReloadRetry() {
+        if (closed || disconnected.get()) {
+            return;
+        }
+
+        var retry = Mono.delay(RELOAD_RETRY_DELAY, Schedulers.boundedElastic()).subscribe(tick -> {
+            try {
+                loadFromDB();
+            } catch (RuntimeException e) {
+                log.error(ERROR_HANDLE_NOTIFICATION, pdpId, e);
+                scheduleReloadRetry();
+            }
+        });
+
+        // Avoid multiple reloads
+        var previous = reloadRetry.getAndSet(retry);
+        if (previous != null) {
+            previous.dispose();
+        }
     }
 
     @Override
-    public void setBatchRunner(Consumer<Runnable> batchRunner) {
-        this.batchRunner.set(batchRunner);
+    public void publish(@NonNull List<AttributeAssignment> assignments) {
+        if (assignments.isEmpty()) {
+            return;
+        }
+
+        // Fallback: foreign assignments aren't executed
+        for (var assignment : assignments) {
+            if (!pdpId.equals(assignment.key().pdpId())) {
+                throw new IllegalArgumentException(ERROR_FOREIGN_PDP_ID.formatted(assignment.key().pdpId(), pdpId));
+            }
+        }
+
+        var writes = Flux.fromIterable(assignments).concatMap(assignment -> switch (assignment) {
+        case AttributeAssignment.BoundValue(var key, var value, var ttl) ->
+            upsertSpec(key, value, ttl != null ? Instant.now().plus(ttl) : null).then();
+        case AttributeAssignment.UnboundValue(var key)                   -> deleteSpec(key).then();
+        });
+
+        writes.then(client.sql(NOTIFY_SQL).bind("payload", notificationPayload()).then())
+                .as(transactions::transactional).timeout(QUERY_TIMEOUT).block();
+
+        // update your own view
+        loadFromDB();
+    }
+
+    @Override
+    public StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate) {
+        return internalRepository.observeState(pdpId, configurationId, onUpdate);
+    }
+
+    private String notificationPayload() {
+        return ValueJsonMarshaller.toJsonString(ObjectValue.builder().put(FIELD_PDP_ID, Value.of(pdpId)).build());
+    }
+
+    private static String valuesToJson(List<Value> values) {
+        return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
+    }
+
+    private static List<Value> jsonToValues(String json) {
+        return (ArrayValue) ValueJsonMarshaller.json(json);
+    }
+
+    private boolean isForThisPdp(String payload) {
+        try {
+            var node = (ObjectValue) ValueJsonMarshaller.json(payload);
+            return node.get(FIELD_PDP_ID) instanceof TextValue id && pdpId.equals(id.value());
+        } catch (RuntimeException e) {
+            log.error(ERROR_HANDLE_NOTIFICATION, pdpId, e);
+            return false;
+        }
     }
 }

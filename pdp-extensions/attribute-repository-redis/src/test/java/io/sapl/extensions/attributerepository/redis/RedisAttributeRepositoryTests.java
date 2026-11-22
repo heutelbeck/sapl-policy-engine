@@ -27,6 +27,7 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.val;
 import org.awaitility.Awaitility;
@@ -44,13 +45,17 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @Testcontainers
 @DisabledOnOs(OS.WINDOWS)
@@ -156,6 +161,32 @@ class RedisAttributeRepositoryTests {
             if (ttl != null) {
                 assertThatThrownBy(() -> repository.publish(key, value)).isInstanceOf(NullPointerException.class);
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("When a list of assignments is published")
+    class WhenListIsPublished {
+        @Test
+        @DisplayName("then an empty list has no effect")
+        void thenEmptyHasNoEffect() {
+            assertThatCode(() -> repository.publish(List.of())).doesNotThrowAnyException();
+        }
+
+        @ParameterizedTest
+        @NullSource
+        @DisplayName("then a null list is rejected")
+        void thenNullListIsRejected(List<AttributeAssignment> assignments) {
+            assertThatThrownBy(() -> repository.publish(assignments)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then an assignment of a unknown pdp id is rejected")
+        void thenForeignPdpIdIsRejected() {
+            val unknown     = new RepositoryKey(null, "sapl.test", List.of(), "unknown-tenant");
+            val assignments = List
+                    .<AttributeAssignment>of(new AttributeAssignment.BoundValue(unknown, Value.of(1), null));
+            assertThatThrownBy(() -> repository.publish(assignments)).isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -353,6 +384,14 @@ class RedisAttributeRepositoryTests {
             closedRepo.observe(invocation(PDP_ID, null, NAME, List.of()), received::add);
             assertThat(firstReceived()).isInstanceOf(ErrorValue.class);
         }
+
+        @Test
+        @DisplayName("then closing twice does not cause problems")
+        void thenClosingDoesNotCauseProblems() {
+            var closedRepo = newRepository(PDP_ID);
+            closedRepo.close();
+            assertThatCode(closedRepo::close).doesNotThrowAnyException();
+        }
     }
 
     @Nested
@@ -514,39 +553,46 @@ class RedisAttributeRepositoryTests {
     }
 
     @Nested
-    @DisplayName("when batch mode is used")
-    class WhenBatchModeIsUsed {
-        AtomicInteger runs     = new AtomicInteger();
-        String        redisKey = "sapl:attribute:test-tenant:null:batch.attribute:[]";
-        String        message  = "[{\"key\":\"" + redisKey + "\",\"value\":\"\\\"A\\\"\"}]";
-
+    @DisplayName("when a reload fails")
+    class WhenReloadFails {
         @Test
-        @DisplayName("then a batch event is processed")
-        void thenBatchEventIsProcessed() {
-            setBatchRunner();
-            repository.publish(key("batch.attribute"), Value.of("batch"));
-            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
-            client.connect().sync().publish("sapl:batch:test-tenant", message);
-            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+        @DisplayName("then a permanent conflict fails the load")
+        void thenPermanentConflictFailsLoad() {
+            // Mockito DEEP STUBS: every connect().sync() = same mocked commands, not "100x" individual mocks
+            var newClient = mock(RedisClient.class, RETURNS_DEEP_STUBS);
+            var commands  = newClient.connect().sync();
+
+            // exec == key changed if requested
+            when(commands.configGet("notify-keyspace-events")).thenReturn(Map.of("notify-keyspace-events", "Ex"));
+            when(commands.exec().wasDiscarded()).thenReturn(true);
+
+            // consistent view == part of error message in the Repository
+            assertThatThrownBy(() -> new RedisAttributeRepository(newClient, "test-tenant", 0))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("consistent view");
+        }
+    }
+
+    @Nested
+    @DisplayName("when the attribute api writes directly to redis")
+    class WhenStoreWritesDirectly {
+        private static final String KEY   = "sapl:attribute:test-tenant:null:sapl.test.store:[]";
+        private static final String ORDER = "sapl:attribute:order:test-tenant";
+
+        private final RedisCommands<String, String> raw = RedisClient.create(redis.getRedisURI()).connect().sync();
+
+        // write it like the API Server would do
+        private void write(String value) {
+            raw.hset(KEY, Map.of("name", "sapl.test.store", "value", "\"" + value + "\""));
+            raw.zadd(ORDER, 1, KEY);
         }
 
         @Test
-        @DisplayName("then a batch event with a missing key is not processed")
-        void thenInvalidBatchEventIsNotProcessed() {
-            setBatchRunner();
-            repository.publish(key("batch.attribute"), Value.of("batch"));
-            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
-            client.connect().sync().publish("sapl:batch:test-tenant", message);
-            client.connect().sync().publish("sapl:batch:test-tenant", "no-json]]]]");
-            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
-            assertThat(runs).hasValue(1);
-        }
-
-        private void setBatchRunner() {
-            repository.setBatchRunner(changes -> {
-                runs.incrementAndGet();
-                changes.run();
-            });
+        @DisplayName("then a change message reloads the view")
+        void thenChangeMessageReloads() {
+            repository.observe(invocation("sapl.test.store"), received::add);
+            write("direct");
+            raw.publish("sapl:changes:" + KEY, "\"direct\"");
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> Value.of("direct").equals(lastReceived()));
         }
     }
 }

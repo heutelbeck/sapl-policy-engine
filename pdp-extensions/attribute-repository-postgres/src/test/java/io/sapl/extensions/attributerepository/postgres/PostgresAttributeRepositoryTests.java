@@ -18,6 +18,7 @@
 package io.sapl.extensions.attributerepository.postgres;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -27,8 +28,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.awaitility.Awaitility;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -55,6 +54,7 @@ import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.val;
 
@@ -167,6 +167,32 @@ class PostgresAttributeRepositoryTests {
     }
 
     @Nested
+    @DisplayName("When a list of assignments is published")
+    class WhenListIsPublished {
+        @Test
+        @DisplayName("then an empty list has no effect")
+        void thenEmptyHasNoEffect() {
+            assertThatCode(() -> repository.publish(List.of())).doesNotThrowAnyException();
+        }
+
+        @ParameterizedTest
+        @NullSource
+        @DisplayName("then a null list is rejected")
+        void thenNullListIsRejected(List<AttributeAssignment> assignments) {
+            assertThatThrownBy(() -> repository.publish(assignments)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then an assignment of a unknown pdp id is rejected")
+        void thenForeignPdpIdIsRejected() {
+            val unknown     = new RepositoryKey(null, "sapl.test", List.of(), "unknown-tenant");
+            val assignments = List
+                    .<AttributeAssignment>of(new AttributeAssignment.BoundValue(unknown, Value.of(1), null));
+            assertThatThrownBy(() -> repository.publish(assignments)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("when a value is removed")
     class WhenValueIsRemoved {
 
@@ -190,8 +216,8 @@ class PostgresAttributeRepositoryTests {
         @ParameterizedTest
         @NullSource
         @DisplayName("then null value in deleteFromDb is rejected")
-        void thenNullValuesInDeleteFromDbAreRejected(RepositoryKey key) {
-            assertThatThrownBy(() -> repository.deleteFromDB(key)).isInstanceOf(NullPointerException.class);
+        void thenNullValuesInDeleteFromDbAreRejected(List<AttributeAssignment> assignments) {
+            assertThatThrownBy(() -> repository.publish(assignments)).isInstanceOf(NullPointerException.class);
         }
     }
 
@@ -380,8 +406,9 @@ class PostgresAttributeRepositoryTests {
 
                 try (val repo2 = new PostgresAttributeRepository(sqlClient2, sqlConnection2, "tenant-2",
                         "attributes")) {
-                    repo2.publish(key("sapl.test.nocron"), Value.of("works-as-expected"));
-                    repo2.observe(invocation("sapl.test.nocron"), received::add);
+                    repo2.publish(new RepositoryKey(null, "sapl.test.nocron", List.of(), "tenant-2"),
+                            Value.of("works-as-expected"));
+                    repo2.observe(invocation("tenant-2", null, "sapl.test.nocron", List.of()), received::add);
                     assertThat(firstReceived()).isEqualTo(Value.of("works-as-expected"));
                 }
             }
@@ -454,6 +481,20 @@ class PostgresAttributeRepositoryTests {
                 Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> lastReceived().equals(value));
             }
         }
+
+        @Test
+        @DisplayName("then key with entity and arguments can be removed")
+        void thenKeyWithEntityCanBeRemoved() {
+            val anotherKey = new RepositoryKey(Value.of("alice"), "sapl.test.entity", List.of(Value.of(1)),
+                    "test-tenant");
+
+            repository.publish(List.of(new AttributeAssignment.BoundValue(anotherKey, Value.of("aValue"), null)));
+            repository.observe(invocation("test-tenant", Value.of("alice"), "sapl.test.entity", List.of(Value.of(1))),
+                    received::add);
+            repository.publish(List.of(new AttributeAssignment.UnboundValue(anotherKey)));
+
+            Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> Value.UNDEFINED.equals(lastReceived()));
+        }
     }
 
     @Nested
@@ -500,73 +541,54 @@ class PostgresAttributeRepositoryTests {
         }
 
         @Test
-        @DisplayName("then expired rows are deleted from the table while reloading")
+        @DisplayName("then expired rows are not loaded while reload")
         void thenExpiredRowsAreDeletedWhileReloading() {
             repository.publish(key2, value, Duration.ofSeconds(60));
             client.sql("UPDATE attributes SET expires_at = now() - interval '1 minute' WHERE name = :name")
                     .bind("name", ATTRIBUTE2).then().block();
             try (val repo2 = newRepository(PDP_ID, TABLE)) {
-                long rows = client.sql("SELECT count(*) FROM attributes WHERE name = :name").bind("name", ATTRIBUTE2)
-                        .map(row -> row.get(0, Long.class)).one().block();
-                assertThat(rows).isZero();
+                repo2.observe(invocation(PDP_ID, null, ATTRIBUTE2, List.of()), received::add);
+                assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
             }
         }
     }
 
     @Nested
-    @DisplayName("when batch mode is used")
-    class WhenBatchModeIsUsed {
-        private static final String BATCH_NAME = "batch.attribute";
-        private static final String PAYLOAD    = """
-                {"pdpId":"test-tenant","keys":[{"name":"batch.attribute","entity":null,"arguments":[]}]}""";
-
-        private final AtomicInteger runs = new AtomicInteger();
-
+    @DisplayName("When a reload fails")
+    class WhenReloadFailed {
         @Test
-        @DisplayName("then a batch document is processed")
-        void thenBatchNotificationIsProcessed() {
-            setBatchRunner();
-            repository.publish(key(BATCH_NAME), Value.of("batch"));
-            repository.observe(invocation("test-tenant", null, BATCH_NAME, List.of()), received::add);
-            notify("""
-                    {"pdpId":"test-tenant","keys":[1]}
-                    """);
-            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
-            assertThat(lastReceived()).isEqualTo(Value.of("batch"));
-        }
+        @DisplayName("then reload is retried")
+        void thenReloadIsRetried() {
+            repository.publish(List.of(bound("sapl.test.retry", Value.of("oldValue"))));
+            repository.observe(invocation("sapl.test.retry"), received::add);
 
-        @Test
-        @DisplayName("then a batch document with a missing key is not processed")
-        void thenInvalidBatchIsSkipped() {
-            setBatchRunner();
-            repository.publish(key(BATCH_NAME), Value.of("batch"));
-            repository.observe(invocation("test-tenant", null, BATCH_NAME, List.of()), received::add);
-            notify("no-valid-json-set!");
-            notify(PAYLOAD);
+            // Fake it: rename the table and cause an interrupt
+            client.sql("ALTER TABLE attributes RENAME TO attributes_away").then().block();
+            client.sql("SELECT pg_notify('attribute_changes', '{\"pdpId\":\"test-tenant\"}')").then().block();
+            Awaitility.await().pollDelay(Duration.ofMillis(500)).until(() -> true);
 
-            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+            // reset it, avoid notification
+            client.sql("ALTER TABLE attributes_away RENAME TO attributes").then().block();
+            client.sql("UPDATE attributes SET value = '\"newValue\"'::jsonb WHERE name = 'sapl.test.retry'").then()
+                    .block();
+
+            // Retry brings the new value
+            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> Value.of("newValue").equals(lastReceived()));
         }
 
         @Test
-        @DisplayName("then a notification that is no json is ignored")
-        void thenInvalidNotificationIsIgnored() {
-            setBatchRunner();
-            notify("no-valid-json-set!");
-            notify(PAYLOAD);
+        @DisplayName("then a notification that is not a JSON is ignored")
+        void thenInvalidNotificationIsIgnorded() {
+            // Execute notiication manually with just a text message
+            client.sql("SELECT pg_notify('attribute_changes', 'no-json')").then().block();
 
-            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() >= 1);
-            assertThat(runs).hasValue(1);
+            repository.publish(List.of(bound("sapl.test.retry2", Value.of("justAValue"))));
+            repository.observe(invocation("sapl.test.retry2"), received::add);
+            assertThat(lastReceived()).isEqualTo(Value.of("justAValue"));
         }
 
-        private void setBatchRunner() {
-            repository.setBatchRunner(changes -> {
-                runs.incrementAndGet();
-                changes.run();
-            });
-        }
-
-        private void notify(String payload) {
-            client.sql("SELECT pg_notify('attribute_changes', :payload)").bind("payload", payload).then().block();
+        private AttributeAssignment bound(String name, Value value) {
+            return new AttributeAssignment.BoundValue(key(name), value, null);
         }
     }
 

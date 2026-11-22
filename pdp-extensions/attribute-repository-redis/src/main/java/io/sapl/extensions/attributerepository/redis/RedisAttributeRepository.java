@@ -23,28 +23,32 @@ import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.pubsub.RedisPubSubAdapter;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.RepositoryState;
 import lombok.NonNull;
-import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
+import java.util.concurrent.TimeUnit;
+
 import io.lettuce.core.RedisConnectionStateListener;
+import io.lettuce.core.TransactionResult;
+import io.lettuce.core.ZAddArgs;
 import io.lettuce.core.RedisChannelHandler;
 import java.net.SocketAddress;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 /**
  * Repository implementation that persists attributes in Redis and maintains an
@@ -60,8 +64,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 public final class RedisAttributeRepository implements AttributeRepository {
     private static final String ERROR_BACKEND_DISCONNECTED       = "The backend is currently disconnected for pdp with id %s.";
-    private static final String ERROR_TTL_NOT_POSITIVE           = "TTL must be a strictly positive Duration.";
-    private static final String UNDEFINED_STRING                 = "UNDEFINED";
+    private static final String ERROR_FOREIGN_PDP_ID             = "Assignment for pdpId '%s' rejected by repository for pdpId '%s'.";
+    private static final String ERROR_LOAD_CONFLICT              = "Could not read a consistent view for pdp id %s after %d attempts.";
     private static final String NOTIFY_KEYSPACE_EVENTS_PARAM     = "notify-keyspace-events";
     private static final String ERROR_KEYSPACE_NOTIFICATIONS_OFF = "Configure Redis to publish expired key events.";
     private static final String ERROR_HANDLE_MESSAGE             = "Failed to apply a Redis message for pdp with id {}.";
@@ -69,53 +73,59 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private static final String FIELD_ENTITY                     = "entity";
     private static final String FIELD_ARGUMENTS                  = "arguments";
     private static final String FIELD_VALUE                      = "value";
-    private static final String FIELD_BATCH_KEY                  = "key";
     private static final String ATTRIBUTE_KEY_PREFIX             = "sapl:attribute:";
     private static final String CHANGES_CHANNEL_PREFIX           = "sapl:changes:";
     private static final String BATCH_CHANNEL_PREFIX             = "sapl:batch:";
     private static final String ORDER_KEY_PREFIX                 = "sapl:attribute:order:";
-    private static final String SEQ_KEY_PREFIX                   = "sapl:attribute:seq:";
-
-    // Internal cache TTL codes
-    private static final long PTTL_NO_EXPIRY = -1;
-    private static final long PTTL_NO_KEY    = -2;
 
     private final RedisClient                                   client;
     private final StatefulRedisConnection<String, String>       connection;
+    private final StatefulRedisConnection<String, String>       readConnection;
+    private final RedisCommands<String, String>                 readCommands;
     private final RedisCommands<String, String>                 commands;
     private final StatefulRedisPubSubConnection<String, String> pubsub;
-    private final AtomicReference<Consumer<Runnable>>           batchRunner = new AtomicReference<>(Runnable::run);
-    private final ExecutorService                               worker      = Executors
+    private final ExecutorService                               worker             = Executors
             .newSingleThreadExecutor(Thread.ofVirtual().factory());
-    private final Map<String, RepositoryKey>                    knownKeys   = new ConcurrentHashMap<>();
-    private final AtomicBoolean                                 closed      = new AtomicBoolean(false);
-    private final String                                        pdpId;
-    private final String                                        pdpKeyPrefix;
+    private final ReentrantLock                                 reloadLock         = new ReentrantLock();
+    private final AtomicBoolean                                 closed             = new AtomicBoolean(false);
+    private final AtomicBoolean                                 reloadQueued       = new AtomicBoolean(false);
+    private static final Duration                               RELOAD_RETRY_DELAY = Duration.ofSeconds(1);
 
-    @Delegate(excludes = ExcludedMethods.class)
+    private final String pdpId;
+    private final String pdpKeyPrefix;
+
+    private Map<RepositoryKey, ViewEntry>     lastView = Map.of();
     private final InMemoryAttributeRepository internalRepository;
 
+    // Internal cache TTL codes
+    private static final long PTTL_NO_EXPIRY    = -1;
+    private static final int  MAX_LOAD_ATTEMPTS = 10;
+
+    private record ViewEntry(Value value, @Nullable Instant expiresAt) {}
+
     /**
-     * Creates the object for the Redis attribute repository to communicate with
-     * the database. Listen to the channels, creates the
-     * internal cache and loads all attributes.
+     * Creates the object for the Redis attribute repository to communicate with the
+     * database. Listen to the channels, creates the internal cache and loads all
+     * attributes.
      *
      * @param client The Redis client to communicate with the database.
      * @param pdpId The pdp id this attribute repository is for.
      * @param database The Redis database to find the attributes.
      */
     public RedisAttributeRepository(RedisClient client, String pdpId, int database) {
-        this.client     = client;
-        this.connection = client.connect();
-        this.pubsub     = client.connectPubSub();
-        this.commands   = connection.sync();
-        this.pdpId      = pdpId;
+        this.client         = client;
+        this.connection     = client.connect();
+        this.readConnection = client.connect();
+        this.readCommands   = readConnection.sync();
+        this.pubsub         = client.connectPubSub();
+        this.commands       = connection.sync();
+        this.pdpId          = pdpId;
 
         requireKeyspaceNotificationsEnabled();
 
         // Important for the internal Cache
         this.pdpKeyPrefix       = ATTRIBUTE_KEY_PREFIX + pdpId + ":";
-        this.internalRepository = new InMemoryAttributeRepository(key -> {});
+        this.internalRepository = new InMemoryAttributeRepository();
 
         // Subscribe to needed channels
         pubsub.sync().psubscribe(CHANGES_CHANNEL_PREFIX + "*");
@@ -123,7 +133,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         pubsub.sync().subscribe("__keyevent@" + database + "__:expired");
         registerAttributeMessageListener();
         registerConnectionStateListener();
-        loadFromRedis();
+        loadFromDB();
     }
 
     private void requireKeyspaceNotificationsEnabled() {
@@ -145,66 +155,11 @@ public final class RedisAttributeRepository implements AttributeRepository {
         worker.shutdownNow();
 
         connection.close();
+        readConnection.close();
         client.close();
     }
 
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
-        internalRepository.publish(key, value);
-        publishInternal(key, value, null);
-    }
-
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
-        if (ttl.isZero() || ttl.isNegative()) {
-            throw new IllegalArgumentException(ERROR_TTL_NOT_POSITIVE);
-        }
-        internalRepository.publish(key, value, ttl);
-        publishInternal(key, value, ttl);
-    }
-
-    private void publishInternal(RepositoryKey key, Value value, @Nullable Duration ttl) {
-        String redisKey   = toRedisKey(key);
-        String redisValue = ValueJsonMarshaller.toJsonString(value);
-
-        knownKeys.put(redisKey, key);
-        Map<String, String> fields = new HashMap<>();
-        fields.put(FIELD_NAME, key.name());
-        fields.put(FIELD_ARGUMENTS, valuesToJson(key.arguments()));
-        fields.put(FIELD_VALUE, redisValue);
-
-        if (key.entity() != null) {
-            fields.put(FIELD_ENTITY, ValueJsonMarshaller.toJsonString(key.entity()));
-        }
-
-        boolean created = commands.exists(redisKey) == 0;
-        commands.hset(redisKey, fields);
-
-        if (created) {
-            Long sequence = commands.incr(getSequenceKKey());
-            commands.zadd(getOrderKey(), sequence.doubleValue(), redisKey);
-        }
-
-        if (ttl == null) {
-            commands.persist(redisKey);
-        } else {
-            commands.expire(redisKey, ttl.toSeconds());
-        }
-
-        commands.publish(CHANGES_CHANNEL_PREFIX + redisKey, redisValue);
-    }
-
-    @Override
-    public void remove(@NonNull RepositoryKey key) {
-        String redisKey = toRedisKey(key);
-
-        internalRepository.remove(key);
-        knownKeys.remove(redisKey);
-        commands.del(toRedisKey(key));
-        commands.publish(CHANGES_CHANNEL_PREFIX + toRedisKey(key), UNDEFINED_STRING);
-        commands.zrem(getOrderKey(), redisKey);
-    }
-
+    // Helper to get the right Redis key for this instance
     private String toRedisKey(RepositoryKey key) {
         String entity    = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : "null";
         String arguments = valuesToJson(key.arguments());
@@ -212,48 +167,31 @@ public final class RedisAttributeRepository implements AttributeRepository {
         return ATTRIBUTE_KEY_PREFIX + pdpId + ":" + entity + ":" + key.name() + ":" + arguments;
     }
 
-    private static String valuesToJson(List<Value> values) {
-        return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
-    }
-
-    private String getOrderKey() {
-        return ORDER_KEY_PREFIX + pdpId;
-    }
-
-    private String getSequenceKKey() {
-        return SEQ_KEY_PREFIX + pdpId;
-    }
-
     private void registerAttributeMessageListener() {
         pubsub.addListener(new RedisPubSubAdapter<>() {
             @Override
             public void message(String channel, String message) {
-                // the message is the Redis key
-                runOnWorker(() -> applyRedisKey(message));
+                // expired event
+                if (message.startsWith(pdpKeyPrefix)) {
+                    requestReload();
+                }
             }
 
             @Override
             public void message(String pattern, String channel, String message) {
+                // channel: sapl:batch:<pdpId> only for this pdp id
                 if (channel.startsWith(BATCH_CHANNEL_PREFIX)) {
-                    runOnWorker(() -> handleBatch(message));
+                    requestReload();
                     return;
                 }
-                // Regex: sapl:changes:* -> All change events that are made on attributes
-                String redisKey = channel.substring(CHANGES_CHANNEL_PREFIX.length());
-                runOnWorker(() -> applyRedisKey(redisKey));
+
+                // channeL sapl:change:<redisKey>. Shared by all pdp ids
+                if (channel.startsWith(pdpKeyPrefix, CHANGES_CHANNEL_PREFIX.length())) {
+                    requestReload();
+                }
             }
 
         });
-    }
-
-    private void handleBatch(String message) {
-        var redisKeys = new ArrayList<String>();
-
-        for (var entry : (ArrayValue) ValueJsonMarshaller.json(message)) {
-            var redisKey = (TextValue) Objects.requireNonNull(((ObjectValue) entry).get(FIELD_BATCH_KEY));
-            redisKeys.add(redisKey.value());
-        }
-        batchRunner.get().accept(() -> redisKeys.forEach(this::applyRedisKey));
     }
 
     private void registerConnectionStateListener() {
@@ -261,78 +199,117 @@ public final class RedisAttributeRepository implements AttributeRepository {
         pubsub.addListener(new RedisConnectionStateListener() {
             @Override
             public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
-                runOnWorker(RedisAttributeRepository.this::loadFromRedis);
+                requestReload();
             }
 
             @Override
             public void onRedisDisconnected(RedisChannelHandler<?, ?> connection) {
-                if (closed.get()) {
-                    return;
-                }
-                var keys = new HashSet<>(internalRepository.knownKeys());
-                keys.addAll(internalRepository.observedKeys());
-
-                for (var key : keys) {
-                    internalRepository.publish(key, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
-                }
+                runOnWorker(RedisAttributeRepository.this::markAsDisconnected);
             }
         });
     }
 
     // Loads all attribute of the pdp id into the cache
-    private void loadFromRedis() {
-        var seenKeys = new HashSet<RepositoryKey>();
+    private void loadFromDB() {
+        reloadLock.lock();
+        try {
+            var now     = Instant.now();
+            var newView = readView(now);
 
-        // Add all keys that are found by zrange
-        for (String redisKey : commands.zrange(getOrderKey(), 0, -1)) {
-            var key = applyRedisKey(redisKey);
-            if (key != null) {
-                seenKeys.add(key);
-            }
-        }
+            // Build the changes of the current known keys to bound values
+            var changes = new ArrayList<AttributeAssignment>();
+            for (var item : newView.entrySet()) {
+                var key   = item.getKey();
+                var entry = item.getValue();
+                var old   = lastView.get(key);
 
-        // Remove stale keys after re-sync (cleanup)
-        for (var staleKey : internalRepository.knownKeys()) {
-            if (!seenKeys.contains(staleKey)) {
-                internalRepository.remove(staleKey);
-                knownKeys.values().remove(staleKey);
+                if (old == null || !old.equals(entry)) {
+                    var ttl = entry.expiresAt() != null ? Duration.between(now, entry.expiresAt()) : null;
+                    changes.add(new AttributeAssignment.BoundValue(key, entry.value(), ttl));
+                }
             }
+
+            // Build the changes of the current known keys to unbound values
+            for (var key : lastView.keySet()) {
+                if (!newView.containsKey(key)) {
+                    changes.add(new AttributeAssignment.UnboundValue(key));
+                }
+            }
+
+            internalRepository.publish(changes);
+            lastView = newView;
+        } finally {
+            reloadLock.unlock();
         }
     }
 
-    private @Nullable RepositoryKey applyRedisKey(String redisKey) {
-        if (!redisKey.startsWith(pdpKeyPrefix)) {
-            return null;
-        }
+    // read the current "view" of attributes from Redis
+    private Map<RepositoryKey, ViewEntry> readView(Instant now) {
+        var read = readCommands;
 
-        Map<String, String> hashKeys = commands.hgetall(redisKey);
-        long                ttl      = commands.pttl(redisKey);
+        // Load max 10 times otherwise throw exception
+        for (int i = 0; i < MAX_LOAD_ATTEMPTS; i++) {
+            read.watch(getOrderKey());
+            var redisKeys = read.zrange(getOrderKey(), 0, -1);
 
-        if (hashKeys.isEmpty() || ttl == PTTL_NO_KEY) {
-            var knownKey = knownKeys.remove(redisKey);
-            if (knownKey != null) {
-                internalRepository.remove(knownKey);
+            // Start the MULTI/EXEC block
+            read.multi();
+            for (var redisKey : redisKeys) {
+                read.hgetall(redisKey);
+                read.pttl(redisKey);
             }
-            return null;
+            TransactionResult result = read.exec();
+
+            if (!result.wasDiscarded()) {
+                var view = new HashMap<RepositoryKey, ViewEntry>();
+
+                int index = 0;
+                for (int j = 0; j < redisKeys.size(); j++) {
+                    Map<String, String> hash = result.get(index++);
+                    Long                pttl = result.get(index++);
+
+                    if (!hash.isEmpty() && (pttl > 0 || pttl == PTTL_NO_EXPIRY)) {
+                        view.put(toKey(hash), toViewEntry(hash, pttl, now));
+                    }
+                }
+                return view;
+            }
         }
-
-        var entityJson = hashKeys.get(FIELD_ENTITY);
-        var entity     = entityJson != null ? ValueJsonMarshaller.json(entityJson) : null;
-        var key        = new RepositoryKey(entity, hashKeys.get(FIELD_NAME),
-                jsonToValues(hashKeys.get(FIELD_ARGUMENTS)), pdpId);
-        var raw        = hashKeys.get(FIELD_VALUE);
-        var value      = raw == null ? Value.UNDEFINED : ValueJsonMarshaller.json(raw);
-
-        knownKeys.put(redisKey, key);
-
-        if (ttl == PTTL_NO_EXPIRY) {
-            internalRepository.publish(key, value);
-        } else {
-            internalRepository.publish(key, value, Duration.ofMillis(ttl));
-        }
-        return key;
+        throw new IllegalStateException(ERROR_LOAD_CONFLICT.formatted(pdpId, MAX_LOAD_ATTEMPTS));
     }
 
+    private RepositoryKey toKey(Map<String, String> hash) {
+        var entityJson = hash.get(FIELD_ENTITY);
+        return new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null, hash.get(FIELD_NAME),
+                jsonToValues(hash.get(FIELD_ARGUMENTS)), pdpId);
+    }
+
+    private static ViewEntry toViewEntry(Map<String, String> hash, long pttl, Instant now) {
+        var raw = hash.get(FIELD_VALUE);
+        return new ViewEntry(raw == null ? Value.UNDEFINED : ValueJsonMarshaller.json(raw),
+                pttl == PTTL_NO_EXPIRY ? null : now.plusMillis(pttl));
+    }
+
+    private void markAsDisconnected() {
+        reloadLock.lock();
+        try {
+            var error     = Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId));
+            var changes   = new ArrayList<AttributeAssignment>();
+            var errorView = new HashMap<RepositoryKey, ViewEntry>();
+
+            for (var key : lastView.keySet()) {
+                changes.add(new AttributeAssignment.BoundValue(key, error, null));
+                errorView.put(key, new ViewEntry(error, null));
+            }
+            internalRepository.publish(changes);
+            lastView = errorView;
+
+        } finally {
+            reloadLock.unlock();
+        }
+    }
+
+    // Redis worker == background jobs
     private void runOnWorker(Runnable task) {
         if (closed.get()) {
             return;
@@ -348,6 +325,76 @@ public final class RedisAttributeRepository implements AttributeRepository {
         });
     }
 
+    // queues the reload if multiple reloads occur
+    private void requestReload() {
+        if (reloadQueued.compareAndSet(false, true)) {
+            runOnWorker(() -> {
+                reloadQueued.set(false);
+                try {
+                    loadFromDB();
+                } catch (RuntimeException e) {
+                    log.error(ERROR_HANDLE_MESSAGE, pdpId, e);
+                    CompletableFuture.delayedExecutor(RELOAD_RETRY_DELAY.toMillis(), TimeUnit.MILLISECONDS)
+                            .execute(this::requestReload);
+                }
+            });
+        }
+    }
+
+    @Override
+    public void publish(@NonNull List<AttributeAssignment> assignments) {
+        if (assignments.isEmpty()) {
+            return;
+        }
+
+        // Fallback: foreign assignments aren't executed
+        for (var assignment : assignments) {
+            if (!pdpId.equals(assignment.key().pdpId())) {
+                throw new IllegalArgumentException(ERROR_FOREIGN_PDP_ID.formatted(assignment.key().pdpId(), pdpId));
+            }
+        }
+
+        try (var tx = client.connect()) {
+            var write = tx.sync();
+            write.multi();
+
+            for (var assignment : assignments) {
+                switch (assignment) {
+                case AttributeAssignment.BoundValue(var key, var value, var ttl) -> {
+                    var redisKey = toRedisKey(key);
+
+                    // Write key, keep with nx the position of existing keys
+                    write.hset(redisKey, toFields(key, value));
+                    write.zadd(getOrderKey(), ZAddArgs.Builder.nx(), System.currentTimeMillis(), redisKey);
+
+                    if (ttl == null) {
+                        write.persist(redisKey);
+                    } else {
+                        write.pexpire(redisKey, ttl.toMillis());
+                    }
+                }
+
+                case AttributeAssignment.UnboundValue(var key) -> {
+                    var redisKey = toRedisKey(key);
+                    write.del(redisKey);
+                    write.zrem(getOrderKey(), redisKey);
+                }
+                }
+            }
+            // Start the EXEC block
+            write.publish(BATCH_CHANNEL_PREFIX + pdpId, pdpId);
+            write.exec();
+        }
+
+        // update your own view
+        loadFromDB();
+    }
+
+    @Override
+    public StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate) {
+        return internalRepository.observeState(pdpId, configurationId, onUpdate);
+    }
+
     private static List<Value> jsonToValues(@Nullable String json) {
         if (json == null || json.isBlank()) {
             return List.of();
@@ -355,18 +402,24 @@ public final class RedisAttributeRepository implements AttributeRepository {
         return (ArrayValue) ValueJsonMarshaller.json(json);
     }
 
-    @Override
-    public void setBatchRunner(Consumer<Runnable> batchRunner) {
-        this.batchRunner.set(batchRunner);
+    private static String valuesToJson(List<Value> values) {
+        return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
     }
 
-    private interface ExcludedMethods {
-        void publish(RepositoryKey key, Value value);
+    // table of content for the Redis keys
+    private String getOrderKey() {
+        return ORDER_KEY_PREFIX + pdpId;
+    }
 
-        void publish(RepositoryKey key, Value value, Duration ttl);
-
-        void remove(RepositoryKey key);
-
-        void close();
+    // Helper: converts into the right Redis fields
+    private Map<String, String> toFields(RepositoryKey key, Value value) {
+        var fields = new HashMap<String, String>();
+        fields.put(FIELD_NAME, key.name());
+        fields.put(FIELD_ARGUMENTS, valuesToJson(key.arguments()));
+        fields.put(FIELD_VALUE, ValueJsonMarshaller.toJsonString(value));
+        if (key.entity() != null) {
+            fields.put(FIELD_ENTITY, ValueJsonMarshaller.toJsonString(key.entity()));
+        }
+        return fields;
     }
 }

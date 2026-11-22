@@ -18,20 +18,22 @@
 package io.sapl.extensions.attributerepository;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
-import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.RepositoryState;
 import lombok.NonNull;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -73,14 +75,15 @@ public class RoutingAttributeRepository implements AttributeRepository {
     private final ConcurrentHashMap<RouteKey, Disposable>              pendingBuilds       = new ConcurrentHashMap<>();
     private final AtomicBoolean                                        closed              = new AtomicBoolean(false);
     private final ConcurrentHashMap<RouteKey, Set<PendingObservation>> waitingObservations = new ConcurrentHashMap<>();
-    private final AtomicReference<Consumer<Runnable>>                  batchRunner         = new AtomicReference<>(
-            Runnable::run);
 
     // Holds back a observe call if the repository is still building
     private record PendingObservation(
-            AttributeFinderInvocation inv,
-            Consumer<Value> onValue,
-            AtomicReference<Registration> liveRegistration) {}
+            String pdpId,
+            String configurationId,
+            Consumer<RepositoryState> onUpdate,
+            AtomicReference<StateRegistration> live,
+            AtomicBoolean attached,
+            AtomicBoolean closed) {}
 
     // Routing key used by the router to identify the right repository from a
     // request
@@ -96,65 +99,45 @@ public class RoutingAttributeRepository implements AttributeRepository {
     }
 
     /**
-     * Routes the invocation {@code inv} to the repository built for its pdp id and
-     * configuration id. Queues the invocation if the repository is unknown or not
-     * connected.
+     * Routes the observation to the repository built for its pdp id and
+     * configuration id. While it's unknown or still building the observer
+     * starts unavailable and is attached once it's built.
      */
     @Override
-    public Registration observe(@NonNull AttributeFinderInvocation inv, @NonNull Consumer<Value> onValue) {
-        val key        = new RouteKey(inv.pdpId(), inv.configurationId());
+    public StateRegistration observeState(@NonNull String pdpId, @NonNull String configurationId,
+            @NonNull Consumer<RepositoryState> onUpdate) {
+        val key        = new RouteKey(pdpId, configurationId);
         val repository = cache.get(key);
 
         if (repository != null) {
-            return repository.observe(inv, onValue);
+            return repository.observeState(pdpId, configurationId, onUpdate);
         }
 
-        val configId = key.configurationId();
-        val message  = pendingBuilds.containsKey(key) ? ERROR_REPOSITORY_STILL_BUILDING.formatted(configId)
-                : ERROR_REPOSITORY_UNKNOWN.formatted(configId);
-        onValue.accept(Value.error(message));
+        val message = pendingBuilds.containsKey(key) ? ERROR_REPOSITORY_STILL_BUILDING.formatted(configurationId)
+                : ERROR_REPOSITORY_UNKNOWN.formatted(configurationId);
+        val initial = new RepositoryState(0L, Map.of(), Value.error(message));
+        val pending = new PendingObservation(pdpId, configurationId, onUpdate, new AtomicReference<>(),
+                new AtomicBoolean(false), new AtomicBoolean(false));
 
-        val liveRegistration = new AtomicReference<Registration>();
-        val pending          = new PendingObservation(inv, onValue, liveRegistration);
         waitingObservations.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(pending);
 
-        return () -> {
-            Optional.ofNullable(waitingObservations.get(key)).ifPresent(set -> set.remove(pending));
-            Optional.ofNullable(liveRegistration.getAndSet(null)).ifPresent(Registration::close);
+        // If the repo was built in between
+        Optional.ofNullable(cache.get(key)).ifPresent(built -> attach(pending, built));
+
+        return new StateRegistration() {
+
+            @Override
+            public RepositoryState initialState() {
+                return initial;
+            }
+
+            @Override
+            public void close() {
+                pending.closed.set(true);
+                Optional.ofNullable(waitingObservations.get(key)).ifPresent(set -> set.remove(pending));
+                Optional.ofNullable(pending.live().getAndSet(null)).ifPresent(Registration::close);
+            }
         };
-    }
-
-    /**
-     * Not supported. This class only routes {@link #observe} calls.
-     *
-     * @throws UnsupportedOperationException The current implementation doesn't need
-     * a publish on that level.
-     */
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Not supported. This class only routes {@link #observe} calls.
-     *
-     * @throws UnsupportedOperationException The current implementation doesn't need
-     * a publish on that level.
-     */
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Not supported. This class only routes {@link #observe} calls.
-     *
-     * @throws UnsupportedOperationException The current implementation doesn't need
-     * a publish on that level.
-     */
-    @Override
-    public void remove(@NonNull RepositoryKey key) {
-        throw new UnsupportedOperationException();
     }
 
     /**
@@ -204,13 +187,11 @@ public class RoutingAttributeRepository implements AttributeRepository {
         }
 
         cache.put(key, repository);
-        repository.setBatchRunner(batchRunner.get());
         activateConfiguration(key.pdpId(), key.configurationId());
 
         val waiting = waitingObservations.remove(key);
         if (waiting != null) {
-            waiting.forEach(
-                    pending -> pending.liveRegistration().set(repository.observe(pending.inv(), pending.onValue())));
+            waiting.forEach(pending -> attach(pending, repository));
         }
     }
 
@@ -317,10 +298,25 @@ public class RoutingAttributeRepository implements AttributeRepository {
                 .map(configId -> rawConfig.get(new RouteKey(pdpId, configId)));
     }
 
-    @Override
-    public void setBatchRunner(Consumer<Runnable> batchRunner) {
-        this.batchRunner.set(batchRunner);
-        cache.values().forEach(repository -> repository.setBatchRunner(batchRunner));
+    // Connects a waiting observer to the built repository. It's done exactly once.
+    private static void attach(PendingObservation pending, AttributeRepository repository) {
+        if (!pending.attached().compareAndSet(false, true)) {
+            return;
+        }
+
+        val registration = repository.observeState(pending.pdpId(), pending.configurationId(),
+                state -> pending.onUpdate().accept(shifted(state)));
+        pending.live().set(registration);
+        if (pending.closed().get()) {
+            registration.close();
+            return;
+        }
+        pending.onUpdate().accept(shifted(registration.initialState()));
+    }
+
+    // Helper: increase the number for built repositories
+    private static RepositoryState shifted(RepositoryState state) {
+        return new RepositoryState(state.revision() + 1, state.bindings(), state.unavailable());
     }
 
     private String rejectReason(ObjectValue config) {
@@ -334,5 +330,15 @@ public class RoutingAttributeRepository implements AttributeRepository {
             return REASON_NO_PROVIDER.formatted(type, available);
         }
         return REASON_INVALID_FIELDS.formatted(type);
+    }
+
+    /**
+     * Not supported. This class only routes observations.
+     *
+     * @throws UnsupportedOperationException always
+     */
+    @Override
+    public void publish(@NonNull List<AttributeAssignment> assignments) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -17,15 +17,18 @@
  */
 package io.sapl.extensions.attributerepository.mongo;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.val;
 import reactor.core.publisher.Mono;
-
 import org.awaitility.Awaitility;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,7 +41,6 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -49,9 +51,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -178,6 +180,32 @@ class MongoAttributeRepositoryTests {
             if (ttl != null) {
                 assertThatThrownBy(() -> repository.publish(key, value)).isInstanceOf(NullPointerException.class);
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("When a list of assignments is published")
+    class WhenListIsPublished {
+        @Test
+        @DisplayName("then an empty list has no effect")
+        void thenEmptyHasNoEffect() {
+            assertThatCode(() -> repository.publish(List.of())).doesNotThrowAnyException();
+        }
+
+        @ParameterizedTest
+        @NullSource
+        @DisplayName("then a null list is rejected")
+        void thenNullListIsRejected(List<AttributeAssignment> assignments) {
+            assertThatThrownBy(() -> repository.publish(assignments)).isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        @DisplayName("then an assignment of a unknown pdp id is rejected")
+        void thenForeignPdpIdIsRejected() {
+            val unknown     = new RepositoryKey(null, "sapl.test", List.of(), "unknown-tenant");
+            val assignments = List
+                    .<AttributeAssignment>of(new AttributeAssignment.BoundValue(unknown, Value.of(1), null));
+            assertThatThrownBy(() -> repository.publish(assignments)).isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -376,17 +404,15 @@ class MongoAttributeRepositoryTests {
         }
 
         @Test
-        @DisplayName("then expired rows are deleted from the table while reloading")
-        void thenExpiredRowsAreDeletedWhileReloading() {
+        @DisplayName("then expired documents are not loaded while reloading")
+        void thenExpiredDocumentsAreDeletedWhileReloading() {
             newTemplate().insert(new Document("pdpId", PDP_ID).append("name", ATTRIBUTE2).append("entity", null)
                     .append("arguments", "[]").append("value", "\"old\"")
                     .append("expiresAt", Date.from(Instant.now().minusSeconds(60))), COLLECTION).block();
 
             try (val repo2 = newRepository(PDP_ID, COLLECTION)) {
-                Long count = newTemplate()
-                        .count(new Query(Criteria.where("pdpId").is(PDP_ID).and("name").is(ATTRIBUTE2)), COLLECTION)
-                        .block();
-                assertThat(count).isZero();
+                repo2.observe(invocation(PDP_ID, null, ATTRIBUTE2, List.of()), received::add);
+                assertThat(firstReceived()).isEqualTo(Value.UNDEFINED);
             }
         }
     }
@@ -438,38 +464,41 @@ class MongoAttributeRepositoryTests {
     }
 
     @Nested
-    @DisplayName("when batch mode is used")
-    class WhenBatchModeIsUsed {
-        List<Document> keys  = List
-                .of(new Document("name", "batch.attribute").append("entity", null).append("arguments", "[]"));
-        Document       batch = new Document("pdpId", "test-tenant").append("keys", keys);
-        AtomicInteger  runs  = new AtomicInteger();
+    @DisplayName("when a reload fails")
+    class WhenReloadFails {
+        // own client with an own app name that it doesn't cause fails in the real client
+        private final MongoClient           repoClient = MongoClients.create(
+                MongoClientSettings.builder().applyConnectionString(new ConnectionString(mongo.getConnectionString()))
+                        .applicationName("temp-client").build());
+        private final ReactiveMongoTemplate template   = new ReactiveMongoTemplate(
+                new SimpleReactiveMongoDatabaseFactory(repoClient, "sapl"));
 
         @Test
-        @DisplayName("then a batch document is processed")
-        void thenBatchDocumentIsProcessed() {
-            setBatchRunner();
-            newTemplate().insert(batch, "attribute_batches").block();
-            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
+        @DisplayName("then the reload is retried until it succeeds")
+        void thenReloadIsRetried() {
+            try (val repo = new MongoAttributeRepository(template, "test-tenant", "attributes")) {
+                repo.observe(invocation("sapl.test.retry"), received::add);
+
+                // Let exactly ONE find fail (it's the next reload)
+                runAdminCommand(
+                        new Document("configureFailPoint", "failCommand").append("mode", new Document("times", 1))
+                                .append("data", new Document("failCommands", List.of("find")).append("errorCode", 2)
+                                        .append("appName", "temp-client")));
+
+                newTemplate().insert(
+                        new Document("pdpId", "test-tenant").append("name", "sapl.test.retry").append("entity", null)
+                                .append("arguments", "[]").append("value", "\"newValue\"").append("expiresAt", null),
+                        "attributes").block();
+
+                // Only retry brings the new value
+                Awaitility.await().atMost(Duration.ofSeconds(10))
+                        .until(() -> Value.of("newValue").equals(lastReceived()));
+            }
         }
 
-        @Test
-        @DisplayName("then a batch document for a valid attribute is processed")
-        void thenBatchDocumentForValidAttributeIsProcessed() {
-            setBatchRunner();
-            repository.publish(key("batch.attribute"), Value.of("batch"));
-            repository.observe(invocation("test-tenant", null, "batch.attribute", List.of()), received::add);
-            newTemplate().insert(batch, "attribute_batches").block();
-
-            Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> runs.get() == 1);
-            assertThat(lastReceived()).isEqualTo(Value.of("batch"));
-        }
-
-        private void setBatchRunner() {
-            repository.setBatchRunner(changes -> {
-                runs.incrementAndGet();
-                changes.run();
-            });
+        @AfterEach
+        void closeClients() {
+            repoClient.close();
         }
     }
 }

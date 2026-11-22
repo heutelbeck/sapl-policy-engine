@@ -18,7 +18,6 @@
 package io.sapl.extensions.attributerepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -293,11 +292,6 @@ class RoutingAttributeRepositoryTests {
             assertThat(received).containsExactly(Value.UNDEFINED);
         }
 
-        @Test
-        @DisplayName("then a batch runner is handed to the cached repositories")
-        void thenSetBatchRunnerViaTheRouter() {
-            assertThatCode(() -> router.setBatchRunner(Runnable::run)).doesNotThrowAnyException();
-        }
     }
 
     private static PDPConfiguration configForInMemory(String pdpId, String configId) {

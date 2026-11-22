@@ -21,39 +21,45 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
-
+import io.sapl.attributes.broker.repository.RepositoryState;
+import com.mongodb.ClientSessionOptions;
 import com.mongodb.client.model.changestream.FullDocument;
 import lombok.NonNull;
-import lombok.experimental.Delegate;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.ReactiveMongoTransactionManager;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.dao.DataAccessException;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.LinkedHashMap;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
+import com.mongodb.reactivestreams.client.ClientSession;
+
 import org.springframework.data.mongodb.core.CollectionOptions;
 import reactor.util.retry.Retry.RetrySignal;
 
@@ -74,6 +80,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private static final String ERROR_RECONNECT_GIVEN_UP   = "Giving up reconnecting to notification stream for pdpId '{}' after repeated failures";
     private static final String ERROR_BACKEND_DISCONNECTED = "The backend is currently disconnected for pdp with id %s.";
     private static final String ERROR_RESYNC_FAILED        = "Resync attempt failed for pdp with id '{}' : {}";
+    private static final String ERROR_HANDLE_CHANGE_EVENT  = "Error while handling a change stream event for pdpId '{}'";
+    private static final String ERROR_FOREIGN_PDP_ID       = "Assignment for pdpId '%s' rejected by repository for pdpId '%s'.";
 
     private static final String FIELD_PDP_ID     = "pdpId";
     private static final String FIELD_NAME       = "name";
@@ -81,34 +89,27 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private static final String FIELD_ARGUMENTS  = "arguments";
     private static final String FIELD_VALUE      = "value";
     private static final String FIELD_EXPIRES_AT = "expiresAt";
-    private static final String BATCH_COLLECTION = "attribute_batches";
-    private static final String FIELD_KEYS       = "keys";
 
-    private final AtomicReference<Consumer<Runnable>> batchRunner = new AtomicReference<>(Runnable::run);
+    private static final Duration LOAD_TIMEOUT       = Duration.ofMinutes(2);
+    private static final Duration LOAD_IDLE_TIMEOUT  = Duration.ofSeconds(5);
+    private static final Duration RELOAD_RETRY_DELAY = Duration.ofSeconds(1);
 
-    // Delegate Pattern . observer(), close() etc are generated
-    @Delegate(excludes = ExcludedMethods.class)
     private final InMemoryAttributeRepository internalRepository;
-
-    private interface ExcludedMethods {
-        void publish(RepositoryKey key, Value value);
-
-        void publish(RepositoryKey key, Value value, Duration ttl);
-
-        void remove(RepositoryKey key);
-
-        void close();
-    }
-
-    private final ReactiveMongoTemplate mongo;
-    private final String                collection;
-    private final String                pdpId;
+    private final ReactiveMongoTemplate       mongo;
+    private final TransactionalOperator       transactions;
+    private final ReentrantLock               reloadLock = new ReentrantLock();
+    private final String                      collection;
+    private final String                      pdpId;
+    private Map<RepositoryKey, ViewEntry>     lastView   = Map.of();
 
     // Used to mark cached attributes as unavailable while disconnected
     private final AtomicBoolean               disconnected             = new AtomicBoolean(false);
+    private final AtomicReference<Disposable> reloadRetry              = new AtomicReference<>();
     private final AtomicReference<Disposable> changeStreamSubscription = new AtomicReference<>();
     private final AtomicReference<Disposable> resyncSubscription       = new AtomicReference<>();
     private volatile boolean                  closed                   = false;
+
+    private record ViewEntry(Value value, @Nullable Instant expiresAt) {}
 
     /**
      * Creates the object for the Mongo attribute repository to communicate with the
@@ -121,13 +122,15 @@ public final class MongoAttributeRepository implements AttributeRepository {
      */
     public MongoAttributeRepository(ReactiveMongoTemplate mongo, String pdpId, String collection) {
         this.mongo              = mongo;
+        this.transactions       = TransactionalOperator
+                .create(new ReactiveMongoTransactionManager(mongo.getMongoDatabaseFactory()));
         this.pdpId              = pdpId;
         this.collection         = collection;
-        this.internalRepository = new InMemoryAttributeRepository(this::deleteFromDB);
+        this.internalRepository = new InMemoryAttributeRepository();
         configureChangeStreamPrePostImages();
         createIndexes();
-        loadFromDB();
         subscribeToChangeStream();
+        loadFromDB();
     }
 
     @Override
@@ -139,6 +142,11 @@ public final class MongoAttributeRepository implements AttributeRepository {
         if (resync != null) {
             resync.dispose();
         }
+
+        var retry = reloadRetry.get();
+        if (retry != null) {
+            retry.dispose();
+        }
         internalRepository.close();
     }
 
@@ -146,8 +154,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
     // Replica sets are also working with a single node and are used together with
     // change streams.
     private void subscribeToChangeStream() {
-        changeStreamSubscription.set(Flux.merge(openChangeStream(collection), openChangeStream(BATCH_COLLECTION))
-                .filter(this::isForPdpId).publishOn(Schedulers.boundedElastic())
+        changeStreamSubscription.set(openChangeStream(collection).filter(this::isForPdpId).onBackpressureLatest()
+                .publishOn(Schedulers.boundedElastic(), 1)
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
                         .transientErrors(true).filter(throwable -> !closed)
                         .doBeforeRetry(this::handleChangeStreamRetry))
@@ -158,17 +166,12 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private void handleChangeStreamRetry(RetrySignal signal) {
         log.warn(WARN_RECONNECTING, pdpId, signal.failure().getMessage());
         if (disconnected.compareAndSet(false, true)) {
-            var keys = new HashSet<>(internalRepository.knownKeys());
-            keys.addAll(internalRepository.observedKeys());
-            for (var key : keys) {
-                internalRepository.publish(key, Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId)));
-            }
+            markAsDisconnected();
             resyncFromMongoWithRetry();
         }
     }
 
-    // Reconnects with a retry-backoff logic and loads all attributes from the
-    // backend if successful
+    // Reconnects with retry-backoff logic. Loads all attributes from the DB
     private void resyncFromMongoWithRetry() {
         resyncSubscription.set(Mono.fromRunnable(this::loadFromDB)
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
@@ -177,9 +180,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .subscribe(v -> {}, error -> log.error(ERROR_RESYNC_FAILED, pdpId, error.getMessage())));
     }
 
-    // Opens the change stream when the first subscription is happening and
-    // activated pre-image for deletes on the
-    // change stream
+    // Open change stream when first subscription. Activates pre-images for deletes
     private Flux<ChangeStreamEvent<Document>> openChangeStream(String watchedCollection) {
         return Flux.defer(() -> mongo.changeStream(Document.class)
                 .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP)
@@ -196,28 +197,12 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
     // Handles change stream event for publish/delete events from a transaction
     private void processChangeStreamEvent(ChangeStreamEvent<Document> event) {
-        if (BATCH_COLLECTION.equals(event.getCollectionName())) {
-            handleBatch(Objects.requireNonNull(event.getBody()));
-            return;
+        try {
+            loadFromDB();
+        } catch (RuntimeException e) {
+            log.error(ERROR_HANDLE_CHANGE_EVENT, pdpId, e);
+            scheduleReloadRetry();
         }
-
-        var eventResult = event.getRaw();
-        if (eventResult != null && eventResult.getTxnNumber() != null) {
-            return;
-        }
-
-        // Handle the delete events first because the body is always null on delete
-        // events
-        if (isDeleteEvent(event)) {
-            var doc = Objects.requireNonNull(event.getBodyBeforeChange());
-            internalRepository.remove(repositoryKeyFromDocument(doc));
-            return;
-        }
-
-        var doc = Objects.requireNonNull(event.getBody());
-        var key = repositoryKeyFromDocument(doc);
-
-        updateCacheFromDocument(key, doc);
     }
 
     // Check if the event is a delete event to distinguish the behaviour in handling
@@ -227,81 +212,64 @@ public final class MongoAttributeRepository implements AttributeRepository {
     }
 
     // Converter to convert a Mongo document into an repository key object
-    private RepositoryKey repositoryKeyFromDocument(Document doc) {
+    private RepositoryKey toKey(Document doc) {
         var entityJson = doc.getString(FIELD_ENTITY);
         return new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
                 doc.getString(FIELD_NAME), jsonArrayToValues(doc.getString(FIELD_ARGUMENTS)), pdpId);
     }
 
-    // Publish the repository key from a Mongo document
-    private void updateCacheFromDocument(RepositoryKey key, Document doc) {
-        var valueJson = doc.getString(FIELD_VALUE);
-        var value     = ValueJsonMarshaller.json(valueJson);
-        var expiresAt = expirationFromDocument(doc);
-
-        if (expiresAt == null) {
-            internalRepository.publish(key, value);
-            return;
-        }
-
-        var remaining = Duration.between(Instant.now(), expiresAt);
-        if (!remaining.isNegative())
-            internalRepository.publish(key, value, remaining);
-    }
-
-    // Extract expiry from a document to use it for change stream handling
-    private static Instant expirationFromDocument(Document doc) {
-        var dateField = doc.getDate(FIELD_EXPIRES_AT);
-        return dateField != null ? dateField.toInstant() : null;
+    private ViewEntry toViewEntry(Document doc) {
+        var value     = doc.getString(FIELD_VALUE);
+        var expiresAt = doc.getDate(FIELD_EXPIRES_AT);
+        return new ViewEntry(ValueJsonMarshaller.json(value), expiresAt != null ? expiresAt.toInstant() : null);
     }
 
     // Loads all attributes again. Adds current and removes stale keys
     private void loadFromDB() {
-        var query    = new Query(Criteria.where(FIELD_PDP_ID).is(pdpId));
-        var seenKeys = new HashSet<RepositoryKey>();
+        reloadLock.lock();
 
-        mongo.find(query, Document.class, collection).toStream().forEach(doc -> restoreDocumentToCache(doc, seenKeys));
+        try {
+            var newView = new HashMap<RepositoryKey, ViewEntry>();
+            var now     = Instant.now();
+            var query   = new Query(new Criteria().andOperator(Criteria.where(FIELD_PDP_ID).is(pdpId),
+                    new Criteria().orOperator(Criteria.where(FIELD_EXPIRES_AT).is(null),
+                            Criteria.where(FIELD_EXPIRES_AT).gt(now))));
 
-        removeStaleCacheEntries(seenKeys);
-    }
+            // Snapshot session. Get all documents at once from a certain snapshot
+            var docs = Objects.requireNonNull(mongo.withSession(ClientSessionOptions.builder().snapshot(true).build())
+                    .execute(ops -> ops.find(query, Document.class, collection), ClientSession::close)
+                    .timeout(LOAD_IDLE_TIMEOUT).collectList().block());
 
-    /**
-     * Delete the attribute for the given attribute key from the database.
-     *
-     * @param key the attribute key.
-     */
-    public void deleteFromDB(@NonNull RepositoryKey key) {
-        mongo.remove(buildMongoQuery(key), collection).block();
-    }
+            // View of the current state in DB
+            for (var doc : docs) {
+                newView.put(toKey(doc), toViewEntry(doc));
+            }
 
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value) {
-        internalRepository.publish(key, value);
-        upsertToDB(key, value, null);
-    }
+            // Build the changes of the current known keys to bound values
+            var changes = new ArrayList<AttributeAssignment>();
+            for (var item : newView.entrySet()) {
+                var key   = item.getKey();
+                var entry = item.getValue();
+                var old   = lastView.get(key);
 
-    @Override
-    public void publish(@NonNull RepositoryKey key, @NonNull Value value, @NonNull Duration ttl) {
-        internalRepository.publish(key, value, ttl);
-        upsertToDB(key, value, Instant.now().plus(ttl));
-    }
+                if (old == null || !old.equals(entry)) {
+                    var ttl = entry.expiresAt() != null ? Duration.between(now, entry.expiresAt()) : null;
+                    changes.add(new AttributeAssignment.BoundValue(key, entry.value(), ttl));
+                }
+            }
 
-    // Upsert repository key+value with optional ttl to collection
-    private void upsertToDB(RepositoryKey key, Value value, @Nullable Instant expiresAt) {
-        var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
-        var argsJson   = valuesToJsonArray(key.arguments());
-        var valueJson  = ValueJsonMarshaller.toJsonString(value);
+            // Build the changes of the current known keys to unbound values
+            for (var key : lastView.keySet()) {
+                if (!newView.containsKey(key)) {
+                    changes.add(new AttributeAssignment.UnboundValue(key));
+                }
+            }
 
-        var update = new Update().set(FIELD_PDP_ID, pdpId).set(FIELD_NAME, key.name()).set(FIELD_ENTITY, entityJson)
-                .set(FIELD_ARGUMENTS, argsJson).set(FIELD_VALUE, valueJson).set(FIELD_EXPIRES_AT, expiresAt);
-
-        mongo.upsert(buildMongoQuery(key), update, collection).block();
-    }
-
-    @Override
-    public void remove(@NonNull RepositoryKey key) {
-        internalRepository.remove(key);
-        deleteFromDB(key);
+            internalRepository.publish(changes);
+            lastView = newView;
+        } finally {
+            reloadLock.unlock();
+        }
     }
 
     // Builder for the correct query
@@ -312,48 +280,6 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .is(entityJson).and(FIELD_ARGUMENTS).is(argsJson);
 
         return new Query(criteria);
-    }
-
-    private static String valuesToJsonArray(List<Value> values) {
-        return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
-    }
-
-    private static List<Value> jsonArrayToValues(String json) {
-        return (ArrayValue) ValueJsonMarshaller.json(json);
-    }
-
-    private void restoreDocumentToCache(Document doc, Set<RepositoryKey> seenKeys) {
-        var entityJson = doc.getString(FIELD_ENTITY);
-        var argsJson   = doc.getString(FIELD_ARGUMENTS);
-        var valueJson  = doc.getString(FIELD_VALUE);
-        var value      = ValueJsonMarshaller.json(valueJson);
-        var expiresAt  = expirationFromDocument(doc);
-        var key        = new RepositoryKey(entityJson != null ? ValueJsonMarshaller.json(entityJson) : null,
-                doc.getString(FIELD_NAME), jsonArrayToValues(argsJson), pdpId);
-
-        if (expiresAt == null) {
-            internalRepository.publish(key, value);
-            seenKeys.add(key);
-            return;
-        }
-
-        var remainingTTL = Duration.between(Instant.now(), expiresAt);
-        if (remainingTTL.isNegative()) {
-            deleteFromDB(key);
-            return;
-        }
-
-        internalRepository.publish(key, value, remainingTTL);
-        seenKeys.add(key);
-    }
-
-    // Removes stale keys from the internal cache. For resync after disconnect
-    private void removeStaleCacheEntries(Set<RepositoryKey> seenKeys) {
-        for (var staleKey : internalRepository.knownKeys()) {
-            if (!seenKeys.contains(staleKey)) {
-                internalRepository.remove(staleKey);
-            }
-        }
     }
 
     // Check if collection exists with the right configuration
@@ -377,6 +303,60 @@ public final class MongoAttributeRepository implements AttributeRepository {
         }
     }
 
+    @Override
+    public void publish(@NonNull List<AttributeAssignment> assignments) {
+        if (assignments.isEmpty()) {
+            return;
+        }
+
+        // Fallback: foreign assignments aren't executed
+        for (var assignment : assignments) {
+            if (!pdpId.equals(assignment.key().pdpId())) {
+                throw new IllegalArgumentException(ERROR_FOREIGN_PDP_ID.formatted(assignment.key().pdpId(), pdpId));
+            }
+        }
+
+        var writes = Flux.fromIterable(assignments).concatMap(assignment -> switch (assignment) {
+        case AttributeAssignment.BoundValue(var key, var value, var ttl) -> mongo.upsert(buildMongoQuery(key),
+                updateFor(key, value, ttl != null ? Instant.now().plus(ttl) : null), collection).then();
+        case AttributeAssignment.UnboundValue(var key)                   ->
+            mongo.remove(buildMongoQuery(key), collection).then();
+        });
+
+        writes.then().as(transactions::transactional).timeout(LOAD_TIMEOUT).block();
+
+        // update your own view
+        loadFromDB();
+    }
+
+    // Sets the update statement properly
+    private Update updateFor(RepositoryKey key, Value value, @Nullable Instant expiresAt) {
+        var entityJson = key.entity() != null ? ValueJsonMarshaller.toJsonString(key.entity()) : null;
+        return new Update().set(FIELD_PDP_ID, pdpId).set(FIELD_NAME, key.name()).set(FIELD_ENTITY, entityJson)
+                .set(FIELD_ARGUMENTS, valuesToJsonArray(key.arguments()))
+                .set(FIELD_VALUE, ValueJsonMarshaller.toJsonString(value)).set(FIELD_EXPIRES_AT, expiresAt);
+    }
+
+    private void markAsDisconnected() {
+        reloadLock.lock();
+        try {
+            var error     = Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId));
+            var changes   = new ArrayList<AttributeAssignment>();
+            var errorView = new HashMap<RepositoryKey, ViewEntry>();
+
+            for (var key : lastView.keySet()) {
+                changes.add(new AttributeAssignment.BoundValue(key, error, null));
+                errorView.put(key, new ViewEntry(error, null));
+            }
+            internalRepository.publish(changes);
+            lastView = errorView;
+
+        } finally {
+            reloadLock.unlock();
+        }
+    }
+
+    // Create the necessary Mongo indexes if missing (e.g. on startup)
     private void createIndexes() {
         mongo.indexOps(collection)
                 .createIndex(new Index().on(FIELD_PDP_ID, Sort.Direction.ASC).on(FIELD_NAME, Sort.Direction.ASC)
@@ -386,24 +366,37 @@ public final class MongoAttributeRepository implements AttributeRepository {
                 .createIndex(new Index().on(FIELD_EXPIRES_AT, Sort.Direction.ASC).expire(Duration.ZERO)).block();
     }
 
-    private void handleBatch(Document batch) {
-        var rows = new LinkedHashMap<RepositoryKey, Document>();
-        for (var keyDoc : batch.getList(FIELD_KEYS, Document.class)) {
-            var key = repositoryKeyFromDocument(keyDoc);
-            rows.put(key, mongo.findOne(buildMongoQuery(key), Document.class, collection).block());
+    private void scheduleReloadRetry() {
+        if (closed || disconnected.get()) {
+            return;
         }
 
-        batchRunner.get().accept(() -> rows.forEach((key, doc) -> {
-            if (doc == null) {
-                internalRepository.remove(key);
-            } else {
-                updateCacheFromDocument(key, doc);
+        var retry = Mono.delay(RELOAD_RETRY_DELAY, Schedulers.boundedElastic()).subscribe(tick -> {
+            try {
+                loadFromDB();
+            } catch (RuntimeException e) {
+                log.error(ERROR_HANDLE_CHANGE_EVENT, pdpId, e);
+                scheduleReloadRetry();
             }
-        }));
+        });
+
+        // Avoid multiple reloads
+        var previous = reloadRetry.getAndSet(retry);
+        if (previous != null) {
+            previous.dispose();
+        }
     }
 
     @Override
-    public void setBatchRunner(Consumer<Runnable> batchRunner) {
-        this.batchRunner.set(batchRunner);
+    public StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate) {
+        return internalRepository.observeState(pdpId, configurationId, onUpdate);
+    }
+
+    private static String valuesToJsonArray(List<Value> values) {
+        return ValueJsonMarshaller.toJsonString(Value.ofArray(values));
+    }
+
+    private static List<Value> jsonArrayToValues(String json) {
+        return (ArrayValue) ValueJsonMarshaller.json(json);
     }
 }
