@@ -26,6 +26,7 @@ import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -193,6 +194,12 @@ public class PriorityBasedVoteCombiner {
 
         val contributingVotes = appendToList(accumulatorVote.contributingVotes(), newVote);
 
+        val conflictingEffect = accumulatorVote.conflictingTransformationEffect();
+        if (conflictingEffect != null) {
+            return combineConflictingTransformations(accumulatorVote, conflictingEffect, newVote, priorityDecision,
+                    contributingVotes, voterMetadata);
+        }
+
         // NOT_APPLICABLE seed: keep an INDETERMINATE replacement's errors, which
         // concreteResult would drop. Decision and outcome are unchanged.
         if (accDec == Decision.NOT_APPLICABLE) {
@@ -213,7 +220,7 @@ public class PriorityBasedVoteCombiner {
             // Same decision - check transformation uncertainty and merge
             if (accDec == priorityDecision) {
                 return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote,
-                        voterMetadata);
+                        voterMetadata, null);
             }
             // New priority wins, unless accumulated error is critical
             if (accDec == Decision.INDETERMINATE && isCritical(accumulatorVote.outcome(), priorityDecision)) {
@@ -259,7 +266,8 @@ public class PriorityBasedVoteCombiner {
 
         // Same concrete decision - merge constraints
         if (accDec == newDec) {
-            return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata);
+            return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata,
+                    accDec);
         }
 
         // Priority via accumulator wins. Winner-only authz and outcome,
@@ -275,6 +283,23 @@ public class PriorityBasedVoteCombiner {
         return concreteResult(winner.authorizationDecision(), winner.outcome(), contributingVotes, voterMetadata);
     }
 
+    private static Vote combineConflictingTransformations(Vote accumulator, Decision conflictingEffect, Vote incoming,
+            Decision priorityDecision, List<Vote> contributingVotes, VoterMetadata voterMetadata) {
+        val decision = incoming.authorizationDecision().decision();
+        if (decision == Decision.INDETERMINATE && isCritical(incoming.outcome(), priorityDecision)) {
+            return indeterminateResult(combineOutcomes(accumulator.outcome(), incoming.outcome()), incoming.errors(),
+                    contributingVotes, voterMetadata);
+        }
+        // The conflicting effect is below the priority. Only a strictly higher concrete can replace it.
+        if (decision == priorityDecision
+                || (decision != conflictingEffect && decision == nonPriorityChainHead(priorityDecision))) {
+            return concreteResult(incoming.authorizationDecision(), incoming.outcome(), contributingVotes,
+                    voterMetadata);
+        }
+        return new Vote(accumulator.authorizationDecision(), accumulator.errors(), contributingVotes, voterMetadata,
+                accumulator.outcome(), conflictingEffect);
+    }
+
     /**
      * Merges two votes that share the same concrete decision. Caller invariant:
      * both votes are concrete and
@@ -286,15 +311,16 @@ public class PriorityBasedVoteCombiner {
      * agreed decision).
      */
     private static Vote handleSameDecision(AuthorizationDecision accAuthz, AuthorizationDecision newAuthz,
-            List<Vote> contributingVotes, Vote accVote, Vote newVote, VoterMetadata voterMetadata) {
+            List<Vote> contributingVotes, Vote accVote, Vote newVote, VoterMetadata voterMetadata,
+            @Nullable Decision conflictingEffect) {
         val resourceA = accAuthz.resource();
         val resourceB = newAuthz.resource();
         // Transformation uncertainty: both define different resources. Identical
         // transformations are unambiguous and merge, matching UnanimousVoteCombiner.
         if (!Value.UNDEFINED.equals(resourceA) && !Value.UNDEFINED.equals(resourceB) && !resourceA.equals(resourceB)) {
             val transformationError = Value.error(ERROR_TRANSFORMATION_UNCERTAINTY);
-            return indeterminateResult(combineOutcomes(accVote.outcome(), newVote.outcome()),
-                    List.of(transformationError), contributingVotes, voterMetadata);
+            return new Vote(AuthorizationDecision.INDETERMINATE, List.of(transformationError), contributingVotes,
+                    voterMetadata, combineOutcomes(accVote.outcome(), newVote.outcome()), conflictingEffect);
         }
         val merged = mergeConstraints(accAuthz, newAuthz);
         return concreteResult(merged, combineOutcomes(accVote.outcome(), newVote.outcome()), contributingVotes,

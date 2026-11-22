@@ -21,6 +21,8 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
@@ -31,6 +33,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -576,6 +579,68 @@ class PriorityBasedVoteCombinerTests {
             val result = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote, TEST_METADATA);
 
             assertThat(result.outcome()).isEqualTo(Outcome.DENY);
+        }
+    }
+
+    @Nested
+    @DisplayName("Conflicting transformations on the winning effect")
+    class ConflictingTransformations {
+
+        static Vote permitConflict() {
+            return PriorityBasedVoteCombiner
+                    .combineMultipleVotes(List.of(permitWithResource("onsite", Value.of("floor")),
+                            permitWithResource("remote", Value.of("zone"))), Decision.DENY, TEST_METADATA);
+        }
+
+        @ParameterizedTest(name = "order {0}, {1}, {2}")
+        @CsvSource({ "0,1,2", "0,2,1", "1,0,2", "1,2,0", "2,0,1", "2,1,0" })
+        @DisplayName("an additional permit leaves both distinct transformed resources ambiguous")
+        void whenWinningTransformationsDisagreeThenEveryOrderIsIndeterminate(int first, int second, int third) {
+            val votes   = List.of(permitWithResource("onsite", Value.of("floor")),
+                    permitWithResource("remote", Value.of("zone")), permitWithObligations("audit", Value.of("log")));
+            val ordered = List.of(votes.get(first), votes.get(second), votes.get(third));
+            val result  = PriorityBasedVoteCombiner.combineMultipleVotes(ordered, Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision()).isEqualTo(AuthorizationDecision.INDETERMINATE);
+            assertThat(result.errors()).hasSize(1);
+            assertThat(result.contributingVotes()).containsExactlyElementsOf(ordered);
+        }
+
+        @ParameterizedTest(name = "higher effect {0}")
+        @EnumSource(value = Decision.class, names = { "DENY", "SUSPEND" })
+        @DisplayName("a higher concrete effect defeats the conflicting permits")
+        void whenAHigherConcreteEffectAppliesThenItsConstraintsWin(Decision effect) {
+            val outcome = Outcome.valueOf(effect.name());
+            val winner  = Vote.of(effect, ArrayValue.builder().add(Value.of("review")).build(), Value.EMPTY_ARRAY,
+                    Value.UNDEFINED, testMetadata("inspection", outcome));
+            val result  = PriorityBasedVoteCombiner.combineMultipleVotes(permitConflict(), List.of(winner),
+                    Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision()).isEqualTo(winner.authorizationDecision());
+            assertThat(result.outcome()).isEqualTo(outcome);
+        }
+
+        @ParameterizedTest(name = "error outcome {0}")
+        @EnumSource(value = Outcome.class, names = { "DENY", "SUSPEND" })
+        @DisplayName("only a critical evaluation error replaces the transformation diagnostic")
+        void whenAnErrorFollowsTheConflictThenCriticalitySelectsTheDiagnostic(Outcome outcome) {
+            val conflict = permitConflict();
+            val error    = indeterminateVote("inspection", outcome);
+            val result   = PriorityBasedVoteCombiner.combineVotes(conflict, error, Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision()).isEqualTo(AuthorizationDecision.INDETERMINATE);
+            assertThat(result.errors()).isEqualTo(outcome == Outcome.DENY ? error.errors() : conflict.errors());
+        }
+
+        @Test
+        @DisplayName("a conflict within a finalized child contributes its ordinary indeterminate outcome")
+        void whenAFinalizedSetConflictIsNoncriticalThenTheParentCanPermit() {
+            val child   = permitConflict().finalizeVote(DefaultDecision.DENY, ErrorHandling.PROPAGATE);
+            val sibling = permitWithObligations("supervisor", Value.of("log"));
+            val result  = PriorityBasedVoteCombiner.combineMultipleVotes(List.of(child, sibling), Decision.DENY,
+                    TEST_METADATA);
+
+            assertThat(result.authorizationDecision()).isEqualTo(sibling.authorizationDecision());
         }
     }
 
