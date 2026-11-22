@@ -230,17 +230,19 @@ public class JWTKeyProvider {
         }
 
         val resolvedUri = publicKeyUri.replace("{kid}", kid);
+        val secure      = isSecureScheme(resolvedUri);
+        if (!secure && !allowInsecureHttp) {
+            log.warn(WARN_JWT_KEY_SERVER_INSECURE_SCHEME, resolvedUri, kid);
+            return Optional.empty();
+        }
+
         pruneCache();
         val cached = keyCache.get(new CacheKey(resolvedUri, kid));
         if (null != cached) {
             return Optional.of(cached);
         }
 
-        if (!isSecureScheme(resolvedUri)) {
-            if (!allowInsecureHttp) {
-                log.warn(WARN_JWT_KEY_SERVER_INSECURE_SCHEME, resolvedUri, kid);
-                return Optional.empty();
-            }
+        if (!secure) {
             log.warn(WARN_JWT_KEY_SERVER_INSECURE_ALLOWED, kid, resolvedUri);
         }
 

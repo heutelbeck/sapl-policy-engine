@@ -17,27 +17,23 @@
  */
 package io.sapl.conformance;
 
-import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.SubscriptionKey;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.conformance.ConformanceCorpus.Case;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.sapl.util.SaplTesting.compilationContext;
 import static io.sapl.util.SaplTesting.compileExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 
-/** Outcomes of individual expression rounds, including every reached attribute occurrence. */
+/** Expression outcomes for a fixed input map and a live broker observing an atomic repository publication. */
 @UtilityClass
 class StreamRoundOutcomes {
 
@@ -47,39 +43,23 @@ class StreamRoundOutcomes {
         val written = new ArrayList<String>();
         for (val input : source.expectation().lines().filter(line -> "given".equals(line) || line.startsWith("given "))
                 .toList()) {
-            val observations = new HashMap<SubscriptionKey, AttributeSnapshot>();
-            for (val assignment : input.split(" ")) {
-                if ("given".equals(assignment)) {
-                    continue;
-                }
-                val pair  = assignment.split("=", 2);
-                val name  = pair[0];
-                val read  = name.startsWith("^") ? "|<" + name.substring(1) + ">" : "<" + name + ">";
-                val leaf  = (StreamOperator) compileExpression(read, compilationContext());
-                val key   = leaf.evaluate(context.withSnapshot(Map.of())).dependencies().keySet().iterator().next();
-                val value = switch (pair[1]) {
-                          case "undefined" -> Value.UNDEFINED;
-                          case "error"     -> Value.error("Source offline.");
-                          default          -> ValueJsonMarshaller.json(pair[1]);
-                          };
-                observations.put(key, new AttributeSnapshot(value, Instant.EPOCH));
-            }
-            val result  = root.evaluate(context.withSnapshot(Map.copyOf(observations)));
-            val value   = result.result();
-            val outcome = switch (value) {
-                        case null               -> "pending";
-                        case ErrorValue ignored -> "error";
-                        default                 -> value.toString();
-                        };
-            val reads   = result.dependencies().entrySet().stream()
-                    .flatMap(entry -> entry.getValue().stream()
-                            .map(site -> (entry.getKey().head() ? "^" : "")
-                                    + entry.getKey().invocation().attributeName() + "@" + site.location().start()))
-                    .sorted().collect(Collectors.joining(" "));
+            val fixture = GivenAttributes.read(input);
+            val result  = root.evaluate(context.withSnapshot(fixture.observations()));
             written.add(input);
-            written.add("result " + outcome);
-            written.add(reads.isEmpty() ? "reads" : "reads " + reads);
+            written.add("result " + outcome(result.result()));
+            written.add(GivenAttributes.reads(result.dependencies()));
+            written.add("repository " + outcome(fixture.first(snapshot -> root.evaluate(context.withSnapshot(snapshot)),
+                    ExpressionResult::result, round -> round.dependencies().keySet())));
         }
         return source.withExpectation(String.join("\n", written));
+    }
+
+    private static String outcome(Value value) {
+        return switch (value) {
+        case null               -> "pending";
+        case ErrorValue ignored -> "error";
+        case UndefinedValue u   -> "undefined";
+        default                 -> ValueJsonMarshaller.toJsonString(value);
+        };
     }
 }

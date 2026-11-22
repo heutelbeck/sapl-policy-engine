@@ -21,6 +21,7 @@ import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
 import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -36,8 +37,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,13 +53,17 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.AttributeSnapshot;
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
@@ -66,8 +73,10 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.api.stream.Stream;
 import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.api.TestAttributeBroker;
 import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
@@ -77,6 +86,7 @@ import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.pdp.configuration.PdpVoterSource;
+import io.sapl.pdp.plugins.MutablePluginsSource;
 import io.sapl.pdp.plugins.PluginsBundle;
 
 import lombok.val;
@@ -89,6 +99,98 @@ class BlockingPolicyDecisionPointRobustnessTests {
 
     @Mock
     private FunctionBroker functionBroker;
+
+    @Test
+    @Timeout(15)
+    @DisplayName("closing a single stream ends its lifetime after both decision interceptors finish")
+    void whenCloseDuringDecisionThenAllInterceptorsPrecedeUnsubscribe() throws Exception {
+        val lifecycle     = new RecordingListener(1);
+        val entered       = new CompletableFuture<String>();
+        val retired       = new CompletableFuture<Void>();
+        val awaitingClose = new CountDownLatch(1);
+        val second        = new CompletableFuture<List<String>>();
+        try (val broker = new TestAttributeBroker();
+                val components = PolicyDecisionPointBuilder.withoutDefaults().withAttributeBroker(broker)
+                        .withSubscriptionLifecycleListener(lifecycle)
+                        .withDecisionInterceptor((trace, timestamp, id, sub) -> {
+                            entered.complete(id);
+                            retired.orTimeout(5, TimeUnit.SECONDS).join();
+                            // Disregard interruption from retiring the configuration that produced this vote.
+                            Thread.interrupted();
+                            awaitingClose.countDown();
+                            try {
+                                lifecycle.unsubscribed.await(5, TimeUnit.SECONDS);
+                            } catch (InterruptedException cancellation) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }).withDecisionInterceptor((trace, timestamp, id, sub) -> {
+                            if (trace.authorizationDecision().equals(AuthorizationDecision.PERMIT)) {
+                                second.complete(List.copyOf(lifecycle.closedIds));
+                            }
+                        }).build()) {
+            broker.register("access.granted", Value.TRUE);
+            broker.register("access.pending");
+            val source = components.pdpVoterSource();
+            source.loadConfiguration(configuration("policy \"allow\" permit <access.granted>;"));
+            try (val stream = components.pdp().decide(SUB)) {
+                val subscriptionId = entered.get(5, TimeUnit.SECONDS);
+                // Detach the producer while the original decision callback is still running.
+                source.loadConfiguration(configuration("policy \"pending\" permit <access.pending>;"));
+                await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(broker.subscribedKeys())
+                        .extracting(key -> key.invocation().attributeName()).containsExactly("access.pending"));
+                retired.complete(null);
+                assertThat(awaitingClose.await(5, TimeUnit.SECONDS)).isTrue();
+                stream.close();
+
+                assertThat(second.get(7, TimeUnit.SECONDS)).as("IDs already closed when the second interceptor entered")
+                        .isEmpty();
+                assertThat(lifecycle.unsubscribed.await(5, TimeUnit.SECONDS)).isTrue();
+                assertThat(lifecycle.closedIds).containsExactly(subscriptionId);
+            } finally {
+                retired.complete(null);
+            }
+        }
+    }
+
+    @Test
+    @Timeout(15)
+    @DisplayName("single decision interceptors observe equal evaluations before public decisions are deduplicated")
+    void whenTwoConfigurationsPermitThenInterceptorsObserveBothEvaluations() throws Exception {
+        val observed = new LinkedBlockingQueue<AuthorizationDecision>();
+        val limit    = Duration.ofSeconds(5);
+        try (val components = PolicyDecisionPointBuilder.withoutDefaults()
+                .withDecisionInterceptor((trace, timestamp, id, sub) -> observed.add(trace.authorizationDecision()))
+                .build()) {
+            val source = components.pdpVoterSource();
+            source.loadConfiguration(configuration("policy \"first approval\" permit"));
+            try (val stream = components.pdp().decide(SUB)) {
+                assertThat(stream.awaitNext(limit)).isEqualTo(AuthorizationDecision.PERMIT);
+                assertThat(observed.poll(5, TimeUnit.SECONDS)).isEqualTo(AuthorizationDecision.PERMIT);
+
+                source.loadConfiguration(configuration("policy \"second approval\" permit"));
+                assertThat(observed.poll(5, TimeUnit.SECONDS)).isEqualTo(AuthorizationDecision.PERMIT);
+                source.loadConfiguration(configuration("policy \"revoked\" deny"));
+                assertThat(stream.awaitNext(limit)).isEqualTo(AuthorizationDecision.DENY);
+                assertThat(observed.poll(5, TimeUnit.SECONDS)).isEqualTo(AuthorizationDecision.DENY);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("natural completion delivers the empty group result and closing discards it")
+    void whenClosedBeforeReadingThenEmptyGroupHasNoDecisionToDeliver() throws Exception {
+        val group = new MultiAuthorizationSubscription();
+        try (val components = PolicyDecisionPointBuilder.withoutDefaults().build();
+                val completed = components.pdp().decideAll(group);
+                val cancelled = components.pdp().decideAll(group)) {
+            assertThat(completed.awaitNext(Duration.ofSeconds(5)).getDecision(""))
+                    .isEqualTo(AuthorizationDecision.INDETERMINATE);
+            assertThat(completed.tryNext()).isEqualTo(Poll.done());
+            cancelled.close();
+            assertThat(cancelled.tryNext()).isEqualTo(Poll.done());
+            assertThat(cancelled.awaitNext(Duration.ofSeconds(5))).isNull();
+        }
+    }
 
     @Nested
     @DisplayName("listener isolation (L19)")
@@ -168,6 +270,74 @@ class BlockingPolicyDecisionPointRobustnessTests {
         @SuppressWarnings("unchecked")
         private <E extends Throwable> void sneakyThrow(Throwable t) throws E {
             throw (E) t;
+        }
+    }
+
+    @Nested
+    @DisplayName("listener lifetimes across plugin replacement")
+    class ListenerReloadTests {
+
+        @Mock
+        private SubscriptionLifecycleListener reload;
+
+        @Timeout(15)
+        @EnumSource(SubscriptionMode.class)
+        @ParameterizedTest(name = "{0} pairs opening and closing callbacks across plugin replacement")
+        void whenPluginsChangeDuringSubscriptionThenOriginalListenersReceiveItsClosingCallbacks(SubscriptionMode mode)
+                throws Exception {
+            val other       = subscription("visitor", "read", "file");
+            val items       = switch (mode) {
+                            case ONCE, SINGLE        -> List.of(SUB);
+                            case IDENTIFIABLE, GROUP -> List.of(SUB, other);
+                            };
+            val original    = new RecordingListener(items.size());
+            val replacement = new RecordingListener(1);
+            val witness     = new RecordingListener(items.size());
+            val initial     = new PluginsBundle(functionBroker, List.of(), List.of(original, reload, witness));
+            val next        = new PluginsBundle(functionBroker, List.of(), List.of(replacement, witness));
+            try (val plugins = new MutablePluginsSource(initial);
+                    val components = PolicyDecisionPointBuilder.withoutDefaults().withPluginsSource(plugins).build()) {
+                doAnswer(call -> {
+                    plugins.publish(next);
+                    return null;
+                }).doNothing().when(reload).onSubscribe(anyString(), any(), anyString());
+                components.pdpVoterSource().loadConfiguration(configuration("policy \"allow\" permit"));
+                val pdp   = components.pdp();
+                val group = new MultiAuthorizationSubscription().addSubscription("first", SUB).addSubscription("second",
+                        other);
+                switch (mode) {
+                case ONCE         -> assertThat(pdp.decideOnce(SUB).decision()).isEqualTo(Decision.PERMIT);
+                case SINGLE       -> awaitAndClose(pdp.decide(SUB));
+                case IDENTIFIABLE -> awaitAndClose(pdp.decide(group));
+                case GROUP        -> awaitAndClose(pdp.decideAll(group));
+                }
+
+                // The common listener runs last, regardless of which plugin set received the close.
+                assertThat(witness.unsubscribed.await(5, TimeUnit.SECONDS)).isTrue();
+                assertThat(pdp.decideOnce(other).decision()).isEqualTo(Decision.PERMIT);
+                assertLifetime(original, items);
+                assertLifetime(replacement, List.of(other));
+            }
+        }
+
+        private static void awaitAndClose(Stream<?> stream) throws Exception {
+            try (stream) {
+                assertThat(stream.awaitNext(Duration.ofSeconds(5))).isNotNull();
+            }
+        }
+
+        private static void assertLifetime(RecordingListener listener, List<AuthorizationSubscription> expected) {
+            assertThat(listener.subscribed).extracting(ObservedSubscription::subscription)
+                    .containsExactlyInAnyOrderElementsOf(expected);
+            assertThat(listener.closedIds).doesNotHaveDuplicates().containsExactlyInAnyOrderElementsOf(
+                    listener.subscribed.stream().map(ObservedSubscription::id).toList());
+        }
+
+        private enum SubscriptionMode {
+            ONCE,
+            SINGLE,
+            IDENTIFIABLE,
+            GROUP
         }
     }
 
@@ -286,6 +456,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
                 assertThat(callbacks).containsExactlyInAnyOrder(local, guest);
                 callbacks.clear();
 
+                available.setDecision("local", AuthorizationDecision.DENY);
                 source.loadConfiguration(
                         configuration(DENY_UNLESS_PERMIT, "policy \"local access\" permit subject == \"local\";"));
                 val restricted = stream.awaitNext(limit);

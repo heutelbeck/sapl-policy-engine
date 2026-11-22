@@ -49,7 +49,7 @@ public record StreamAttributeFinderSpecification(
         @NonNull StreamAttributeFinder attributeFinder) {
 
     public StreamAttributeFinderSpecification {
-        requireValidName(fullyQualifiedName());
+        requireValidName(namespace + '.' + attributeName);
         parameterTypes = List.copyOf(parameterTypes);
     }
 

@@ -18,6 +18,7 @@
 package io.sapl.functions.geo.conformance;
 
 import io.sapl.conformance.ConformanceCorpus;
+import io.sapl.conformance.ConformanceLibraries;
 import io.sapl.conformance.ConformanceCorpus.Case;
 import io.sapl.conformance.FunctionCatalogue;
 import org.junit.jupiter.api.DisplayName;
@@ -32,8 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * The geographic library against its cases in the function corpus, and the
- * catalogue of all libraries the corpus covers, which only this class path
- * holds completely.
+ * catalogue of all libraries the corpus covers, which this module can load.
  */
 @Tag("conformance")
 @DisplayName("Geographic function library against the conformance corpus")
@@ -53,8 +53,9 @@ class GeographicFunctionLibraryConformanceTests {
     }
 
     @Test
-    @DisplayName("all libraries the corpus covers are described as the function catalogue states")
+    @DisplayName("the available libraries are described as the function catalogue states")
     void whenLibrariesAreDescribedThenTheyMatchTheFunctionCatalogue() {
-        assertThat(FunctionCatalogue.catalogue()).isEqualTo(FunctionCatalogue.stated());
+        assertThat(FunctionCatalogue.catalogue())
+                .isEqualTo(ConformanceLibraries.withoutAbsentLibraries(FunctionCatalogue.stated()));
     }
 }

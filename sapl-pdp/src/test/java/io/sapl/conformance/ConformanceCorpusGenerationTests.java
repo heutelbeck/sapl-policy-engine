@@ -57,6 +57,10 @@ class ConformanceCorpusGenerationTests {
                 arguments("diagnostics", (UnaryOperator<Case>) DiagnosticReports::withReport),
                 arguments("several-mistakes", (UnaryOperator<Case>) DiagnosticReports::withReport),
                 arguments("evaluation", (UnaryOperator<Case>) EvaluationOutcomes::withOutcome),
+                arguments("configuration-votes", (UnaryOperator<Case>) PolicyVoteOutcomes::configurationOutcome),
+                arguments("configuration-coverage", (UnaryOperator<Case>) ConfigurationCoverageOutcomes::withOutcome),
+                arguments("policy-coverage", (UnaryOperator<Case>) PolicyCoverageOutcomes::withOutcome),
+                arguments("policy-votes", (UnaryOperator<Case>) PolicyVoteOutcomes::withOutcome),
                 arguments("stream-rounds", (UnaryOperator<Case>) StreamRoundOutcomes::withOutcome),
                 arguments("functions", (UnaryOperator<Case>) FunctionOutcomes::withOutcome));
     }

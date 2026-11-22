@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -47,6 +48,8 @@ import lombok.val;
  * The TTL scheduler commits expiries. Each registration delivers expiry updates
  * on an independent worker, coalescing outstanding notifications into the
  * latest complete tenant view. A blocked observer cannot hold up another expiry.
+ * Closing with multiple live registrations delivers their terminal views on
+ * independent workers and waits for those deliveries before returning.
  */
 @Slf4j
 public final class InMemoryAttributeRepository implements AttributeRepository {
@@ -131,7 +134,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
     @Override
     public void close() {
-        val terminal = new ArrayList<Delivery>();
+        val terminal = new ArrayList<Runnable>();
         synchronized (lock) {
             if (closed) {
                 return;
@@ -140,7 +143,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             observers.forEach((pdpId, bucket) -> {
                 val revision    = states.getOrDefault(pdpId, EMPTY).revision() + 1;
                 val unavailable = new RepositoryState(revision, Map.of(), Value.error(ERROR_CLOSED));
-                terminal.add(new Delivery(unavailable, List.copyOf(bucket)));
+                bucket.forEach(observer -> terminal.add(() -> observer.deliver(unavailable)));
             });
             observers.clear();
             timers.values().forEach(timer -> timer.cancel(false));
@@ -148,7 +151,14 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             states.clear();
         }
         scheduler.shutdownNow();
-        terminal.forEach(Delivery::fire);
+        if (terminal.size() <= 1) {
+            terminal.forEach(Runnable::run);
+            return;
+        }
+        // Start every registration before waiting for any terminal callback to finish.
+        try (val workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            terminal.forEach(workers::execute);
+        }
     }
 
     private void cancelTimer(RepositoryKey key) {
@@ -222,13 +232,17 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                 }
                 current = states.get(pdpId);
             }
-            deliver(current);
+            deliver(current, onUpdate instanceof StateListener listener ? listener.onExpiry() : onUpdate);
         }
 
-        void deliver(RepositoryState state) {
+        private void deliver(RepositoryState state) {
+            deliver(state, onUpdate);
+        }
+
+        private void deliver(RepositoryState state, Consumer<RepositoryState> listener) {
             if (!observerClosed) {
                 try {
-                    onUpdate.accept(state);
+                    listener.accept(state);
                 } catch (RuntimeException failure) {
                     log.error(ERROR_OBSERVER, pdpId, failure);
                 }

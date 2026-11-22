@@ -23,6 +23,7 @@ import static io.sapl.api.shared.NameValidator.requireValidName;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Function;
 
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
@@ -58,12 +59,17 @@ public class FunctionCallCompiler {
 
     public static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
             CompilationContext ctx) {
+        return compile(functionName, arguments, location, argument -> ExpressionCompiler.compile(argument, ctx));
+    }
+
+    static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
+            Function<Expression, CompiledExpression> compileArgument) {
         if (arguments.isEmpty()) {
             return new NoArgsFunction(validateFunctionName(functionName, location), location);
         }
 
         val     inputs    = CompilationChildren.pair(() -> validateFunctionName(functionName, location),
-                () -> CompilationChildren.map(arguments, argument -> ExpressionCompiler.compile(argument, ctx)));
+                () -> CompilationChildren.map(arguments, compileArgument));
         val     compiled  = inputs.second();
         boolean hasStream = false;
         for (val result : compiled) {

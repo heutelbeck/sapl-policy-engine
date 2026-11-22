@@ -27,6 +27,9 @@ package io.sapl.api.pdp;
  * {@link #onUnsubscribe(String)} call when the stream ends (normally,
  * via error, or via consumer cancellation). In a group, each item has its
  * own lifetime across attribute updates and PDP configuration changes.
+ * The PDP selects the listeners once when opening a subscription or group.
+ * They receive the closing callbacks even if the plugins change in the meantime.
+ * Subscriptions opened after replacement use the new listeners.
  * <p>
  * Listeners are observability concerns: misbehaving listeners must not
  * affect authorization correctness. The PDP catches and logs exceptions

@@ -194,6 +194,56 @@ class RepositoryAdmissionTests {
         }
     }
 
+    @Test
+    @DisplayName("a failed repository handoff terminates the managed reader before it can receive a retired grant")
+    void whenARepositoryRegistrationFailsDuringPipUnloadThenItsPreparedGrantCannotReachTheReader() throws Exception {
+        val           source       = new ViewSource();
+        val           entered      = new CompletableFuture<Void>();
+        val           resume       = new CompletableFuture<Void>();
+        val           unloading    = new AtomicReference<Thread>();
+        val           failNext     = new AtomicBoolean();
+        val           clockFailure = new DateTimeException("Observation clock stopped.");
+        InstantSource clock        = () -> {
+                                       if (unloading.compareAndSet(Thread.currentThread(), null)) {
+                                           entered.complete(null);
+                                           resume.orTimeout(LIMIT.toMillis(), TimeUnit.MILLISECONDS).join();
+                                       }
+                                       if (failNext.getAndSet(false)) {
+                                           throw clockFailure;
+                                       }
+                                       return Instant.EPOCH;
+                                   };
+        val           target       = key();
+        val           other        = key("ward.department");
+        val           failures     = new CopyOnWriteArrayList<RuntimeException>();
+        val           values       = new CopyOnWriteArrayList<Value>();
+        try (val broker = new PolicyInformationPointAttributeBroker(Duration.ZERO, source, clock);
+                val resident = broker.open("resident", Set.of(other), inputs -> Set.of(other))) {
+            val pip = broker.load(new Palette(LatestSlotStream::new));
+            try (val reader = broker.open("reader", Set.of(target), new AttributeSubscriptionObserver(inputs -> {
+                values.add(inputs.get(target).value());
+                return Set.of(target);
+            }, failures::add))) {
+                val removal = CompletableFuture.runAsync(() -> {
+                    unloading.set(Thread.currentThread());
+                    pip.unload();
+                }, Thread::startVirtualThread);
+                try {
+                    entered.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS);
+                    val registration = source.observers.getFirst();
+                    registration.accept(view(2, Value.TRUE));
+                    failNext.set(true);
+                    registration.accept(view(3, Value.FALSE));
+                } finally {
+                    resume.complete(null);
+                }
+                removal.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS);
+                assertThat(values).doesNotContain(Value.TRUE);
+                assertThat(failures).containsExactly(clockFailure);
+            }
+        }
+    }
+
     private static RepositoryState view(long revision, Value value) {
         return new RepositoryState(revision, Map.of(KEY, new RepositoryState.Binding(revision, value)), null);
     }

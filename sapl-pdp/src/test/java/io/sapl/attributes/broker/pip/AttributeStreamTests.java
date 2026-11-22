@@ -440,11 +440,11 @@ class AttributeStreamTests {
 
         void error(RuntimeException e) {
             backing.put(Value.error(e.getMessage()));
-            backing.close();
+            backing.complete();
         }
 
         void complete() {
-            backing.close();
+            backing.complete();
         }
 
         @Override

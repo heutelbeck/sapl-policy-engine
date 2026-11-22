@@ -41,14 +41,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
-import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.model.AttributeSnapshot;
@@ -119,7 +118,8 @@ import lombok.val;
  * Capturing a consumer's input map uses that same lock. Thus no evaluation can
  * capture only half of a related repository update. Notifications are requested
  * after installation, outside the lock; the eventual round may use an even
- * newer view if updates coalesce.
+ * newer view if updates coalesce. An expiry worker requests these rounds on
+ * each subscription's coalescer asynchronously so it can admit later expiries.
  * <p>
  * New repository dependencies read from the installed complete view. Comparing
  * all active bindings is necessary when notifications skip intermediate
@@ -164,6 +164,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw). Ignoring this fire: {}";
     private static final String ERROR_REPOSITORY_CLOSE        = "Failed to close the repository observation for '{}'.";
     private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set). Ignoring this fire and keeping the current dependency set.";
+    private static final String ERROR_AMBIGUOUS_ATTRIBUTE     = "Cannot register PIP '%s': multiple declarations match attribute '%s' (parameter shape %s).";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
     private static final String ERROR_SOURCE_WAIT             = "A source cannot wait for another unfinished attribute registration.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
@@ -295,8 +296,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      *
      * @throws PipLoadException
      * if the class is not annotated, if any annotated method has an invalid
-     * signature, or if any of the
-     * instance's specs collides with an already-registered spec
+     * name or signature, or if two finder declarations can match the same
+     * name, receiver and argument shape with equal priority
      */
     public PipHandle load(@NonNull Object pipInstance) {
         val namespace = readNamespace(pipInstance);
@@ -370,6 +371,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         val              previous    = change.previous();
         val              invocation  = previous.invocation();
         ActiveInvocation replacement = null;
+        boolean          admitted;
         try {
             if (change.desired() != null) {
                 replacement = newActivePipInvocation(invocation, change.desired(), previous.sourceSpec() != null);
@@ -379,6 +381,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             } else {
                 replacement = newTerminalActiveInvocation(invocation);
             }
+            admitted = replaceRoutes(previous, replacement, change);
         } catch (RuntimeException failure) {
             if (replacement != null) {
                 release(replacement);
@@ -386,7 +389,16 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             failAdmission(previous, null, change, failure);
             return;
         }
-        migrate(previous, replacement, change);
+        if (!admitted) {
+            release(replacement);
+            return;
+        }
+        if (replacement instanceof ActivePolicyInformationPointInvocation) {
+            replacement.start();
+        }
+        release(previous);
+        dispatchValue(replacement);
+        reclaimIfOrphaned(replacement);
     }
 
     /**
@@ -661,22 +673,24 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static List<StreamAttributeFinderSpecification> extractSpecs(Object instance, String namespace) {
         val specs = new ArrayList<StreamAttributeFinderSpecification>();
         for (Method method : instance.getClass().getMethods()) {
-            if (!method.isAnnotationPresent(Attribute.class)
-                    && !method.isAnnotationPresent(EnvironmentAttribute.class)) {
-                continue;
-            }
+            StreamAttributeFinderSpecification spec;
             try {
-                val spec = StreamAttributeMethodSignatureProcessor.processAttributeMethod(instance, namespace, method);
-                if (spec != null) {
-                    specs.add(spec);
-                    log.trace("Processed attribute '{}' ({} fixed parameter(s){})", spec.fullyQualifiedName(),
-                            spec.parameterTypes().size(), spec.hasVariableNumberOfArguments() ? " plus varargs" : "");
-                }
+                spec = StreamAttributeMethodSignatureProcessor.processAttributeMethod(instance, namespace, method);
             } catch (RuntimeException e) {
                 val attrFqn = namespace + '.' + method.getName();
                 log.debug("Failed to process attribute method '{}': {}", attrFqn, e.getMessage());
                 throw new PipLoadException(ERROR_LOAD_PROCESSOR_FAILED.formatted(attrFqn, e.getMessage()), e);
             }
+            if (spec == null) {
+                continue;
+            }
+            if (specs.stream().anyMatch(spec::collidesWith)) {
+                throw new PipLoadException(
+                        ERROR_AMBIGUOUS_ATTRIBUTE.formatted(namespace, spec.fullyQualifiedName(), shapeOf(spec)));
+            }
+            specs.add(spec);
+            log.trace("Processed attribute '{}' ({} fixed parameter(s){})", spec.fullyQualifiedName(),
+                    spec.parameterTypes().size(), spec.hasVariableNumberOfArguments() ? " plus varargs" : "");
         }
         return specs;
     }
@@ -1035,11 +1049,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private void acquireRepository(RepositoryRoute route, RepositoryObservation observation) {
         AttributeRepository.StateRegistration candidate = null;
         try {
-            candidate = AttributeSourceCall.invoke(() -> fallback.observeState(route.pdpId(), route.configurationId(),
-                    state -> installRepositoryState(route, observation, state)));
+            val listener = new AttributeRepository.StateListener(
+                    state -> installRepositoryState(route, observation, state, BrokerSubscription::fireCallback),
+                    state -> installRepositoryState(route, observation, state, BrokerSubscription::fireCallbackAsync));
+            candidate = AttributeSourceCall
+                    .invoke(() -> fallback.observeState(route.pdpId(), route.configurationId(), listener));
             val lease   = candidate;
             val initial = AttributeSourceCall.invoke(lease::initialState);
-            installRepositoryState(route, observation, initial);
+            listener.accept(initial);
             Set<BrokerSubscription> affected = Set.of();
             lock.lock();
             try {
@@ -1054,7 +1071,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
             affected.forEach(BrokerSubscription::fireCallback);
         } catch (RuntimeException failure) {
-            failRepository(route, observation, null, failure);
+            failRepository(route, observation, null, failure, BrokerSubscription::fireCallback);
         } finally {
             if (candidate != null) {
                 closeRegistration(route, candidate);
@@ -1067,8 +1084,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 && (observation.latest == null || state.revision() > observation.latest.revision());
     }
 
-    private void installRepositoryState(RepositoryRoute route, RepositoryObservation observation,
-            RepositoryState next) {
+    private void installRepositoryState(RepositoryRoute route, RepositoryObservation observation, RepositoryState next,
+            Consumer<BrokerSubscription> notifySubscriber) {
         lock.lock();
         try {
             if (!newer(route, observation, next)) {
@@ -1081,7 +1098,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         try {
             observedAt = observationTime();
         } catch (RuntimeException failure) {
-            failRepository(route, observation, next, failure);
+            failRepository(route, observation, next, failure, notifySubscriber);
             return;
         }
         Set<BrokerSubscription> affected;
@@ -1096,7 +1113,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         } finally {
             lock.unlock();
         }
-        affected.forEach(BrokerSubscription::fireCallback);
+        affected.forEach(notifySubscriber);
     }
 
     private static Set<BrokerSubscription> installProjections(RepositoryObservation observation) {
@@ -1111,7 +1128,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     private void failRepository(RepositoryRoute route, RepositoryObservation observation,
-            @Nullable RepositoryState failed, RuntimeException failure) {
+            @Nullable RepositoryState failed, RuntimeException failure, Consumer<BrokerSubscription> notifySubscriber) {
         val                                   affected = new HashSet<BrokerSubscription>();
         AttributeRepository.StateRegistration registration;
         lock.lock();
@@ -1124,6 +1141,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             registration = observation.registration;
             observation.opened.complete(failure);
             for (val active : observation.active) {
+                active.retire(failure);
                 val opening = openings.get(active);
                 if (opening != null) {
                     opening.ready.complete(failure);
@@ -1138,7 +1156,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         } finally {
             lock.unlock();
         }
-        affected.forEach(BrokerSubscription::fireCallback);
+        affected.forEach(notifySubscriber);
         if (registration != null) {
             closeRegistration(route, registration);
         }
@@ -1215,9 +1233,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     /**
      * Replaces {@code previous} with {@code replacement} in the per-invocation list
      * and in every subscribed consumer's
-     * routing table. Subscriber refcount is preserved across the swap. Starts
-     * {@code replacement} and closes
-     * {@code previous} after the state move is committed.
+     * routing table. A prepared repository projection must still belong to a live
+     * registration at this point. Subscriber refcount is preserved across the swap.
      * <p>
      * Used by catalog mutations to re-route active invocations when their source
      * changes. {@link #load} promotes
@@ -1226,19 +1243,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * demotes PIP-backed active invocations whose spec is gone to repository-backed
      * or terminal.
      */
-    private void migrate(ActiveInvocation previous, ActiveInvocation replacement, SourceChange change) {
-        if (!replaceRoutes(previous, replacement, change)) {
-            release(replacement);
-            return;
-        }
-        if (replacement instanceof ActivePolicyInformationPointInvocation) {
-            replacement.start();
-        }
-        release(previous);
-        dispatchValue(replacement);
-        reclaimIfOrphaned(replacement);
-    }
-
     private boolean replaceRoutes(ActiveInvocation previous, ActiveInvocation replacement, SourceChange change) {
         lock.lock();
         try {
@@ -1252,6 +1256,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             val index = residents.indexOf(previous);
             if (index < 0) {
                 return false;
+            }
+            if (replacement instanceof ActiveRepositoryInvocation repository) {
+                repository.checkAdmission();
             }
             if (replacement instanceof ActivePolicyInformationPointInvocation pip && previous.sourceSpec() != null
                     && replacement.sourceSpec() != null) {
@@ -1611,8 +1618,12 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             if (!AttributeSourceCall.active()) {
                 coalescer.requestFire();
             } else {
-                coalescer.requestFireAsync();
+                fireCallbackAsync();
             }
+        }
+
+        private void fireCallbackAsync() {
+            coalescer.requestFireAsync();
         }
 
         /**

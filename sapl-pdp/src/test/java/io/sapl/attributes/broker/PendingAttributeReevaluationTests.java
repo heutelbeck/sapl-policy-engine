@@ -37,9 +37,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.AttributeSnapshot;
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
@@ -47,8 +49,11 @@ import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import io.sapl.compiler.document.VoteResult;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
 import lombok.val;
 
+import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
+import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
 import static io.sapl.attributes.broker.BrokerEvalLoops.openWithHead;
 import static io.sapl.compiler.policy.PolicyCompiler.compilePolicy;
 import static io.sapl.util.SaplTesting.compilationContext;
@@ -106,6 +111,45 @@ class PendingAttributeReevaluationTests {
                 assertThat(completed.result().vote().authorizationDecision().decision())
                         .isEqualTo(Decision.NOT_APPLICABLE);
                 assertThat(terminations).isEmpty();
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("a pending group item leaves the following item's head advice frozen")
+    void whenEarlierItemIsPendingThenLaterItemKeepsItsFirstObservation() throws Exception {
+        val group = new MultiAuthorizationSubscription().addSubscription("alice", subscription("alice", "read", "file"))
+                .addSubscription("bob", subscription("bob", "read", "file"));
+        val items = group.iterator();
+        val first = items.next().subscriptionId();
+        val last  = items.next().subscriptionId();
+        val gate  = new RepositoryKey(null, "access.open", List.of(), "default");
+        val label = new RepositoryKey(null, "labels.value", List.of(), "default");
+        val limit = Duration.ofSeconds(5);
+        try (val pip = new PendingPip();
+                val repository = new InMemoryAttributeRepository();
+                val components = PolicyDecisionPointBuilder.withoutDefaults().withRepository(repository)
+                        .withPolicyInformationPoint(pip).build()) {
+            components.pdpVoterSource().loadConfiguration(configuration("""
+                    policy "approval" permit subject == "%s"; <access.open> || %s;""".formatted(first, PENDING_B), """
+                    policy "label" permit subject == "%s"; advice |<labels.value>""".formatted(last)));
+            repository.publish(
+                    List.of(new BoundValue(gate, Value.TRUE, null), new BoundValue(label, Value.of("original"), null)));
+            try (val stream = components.pdp().decideAll(group)) {
+                val initial = stream.awaitNext(limit);
+                assertThat(initial.getDecisionType(first)).isEqualTo(Decision.PERMIT);
+                assertThat(initial.getDecision(last).advice()).containsExactly(Value.of("original"));
+                assertThat(pip.opened).hasValue(0);
+
+                repository.publish(gate, Value.FALSE);
+                await().atMost(limit).untilAsserted(() -> assertThat(pip.opened).hasValue(1));
+                repository.publish(label, Value.of("updated"));
+                assertThat(stream.tryNext()).isEqualTo(Poll.empty());
+                pip.emit(Value.FALSE);
+
+                val revised = stream.awaitNext(limit);
+                assertThat(revised.getDecisionType(first)).isEqualTo(Decision.DENY);
+                assertThat(revised.getDecision(last)).isEqualTo(initial.getDecision(last));
             }
         }
     }

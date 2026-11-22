@@ -52,7 +52,8 @@ public class ConformanceLibraries {
      * of the library and the class that implements it.
      */
     private static final Map<String, String> DEPENDENT_LIBRARIES = Map.of("geo",
-            "io.sapl.functions.geo.GeographicFunctionLibrary");
+            "io.sapl.functions.geo.GeographicFunctionLibrary", "traccar",
+            "io.sapl.functions.geo.traccar.TraccarFunctionLibrary");
 
     private static final List<Object> LIBRARIES = Stream
             .of(DefaultLibraries.defaults().stream(), Stream.<Object>of(new MqttFunctionLibrary()),

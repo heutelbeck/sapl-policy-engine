@@ -82,17 +82,19 @@ public class CompilationContext {
     @Setter(AccessLevel.NONE)
     private int remainingMembershipExpansion = MAX_MEMBERSHIP_EXPANSION;
 
-    private String                          pdpId                    = "defaultPdp";
-    private String                          configurationId          = "defaultConfiguration";
-    private Document                        document;
-    private String                          documentSource;
-    final FunctionBroker                    functionBroker;
-    final PdpData                           data;
-    private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
-    private Set<String>                     localVariableNames       = new HashSet<>();
-    private final Map<Value, Value>         valueDedup               = new HashMap<>();
-    private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
-    private Map<IndexPredicate, Value>      foldingCache             = new HashMap<>();
+    private String                                pdpId                    = "defaultPdp";
+    private String                                configurationId          = "defaultConfiguration";
+    private Document                              document;
+    private String                                documentSource;
+    final FunctionBroker                          functionBroker;
+    final PdpData                                 data;
+    private Map<String, CompiledExpression>       documentVariablesInScope = new HashMap<>();
+    private Set<String>                           localVariableNames       = new HashSet<>();
+    private final Map<Value, Value>               valueDedup               = new HashMap<>();
+    @Getter(AccessLevel.NONE)
+    private final Map<ValueRepresentation, Value> orderedVariants          = new HashMap<>();
+    private ObjectValue                           compilerOptions          = Value.EMPTY_OBJECT;
+    private Map<IndexPredicate, Value>            foldingCache             = new HashMap<>();
 
     public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;
@@ -226,8 +228,18 @@ public class CompilationContext {
     }
 
     private Value dedupeValue(Value value) {
+        if (ValueRepresentation.containsError(value)) {
+            return value;
+        }
         val existing = valueDedup.putIfAbsent(value, value);
-        return existing != null ? existing : value;
+        if (existing == null || existing == value) {
+            return value;
+        }
+        if (ValueRepresentation.same(existing, value)) {
+            return existing;
+        }
+        // Equal objects can expose different wildcard orders. Keep a representative of each order.
+        return orderedVariants.computeIfAbsent(new ValueRepresentation(value), ValueRepresentation::value);
     }
 
     /**
@@ -251,7 +263,9 @@ public class CompilationContext {
         }
         val foldingContext = DummyEvaluationContextFactory.dummyContext(this);
         val result         = dedupeValue(po.evaluate(foldingContext));
-        foldingCache.put(key, result);
+        if (!ValueRepresentation.containsError(result)) {
+            foldingCache.put(key, result);
+        }
         return result;
     }
 
@@ -350,29 +364,15 @@ public class CompilationContext {
     }
 
     /**
-     * Whether the compiler should emit eager operator variants that subscribe
-     * all children in parallel for the lowest end-to-end decision latency, at
-     * the cost of subscribing to children whose values may turn out to be
-     * unneeded (after errors or short-circuit values resolve later children).
+     * Selects how policy condition coverage discovers streaming attributes. Both modes
+     * check constant and pure conditions first. When enabled (the default), the
+     * coverage voter gathers dependencies from all remaining streaming conditions in
+     * the current round. When disabled, it stops at the first missing value or false
+     * condition. Both record condition hits in evaluation order.
      * <p>
-     * When {@code true} (default): operators emit eager variants. Per
-     * evaluation pass they walk every child to accumulate the maximum
-     * subscription set, so the trigger loop can subscribe everything in
-     * parallel and converge in a single round.
-     * <p>
-     * When {@code false}: operators emit lazy variants. Per evaluation pass
-     * they short-circuit on the first {@code null} (incomplete) or
-     * {@link io.sapl.api.model.ErrorValue} child without subscribing later
-     * children. Smaller subscription set per round. Convergence may take
-     * multiple rounds for independent missing dependencies but never
-     * subscribes to children whose values turn out to be unneeded.
-     * <p>
-     * Observable result is identical across both modes. The difference is
-     * the per-pass subscription set size and the number of trigger-loop
-     * rounds to reach a stable answer.
+     * Ordinary policy evaluation follows the semantics of each SAPL expression.
      *
-     * @return {@code true} for eager subscription (low end-to-end latency),
-     * {@code false} for lazy subscription (minimal subscription cost)
+     * @return whether policy coverage gathers streaming conditions eagerly
      */
     public boolean lowLatencyMode() {
         return booleanCompilerOption(OPTION_LOW_LATENCY_MODE, DEFAULT_LOW_LATENCY_MODE);

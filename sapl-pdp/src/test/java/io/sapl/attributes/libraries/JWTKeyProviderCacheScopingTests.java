@@ -23,6 +23,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.json.JsonMapper;
@@ -156,13 +158,19 @@ class JWTKeyProviderCacheScopingTests {
     @DisplayName("https-by-default with explicit named opt-in")
     class SchemeEnforcement {
 
-        @Test
-        @DisplayName("a non-https key-server URI is rejected by default and no request is made")
-        void whenKeyServerUriIsHttpThenRejectedAndNoFetch() throws Exception {
+        @ParameterizedTest(name = "key cached = {0}")
+        @ValueSource(booleans = { false, true })
+        @DisplayName("the current configuration permits only HTTPS even when a key is cached")
+        void whenPlaintextIsDisabledThenTheKeyIsUnavailable(boolean cached) throws Exception {
             val httpClient = mock(HttpClient.class);
             val provider   = new JWTKeyProvider(httpClient, new MutableClock(NOW));
+            val config     = MAPPER.readTree("""
+                    {"uri":"http://idp-a/keys/{kid}"}
+                    """);
+            if (cached) {
+                provider.cache(JWTKeyProvider.resolveKeyServerUri(config, KID), KID, keyForServerA, 300_000L);
+            }
 
-            val config = MAPPER.readTree("{\"uri\":\"http://idp-a/keys/{kid}\"}");
             val result = provider.provide(KID, config);
 
             assertThat(result).isEmpty();

@@ -59,6 +59,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private final AtomicBoolean                         closed         = new AtomicBoolean();
 
     // Installed and read under the broker's routing lock.
+    private @Nullable RuntimeException         registrationFailure;
     private RepositoryState.@Nullable Presence previousKind;
     private RepositoryState.@Nullable Binding  binding;
     private Optional<AttributeSnapshot>        latestSnapshot = Optional.empty();
@@ -133,6 +134,16 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     public void close() {
         if (closed.compareAndSet(false, true)) {
             broker.stopRepositoryInvocation(this);
+        }
+    }
+
+    void retire(RuntimeException failure) {
+        registrationFailure = failure;
+    }
+
+    void checkAdmission() {
+        if (registrationFailure != null) {
+            throw registrationFailure;
         }
     }
 

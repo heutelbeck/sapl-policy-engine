@@ -232,7 +232,6 @@ public class HttpPolicyInformationPoint {
      * @param requestSettings request configuration object
      * @return a stream of response values
      */
-    @Attribute
     @EnvironmentAttribute(docs = """
             ```<get(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP GET request and
@@ -263,7 +262,6 @@ public class HttpPolicyInformationPoint {
      * @param requestSettings request configuration object
      * @return a stream of response values
      */
-    @Attribute
     @EnvironmentAttribute(docs = """
             ```<post(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP POST request and
@@ -292,7 +290,6 @@ public class HttpPolicyInformationPoint {
      * @param requestSettings request configuration object
      * @return a stream of response values
      */
-    @Attribute
     @EnvironmentAttribute(docs = """
             ```<put(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP PUT request and
@@ -321,7 +318,6 @@ public class HttpPolicyInformationPoint {
      * @param requestSettings request configuration object
      * @return a stream of response values
      */
-    @Attribute
     @EnvironmentAttribute(docs = """
             ```<patch(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP PATCH request and
@@ -350,7 +346,6 @@ public class HttpPolicyInformationPoint {
      * @param requestSettings request configuration object
      * @return a stream of response values
      */
-    @Attribute
     @EnvironmentAttribute(docs = """
             ```<delete(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and performs the matching HTTP DELETE
@@ -380,7 +375,6 @@ public class HttpPolicyInformationPoint {
      * @param requestSettings request configuration object
      * @return a stream of WebSocket message values
      */
-    @Attribute
     @EnvironmentAttribute(docs = """
             ```<websocket(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
             This attribute takes a ```requestSettings``` object as a parameter and connects to a Websocket and emits events

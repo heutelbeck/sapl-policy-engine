@@ -20,52 +20,64 @@ package io.sapl.api.stream;
 import io.sapl.api.model.Poll;
 import lombok.val;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ArrayDeque;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Producer-facing {@link Stream} backed by an unbounded FIFO queue.
- * Every value pushed via {@link #put(Object)} is delivered to the
- * consumer. No value is dropped. Use when ordered, full-fidelity
- * delivery is required and the consumer can keep up.
+ * Values pushed via {@link #put(Object)} remain queued until read or
+ * cancelled. Use when ordered delivery is required and the consumer can keep up.
  * <p>
  * Single producer, single consumer. Producers signal end-of-stream
- * via {@link #complete()} or via {@link #close()}; subsequent
- * {@link #awaitNext()} calls return {@code null} and {@link #tryNext()}
- * calls return {@link Poll.Done}.
+ * via {@link #complete()}, allowing the consumer to drain queued values.
+ * Consumer cancellation via {@link #close()} discards unread values.
  *
  * @param <T> the value type carried by this stream
  */
 public final class QueueStream<T> implements Stream<T> {
 
-    private static final Object COMPLETION_SENTINEL = new Object();
+    private final ArrayDeque<T> queue = new ArrayDeque<>();
+    private final ReentrantLock lock  = new ReentrantLock();
+    private final Condition     ready = lock.newCondition();
 
-    private final BlockingQueue<Object> queue  = new LinkedBlockingQueue<>();
-    private final AtomicBoolean         closed = new AtomicBoolean(false);
-
-    private volatile boolean completed   = false;
-    private Runnable         closeAction = () -> {};
+    private boolean  completed;
+    private boolean  closed;
+    private Runnable closeAction = () -> {};
 
     /**
      * Sets the action run when {@link #close()} is called. Used to
      * release any underlying subscription that feeds this stream.
+     *
+     * @param closeAction the cleanup to run on cancellation
      */
     public void onClose(Runnable closeAction) {
-        if (!closed.get()) {
-            this.closeAction = closeAction;
+        lock.lock();
+        try {
+            if (!closed) {
+                this.closeAction = closeAction;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
     /**
      * Appends a value to the queue. No effect after {@link #complete()}
      * or {@link #close()}.
+     *
+     * @param value the value to enqueue
      */
     public void put(T value) {
-        if (completed) {
-            return;
+        lock.lock();
+        try {
+            if (!completed) {
+                queue.addLast(value);
+                ready.signalAll();
+            }
+        } finally {
+            lock.unlock();
         }
-        queue.add(value);
     }
 
     /**
@@ -74,43 +86,56 @@ public final class QueueStream<T> implements Stream<T> {
      * {@link #tryNext()} returns {@link Poll.Done}. Idempotent.
      */
     public void complete() {
-        if (completed) {
-            return;
+        lock.lock();
+        try {
+            completed = true;
+            ready.signalAll();
+        } finally {
+            lock.unlock();
         }
-        completed = true;
-        queue.add(COMPLETION_SENTINEL);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public T awaitNext() throws InterruptedException {
-        val item = queue.take();
-        if (item == COMPLETION_SENTINEL) {
-            queue.add(COMPLETION_SENTINEL);
-            return null;
+        lock.lockInterruptibly();
+        try {
+            while (queue.isEmpty() && !completed) {
+                ready.await();
+            }
+            return queue.pollFirst();
+        } finally {
+            lock.unlock();
         }
-        return (T) item;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Poll<T> tryNext() {
-        val item = queue.poll();
-        if (item == null) {
+        lock.lock();
+        try {
+            val item = queue.pollFirst();
+            if (item != null) {
+                return Poll.value(item);
+            }
             return completed ? Poll.done() : Poll.empty();
+        } finally {
+            lock.unlock();
         }
-        if (item == COMPLETION_SENTINEL) {
-            queue.add(COMPLETION_SENTINEL);
-            return Poll.done();
-        }
-        return Poll.value((T) item);
     }
 
     @Override
     public void close() {
-        if (closed.compareAndSet(false, true)) {
-            complete();
-            closeAction.run();
+        lock.lock();
+        try {
+            if (closed) {
+                return;
+            }
+            closed    = true;
+            completed = true;
+            queue.clear();
+            ready.signalAll();
+        } finally {
+            lock.unlock();
         }
+        closeAction.run();
     }
 }

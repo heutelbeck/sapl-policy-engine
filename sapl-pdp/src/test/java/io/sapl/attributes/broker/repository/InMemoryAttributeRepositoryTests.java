@@ -38,6 +38,7 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -437,6 +438,36 @@ class InMemoryAttributeRepositoryTests {
     @Nested
     @DisplayName("when the repository is closed")
     class WhenTheRepositoryIsClosed {
+
+        @Test
+        @Timeout(20)
+        @DisplayName("each live registration receives its terminal view while another terminal callback is blocked")
+        void whenTheFirstTerminalObserverIsBlockedThenTheOtherStillReceivesTheFinalView() throws Exception {
+            val firstView  = new CompletableFuture<RepositoryState>();
+            val secondView = new CompletableFuture<RepositoryState>();
+            val release    = new CompletableFuture<Void>();
+            try (val first = repository.observeState(TEST_PDP_ID, "default", state -> {
+                firstView.complete(state);
+                release.join();
+            }); val second = repository.observeState(TEST_PDP_ID, "default", state -> {
+                secondView.complete(state);
+                release.join();
+            }); val worker = Executors.newVirtualThreadPerTaskExecutor()) {
+                val closing = worker.submit(repository::close);
+                try {
+                    assertThat(CompletableFuture.allOf(firstView, secondView))
+                            .as("both terminal observations before releasing either callback")
+                            .succeedsWithin(Duration.ofSeconds(5));
+                    val terminal = firstView.join();
+                    assertThat(terminal.unavailable()).isNotNull();
+                    assertThat(terminal.revision()).isGreaterThan(first.initialState().revision());
+                    assertThat(secondView.join()).isEqualTo(terminal);
+                } finally {
+                    release.complete(null);
+                }
+                closing.get(5, TimeUnit.SECONDS);
+            }
+        }
 
         @Test
         @DisplayName("then subsequent publishes are silently ignored")
