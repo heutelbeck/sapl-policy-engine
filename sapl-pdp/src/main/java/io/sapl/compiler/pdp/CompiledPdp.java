@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.pdp;
 
+import io.sapl.api.functions.FunctionBroker;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.policy.CoverageVoter;
@@ -36,5 +37,17 @@ import io.sapl.compiler.policy.CoverageVoter;
  * peer
  * @param plugins the plugin-contributed runtime values (function
  * broker, decision interceptors, lifecycle listeners)
+ * @param functionBroker the function broker scoped to this compiled configuration
  */
-public record CompiledPdp(PdpVoterMetadata metadata, Voter voter, CoverageVoter coverageVoter, PluginsBundle plugins) {}
+public record CompiledPdp(
+        PdpVoterMetadata metadata,
+        Voter voter,
+        CoverageVoter coverageVoter,
+        PluginsBundle plugins,
+        FunctionBroker functionBroker) {
+
+    /** Creates a voter with the supplied plugin broker. */
+    public CompiledPdp(PdpVoterMetadata metadata, Voter voter, CoverageVoter coverageVoter, PluginsBundle plugins) {
+        this(metadata, voter, coverageVoter, plugins, plugins.functionBroker());
+    }
+}

@@ -317,7 +317,7 @@ public class PdpVoterSource implements AutoCloseable {
     private void compileConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
             PluginsBundle plugins) {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
-                pdpConfiguration.data(), plugins.functionBroker());
+                pdpConfiguration.data(), plugins.functionBroker().forConfiguration());
         compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
         CompiledPdp newConfiguration;
         try {

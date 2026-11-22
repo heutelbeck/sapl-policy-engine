@@ -232,14 +232,27 @@ public class CompilationContext {
             return value;
         }
         val existing = valueDedup.putIfAbsent(value, value);
-        if (existing == null || existing == value) {
+        if (existing == null) {
+            registerConstant(value);
+            return value;
+        }
+        if (existing == value) {
             return value;
         }
         if (ValueRepresentation.same(existing, value)) {
             return existing;
         }
         // Equal objects can expose different wildcard orders. Keep a representative of each order.
-        return orderedVariants.computeIfAbsent(new ValueRepresentation(value), ValueRepresentation::value);
+        return orderedVariants.computeIfAbsent(new ValueRepresentation(value), representation -> {
+            registerConstant(value);
+            return value;
+        });
+    }
+
+    private void registerConstant(Value value) {
+        if (value instanceof ArrayValue || value instanceof ObjectValue) {
+            functionBroker.registerConstant(value);
+        }
     }
 
     /**

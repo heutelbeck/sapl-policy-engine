@@ -24,9 +24,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
@@ -46,9 +43,8 @@ import lombok.val;
  * <ul>
  * <li>Library loading is typically performed at application startup before
  * policy evaluation begins</li>
- * <li>Function evaluation is lock-free and supports thousands of concurrent
- * calls for optimal performance in reactive
- * policy evaluation</li>
+ * <li>Library code executes outside the result cache, so independent requests
+ * can evaluate concurrently</li>
  * <li>Dynamic runtime library loading is supported but rare. For atomic
  * multi-library updates, create a new broker
  * instance and swap references</li>
@@ -70,20 +66,45 @@ public class DefaultFunctionBroker implements FunctionBroker {
 
     private static final int DEFAULT_CACHE_SIZE = 10_000;
 
-    private final Map<String, List<FunctionSpecification>> functionIndex = new ConcurrentHashMap<>();
-    private final Cache<FunctionInvocation, Value>         functionCache;
+    private final Map<String, List<FunctionSpecification>> functionIndex;
+    @Getter
+    private final List<Class<?>>                           registeredLibraries;
+    private final int                                      functionCacheSize;
+    private final FunctionResultCache                      functionCache;
 
     public DefaultFunctionBroker() {
         this(DEFAULT_CACHE_SIZE);
     }
 
     public DefaultFunctionBroker(int functionCacheSize) {
-        this.functionCache = functionCacheSize > 0 ? Caffeine.newBuilder().maximumSize(functionCacheSize).build()
-                : null;
+        this(functionCacheSize, new ConcurrentHashMap<>(), new CopyOnWriteArrayList<>());
     }
 
-    @Getter
-    private final List<Class<?>> registeredLibraries = new CopyOnWriteArrayList<>();
+    private DefaultFunctionBroker(int functionCacheSize,
+            Map<String, List<FunctionSpecification>> functionIndex,
+            List<Class<?>> registeredLibraries) {
+        this.functionIndex       = functionIndex;
+        this.registeredLibraries = registeredLibraries;
+        this.functionCacheSize   = functionCacheSize;
+        this.functionCache       = new FunctionResultCache(functionCacheSize);
+    }
+
+    /**
+     * Opens a result cache for one configuration. Subclasses retain their own dispatch and may
+     * override this method to scope their caches.
+     */
+    @Override
+    public FunctionBroker forConfiguration() {
+        if (getClass() != DefaultFunctionBroker.class) {
+            return this;
+        }
+        return new DefaultFunctionBroker(functionCacheSize, functionIndex, registeredLibraries);
+    }
+
+    @Override
+    public void registerConstant(Value value) {
+        functionCache.registerConstant(value);
+    }
 
     /**
      * Loads a function library from the supplied instance.
@@ -155,9 +176,8 @@ public class DefaultFunctionBroker implements FunctionBroker {
      * functions with the same name, selecting the
      * best match based on parameter type compatibility.
      * <p>
-     * Performance: This method is lock-free and optimized for high-throughput
-     * concurrent access. It is called on the
-     * hot path during policy evaluation.
+     * Successful calls can be reused in this configuration. Concurrent misses may
+     * run the same pure function independently.
      *
      * @param invocation
      * the function invocation containing name and parameters
@@ -173,13 +193,6 @@ public class DefaultFunctionBroker implements FunctionBroker {
         if (invocation == null) {
             throw new IllegalArgumentException(ERROR_INVOCATION_NULL);
         }
-        if (functionCache == null) {
-            return invokeFunction(invocation);
-        }
-        return functionCache.get(invocation, this::invokeFunction);
-    }
-
-    private Value invokeFunction(FunctionInvocation invocation) {
         val specs = functionIndex.get(invocation.functionName());
 
         if (specs != null) {
@@ -203,7 +216,7 @@ public class DefaultFunctionBroker implements FunctionBroker {
             }
 
             if (bestMatch != null) {
-                return bestMatch.function().apply(invocation);
+                return functionCache.evaluate(bestMatch, invocation);
             }
         }
 

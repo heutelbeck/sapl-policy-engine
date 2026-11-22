@@ -996,13 +996,13 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     private EvaluationContext evaluationContext(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
-        return evaluationContext(pdp, sub, subscriptionId, pdp.plugins().functionBroker());
+        return evaluationContext(pdp, sub, subscriptionId, pdp.functionBroker());
     }
 
     private @Nullable GroupRound evaluateRound(GroupSubscription group, CompiledPdp pdp, String subscriptionId,
             Map<SubscriptionKey, AttributeSnapshot> snapshot, Set<SubscriptionKey> depsAccumulator) {
-        return evaluateGroup(group.items(), pdp, subscriptionId, snapshot, depsAccumulator,
-                pdp.plugins().functionBroker(), hasDecisionInterceptors() ? timestampSource : null);
+        return evaluateGroup(group.items(), pdp, subscriptionId, snapshot, depsAccumulator, pdp.functionBroker(),
+                hasDecisionInterceptors() ? timestampSource : null);
     }
 
     /**

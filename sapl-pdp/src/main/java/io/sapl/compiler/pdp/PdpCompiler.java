@@ -156,7 +156,7 @@ public class PdpCompiler {
         };
 
         return new CompiledPdp(voterMetadata, guarded(voter, voterMetadata), guarded(coverageVoter, voterMetadata),
-                plugins);
+                plugins, ctx.getFunctionBroker());
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

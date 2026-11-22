@@ -59,6 +59,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.Poll;
 import io.sapl.api.model.SubscriptionKey;
@@ -97,8 +98,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
 
     private static final AuthorizationSubscription SUB = subscription("subject", "action", "resource");
 
-    @Mock
-    private FunctionBroker functionBroker;
+    private final FunctionBroker functionBroker = new DefaultFunctionBroker();
 
     @Test
     @Timeout(15)
@@ -365,7 +365,7 @@ class BlockingPolicyDecisionPointRobustnessTests {
                 source.loadConfiguration(configuration(DENY_UNLESS_PERMIT,
                         "policy \"Read access\" permit subject == \"local\" || <approval.granted>;"));
                 val pdp        = source.getCurrentConfiguration("default").orElseThrow();
-                val functions  = pdp.plugins().functionBroker();
+                val functions  = pdp.functionBroker();
                 val incomplete = BlockingPolicyDecisionPoint.evaluateRound(items, pdp, "group", Map.of(), dependencies,
                         functions, clock, observer);
                 assertThat(incomplete).isNull();
