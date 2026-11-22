@@ -132,6 +132,51 @@ class SaplProtobufCodecTests {
             assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
         }
 
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("releaseNumberLiterals")
+        @DisplayName("the writer preserves readable plain spellings and uses bounded exponents when necessary")
+        void whenPlainNumberWouldExceedReaderBoundsThenEmitReadableLiteral(String description, String input,
+                String expectedLiteral) throws IOException {
+            val number = new NumberValue(new BigDecimal(input));
+            val bytes  = SaplProtobufCodec.writeValue(number);
+
+            assertThat(bytes).isEqualTo(numberValuePayload(expectedLiteral));
+            assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(number);
+        }
+
+        static Stream<Arguments> releaseNumberLiterals() {
+            val dense = "9".repeat(995);
+            return Stream.of(arguments("stored scale", "2.50", "2.50"),
+                    arguments("plain boundary", "1e999", "1" + "0".repeat(999)),
+                    arguments("positive exponent", "1e1000", "1E1000"),
+                    arguments("negative exponent", "1e-1000", "1E-1000"),
+                    arguments("negative value", "-1e1000", "-1E1000"),
+                    arguments("quantity still fits at the minimum reader scale", "1e1001", "10E1000"),
+                    arguments("trailing zeros exceed literal limit", "1" + "0".repeat(1001) + "e-1002", "0.1"),
+                    arguments("zero with excessive positive scale", "0e-1001", "0"),
+                    arguments("zero with excessive negative scale", "0e1001", "0"),
+                    arguments("dense plain", dense + "e1", dense + "0"),
+                    arguments("dense positive exponent", dense + "e1000", dense + "E1000"),
+                    arguments("omitted leading zero", ".0" + "9".repeat(998), ".0" + "9".repeat(998)),
+                    arguments("signed omitted leading zero", "-.0" + "9".repeat(997), "-.0" + "9".repeat(997)),
+                    arguments("dense fractional coefficient", "." + dense + "e-5", "." + dense + "E-5"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("unwritableNumbers")
+        @DisplayName("the writer rejects numbers outside the release wire bounds")
+        void whenNumberCannotBeRepresentedThenWriteFails(String description, BigDecimal decimal) {
+            val number = new NumberValue(decimal);
+            assertThatThrownBy(() -> SaplProtobufCodec.writeValue(number)).isInstanceOf(IOException.class);
+        }
+
+        static Stream<Arguments> unwritableNumbers() {
+            return Stream.of(arguments("excessive scale", new BigDecimal("1e-1001")),
+                    arguments("excessive magnitude", new BigDecimal("1e2001")),
+                    arguments("coefficient and exponent exceed length limit",
+                            new BigDecimal("9".repeat(1000) + "e1000")));
+        }
+
         private static byte[] numberValuePayload(String numberLiteral) throws IOException {
             // Value fields: one VALUE_NUMBER (field 3) carrying the raw on-the-wire string.
             // Hand-built because the encoder would never emit a malformed or unbounded

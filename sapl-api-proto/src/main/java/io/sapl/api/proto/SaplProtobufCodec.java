@@ -24,6 +24,8 @@ import java.util.Set;
 
 import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
 import static com.google.protobuf.WireFormat.getTagFieldNumber;
+import static io.sapl.api.model.NumberValueLimits.MAX_NUMBER_LENGTH;
+import static io.sapl.api.model.NumberValueLimits.MAX_SCALE;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -264,6 +266,55 @@ public class SaplProtobufCodec {
         return Value.error(message);
     }
 
+    private static String numberLiteral(BigDecimal number) throws IOException {
+        if (plainLength(number) <= MAX_NUMBER_LENGTH) {
+            return number.toPlainString();
+        }
+        if (number.signum() == 0) {
+            return "0";
+        }
+
+        // Check the decimal point's position without expanding the coefficient or exponent.
+        val integerDigits = (long) number.precision() - number.scale();
+        if (integerDigits < 1L - MAX_SCALE || integerDigits > (long) MAX_NUMBER_LENGTH + MAX_SCALE) {
+            throw new IOException(ERROR_INVALID_NUMBER);
+        }
+        val compact = number.stripTrailingZeros();
+        // A more negative scale can be brought into range by retaining coefficient zeros.
+        val scale = Math.max(compact.scale(), -MAX_SCALE);
+        val sign  = number.signum() < 0 ? "-" : "";
+        if (scale > MAX_SCALE || sign.length() + integerDigits + scale > MAX_NUMBER_LENGTH) {
+            throw new IOException(ERROR_INVALID_NUMBER);
+        }
+        val bounded = compact.setScale(scale);
+        if (plainLength(bounded) <= MAX_NUMBER_LENGTH) {
+            return bounded.toPlainString();
+        }
+        val digits  = bounded.unscaledValue().abs().toString();
+        val literal = sign + digits + "E" + (-scale);
+        if (literal.length() <= MAX_NUMBER_LENGTH) {
+            return literal;
+        }
+        if (integerDigits <= 0) {
+            // Omitting the leading zero or shifting the exponent can save the last few characters.
+            if (sign.length() + 1 + scale <= MAX_NUMBER_LENGTH) {
+                return sign + "." + "0".repeat((int) -integerDigits) + digits;
+            }
+            val fraction = sign + "." + digits + "E" + integerDigits;
+            if (fraction.length() <= MAX_NUMBER_LENGTH) {
+                return fraction;
+            }
+        }
+        throw new IOException(ERROR_INVALID_NUMBER);
+    }
+
+    private static long plainLength(BigDecimal number) {
+        val scale  = (long) number.scale();
+        val digits = (long) number.precision();
+        val length = scale <= 0 ? digits - scale : Math.max(digits + 1, scale + 2);
+        return number.signum() < 0 ? length + 1 : length;
+    }
+
     private static void writeValueFields(Value value, CodedOutputStream output) throws IOException {
         switch (value) {
         case NullValue ignored         -> {
@@ -271,7 +322,7 @@ public class SaplProtobufCodec {
             output.writeUInt32NoTag(0); // empty message
         }
         case BooleanValue(boolean b)   -> output.writeBool(VALUE_BOOL, b);
-        case NumberValue(BigDecimal n) -> output.writeString(VALUE_NUMBER, n.toPlainString());
+        case NumberValue(BigDecimal n) -> output.writeString(VALUE_NUMBER, numberLiteral(n));
         case TextValue(String s)       -> output.writeString(VALUE_TEXT, s);
         case ArrayValue arr            -> writeArrayValue(arr, output);
         case ObjectValue obj           -> writeObjectValue(obj, output);
@@ -311,11 +362,11 @@ public class SaplProtobufCodec {
         output.writeString(ERROR_MESSAGE, error.message());
     }
 
-    private static int computeValueSize(Value value) {
+    private static int computeValueSize(Value value) throws IOException {
         return switch (value) {
         case NullValue ignored         -> 1 + 1; // tag + 0 length
         case BooleanValue ignored      -> 1 + 1; // tag + bool
-        case NumberValue(BigDecimal n) -> CodedOutputStream.computeStringSize(VALUE_NUMBER, n.toPlainString());
+        case NumberValue(BigDecimal n) -> CodedOutputStream.computeStringSize(VALUE_NUMBER, numberLiteral(n));
         case TextValue(String s)       -> CodedOutputStream.computeStringSize(VALUE_TEXT, s);
         case ArrayValue arr            -> {
             // Compute the content size once. Sizing twice per level is exponential in the
@@ -335,7 +386,7 @@ public class SaplProtobufCodec {
         };
     }
 
-    private static int computeArrayValueContentSize(ArrayValue array) {
+    private static int computeArrayValueContentSize(ArrayValue array) throws IOException {
         var size = 0;
         for (val element : array) {
             val elementSize = computeValueSize(element);
@@ -344,7 +395,7 @@ public class SaplProtobufCodec {
         return size;
     }
 
-    private static int computeObjectValueContentSize(ObjectValue obj) {
+    private static int computeObjectValueContentSize(ObjectValue obj) throws IOException {
         var size = 0;
         for (val entry : obj.entrySet()) {
             val valueSize = computeValueSize(entry.getValue());
@@ -426,7 +477,7 @@ public class SaplProtobufCodec {
         writeValueFields(value, output);
     }
 
-    private static int computeAuthorizationSubscriptionSize(AuthorizationSubscription sub) {
+    private static int computeAuthorizationSubscriptionSize(AuthorizationSubscription sub) throws IOException {
         return computeValueFieldSize(SUBSCRIPTION_SUBJECT, sub.subject())
                 + computeValueFieldSize(SUBSCRIPTION_ACTION, sub.action())
                 + computeValueFieldSize(SUBSCRIPTION_RESOURCE, sub.resource())
@@ -434,7 +485,7 @@ public class SaplProtobufCodec {
                 + computeValueFieldSize(SUBSCRIPTION_SECRETS, sub.secrets());
     }
 
-    private static int computeValueFieldSize(int fieldNumber, Value value) {
+    private static int computeValueFieldSize(int fieldNumber, Value value) throws IOException {
         val contentSize = computeValueSize(value);
         return CodedOutputStream.computeTagSize(fieldNumber) + CodedOutputStream.computeUInt32SizeNoTag(contentSize)
                 + contentSize;
@@ -526,14 +577,14 @@ public class SaplProtobufCodec {
         };
     }
 
-    private static int computeAuthorizationDecisionSize(AuthorizationDecision dec) {
+    private static int computeAuthorizationDecisionSize(AuthorizationDecision dec) throws IOException {
         return CodedOutputStream.computeEnumSize(DECISION_DECISION, toProtoDecision(dec.decision()))
                 + computeArrayValueFieldSize(DECISION_OBLIGATIONS, dec.obligations())
                 + computeArrayValueFieldSize(DECISION_ADVICE, dec.advice())
                 + computeValueFieldSize(DECISION_RESOURCE, dec.resource());
     }
 
-    private static int computeArrayValueFieldSize(int fieldNumber, ArrayValue array) {
+    private static int computeArrayValueFieldSize(int fieldNumber, ArrayValue array) throws IOException {
         val contentSize = computeArrayValueContentSize(array);
         return CodedOutputStream.computeTagSize(fieldNumber) + CodedOutputStream.computeUInt32SizeNoTag(contentSize)
                 + contentSize;
@@ -649,13 +700,14 @@ public class SaplProtobufCodec {
         writeAuthorizationSubscriptionFields(idSub.subscription(), output);
     }
 
-    private static int computeEmbeddedSubscriptionSize(AuthorizationSubscription sub) {
+    private static int computeEmbeddedSubscriptionSize(AuthorizationSubscription sub) throws IOException {
         val subSize = computeAuthorizationSubscriptionSize(sub);
         return CodedOutputStream.computeTagSize(ID_SUB_SUBSCRIPTION) + CodedOutputStream.computeUInt32SizeNoTag(subSize)
                 + subSize;
     }
 
-    private static int computeMultiAuthorizationSubscriptionSize(MultiAuthorizationSubscription multi) {
+    private static int computeMultiAuthorizationSubscriptionSize(MultiAuthorizationSubscription multi)
+            throws IOException {
         var size = 0;
         for (val idSub : multi) {
             val contentSize = CodedOutputStream.computeStringSize(ID_SUB_ID, idSub.subscriptionId())
@@ -753,7 +805,7 @@ public class SaplProtobufCodec {
         writeAuthorizationDecisionFields(dec, output);
     }
 
-    private static int computeMultiAuthorizationDecisionSize(MultiAuthorizationDecision multi) {
+    private static int computeMultiAuthorizationDecisionSize(MultiAuthorizationDecision multi) throws IOException {
         var size = 0;
         for (val idDec : multi) {
             val decSize     = computeAuthorizationDecisionSize(idDec.decision());
@@ -798,7 +850,8 @@ public class SaplProtobufCodec {
         return readIdAndDecisionFields(CodedInputStream.newInstance(bytes));
     }
 
-    private static int computeIdentifiableAuthorizationDecisionSize(IdentifiableAuthorizationDecision idDec) {
+    private static int computeIdentifiableAuthorizationDecisionSize(IdentifiableAuthorizationDecision idDec)
+            throws IOException {
         val decSize = computeAuthorizationDecisionSize(idDec.decision());
         return CodedOutputStream.computeStringSize(ID_DEC_ID, idDec.subscriptionId())
                 + CodedOutputStream.computeTagSize(ID_DEC_DECISION) + CodedOutputStream.computeUInt32SizeNoTag(decSize)
