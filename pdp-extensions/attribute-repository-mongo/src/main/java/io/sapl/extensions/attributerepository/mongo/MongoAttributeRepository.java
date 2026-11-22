@@ -231,9 +231,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
         try {
             var newView = new HashMap<RepositoryKey, ViewEntry>();
             var now     = Instant.now();
-            var query   = new Query(new Criteria().andOperator(Criteria.where(FIELD_PDP_ID).is(pdpId),
-                    new Criteria().orOperator(Criteria.where(FIELD_EXPIRES_AT).is(null),
-                            Criteria.where(FIELD_EXPIRES_AT).gt(now))));
+            var query   = new Query(new Criteria().andOperator(Criteria.where(FIELD_PDP_ID).is(pdpId), new Criteria()
+                    .orOperator(Criteria.where(FIELD_EXPIRES_AT).is(null), Criteria.where(FIELD_EXPIRES_AT).gt(now))));
 
             // Snapshot session. Get all documents at once from a certain snapshot
             var docs = Objects.requireNonNull(mongo.withSession(ClientSessionOptions.builder().snapshot(true).build())
