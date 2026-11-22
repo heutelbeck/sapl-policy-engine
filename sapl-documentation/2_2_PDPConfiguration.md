@@ -27,6 +27,12 @@ Common uses include:
 
 Variables are not to be confused with the `environment` field of the authorization subscription. The `environment` carries request-scoped context sent by the PEP, while variables are operator-configured constants shared across all evaluations.
 
+### Outbound PIP connections
+
+Endpoint addresses and public CA certificates belong in `pdp.json`. Define a CA bundle once under `variables.tlsTrustProfiles.<name>.trustedCaPem` and select it with `trustProfile` on an MQTT broker, Traccar server, HTTP service or JWT public-key server. Without a profile, the transport uses its default roots. Setting `includeDefaultTrustRoots` to `true` in a profile adds those roots to the bundle. Invalid profiles prevent activation of the new configuration.
+
+MQTT and Traccar use named objects under `variables.mqtt.brokers` and `variables.traccar.servers`. Their credentials use the same names in the PDP secrets. HTTP services live under `variables.http.services`. A selected service and every credential source must each permit the final URL. The JWT key server is configured under `variables.jwt.publicKeyServer`; the PEP supplies the JWT in subscription secrets. Time and X.509 attributes operate locally.
+
 ### Secrets
 
 Secrets are optional PDP-level credentials available to PIPs during evaluation. They complement subscription-level secrets (see [Authorization Subscriptions](../2_1_AuthorizationSubscriptions/#secrets)) and are the right choice for infrastructure credentials shared across all evaluations, such as database connection strings or API keys for external services.

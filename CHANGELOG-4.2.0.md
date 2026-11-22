@@ -27,6 +27,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - Each opt-in warning names where the opt-in was set: the command-line option, the key in its file, or the environment variable. Anonymous access logs a warning at every start, not only on a non-loopback address.
 - A request with two `Authorization` headers is refused with 401.
 - A tenant claim that is an object or a list counts as no tenant.
+- HTTP, JWT key-server, MQTT and Traccar endpoints can select a shared CA bundle from `variables.tlsTrustProfiles` with `trustProfile`. A profile replaces default roots unless `includeDefaultTrustRoots` is true. MQTT and Traccar now use named entries under `variables.mqtt.brokers` and `variables.traccar.servers`, an optional `default` name and matching named credentials. MQTT file truststores and flat credentials are no longer supported. JWT key servers require a fixed host.
 - Bundles are read strictly. Duplicate entry names, entries the archive's central directory hides, inconsistent archives, names or content that are not UTF-8, a creation time not in the form `YYYY-MM-DDTHH:MM:SS[.fraction]Z`, an empty or incomplete signature block and weak (small order) Ed25519 keys are refused. The CLI reads bundles with the same hardened reader as the PDP.
 - A recipient key whose public part does not belong to its private part is refused when it is loaded.
 - The subject of a schema statement must be `subject`, `action`, `resource` or `environment`.
@@ -38,6 +39,15 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - The result of an arithmetic operation is bounded like its operands: a result with more than 1000 significant digits or a scale beyond 1000 is the error "Numeric operation exceeded the supported range." instead of a number.
 - The operands of `==`, `!=`, `*`, `&&`, `||`, `&`, `|` and `^` are evaluated in a canonical order within constants, pure expressions and attribute streams, so `a == b` and `b == a` are the same expression and share one entry of the policy index. When several operands are errors, the first in the canonical order is reported, which need not be the first one written. `+` keeps the order written, as it concatenates texts.
 - The diagnostics of the parser use a new problem catalogue with new messages, and positions follow the LSP specification. In the Java API, `Document` carries these diagnostics and no longer has `syntaxErrors`, `validationErrors` and `errorMessage`. `TracedValue` and `AttributeRecord` are removed from `sapl-api`.
+
+### Function libraries and policy information points
+
+- Replace `semver.isAtLeast` with `semver.isHigherOrEqual` and `semver.isAtMost` with `semver.isLowerOrEqual`. Rewrite Ivy ranges such as `[1.0.0,2.0.0)` as `>=1.0.0 <2.0.0`. Invalid range tokens now produce errors.
+- Use dotted-quad IPv4 or RFC 4291 IPv6 in `cidr`, without whitespace, zone IDs or zero-padded IPv4 octets or prefixes. `cidr.anonymizeIp` now includes the prefix length. Recompute stored `cidr.hashIpPrefix` hashes.
+- Pass each GeoJSON Feature's geometry to `geo` functions. Use a supported geographic CRS such as `EPSG:4326` for `geo.geoDistance`. Remove `crs` from expected `geo` geometry results and `traccar.traccarGeofenceToGeoJson` results.
+- For `time` instant arguments and `x509.isValidAt`, write `24:00:00Z` as `00:00:00Z` on the following day. Handle `false` from `signature.isValidEd25519` for a decoded signature of the wrong length.
+- Move the contents of `pdp.json`'s `secrets` object, including MQTT and Traccar credentials, into a sibling `secrets.json` and seal it or enable cleartext explicitly. For HTTP, set `secretsKey` to the name of the credential whose `allowedBaseUrls` covers the request.
+- Rename invalid Java function and finder names such as `item-count` to `item_count`. Give ambiguous finders within a PIP distinct names. Custom `AttributeRepository` implementations must implement atomic `publish(List<AttributeAssignment>)` and `observeState(pdpId, configurationId, onUpdate)`, registering the observer and capturing its initial view atomically.
 
 ## Other changes
 

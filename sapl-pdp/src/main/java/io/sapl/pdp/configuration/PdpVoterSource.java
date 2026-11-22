@@ -243,6 +243,13 @@ public class PdpVoterSource implements AutoCloseable {
                     ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, versionError));
             return;
         }
+        try {
+            OutboundEndpointConfiguration.validate(pdpConfiguration.data());
+        } catch (IllegalArgumentException e) {
+            reportConfigurationErrorLocked(pdpId,
+                    ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, e.getMessage()));
+            return;
+        }
         // The configuration goes live only if the runtime environment accepts its
         // extension slice. A rejection keeps the last-good configuration and compiles
         // and swaps nothing.
