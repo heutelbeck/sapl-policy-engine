@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -453,6 +454,34 @@ class CanonicalPolicyIndexTests {
     @Nested
     @DisplayName("error handling with shared predicates")
     class ErrorWithSharedPredicates {
+
+        @ParameterizedTest(name = "unknown operand {0}")
+        @ValueSource(longs = { 1L, 2L, 3L })
+        @DisplayName("each true literal retains its own match when a shared disjunction needs reclassification")
+        void whenADisjunctionSharesThreeLiteralsThenAllTrueOperandsRemainMatched(long unknown) {
+            val formulas     = new LinkedHashMap<DisjunctiveFormula, List<CompiledDocument>>();
+            val alternatives = new ArrayList<ConjunctiveClause>();
+            val expected     = new ArrayList<String>();
+            expected.add("disjunction");
+            for (long id = 1; id <= 3; id++) {
+                val predicate = configurablePredicate(id);
+                val clause    = new ConjunctiveClause(List.of(new Literal(predicate, false)));
+                val name      = "operand-" + id;
+                alternatives.add(clause);
+                formulas.put(new DisjunctiveFormula(clause),
+                        List.of(stubDocumentWithApplicability(name, predicate.operator())));
+                PREDICATE_RESULTS.put(id, id == unknown ? Value.error("unknown operand") : Value.TRUE);
+                if (id != unknown) {
+                    expected.add(name);
+                }
+            }
+            formulas.put(new DisjunctiveFormula(alternatives), List.of(stubDocument("disjunction")));
+            val result = CanonicalPolicyIndex.createFromFormulas(formulas).matchKleene(evaluationContext());
+            assertThat(result.trueMatches()).extracting(document -> document.metadata().name())
+                    .containsExactlyInAnyOrderElementsOf(expected);
+            assertThat(result.errorMatches()).extracting(match -> match.document().metadata().name())
+                    .containsExactly("operand-" + unknown);
+        }
 
         @Test
         @DisplayName("shared predicate error produces error matches for all related documents")
