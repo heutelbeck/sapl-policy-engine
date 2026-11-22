@@ -29,7 +29,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -152,12 +154,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         val listeners      = lifecycleListeners();
         notifyOnSubscribe(listeners, subscriptionId, sub, pdpId);
         try {
-            if (hasDecisionInterceptors()) {
-                val tv = computeTracedVoteSync(sub, subscriptionId, pdpId);
-                dispatchDecisionObservers(decisionInterceptors(), tv, tv.timestamp(), subscriptionId, sub);
-                return tv.authorizationDecision();
-            }
-            return computeVoteSync(sub, subscriptionId, pdpId).authorizationDecision();
+            return firstCurrentDecision(sub, pdpId, subscriptionId);
         } catch (RuntimeException e) {
             log.warn(ERROR_UNEXPECTED_EVALUATION, e);
             return AuthorizationDecision.INDETERMINATE;
@@ -462,78 +459,80 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return gatherVotes(sub, DEFAULT_PDP_ID);
     }
 
-    private Vote computeVoteSync(AuthorizationSubscription sub, String subscriptionId, String pdpId) {
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            return noConfigurationVote(pdpId);
+    private AuthorizationDecision firstCurrentDecision(AuthorizationSubscription sub, String pdpId,
+            String subscriptionId) {
+        while (true) {
+            val            pdp          = pdpConfigurationSource.getCurrentConfiguration(pdpId).orElse(null);
+            val            interceptors = pdp == null ? decisionInterceptors() : pdp.plugins().decisionInterceptors();
+            val            traced       = !interceptors.isEmpty();
+            TracedDecision result;
+            try {
+                result = pdp == null ? traceIfObserved(noConfigurationVote(pdpId), traced)
+                        : firstDecision(pdp, sub, subscriptionId, traced);
+            } catch (RuntimeException failure) {
+                log.warn(ERROR_UNEXPECTED_EVALUATION, failure);
+                result = pdp == null ? noConfigurationVote(pdpId) : errorVote(pdp, ERROR_EVALUATOR_THREW);
+            }
+            // This identity read admits the vote before any interceptor observes it.
+            if (result != null && pdpConfigurationSource.getCurrentConfiguration(pdpId).orElse(null) == pdp) {
+                return observeOnce(result, interceptors, subscriptionId, sub);
+            }
+            if (Thread.currentThread().isInterrupted()) {
+                return AuthorizationDecision.INDETERMINATE;
+            }
         }
-        return evaluateOnceSync(pdpConfiguration.get(), sub, subscriptionId);
     }
 
-    private Vote evaluateOnceSync(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
-        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
+    private static AuthorizationDecision observeOnce(TracedDecision result, List<DecisionInterceptor> interceptors,
+            String subscriptionId, AuthorizationSubscription sub) {
+        if (result instanceof TracedVote trace) {
+            dispatchDecisionObservers(interceptors, trace, trace.timestamp(), subscriptionId, sub);
+        }
+        return result.authorizationDecision();
+    }
+
+    private @Nullable TracedDecision firstDecision(CompiledPdp pdp, AuthorizationSubscription sub,
+            String subscriptionId, boolean traced) {
+        val context = evaluationContext(pdp, sub, subscriptionId);
         return switch (pdp.voter()) {
-        case Vote v        -> v;
-        case PureVoter p   -> p.vote(baseCtx);
-        case StreamVoter s -> evaluateStreamingSync(pdp, baseCtx, subscriptionId, s);
+        case Vote vote         -> traceIfObserved(vote, traced);
+        case PureVoter pure    -> traceIfObserved(pure.vote(context), traced);
+        case StreamVoter voter -> {
+            val initial = voter.evaluate(context);
+            if (initial.vote() != null) {
+                yield traceIfObserved(initial.vote(), traced);
+            }
+            val dependencies = initial.dependencies().keySet();
+            if (dependencies.isEmpty()) {
+                yield traceIfObserved(errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION), traced);
+            }
+            yield awaitFirstDecision(pdp, context, subscriptionId, voter, dependencies, traced);
+        }
         };
     }
 
-    private Vote evaluateStreamingSync(CompiledPdp pdp, EvaluationContext baseCtx, String subscriptionId,
-            StreamVoter voter) {
-        val initial = voter.evaluate(baseCtx);
-        if (initial.dependencies().isEmpty()) {
-            return initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote();
-        }
-        if (initial.vote() != null) {
-            return initial.vote();
-        }
-        try {
-            return Voters.awaitFirstVote(attributeBroker, subscriptionId, initial.dependencies().keySet(),
-                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
-        } catch (InterruptedException ie) {
+    private @Nullable TracedDecision awaitFirstDecision(CompiledPdp pdp, EvaluationContext context,
+            String subscriptionId, StreamVoter voter, Set<SubscriptionKey> dependencies, boolean traced) {
+        val first = new CompletableFuture<TracedDecision>();
+        // Synchronous enrollment preserves finder reentry on the calling thread.
+        try (val handle = BrokerEvalLoops.openWithHead(attributeBroker, subscriptionId, dependencies,
+                inputs -> voter.evaluate(context.withSnapshot(inputs)), (round, inputs) -> {
+                    if (round.vote() != null && !first.isDone()) {
+                        first.complete(traced ? buildTracedVote(round, inputs, timestampSource) : round.vote());
+                    }
+                }, round -> round.dependencies().keySet(), failure -> first.completeExceptionally(
+                        failure != null ? failure : new IllegalStateException(ERROR_VOTER_PRODUCED_NO_DECISION)))) {
+            return pdpConfigurationSource.awaitWhileCurrent(pdp, first);
+        } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            return errorVote(pdp, ERROR_INTERRUPTED);
-        } catch (EvaluationException ee) {
-            return errorVote(pdp, ERROR_EVALUATOR_THREW);
+            return traceIfObserved(errorVote(pdp, ERROR_INTERRUPTED), traced);
+        } catch (ExecutionException | RuntimeException failure) {
+            return traceIfObserved(errorVote(pdp, ERROR_EVALUATOR_THREW), traced);
         }
     }
 
-    private TracedVote computeTracedVoteSync(AuthorizationSubscription sub, String subscriptionId, String pdpId) {
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        return pdpConfiguration.map(pdp -> evaluateOnceTracedSync(pdp, sub, subscriptionId))
-                .orElseGet(() -> tracedNoConfiguration(pdpId, timestampSource));
-    }
-
-    private TracedVote evaluateOnceTracedSync(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
-        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
-        return switch (pdp.voter()) {
-        case Vote v        -> TracedVote.of(v, timestampSource.instant());
-        case PureVoter p   -> TracedVote.of(p.vote(baseCtx), timestampSource.instant());
-        case StreamVoter s -> evaluateStreamingTracedSync(pdp, baseCtx, subscriptionId, s);
-        };
-    }
-
-    private TracedVote evaluateStreamingTracedSync(CompiledPdp pdp, EvaluationContext baseCtx, String subscriptionId,
-            StreamVoter voter) {
-        val initial = voter.evaluate(baseCtx);
-        if (initial.dependencies().isEmpty()) {
-            return TracedVote.of(
-                    initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote(),
-                    timestampSource.instant());
-        }
-        if (initial.vote() != null) {
-            return TracedVote.of(initial.vote(), timestampSource.instant());
-        }
-        try {
-            return Voters.awaitFirstTracedVote(attributeBroker, subscriptionId, initial.dependencies().keySet(),
-                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)), timestampSource);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            return TracedVote.of(errorVote(pdp, ERROR_INTERRUPTED), timestampSource.instant());
-        } catch (EvaluationException ee) {
-            return TracedVote.of(errorVote(pdp, ERROR_EVALUATOR_THREW), timestampSource.instant());
-        }
+    private TracedDecision traceIfObserved(Vote vote, boolean traced) {
+        return traced ? TracedVote.of(vote, timestampSource.instant()) : vote;
     }
 
     /**

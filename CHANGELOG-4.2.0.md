@@ -57,6 +57,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Policy evaluation fixes
 
+- If a new configuration becomes active for the same PDP while `decideOnce` is waiting for an attribute, the request uses the new configuration. A retired configuration can no longer release a decision after its replacement.
 - A policy set's target or enforced schema could read a variable declared in its last policy, changing which requests matched the set. Policy-local variables are now visible only inside the declaring policy.
 - SMTDD now reports a type error when an object-key check with `has` receives a defined non-string key. Equality checks on the same value still match normally.
 - CANONICAL keeps a shared condition available to every policy that still needs it when another policy's target encounters an error. This preserves the decision and its obligations when several policy targets overlap.
