@@ -94,12 +94,12 @@ public final class ObservedVoter implements CoverageVoter {
     /**
      * @param voter ordinary voter including the effective target
      * @param set source set with its optional schema and written target
-     * @param schema compiled schema validation
+     * @param schema compiled schema validation, or null if the target contains no schema operand
      * @param applicability compiled effective target consumed by ordinary evaluation
      * @param members compiled member policies in declaration order
      * @return coverage of the same evaluation
      */
-    public static CoverageVoter policySet(Voter voter, PolicySet set, CompiledExpression schema,
+    public static CoverageVoter policySet(Voter voter, PolicySet set, @Nullable CompiledExpression schema,
             CompiledExpression applicability, List<? extends CompiledDocument> members) {
         val match      = set.match();
         val target     = set.target();
@@ -221,8 +221,8 @@ public final class ObservedVoter implements CoverageVoter {
         }
 
         @Nullable
-        Value observed(CompiledExpression expression) {
-            if (directUses.getOrDefault(expression, 0) == 1) {
+        Value observed(@Nullable CompiledExpression expression) {
+            if (expression != null && directUses.getOrDefault(expression, 0) == 1) {
                 return direct.get(expression);
             }
             return null;
@@ -327,7 +327,7 @@ public final class ObservedVoter implements CoverageVoter {
             SourceLocation declaration,
             @Nullable SourceLocation targetSite,
             @Nullable SourceLocation schemaSite,
-            CompiledExpression schema,
+            @Nullable CompiledExpression schema,
             CompiledExpression applicability,
             boolean includeFolded,
             List<Document> children) implements Document {

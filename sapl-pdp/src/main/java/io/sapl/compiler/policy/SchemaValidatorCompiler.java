@@ -29,6 +29,8 @@ import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.OperandStructure;
 import io.sapl.compiler.expressions.OperandStructure.StructuredOperator;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler.LazyAndPurePure;
+import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler.LazyValuePure;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.JsonSchemaPreparation;
 import io.sapl.compiler.util.SchemaErrors;
@@ -122,6 +124,26 @@ public class SchemaValidatorCompiler {
         return new CombinedElementValidator(elementValidators);
     }
 
+    /**
+     * Finds the original schema operand in a compiled set target. A conjunction
+     * may place the validator on either side. A constant target may leave only
+     * a boolean coercion around it or fold it away entirely.
+     *
+     * @param applicability compiled effective set target
+     * @return the schema operand observed by evaluation, or null if absent
+     */
+    public static @Nullable PureOperator schemaOperand(CompiledExpression applicability) {
+        val operand = switch (applicability) {
+        case LazyAndPurePure and -> and.p1() instanceof SchemaValidator ? and.p1() : and.p2();
+        case LazyValuePure check -> check.p();
+        default                  -> applicability;
+        };
+        return operand instanceof SchemaValidator validator ? validator : null;
+    }
+
+    private interface SchemaValidator extends StructuredOperator {
+    }
+
     private static PrecompiledSchemaValidator compileSchemaValidator(SchemaStatement schema, CompilationContext ctx,
             SchemaRegistry registry) {
         val compiledSchema = ExpressionCompiler.compile(schema.schema(), ctx);
@@ -151,7 +173,7 @@ public class SchemaValidatorCompiler {
             SubscriptionElement element,
             ObjectValue schemaSource,
             Schema schema,
-            SourceLocation location) implements StructuredOperator {
+            SourceLocation location) implements SchemaValidator {
         private static final long KIND = SemanticHashing.kindHash(PrecompiledSchemaValidator.class);
 
         @Override
@@ -201,7 +223,7 @@ public class SchemaValidatorCompiler {
      * OR semantics: at least one schema for the same subscription element must
      * pass.
      */
-    record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements StructuredOperator {
+    record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements SchemaValidator {
         private static final long KIND = SemanticHashing.kindHash(ElementSchemaValidator.class);
 
         @Override
@@ -249,7 +271,7 @@ public class SchemaValidatorCompiler {
     /**
      * AND semantics: all element validators must pass.
      */
-    record CombinedElementValidator(List<PureOperator> elementValidators) implements StructuredOperator {
+    record CombinedElementValidator(List<PureOperator> elementValidators) implements SchemaValidator {
         private static final long KIND = SemanticHashing.kindHash(CombinedElementValidator.class);
 
         @Override

@@ -211,7 +211,15 @@ public class StratifiedBooleanOperationCompiler {
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
     }
 
-    record LazyValuePure(
+    /**
+     * Boolean coercion of the remaining pure operand after folding an identity.
+     *
+     * @param p remaining operand
+     * @param location source of the boolean operation
+     * @param isDependingOnSubscription whether the operand reads the subscription
+     * @param isRelativeExpression whether the operand reads a relative value
+     */
+    public record LazyValuePure(
             PureOperator p,
             SourceLocation location,
             boolean isDependingOnSubscription,
