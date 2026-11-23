@@ -17,11 +17,12 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.compiler.expressions.BooleanGuard.BinaryResult;
+
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
-import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -54,7 +55,8 @@ public class NaryOperatorCompiler {
     private static final String ERROR_EMPTY_NARY_EXPRESSION = "Empty N-ary expression.";
 
     public CompiledExpression compileXor(ExclusiveDisjunction xd, CompilationContext ctx) {
-        return compile(xd.operands(), ctx, xd.location(), BinaryOperatorType.XOR, BooleanOperators::xor);
+        return compile(xd.operands(), ctx, xd.location(), BinaryOperatorType.XOR,
+                BinaryOperationCompiler.BINARY_OPERATIONS.get(BinaryOperatorType.XOR));
     }
 
     public CompiledExpression compileProduct(Product p, CompilationContext ctx) {
@@ -166,7 +168,7 @@ public class NaryOperatorCompiler {
             List<PureOperator> pures,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
+            boolean isRelativeExpression) implements PureOperator, BinaryResult {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -202,7 +204,7 @@ public class NaryOperatorCompiler {
             Value valueResult,
             List<PureOperator> pures,
             List<StreamOperator> streams,
-            SourceLocation location) implements StreamOperator {
+            SourceLocation location) implements StreamOperator, BinaryResult {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {

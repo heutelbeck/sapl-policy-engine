@@ -102,11 +102,11 @@ public final class ObservedVoter implements CoverageVoter {
     public static CoverageVoter policySet(Voter voter, PolicySet set, @Nullable CompiledExpression schema,
             CompiledExpression applicability, List<? extends CompiledDocument> members) {
         val match      = set.match();
-        val target     = set.target();
+        val target     = set.targetLocation();
         val schemaSite = match != null && match.schemas().stream().anyMatch(SchemaStatement::enforced)
                 ? match.location()
                 : null;
-        val targetSite = target != null ? target.location() : schemaSite;
+        val targetSite = target != null ? target : schemaSite;
         return new ObservedVoter(voter, new SetBody(set.metadata(), set.declarationLocation(), targetSite, schemaSite,
                 schema, applicability, set.algorithm().votingMode() != VotingMode.FIRST, layouts(members)));
     }

@@ -305,7 +305,7 @@ The `has` operator has precedence **6.5** (between comparison and equality). Thi
 
 ### Logical Operators
 
-Assuming `exp1` and `exp2` are expressions evaluating to `true` or `false`, the following operators can be applied. The new expression evaluates to `true` or `false`:
+Logical operators take boolean operands and return a boolean on success. The operators are listed in order of precedence.
 
 - `!exp1` (negation), precedence **10** (highest)
 - `exp1 & exp2` (AND), precedence **5**
@@ -334,9 +334,11 @@ subject.role == "doctor" | subject.role == "nurse" && resource.type == "patient_
 
 because `|` binds tighter than `&&`.
 
-The XOR operator (`^`) always evaluates both operands since both are needed to determine the result.
+The XOR operator (`^`) needs both boolean values to compute its boolean result.
 
-`&&`, `||`, `&`, `|`, and `^` are left-associative. `!` is non-associative, i.e., `!!true` must be replaced by `!(!true)`.
+`&&`, `||`, `&`, `|`, and `^` are left-associative.
+
+Negations can be chained. `!!subject` and `!(!subject)` both return the original boolean value. A third negation reverses it. A non-boolean operand produces a type error, so `!!2` produces an error even in an obligation. If an operand is pending or already has an error, applying `!` preserves that result.
 
 #### Cost-Stratified Short-Circuit Evaluation
 

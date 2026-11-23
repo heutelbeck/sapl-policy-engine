@@ -372,9 +372,10 @@ class CanonicalOperandOrder {
 
     private static String unaryKind(UnaryOperatorType type) {
         return switch (type) {
-        case NOT    -> "unary:!";
-        case NEGATE -> "unary:-";
-        case PLUS   -> "unary:+";
+        case NOT           -> "unary:!";
+        case CHECK_BOOLEAN -> "unary:!!";
+        case NEGATE        -> "unary:-";
+        case PLUS          -> "unary:+";
         };
     }
 

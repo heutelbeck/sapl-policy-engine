@@ -32,6 +32,7 @@ import java.util.List;
  * @param metadata policy set identification voterMetadata (name, pdpId,
  * configurationId, documentId, combiningAlgorithm)
  * @param target optional target expression (the 'for' clause), null if none
+ * @param targetLocation source of the target as written, before normalization
  * @param match optional schema condition for matching, null if none
  * @param variables variable definitions at policy set level, empty list if none
  * @param policies the policies in this set, at least one required
@@ -41,6 +42,7 @@ public record PolicySet(
         @NonNull List<Import> imports,
         @NonNull PolicySetVoterMetadata metadata,
         @Nullable Expression target,
+        @Nullable SourceLocation targetLocation,
         @Nullable SchemaCondition match,
         @NonNull List<VarDef> variables,
         @NonNull List<Policy> policies,
@@ -49,12 +51,37 @@ public record PolicySet(
     private static final String ERROR_REQUIRES_AT_LEAST_ONE_POLICY = "Policy set must contain at least one policy";
 
     public PolicySet {
+        if (targetLocation == null && target != null) {
+            targetLocation = target.location();
+        }
         imports   = List.copyOf(imports);
         variables = List.copyOf(variables);
         policies  = List.copyOf(policies);
         if (policies.isEmpty()) {
             throw new SaplCompilerException(ERROR_REQUIRES_AT_LEAST_ONE_POLICY, location);
         }
+    }
+
+    /**
+     * Constructs a set whose target already carries its written location.
+     *
+     * @param imports document imports
+     * @param metadata set identification and combining algorithm
+     * @param target optional target expression
+     * @param match optional schema condition
+     * @param variables set variable definitions
+     * @param policies member policies
+     * @param location source of the set
+     * @throws SaplCompilerException if the set has no policies
+     */
+    public PolicySet(List<Import> imports,
+            PolicySetVoterMetadata metadata,
+            @Nullable Expression target,
+            @Nullable SchemaCondition match,
+            List<VarDef> variables,
+            List<Policy> policies,
+            SourceLocation location) {
+        this(imports, metadata, target, null, match, variables, policies, location);
     }
 
     @Override

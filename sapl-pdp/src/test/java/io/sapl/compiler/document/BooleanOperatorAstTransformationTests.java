@@ -17,12 +17,15 @@
  */
 package io.sapl.compiler.document;
 
+import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.*;
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -476,19 +479,29 @@ class BooleanOperatorAstTransformationTests {
                     arguments("a <= b", BinaryOperatorType.GT), arguments("a >= b", BinaryOperatorType.LT));
         }
 
-        @Test
-        @DisplayName("!!a normalizes to a")
-        void whenDoubleNegationThenStripped() {
-            var ast = parseExpression("!!a");
-            assertThat(ast).isInstanceOfSatisfying(Identifier.class, id -> assertThat(id.name()).isEqualTo("a"));
+        @ParameterizedTest(name = "{0} needs one {1}")
+        @CsvSource({ "!!a, CHECK_BOOLEAN", "!(!a), CHECK_BOOLEAN", "!!!a, NOT", "!(!(!a)), NOT", "!!!!a, CHECK_BOOLEAN",
+                "!(!(!(!a))), CHECK_BOOLEAN", "!!!!!a, NOT" })
+        @DisplayName("A negation chain retains one operation at the innermost NOT")
+        void whenAnOperandHasUnknownTypeThenOneOperationChecksIt(String expression, String operation) {
+            val ast = parseExpression(expression);
+            assertThat(ast).isInstanceOfSatisfying(UnaryOperator.class, unary -> {
+                assertThat(unary.op().name()).isEqualTo(operation);
+                assertThat(unary.operand()).isInstanceOfSatisfying(Identifier.class,
+                        identifier -> assertThat(identifier.name()).isEqualTo("a"));
+                assertThat(unary.location()).extracting(SourceLocation::start, SourceLocation::end)
+                        .containsExactly(expression.lastIndexOf('!'), expression.indexOf('a') + 1);
+            });
         }
 
-        @Test
-        @DisplayName("!!!a normalizes to !a")
-        void whenTripleNegationThenSingleNot() {
-            var ast = parseExpression("!!!a");
-            assertThat(ast).isInstanceOfSatisfying(UnaryOperator.class,
-                    u -> assertThat(u.op()).isEqualTo(UnaryOperatorType.NOT));
+        @ParameterizedTest(name = "!!({0}) keeps the boolean operand")
+        @ValueSource(strings = { "false", "a < b", "a && b", "a in b", "a =~ b", "a has b", "a && b && c",
+                "a || b || c", "a ^ b ^ c" })
+        @DisplayName("An even chain on a boolean expression needs no guard")
+        void whenTheOperandProducesABooleanThenDoubleNegationKeepsItsOperation(String expression) {
+            val plain = parseExpression(expression);
+            val twice = parseExpression("!!(" + expression + ")");
+            assertThat(twice).usingRecursiveComparison().ignoringFieldsOfTypes(SourceLocation.class).isEqualTo(plain);
         }
 
         @ParameterizedTest(name = "!({0}) is unchanged")

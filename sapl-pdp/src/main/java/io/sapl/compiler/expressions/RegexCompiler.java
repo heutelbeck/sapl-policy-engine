@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.compiler.expressions.BooleanGuard.BooleanResult;
+
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.model.*;
@@ -130,7 +132,7 @@ public class RegexCompiler {
      * pattern compilation.
      */
     record RegexPrecompiledPure(PureOperator input, String patternSource, Pattern pattern, SourceLocation location)
-            implements PureOperator {
+            implements PureOperator, BooleanResult {
         private static final long KIND = SemanticHashing.kindHash(RegexPrecompiledPure.class);
 
         @Override
@@ -162,7 +164,7 @@ public class RegexCompiler {
      * Pre-compiled regex against a {@link StreamOperator} input.
      */
     record RegexPrecompiledStream(StreamOperator input, Pattern pattern, SourceLocation location)
-            implements StreamOperator {
+            implements StreamOperator, BooleanResult {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
@@ -181,7 +183,7 @@ public class RegexCompiler {
      * {@link ErrorValue} defensively.
      */
     record RegexPure(CompiledExpression input, CompiledExpression pattern, SourceLocation location)
-            implements PureOperator {
+            implements PureOperator, BooleanResult {
         private static final long KIND = SemanticHashing.kindHash(RegexPure.class);
 
         @Override
@@ -233,7 +235,7 @@ public class RegexCompiler {
      * the maximum subscription set.
      */
     record RegexStream(CompiledExpression input, CompiledExpression pattern, SourceLocation location)
-            implements StreamOperator {
+            implements StreamOperator, BooleanResult {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             return MATCHER.evalEager(input, pattern, location, ctx);

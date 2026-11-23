@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.compiler.expressions.BooleanGuard.BooleanResult;
+
 import io.sapl.api.model.*;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
+import static io.sapl.compiler.expressions.BooleanGuard.compileBooleanOperand;
 
 /**
  * Compiles N-ary boolean operators: Conjunction ({@code &&}, {@code &}) and
@@ -66,7 +69,7 @@ public class NaryBooleanCompiler {
      * {@code a & b & c & ...}). Short-circuits on first {@code false}.
      */
     public static CompiledExpression compileConjunction(Conjunction c, CompilationContext ctx) {
-        val compiled = CompilationChildren.map(c.operands(), o -> ExpressionCompiler.compile(o, ctx));
+        val compiled = CompilationChildren.map(c.operands(), o -> compileBooleanOperand(o, ctx));
         return compile(compiled, c.location(), Value.FALSE, Value.TRUE, c.isEager());
     }
 
@@ -75,7 +78,7 @@ public class NaryBooleanCompiler {
      * {@code a | b | c | ...}). Short-circuits on first {@code true}.
      */
     public static CompiledExpression compileDisjunction(Disjunction d, CompilationContext ctx) {
-        val compiled = CompilationChildren.map(d.operands(), o -> ExpressionCompiler.compile(o, ctx));
+        val compiled = CompilationChildren.map(d.operands(), o -> compileBooleanOperand(o, ctx));
         return compile(compiled, d.location(), Value.TRUE, Value.FALSE, d.isEager());
     }
 
@@ -151,7 +154,7 @@ public class NaryBooleanCompiler {
             SourceLocation location,
             boolean isDependingOnSubscription,
             boolean isRelativeExpression,
-            @Nullable Value pendingError) implements PureOperator {
+            @Nullable Value pendingError) implements PureOperator, BooleanResult {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -210,7 +213,7 @@ public class NaryBooleanCompiler {
             Value shortCircuitValue,
             Value identityValue,
             SourceLocation location,
-            @Nullable Value pendingError) implements StreamOperator {
+            @Nullable Value pendingError) implements StreamOperator, BooleanResult {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
@@ -252,7 +255,7 @@ public class NaryBooleanCompiler {
             Value shortCircuitValue,
             Value identityValue,
             SourceLocation location,
-            @Nullable Value pendingError) implements StreamOperator {
+            @Nullable Value pendingError) implements StreamOperator, BooleanResult {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
