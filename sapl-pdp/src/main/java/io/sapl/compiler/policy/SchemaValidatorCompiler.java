@@ -17,7 +17,9 @@
  */
 package io.sapl.compiler.policy;
 
-import com.networknt.schema.*;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaException;
+import com.networknt.schema.SchemaRegistry;
 import io.sapl.api.model.*;
 import io.sapl.ast.SchemaCondition;
 import io.sapl.ast.SchemaStatement;
@@ -28,8 +30,7 @@ import io.sapl.compiler.expressions.OperandStructure;
 import io.sapl.compiler.expressions.OperandStructure.StructuredOperator;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.compiler.util.ConfinedSchemaLoader;
-import io.sapl.compiler.util.LinearRegularExpressionFactory;
+import io.sapl.compiler.util.JsonSchemaPreparation;
 import io.sapl.compiler.util.SchemaErrors;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -38,7 +39,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -73,8 +73,14 @@ public class SchemaValidatorCompiler {
     private static final String ERROR_SCHEMA_MUST_BE_OBJECT      = "Schema must be an object, got: %s";
     private static final String ERROR_SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s.";
 
-    private static final String SCHEMA_ID_FIELD = "$id";
-
+    /**
+     * Compiles the enforced schema guard for a document.
+     *
+     * @param match document schema declarations, if present
+     * @param ctx compilation context supplying constants and local schemas
+     * @return the compiled guard, or true for a document without enforced schemas
+     * @throws SaplCompilerException if an enforced schema cannot be prepared
+     */
     public static CompiledExpression compileValidator(@Nullable SchemaCondition match, CompilationContext ctx) {
         if (match == null || match.schemas().isEmpty()) {
             return Value.TRUE;
@@ -82,12 +88,20 @@ public class SchemaValidatorCompiler {
         return compileValidator(match.schemas(), ctx);
     }
 
+    /**
+     * Combines the enforced declarations for the guarded subscription elements.
+     *
+     * @param schemas document schema declarations
+     * @param ctx compilation context supplying constants and local schemas
+     * @return the compiled guard, or true if the declarations are annotations only
+     * @throws SaplCompilerException if an enforced schema cannot be prepared
+     */
     public static CompiledExpression compileValidator(@NonNull List<SchemaStatement> schemas, CompilationContext ctx) {
         val enforced = schemas.stream().filter(SchemaStatement::enforced).toList();
         if (enforced.isEmpty()) {
             return Value.TRUE;
         }
-        val registry = buildSchemaRegistry(ctx);
+        val registry = JsonSchemaPreparation.registry(ctx.getData().variables().get("schemas"));
         // Grouped in the order of the subscription elements, not in the iteration order of a
         // hash map over enum constants, which differs from one run to the next and would
         // change the semantic hash of the combined validator.
@@ -126,28 +140,11 @@ public class SchemaValidatorCompiler {
     private static PrecompiledSchemaValidator createPrecompiledValidator(SubscriptionElement element,
             ObjectValue constantSchema, SourceLocation location, SchemaRegistry registry) {
         try {
-            val schemaNode        = ValueJsonMarshaller.toJsonNode(constantSchema);
-            val precompiledSchema = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
-            precompiledSchema.initializeValidators();
+            val precompiledSchema = JsonSchemaPreparation.prepare(registry, constantSchema);
             return new PrecompiledSchemaValidator(element, constantSchema, precompiledSchema, location);
         } catch (SchemaException e) {
             throw new SaplCompilerException(SchemaErrors.describe(e, ERROR_SCHEMA_INVALID_JSON_SCHEMA), e, location);
         }
-    }
-
-    private static SchemaRegistry buildSchemaRegistry(CompilationContext ctx) {
-        val schemaMap = new HashMap<String, String>();
-        if (ctx.getData().variables().get("schemas") instanceof ArrayValue schemas) {
-            for (val schema : schemas) {
-                if (schema instanceof ObjectValue obj && obj.get(SCHEMA_ID_FIELD) instanceof TextValue(String id)) {
-                    schemaMap.put(id, ValueJsonMarshaller.toJsonNode(obj).toString());
-                }
-            }
-        }
-        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
-            builder.schemaLoader(new ConfinedSchemaLoader(schemaMap));
-            LinearRegularExpressionFactory.applyTo(builder);
-        });
     }
 
     record PrecompiledSchemaValidator(

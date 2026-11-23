@@ -17,21 +17,16 @@
  */
 package io.sapl.functions.libraries;
 
-import com.networknt.schema.*;
+import com.networknt.schema.SchemaException;
 import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import io.sapl.compiler.util.ConfinedSchemaLoader;
-import io.sapl.compiler.util.LinearRegularExpressionFactory;
+import io.sapl.compiler.util.JsonSchemaPreparation;
 import io.sapl.compiler.util.SchemaErrors;
 import lombok.val;
-import tools.jackson.databind.cfg.JsonNodeFeature;
-import tools.jackson.databind.json.JsonMapper;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
 public class SchemaValidationLibrary {
@@ -144,9 +139,6 @@ public class SchemaValidationLibrary {
             `{"type": "string", "minLength": 12, "allOf": [{"pattern": "[0-9]"}, {"pattern": "[A-Z]"}]}`.
             """;
 
-    // JSON Schema field names
-    private static final String SCHEMA_ID_FIELD = "$id";
-
     // JSON result field names
     private static final String FIELD_VALID  = "valid";
     private static final String FIELD_ERRORS = "errors";
@@ -208,21 +200,15 @@ public class SchemaValidationLibrary {
             }
             """;
 
-    // External schemas are serialized and read again, including numbers beyond the range of doubles.
-    private static final JsonMapper SCHEMA_MAPPER = JsonMapper.builder()
-            .enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
-
-    private static final SchemaRegistry SCHEMA_REGISTRY = confinedSchemaRegistry(Map.of());
-
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
             This function tests the `validationSubject` for compliance with the provided JSON schema `schema`.
 
-            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
+            An invalid schema returns an error.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.
 
-            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
+            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
 
             **Example:**
             ```sapl
@@ -254,14 +240,14 @@ public class SchemaValidationLibrary {
             This function tests the ```validationSubject``` for compliance with the provided JSON
             schema `schema`.
 
-            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
+            An invalid schema returns an error.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.
             If the ```jsonSchema``` contains external references to other ```schemas```, the validation function
             looks up the schemas in ```externalSchemas``` based on explicitly defined ```$id``` field in the schemas.
             If no $id field is provided, the schema will not be detectable.
 
-            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
+            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
 
             **Example:**
             ```sapl
@@ -326,9 +312,9 @@ public class SchemaValidationLibrary {
             validation failures. Each error includes the location in the subject (`path`), a human-readable message,
             the validation keyword that failed (`type`), and the schema location (`schemaPath`).
 
-            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
+            An invalid schema returns an error.
 
-            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
+            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
 
             **Example:**
             ```sapl
@@ -360,12 +346,12 @@ public class SchemaValidationLibrary {
             validation failures. Each error includes the location in the subject (`path`), a human-readable message,
             the validation keyword that failed (`type`), and the schema location (`schemaPath`).
 
-            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
+            An invalid schema returns an error.
             If the ```jsonSchema``` contains external references to other ```schemas```, the validation function
             looks up the schemas in ```externalSchemas``` based on explicitly defined ```$id``` field in the schemas.
             If no $id field is provided, the schema will not be detectable.
 
-            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
+            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
 
             **Example:**
             ```sapl
@@ -408,14 +394,12 @@ public class SchemaValidationLibrary {
             return validationSubject;
         }
 
-        if (validationSubject instanceof UndefinedValue) {
-            return createValidationResult(false, List.of());
-        }
         try {
-            val schemaMap   = buildSchemaMap(externalSchemas);
-            val registry    = createSchemaRegistry(schemaMap);
-            val schemaNode  = ValueJsonMarshaller.toJsonNode(jsonSchema);
-            val validator   = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
+            val registry  = JsonSchemaPreparation.registry(externalSchemas);
+            val validator = JsonSchemaPreparation.prepare(registry, jsonSchema);
+            if (validationSubject instanceof UndefinedValue) {
+                return createValidationResult(false, List.of());
+            }
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
             val errors      = validator.validate(subjectNode);
             return createValidationResult(errors.isEmpty(), errors);
@@ -429,37 +413,6 @@ public class SchemaValidationLibrary {
             // Third-party validation on hostile input must not crash evaluation.
             return Value.error(SchemaErrors.describe(t, ERROR_SCHEMA_VALIDATION_FAILED));
         }
-    }
-
-    private static HashMap<String, String> buildSchemaMap(Value externalSchemas) {
-        val schemaMap = new HashMap<String, String>();
-        if (externalSchemas instanceof ArrayValue array) {
-            for (val externalSchema : array) {
-                if (externalSchema instanceof ObjectValue obj && obj.containsKey(SCHEMA_ID_FIELD)) {
-                    val id = obj.get(SCHEMA_ID_FIELD);
-                    if (id instanceof TextValue text) {
-                        val schemaNode = ValueJsonMarshaller.toJsonNode(obj);
-                        schemaMap.put(text.value(), schemaNode.toString());
-                    }
-                }
-            }
-        }
-        return schemaMap;
-    }
-
-    private static SchemaRegistry createSchemaRegistry(Map<String, String> schemaMap) {
-        if (schemaMap.isEmpty()) {
-            return SCHEMA_REGISTRY;
-        }
-        return confinedSchemaRegistry(schemaMap);
-    }
-
-    private static SchemaRegistry confinedSchemaRegistry(Map<String, String> schemaMap) {
-        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
-            builder.nodeReader(reader -> reader.jsonMapper(SCHEMA_MAPPER));
-            builder.schemaLoader(new ConfinedSchemaLoader(schemaMap));
-            LinearRegularExpressionFactory.applyTo(builder);
-        });
     }
 
     private static Value createValidationResult(boolean valid, List<Error> errors) {
