@@ -39,6 +39,22 @@ public sealed interface SaplDocument extends AstNode permits Policy, PolicySet {
     SourceLocation location();
 
     /**
+     * @return the source range of the introductory {@code policy} or {@code set}
+     * keyword
+     */
+    default SourceLocation declarationLocation() {
+        var source        = location();
+        int keywordLength = switch (this) {
+                          case Policy ignored    -> "policy".length();
+                          case PolicySet ignored -> "set".length();
+                          };
+        int length        = Math.min(keywordLength, source.end() - source.start());
+        int endColumn     = source.column() > 0 ? source.column() + length : source.column();
+        return new SourceLocation(source.documentName(), source.documentSource(), source.start(),
+                source.start() + length, source.line(), source.column(), source.line(), endColumn);
+    }
+
+    /**
      * @return the name of the policy or policy set
      */
     String name();

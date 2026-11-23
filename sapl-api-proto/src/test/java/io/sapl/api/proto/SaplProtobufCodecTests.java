@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
@@ -176,10 +177,11 @@ class SaplProtobufCodecTests {
                     arguments("over-length all-digit literal", "1".repeat(1001)));
         }
 
-        @Test
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "123456789.123456789", "1E+1000", "1E-1000" })
         @DisplayName("a number within the accepted magnitude round-trips")
-        void whenNumberWithinAcceptedMagnitudeThenRoundTrips() throws IOException {
-            val value = new NumberValue(new BigDecimal("123456789.123456789"));
+        void whenNumberWithinAcceptedMagnitudeThenRoundTrips(String literal) throws IOException {
+            val value = new NumberValue(new BigDecimal(literal));
 
             val bytes = SaplProtobufCodec.writeValue(value);
 
@@ -222,6 +224,10 @@ class SaplProtobufCodecTests {
                     arguments("boolean true", Value.of(true)), arguments("boolean false", Value.of(false)),
                     arguments("integer number", new NumberValue(new BigDecimal("42"))),
                     arguments("decimal number", new NumberValue(new BigDecimal("2.5"))),
+                    arguments("bounded arithmetic result", Value.of(new BigDecimal("1E1999").setScale(-1000))),
+                    arguments("compact exponent beyond the scale bound", Value.of(new BigDecimal("-1E1001"))),
+                    arguments("full precision with a signed exponent form",
+                            Value.of(new BigDecimal("-" + "9".repeat(1000) + "e1000"))),
                     arguments("negative number", new NumberValue(new BigDecimal("-999"))),
                     arguments("large number", new NumberValue(new BigDecimal("12345678901234567890"))),
                     arguments("empty string", Value.of("")), arguments("simple string", Value.of("hello")),

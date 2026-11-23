@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.coverage.BranchHit;
+import io.sapl.api.coverage.LineCoverageInfo;
 import io.sapl.api.coverage.LineCoverageStatus;
 import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.val;
@@ -412,4 +413,33 @@ class PolicyCoverageDataTests {
             assertThat(info.totalBranches()).isEqualTo(1);
         });
     }
+
+    @Test
+    @DisplayName("branches sharing a source position keep their individual counts when reports merge")
+    void mergesOnlyTheSameBranchSite() {
+        val first  = new PolicyCoverageData("access", null, "set");
+        val next   = new PolicyCoverageData("access", null, "set");
+        val schema = new BranchHit(-1, 1, 1, 0, 4, 0, 1, 0, true);
+        val target = new BranchHit(-1, 1, 1, 0, 4, 1, 0);
+
+        first.recordBranchHit(schema);
+        first.recordBranchHit(target);
+        next.recordBranchHit(target);
+        next.recordBranchHit(schema);
+        first.merge(next);
+
+        assertThat(first.getBranchHits()).containsExactlyInAnyOrder(new BranchHit(-1, 1, 1, 0, 4, 0, 2, 0, true),
+                new BranchHit(-1, 1, 1, 0, 4, 2, 0));
+    }
+
+    @Test
+    @DisplayName("a rejected set with a located schema never assigns its target to a preceding comment")
+    void usesOnlyTheSchemaLineForAFailedSchemaOnlySet() {
+        val data = new PolicyCoverageData("staff", "// access rules\nsubject enforced schema {}\nset \"staff\"", "set");
+        data.recordTargetHit(false);
+        data.recordBranchHit(new BranchHit(-1, 2, 2, 0, 26, 0, 1, 0, true));
+        assertThat(data.getLineCoverage()).filteredOn(line -> line.status() != LineCoverageStatus.IRRELEVANT)
+                .extracting(LineCoverageInfo::line).containsExactly(2);
+    }
+
 }

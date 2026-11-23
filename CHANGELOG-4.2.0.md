@@ -16,6 +16,10 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Java record patterns for `EvaluationContext`, `BranchHit`, and the `Coverage` records `PolicyCoverage`, `PolicySetCoverage`, `BodyCoverage` and `ConditionHit` must include their new components. The previous constructors remain available.
+- The expression compiler rejects `<`, `<=`, `>` and `>=` when an operand folds to a boolean. The diagnostic points to that operand. Operand types that depend on the request are checked during evaluation.
+- SAPL number-to-text conversion is exact and independent of decimal scale. `standard.toString(1.50)` now yields `"1.5"` and `"n=" + 1.50` yields `"n=1.5"`. Nonzero magnitudes below `1e-6` or at least `1e21` use scientific notation.
+- Bundle manifests require a JSON string for `configurationId`. Producers with numeric internal IDs must emit, for example, `"configurationId": "42"`.
 - The `secrets` of an authorization subscription are an object on the RSocket wire (protobuf field 5 is now `ObjectValue`). RSocket clients and SDKs of 4.1.x cannot talk to a 4.2 node. Upgrade clients and node together.
 - A user secret or API key in the SAPL Node configuration that is not an Argon2 hash refuses the start. A `{argon2id}` prefix is no longer accepted. Regenerate such entries with `sapl generate basic` or `sapl generate apikey`.
 - An unknown key under `io.sapl.node` refuses the start, so a misspelt key no longer goes unnoticed.
@@ -35,12 +39,15 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - Because matching is linear, the time budget for regular expressions and the blacklist of dangerous patterns in the `patterns` library are removed, and with them the errors "Regular expression evaluation exceeded its time budget." and "Invalid or dangerous regex pattern.". The limit of 100 alternations in the `patterns` library is gone. Instead a pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. A large Unicode class counts for more than one instruction, `\p{L}` for 41, so that `\p{L}{1,1000}` is too large, as it is in the other implementations of SAPL. The limits of the `patterns` library on the length of patterns, inputs, results and the number of matches stay.
 - JSON schemas follow the RE2 syntax as well, although the JSON Schema specification names ECMA-262 for `pattern` and `patternProperties`. A schema whose pattern uses look-ahead, look-behind or backreferences, or is too large, never lets a subscription through: an enforced schema statement with such a schema is refused when the policy is compiled, also if the pattern sits in a branch a subscription might never reach or in a schema of the `schemas` variable reached through `$ref`, and the functions of the `jsonschema` library return an error, never `true`. Password rules and similar checks written with look-ahead are rewritten as several `pattern` keywords under `allOf`, and a negative look-ahead as `not`.
 - The `text with regex` matcher of the test language and `Matchers.textMatching` of the Java fixture API use the RE2 syntax of policies instead of `java.util.regex` and match the whole text. The editor marks a pattern that a policy would refuse, and the length limit of 1000 characters for these patterns is replaced by the limits of RE2 patterns. `Matchers.textMatching` refuses an invalid pattern with a `com.google.re2j.PatternSyntaxException` when the matcher is created.
-- A whole number in the range of a signed 64 bit integer is written plainly when it becomes text, in string concatenation with `+` and in error messages: `"n=" + 5.0` is `"n=5"` instead of `"n=5.0"`, and `1E+3` is written as `1000`. Any other number keeps its notation, such as `12.50`, `1E-7` or `1E+20`. `NumberValue.toString()` returns this form. The JSON of numbers is unchanged.
-- The result of an arithmetic operation is bounded like its operands: a result with more than 1000 significant digits or a scale beyond 1000 is the error "Numeric operation exceeded the supported range." instead of a number.
+- JSON and Protobuf may use a shorter equivalent decimal notation. Both readers accept a numeric token of up to 1010 characters when its value fits the arithmetic range exactly.
+- Arithmetic results must have an exact representation with at most 1000 coefficient digits and a scale from -1000 to 1000. For example, `1E-1000 * 2.0` gives `2E-1000`, while `1E-1000 * 0.1` gives the error "Numeric operation exceeded the supported range."
 - The operands of `==`, `!=`, `*`, `&&`, `||`, `&`, `|` and `^` are evaluated in a canonical order within constants, pure expressions and attribute streams, so `a == b` and `b == a` are the same expression and share one entry of the policy index. When several operands are errors, the first in the canonical order is reported, which need not be the first one written. `+` keeps the order written, as it concatenates texts.
 - The diagnostics of the parser use a new problem catalogue with new messages, and positions follow the LSP specification. In the Java API, `Document` carries these diagnostics and no longer has `syntaxErrors`, `validationErrors` and `errorMessage`. `TracedValue` and `AttributeRecord` are removed from `sapl-api`.
 
 ### Function libraries and policy information points
+
+- `x509.isExpired` becomes true strictly after `notAfter`. Before `notBefore` both certificate attributes return false. A certificate is valid at both endpoints.
+- The local time before, after and between attributes follow the displayed clock through daylight saving gaps and overlaps. Local ranges include their start and exclude their end.
 
 - Replace `semver.isAtLeast` with `semver.isHigherOrEqual` and `semver.isAtMost` with `semver.isLowerOrEqual`. Rewrite Ivy ranges such as `[1.0.0,2.0.0)` as `>=1.0.0 <2.0.0`. Invalid range tokens now produce errors.
 - Use dotted-quad IPv4 or RFC 4291 IPv6 in `cidr`, without whitespace, zone IDs or zero-padded IPv4 octets or prefixes. `cidr.anonymizeIp` now includes the prefix length. Recompute stored `cidr.hashIpPrefix` hashes.
@@ -49,7 +56,21 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - Move the contents of `pdp.json`'s `secrets` object, including MQTT and Traccar credentials, into a sibling `secrets.json` and seal it or enable cleartext explicitly. For HTTP, set `secretsKey` to the name of the credential whose `allowedBaseUrls` covers the request.
 - Rename invalid Java function and finder names such as `item-count` to `item_count`. Give ambiguous finders within a PIP distinct names. Custom `AttributeRepository` implementations must implement atomic `publish(List<AttributeAssignment>)` and `observeState(pdpId, configurationId, onUpdate)`, registering the observer and capturing its initial view atomically.
 
+## Policy evaluation fixes
+
+- Coverage observes the same compiled voter as an ordinary decision, with the same attribute requests and votes for either value of `lowLatencyMode`. A pending `decideOnceWithCoverage` request follows a replacement PDP configuration.
+- Coverage reports place each completed member policy's decision at its own declaration and preserve separate source hits for conditions that share an index predicate. A set's target result includes its enforced schema and any `for` expression.
+- Compiling an enforced JSON Schema checks the schema against its declared dialect. An invalid schema rejects the configuration. The `jsonschema` functions return an error value for an invalid schema supplied at evaluation time.
+- If a new configuration becomes active for the same PDP while `decideOnce` is waiting for an attribute, the request uses the new configuration. A retired configuration can no longer release a decision after its replacement.
+- A policy set's target or enforced schema could read a variable declared in its last policy, changing which requests matched the set. Policy-local variables are now visible only inside the declaring policy.
+- SMTDD now reports a type error when an object-key check with `has` receives a defined non-string key. Equality checks on the same value still match normally.
+- CANONICAL keeps a shared condition available to every policy that still needs it when another policy's target encounters an error. This preserves the decision and its obligations when several policy targets overlap.
+- CANONICAL and SMTDD preserve errors in complementary conditions. For example, with a text subject, `subject && !subject` produces a type error just as it does with NAIVE. Boolean subjects still make this condition false.
+- A priority combiner remembers incompatible resource transformations from votes of the same effect. A further vote of that effect preserves the conflict. A higher-priority effect can still determine the result.
+
 ## Other changes
+
+- Rust PDPs now verify Ed448-signed JWTs by default, matching Java PDPs.
 
 - `sapl.info()` returns the engine neutral keys `engine` and `engineVersion`, which every SAPL engine reports. The keys `jdkVersion`, `javaVersion` and `javaVendor` are deprecated and will be removed in the next release.
 - The SAPL Node authentication cache (`io.sapl.node.http.auth-cache.*`) now also covers RSocket connections. The keys keep their names.

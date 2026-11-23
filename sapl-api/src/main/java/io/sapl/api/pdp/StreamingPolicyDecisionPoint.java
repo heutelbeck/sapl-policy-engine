@@ -65,14 +65,27 @@ public interface StreamingPolicyDecisionPoint {
     Stream<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Returns the current authorization decision for the subscription
-     * and does not keep watching for changes. Never returns
-     * {@code null}: when no decision can be produced,
-     * {@link AuthorizationDecision#INDETERMINATE} is returned.
+     * Returns one decision from the configuration serving {@code pdpId}.
+     * If this tenant activates a replacement before the decision is admitted,
+     * the PDP evaluates the original subscription against the replacement.
+     * A pending attribute stream from the previous configuration need not
+     * supply a value. If a synchronous finder is still opening its stream,
+     * evaluation resumes after setup returns. Updates to other tenants and
+     * rejected updates that retain the serving configuration leave the evaluation
+     * in progress.
+     * <p>
+     * Admission checks that the configuration which produced the decision
+     * still serves the tenant. Decision interceptors then observe the admitted
+     * result with the original subscription ID. Each superseded evaluation
+     * releases its own attribute registrations. The local PDP returns
+     * {@link AuthorizationDecision#INDETERMINATE} if the configuration is
+     * withdrawn or the wait is interrupted. An interrupted caller retains its
+     * interrupt status.
      *
      * @param authorizationSubscription the authorization subscription
      * @param pdpId the tenant identifier
-     * @return the authorization decision
+     * @return the authorization decision, or {@link AuthorizationDecision#INDETERMINATE}
+     * if no decision can be produced
      */
     AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId);
 
@@ -120,6 +133,9 @@ public interface StreamingPolicyDecisionPoint {
      * Delegates to
      * {@link #decideOnce(AuthorizationSubscription, String)} with
      * {@link #DEFAULT_PDP_ID}.
+     *
+     * @param authorizationSubscription the authorization subscription
+     * @return the decision for the default tenant
      */
     default AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription) {
         return decideOnce(authorizationSubscription, DEFAULT_PDP_ID);

@@ -46,7 +46,12 @@ class NumberValueLimitsTests {
         }
 
         static Stream<Arguments> whenWithinBoundsThenNumberValue() {
-            return Stream.of(arguments("zero", BigDecimal.ZERO), arguments("small decimal", new BigDecimal("2.5")),
+            return Stream.of(arguments("zero", BigDecimal.ZERO),
+                    arguments("excess scale that can be removed exactly", new BigDecimal("10E-1001")),
+                    arguments("largest power of ten", new BigDecimal("1E1999")),
+                    arguments("negative power of ten", new BigDecimal("-1E1001")),
+                    arguments("zero with large scale", new BigDecimal("0E-1000000")),
+                    arguments("small decimal", new BigDecimal("2.5")),
                     arguments("large but bounded", new BigDecimal("1E1000")),
                     arguments("negative scale at the bound", new BigDecimal("1E-1000")),
                     arguments("high precision is not amplifying and is admitted", new BigDecimal("1".repeat(2000))));
@@ -78,6 +83,22 @@ class NumberValueLimitsTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
+        @DisplayName("admits wire overhead only when the value fits exactly")
+        void whenWireOverheadThenNumberValue(String description, String literal) {
+            assertThat(NumberValueLimits.parseBoundedNumber(literal)).isEqualTo(Value.of(new BigDecimal(literal)));
+        }
+
+        static Stream<Arguments> whenWireOverheadThenNumberValue() {
+            return Stream.of(arguments("negative coefficient", "-" + "9".repeat(1000)),
+                    arguments("exponent at maximum precision", "-" + "9".repeat(1000) + "e1000"),
+                    arguments("exactly reducible coefficient", "9".repeat(1000) + "0"),
+                    arguments("zero at the wire limit", "0." + "0".repeat(1008)),
+                    arguments("zero with large exponent", "0e1000000"),
+                    arguments("zero with minimum host scale", "0e2147483648"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource
         @DisplayName("fails closed on an over-long, malformed, or out-of-bounds literal")
         void whenInvalidOrOutOfBoundsThenError(String description, String literal) {
             assertThat(NumberValueLimits.parseBoundedNumber(literal)).isInstanceOf(ErrorValue.class);
@@ -85,6 +106,9 @@ class NumberValueLimitsTests {
 
         static Stream<Arguments> whenInvalidOrOutOfBoundsThenError() {
             return Stream.of(arguments("over-long literal", "1".repeat(1001)),
+                    arguments("over-long zero", "0." + "0".repeat(1009)), arguments("insufficient precision", "1E2000"),
+                    arguments("rounding required", "1E-1001"),
+                    arguments("scale outside the host range", "0e2147483649"),
                     arguments("extreme exponent", "1E1000001"), arguments("not a number", "not-a-number"),
                     arguments("empty", ""));
         }

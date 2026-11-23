@@ -17,12 +17,11 @@
  */
 package io.sapl.test.coverage;
 
+import io.sapl.api.coverage.BranchHit;
 import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Effect;
-import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.BodyCoverage;
@@ -37,8 +36,10 @@ import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteWithCoverage;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,8 +52,9 @@ import java.util.Map;
 @UtilityClass
 public class CoverageExtractor {
 
-    private static final String TYPE_POLICY = "policy";
-    private static final String TYPE_SET    = "set";
+    private static final String ERROR_NESTED_PDP = "PDP coverage cannot appear inside another document.";
+    private static final String TYPE_POLICY      = "policy";
+    private static final String TYPE_SET         = "set";
 
     /**
      * Extracts coverage data from a VoteWithCoverage.
@@ -77,20 +79,27 @@ public class CoverageExtractor {
             return extractFromContainedDocuments(psc.policyCoverages(), vote, policySources);
         }
 
-        val coverage = extractDocumentCoverage(docCoverage, vote, policySources);
-        return coverage != null ? List.of(coverage) : List.of();
+        return docCoverage == null ? List.of() : List.of(extractDocumentCoverage(docCoverage, vote, policySources));
     }
 
     private static List<PolicyCoverageData> extractFromContainedDocuments(List<DocumentCoverage> documents, Vote vote,
             Map<String, String> policySources) {
-        val results = new ArrayList<PolicyCoverageData>(documents.size());
-        for (val nestedCoverage : documents) {
-            val extracted = extractDocumentCoverage(nestedCoverage, vote, policySources);
-            if (extracted != null) {
-                results.add(extracted);
-            }
+        val childVotes = childVotes(vote);
+        val results    = new ArrayList<PolicyCoverageData>(documents.size());
+        for (val document : documents) {
+            results.add(extractDocumentCoverage(document, childVotes.get(document.voter()), policySources));
         }
         return results;
+    }
+
+    private static Map<VoterMetadata, Vote> childVotes(@Nullable Vote parent) {
+        val votes = new HashMap<VoterMetadata, Vote>();
+        if (parent != null) {
+            for (val child : parent.contributingVotes()) {
+                votes.put(child.voter(), child);
+            }
+        }
+        return votes;
     }
 
     /**
@@ -103,188 +112,114 @@ public class CoverageExtractor {
         return voteWithCoverage.coverage() != null;
     }
 
-    private static PolicyCoverageData extractDocumentCoverage(DocumentCoverage docCoverage, Vote vote,
+    private static PolicyCoverageData extractDocumentCoverage(DocumentCoverage document, @Nullable Vote vote,
             Map<String, String> policySources) {
-        return switch (docCoverage) {
-        case PolicyCoverage pc     -> extractPolicyCoverage(pc, vote, policySources);
-        case PolicySetCoverage psc -> extractPolicySetCoverage(psc, vote, policySources);
-        case PdpCoverage pdpc      -> throw new IllegalStateException(
-                "PdpCoverage is the top-level wrapper and cannot appear as a contained document, got " + pdpc);
-        };
+        val name = document.voter().name();
+        val data = new PolicyCoverageData(name, policySources.getOrDefault(name, ""),
+                document instanceof PolicySetCoverage ? TYPE_SET : TYPE_POLICY);
+        recordDocument(document, vote, data);
+        return data;
     }
 
-    private static PolicyCoverageData extractPolicyCoverage(PolicyCoverage policyCoverage, Vote vote,
-            Map<String, String> policySources) {
-        val voter    = policyCoverage.voter();
-        val name     = voter.name();
-        val source   = policySources.getOrDefault(name, "");
-        val coverage = new PolicyCoverageData(name, source, TYPE_POLICY);
-
-        // Extract condition hits from body coverage
-        extractBodyCoverage(policyCoverage.bodyCoverage(), coverage);
-
-        // Record policy outcome
-        recordPolicyOutcome(voter, vote, policyCoverage.bodyCoverage(), coverage);
-
-        return coverage;
-    }
-
-    private static PolicyCoverageData extractPolicySetCoverage(PolicySetCoverage psCoverage, Vote vote,
-            Map<String, String> policySources) {
-        val voter    = psCoverage.voter();
-        val name     = voter.name();
-        val source   = policySources.getOrDefault(name, "");
-        val coverage = new PolicyCoverageData(name, source, TYPE_SET);
-
-        // Extract target hit for the policy set's "for" clause
-        extractTargetHit(psCoverage.targetHit(), coverage);
-
-        // Extract and merge nested policies' coverage into this set's coverage
-        for (val nestedDoc : psCoverage.policyCoverages()) {
-            extractNestedDocumentCoverage(nestedDoc, vote, coverage);
+    private static void recordDocument(DocumentCoverage document, @Nullable Vote vote, PolicyCoverageData data) {
+        switch (document) {
+        case PolicyCoverage policy -> {
+            val conditional = recordBody(policy.bodyCoverage(), data);
+            recordOutcome(vote, policy.declarationLocation(), conditional, data);
         }
-
-        // Record policy set outcome
-        recordPolicySetOutcome(voter, vote, coverage);
-
-        return coverage;
-    }
-
-    /**
-     * Extracts coverage from a nested document and merges it into the parent set's
-     * coverage.
-     * <p>
-     * Nested policies share the same source file as their containing set, so their
-     * coverage is merged into the set's PolicyCoverageData with correct line
-     * numbers.
-     */
-    private static void extractNestedDocumentCoverage(DocumentCoverage nestedDoc, Vote vote,
-            PolicyCoverageData setCoverage) {
-        switch (nestedDoc) {
-        case PolicyCoverage(var voter, var bodyCoverage) -> {
-            // Extract body coverage (conditions) into parent set
-            extractBodyCoverage(bodyCoverage, setCoverage);
-            // Record nested policy outcome
-            recordPolicyOutcome(voter, vote, bodyCoverage, setCoverage);
-        }
-        case PolicySetCoverage nestedSet                 -> {
-            // Extract nested set's target
-            extractTargetHit(nestedSet.targetHit(), setCoverage);
-            // Flatten nested set's policies into parent (don't recurse deeper)
-            for (val innerDoc : nestedSet.policyCoverages()) {
-                extractNestedDocumentCoverage(innerDoc, vote, setCoverage);
+        case PolicySetCoverage set -> {
+            recordTarget(set.targetHit(), set.schemaHit(), data);
+            if (set.schemaHit() != null) {
+                recordCondition(set.schemaHit(), data);
+            }
+            recordOutcome(vote, set.declarationLocation(), false, data);
+            val members = childVotes(vote);
+            for (val member : set.policyCoverages()) {
+                recordDocument(member, members.get(member.voter()), data);
             }
         }
-        case PdpCoverage pdpc                            -> throw new IllegalStateException(
-                "PdpCoverage is the top-level wrapper and cannot appear nested in a PolicySetCoverage, got " + pdpc);
+        case PdpCoverage ignored   -> throw new IllegalStateException(ERROR_NESTED_PDP);
         }
     }
 
-    private static void extractTargetHit(Coverage.TargetHit targetHit, PolicyCoverageData coverage) {
-        switch (targetHit) {
-        case TargetResult tr when tr.location() != null -> {
-            val matched   = Value.TRUE.equals(tr.match());
-            val location  = tr.location();
-            val startLine = location.line();
-            val endLine   = location.endLine() > 0 ? location.endLine() : startLine;
-            coverage.recordTargetHit(matched, startLine, endLine);
+    private static boolean recordBody(@Nullable BodyCoverage body, PolicyCoverageData data) {
+        if (body == null) {
+            return false;
         }
-        case TargetResult tr                            -> {
-            // Fallback for TargetResult with null location (first case handles non-null)
-            val matched = Value.TRUE.equals(tr.match());
-            coverage.recordTargetHit(matched);
+        for (val hit : body.hits()) {
+            recordCondition(hit, data);
         }
-        case Coverage.BlankTargetHit ignored            ->
-            // Blank target (no "for" clause) - implicitly matches everything
-            // Record as a target hit since blank target = always applicable
-            coverage.recordTargetHit(true);
-        case Coverage.NoTargetHit ignored -> {
-            // Target was not evaluated (policy not reached)
-            // Don't record anything
-        }
+        return body.hasDecisionCondition();
+    }
+
+    private static void recordCondition(ConditionHit hit, PolicyCoverageData data) {
+        if (hit.enforcedSchema() || (hit.statementId() >= 0 && hit.result() instanceof BooleanValue)) {
+            recordResult(data, (int) hit.statementId(), hit.location(), hit.result(), hit.enforcedSchema());
         }
     }
 
-    private static void extractBodyCoverage(BodyCoverage bodyCoverage, PolicyCoverageData coverage) {
-        if (bodyCoverage == null) {
-            return;
+    private static void recordTarget(Coverage.TargetHit target, @Nullable ConditionHit schema,
+            PolicyCoverageData data) {
+        switch (target) {
+        case TargetResult hit                -> {
+            recordTargetResult(hit.match(), data);
+            val location = hit.location();
+            // With no authored for-clause the schema is the effective target itself.
+            if (location != null && location.line() > 0 && (schema == null || !location.equals(schema.location()))) {
+                recordResult(data, -location.line(), location, hit.match(), false);
+            }
         }
-        for (val hit : bodyCoverage.hits()) {
-            extractConditionHit(hit, coverage);
+        case Coverage.BlankTargetHit ignored -> {
+            if (schema == null) {
+                data.recordTargetHit(true);
+            } else {
+                recordTargetResult(schema.result(), data);
+            }
+        }
+        case Coverage.NoTargetHit ignored    -> { /* The target was not reached. */ }
         }
     }
 
-    private static void extractConditionHit(ConditionHit hit, PolicyCoverageData coverage) {
-        val result = hit.result();
-
-        // Only record boolean results - skip errors
-        if (!(result instanceof BooleanValue(boolean boolValue))) {
-            return;
-        }
-
-        val statementId = (int) hit.statementId();
-        val location    = hit.location();
-
-        if (location != null) {
-            val startLine = location.line();
-            val endLine   = location.endLine() > 0 ? location.endLine() : startLine;
-            val startChar = location.column() > 0 ? location.column() - 1 : 0; // Convert 1-based to 0-based
-            val endChar   = location.endColumn() > 0 ? location.endColumn() - 1 : 0;
-            coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, boolValue);
+    private static void recordTargetResult(Value result, PolicyCoverageData data) {
+        if (result instanceof BooleanValue(boolean matched)) {
+            data.recordTargetHit(matched);
         } else {
-            // No location - use line 0 as fallback
-            coverage.recordConditionHit(statementId, 0, boolValue);
+            data.recordTargetError();
         }
     }
 
-    /**
-     * Records policy outcome for coverage tracking.
-     * <p>
-     * Determines whether the policy returned its effect (PERMIT/DENY/SUSPEND) or
-     * NOT_APPLICABLE, and records this for branch coverage.
-     */
-    private static void recordPolicyOutcome(VoterMetadata voter, Vote vote, BodyCoverage bodyCoverage,
-            PolicyCoverageData coverage) {
-        val outcome       = voter.outcome();
-        val decision      = vote.authorizationDecision().decision();
-        val hasConditions = bodyCoverage != null && bodyCoverage.numberOfConditions() > 0;
-
-        // effectReturned: true if the actual decision matches the policy's
-        // declared outcome
-        val effectReturned = isEffectReturned(outcome, decision);
-
-        // Use line 1 as default location for policy outcome (represents the policy as a
-        // whole)
-        coverage.recordPolicyOutcome(1, 1, 0, 0, effectReturned, hasConditions);
+    private static void recordOutcome(@Nullable Vote vote, @Nullable SourceLocation declaration, boolean conditional,
+            PolicyCoverageData data) {
+        if (vote == null) {
+            return;
+        }
+        val result      = switch (vote.authorizationDecision().decision()) {
+                        case PERMIT, DENY, SUSPEND -> Value.TRUE;
+                        case NOT_APPLICABLE        -> Value.FALSE;
+                        case INDETERMINATE         -> Value.UNDEFINED;
+                        };
+        val statementId = conditional ? BranchHit.POLICY_TWO_BRANCH_ID : BranchHit.POLICY_SINGLE_BRANCH_ID;
+        recordResult(data, statementId, declaration, result, false);
     }
 
-    /**
-     * Records policy set outcome for coverage tracking.
-     */
-    private static void recordPolicySetOutcome(VoterMetadata voter, Vote vote, PolicyCoverageData coverage) {
-        val outcome  = voter.outcome();
-        val decision = vote.authorizationDecision().decision();
-
-        // Policy sets don't have conditions in the same sense, but we track their
-        // outcome
-        val effectReturned = isEffectReturned(outcome, decision);
-
-        // Use line 1 as default location
-        coverage.recordPolicyOutcome(1, 1, 0, 0, effectReturned, false);
-    }
-
-    /**
-     * Determines if the actual decision matches the expected outcome (effect).
-     * The outcome carries the effect set the policy was configured for; the
-     * decision is what actually came out. They match iff the outcome's effect
-     * set contains the decision-as-effect (and the decision is concrete).
-     */
-    private static boolean isEffectReturned(Outcome outcome, Decision decision) {
-        return switch (decision) {
-        case PERMIT                        -> outcome.contains(Effect.PERMIT);
-        case DENY                          -> outcome.contains(Effect.DENY);
-        case SUSPEND                       -> outcome.contains(Effect.SUSPEND);
-        case INDETERMINATE, NOT_APPLICABLE -> false;
-        };
+    private static void recordResult(PolicyCoverageData data, int statementId, @Nullable SourceLocation location,
+            Value result, boolean enforcedSchema) {
+        int startLine = 0;
+        int endLine   = 0;
+        int startChar = 0;
+        int endChar   = 0;
+        if (location != null) {
+            startLine = location.line();
+            endLine   = Math.max(location.endLine(), startLine);
+            startChar = Math.max(location.column() - 1, 0);
+            endChar   = Math.max(location.endColumn() - 1, 0);
+        } else if (statementId == BranchHit.POLICY_SINGLE_BRANCH_ID || statementId == BranchHit.POLICY_TWO_BRANCH_ID) {
+            // Older producers supplied no declaration location.
+            startLine = 1;
+            endLine   = 1;
+        }
+        data.recordBranchHit(
+                new BranchHit(statementId, startLine, endLine, startChar, endChar, Value.TRUE.equals(result) ? 1 : 0,
+                        Value.FALSE.equals(result) ? 1 : 0, result instanceof BooleanValue ? 0 : 1, enforcedSchema));
     }
 }

@@ -82,7 +82,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
      * A number literal has at most this many characters, which bounds the cost
      * of reading it.
      */
-    static final int MAX_NUMBER_LITERAL_LENGTH = 1000;
+    static final int MAX_NUMBER_LITERAL_LENGTH = NumberValueLimits.MAX_NUMBER_LENGTH;
 
     /**
      * A function or attribute finder is named by its library and its name.

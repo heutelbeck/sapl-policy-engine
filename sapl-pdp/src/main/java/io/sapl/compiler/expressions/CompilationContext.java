@@ -377,15 +377,10 @@ public class CompilationContext {
     }
 
     /**
-     * Selects how policy condition coverage discovers streaming attributes. Both modes
-     * check constant and pure conditions first. When enabled (the default), the
-     * coverage voter gathers dependencies from all remaining streaming conditions in
-     * the current round. When disabled, it stops at the first missing value or false
-     * condition. Both record condition hits in evaluation order.
-     * <p>
-     * Ordinary policy evaluation follows the semantics of each SAPL expression.
+     * The setting is retained for configuration compatibility. Coverage follows the
+     * dependency demand of the compiled policy for both values.
      *
-     * @return whether policy coverage gathers streaming conditions eagerly
+     * @return the configured legacy low-latency option
      */
     public boolean lowLatencyMode() {
         return booleanCompilerOption(OPTION_LOW_LATENCY_MODE, DEFAULT_LOW_LATENCY_MODE);

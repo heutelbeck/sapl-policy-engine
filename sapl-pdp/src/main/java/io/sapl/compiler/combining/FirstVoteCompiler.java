@@ -18,37 +18,30 @@
 package io.sapl.compiler.combining;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Occurrence;
-import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.*;
-import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CompiledPolicy;
-import io.sapl.compiler.policy.CoverageVoter;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import org.jspecify.annotations.Nullable;
+import io.sapl.compiler.policy.ObservedVoter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.ABSTAIN;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
-import static io.sapl.compiler.policyset.PolicySetUtil.ERROR_UNEXPECTED_STREAM_IN_TARGET;
 import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
 
 /**
@@ -79,27 +72,8 @@ public class FirstVoteCompiler {
     public static VoterAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
             CompiledExpression isApplicable, VoterMetadata voterMetadata,
             CombiningAlgorithm.DefaultDecision defaultDecision, CombiningAlgorithm.ErrorHandling errorHandling) {
-        val voter         = compileVoter(compiledPolicies, voterMetadata, policySet.location(), defaultDecision,
-                errorHandling);
-        val coverageVoter = compileCoverageVoter(policySet, isApplicable, compiledPolicies, voterMetadata,
-                defaultDecision, errorHandling);
-        return new VoterAndCoverage(voter, coverageVoter);
-    }
-
-    /**
-     * Constructs the snapshot-driven coverage voter for a FIRST policy set.
-     * Walks the policies sequentially per snapshot round, applies the same
-     * FIRST stop-on-non-NOT_APPLICABLE semantic as the production voter,
-     * and assembles a {@link Coverage.PolicySetCoverage} from the per-policy
-     * results.
-     */
-    private static CoverageVoter compileCoverageVoter(PolicySet policySet, CompiledExpression isApplicable,
-            List<CompiledPolicy> compiledPolicies, VoterMetadata voterMetadata,
-            CombiningAlgorithm.DefaultDecision defaultDecision, CombiningAlgorithm.ErrorHandling errorHandling) {
-        val target         = policySet.target();
-        val targetLocation = target != null ? target.location() : null;
-        return new FirstPolicySetCoverageVoter(isApplicable, targetLocation, compiledPolicies, voterMetadata,
-                defaultDecision, errorHandling);
+        val voter = compileVoter(compiledPolicies, voterMetadata, policySet.location(), defaultDecision, errorHandling);
+        return VoterAndCoverage.forSet(voter, policySet, isApplicable, voterMetadata, compiledPolicies);
     }
 
     /**
@@ -113,7 +87,7 @@ public class FirstVoteCompiler {
      * round, stopping at the first non-NOT_APPLICABLE child vote</li>
      * </ol>
      */
-    private static Voter compileVoter(List<CompiledPolicy> policies, VoterMetadata voterMetadata,
+    public static Voter compileVoter(List<CompiledPolicy> policies, VoterMetadata voterMetadata,
             SourceLocation location, CombiningAlgorithm.DefaultDecision defaultDecision,
             CombiningAlgorithm.ErrorHandling errorHandling) {
         // 1. Short-circuit: collect static decisions, return first non-NOT_APPLICABLE
@@ -239,6 +213,7 @@ public class FirstVoteCompiler {
                 val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
                 if (vote == null) {
+                    ObservedVoter.completedBeforePending(ctx, allVotes);
                     return new VoteResult(null, deps);
                 }
                 allVotes.add(vote);
@@ -250,82 +225,6 @@ public class FirstVoteCompiler {
                 }
             }
             return new VoteResult(getFallbackVote(allVotes, voterMetadata, defaultDecision), deps);
-        }
-    }
-
-    /**
-     * Snapshot-driven coverage voter for first evaluation. Mirrors the
-     * production-side {@link FirstVoteStreamPolicySet} but emits
-     * {@link VoteResultWithCoverage}: walks policies sequentially per
-     * snapshot round, evaluates each via {@code coverageVoter().evaluate(ctx)},
-     * stops at the first non-NOT_APPLICABLE result, and assembles a
-     * {@link Coverage.PolicySetCoverage} from the per-policy
-     * {@link Coverage.DocumentCoverage} results. Tail policies that are
-     * skipped contribute no deps and no coverage.
-     * <p>
-     * The target / {@code isApplicable} gate is evaluated inline. For
-     * non-TRUE targets the result is the appropriate non-applicable or
-     * error vote with an empty body coverage. A {@link StreamOperator}
-     * target indicates an implementation bug and yields an error.
-     */
-    record FirstPolicySetCoverageVoter(
-            CompiledExpression isApplicable,
-            @Nullable SourceLocation targetLocation,
-            List<CompiledPolicy> policies,
-            VoterMetadata voterMetadata,
-            CombiningAlgorithm.DefaultDecision defaultDecision,
-            CombiningAlgorithm.ErrorHandling errorHandling) implements CoverageVoter {
-
-        @Override
-        public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
-            final Value targetMatch;
-            switch (isApplicable) {
-            case Value v        -> targetMatch = v;
-            case PureOperator p -> targetMatch = p.evaluate(ctx);
-            default             -> {
-                val coverage = new Coverage.PolicySetCoverage(voterMetadata, Coverage.NO_TARGET_HIT, List.of());
-                val vote     = Vote.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), voterMetadata);
-                return new VoteResultWithCoverage(new VoteResult(vote, Map.of()), coverage);
-            }
-            }
-            val targetHit = targetLocation == null ? Coverage.BLANK_TARGET_HIT
-                    : new Coverage.TargetResult(targetMatch, targetLocation);
-            if (targetMatch instanceof ErrorValue err) {
-                val coverage = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
-                return new VoteResultWithCoverage(new VoteResult(Vote.error(err, voterMetadata), Map.of()), coverage);
-            }
-            if (Value.FALSE.equals(targetMatch)) {
-                val coverage = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
-                return new VoteResultWithCoverage(new VoteResult(Vote.abstain(voterMetadata), Map.of()), coverage);
-            }
-
-            val deps              = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(policies.size());
-            val allVotes          = new ArrayList<Vote>();
-            val perPolicyCoverage = new ArrayList<Coverage.DocumentCoverage>();
-            for (var i = 0; i < policies.size(); i++) {
-                val sub        = policies.get(i).coverageVoter().evaluate(ctx);
-                val voteResult = sub.voteResult();
-                StreamOperator.mergeDependencies(deps, voteResult.dependencies());
-                val policyVote = voteResult.vote();
-                if (policyVote == null) {
-                    val partial = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
-                    return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
-                }
-                allVotes.add(policyVote);
-                perPolicyCoverage.add(sub.coverage());
-                if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {
-                    val outcome   = firstApplicableOutcome(policyVote, policies.subList(i + 1, policies.size()),
-                            defaultDecision);
-                    val combined  = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, allVotes,
-                            outcome);
-                    val finalVote = finalizeVote(combined, errorHandling, voterMetadata);
-                    val coverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
-                    return new VoteResultWithCoverage(new VoteResult(finalVote, deps), coverage);
-                }
-            }
-            val fallback = getFallbackVote(allVotes, voterMetadata, defaultDecision);
-            val coverage = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
-            return new VoteResultWithCoverage(new VoteResult(fallback, deps), coverage);
         }
     }
 

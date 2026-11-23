@@ -23,7 +23,10 @@ import java.util.function.Predicate;
 
 /**
  * Determines which compiled documents are applicable for a given authorization
- * subscription.
+ * subscription. An index may eliminate a predicate test only when doing so
+ * preserves the classification for true, false, and error. For example,
+ * {@code p && !p} is false for boolean values of {@code p} and keeps the
+ * error when {@code p} fails its boolean check.
  * <p>
  * Replaces the linear applicability evaluation loop in PDP-level combining
  * algorithms. Implementations range from naive linear scan

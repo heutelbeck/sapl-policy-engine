@@ -21,6 +21,8 @@
 
 spring:
   application.name: sapl
+  # Allow a full SAPL decimal coefficient with its exponent digits.
+  jackson.factory.constraints.read.max-number-length: 1010
   # Per-request HTTP observation adds ~6% CPU on the bypass servlet path.
   # Remove this exclude to enable HTTP request metrics for ops dashboards.
   autoconfigure:

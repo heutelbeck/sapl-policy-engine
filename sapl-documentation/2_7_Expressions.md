@@ -382,7 +382,7 @@ A policy using `&` produces the same authorization decisions as one using `&&` (
 
 The operator `+` concatenates two strings, e.g., `"Hello" + " World!"` evaluates to `"Hello World!"`.
 
-String concatenation is applied if the left operand is an expression evaluating to a string. If the right expression evaluates to a string as well, the two strings are concatenated. Otherwise, the text form of the right value is appended, as error messages write values too. A whole number in the range of a signed 64 bit integer is written plainly, so `"n=" + 5.0` and `"n=" + 5` both evaluate to `"n=5"` and `1E+3` is written as `1000`. Any other number keeps its notation, such as `12.50`, `1E-7` or `1E+20`.
+String concatenation is applied if the left operand is an expression evaluating to a string. If the right expression evaluates to a string as well, the two strings are concatenated. Otherwise, the text form of the right value is appended, as error messages write values too. Numbers have one lossless text representation for each numeric value. For example, `"n=" + 1.50` yields `"n=1.5"`, and `standard.toString(1E+3)` yields `"1000"`. Zero is written as `0`. Nonzero absolute values from `1e-6` inclusive to `1e21` exclusive use plain decimal notation. Smaller or larger magnitudes use scientific notation, for example `1E-7` or `1E+21`.
 
 #### Selection Steps
 

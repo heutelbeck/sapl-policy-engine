@@ -35,8 +35,10 @@ class SmtddUniqueTable {
 
     static final Terminal EMPTY = new Terminal(EMPTY_BITSET);
 
-    private final Map<Terminal, Terminal>             terminals = new HashMap<>();
-    private final Map<BinaryDecision, BinaryDecision> decisions = new HashMap<>();
+    private final Map<Terminal, Terminal>             terminals      = new HashMap<>();
+    private final Map<BinaryDecision, BinaryDecision> decisions      = new HashMap<>();
+    private final BitSet                              positiveLevels = new BitSet();
+    private final BitSet                              negativeLevels = new BitSet();
 
     SmtddUniqueTable() {
         terminals.put(EMPTY, EMPTY);
@@ -58,11 +60,20 @@ class SmtddUniqueTable {
         return terminals.computeIfAbsent(candidate, k -> k);
     }
 
+    SmtddNode literal(int level, Terminal matched, boolean negated) {
+        if (negated) {
+            negativeLevels.set(level);
+            return binaryDecision(level, EMPTY, matched, EMPTY);
+        }
+        positiveLevels.set(level);
+        return binaryDecision(level, matched, EMPTY, EMPTY);
+    }
+
     /**
      * Returns the canonical binary decision node for the given children.
-     * If all three children are the same object, the redundant node is
-     * collapsed and the shared child is returned directly. Structurally
-     * equal decisions are interned to the same instance.
+     * Both literal polarities route errors to EMPTY. At a level used in both
+     * polarities, even identical children can hide an error. The evaluator records
+     * the affected formulas for reclassification only when it visits the decision.
      *
      * @param level predicate index in the binary variable order
      * @param trueChild child when predicate is true
@@ -71,7 +82,8 @@ class SmtddUniqueTable {
      * @return the interned decision node, or the child if redundant
      */
     SmtddNode binaryDecision(int level, SmtddNode trueChild, SmtddNode falseChild, SmtddNode errorChild) {
-        if (trueChild == falseChild && falseChild == errorChild) {
+        if (trueChild == falseChild && falseChild == errorChild
+                && !(positiveLevels.get(level) && negativeLevels.get(level))) {
             return trueChild;
         }
         val candidate = new BinaryDecision(level, trueChild, falseChild, errorChild);

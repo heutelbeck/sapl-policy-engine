@@ -653,24 +653,13 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when schema type is unknown then it compiles and never matches at runtime")
-        void whenSchemaTypeIsUnknownThenCompilesAndNeverMatches() {
-            // "type" must be a valid JSON Schema type
+        @DisplayName("An unknown JSON Schema type refuses the enforced schema")
+        void whenSchemaTypeIsUnknownThenCompilationFails() {
             val invalidSchema = (ObjectValue) obj("type", Value.of("not-a-valid-type"));
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, invalidSchema));
-            // The networknt library validates schema structure at parse time
-            // This should compile successfully but fail validation at runtime
-            // because "not-a-valid-type" is treated as a never-matching type
-            val validator = compileValidator(schemas, compilationContext());
-            assertThat(validator).isNotNull();
-            val ctx = subscriptionContext("""
-                    {
-                        "subject": "anything",
-                        "action": "read",
-                        "resource": "data"
-                    }
-                    """);
-            assertThat(evaluate(validator, ctx)).isEqualTo(Value.FALSE);
+            val context       = compilationContext();
+            assertThatThrownBy(() -> compileValidator(schemas, context)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageStartingWith(NOT_A_JSON_SCHEMA);
         }
 
         @Test

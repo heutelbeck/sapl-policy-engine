@@ -24,8 +24,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
-import tools.jackson.core.json.JsonFactory;
-import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -98,13 +96,12 @@ public class JsonFunctionLibrary {
             To bound memory and computation on untrusted input, the following limits apply:
 
             - The input is limited to 1 MB.
-            - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+            - Parsing is bounded to a maximum nesting depth of 500. Numbers allow 1000 coefficient digits and up to 1010 characters including sign, decimal point, and exponent.
             - Serialization output is limited to 10000000 characters.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
-    private static final String ERROR_FAILED_TO_PARSE     = "Failed to parse JSON: %s.";
     private static final String ERROR_FAILED_TO_SERIALIZE = "Failed to serialize to JSON: %s.";
 
     private static final String SCHEMA_RETURNS_TEXT = """
@@ -113,9 +110,7 @@ public class JsonFunctionLibrary {
             }
             """;
 
-    private static final JsonMapper JSON_MAPPER = JsonMapper
-            .builder(JsonFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
-            .enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
     /**
      * Converts a well-formed JSON document into a SAPL value.
@@ -144,12 +139,7 @@ public class JsonFunctionLibrary {
         if (TextParseLimits.exceedsMaxInput(json.value())) {
             return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
         }
-        try {
-            val jsonNode = JSON_MAPPER.readTree(json.value());
-            return ValueJsonMarshaller.fromJsonNode(jsonNode);
-        } catch (JacksonException exception) {
-            return Value.error(ERROR_FAILED_TO_PARSE, exception.getMessage());
-        }
+        return ValueJsonMarshaller.json(json.value());
     }
 
     /**

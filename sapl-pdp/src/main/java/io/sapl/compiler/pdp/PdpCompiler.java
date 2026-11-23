@@ -34,6 +34,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CoverageVoter;
+import io.sapl.compiler.policy.ObservedVoter;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -138,22 +139,7 @@ public class PdpCompiler {
                 errorHandling, false, ctx);
         };
 
-        val coverageVoter = switch (algorithm.votingMode()) {
-        case FIRST            ->
-            throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
-        case PRIORITY_DENY    -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
-                Decision.DENY, defaultDecision, errorHandling);
-        case PRIORITY_PERMIT  -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
-                Decision.PERMIT, defaultDecision, errorHandling);
-        case PRIORITY_SUSPEND -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
-                Decision.SUSPEND, defaultDecision, errorHandling);
-        case UNANIMOUS        -> UnanimousVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
-                defaultDecision, errorHandling, false);
-        case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
-                defaultDecision, errorHandling, true);
-        case UNIQUE           -> UniqueVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
-                defaultDecision, errorHandling);
-        };
+        val coverageVoter = ObservedVoter.pdp(voter, voterMetadata, compiledDocuments);
 
         return new CompiledPdp(voterMetadata, guarded(voter, voterMetadata), guarded(coverageVoter, voterMetadata),
                 plugins, ctx.getFunctionBroker());

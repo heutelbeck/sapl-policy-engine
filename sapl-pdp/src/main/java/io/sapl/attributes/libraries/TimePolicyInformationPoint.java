@@ -35,7 +35,6 @@ import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneId;
@@ -52,7 +51,13 @@ public class TimePolicyInformationPoint {
     public static final String  NAME                      = "time";
     public static final String  DESCRIPTION               = """
             Policy Information Point and attributes for retrieving current date and time information and
-            basic temporal logic.""";
+            basic temporal logic. Local time predicates follow the displayed time in the selected zone.
+            A forward clock change can skip a checkpoint and a backward change can cross it twice.
+            For a 02:17 checkpoint in Europe/Berlin, the spring jump to 03:00 ends the before period.
+            In autumn the clock returns to 02:00, and the before period lasts until the second 02:17.
+            Local time ranges include their start and exclude their end. Equal endpoints give an empty range.
+            The pair 00:00 and 23:59:59.999999999 denotes the full day in either order.
+            The after predicate is always true for 00:00 and always false for 23:59:59.999999999.""";
     private static final String ERROR_CLOCK_RETURNED_NULL = "Clock returned null. The time PIP is misconfigured: a Clock bean must be supplied that always returns a valid Instant.";
     private static final String ERROR_DAY_NAME_INVALID    = "Invalid day of week name: '%s'. Expected one of MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.";
     private static final String ERROR_DAYS_ARRAY_EMPTY    = "The days array must not be empty.";
@@ -193,7 +198,7 @@ public class TimePolicyInformationPoint {
      */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsAfter(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
-            ```<time.localTimeIsAfter(checkpoint)>``` ```true```, if the current time of the day without date is after the
+            ```<time.localTimeIsAfter(checkpoint)>``` ```true```, if the current time of the day without date is at or after the
             ```checkpoint``` time (e.g., "17:00") in the clock's configured timezone and ```false``` otherwise.
             This is examined relative to the current day. I.e., the answer toggles at "00:00".
             This *attribute is not polling the clock* and should be used instead of doing manual comparisons against
@@ -224,7 +229,7 @@ public class TimePolicyInformationPoint {
             ```<time.localTimeIsAfter(TEXT checkpoint, TEXT timezone)>``` is an environment attribute stream and takes no
             left-hand arguments.
             ```<time.localTimeIsAfter(checkpoint, timezone)>``` ```true```, if the current time of the day without date is
-            after the ```checkpoint``` time (e.g., "17:00") in the given ```timezone``` (e.g., "Europe/Berlin") and
+            at or after the ```checkpoint``` time (e.g., "17:00") in the given ```timezone``` (e.g., "Europe/Berlin") and
             ```false``` otherwise. This is examined relative to the current day. I.e., the answer toggles at "00:00".
 
             Example:
@@ -251,7 +256,7 @@ public class TimePolicyInformationPoint {
      */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBefore(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
-            ```<time.localTimeIsBefore(checkpoint)>``` ```false```, if the current time of the day without date is after the
+            ```<time.localTimeIsBefore(checkpoint)>``` ```false```, if the current time of the day without date is at or after the
             ```checkpoint``` time (e.g., "17:00") in the clock's configured timezone and ```true``` otherwise.
             This is examined relative to the current day. I.e., the answer toggles at "00:00".
             This *attribute is not polling the clock* and should be used instead of doing manual comparisons against
@@ -283,7 +288,7 @@ public class TimePolicyInformationPoint {
             ```<time.localTimeIsBefore(TEXT checkpoint, TEXT timezone)>``` is an environment attribute stream and takes no
             left-hand arguments.
             ```<time.localTimeIsBefore(checkpoint, timezone)>``` ```false```, if the current time of the day without date is
-            after the ```checkpoint``` time (e.g., "17:00") in the given ```timezone``` (e.g., "Europe/Berlin") and
+            at or after the ```checkpoint``` time (e.g., "17:00") in the given ```timezone``` (e.g., "Europe/Berlin") and
             ```true``` otherwise.
 
             Example:
@@ -319,7 +324,7 @@ public class TimePolicyInformationPoint {
             ```<time.localTimeIsBetween(TEXT startTime, TEXT endTime)>``` is an environment attribute stream and takes no left-hand
             arguments.
             ```<time.localTimeIsBetween(startTime, endTime)>``` ```true```, if the current time in the clock's configured
-            timezone is between the ```startTime``` and the ```endTime``` and ```false``` otherwise.
+            timezone is in the range from ```startTime``` (inclusive) to ```endTime``` (exclusive).
             If the time of the first parameter is after the time of the second parameter, the interval is considered to be the
             one between the two times, crossing the midnight border of the days.
 
@@ -355,7 +360,7 @@ public class TimePolicyInformationPoint {
             ```<time.localTimeIsBetween(TEXT startTime, TEXT endTime, TEXT timezone)>``` is an environment attribute stream
             and takes no left-hand arguments.
             ```<time.localTimeIsBetween(startTime, endTime, timezone)>``` ```true```, if the current time in the given
-            ```timezone``` (e.g., "Europe/Berlin") is between the ```startTime``` and the ```endTime``` and ```false```
+            ```timezone``` (e.g., "Europe/Berlin") is in the range from ```startTime``` (inclusive) to ```endTime``` (exclusive) and ```false```
             otherwise. If the time of the first parameter is after the time of the second parameter, the interval is
             considered to be the one between the two times, crossing the midnight border of the days.
 
@@ -774,92 +779,71 @@ public class TimePolicyInformationPoint {
             return Streams.just(Value.FALSE);
         }
 
-        val now   = zonedNow(zone);
-        val local = now.toLocalTime();
-        val today = now.toLocalDate();
-        if (local.isAfter(checkpoint)) {
-            val tillMidnight = boolAtDate(Value.FALSE, LocalTime.MAX, today, zone);
-            return Streams.concat(Streams.just(Value.TRUE), tillMidnight,
-                    afterCheckpointFollowingDays(checkpoint, zone));
-        }
-        val tillCheckpoint = boolAtDate(Value.TRUE, checkpoint, today, zone);
-        val tillMidnight   = boolAtDate(Value.FALSE, LocalTime.MAX, today, zone);
-        return Streams.concat(Streams.just(Value.FALSE), tillCheckpoint, tillMidnight,
-                afterCheckpointFollowingDays(checkpoint, zone));
+        return dailyWindow(checkpoint, LocalTime.MIN, zone);
     }
 
-    private Stream<Value> afterCheckpointFollowingDays(LocalTime checkpoint, ZoneId zone) {
-        return Streams.repeat(() -> {
-            // The caller has already covered "current day after checkpoint" via
-            // a tillMidnight segment, so the next emission this repeat produces
-            // is always for the NEXT day, not today. Computing the date as
-            // tomorrow-relative-to-now also keeps subsequent iterations correct:
-            // each iteration's supplier evaluates just after the previous
-            // endOfDay fired (clock at day N's end-of-day), so today = day N
-            // and tomorrow = day N+1, which is exactly the iteration we want
-            // to schedule next.
-            val nextDay    = zonedNow(zone).toLocalDate().plusDays(1);
-            val startOfDay = boolAtDate(Value.TRUE, checkpoint, nextDay, zone);
-            val endOfDay   = boolAtDate(Value.FALSE, LocalTime.MAX, nextDay, zone);
-            return Streams.concat(startOfDay, endOfDay);
-        });
-    }
-
-    private Stream<Value> boolAtDate(Value value, LocalTime to, LocalDate date, ZoneId zone) {
-        val targetInstant = to.atDate(date).atZone(zone).toInstant();
-        return Streams.scheduledAt(value, targetInstant, scheduler);
-    }
-
-    private Stream<Value> localTimeIsBetweenStream(LocalTime t1, LocalTime t2, ZoneId zone) {
-        if (t1.equals(t2)) {
+    private Stream<Value> localTimeIsBetweenStream(LocalTime start, LocalTime end, ZoneId zone) {
+        if (start.equals(end)) {
             return Streams.just(Value.FALSE);
         }
-        if (t1.equals(LocalTime.MIN) && t2.equals(LocalTime.MAX)) {
+        if (start.equals(LocalTime.MIN) && end.equals(LocalTime.MAX)
+                || start.equals(LocalTime.MAX) && end.equals(LocalTime.MIN)) {
             return Streams.just(Value.TRUE);
         }
-        if (t1.equals(LocalTime.MAX) && t2.equals(LocalTime.MIN)) {
-            return Streams.just(Value.TRUE);
-        }
-        val intervalWrapsAroundMidnight = t1.isAfter(t2);
-        if (intervalWrapsAroundMidnight) {
-            return Streams.map(localTimeIsBetweenAscending(t2, t1, zone), TimePolicyInformationPoint::negateBoolean);
-        }
-        return localTimeIsBetweenAscending(t1, t2, zone);
+        return dailyWindow(start, end, zone);
     }
 
-    private Stream<Value> localTimeIsBetweenAscending(LocalTime start, LocalTime end, ZoneId zone) {
-        val now      = zonedNow(zone);
-        val local    = now.toLocalTime();
-        val today    = now.toLocalDate();
-        val tomorrow = today.plusDays(1);
-
-        Stream<Value> initialStates;
-        if (local.isBefore(start)) {
-            val startInstant = start.atDate(today).atZone(zone).toInstant();
-            initialStates = Streams.concat(Streams.just(Value.FALSE),
-                    Streams.scheduledAt(Value.TRUE, startInstant, scheduler));
-        } else if (local.isAfter(end)) {
-            val nextStartInstant = start.atDate(tomorrow).atZone(zone).toInstant();
-            initialStates = Streams.concat(Streams.just(Value.FALSE),
-                    Streams.scheduledAt(Value.TRUE, nextStartInstant, scheduler));
-        } else {
-            val endInstant       = end.atDate(today).atZone(zone).toInstant();
-            val nextStartInstant = start.atDate(tomorrow).atZone(zone).toInstant();
-            initialStates = Streams.concat(Streams.just(Value.TRUE),
-                    Streams.scheduledAt(Value.FALSE, endInstant, scheduler),
-                    Streams.scheduledAt(Value.TRUE, nextStartInstant, scheduler));
+    private record DailyWindow(LocalTime start, LocalTime end, ZoneId zone) {
+        boolean contains(LocalTime time) {
+            if (start.isBefore(end)) {
+                return !time.isBefore(start) && time.isBefore(end);
+            }
+            return !time.isBefore(start) || time.isBefore(end);
         }
 
-        val repeated = Streams.repeat(() -> {
-            val now2      = zonedNow(zone);
-            val today2    = now2.toLocalDate();
-            val zonedEnd  = end.atDate(today2).atZone(zone).toInstant();
-            val nextStart = start.atDate(today2.plusDays(1)).atZone(zone).toInstant();
-            return Streams.concat(Streams.scheduledAt(Value.FALSE, zonedEnd, scheduler),
-                    Streams.scheduledAt(Value.TRUE, nextStart, scheduler));
-        });
+        Instant nextChange(Instant after) {
+            var cursor  = after.atZone(zone);
+            val current = contains(cursor.toLocalTime());
+            while (true) {
+                val local        = cursor.toLocalDateTime();
+                val nextStart    = local.toLocalDate().atTime(start);
+                val nextEnd      = local.toLocalDate().atTime(end);
+                val startInstant = (nextStart.isAfter(local) ? nextStart : nextStart.plusDays(1))
+                        .toInstant(cursor.getOffset());
+                val endInstant   = (nextEnd.isAfter(local) ? nextEnd : nextEnd.plusDays(1))
+                        .toInstant(cursor.getOffset());
+                var next         = startInstant.isBefore(endInstant) ? startInstant : endInstant;
+                // An offset change can skip or repeat a checkpoint on the displayed clock.
+                val transition = zone.getRules().nextTransition(cursor.toInstant());
+                if (transition != null && transition.getInstant().isBefore(next)) {
+                    next = transition.getInstant();
+                }
+                cursor = next.atZone(zone);
+                if (contains(cursor.toLocalTime()) != current) {
+                    return next;
+                }
+            }
+        }
+    }
 
-        return Streams.concat(initialStates, repeated);
+    private Stream<Value> dailyWindow(LocalTime start, LocalTime end, ZoneId zone) {
+        val window  = new DailyWindow(start, end, zone);
+        val now     = clock.instant();
+        val initial = Value.of(window.contains(now.atZone(zone).toLocalTime()));
+        val changes = Streams.repeat(new Supplier<>() {
+                        private Instant cursor = now;
+
+                        @Override
+                        public Stream<Value> get() {
+                            val deadline = window.nextChange(cursor);
+                            return Streams.map(Streams.scheduledAt(Value.TRUE, deadline, scheduler), ignored -> {
+                                            val observed = clock.instant();
+                                            cursor = observed.isAfter(deadline) ? observed : deadline;
+                                            return Value.of(window.contains(cursor.atZone(zone).toLocalTime()));
+                                        });
+                        }
+                    });
+        return Streams.concat(Streams.just(initial), changes);
     }
 
     private Stream<Value> dayBasedStream(EnumSet<DayOfWeek> daySet, ZoneId zone) {

@@ -121,7 +121,7 @@ public class TestCoverageRecord {
      * @return matched policy count
      */
     public int getMatchedPolicyCount() {
-        return (int) policyCoverageByName.values().stream().filter(PolicyCoverageData::wasTargetMatched).count();
+        return (int) policyCoverageByName.values().stream().filter(PolicyCoverageData::wasMatched).count();
     }
 
     /**

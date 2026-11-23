@@ -103,7 +103,7 @@ public class AggregatedCoverageData {
      * @return matched policy count
      */
     public int getMatchedPolicyCount() {
-        return (int) policyCoverageByName.values().stream().filter(PolicyCoverageData::wasTargetMatched).count();
+        return (int) policyCoverageByName.values().stream().filter(PolicyCoverageData::wasMatched).count();
     }
 
     /**
@@ -239,26 +239,8 @@ public class AggregatedCoverageData {
     private PolicyCoverageData clonePolicyCoverage(PolicyCoverageData original) {
         val clone = new PolicyCoverageData(original.getDocumentName(), original.getDocumentSource(),
                 original.getDocumentType());
-        clone.setFilePath(original.getFilePath());
-
-        for (int i = 0; i < original.getTargetTrueHits(); i++) {
-            clone.recordTargetHit(true);
-        }
-        for (int i = 0; i < original.getTargetFalseHits(); i++) {
-            clone.recordTargetHit(false);
-        }
-
-        for (val hit : original.getBranchHits()) {
-            for (int i = 0; i < hit.trueHits(); i++) {
-                clone.recordConditionHit(hit.statementId(), hit.startLine(), hit.endLine(), hit.startChar(),
-                        hit.endChar(), true);
-            }
-            for (int i = 0; i < hit.falseHits(); i++) {
-                clone.recordConditionHit(hit.statementId(), hit.startLine(), hit.endLine(), hit.startChar(),
-                        hit.endChar(), false);
-            }
-        }
-
+        clone.setSourceHash(original.getSourceHash());
+        clone.merge(original);
         return clone;
     }
 }

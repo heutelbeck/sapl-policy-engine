@@ -32,7 +32,8 @@ import lombok.val;
  * Special statementId conventions:
  * <ul>
  * <li>Non-negative: where-clause condition (0-based index)</li>
- * <li>Negative (except special constants): target expression</li>
+ * <li>-1 with {@code enforcedSchema}: implicit two-branch schema condition</li>
+ * <li>Other negative identifiers (except outcome constants): target expression</li>
  * <li>{@link #POLICY_SINGLE_BRANCH_ID}: policy outcome, single branch (no
  * conditions)</li>
  * <li>{@link #POLICY_TWO_BRANCH_ID}: policy outcome, two branches (has
@@ -46,6 +47,8 @@ import lombok.val;
  * @param endChar character offset within the end line (0-based)
  * @param trueHits count of evaluations resulting in true
  * @param falseHits count of evaluations resulting in false
+ * @param errorHits count of errors, which cover neither boolean branch
+ * @param enforcedSchema true for a document's enforced schema condition
  */
 public record BranchHit(
         int statementId,
@@ -54,7 +57,9 @@ public record BranchHit(
         int startChar,
         int endChar,
         int trueHits,
-        int falseHits) {
+        int falseHits,
+        int errorHits,
+        boolean enforcedSchema) {
 
     private static final String ERROR_CANNOT_MERGE_DIFFERENT_LINES = "Cannot merge BranchHits with different lines: %d vs %d.";
     private static final String ERROR_CANNOT_MERGE_DIFFERENT_STATEMENT_IDS = "Cannot merge BranchHits with different statementId: %d vs %d.";
@@ -72,6 +77,27 @@ public record BranchHit(
      * NOT_APPLICABLE (conditions fail).
      */
     public static final int POLICY_TWO_BRANCH_ID = Integer.MIN_VALUE + 1;
+
+    /**
+     * Creates a branch from a report containing boolean hit counts.
+     *
+     * @param statementId statement or outcome identifier
+     * @param startLine first source line
+     * @param endLine last source line
+     * @param startChar first column, zero-based
+     * @param endChar exclusive end column, zero-based
+     * @param trueHits number of true results
+     * @param falseHits number of false results
+     */
+    public BranchHit(int statementId,
+            int startLine,
+            int endLine,
+            int startChar,
+            int endChar,
+            int trueHits,
+            int falseHits) {
+        this(statementId, startLine, endLine, startChar, endChar, trueHits, falseHits, 0, false);
+    }
 
     /**
      * Backwards-compatible constructor for legacy code that only has line number.
@@ -157,8 +183,7 @@ public record BranchHit(
             throw new IllegalArgumentException(
                     ERROR_CANNOT_MERGE_DIFFERENT_STATEMENT_IDS.formatted(statementId, other.statementId));
         }
-        return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
-                falseHits + other.falseHits);
+        return mergeHitCounts(other);
     }
 
     /**
@@ -173,7 +198,7 @@ public record BranchHit(
      */
     public BranchHit mergeHitCounts(BranchHit other) {
         return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
-                falseHits + other.falseHits);
+                falseHits + other.falseHits, errorHits + other.errorHits, enforcedSchema);
     }
 
     /**
@@ -193,8 +218,7 @@ public record BranchHit(
             throw new IllegalArgumentException(
                     ERROR_CANNOT_MERGE_DIFFERENT_LINES.formatted(startLine, other.startLine));
         }
-        return new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits + other.trueHits,
-                falseHits + other.falseHits);
+        return mergeHitCounts(other);
     }
 
     /**
@@ -263,13 +287,13 @@ public record BranchHit(
     /**
      * Checks if this is a target expression entry.
      * <p>
-     * Target expressions use negative statementIds (except the special policy
-     * outcome constants).
+     * Target expressions use negative statement identifiers, distinguished
+     * from enforced schemas and the two policy outcome identifiers.
      *
      * @return true if this tracks a target expression
      */
     public boolean isTargetExpression() {
-        return statementId < 0 && !isPolicyOutcome();
+        return statementId < 0 && !isPolicyOutcome() && !enforcedSchema;
     }
 
     /**

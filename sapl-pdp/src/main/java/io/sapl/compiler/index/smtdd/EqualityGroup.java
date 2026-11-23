@@ -50,6 +50,14 @@ public class EqualityGroup {
     @Getter(AccessLevel.NONE)
     private final BitSet                   formulasWithEquality   = new BitSet();
 
+    @Getter(AccessLevel.NONE)
+    private final BitSet formulasUsingKeys = new BitSet();
+
+    void addKeys(Collection<Value> keys, int formulaIndex, IndexPredicate predicate) {
+        formulasUsingKeys.set(formulaIndex);
+        addAlternatives(keys, formulaIndex, predicate);
+    }
+
     void addEquals(Value constant, int formulaIndex, IndexPredicate predicate) {
         addAlternatives(List.of(constant), formulaIndex, predicate);
     }
@@ -158,7 +166,10 @@ public class EqualityGroup {
         equalityConstrained.or(excludeConstrained);
         val affectedFormulas = equalityConstrained;
 
-        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, affectedFormulas);
+        val keyFormulasInBucket = (BitSet) formulasUsingKeys.clone();
+        keyFormulasInBucket.and(formulasInBucket);
+        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, affectedFormulas,
+                keyFormulasInBucket);
     }
 
     private static Map<Value, BitSet> intersectWithBucket(Map<Value, BitSet> source, BitSet formulasInBucket) {
@@ -189,12 +200,14 @@ public class EqualityGroup {
      * @param unconstrainedFormulas formulas not constrained by this group
      * @param affectedFormulas all formulas that reference this operand (for error
      * tracking)
+     * @param keyFormulas formulas using the operand as an object key
      */
     record CompactedBranches(
             Map<Value, BitSet> branchFormulas,
             BitSet defaultFormulas,
             BitSet unconstrainedFormulas,
-            BitSet affectedFormulas) {
+            BitSet affectedFormulas,
+            BitSet keyFormulas) {
 
         boolean doesNotSplit(BitSet formulasInBucket) {
             return branchFormulas.size() <= 1 && unconstrainedFormulas.equals(formulasInBucket);

@@ -221,7 +221,7 @@ public class SemanticVariableOrder {
         if (!group.getSharedOperand().semanticEquals(pureOperand)) {
             return false;
         }
-        group.addAlternatives(object.keySet().stream().<Value>map(Value::of).toList(), formulaIndex, predicate);
+        group.addKeys(object.keySet().stream().<Value>map(Value::of).toList(), formulaIndex, predicate);
         return true;
     }
 
