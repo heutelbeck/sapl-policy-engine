@@ -133,7 +133,7 @@ public class PolicySetUtil {
 
         @Override
         public Vote vote(EvaluationContext ctx) {
-            val applicabilityResult = isApplicable.evaluate(ctx);
+            val applicabilityResult = ctx.evaluate(isApplicable);
             if (applicabilityResult instanceof ErrorValue error) {
                 return Vote.error(error, voterMetadata);
             }
@@ -162,7 +162,7 @@ public class PolicySetUtil {
 
         @Override
         public VoteResult evaluate(EvaluationContext ctx) {
-            val applicabilityResult = isApplicable.evaluate(ctx);
+            val applicabilityResult = ctx.evaluate(isApplicable);
             if (applicabilityResult instanceof ErrorValue error) {
                 return new VoteResult(Vote.error(error, voterMetadata), Map.of());
             }

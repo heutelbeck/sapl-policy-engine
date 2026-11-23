@@ -23,46 +23,17 @@ import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteResult;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.document.Voter;
-import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.PolicyCompiler.IndexedCompiledCondition;
 import lombok.val;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.sapl.api.model.StreamOperator.evalChild;
 import static io.sapl.api.model.StreamOperator.mergeDependencies;
 
-/**
- * Snapshot-driven coverage-instrumented evaluator for a single policy.
- * Walks the body conditions once per round in stratum order (constants, then
- * pure operators, then streams), accumulates dependencies and per-condition
- * hits, and dispatches to the constraints voter when the body resolves to
- * {@link Value#TRUE}. The body is the Kleene strong three-valued AND of its
- * conditions: a {@link Value#FALSE} dominates and short-circuits regardless of
- * position, an {@link ErrorValue} is carried forward so a later FALSE can still
- * dominate, and only an all-TRUE body dispatches. Evaluating the always
- * resolvable constant and pure strata first lets such a FALSE dominate before
- * any stream is subscribed or awaited, matching production. Two implementations
- * select the body-walk strategy at compile time:
- * <ul>
- * <li>{@link Lazy} subscribes lazily, stopping at the first {@link Value#FALSE}
- * or incomplete child. Minimal subscription set. Convergence may take multiple
- * trigger-loop rounds when independent dependencies are missing.</li>
- * <li>{@link Eager} first checks constants and pure conditions. If these
- * leave the body undecided, it gathers every streaming dependency reached by
- * the remaining conditions, then records hits in order up to the first
- * missing value or FALSE.</li>
- * </ul>
- * With the same complete snapshot both strategies produce the same decision
- * and condition hits. An eager round can additionally observe attributes
- * beyond the last recorded hit.
- *
- * @since 4.1.0
- */
+/** Evaluates an authorization vote and its coverage for the same round. */
 public interface CoverageVoter {
 
     VoteResultWithCoverage evaluate(EvaluationContext ctx);
@@ -118,101 +89,29 @@ public interface CoverageVoter {
         return ordered;
     }
 
+    /** Source-compatible adapter for callers supplying precompiled conditions. */
     record Lazy(List<IndexedCompiledCondition> bodyConditions, Voter constraintsVoter, VoterMetadata metadata)
             implements CoverageVoter {
-
         public Lazy {
-            bodyConditions = stratify(bodyConditions);
+            bodyConditions = List.copyOf(stratify(bodyConditions));
         }
 
         @Override
         public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
-            val   deps            = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(bodyConditions.size());
-            val   hits            = new ArrayList<Coverage.ConditionHit>(bodyConditions.size());
-            val   totalConditions = (long) bodyConditions.size();
-            Value firstError      = null;
-
-            for (val condition : bodyConditions) {
-                val raw = evalChild(condition.expression(), ctx, deps);
-                if (raw == null) {
-                    val partial = new Coverage.PolicyCoverage(metadata,
-                            new Coverage.BodyCoverage(hits, totalConditions));
-                    return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
-                }
-                val v = StratifiedBooleanOperationCompiler.asBoolean(raw, condition.location());
-                hits.add(new Coverage.ConditionHit(v, condition.location(), condition.statementId()));
-                if (Value.FALSE.equals(v)) {
-                    return finishWithVote(Value.FALSE, deps, hits, totalConditions, constraintsVoter, metadata, ctx);
-                }
-                if (v instanceof ErrorValue && firstError == null) {
-                    firstError = v;
-                }
-            }
-            val bodyValue = firstError != null ? firstError : Value.TRUE;
-            return finishWithVote(bodyValue, deps, hits, totalConditions, constraintsVoter, metadata, ctx);
+            return PolicyCompiler.coverageForConditions(bodyConditions, constraintsVoter, metadata).evaluate(ctx);
         }
     }
 
+    /** Source-compatible adapter using the same compiled body and dependency demand. */
     record Eager(List<IndexedCompiledCondition> bodyConditions, Voter constraintsVoter, VoterMetadata metadata)
             implements CoverageVoter {
-
         public Eager {
-            bodyConditions = stratify(bodyConditions);
+            bodyConditions = List.copyOf(stratify(bodyConditions));
         }
 
         @Override
         public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
-            val   deps            = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(bodyConditions.size());
-            val   hits            = new ArrayList<Coverage.ConditionHit>(bodyConditions.size());
-            val   totalConditions = (long) bodyConditions.size();
-            Value firstError      = null;
-
-            // Constants and pures are synchronous and come first. A FALSE here decides the
-            // body before any stream is gathered, so an unused stream is never subscribed.
-            int firstStream = bodyConditions.size();
-            for (int i = 0; i < bodyConditions.size(); i++) {
-                val condition = bodyConditions.get(i);
-                if (condition.expression() instanceof StreamOperator) {
-                    firstStream = i;
-                    break;
-                }
-                val v = StratifiedBooleanOperationCompiler.asBoolean(evalChild(condition.expression(), ctx, deps),
-                        condition.location());
-                hits.add(new Coverage.ConditionHit(v, condition.location(), condition.statementId()));
-                if (Value.FALSE.equals(v)) {
-                    return finishWithVote(Value.FALSE, deps, hits, totalConditions, constraintsVoter, metadata, ctx);
-                }
-                if (v instanceof ErrorValue && firstError == null) {
-                    firstError = v;
-                }
-            }
-
-            // Gather every stream dependency up front, then resolve in order. Only FALSE
-            // short circuits. A carried error still loses to a later FALSE.
-            val streamValues = new ArrayList<Value>(bodyConditions.size() - firstStream);
-            for (int i = firstStream; i < bodyConditions.size(); i++) {
-                streamValues.add(evalChild(bodyConditions.get(i).expression(), ctx, deps));
-            }
-            for (int i = 0; i < streamValues.size(); i++) {
-                val v = streamValues.get(i);
-                if (v == null) {
-                    val partial = new Coverage.PolicyCoverage(metadata,
-                            new Coverage.BodyCoverage(hits, totalConditions));
-                    return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
-                }
-                val condition = bodyConditions.get(firstStream + i);
-                val coerced   = StratifiedBooleanOperationCompiler.asBoolean(v, condition.location());
-                hits.add(new Coverage.ConditionHit(coerced, condition.location(), condition.statementId()));
-                if (Value.FALSE.equals(coerced)) {
-                    return finishWithVote(Value.FALSE, deps, hits, totalConditions, constraintsVoter, metadata, ctx);
-                }
-                if (coerced instanceof ErrorValue && firstError == null) {
-                    firstError = coerced;
-                }
-            }
-            val bodyValue = firstError != null ? firstError : Value.TRUE;
-            return finishWithVote(bodyValue, deps, hits, totalConditions, constraintsVoter, metadata, ctx);
+            return PolicyCompiler.coverageForConditions(bodyConditions, constraintsVoter, metadata).evaluate(ctx);
         }
     }
-
 }

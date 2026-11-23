@@ -35,16 +35,39 @@ public record Coverage(List<DocumentCoverage> coverage) {
         VoterMetadata voter();
     }
 
-    public record PolicyCoverage(VoterMetadata voter, BodyCoverage bodyCoverage) implements DocumentCoverage {}
+    /**
+     * @param voter policy that produced the vote
+     * @param bodyCoverage observations of the reached conditions
+     * @param declarationLocation location of the policy keyword, if available
+     */
+    public record PolicyCoverage(VoterMetadata voter, BodyCoverage bodyCoverage, SourceLocation declarationLocation)
+            implements DocumentCoverage {
+        public PolicyCoverage(VoterMetadata voter, BodyCoverage bodyCoverage) {
+            this(voter, bodyCoverage, null);
+        }
+    }
 
+    /**
+     * @param voter the policy set
+     * @param targetHit observation of the effective target, including enforced header validation
+     * @param policyCoverages observations from reached members
+     * @param declarationLocation location of the set keyword, if available
+     * @param schemaHit result of the reached schema guard, or null if absent or skipped
+     */
     public record PolicySetCoverage(
             @NonNull VoterMetadata voter,
             @NonNull TargetHit targetHit,
-            @NonNull List<DocumentCoverage> policyCoverages) implements DocumentCoverage {
+            @NonNull List<DocumentCoverage> policyCoverages,
+            SourceLocation declarationLocation,
+            ConditionHit schemaHit) implements DocumentCoverage {
+        public PolicySetCoverage(VoterMetadata voter, TargetHit targetHit, List<DocumentCoverage> policyCoverages) {
+            this(voter, targetHit, policyCoverages, null, null);
+        }
+
         public PolicySetCoverage with(DocumentCoverage newCoverage) {
             val aggregatedPolicyCoverage = new ArrayList<>(policyCoverages);
             aggregatedPolicyCoverage.add(newCoverage);
-            return new PolicySetCoverage(voter, targetHit, aggregatedPolicyCoverage);
+            return new PolicySetCoverage(voter, targetHit, aggregatedPolicyCoverage, declarationLocation, schemaHit);
         }
     }
 
@@ -63,12 +86,22 @@ public record Coverage(List<DocumentCoverage> coverage) {
         }
     }
 
-    public record BodyCoverage(List<ConditionHit> hits, long numberOfConditions) {
+    /**
+     * @param hits observations of reached conditions
+     * @param numberOfConditions number of source conditions, including a schema block
+     * @param hasDecisionCondition whether a body condition or enforced schema can affect the vote
+     */
+    public record BodyCoverage(List<ConditionHit> hits, long numberOfConditions, boolean hasDecisionCondition) {
+        public BodyCoverage(List<ConditionHit> hits, long numberOfConditions) {
+            this(hits, numberOfConditions, numberOfConditions > hits.stream()
+                    .filter(hit -> hit.statementId() < 0 && !hit.enforcedSchema()).count());
+        }
+
         public BodyCoverage with(ConditionHit newHit) {
             val merged = new ArrayList<ConditionHit>(hits.size() + 1);
             merged.addAll(hits);
             merged.add(newHit);
-            return new BodyCoverage(merged, numberOfConditions);
+            return new BodyCoverage(merged, numberOfConditions, hasDecisionCondition);
         }
     }
 
@@ -81,5 +114,15 @@ public record Coverage(List<DocumentCoverage> coverage) {
 
     public record TargetResult(Value match, SourceLocation location) implements TargetHit {}
 
-    public record ConditionHit(Value result, SourceLocation location, long statementId) {}
+    /**
+     * @param result the observed condition value
+     * @param location the condition's source range
+     * @param statementId the condition number within the policy, or -1 for a schema block
+     * @param enforcedSchema whether the observed block contains an enforced schema
+     */
+    public record ConditionHit(Value result, SourceLocation location, long statementId, boolean enforcedSchema) {
+        public ConditionHit(Value result, SourceLocation location, long statementId) {
+            this(result, location, statementId, false);
+        }
+    }
 }

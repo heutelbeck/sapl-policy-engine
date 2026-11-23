@@ -18,8 +18,11 @@
 package io.sapl.compiler.policy;
 
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.document.VoteResult;
 import io.sapl.compiler.document.Voter;
 
 public record CompiledPolicy(
@@ -27,4 +30,13 @@ public record CompiledPolicy(
         Voter voter,
         Voter applicabilityAndVote,
         CoverageVoter coverageVoter,
-        VoterMetadata metadata) implements CompiledDocument {}
+        VoterMetadata metadata) implements CompiledDocument {
+
+    @Override
+    public VoteResult evaluateApplicabilityError(ErrorValue error, EvaluationContext ctx) {
+        if (voter instanceof PolicyCompiler.PolicyBodyVoter body) {
+            return body.evaluateWithApplicability(error, ctx);
+        }
+        return CompiledDocument.super.evaluateApplicabilityError(error, ctx);
+    }
+}

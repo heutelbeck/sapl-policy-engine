@@ -19,6 +19,7 @@ package io.sapl.test.coverage;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import io.sapl.api.coverage.BranchHit;
 import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
 import lombok.extern.slf4j.Slf4j;
@@ -189,8 +190,16 @@ public class CoverageReader {
             coverage.setSourceHash(node.path("sourceHash").asInt(0));
         }
 
+        parseTargetTotals(node, coverage);
+        parseBranches(node, coverage);
+
+        return coverage;
+    }
+
+    static void parseTargetTotals(JsonNode node, PolicyCoverageData coverage) {
         val targetTrueHits  = node.path("targetTrueHits").asInt(0);
         val targetFalseHits = node.path("targetFalseHits").asInt(0);
+        val targetErrorHits = node.path("targetErrorHits").asInt(0);
 
         for (int i = 0; i < targetTrueHits; i++) {
             coverage.recordTargetHit(true);
@@ -198,16 +207,15 @@ public class CoverageReader {
         for (int i = 0; i < targetFalseHits; i++) {
             coverage.recordTargetHit(false);
         }
-
-        parseBranches(node, coverage);
-
-        return coverage;
+        for (int i = 0; i < targetErrorHits; i++) {
+            coverage.recordTargetError();
+        }
     }
 
     /**
      * Parses branch hit data with full position information.
      */
-    private void parseBranches(JsonNode policyNode, PolicyCoverageData coverage) {
+    static void parseBranches(JsonNode policyNode, PolicyCoverageData coverage) {
         val branches = policyNode.path("branches");
         if (!branches.isArray()) {
             return;
@@ -224,12 +232,10 @@ public class CoverageReader {
             val startChar = branch.path("startChar").asInt(0);
             val endChar   = branch.path("endChar").asInt(0);
 
-            for (int i = 0; i < trueHits; i++) {
-                coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, true);
-            }
-            for (int i = 0; i < falseHits; i++) {
-                coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, false);
-            }
+            val errorHits      = branch.path("errorHits").asInt(0);
+            val enforcedSchema = branch.path("enforcedSchema").asBoolean(false);
+            coverage.recordBranchHit(new BranchHit(statementId, startLine, endLine, startChar, endChar, trueHits,
+                    falseHits, errorHits, enforcedSchema));
         }
     }
 

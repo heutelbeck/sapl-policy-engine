@@ -221,7 +221,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return asBoolean(p.evaluate(ctx), location);
+            return asBoolean(ctx.evaluate(p), location);
         }
 
         @Override
@@ -241,11 +241,11 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            val v1 = p1.evaluate(ctx);
+            val v1 = ctx.evaluate(p1);
             if (Value.FALSE.equals(v1)) {
                 return Value.FALSE;
             }
-            return combine(v1, p2.evaluate(ctx), true, location);
+            return combine(v1, ctx.evaluate(p2), true, location);
         }
 
         @Override

@@ -23,6 +23,7 @@ import static io.sapl.api.stream.Streams.just;
 import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static io.sapl.util.SaplTesting.functionBroker;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -113,6 +114,47 @@ class DecideOnceConfigurationTests {
                     broker.publishByName(ATTRIBUTE, of(previousApproval));
                     decision.cancel(true);
                 }
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("a failed evaluator is attributed to the active configuration on both public coverage paths")
+    void whenEvaluationFailsThenStreamingAndOneShotReturnTheSameErrorVote() throws Exception {
+        val functions = functionBroker("records.check", arguments -> {
+            throw new IllegalStateException("records unavailable");
+        });
+        try (val components = PolicyDecisionPointBuilder.withoutDefaults().withFunctionBroker(functions).build()) {
+            components.pdpVoterSource()
+                    .loadConfiguration(configuration(TENANT, "policy \"access\" permit records.check(subject);"));
+            val once = components.pdp().decideOnceWithCoverage(REQUEST, TENANT).vote();
+            try (val rounds = components.pdp().decideWithCoverage(REQUEST, TENANT)) {
+                val stream = rounds.awaitNext(Duration.ofSeconds(3)).vote();
+                assertThat(stream).isEqualTo(once);
+                assertThat(stream.authorizationDecision()).isEqualTo(components.pdp().decideOnce(REQUEST, TENANT));
+                assertThat(stream.voter().configurationId()).isEqualTo("deployment");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Coverage of a pending request follows a replacement configuration")
+    void whenAConfigurationReplacesAPendingFinderThenItsVoteAndCoverageApply() throws Exception {
+        try (val broker = new TestAttributeBroker();
+                val executor = newVirtualThreadPerTaskExecutor();
+                val components = PolicyDecisionPointBuilder.withoutDefaults().withAttributeBroker(broker).build()) {
+            broker.register(ATTRIBUTE);
+            val source = components.pdpVoterSource();
+            source.loadConfiguration(configuration(TENANT, PENDING));
+            val result = executor.submit(() -> components.pdp().decideOnceWithCoverage(REQUEST, TENANT));
+            try {
+                awaitFinder(broker);
+                source.loadConfiguration(configuration(TENANT, DENY));
+                assertThat(result.get(3, SECONDS).vote().authorizationDecision()).isEqualTo(AuthorizationDecision.DENY);
+                assertThat(broker.openSubscriptions()).isEmpty();
+            } finally {
+                broker.publishByName(ATTRIBUTE, of(true));
+                result.cancel(true);
             }
         }
     }

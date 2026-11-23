@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -67,7 +68,6 @@ import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeSubscriptionObserver;
 import io.sapl.attributes.broker.BrokerEvalLoops;
-import io.sapl.attributes.broker.EvaluationException;
 import io.sapl.attributes.broker.HeadCache;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
@@ -341,35 +341,48 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      * tooling.
      */
     public VoteWithCoverage decideOnceWithCoverage(AuthorizationSubscription sub, String pdpId) {
-        val subscriptionId   = idFactory.newRandom();
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            return new VoteWithCoverage(noConfigurationVote(pdpId), null);
-        }
-        val pdp     = pdpConfiguration.get();
-        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
-        try {
-            val initial = pdp.coverageVoter().evaluate(baseCtx);
-            if (initial.voteResult().dependencies().isEmpty()) {
-                val v = initial.voteResult().vote();
-                return new VoteWithCoverage(v == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : v,
-                        initial.coverage());
+        val subscriptionId = idFactory.newRandom();
+        while (true) {
+            val pdp = pdpConfigurationSource.getCurrentConfiguration(pdpId).orElse(null);
+            if (pdp == null) {
+                return new VoteWithCoverage(noConfigurationVote(pdpId), null);
             }
-            if (initial.voteResult().vote() != null) {
-                return new VoteWithCoverage(initial.voteResult().vote(), initial.coverage());
+            VoteWithCoverage result;
+            try {
+                result = firstCoverage(pdp, sub, subscriptionId);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return new VoteWithCoverage(errorVote(pdp, ERROR_INTERRUPTED), null);
+            } catch (ExecutionException | RuntimeException failure) {
+                log.warn(ERROR_UNEXPECTED_EVALUATION, failure);
+                result = new VoteWithCoverage(errorVote(pdp, ERROR_EVALUATOR_THREW), null);
             }
-            return Voters.awaitFirstVoteWithCoverage(attributeBroker, subscriptionId,
-                    initial.voteResult().dependencies().keySet(),
-                    snapshot -> pdp.coverageVoter().evaluate(baseCtx.withSnapshot(snapshot)));
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            return new VoteWithCoverage(errorVote(pdp, ERROR_INTERRUPTED), null);
-        } catch (EvaluationException ee) {
-            return new VoteWithCoverage(errorVote(pdp, ERROR_EVALUATOR_THREW), null);
-        } catch (RuntimeException re) {
-            log.warn(ERROR_UNEXPECTED_EVALUATION, re);
-            return new VoteWithCoverage(errorVote(pdp, ERROR_EVALUATOR_THREW), null);
+            if (result != null && pdpConfigurationSource.getCurrentConfiguration(pdpId).orElse(null) == pdp) {
+                return result;
+            }
+            if (Thread.currentThread().isInterrupted()) {
+                return new VoteWithCoverage(errorVote(pdp, ERROR_INTERRUPTED), null);
+            }
         }
+    }
+
+    private @Nullable VoteWithCoverage firstCoverage(CompiledPdp pdp, AuthorizationSubscription sub,
+            String subscriptionId) throws InterruptedException, ExecutionException {
+        val context = evaluationContext(pdp, sub, subscriptionId);
+        val initial = pdp.coverageVoter().evaluate(context);
+        val vote    = initial.voteResult().vote();
+        if (vote != null) {
+            return new VoteWithCoverage(vote, initial.coverage());
+        }
+        val dependencies = initial.voteResult().dependencies().keySet();
+        if (dependencies.isEmpty()) {
+            return new VoteWithCoverage(errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION), initial.coverage());
+        }
+        return awaitCurrentRound(pdp, subscriptionId, dependencies,
+                inputs -> pdp.coverageVoter().evaluate(context.withSnapshot(inputs)),
+                (round, inputs) -> round.voteResult().vote() == null ? null
+                        : new VoteWithCoverage(round.voteResult().vote(), round.coverage()),
+                round -> round.voteResult().dependencies().keySet());
     }
 
     /**
@@ -392,7 +405,9 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                     .orElseGet(() -> singleton(new VoteWithCoverage(noConfigurationVote(pdpId), null)));
         } catch (RuntimeException e) {
             log.warn(ERROR_UNEXPECTED_EVALUATION, e);
-            return singleton(new VoteWithCoverage(noConfigurationVote(pdpId), null));
+            val failed = maybePdp.map(pdp -> errorVote(pdp, ERROR_EVALUATOR_THREW))
+                    .orElseGet(() -> noConfigurationVote(pdpId));
+            return singleton(new VoteWithCoverage(failed, null));
         }
     }
 
@@ -513,21 +528,39 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     private @Nullable TracedDecision awaitFirstDecision(CompiledPdp pdp, EvaluationContext context,
             String subscriptionId, StreamVoter voter, Set<SubscriptionKey> dependencies, boolean traced) {
-        val first = new CompletableFuture<TracedDecision>();
-        // Synchronous enrollment preserves finder reentry on the calling thread.
-        try (val handle = BrokerEvalLoops.openWithHead(attributeBroker, subscriptionId, dependencies,
-                inputs -> voter.evaluate(context.withSnapshot(inputs)), (round, inputs) -> {
-                    if (round.vote() != null && !first.isDone()) {
-                        first.complete(traced ? buildTracedVote(round, inputs, timestampSource) : round.vote());
-                    }
-                }, round -> round.dependencies().keySet(), failure -> first.completeExceptionally(
-                        failure != null ? failure : new IllegalStateException(ERROR_VOTER_PRODUCED_NO_DECISION)))) {
-            return pdpConfigurationSource.awaitWhileCurrent(pdp, first);
+        try {
+            return awaitCurrentRound(pdp, subscriptionId, dependencies,
+                    inputs -> voter.evaluate(context.withSnapshot(inputs)), (round, inputs) -> {
+                        if (round.vote() == null) {
+                            return null;
+                        }
+                        return traced ? buildTracedVote(round, inputs, timestampSource) : round.vote();
+                    }, round -> round.dependencies().keySet());
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             return traceIfObserved(errorVote(pdp, ERROR_INTERRUPTED), traced);
         } catch (ExecutionException | RuntimeException failure) {
             return traceIfObserved(errorVote(pdp, ERROR_EVALUATOR_THREW), traced);
+        }
+    }
+
+    private <R, T> @Nullable T awaitCurrentRound(CompiledPdp pdp, String subscriptionId,
+            Set<SubscriptionKey> initialDependencies, Function<Map<SubscriptionKey, AttributeSnapshot>, R> evaluate,
+            BiFunction<R, Map<SubscriptionKey, AttributeSnapshot>, T> completed,
+            Function<R, Set<SubscriptionKey>> dependencies) throws InterruptedException, ExecutionException {
+        val first = new CompletableFuture<T>();
+        // Finder enrollment can reenter the PDP on the calling thread.
+        try (val handle = BrokerEvalLoops.openWithHead(attributeBroker, subscriptionId, initialDependencies, evaluate,
+                (round, inputs) -> {
+                    if (!first.isDone()) {
+                        val result = completed.apply(round, inputs);
+                        if (result != null) {
+                            first.complete(result);
+                        }
+                    }
+                }, dependencies, failure -> first.completeExceptionally(
+                        failure != null ? failure : new IllegalStateException(ERROR_VOTER_PRODUCED_NO_DECISION)))) {
+            return pdpConfigurationSource.awaitWhileCurrent(pdp, first);
         }
     }
 

@@ -72,7 +72,7 @@ class SmtddEvaluator {
         while (!(node instanceof Terminal(BitSet matchedByTerminal))) {
             switch (node) {
             case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected, var keyFormulas) -> {
-                val result = operand.evaluate(ctx);
+                val result = ctx.evaluate(operand);
                 if (result instanceof ErrorValue error) {
                     firstError = firstEncountered(firstError, error);
                     accumulatedErrors.or(affected);
@@ -84,7 +84,7 @@ class SmtddEvaluator {
                 }
             }
             case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                                   -> {
-                val result = binaryOrder.predicateAt(level).operator().evaluate(ctx);
+                val result = ctx.evaluate(binaryOrder.predicateAt(level).operator());
                 switch (result) {
                 case ErrorValue error           -> {
                     firstError = firstEncountered(firstError, error);

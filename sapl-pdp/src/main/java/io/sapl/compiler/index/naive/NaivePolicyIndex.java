@@ -86,7 +86,7 @@ public class NaivePolicyIndex implements PolicyIndex {
         if (expression instanceof Value v) {
             return v;
         }
-        return ((PureOperator) expression).evaluate(ctx);
+        return ctx.evaluate((PureOperator) expression);
     }
 
 }

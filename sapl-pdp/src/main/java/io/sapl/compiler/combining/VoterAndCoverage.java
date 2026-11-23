@@ -17,12 +17,30 @@
  */
 package io.sapl.compiler.combining;
 
+import java.util.List;
+
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.Value;
+import io.sapl.ast.PolicySet;
+import io.sapl.ast.VoterMetadata;
+import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.policy.CoverageVoter;
+import io.sapl.compiler.policy.ObservedVoter;
+import io.sapl.compiler.policyset.PolicySetUtil;
+
+import lombok.val;
 
 /**
  * Compiler output bundle for a policy set: the production {@link Voter}
  * paired with the snapshot-driven {@link CoverageVoter} that emits the
  * matching {@link io.sapl.compiler.document.VoteResultWithCoverage}.
  */
-public record VoterAndCoverage(Voter voter, CoverageVoter coverageVoter) {}
+public record VoterAndCoverage(Voter voter, CoverageVoter coverageVoter) {
+    static VoterAndCoverage forSet(Voter voter, PolicySet set, CompiledExpression applicability, VoterMetadata metadata,
+            List<? extends CompiledDocument> members) {
+        val complete = PolicySetUtil.compileApplicabilityAndVoter(applicability, voter, metadata);
+        val schema   = set.target() == null ? applicability : Value.TRUE;
+        return new VoterAndCoverage(voter, ObservedVoter.policySet(complete, set, schema, applicability, members));
+    }
+}

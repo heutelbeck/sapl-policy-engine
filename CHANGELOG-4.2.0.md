@@ -16,6 +16,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Java record patterns for `EvaluationContext`, `BranchHit`, and the `Coverage` records `PolicyCoverage`, `PolicySetCoverage`, `BodyCoverage` and `ConditionHit` must include their new components. The previous constructors remain available.
 - The expression compiler rejects `<`, `<=`, `>` and `>=` when an operand folds to a boolean. The diagnostic points to that operand. Operand types that depend on the request are checked during evaluation.
 - SAPL number-to-text conversion is exact and independent of decimal scale. `standard.toString(1.50)` now yields `"1.5"` and `"n=" + 1.50` yields `"n=1.5"`. Nonzero magnitudes below `1e-6` or at least `1e21` use scientific notation.
 - Bundle manifests require a JSON string for `configurationId`. Producers with numeric internal IDs must emit, for example, `"configurationId": "42"`.
@@ -57,6 +58,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Policy evaluation fixes
 
+- Coverage observes the same compiled voter as an ordinary decision, with the same attribute requests and votes for either value of `lowLatencyMode`. A pending `decideOnceWithCoverage` request follows a replacement PDP configuration.
+- Coverage reports place each completed member policy's decision at its own declaration and preserve separate source hits for conditions that share an index predicate. A set's target result includes its enforced schema and any `for` expression.
 - Compiling an enforced JSON Schema checks the schema against its declared dialect. An invalid schema rejects the configuration. The `jsonschema` functions return an error value for an invalid schema supplied at evaluation time.
 - If a new configuration becomes active for the same PDP while `decideOnce` is waiting for an attribute, the request uses the new configuration. A retired configuration can no longer release a decision after its replacement.
 - A policy set's target or enforced schema could read a variable declared in its last policy, changing which requests matched the set. Policy-local variables are now visible only inside the declaring policy.

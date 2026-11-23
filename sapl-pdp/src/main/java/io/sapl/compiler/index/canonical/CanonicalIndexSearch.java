@@ -96,7 +96,7 @@ class CanonicalIndexSearch {
                 continue;
             }
 
-            val evaluationResult = predicates.get(i).operator().evaluate(ctx);
+            val evaluationResult = ctx.evaluate(predicates.get(i).operator());
 
             // A non-boolean predicate result (error, or any non-boolean now that the
             // body type-check is gone) is treated as a type error: route the formula to
@@ -173,7 +173,7 @@ class CanonicalIndexSearch {
                 continue;
             }
 
-            val evaluationResult = predicates.get(i).operator().evaluate(ctx);
+            val evaluationResult = ctx.evaluate(predicates.get(i).operator());
 
             // A non-boolean predicate result (error, or any non-boolean now that the
             // body type-check is gone) is treated as a type error: route the formula to

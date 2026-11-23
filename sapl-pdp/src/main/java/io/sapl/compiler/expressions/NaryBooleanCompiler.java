@@ -158,6 +158,7 @@ public class NaryBooleanCompiler {
             Value firstError = pendingError;
             for (var op : operands) {
                 val v = op.evaluate(ctx);
+                ctx.observe(this, op, v);
                 if (shortCircuitValue.equals(v)) {
                     return shortCircuitValue;
                 }
@@ -221,6 +222,7 @@ public class NaryBooleanCompiler {
             Value firstError = pureResult.firstError();
             for (val s : streams) {
                 val v = evalChild(s, ctx, deps);
+                ctx.observe(this, s, v);
                 if (v == null) {
                     return new ExpressionResult(null, deps);
                 }

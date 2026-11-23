@@ -17,18 +17,24 @@
  */
 package io.sapl.compiler.index;
 
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.Value;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
+
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
-import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Creates a {@link PolicyIndex} based on the indexing strategy name
@@ -69,6 +75,72 @@ public class IndexFactory {
                 "SMTDD", documents);
         case AUTO      -> autoSelect(documents, ctx);
         };
+    }
+
+    /**
+     * @param documents the documents whose guards this combining scope classifies
+     * @param ctx the compiler options selecting the index
+     * @return the index with its resolved guard results available to a coverage observer
+     */
+    public static PolicyIndex createVoterIndex(List<CompiledDocument> documents, CompilationContext ctx) {
+        return new ObservedIndex(createIndex(documents, ctx), List.copyOf(documents));
+    }
+
+    private record ObservedIndex(PolicyIndex index, List<CompiledDocument> documents) implements PolicyIndex {
+        @Override
+        public PolicyMatches matchKleene(EvaluationContext ctx) {
+            val matches = index.matchKleene(ctx);
+            if (ctx.observer() != null) {
+                val classified = new ClassifiedGuards();
+                classified.add(matches);
+                classified.observe(ctx.observer(), documents);
+            }
+            return matches;
+        }
+
+        @Override
+        public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
+            if (ctx.observer() == null) {
+                index.matchKleeneWhile(ctx, shouldContinue);
+            } else {
+                val classified = new ClassifiedGuards();
+                index.matchKleeneWhile(ctx, matches -> classified.step(matches, shouldContinue));
+                classified.observe(ctx.observer(), documents);
+            }
+        }
+    }
+
+    private static final class ClassifiedGuards {
+        private final Map<CompiledDocument, Value> matches   = new IdentityHashMap<>();
+        private boolean                            exhausted = true;
+
+        void add(PolicyMatches step) {
+            step.trueMatches().forEach(document -> matches.put(document, Value.TRUE));
+            step.errorMatches().forEach(match -> matches.put(match.document(), match.error()));
+        }
+
+        boolean step(PolicyMatches step, Predicate<PolicyMatches> shouldContinue) {
+            add(step);
+            exhausted = shouldContinue.test(step);
+            return exhausted;
+        }
+
+        void observe(EvaluationContext.EvaluationObserver observer, List<CompiledDocument> documents) {
+            // Only an exhausted index proves that every omitted document failed its guard.
+            if (exhausted) {
+                documents.forEach(document -> record(observer, document, matches.getOrDefault(document, Value.FALSE)));
+            } else {
+                matches.forEach((document, result) -> record(observer, document, result));
+            }
+        }
+
+        private static void record(EvaluationContext.EvaluationObserver observer, CompiledDocument document,
+                Value result) {
+            val guard = document.isApplicable();
+            if (!(guard instanceof Value)) {
+                observer.classified(guard, result);
+            }
+        }
     }
 
     private static IndexingStrategy parseStrategy(String name) {
