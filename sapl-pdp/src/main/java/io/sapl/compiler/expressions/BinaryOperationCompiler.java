@@ -26,13 +26,13 @@ import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
-import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;
 import io.sapl.compiler.operators.HasOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,7 +44,7 @@ public class BinaryOperationCompiler {
     private static final String ERROR_BOOLEAN_ORDERING_OPERAND      = "Numeric comparisons require numbers, but this operand is %s.";
     private static final String ERROR_UNIMPLEMENTED_BINARY_OPERATOR = "Unimplemented binary operator: %s";
 
-    static final Map<BinaryOperatorType, BinaryOperation> BINARY_OPERATIONS = Map.ofEntries(
+    private static final Map<BinaryOperatorType, BinaryOperation> BINARY_OPERATIONS = Map.ofEntries(
             // Arithmetic
             Map.entry(ADD, ArithmeticOperators::add), Map.entry(SUB, ArithmeticOperators::subtract),
             Map.entry(MUL, ArithmeticOperators::multiply), Map.entry(DIV, ArithmeticOperators::divide),
@@ -60,9 +60,7 @@ public class BinaryOperationCompiler {
             predicate(ALL_IN, ComparisonOperators::allIn),
             // Key membership (has operator)
             predicate(HAS_ONE, HasOperators::hasOne), predicate(HAS_ANY, HasOperators::hasAny),
-            predicate(HAS_ALL, HasOperators::hasAll),
-            // XOR (the only non-short-circuit boolean operator)
-            predicate(XOR, BooleanOperators::xor));
+            predicate(HAS_ALL, HasOperators::hasAll));
 
     private static Map.Entry<BinaryOperatorType, BinaryOperation> predicate(BinaryOperatorType type,
             BooleanGuard.Predicate operation) {
@@ -73,7 +71,7 @@ public class BinaryOperationCompiler {
      * The commutative operators whose operands are compiled in canonical order.
      * The operator {@code +} is not among them, as it concatenates texts.
      */
-    private static final Set<BinaryOperatorType> CANONICALLY_ORDERED = EnumSet.of(EQ, NE, MUL, XOR);
+    private static final Set<BinaryOperatorType> CANONICALLY_ORDERED = EnumSet.of(EQ, NE, MUL);
 
     private static final Set<BinaryOperatorType> NUMERIC_COMPARISONS = EnumSet.of(LT, LE, GT, GE);
 
@@ -165,6 +163,10 @@ public class BinaryOperationCompiler {
 
     private CompiledExpression tryCompileSpecialCase(BinaryOperator binaryOperation, CompilationContext ctx) {
         val operatorType = binaryOperation.op();
+        if (operatorType == XOR) {
+            return NaryOperatorCompiler.compileXor(List.of(binaryOperation.left(), binaryOperation.right()), ctx,
+                    binaryOperation.location());
+        }
         if (operatorType == REGEX) {
             return RegexCompiler.compile(binaryOperation, ctx);
         }

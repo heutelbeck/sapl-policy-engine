@@ -42,9 +42,16 @@ class BooleanGuard {
     }
 
     static CompiledExpression compileBooleanOperand(Expression operand, CompilationContext ctx) {
-        val input = operand instanceof UnaryOperator(var type, var inner, var ignored) && type == CHECK_BOOLEAN ? inner
+        return withoutBooleanGuard(ExpressionCompiler.compile(withoutBooleanGuard(operand), ctx));
+    }
+
+    static SourceLocation operandLocation(Expression operand) {
+        return withoutBooleanGuard(operand).location();
+    }
+
+    private static Expression withoutBooleanGuard(Expression operand) {
+        return operand instanceof UnaryOperator(var type, var inner, var ignored) && type == CHECK_BOOLEAN ? inner
                 : operand;
-        return withoutBooleanGuard(ExpressionCompiler.compile(input, ctx));
     }
 
     static CompiledExpression withoutBooleanGuard(CompiledExpression operand) {

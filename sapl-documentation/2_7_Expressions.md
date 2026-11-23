@@ -49,7 +49,7 @@ Variable names (after the `var` keyword) accept plain identifiers and the combin
 
 #### Backtick Escape
 
-A backtick-quoted identifier (e.g. `` `permit` ``) is treated as a plain identifier even when it spells a keyword. Use it for hard keywords that are not [reserved identifiers](#reserved-identifiers): `as`, `advice`, `deny`, `each`, `enforced`, `for`, `import`, `in`, `obligation`, `permit`, `policy`, `schema`, `set`, `transform`, `true`, `false`, `null`, `undefined`, `var`. The escape works for variable names, expression identifiers, and object keys (e.g. `` object.`in` `` or `` object[`in`] ``). Reserved identifiers never need escaping. The `^` character is exclusively the bitwise-XOR operator, so `a^b` parses as XOR with no whitespace required.
+A backtick-quoted identifier (e.g. `` `permit` ``) is treated as a plain identifier even when it spells a keyword. Use it for hard keywords that are not [reserved identifiers](#reserved-identifiers): `as`, `advice`, `deny`, `each`, `enforced`, `for`, `import`, `in`, `obligation`, `permit`, `policy`, `schema`, `set`, `transform`, `true`, `false`, `null`, `undefined`, `var`. The escape works for variable names, expression identifiers, and object keys (e.g. `` object.`in` `` or `` object[`in`] ``). Reserved identifiers never need escaping. The `^` character is the boolean XOR operator, so `a^b` parses as XOR with no whitespace required.
 
 ### Strings
 
@@ -334,7 +334,7 @@ subject.role == "doctor" | subject.role == "nurse" && resource.type == "patient_
 
 because `|` binds tighter than `&&`.
 
-The XOR operator (`^`) needs both boolean values to compute its boolean result.
+XOR (`^`) returns true when an odd number of operands are true. A boolean result requires every operand. A known non-boolean operand produces a type error immediately, even if another operand is pending. For example, `2 ^ <room.open>` reports the type error without requesting the attribute. When XOR reaches the streaming operands, it observes all of them so a later update can resolve the error. If one of those operands supplies its own error, XOR propagates that error with its source.
 
 `&&`, `||`, `&`, `|`, and `^` are left-associative.
 

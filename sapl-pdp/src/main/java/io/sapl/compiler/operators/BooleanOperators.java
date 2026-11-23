@@ -51,8 +51,7 @@ public class BooleanOperators {
     /**
      * Logical XOR (exclusive or).
      * <p>
-     * XOR is the only non-short-circuit boolean operator since both operands
-     * must always be evaluated to determine the result.
+     * Both operands must be boolean to compute a boolean result.
      */
     public static Value xor(Value a, Value b, SourceLocation location) {
         if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {

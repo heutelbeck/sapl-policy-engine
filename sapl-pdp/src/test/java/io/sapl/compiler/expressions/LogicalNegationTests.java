@@ -51,7 +51,7 @@ class LogicalNegationTests {
     private static final String NUMBER_TYPE_ERROR = "Logical operation requires boolean value, but found: 2.";
 
     @ParameterizedTest(name = "boolean operands of {0}")
-    @ValueSource(strings = { "&&", "&", "||", "|" })
+    @ValueSource(strings = { "&&", "&", "||", "|", "^" })
     @DisplayName("Boolean operands have the same compiled structure and hash with or without a redundant guard")
     void whenABooleanOperatorChecksItsOperandsThenRedundantGuardsAreRemoved(String operator) {
         val separator = " " + operator + " ";

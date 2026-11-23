@@ -151,7 +151,7 @@ class CanonicalOperandOrder {
         return sorted;
     }
 
-    private static int compareOperands(CompiledExpression operand, CompiledExpression other) {
+    static int compareOperands(CompiledExpression operand, CompiledExpression other) {
         val first     = asOperand(operand);
         val second    = asOperand(other);
         val byStratum = Integer.compare(stratum(first), stratum(second));
