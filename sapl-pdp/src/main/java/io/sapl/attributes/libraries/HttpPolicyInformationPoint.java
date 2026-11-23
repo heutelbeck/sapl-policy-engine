@@ -850,15 +850,7 @@ public class HttpPolicyInformationPoint {
         } catch (URISyntaxException e) {
             return false;
         }
-        if (allowed.getScheme() == null || request.getScheme() == null
-                || !allowed.getScheme().equalsIgnoreCase(request.getScheme())) {
-            return false;
-        }
-        if (allowed.getHost() == null || request.getHost() == null
-                || !allowed.getHost().equalsIgnoreCase(request.getHost())) {
-            return false;
-        }
-        if (effectivePort(allowed) != effectivePort(request)) {
+        if (!sameOrigin(allowed, request)) {
             return false;
         }
         if (request.getRawUserInfo() != null || allowed.getRawUserInfo() != null || allowed.getRawQuery() != null
@@ -878,6 +870,12 @@ public class HttpPolicyInformationPoint {
             }
         }
         return pathWithinPrefix(allowed.getRawPath(), request.getRawPath());
+    }
+
+    private static boolean sameOrigin(URI allowed, URI request) {
+        return allowed.getScheme() != null && allowed.getScheme().equalsIgnoreCase(request.getScheme())
+                && allowed.getHost() != null && allowed.getHost().equalsIgnoreCase(request.getHost())
+                && effectivePort(allowed) == effectivePort(request);
     }
 
     private static int effectivePort(URI uri) {

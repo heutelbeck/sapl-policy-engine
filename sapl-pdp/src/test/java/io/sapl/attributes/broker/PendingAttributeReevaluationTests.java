@@ -193,8 +193,9 @@ class PendingAttributeReevaluationTests {
                     inputs -> voter.evaluate(context.withSnapshot(inputs)), (result, inputs) -> {
                         val round = new EvaluationRound(inputs, result);
                         rounds.add(round);
-                        if (result.vote() != null) {
-                            decisions.add(result.vote().authorizationDecision().decision());
+                        val vote = result.vote();
+                        if (vote != null) {
+                            decisions.add(vote.authorizationDecision().decision());
                             if (result.dependencies().keySet().equals(Set.of(a))
                                     && changedA.equals(inputs.get(a).value())) {
                                 completed.complete(round);
@@ -228,12 +229,15 @@ class PendingAttributeReevaluationTests {
                 }
                 val finalRound = completed.get(5, TimeUnit.SECONDS);
                 assertThat(finalRound.result().dependencies()).containsOnlyKeys(a);
-                assertThat(finalRound.result().vote().authorizationDecision().decision()).isEqualTo(expected);
+                val finalVote = finalRound.result().vote();
+                assertThat(finalVote).isNotNull();
+                val finalDecision = finalVote.authorizationDecision().decision();
+                assertThat(finalDecision).isEqualTo(expected);
                 assertThat(terminations).isEmpty();
                 await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(pip.closed).hasValue(1));
                 assertThat(withoutB)
                         .as("A must make pending B unnecessary. Decisions before B: %s. After releasing B: %s.",
-                                decisionsBeforeB, finalRound.result().vote().authorizationDecision().decision())
+                                decisionsBeforeB, finalDecision)
                         .isNotNull().satisfies(round -> {
                             assertThat(round.inputs().get(a).value()).isEqualTo(changedA);
                             assertThat(round.inputs().keySet()).extracting(key -> key.invocation().attributeName())

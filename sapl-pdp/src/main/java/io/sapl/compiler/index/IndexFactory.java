@@ -128,13 +128,14 @@ public class IndexFactory {
         void observe(EvaluationContext.EvaluationObserver observer, List<CompiledDocument> documents) {
             // Only an exhausted index proves that every omitted document failed its guard.
             if (exhausted) {
-                documents.forEach(document -> record(observer, document, matches.getOrDefault(document, Value.FALSE)));
+                documents.forEach(
+                        document -> observeGuard(observer, document, matches.getOrDefault(document, Value.FALSE)));
             } else {
-                matches.forEach((document, result) -> record(observer, document, result));
+                matches.forEach((document, result) -> observeGuard(observer, document, result));
             }
         }
 
-        private static void record(EvaluationContext.EvaluationObserver observer, CompiledDocument document,
+        private static void observeGuard(EvaluationContext.EvaluationObserver observer, CompiledDocument document,
                 Value result) {
             val guard = document.isApplicable();
             if (!(guard instanceof Value)) {

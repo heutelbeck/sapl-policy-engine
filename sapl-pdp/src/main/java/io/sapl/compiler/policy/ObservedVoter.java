@@ -101,10 +101,12 @@ public final class ObservedVoter implements CoverageVoter {
      */
     public static CoverageVoter policySet(Voter voter, PolicySet set, CompiledExpression schema,
             CompiledExpression applicability, List<? extends CompiledDocument> members) {
-        val schemaSite = set.match() != null && set.match().schemas().stream().anyMatch(SchemaStatement::enforced)
-                ? set.match().location()
+        val match      = set.match();
+        val target     = set.target();
+        val schemaSite = match != null && match.schemas().stream().anyMatch(SchemaStatement::enforced)
+                ? match.location()
                 : null;
-        val targetSite = set.target() != null ? set.target().location() : schemaSite;
+        val targetSite = target != null ? target.location() : schemaSite;
         return new ObservedVoter(voter, new SetBody(set.metadata(), set.declarationLocation(), targetSite, schemaSite,
                 schema, applicability, set.algorithm().votingMode() != VotingMode.FIRST, layouts(members)));
     }
@@ -209,12 +211,12 @@ public final class ObservedVoter implements CoverageVoter {
             if (vote == null) {
                 return;
             }
-            val pending = new ArrayDeque<Vote>();
-            pending.push(vote);
-            while (!pending.isEmpty()) {
-                val next = pending.pop();
+            val votes = new ArrayDeque<Vote>();
+            votes.push(vote);
+            while (!votes.isEmpty()) {
+                val next = votes.pop();
                 reached.add(next.voter());
-                pending.addAll(next.contributingVotes());
+                votes.addAll(next.contributingVotes());
             }
         }
 
@@ -307,8 +309,9 @@ public final class ObservedVoter implements CoverageVoter {
             for (val read : reads) {
                 val occurrences = sites.get(read.operand());
                 val index       = offsets.merge(read.operand(), 1, Integer::sum) - 1;
-                if (read.value() != null && occurrences != null && index < occurrences.size()) {
-                    hits.add(hit(occurrences.get(index), read.value()));
+                val value       = read.value();
+                if (value != null && occurrences != null && index < occurrences.size()) {
+                    hits.add(hit(occurrences.get(index), value));
                 }
             }
         }
