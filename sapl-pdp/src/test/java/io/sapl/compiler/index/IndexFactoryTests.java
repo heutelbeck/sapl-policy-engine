@@ -19,6 +19,7 @@ package io.sapl.compiler.index;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
@@ -78,6 +79,47 @@ class IndexFactoryTests {
         val index = IndexFactory.createIndex(docs, ctx);
 
         assertThat(index).isInstanceOf(NaivePolicyIndex.class);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("an index with more nodes than maxIndexNodes is refused, whatever kinds of nodes it is built from")
+    void whenIndexExceedsNodeLimitThenSmtddIsRefused(String description, List<String> conditions) {
+        val documents = policies(conditions);
+
+        assertThatThrownBy(() -> SmtddPolicyIndex.create(documents, 1))
+                .isInstanceOf(IndexSizeLimitExceededException.class);
+    }
+
+    static Stream<Arguments> whenIndexExceedsNodeLimitThenSmtddIsRefused() {
+        return Stream.of(arguments("two comparisons", List.of("subject > 1", "subject > 2")),
+                arguments("two patterns on one operand", List.of("subject =~ \"a\"", "subject =~ \"b\"")),
+                arguments("two equalities on one operand", List.of("subject == \"a\"", "subject == \"b\"")),
+                arguments("two memberships on one operand",
+                        List.of("subject in [\"a\", \"b\"]", "subject in [\"c\", \"d\"]")),
+                arguments("one comparison", List.of("subject > 1")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("when the SMTDD index exceeds maxIndexNodes the configured fallback takes over")
+    void whenSmtddExceedsNodeLimitThenFallbackIndexIsUsed(String strategy, Class<?> expectedType) {
+        val documents = policies(List.of("subject =~ \"a\"", "subject =~ \"b\""));
+        val ctx       = SaplTesting.compilationContext();
+        ctx.setCompilerOptions(ObjectValue.builder().put("indexing", Value.of(strategy))
+                .put("maxIndexNodes", Value.of(1)).put("minPoliciesForIndexing", Value.of(1)).build());
+
+        assertThat(IndexFactory.createIndex(documents, ctx)).isInstanceOf(expectedType);
+    }
+
+    static Stream<Arguments> whenSmtddExceedsNodeLimitThenFallbackIndexIsUsed() {
+        return Stream.of(arguments("SMTDD", NaivePolicyIndex.class), arguments("AUTO", CanonicalPolicyIndex.class));
+    }
+
+    private static List<CompiledDocument> policies(List<String> conditions) {
+        return conditions.stream().<CompiledDocument>map(condition -> SaplTesting
+                .compilePolicyFull("policy \"%s\" permit %s;".formatted(condition.replace('"', '\''), condition)))
+                .toList();
     }
 
 }

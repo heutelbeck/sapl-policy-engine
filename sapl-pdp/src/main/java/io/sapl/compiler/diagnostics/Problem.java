@@ -263,9 +263,10 @@ public enum Problem {
             "At most %1$s levels of parentheses, brackets and braces are allowed."),
 
     /**
-     * Not part of the conformance catalogue. An expression nests too deeply to be read without brackets that explain it,
-     * for example through a long chain of prefix operators or subtemplates: a
-     * step of reading exhausted the stack. It is marked at the start of the
+     * Not part of the conformance catalogue. An expression nests too deeply to
+     * be read without brackets that explain it, for example through a long
+     * chain of prefix operators or subtemplates: a step of reading exhausted
+     * the stack. It is marked at the start of the
      * document, as no place in it is known.
      * <p>
      * Values: none.
@@ -1202,9 +1203,10 @@ public enum Problem {
             "Only the first %1$s problems are reported. Resolve them and check the document again."),
 
     /**
-     * Not part of the conformance catalogue. It stands in for a failure of reading a document that the checks did not foresee: an
-     * exception of the lexer, the parser, the analysis or the transformation into
-     * the AST. Such a failure is logged, and the document is refused with this
+     * Not part of the conformance catalogue. It stands in for a failure of
+     * reading a document that the checks did not foresee: an exception of the
+     * lexer, the parser, the analysis or the transformation into the AST. Such a failure is logged, and the document is
+     * refused with this
      * problem instead of the exception reaching the caller. The analysis refuses
      * every document that the transformation cannot read, so a document with
      * this problem shows a gap in the checks. No document of the conformance

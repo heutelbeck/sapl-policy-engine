@@ -26,8 +26,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Interns SMTDD Terminal and BinaryDecision nodes for structural sharing.
- * EqualityBranch nodes are few and unique - not interned.
+ * Interns SMTDD Terminal and BinaryDecision nodes for structural sharing, and
+ * counts all nodes of the diagram under construction. EqualityBranch and
+ * RegexBranch nodes are few and unique: they are counted, not interned.
  */
 class SmtddUniqueTable {
 
@@ -39,6 +40,7 @@ class SmtddUniqueTable {
     private final Map<BinaryDecision, BinaryDecision> decisions      = new HashMap<>();
     private final BitSet                              positiveLevels = new BitSet();
     private final BitSet                              negativeLevels = new BitSet();
+    private int                                       branches;
 
     SmtddUniqueTable() {
         terminals.put(EMPTY, EMPTY);
@@ -90,8 +92,19 @@ class SmtddUniqueTable {
         return decisions.computeIfAbsent(candidate, k -> k);
     }
 
+    /**
+     * Counts a branch node, which is not interned.
+     *
+     * @param branch the branch node
+     * @return the branch node
+     */
+    SmtddNode branch(SmtddNode branch) {
+        branches++;
+        return branch;
+    }
+
     int size() {
-        return terminals.size() + decisions.size();
+        return terminals.size() + decisions.size() + branches;
     }
 
 }

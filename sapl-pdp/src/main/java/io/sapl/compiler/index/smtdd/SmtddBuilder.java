@@ -120,8 +120,8 @@ public class SmtddBuilder {
         val defaultChild = buildEqualityLevels(groups, regexGroups, groupIndex + 1, compacted.defaultFormulas(),
                 formulaBdds, table, maxIndexNodes);
 
-        return new EqualityBranch(group.getSharedOperand(), branches, defaultChild, defaultChild,
-                compacted.affectedFormulas(), compacted.keyFormulas());
+        return withinLimit(table.branch(new EqualityBranch(group.getSharedOperand(), branches, defaultChild,
+                defaultChild, compacted.affectedFormulas(), compacted.keyFormulas())), table, maxIndexNodes);
     }
 
     /**
@@ -157,8 +157,8 @@ public class SmtddBuilder {
         unaffected.andNot(affected);
         val defaultChild = buildRegexLevels(groups, groupIndex + 1, unaffected, formulaBdds, table, maxIndexNodes);
 
-        return new RegexBranch(group.getSharedOperand(), group.getSet(), List.copyOf(children), defaultChild, affected,
-                group.conjunctions(affected));
+        return withinLimit(table.branch(new RegexBranch(group.getSharedOperand(), group.getSet(), List.copyOf(children),
+                defaultChild, affected, group.conjunctions(affected))), table, maxIndexNodes);
     }
 
     private static SmtddNode mergeBucket(BitSet formulasInBucket, SmtddNode[] formulaBdds, SmtddUniqueTable table,
@@ -177,12 +177,22 @@ public class SmtddBuilder {
                 merged = formulaBdds[formulaIndex];
             } else {
                 merged = merge(table, merged, formulaBdds[formulaIndex], cache);
-                if (maxIndexNodes > 0 && table.size() > maxIndexNodes) {
-                    throw new IndexSizeLimitExceededException(table.size(), maxIndexNodes);
-                }
             }
+            withinLimit(merged, table, maxIndexNodes);
         }
         return merged;
+    }
+
+    /**
+     * Refuses the construction once the diagram holds more nodes than allowed.
+     * Every bucket and every branch passes here, so that the limit also holds for
+     * a bucket of one formula and counts the branch nodes.
+     */
+    private static SmtddNode withinLimit(SmtddNode node, SmtddUniqueTable table, int maxIndexNodes) {
+        if (maxIndexNodes > 0 && table.size() > maxIndexNodes) {
+            throw new IndexSizeLimitExceededException(table.size(), maxIndexNodes);
+        }
+        return node;
     }
 
     private static SmtddNode merge(SmtddUniqueTable table, SmtddNode left, SmtddNode right,
