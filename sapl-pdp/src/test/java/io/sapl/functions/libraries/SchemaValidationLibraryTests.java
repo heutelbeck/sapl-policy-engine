@@ -273,6 +273,28 @@ class SchemaValidationLibraryTests {
                         arguments("sapl1\\u{61}", "sapl1a", "a", place), arguments("^\\d$", "5", "\\d", place)));
     }
 
+    @Test
+    @DisplayName("the three references the library documents as differences of the engines are answered as documented, and nothing is loaded")
+    void whenReferenceIsOneTheEnginesAnswerDifferentlyThenThisEngineAnswersAsDocumented() {
+        val subject      = Value.of("text");
+        val networkPath  = isCompliant(subject, (ObjectValue) json("""
+                {"$ref": "//127.0.0.1:9/schema"}
+                """));
+        val recursiveRef = isCompliant(subject, (ObjectValue) json(
+                """
+                        {"$schema": "https://json-schema.org/draft/2019-09/schema", "$recursiveRef": "http://127.0.0.1:9/schema"}
+                        """));
+        val unused       = isCompliant(subject, (ObjectValue) json("""
+                {"$defs": {"unused": {"$ref": "http://127.0.0.1:9/schema"}}}
+                """));
+
+        assertThat(networkPath).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).isEqualTo(SCHEMA_VALIDATION_FAILED
+                        .formatted(UNRESOLVABLE_REFERENCE.formatted("mem://inline//127.0.0.1:9/schema"))));
+        assertThat(recursiveRef).isInstanceOf(ErrorValue.class);
+        assertThat(unused).isEqualTo(Value.TRUE);
+    }
+
     @ParameterizedTest(name = "when a schema names a foreign schema by {0} then every function returns an error")
     @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#foreignReferenceSchemas")
     @DisplayName("a schema is refused for a foreign reference wherever and however it names it, and nothing is loaded")

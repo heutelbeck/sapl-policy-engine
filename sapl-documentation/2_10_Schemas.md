@@ -118,4 +118,6 @@ A text longer than the text limit that a pattern would search is an error of the
 
 The Java engine and the Rust engine differ for a schema of draft 6 or draft 7 with one of these assertions in a key of `patternProperties`: an ASCII word boundary (`(?-u:\b)`, `(?-u:\B)`, `(?-u:\b{start})`, `(?-u:\b{end})`), a half word boundary (`\b{start-half}`, `\b{end-half}`) or a line anchor of the mode `(?mR)`. The Java engine reads such a key like any other pattern. The Rust engine refuses the schema: its schema validator checks the keys of these two drafts as ECMA-262 expressions, and ECMA-262 cannot state these assertions.
 
+The engines also differ for three references, and neither fetches or reads anything for a reference. A reference of the form `//host/path` is refused by both, and the errors name it differently. A `$recursiveRef` that names a URL in a schema of draft 2019-09 is refused by the Java engine and ignored by the Rust engine. A reference under `$defs` that nothing uses and that names neither a built-in meta-schema nor a provided schema is refused by the Rust engine and ignored by the Java engine.
+
 The `format` keyword is an annotation and is not checked. `"format": "regex"` does not test whether a text is a valid pattern. Use `patterns.isValidRegex` for that.

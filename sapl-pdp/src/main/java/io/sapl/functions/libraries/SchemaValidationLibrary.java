@@ -150,6 +150,14 @@ public class SchemaValidationLibrary {
             `(?mR)`. The Java engine reads such a key like any other pattern. The Rust
             engine refuses the schema: its schema validator checks the keys of these two
             drafts as ECMA-262 expressions, and ECMA-262 cannot state these assertions.
+
+            The engines also differ for three references, and neither fetches or reads
+            anything for a reference. A reference of the form `//host/path` is refused by
+            both, and the errors name it differently. A `$recursiveRef` that names a URL
+            in a schema of draft 2019-09 is refused by the Java engine and ignored by the
+            Rust engine. A reference under `$defs` that nothing uses and that names
+            neither a built-in meta-schema nor a provided schema is refused by the Rust
+            engine and ignored by the Java engine.
             """;
 
     // JSON result field names
