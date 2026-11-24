@@ -423,7 +423,7 @@ The data MIME type of the SETUP frame selects the data format of all payloads of
 |----------------|-------------|
 | `application/binary` | Protobuf, see below. The default of rsocket-java, sent by clients that set no data MIME type. |
 | `application/x-protobuf` | Protobuf, the same as `application/binary`. |
-| `application/vnd.sapl.binary` | The SAPL binary format: a compact encoding that the node reads and writes faster than protobuf. Specified in `BINARY_FORMAT.md` of `sapl-rust`, with test vectors. Every payload starts with the byte `0x00`, which no protobuf message starts with. |
+| `application/vnd.sapl.binary` | The SAPL binary format, version 1: a compact encoding that the node reads and writes faster than protobuf. Every payload starts with the byte `0x00`, the version of the format, which no protobuf message starts with. |
 
 The server refuses a connection with any other data MIME type with an `UNSUPPORTED_SETUP` error frame.
 
