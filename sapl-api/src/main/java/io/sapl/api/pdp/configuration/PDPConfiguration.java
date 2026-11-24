@@ -51,6 +51,9 @@ import io.sapl.api.semver.VersionRange;
  * content-derived configuration id
  * @param requiredEngineVersion optional semantic version range for the engine,
  * or null if no engine version requirement is declared
+ * @param expectedPdpRuntime the runtimes the configuration expects to run on. An
+ * engine whose runtime is not among them rejects the configuration. Empty if
+ * the configuration runs on any runtime
  */
 public record PDPConfiguration(
         String pdpId,
@@ -63,7 +66,8 @@ public record PDPConfiguration(
         Map<String, Value> extensionSecrets,
         Set<String> requiredExtensions,
         ConfigurationProvenance provenance,
-        @Nullable String requiredEngineVersion) implements Serializable {
+        @Nullable String requiredEngineVersion,
+        Set<PdpRuntime> expectedPdpRuntime) implements Serializable {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
@@ -83,6 +87,37 @@ public record PDPConfiguration(
         extensionSecrets   = extensionSecrets == null ? Map.of() : Map.copyOf(extensionSecrets);
         requiredExtensions = requiredExtensions == null ? Set.of() : Set.copyOf(requiredExtensions);
         provenance         = provenance == null ? UnknownProvenance.INSTANCE : provenance;
+        expectedPdpRuntime = expectedPdpRuntime == null ? Set.of() : Set.copyOf(expectedPdpRuntime);
+    }
+
+    /**
+     * Convenience constructor for a configuration that runs on any runtime.
+     *
+     * @param pdpId the PDP identifier
+     * @param configurationId the configuration version identifier
+     * @param combiningAlgorithm the policy combining algorithm
+     * @param compilerOptions the compiler options
+     * @param saplDocuments the SAPL document source strings
+     * @param data the PDP variables and secrets
+     * @param extensions the cleartext extension data
+     * @param extensionSecrets the extension secrets
+     * @param requiredExtensions the required extension names
+     * @param provenance the configuration origin metadata
+     * @param requiredEngineVersion the engine version range, or null
+     */
+    public PDPConfiguration(String pdpId,
+            String configurationId,
+            CombiningAlgorithm combiningAlgorithm,
+            ObjectValue compilerOptions,
+            List<String> saplDocuments,
+            PdpData data,
+            Map<String, Value> extensions,
+            Map<String, Value> extensionSecrets,
+            Set<String> requiredExtensions,
+            ConfigurationProvenance provenance,
+            @Nullable String requiredEngineVersion) {
+        this(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data, extensions,
+                extensionSecrets, requiredExtensions, provenance, requiredEngineVersion, Set.of());
     }
 
     /**
@@ -182,7 +217,8 @@ public record PDPConfiguration(
     public PDPConfiguration withExtensions(Map<String, Value> extensions, Map<String, Value> extensionSecrets,
             Set<String> requiredExtensions) {
         return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments, data,
-                extensions, extensionSecrets, requiredExtensions, provenance, requiredEngineVersion);
+                extensions, extensionSecrets, requiredExtensions, provenance, requiredEngineVersion,
+                expectedPdpRuntime);
     }
 
     @Override
@@ -192,7 +228,8 @@ public record PDPConfiguration(
                 + ", data=" + data + ", extensions=" + extensions.keySet() + ", extensionSecrets="
                 + (extensionSecrets.isEmpty() ? "NO EXTENSION SECRETS" : "EXTENSION SECRETS REDACTED")
                 + ", requiredExtensions=" + requiredExtensions + ", provenance=" + provenance
-                + ", requiredEngineVersion=" + requiredEngineVersion + "]";
+                + ", requiredEngineVersion=" + requiredEngineVersion + ", expectedPdpRuntime=" + expectedPdpRuntime
+                + "]";
     }
 
     private static boolean isValidEngineVersionRange(String expression) {

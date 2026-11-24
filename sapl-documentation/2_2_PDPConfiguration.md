@@ -59,6 +59,7 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 ```json
 {
   "requiredEngineVersion": ">=4.2.0 <5.0.0",
+  "expectedPdpRuntime": ["java"],
   "requiredExtensions": ["upstreams"],
   "algorithm": {
     "votingMode": "PRIORITY_DENY",
@@ -87,6 +88,12 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 The `algorithm` object is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY`, `DENY`, `PROPAGATE`). The `variables` section is also optional. Secrets are not part of `pdp.json` (see [Secrets](#secrets) above). Unknown fields in `pdp.json` are rejected so misspelled requirements cannot be silently ignored.
 
 The configuration id identifying a publication is not part of `pdp.json`. Since SAPL 4.2.0, a `pdp.json` containing a `configurationId` field is rejected fail-closed with a migration message: the configurationId moved to the bundle manifest and is derived from content for directory and resource sources. For bundles, the id is recorded in the signed `.sapl-manifest.json` (explicit or content-derived `bundle@<hash16>`). For directory sources, it is derived on every load as `dir:<dirName>@<hash16>`. For classpath resources, it is derived as `res:<name>@<hash16>`. For embedded builder configurations, it is derived as `embedded@<hash16>`. Identical content always yields the identical id. The id appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact publication that produced them.
+
+#### Expected PDP Runtime
+
+<span id="expectedPdpRuntime"></span>`expectedPdpRuntime`: optional array of the names of the runtimes the configuration expects to run on, `"java"` for the engine written in Java and `"rust"` for the engine written in Rust. An engine whose runtime is not in the array rejects the configuration. Omitting the field, setting it to `null` or to an empty array accepts every runtime. Anything else than an array of these two names is rejected.
+
+The engines agree on the decisions of policies. They differ in a few documented cases, for example in the keys of `patternProperties` that a [JSON Schema](../2_10_Schemas/) may hold. A configuration that depends on such a case names the runtime it was written for, so that it is never served by the other one. The error identifies the PDP, the rejected configuration, the running runtime and the expected runtimes.
 
 #### Required Engine Version
 

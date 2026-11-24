@@ -18,8 +18,10 @@
 package io.sapl.api.model.jackson;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
@@ -29,6 +31,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.configuration.PdpRuntime;
 import io.sapl.api.pdp.configuration.UnknownProvenance;
 
 import lombok.val;
@@ -67,6 +70,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_COMBINING_ALGORITHM_REQUIRED   = "PDPConfiguration requires combiningAlgorithm field.";
     private static final String ERROR_CONFIGURATION_ID_REQUIRED      = "PDPConfiguration requires configurationId field.";
     private static final String ERROR_EXPECTED_ENGINE_VERSION_STRING = "requiredEngineVersion must be a string or null.";
+    private static final String ERROR_EXPECTED_RUNTIME_NAMES         = "expectedPdpRuntime must be an array of the runtime names 'java' and 'rust'.";
     private static final String ERROR_EXPECTED_START_ARRAY           = "Field '%s' must be an array of strings.";
     private static final String ERROR_EXPECTED_START_OBJECT          = "Expected START_OBJECT for PDPConfiguration.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP      = "Expected START_OBJECT for value map.";
@@ -97,6 +101,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         CombiningAlgorithm combiningAlgorithm    = null;
         List<String>       saplDocuments         = List.of();
         Set<String>        requiredExtensions    = Set.of();
+        Set<PdpRuntime>    expectedPdpRuntime    = Set.of();
         val                objectFields          = new HashMap<String, ObjectValue>();
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
@@ -117,6 +122,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             case "saplDocuments"         -> saplDocuments = deserializeStringList(parser, context, fieldName);
             case "requiredExtensions"    ->
                 requiredExtensions = Set.copyOf(deserializeStringList(parser, context, fieldName));
+            case "expectedPdpRuntime"    -> expectedPdpRuntime = deserializeRuntimes(parser, context);
             default                      -> {
                 return context.reportInputMismatch(PDPConfiguration.class, ERROR_UNKNOWN_FIELD.formatted(fieldName));
             }
@@ -139,7 +145,26 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
                         objectFields.getOrDefault("secrets", Value.EMPTY_OBJECT)),
                 objectFields.getOrDefault("extensions", Value.EMPTY_OBJECT),
                 objectFields.getOrDefault("extensionSecrets", Value.EMPTY_OBJECT), requiredExtensions,
-                UnknownProvenance.INSTANCE, requiredEngineVersion);
+                UnknownProvenance.INSTANCE, requiredEngineVersion, expectedPdpRuntime);
+    }
+
+    private static Set<PdpRuntime> deserializeRuntimes(JsonParser parser, DeserializationContext context) {
+        if (parser.currentToken() == JsonToken.VALUE_NULL) {
+            return Set.of();
+        }
+        if (parser.currentToken() != JsonToken.START_ARRAY) {
+            return context.reportInputMismatch(PDPConfiguration.class, ERROR_EXPECTED_RUNTIME_NAMES);
+        }
+        val runtimes = EnumSet.noneOf(PdpRuntime.class);
+        while (parser.nextToken() != JsonToken.END_ARRAY) {
+            val runtime = parser.currentToken() == JsonToken.VALUE_STRING ? PdpRuntime.ofId(parser.getString())
+                    : Optional.<PdpRuntime>empty();
+            if (runtime.isEmpty()) {
+                return context.reportInputMismatch(PDPConfiguration.class, ERROR_EXPECTED_RUNTIME_NAMES);
+            }
+            runtimes.add(runtime.get());
+        }
+        return runtimes;
     }
 
     private static @Nullable String deserializeEngineRequirement(JsonParser parser, DeserializationContext context) {

@@ -37,6 +37,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.ConfigurationProvenance;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.configuration.PdpRuntime;
 import io.sapl.api.pdp.configuration.UnknownProvenance;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.secrets.ValueSealer;
@@ -93,7 +94,7 @@ public class PDPConfigurationLoader {
 
     private static final String      FIELD_COMPILER_OPTIONS = "compilerOptions";
     private static final Set<String> PDP_JSON_FIELDS        = Set.of("algorithm", FIELD_COMPILER_OPTIONS, "variables",
-            "requiredEngineVersion", "requiredExtensions");
+            "requiredEngineVersion", "requiredExtensions", "expectedPdpRuntime");
     private static final String      PDP_JSON               = "pdp.json";
     private static final String      SAPL_EXTENSION         = ".sapl";
     private static final String      SECRETS_SECTION        = "secrets";
@@ -116,6 +117,7 @@ public class PDPConfigurationLoader {
     private static final String ERROR_PDP_JSON_CONFIGURATION_ID_REMOVED = "pdp.json must not contain a 'configurationId' field. The configurationId moved to the bundle manifest and is derived from content for directory and resource sources. Remove the field.";
     private static final String ERROR_PDP_JSON_CONTENT_REQUIRED         = "pdp.json content must not be empty.";
     private static final String ERROR_PDP_JSON_ENGINE_VERSION_TYPE      = "pdp.json field 'requiredEngineVersion' must be a string or null.";
+    private static final String ERROR_PDP_JSON_EXPECTED_RUNTIME_TYPE    = "pdp.json field 'expectedPdpRuntime' must be an array of the runtime names 'java' and 'rust'.";
     private static final String ERROR_PDP_JSON_EXPECTED_OBJECT          = "pdp.json must contain a JSON object.";
     private static final String ERROR_PDP_JSON_FIRST_NOT_ALLOWED        = "FIRST is not allowed as combining algorithm at PDP level. It implies an ordering not present here.";
     private static final String ERROR_PDP_JSON_REQUIRED_EXTENSIONS_TYPE = "pdp.json field 'requiredExtensions' must be an array of extension name strings.";
@@ -417,7 +419,7 @@ public class PDPConfigurationLoader {
             return new PDPConfiguration(pdpId, configurationId, pdpJson.algorithm(), pdpJson.compilerOptions(),
                     documents, new PdpData(pdpJson.variables(), supplements.secrets()), supplements.extensions(),
                     supplements.extensionSecrets(), pdpJson.requiredExtensions(), provenance,
-                    pdpJson.requiredEngineVersion());
+                    pdpJson.requiredEngineVersion(), pdpJson.expectedPdpRuntime());
         } catch (IllegalArgumentException exception) {
             throw new PDPConfigurationException(exception.getMessage(), exception);
         }
@@ -427,7 +429,7 @@ public class PDPConfigurationLoader {
         if (!Files.exists(pdpJsonPath)) {
             log.warn(WARN_PDP_JSON_NOT_FOUND, pdpJsonPath, CombiningAlgorithm.DEFAULT.toCanonicalString());
             return new PdpJsonFile(null, new PdpJsonContent(CombiningAlgorithm.DEFAULT, Value.EMPTY_OBJECT,
-                    Value.EMPTY_OBJECT, null, Set.of()));
+                    Value.EMPTY_OBJECT, null, Set.of(), Set.of()));
         }
         try {
             val content = readCappedText(pdpJsonPath);
@@ -470,7 +472,7 @@ public class PDPConfigurationLoader {
             val variables = parseValueSection(node, "variables");
 
             return new PdpJsonContent(algorithm, compilerOptions, variables, parseRequiredEngineVersion(node),
-                    parseRequiredExtensions(node));
+                    parseRequiredExtensions(node), parseExpectedPdpRuntime(node));
         } catch (JacksonException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_PDP_JSON, e);
         }
@@ -504,6 +506,23 @@ public class PDPConfigurationLoader {
             names.add(name.asString());
         }
         return Set.copyOf(names);
+    }
+
+    private static Set<PdpRuntime> parseExpectedPdpRuntime(JsonNode node) {
+        val names = node.get("expectedPdpRuntime");
+        if (names == null || names.isNull()) {
+            return Set.of();
+        }
+        if (!names.isArray()) {
+            throw new PDPConfigurationException(ERROR_PDP_JSON_EXPECTED_RUNTIME_TYPE);
+        }
+        val runtimes = EnumSet.noneOf(PdpRuntime.class);
+        for (val name : names) {
+            val runtime = name.isString() ? PdpRuntime.ofId(name.asString()) : Optional.<PdpRuntime>empty();
+            runtimes.add(
+                    runtime.orElseThrow(() -> new PDPConfigurationException(ERROR_PDP_JSON_EXPECTED_RUNTIME_TYPE)));
+        }
+        return runtimes;
     }
 
     private static @Nullable String parseRequiredEngineVersion(JsonNode node) {
@@ -611,7 +630,8 @@ public class PDPConfigurationLoader {
             ObjectValue compilerOptions,
             ObjectValue variables,
             @Nullable String requiredEngineVersion,
-            Set<String> requiredExtensions) {}
+            Set<String> requiredExtensions,
+            Set<PdpRuntime> expectedPdpRuntime) {}
 
     private record PdpJsonFile(String raw, PdpJsonContent parsed) {}
 

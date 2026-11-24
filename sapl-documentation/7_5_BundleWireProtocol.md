@@ -255,7 +255,7 @@ root-level files. Subdirectories and unknown file names are rejected.
 
 | File | Required | Purpose |
 |------|----------|---------|
-| `pdp.json` | Yes | PDP configuration: combining algorithm, variables, compiler options, engine version requirement and required extensions. Never contains secrets. Since SAPL 4.2.0 it must not contain a `configurationId` field. A bundle carrying one is rejected with a migration message. |
+| `pdp.json` | Yes | PDP configuration: combining algorithm, variables, compiler options, engine version requirement, expected runtimes and required extensions. Never contains secrets. Since SAPL 4.2.0 it must not contain a `configurationId` field. A bundle carrying one is rejected with a migration message. |
 | `*.sapl` | Yes | SAPL policy documents. |
 | `secrets.sealed.json` | No | Sealed PDP-level secrets. Scalar leaves are `ENC[...]` tokens encrypted to an X25519 recipient key, structure and key names stay readable. |
 | `ext-<name>.json` | No | Cleartext extension data. Named JSON for consumers other than the PDP, for example gateway upstream configuration. |
@@ -285,6 +285,13 @@ is absent. The recipient may ignore unsupported extensions that are not listed.
 The declaration is covered by the signature of `pdp.json` through the manifest.
 See [PDP Configuration](../2_2_PDPConfiguration/#requiredExtensions) for the complete
 field contract.
+
+The `expectedPdpRuntime` array in `pdp.json` names the runtimes the configuration was
+written for, `"java"` or `"rust"`. A recipient whose engine is of another runtime
+rejects the bundle's configuration and keeps its last good one. An absent, `null` or
+empty array accepts every runtime. The declaration is covered by the signature of
+`pdp.json` through the manifest and is part of the content the configuration id is
+derived from. See [PDP Configuration](../2_2_PDPConfiguration/#expectedPdpRuntime).
 
 An extension rejection identifies the PDP and rejected configuration and includes
 the recipient's explanation in the PDP status and log. A plain PDP lists the

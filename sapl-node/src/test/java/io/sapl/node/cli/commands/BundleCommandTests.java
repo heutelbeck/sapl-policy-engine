@@ -337,6 +337,36 @@ class BundleCommandTests {
         }
 
         @Test
+        @DisplayName("shows the engine version and the runtimes a configuration requires, or that any will do")
+        void whenBundleStatesRequirementsThenInspectShowsThem() throws Exception {
+            val inputDir = tempDir.resolve("requirements-inspect");
+            Files.createDirectories(inputDir);
+            Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
+            Files.writeString(inputDir.resolve("pdp.json"), """
+                    { "requiredEngineVersion": ">=4.2.0-0", "expectedPdpRuntime": ["rust", "java"] }""");
+            val bundleFile = tempDir.resolve("requirements-inspect.saplbundle");
+            cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundleFile.toString());
+            val plainBundle = createTestBundle();
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
+            val stated   = out.toString();
+            out.getBuffer().setLength(0);
+            cmd.execute("bundle", "inspect", "-b", plainBundle.toString());
+
+            assertThat(exitCode).isZero();
+            assertThat(stated).contains("""
+                    Requirements:
+                      Engine version: >=4.2.0-0
+                      PDP runtime: java, rust
+                    """);
+            assertThat(out.toString()).contains("""
+                    Requirements:
+                      Engine version: (any)
+                      PDP runtime: (any)
+                    """);
+        }
+
+        @Test
         @DisplayName("shows none markers when a bundle has no secrets or extensions")
         void whenBundleHasNoSecretsOrExtensionsThenInspectShowsNone() throws Exception {
             val bundleFile = createTestBundle();

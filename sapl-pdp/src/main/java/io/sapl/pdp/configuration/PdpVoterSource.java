@@ -38,10 +38,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpRuntime;
 import io.sapl.api.semver.VersionRange;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -77,6 +79,7 @@ public class PdpVoterSource implements AutoCloseable {
     private static final String ERROR_CONFIGURATION_REJECTED                = "Configuration '%s' for pdpId '%s' was rejected. %s";
     private static final String ERROR_ENGINE_VERSION_INVALID                = "Cannot validate requiredEngineVersion '%s' because the running sapl-pdp build version '%s' is not a valid semantic version. Check the engine build metadata.";
     private static final String ERROR_ENGINE_VERSION_MISMATCH               = "The running sapl-pdp version '%s' does not satisfy requiredEngineVersion '%s'. Deploy this configuration on an engine within the required range.";
+    private static final String ERROR_RUNTIME_NOT_EXPECTED                  = "The running sapl-pdp runtime '%s' is not among expectedPdpRuntime [%s]. Deploy this configuration on one of the expected runtimes.";
     private static final String ERROR_EXCEPTION_MESSAGE_MISSING             = "No exception message was provided.";
     private static final String ERROR_EXTENSIONS_PREPARATION_FAILED         = "Extension preparation failed with %s: %s";
     private static final String ERROR_EXTENSIONS_PREPARATION_RESULT_MISSING = "The extension processor for pdpId '%s' returned no preparation result.";
@@ -248,6 +251,12 @@ public class PdpVoterSource implements AutoCloseable {
                     ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, versionError));
             return;
         }
+        val runtimeError = runtimeError(PdpRuntime.RUNNING, pdpConfiguration.expectedPdpRuntime());
+        if (runtimeError != null) {
+            reportConfigurationErrorLocked(pdpId,
+                    ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, runtimeError));
+            return;
+        }
         try {
             OutboundEndpointConfiguration.validate(pdpConfiguration.data());
         } catch (IllegalArgumentException e) {
@@ -272,6 +281,14 @@ public class PdpVoterSource implements AutoCloseable {
             return;
         }
         loadConfigurationLocked(pdpConfiguration, OnCompileError.RETAIN_LAST_GOOD, plugins, true);
+    }
+
+    static @Nullable String runtimeError(PdpRuntime running, Set<PdpRuntime> expected) {
+        if (expected.isEmpty() || expected.contains(running)) {
+            return null;
+        }
+        return ERROR_RUNTIME_NOT_EXPECTED.formatted(running.getId(),
+                expected.stream().map(PdpRuntime::getId).sorted().collect(Collectors.joining(", ")));
     }
 
     static @Nullable String engineVersionError(String engineVersion, @Nullable String requirement) {

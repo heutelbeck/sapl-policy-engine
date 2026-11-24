@@ -27,6 +27,7 @@ import java.util.TreeMap;
 
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpRuntime;
 
 import lombok.val;
 
@@ -75,7 +76,8 @@ public final class ConfigurationIds {
      * and the required extension set. The pdpId and configurationId are
      * excluded: they are instance and publication identity, never content.
      * No call site may hand-roll its own entry assembly.
-     * An undeclared engine version requirement contributes no entry.
+     * An undeclared engine version requirement contributes no entry, and neither
+     * does a configuration that expects no particular runtime.
      *
      * @param configuration the assembled configuration
      * @return the canonical, name-sorted entry set for {@link #derive}
@@ -86,6 +88,10 @@ public final class ConfigurationIds {
         val requiredEngineVersion = configuration.requiredEngineVersion();
         if (requiredEngineVersion != null) {
             entries.put("requiredEngineVersion", utf8(requiredEngineVersion));
+        }
+        if (!configuration.expectedPdpRuntime().isEmpty()) {
+            entries.put("expectedPdpRuntime", utf8(String.join("\n",
+                    configuration.expectedPdpRuntime().stream().map(PdpRuntime::getId).sorted().toList())));
         }
         entries.put("compilerOptions", utf8(ValueJsonMarshaller.toJsonString(configuration.compilerOptions())));
         entries.put("variables", utf8(ValueJsonMarshaller.toJsonString(configuration.data().variables())));

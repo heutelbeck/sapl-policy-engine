@@ -87,7 +87,8 @@ record Bundle(
         val withProvenance = new PDPConfiguration(configuration.pdpId(), configuration.configurationId(),
                 configuration.combiningAlgorithm(), configuration.compilerOptions(), configuration.saplDocuments(),
                 configuration.data(), configuration.extensions(), configuration.extensionSecrets(),
-                configuration.requiredExtensions(), provenance, configuration.requiredEngineVersion());
+                configuration.requiredExtensions(), provenance, configuration.requiredEngineVersion(),
+                configuration.expectedPdpRuntime());
         val allSecrets     = toValues(extensionSecrets, ExtensionFiles.EXTENSION_SECRETS_SUFFIX, Value::ofJson);
         allSecrets.putAll(
                 toValues(sealedExtensionSecrets, ExtensionFiles.SEALED_EXTENSION_SECRETS_SUFFIX, Value::ofJson));

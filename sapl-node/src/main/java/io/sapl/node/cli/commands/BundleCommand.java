@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 
@@ -57,6 +58,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.pdp.configuration.PdpRuntime;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
@@ -1056,6 +1058,7 @@ public class BundleCommand {
     // @formatter:on
     static class Inspect implements Callable<Integer> {
 
+        private static final String ANY         = "(any)";
         private static final String NONE_LISTED = "  (none)";
 
         @Spec
@@ -1098,6 +1101,9 @@ public class BundleCommand {
                 } else {
                     out.println("Configuration: (none)");
                 }
+                out.println();
+
+                printRequirements(out, contents);
                 out.println();
 
                 printPolicies(out, contents);
@@ -1162,6 +1168,21 @@ public class BundleCommand {
                 out.println("Manifest:");
                 out.printf(CONFIGURATION_ID_DETAIL_LINE, manifestConfigurationId(manifestJson));
                 out.println();
+            }
+        }
+
+        private static void printRequirements(PrintWriter out, Map<String, String> contents) {
+            out.println("Requirements:");
+            try {
+                val configuration = loadFromBundle(contents.get(PDP_JSON), null, Map.of(), "bundle-inspection",
+                        "bundle-inspection");
+                val engineVersion = configuration.requiredEngineVersion();
+                val runtimes      = configuration.expectedPdpRuntime().stream().map(PdpRuntime::getId).sorted()
+                        .collect(Collectors.joining(", "));
+                out.printf("  Engine version: %s%n", engineVersion == null ? ANY : engineVersion);
+                out.printf("  PDP runtime: %s%n", runtimes.isEmpty() ? ANY : runtimes);
+            } catch (PDPConfigurationException exception) {
+                out.printf("  (invalid pdp.json: %s)%n", exception.getMessage());
             }
         }
 

@@ -23,6 +23,7 @@ import java.util.Map;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpRuntime;
 
 import lombok.val;
 
@@ -112,6 +113,11 @@ public class PDPConfigurationSerializer extends StdSerializer<PDPConfiguration> 
         if (!configuration.requiredExtensions().isEmpty()) {
             generator.writeName("requiredExtensions");
             serializeStringList(configuration.requiredExtensions().stream().sorted().toList(), generator);
+        }
+        if (!configuration.expectedPdpRuntime().isEmpty()) {
+            generator.writeName("expectedPdpRuntime");
+            serializeStringList(configuration.expectedPdpRuntime().stream().map(PdpRuntime::getId).sorted().toList(),
+                    generator);
         }
 
         generator.writeEndObject();
