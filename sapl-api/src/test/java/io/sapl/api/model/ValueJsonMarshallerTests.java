@@ -202,12 +202,13 @@ class ValueJsonMarshallerTests {
     }
 
     @Test
-    @DisplayName("pretty-printing an error with a null message does not throw")
-    void whenPrettyPrintingErrorWithNullMessageThenRendersWithoutThrowing() {
-        var errorWithNullMessage = new ErrorValue(new RuntimeException());
-        var array                = Value.ofArray(errorWithNullMessage);
+    @DisplayName("pretty-printing an exception without a message retains the fallback text")
+    void whenPrettyPrintingExceptionWithoutMessageThenRendersWithoutThrowing() {
+        val errorWithoutCauseMessage = new ErrorValue(new RuntimeException());
+        val array                    = Value.ofArray(errorWithoutCauseMessage);
 
-        assertThat(ValueJsonMarshaller.toPrettyString(errorWithNullMessage)).contains("ERROR");
+        assertThat(errorWithoutCauseMessage.message()).isEqualTo("unknown error");
+        assertThat(ValueJsonMarshaller.toPrettyString(errorWithoutCauseMessage)).contains("ERROR");
         assertThat(ValueJsonMarshaller.toPrettyString(array)).contains("ERROR");
     }
 

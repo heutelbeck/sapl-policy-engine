@@ -17,12 +17,14 @@
  */
 package io.sapl.api.model;
 
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,12 +37,10 @@ class ErrorValueTests {
     @ParameterizedTest(name = "Constructor: message={0}, cause={1}")
     @MethodSource
     @DisplayName("Constructors create error values correctly")
-    void when_constructorsInvoked_then_createErrorValueCorrectly(String message, Throwable cause,
-            boolean useCanonical) {
+    void whenConstructorsInvokedThenCreateErrorValueCorrectly(String message, Throwable cause, boolean useCanonical) {
         ErrorValue error;
 
         if (useCanonical) {
-            // Use canonical 3-arg constructor which allows null message
             error = new ErrorValue(message, cause, null);
         } else if (cause != null && message != null) {
             error = new ErrorValue(message, cause);
@@ -50,27 +50,55 @@ class ErrorValueTests {
             error = new ErrorValue(message);
         }
 
-        // Canonical constructor preserves the provided message.
-        // Non-canonical constructor with cause extracts message from cause.
-        // Non-canonical constructor without cause uses the provided message.
-        var expectedMessage = useCanonical ? message : (cause != null ? cause.getMessage() : message);
-        assertThat(error.message()).isEqualTo(expectedMessage);
-        assertThat(error.cause()).isSameAs(cause);
+        val expectedMessage = message == null ? cause.getMessage() : message;
+        assertThat(error).extracting(ErrorValue::message, ErrorValue::cause, ErrorValue::location)
+                .containsExactly(expectedMessage, cause, null);
     }
 
-    static Stream<Arguments> when_constructorsInvoked_then_createErrorValueCorrectly() {
-        var cause = new RuntimeException("cause message");
+    static Stream<Arguments> whenConstructorsInvokedThenCreateErrorValueCorrectly() {
+        val cause = new RuntimeException("cause message");
         return Stream.of(arguments("message", null, true), arguments("message", cause, true),
-                arguments(null, cause, true), arguments("message", null, false),
-                arguments("cause message", cause, false));
+                arguments("message", null, false), arguments("custom message", cause, false),
+                arguments(null, cause, false), arguments("", null, true), arguments("", cause, false));
     }
 
-    @Test
-    @DisplayName("Canonical constructor with null message allows null")
-    void when_canonicalConstructorCalledWithNullMessage_then_allowsNull() {
-        var error = new ErrorValue(null, new RuntimeException(), null);
+    @ParameterizedTest(name = "Null message with cause {0} and location {1}")
+    @MethodSource
+    @DisplayName("Canonical constructor rejects a null message")
+    void whenCanonicalMessageIsNullThenRejectsIt(Throwable cause, SourceLocation location) {
+        assertThatThrownBy(() -> new ErrorValue(null, cause, location)).isInstanceOf(NullPointerException.class);
+    }
 
-        assertThat(error.message()).isNull();
+    static Stream<Arguments> whenCanonicalMessageIsNullThenRejectsIt() {
+        val cause    = new RuntimeException("cause");
+        val location = new SourceLocation("policy.sapl", null, 1, 3, 1, 1);
+        return Stream.of(arguments(null, null), arguments(cause, null), arguments(null, location),
+                arguments(cause, location));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("An exception without a message becomes an error retaining its cause and origin")
+    void whenCauseHasNoMessageThenErrorRetainsCauseAndOrigin(String entry, Function<Throwable, ErrorValue> factory,
+            SourceLocation location) {
+        val cause = new MessageLessCause();
+        val error = factory.apply(cause);
+
+        assertThat(error).extracting(ErrorValue::message, ErrorValue::cause, ErrorValue::location)
+                .containsExactly("unknown error", cause, location);
+        assertThat(cause.messageReads).isOne();
+    }
+
+    static Stream<Arguments> whenCauseHasNoMessageThenErrorRetainsCauseAndOrigin() {
+        val location = new SourceLocation("policy.sapl", null, 1, 3, 1, 1);
+        return Stream.of(missingMessageCase("Constructor", ErrorValue::new, null),
+                missingMessageCase("Factory", Value::error, null),
+                missingMessageCase("Factory with location", cause -> Value.error(cause, location), location));
+    }
+
+    private static Arguments missingMessageCase(String name, Function<Throwable, ErrorValue> factory,
+            SourceLocation location) {
+        return arguments(name, factory, location);
     }
 
     @Test
@@ -124,36 +152,33 @@ class ErrorValueTests {
                         arguments(new ErrorValue("msg", new RuntimeException()),
                                 new ErrorValue("msg", new IllegalArgumentException()), false),
                         arguments(new ErrorValue("msg", new RuntimeException()), new ErrorValue("msg"), false),
-                        // Use canonical 3-arg constructor for null message test cases
-                        arguments(new ErrorValue(null, new RuntimeException(), null),
-                                new ErrorValue(null, new RuntimeException(), null), true),
-                        arguments(new ErrorValue(null, new RuntimeException(), null),
-                                new ErrorValue("msg", new RuntimeException()), false));
+                        arguments(new ErrorValue(new RuntimeException()),
+                                new ErrorValue("unknown error", new RuntimeException()), true),
+                        arguments(new ErrorValue(new RuntimeException()), new ErrorValue("msg", new RuntimeException()),
+                                false));
     }
 
     @ParameterizedTest(name = "{3}")
     @MethodSource
     @DisplayName("toString() formats appropriately")
     void when_toStringCalled_then_formatsAppropriately(String message, Throwable cause, String testDescription) {
-        // Use canonical 3-arg constructor to allow null message in test cases
         var error  = new ErrorValue(message, cause, null);
         var result = error.toString();
 
-        var expectedMessage = message != null ? message : "unknown error";
-        assertThat(result).contains(expectedMessage);
+        assertThat(result).contains(message);
 
         if (cause != null) {
             assertThat(result).contains(cause.getClass().getSimpleName()).startsWith("ERROR[message=")
                     .contains(", cause=");
         } else {
-            assertThat(result).isEqualTo("ERROR[message=\"" + expectedMessage + "\"]");
+            assertThat(result).isEqualTo("ERROR[message=\"" + message + "\"]");
         }
     }
 
     static Stream<Arguments> when_toStringCalled_then_formatsAppropriately() {
         return Stream.of(arguments("test error", null, "message only"),
                 arguments("test error", new RuntimeException(), "message and cause"),
-                arguments(null, new RuntimeException(), "null message with cause"),
+                arguments("unknown error", new RuntimeException(), "fallback message with cause"),
                 arguments("long error: " + "x".repeat(100), null, "long message"));
     }
 
@@ -222,5 +247,18 @@ class ErrorValueTests {
         var error = Value.error("error");
 
         assertThat(error).isNotEqualTo(Value.of("error")).isNotEqualTo(Value.NULL).isNotEqualTo(Value.UNDEFINED);
+    }
+
+    private static final class MessageLessCause extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+        private int messageReads;
+
+        @Override
+        public String getMessage() {
+            messageReads++;
+            return null;
+        }
     }
 }
