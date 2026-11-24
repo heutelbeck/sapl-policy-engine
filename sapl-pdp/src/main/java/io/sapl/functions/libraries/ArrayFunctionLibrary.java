@@ -47,11 +47,10 @@ public class ArrayFunctionLibrary {
 
             ## Core Principles
 
-            Array functions treat inputs as immutable collections and return new arrays. Equality
-            comparison uses JSON value equality. Numerically equivalent but differently formatted
-            numbers (e.g., 0 versus 0.000) may not match. Empty arrays are valid inputs and follow
-            mathematical conventions: empty union returns empty, empty intersection returns empty,
-            sum of empty returns 0, product of empty returns 1.
+            Array functions treat inputs as immutable collections and return new arrays. Elements are
+            compared by value, so numbers are equal by their quantity regardless of scale. Empty arrays
+            are valid inputs and follow mathematical conventions: empty union returns empty, empty
+            intersection returns empty, sum of empty returns 0, product of empty returns 1.
 
             ## Access Control Patterns
 
@@ -83,7 +82,7 @@ public class ArrayFunctionLibrary {
             ```
 
             Validate approval workflows by checking that signatories appear in the correct
-            sequence. Enforce that approvals happen in order without gaps.
+            sequence, though not necessarily consecutively.
 
             ```sapl
             policy "approval_sequence"
@@ -127,6 +126,12 @@ public class ArrayFunctionLibrary {
     private static final String RETURNS_NUMBER = """
             {
                 "type": "number"
+            }
+            """;
+
+    private static final String RETURNS_NUMBER_OR_TEXT = """
+            {
+                "type": ["number", "string"]
             }
             """;
 
@@ -691,7 +696,7 @@ public class ArrayFunctionLibrary {
             permit
                 array.max([3, 1, 4, 1, 5, 9]) == 9;
             ```
-            """, schema = RETURNS_NUMBER)
+            """, schema = RETURNS_NUMBER_OR_TEXT)
     public static Value max(ArrayValue array) {
         return findExtremum(array, "max", true);
     }
@@ -723,7 +728,7 @@ public class ArrayFunctionLibrary {
             permit
                 array.min(subject.securityLevels) >= 3;
             ```
-            """, schema = RETURNS_NUMBER)
+            """, schema = RETURNS_NUMBER_OR_TEXT)
     public static Value min(ArrayValue array) {
         return findExtremum(array, "min", false);
     }
@@ -1001,9 +1006,8 @@ public class ArrayFunctionLibrary {
 
             Creates an array containing integers from from to to (both inclusive), incrementing
             by step. The step can be positive or negative. Returns an error if step is zero.
-            All parameters must be integers. For positive step, from must be less than or equal
-            to to. For negative step, from must be greater than or equal to to. Range is
-            inclusive on both ends.
+            All parameters must be integers. A step directed away from the end returns an empty
+            array. Range is inclusive on both ends.
 
             Parameters:
             - from: Starting value (inclusive)
@@ -1071,8 +1075,8 @@ public class ArrayFunctionLibrary {
      */
     private static boolean isNonLongValue(NumberValue number) {
         val value = number.value();
-        return value.scale() > 0 || value.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
-                || value.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0;
+        return value.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
+                || value.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0 || value.stripTrailingZeros().scale() > 0;
     }
 
     /**

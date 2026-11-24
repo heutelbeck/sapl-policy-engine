@@ -170,6 +170,21 @@ class ArrayFunctionLibraryTests {
     }
 
     @Test
+    void whenRangeBoundsAndStepAreWholeDecimalsThenRangeIncludesEachInteger() {
+        val result = ArrayFunctionLibrary.rangeStepped(new NumberValue(new BigDecimal("4.0")),
+                new NumberValue(new BigDecimal("2.00")), new NumberValue(new BigDecimal("-1.0")));
+
+        assertThat(result).isEqualTo(array(4, 3, 2));
+    }
+
+    @Test
+    void whenRangeStartsAtAFractionThenItIsRejected() {
+        val result = ArrayFunctionLibrary.range(new NumberValue(new BigDecimal("2.1")), Value.of(4));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
     void whenRangeExceedsMaximumThenError() {
         val result = ArrayFunctionLibrary.range(Value.of(0), Value.of(100000));
 
