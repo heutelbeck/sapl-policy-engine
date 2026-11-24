@@ -137,7 +137,7 @@ public class RegexCompiler {
 
     /**
      * Pre-compiled regex against a {@link PureOperator} input. The
-     * {@link Predicate} cached at compile time bypasses per-evaluation
+     * {@link Regex} cached at compile time bypasses per-evaluation
      * pattern compilation.
      */
     public record RegexPrecompiledPure(PureOperator input, String patternSource, Regex pattern, SourceLocation location)
