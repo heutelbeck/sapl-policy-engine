@@ -26,10 +26,12 @@ import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Clock;
@@ -145,6 +147,48 @@ class TimePolicyInformationPointCalendarTests {
             assertThat(timer.when()).isEqualTo(now);
             timer.task().run();
             StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.of(atBoundary));
+        }
+    }
+
+    @ParameterizedTest
+    @CsvFileSource(resources = "/time-checkpoints.tsv", delimiter = '\t')
+    @DisplayName("ISO calendar checkpoints schedule the exact instant")
+    void whenCalendarCheckpointIsParsedThenItSchedulesTheExpectedInstant(String text, String expected)
+            throws InterruptedException {
+        val scheduler = new QueuedScheduler();
+        if ("error".equals(expected)) {
+            val pip = new TimePolicyInformationPoint(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), scheduler);
+            try (val stream = pip.nowIsAfter(Value.of(text))) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value
+                        .error("Invalid timestamp. Expected an ISO 8601 calendar date with a time and UTC offset."));
+            }
+            return;
+        }
+        val parts = expected.split(" ");
+        val when  = Instant.ofEpochSecond(Long.parseLong(parts[0]), Long.parseLong(parts[1]));
+        val clock = Clock.fixed(when.minusSeconds(1), ZoneOffset.UTC);
+        val pip   = new TimePolicyInformationPoint(clock, scheduler);
+        try (val stream = pip.nowIsAfter(Value.of(text))) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.FALSE);
+            assertThat(scheduler.next().when()).isEqualTo(when);
+        }
+    }
+
+    @Test
+    void whenWindowUsesEndOfDayAndMinutesThenItOpensAtTheUtcBoundary() throws InterruptedException {
+        val before    = Instant.parse("2021-11-07T23:59:59Z");
+        val scheduler = new QueuedScheduler();
+        val pip       = new TimePolicyInformationPoint(Clock.fixed(before, ZoneOffset.UTC), scheduler);
+        try (val stream = pip.nowIsBetween(Value.of("2021-11-07T24:00:00Z"), Value.of("2021-11-08T01:01+01:00"))) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.FALSE);
+            val start = scheduler.next();
+            assertThat(start.when()).isEqualTo(before.plusSeconds(1));
+            start.task().run();
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.TRUE);
+            val end = scheduler.next();
+            assertThat(end.when()).isEqualTo(before.plusSeconds(61));
+            end.task().run();
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.FALSE);
         }
     }
 

@@ -27,6 +27,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.Streams;
 import io.sapl.api.stream.TimeScheduler;
+import io.sapl.functions.libraries.SaplInstant;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
@@ -58,6 +59,10 @@ public class TimePolicyInformationPoint {
             In autumn the clock returns to 02:00, and the before period lasts until the second 02:17.
             Local time ranges include their start and exclude their end. Equal endpoints give an empty range.
             The pair 00:00 and 23:59:59.999999999 denotes the full day in either order.
+            Absolute checkpoints for nowIsBefore, nowIsAfter and nowIsBetween use an ISO calendar date, a time
+            and Z or a numeric UTC offset. Examples are 2021-11-08T12:30Z and 20211108T123000+0100.
+            24:00 denotes the end of the given day. A fraction of the last time component may have up to
+            nine digits. The year has four digits and the offset ranges from -18:00 to +18:00.
             The after predicate is always true for 00:00 and always false for 23:59:59.999999999.""";
     private static final String ERROR_CLOCK_RETURNED_NULL = "Clock returned null. The time PIP is misconfigured: a Clock bean must be supplied that always returns a valid Instant.";
     private static final String ERROR_DAY_NAME_INVALID    = "Invalid day of week name: '%s'. Expected one of MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.";
@@ -940,7 +945,7 @@ public class TimePolicyInformationPoint {
     }
 
     private static Instant textValueToInstant(TextValue value) {
-        return Instant.parse(value.value());
+        return SaplInstant.parseCheckpoint(value.value());
     }
 
     private ZoneId defaultZone() {

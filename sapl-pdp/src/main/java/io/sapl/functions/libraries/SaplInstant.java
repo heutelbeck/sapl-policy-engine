@@ -27,13 +27,14 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /** The instant profile shared by time functions and certificate validity checks. */
 @UtilityClass
-class SaplInstant {
+public class SaplInstant {
     private static final String ERROR_INVALID_LEAP_SECOND = "A leap second requires the last minute of the UTC day.";
 
     private static final DateTimeFormatter DATE      = new DateTimeFormatterBuilder().appendValue(ChronoField.YEAR, 4)
@@ -43,6 +44,56 @@ class SaplInstant {
             .append(DATE).appendLiteral('T').appendPattern("HH:mm:ss").optionalStart()
             .appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true).optionalEnd().appendOffset("+HH:MM", "Z")
             .toFormatter(Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
+
+    private static final String  ERROR_TIMESTAMP     = "Invalid timestamp. Expected an ISO 8601 calendar date with a time and UTC offset.";
+    private static final Pattern BASIC_CHECKPOINT    = checkpointNotation("", "");
+    private static final Pattern EXTENDED_CHECKPOINT = checkpointNotation("-", ":");
+
+    private static Pattern checkpointNotation(String date, String time) {
+        return Pattern.compile(("([0-9]{4})%1$s([0-9]{2})%1$s([0-9]{2})T([0-9]{2})"
+                + "(?:%2$s([0-9]{2})(?:%2$s([0-9]{2}))?)?(?:[.,]([0-9]{1,9}))?(Z|[+-][0-9]{2}(?:%2$s[0-9]{2})?)")
+                .formatted(date, time), Pattern.CASE_INSENSITIVE);
+    }
+
+    /**
+     * Parses an absolute time-PIP checkpoint expressed as a calendar date, time and UTC offset.
+     *
+     * @param text a basic or extended ISO calendar timestamp
+     * @return the represented instant, with up to nanosecond precision
+     * @throws DateTimeParseException if the input is outside the supported ISO calendar format
+     */
+    public static Instant parseCheckpoint(String text) {
+        val notation = text.length() > 4 && text.charAt(4) == '-' ? EXTENDED_CHECKPOINT : BASIC_CHECKPOINT;
+        val parts    = notation.matcher(text);
+        if (!parts.matches()) {
+            throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0);
+        }
+        val hour     = Integer.parseInt(parts.group(4));
+        val minute   = parts.group(5) == null ? 0 : Integer.parseInt(parts.group(5));
+        val second   = parts.group(6) == null ? 0 : Integer.parseInt(parts.group(6));
+        val digits   = parts.group(7);
+        val unit     = parts.group(5) == null ? 3600L : parts.group(6) == null ? 60L : 1L;
+        val fraction = digits == null ? 0L : Long.parseLong((digits + "000000000").substring(0, 9)) * unit;
+        val endOfDay = hour == 24;
+        if (endOfDay && (minute != 0 || second != 0 || fraction != 0)) {
+            throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0);
+        }
+        var offset = parts.group(8);
+        if (offset.length() == 3) {
+            offset += ":00";
+        } else if (offset.length() == 5) {
+            offset = offset.substring(0, 3) + ":" + offset.substring(3);
+        }
+        val normalized = String.format(Locale.ROOT, "%s-%s-%sT%02d:%02d:%02d.%09d%s", parts.group(1), parts.group(2),
+                parts.group(3), endOfDay ? 0 : hour, minute + fraction / 1_000_000_000L / 60,
+                second + fraction / 1_000_000_000L % 60, fraction % 1_000_000_000L, offset);
+        try {
+            val instant = parse(normalized);
+            return endOfDay ? instant.plusSeconds(86_400L) : instant;
+        } catch (DateTimeParseException invalid) {
+            throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0, invalid);
+        }
+    }
 
     static Instant parse(String text) {
         val          leap = text.length() <= 35 && text.startsWith("60", 17);
