@@ -59,33 +59,86 @@ public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
     /**
      * Creates a scheduler that runs tasks on its timer thread using
      * the supplied clock.
+     *
+     * @param clock the clock used to calculate absolute deadlines
      */
     public RealTimeScheduler(Clock clock) {
+        this(clock,
+                Executors.newScheduledThreadPool(1, Thread.ofPlatform().name(TIMER_THREAD_NAME).daemon().factory()));
+    }
+
+    RealTimeScheduler(Clock clock, ScheduledExecutorService executor) {
         this.clock    = clock;
-        this.executor = Executors.newScheduledThreadPool(1,
-                Thread.ofPlatform().name(TIMER_THREAD_NAME).daemon().factory());
+        this.executor = executor;
     }
 
     @Override
     public Cancellable scheduleAt(Instant when, Runnable task) {
-        val delay  = nanosUntil(when);
+        val delay = nanosUntil(when);
+        if (delay < Long.MAX_VALUE) {
+            return schedule(delay, task);
+        }
+        val registration = new LongRegistration(when, task);
+        registration.arm(delay);
+        return registration;
+    }
+
+    private Cancellable schedule(long delay, Runnable task) {
         val future = executor.schedule(() -> {
-                       try {
-                           task.run();
-                       } catch (RuntimeException e) {
-                           // Tasks scheduled here are expected to handle their own exceptions
-                           // (Streams helpers do, via stream error emission). Reaching here means
-                           // a bug in a task's own exception handling. Log loudly with stack trace.
-                           log.error(ERROR_TASK_RAISED_UNHANDLED_EXCEPTION, e);
-                       }
-                   }, delay, TimeUnit.NANOSECONDS);
+            try {
+                task.run();
+            } catch (RuntimeException e) {
+                // Tasks scheduled here are expected to handle their own exceptions
+                // (Streams helpers do, via stream error emission). Reaching here means
+                // a bug in a task's own exception handling. Log loudly with stack trace.
+                log.error(ERROR_TASK_RAISED_UNHANDLED_EXCEPTION, e);
+            }
+        }, delay, TimeUnit.NANOSECONDS);
         return () -> future.cancel(false);
+    }
+
+    private final class LongRegistration implements Runnable, Cancellable {
+        private final Instant  when;
+        private final Runnable task;
+        private boolean        cancelled;
+        private Cancellable    next = Cancellable.NOOP;
+
+        private LongRegistration(Instant when, Runnable task) {
+            this.when = when;
+            this.task = task;
+        }
+
+        private synchronized void arm(long delay) {
+            next = schedule(delay, this);
+        }
+
+        @Override
+        public void run() {
+            synchronized (this) {
+                if (cancelled) {
+                    return;
+                }
+                val remaining = nanosUntil(when);
+                if (remaining > 0) {
+                    arm(remaining);
+                    return;
+                }
+            }
+            task.run();
+        }
+
+        @Override
+        public synchronized void cancel() {
+            cancelled = true;
+            next.cancel();
+        }
     }
 
     /**
      * Delay in nanoseconds from now until {@code when}, saturated to
      * {@link Long#MAX_VALUE} when the distance overflows a long instead of
-     * throwing, so far-future tasks schedule effectively never.
+     * throwing. A saturated registration rechecks its original deadline when
+     * this timer delay expires.
      */
     private long nanosUntil(Instant when) {
         val until = Duration.between(clock.instant(), when);
