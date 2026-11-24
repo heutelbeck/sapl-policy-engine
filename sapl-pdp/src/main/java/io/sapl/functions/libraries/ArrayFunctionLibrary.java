@@ -21,6 +21,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.val;
@@ -863,7 +864,11 @@ public class ArrayFunctionLibrary {
             result = accumulator.apply(result, number.value());
         }
 
-        return Value.of(result);
+        try {
+            return Value.of(NumberValueLimits.fitExact(result));
+        } catch (ArithmeticException outOfRange) {
+            return Value.error(outOfRange.getMessage());
+        }
     }
 
     /**

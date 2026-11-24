@@ -256,6 +256,26 @@ class ArrayFunctionLibraryTests {
         }
 
         @Test
+        void whenSumExceedsArithmeticPrecisionThenOnlyTheFinalResultIsChecked() {
+            val large = new BigDecimal("1e1000");
+
+            assertThat(ArrayFunctionLibrary.sum(arrayOf(large, BigDecimal.ONE)))
+                    .isEqualTo(Value.error("The number is out of range."));
+            assertThat(ArrayFunctionLibrary.sum(arrayOf(large, BigDecimal.ONE, large.negate())))
+                    .isEqualTo(Value.of(1));
+        }
+
+        @Test
+        void whenProductExceedsArithmeticScaleThenOnlyTheFinalResultIsChecked() {
+            val tiny = new BigDecimal("1e-600");
+
+            assertThat(ArrayFunctionLibrary.multiply(arrayOf(tiny, tiny)))
+                    .isEqualTo(Value.error("The number is out of range."));
+            assertThat(ArrayFunctionLibrary.multiply(arrayOf(tiny, tiny, BigDecimal.ZERO)))
+                    .isEqualTo(Value.of(0));
+        }
+
+        @Test
         @DisplayName("multiply of values whose product exceeds double range stays numeric and exact")
         void whenProductExceedsDoubleRangeThenNumericResultNotError() {
             val huge = new BigDecimal("1E308");
