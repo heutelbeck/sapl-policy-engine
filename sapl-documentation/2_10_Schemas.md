@@ -116,6 +116,6 @@ A schema with a pattern the regex engine refuses never lets a subscription throu
 
 A text longer than the text limit that a pattern would search is an error of the validation, never a text that matches or does not match. A property name longer than the text limit anywhere in the validated value is an error as well, whether a pattern reaches the name or not.
 
-The Java engine and the Rust engine differ in one case. A key of `patternProperties` that holds an ASCII word boundary, `(?-u:\b)` or `(?-u:\B)`, is read by the Java engine like any other pattern. The Rust engine refuses a schema with such a key.
+The Java engine and the Rust engine differ for a schema of draft 6 or draft 7 with one of these assertions in a key of `patternProperties`: an ASCII word boundary (`(?-u:\b)`, `(?-u:\B)`, `(?-u:\b{start})`, `(?-u:\b{end})`), a half word boundary (`\b{start-half}`, `\b{end-half}`) or a line anchor of the mode `(?mR)`. The Java engine reads such a key like any other pattern. The Rust engine refuses the schema: its schema validator checks the keys of these two drafts as ECMA-262 expressions, and ECMA-262 cannot state these assertions.
 
 The `format` keyword is an annotation and is not checked. `"format": "regex"` does not test whether a text is a valid pattern. Use `patterns.isValidRegex` for that.

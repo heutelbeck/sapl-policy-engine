@@ -143,10 +143,13 @@ public class SchemaValidationLibrary {
             validation an error, and so does a property name longer than the text limit
             anywhere in the subject.
 
-            The Java engine and the Rust engine differ in one case. A key of
-            `patternProperties` that holds an ASCII word boundary, `(?-u:\\b)` or
-            `(?-u:\\B)`, is read by the Java engine like any other pattern. The Rust engine
-            refuses a schema with such a key.
+            The Java engine and the Rust engine differ for a schema of draft 6 or draft 7
+            with one of these assertions in a key of `patternProperties`: an ASCII word
+            boundary (`(?-u:\\b)`, `(?-u:\\B)`, `(?-u:\\b{start})`, `(?-u:\\b{end})`), a half
+            word boundary (`\\b{start-half}`, `\\b{end-half}`) or a line anchor of the mode
+            `(?mR)`. The Java engine reads such a key like any other pattern. The Rust
+            engine refuses the schema: its schema validator checks the keys of these two
+            drafts as ECMA-262 expressions, and ECMA-262 cannot state these assertions.
             """;
 
     // JSON result field names

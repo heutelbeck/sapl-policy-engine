@@ -38,12 +38,41 @@ public class SchemaReferenceFixtures {
      * meta-schema nor a provided schema
      */
     public static Stream<Arguments> foreignReferences() {
-        return Stream.of("$schema", "$ref")
-                .flatMap(keyword -> Stream
-                        .of("http://127.0.0.1:9/schema", "https://127.0.0.1:9/schema", "file:///etc/passwd",
-                                "gopher://127.0.0.1:9/schema", "classpath:draft-07/schema", "resource:draft-07/schema",
-                                "https://json-schema.org/jsv-messages.properties", "https://json-schema.org/missing")
-                        .map(reference -> arguments(keyword, reference)));
+        return Stream.of("$schema", "$ref").flatMap(keyword -> Stream
+                .of("http://127.0.0.1:9/schema", "https://127.0.0.1:9/schema", "file:///etc/passwd",
+                        "gopher://127.0.0.1:9/schema", "ftp://127.0.0.1:9/schema", "jar:file:///tmp/a.jar!/schema.json",
+                        "classpath:draft-07/schema", "resource:draft-07/schema", "urn:example:unknown",
+                        "https://json-schema.org/jsv-messages.properties", "https://json-schema.org/missing")
+                .map(reference -> arguments(keyword, reference)));
+    }
+
+    /**
+     * @return a description, a schema, the provided schemas and the reference
+     * the schema is refused for, which is neither a built-in meta-schema nor a
+     * provided schema, however the schema names it
+     */
+    public static Stream<Arguments> foreignReferenceSchemas() {
+        return Stream.of(arguments("a relative reference", """
+                {"$ref": "other.json"}
+                """, "[]", "mem://inline/other.json"), arguments("a relative reference to a parent", """
+                {"$ref": "../other.json"}
+                """, "[]", "mem://inline/other.json"), arguments("an absolute path", """
+                {"$ref": "/etc/passwd"}
+                """, "[]", "mem://inline/etc/passwd"), arguments("a reference relative to the $id of the schema", """
+                {"$id": "http://127.0.0.1:9/base/root", "$ref": "other"}
+                """, "[]", "http://127.0.0.1:9/base/other"), arguments("a reference of a property", """
+                {"properties": {"a": {"$ref": "http://127.0.0.1:9/schema"}}}
+                """, "[]", "http://127.0.0.1:9/schema"), arguments("a dynamic reference", """
+                {"$dynamicRef": "http://127.0.0.1:9/schema"}
+                """, "[]", "http://127.0.0.1:9/schema"), arguments("a reference of a provided schema", """
+                {"$ref": "urn:example:provided"}
+                """, """
+                [{"$id": "urn:example:provided", "$ref": "http://127.0.0.1:9/schema"}]
+                """, "http://127.0.0.1:9/schema"), arguments("the dialect of a provided schema", """
+                {"$ref": "urn:example:provided"}
+                """, """
+                [{"$id": "urn:example:provided", "$schema": "http://127.0.0.1:9/schema"}]
+                """, "http://127.0.0.1:9/schema"));
     }
 
     /**

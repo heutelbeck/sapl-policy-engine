@@ -249,6 +249,46 @@ class SchemaValidationLibraryTests {
         assertThat(networkntLog.getAllLoggingEvents()).isEmpty();
     }
 
+    @ParameterizedTest(name = "the pattern {0} under the keyword {3}")
+    @MethodSource
+    @DisplayName("a pattern that only a reference reaches is read as written, whatever it looks like")
+    void whenPatternStandsWhereOnlyReferenceReachesItThenItIsReadAsWritten(String pattern, String matching,
+            String other, String place) {
+        val code       = ObjectValue.builder().put("pattern", Value.of(pattern)).build();
+        val jsonSchema = ObjectValue.builder().put("allOf",
+                ArrayValue.builder().add(ObjectValue.builder().put("$ref", Value.of("#/" + place + "/code")).build())
+                        .add(ObjectValue.builder().put("$ref", Value.of("#/definitions/code")).build()).build())
+                .put(place, ObjectValue.builder().put("code", code).build())
+                .put("definitions", ObjectValue.builder().put("code", code).build()).build();
+
+        assertThat(List.of(isCompliant(Value.of(matching), jsonSchema), isCompliant(Value.of(other), jsonSchema)))
+                .containsExactly(Value.TRUE, Value.FALSE);
+    }
+
+    static Stream<Arguments> whenPatternStandsWhereOnlyReferenceReachesItThenItIsReadAsWritten() {
+        return Stream.of("elsewhere", "default")
+                .flatMap(place -> Stream.of(arguments("\\u{5C}\\u{64}", "\\d", "5", place),
+                        arguments("sapl0\\u{5C}\\u{64}", "sapl0\\d", "5", place),
+                        arguments("sapl0\\u{61}", "sapl0a", "a", place),
+                        arguments("sapl1\\u{61}", "sapl1a", "a", place), arguments("^\\d$", "5", "\\d", place)));
+    }
+
+    @ParameterizedTest(name = "when a schema names a foreign schema by {0} then every function returns an error")
+    @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#foreignReferenceSchemas")
+    @DisplayName("a schema is refused for a foreign reference wherever and however it names it, and nothing is loaded")
+    void whenSchemaNamesForeignReferenceIndirectlyThenEveryFunctionReturnsError(String description, String schema,
+            String externalSchemas, String reference) {
+        val jsonSchema = (ObjectValue) json(schema);
+        val externals  = json(externalSchemas);
+        val subject    = Value.of("text");
+
+        assertThat(List.of(isCompliantWithExternalSchemas(subject, jsonSchema, externals),
+                validateWithExternalSchemas(subject, jsonSchema, externals)))
+                .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                        error -> assertThat(error.message()).isEqualTo(
+                                SCHEMA_VALIDATION_FAILED.formatted(UNRESOLVABLE_REFERENCE.formatted(reference)))));
+    }
+
     @ParameterizedTest(name = "when a schema names {0} then subjects are validated against it")
     @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#builtInReferences")
     void whenSchemaNamesBuiltInMetaSchemaThenSubjectsAreValidated(String description, String schema, String compliant,
