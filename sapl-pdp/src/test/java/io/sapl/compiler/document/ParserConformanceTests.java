@@ -34,8 +34,8 @@ import static io.sapl.conformance.ParserVerdicts.refusalOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Every implementation of SAPL accepts the same documents. The corpus "parser"
- * states for each of its documents whether it is valid SAPL.
+ * The parser accepts the documents the conformance corpus accepts. The corpus
+ * "parser" states for each of its documents whether it is valid SAPL.
  */
 @Tag("conformance")
 @DisplayName("Parser against the conformance corpus")

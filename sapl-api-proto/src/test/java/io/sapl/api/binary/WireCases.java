@@ -39,8 +39,7 @@ import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * The test vectors of the SAPL binary format, shared with {@code sapl-rust}
- * ({@code crates/sapl-api/tests/wire/cases}): a heading line {@code === ...},
+ * The test vectors of the SAPL binary format: a heading line {@code === ...},
  * the document, a line {@code ---}, and the expectation. Placeholders such as
  * {@code <U+00E9>} and {@code <500 times [>} are replaced in documents and in
  * expectations.

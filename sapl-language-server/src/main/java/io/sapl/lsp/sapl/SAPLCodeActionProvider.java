@@ -37,8 +37,8 @@ import lombok.val;
 
 /**
  * Offers the quick fixes of the problems of a SAPL document as code actions of
- * the protocol: one for each problem that has a quick fix. The titles are the
- * same in all implementations of SAPL.
+ * the protocol: one for each problem that has a quick fix. The titles belong to
+ * the catalogue of problems.
  */
 class SAPLCodeActionProvider {
 

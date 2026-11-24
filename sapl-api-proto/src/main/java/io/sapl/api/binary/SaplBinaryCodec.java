@@ -34,9 +34,8 @@ import lombok.val;
 /**
  * The SAPL binary format, version 1: a compact encoding of the wire objects of
  * the RSocket API, selected by the data MIME type {@link #MIME_TYPE} of the
- * connection. The format is specified in {@code BINARY_FORMAT.md} of the Rust
- * implementation {@code sapl-rust}, whose test vectors this codec passes byte
- * for byte.
+ * connection. The format is specified in {@code BINARY_FORMAT.md}, whose test
+ * vectors this codec passes byte for byte.
  * <p>
  * A payload starts with the lead byte {@code 0x00}, the version of the format,
  * then all its texts in one region, which is checked to be UTF-8 once, then the

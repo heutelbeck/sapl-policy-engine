@@ -34,8 +34,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Every implementation of SAPL offers the same library functions, with the
- * same values and error outcomes. The function corpus states what a
+ * The library functions return the values and error outcomes the conformance
+ * corpus states. The function corpus states what a
  * function returns for its arguments, and the function catalogue describes the
  * libraries it covers. The libraries of extensions that depend on this module
  * are not on the class path here, and the tests of each such extension check

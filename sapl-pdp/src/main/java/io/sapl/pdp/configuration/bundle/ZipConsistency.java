@@ -41,7 +41,6 @@ import lombok.val;
  * read the same files. They agree when no name occurs twice in the directory,
  * the local header of each entry matches its directory entry, no two entries
  * overlap, and no local header lies between the entries outside the directory.
- * These are the checks of the reader of the Rust engine.
  */
 @UtilityClass
 class ZipConsistency {

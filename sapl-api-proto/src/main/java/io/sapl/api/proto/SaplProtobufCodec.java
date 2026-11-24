@@ -459,7 +459,7 @@ public class SaplProtobufCodec {
     }
 
     // Parts that hold their default (undefined, or no secrets) are left out. The reader takes a
-    // missing part as its default, and the Rust engine writes the same bytes.
+    // missing part as its default.
     private static void writeAuthorizationSubscriptionFields(Sizes sizes, AuthorizationSubscription sub,
             CodedOutputStream output) throws IOException {
         writeDefinedValueField(sizes, SUBSCRIPTION_SUBJECT, sub.subject(), output);
@@ -578,8 +578,7 @@ public class SaplProtobufCodec {
     }
 
     // Parts that hold their default (INDETERMINATE, which is the zero value, empty obligations and
-    // advice, an undefined resource) are left out. The reader takes a missing part as its default,
-    // and the Rust engine writes the same bytes.
+    // advice, an undefined resource) are left out. The reader takes a missing part as its default.
     private static void writeAuthorizationDecisionFields(Sizes sizes, AuthorizationDecision dec,
             CodedOutputStream output) throws IOException {
         val decision = toProtoDecision(dec.decision());

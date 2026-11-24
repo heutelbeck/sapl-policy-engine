@@ -88,7 +88,7 @@ class SaplBinaryCodecTests {
     }
 
     @Nested
-    @DisplayName("Test vectors shared with sapl-rust")
+    @DisplayName("Test vectors of the binary format")
     class VectorTests {
 
         static Stream<Case> subscriptionCases() {

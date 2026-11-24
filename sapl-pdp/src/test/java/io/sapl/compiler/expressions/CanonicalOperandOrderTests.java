@@ -40,10 +40,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * The canonical order of the operands of commutative operators follows the
- * structure of the operands, the same in every implementation of SAPL: the
- * stratum, then the value of a constant or the kind and the parts of a pure
- * operand. So of several errors among the operands the same one is the result
- * in every implementation, whatever the order written.
+ * structure of the operands: the stratum, then the value of a constant or the
+ * kind and the parts of a pure operand. So of several errors among the
+ * operands the same one is the result, whatever the order written.
  */
 @DisplayName("Canonical operand order")
 class CanonicalOperandOrderTests {

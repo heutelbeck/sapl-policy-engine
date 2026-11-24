@@ -26,8 +26,7 @@ package io.sapl.compiler.diagnostics;
 public record FurtherRegion(Region region, Label label) {
 
     /**
-     * What a further region is. The texts belong to the catalogue of problems
-     * and are the same in all implementations of SAPL.
+     * What a further region is. The texts belong to the catalogue of problems.
      */
     public enum Label {
 

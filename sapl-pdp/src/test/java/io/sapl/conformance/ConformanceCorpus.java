@@ -29,8 +29,7 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 /**
- * Reads the conformance corpus that all implementations of SAPL share. The
- * corpus is not part of this repository. Its README.md describes the format of
+ * Reads the conformance corpus. The corpus is not part of this repository. Its README.md describes the format of
  * the case files, and this reader follows it.
  * <p>
  * A file or a line that only resembles the format is refused. If it were

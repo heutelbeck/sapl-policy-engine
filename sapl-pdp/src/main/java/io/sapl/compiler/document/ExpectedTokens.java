@@ -51,8 +51,8 @@ import java.util.Set;
  * found by following the grammar from the start of the decision over the
  * tokens before that token.
  * <p>
- * A parser of the kind that decides from the tokens read so far, as the
- * parsers of other implementations of SAPL do, leaves a construct before it
+ * A parser of the kind that decides from the tokens read so far leaves a
+ * construct before it
  * refuses a token only if the token can follow the construct somewhere in the
  * grammar. The tokens that can follow each rule of the grammar tell where it
  * refuses a token.

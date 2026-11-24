@@ -38,8 +38,8 @@ import java.util.Objects;
  * place, and where it goes on.
  * <p>
  * The parser leaves a construct that can end where the next token cannot
- * continue it. A parser of the kind that decides from the tokens read so far,
- * as the parsers of other implementations of SAPL do, leaves it only if the
+ * continue it. A parser of the kind that decides from the tokens read so far
+ * leaves it only if the
  * token can follow the construct somewhere in the grammar, and refuses the
  * token otherwise. This parser refuses it there as well, so both refuse the
  * same token at the same place and accept the same tokens there. The place

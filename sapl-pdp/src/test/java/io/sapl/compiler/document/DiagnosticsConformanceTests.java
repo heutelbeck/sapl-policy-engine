@@ -37,8 +37,8 @@ import static io.sapl.conformance.DiagnosticReports.writtenReport;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Every implementation of SAPL reports the same problem for the same mistake.
- * The corpora "diagnostics" and "several-mistakes" state the report for each of
+ * The engine reports for each mistake the problem the conformance corpus
+ * states. The corpora "diagnostics" and "several-mistakes" state the report for each of
  * their documents. Classes and regions are compared. In "diagnostics" further
  * regions and quick fixes are compared too, without messages or labels. The quick fixes
  * of a document must also leave a document without problems.

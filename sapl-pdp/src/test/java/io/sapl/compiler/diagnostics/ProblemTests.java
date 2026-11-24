@@ -44,7 +44,7 @@ class ProblemTests {
     private static final String PRINTABLE_ASCII = "[ -~]+";
 
     /**
-     * The identifiers of the catalogue that all implementations of SAPL share.
+     * The identifiers of the conformance catalogue.
      * Tests, agents and editors filter by them, so none may change by accident.
      */
     private static final String SHARED_IDENTIFIERS = """
@@ -136,7 +136,7 @@ class ProblemTests {
     class CatalogueTests {
 
         @Test
-        @DisplayName("holds exactly the identifiers that all implementations share")
+        @DisplayName("holds exactly the identifiers of the conformance catalogue")
         void whenIdentifiersAreCollectedThenTheyAreTheSharedOnes() {
             val identifiers = Arrays.stream(Problem.values()).filter(problem -> problem != Problem.SYNTAX_ERROR)
                     .map(Problem::identifier).distinct();

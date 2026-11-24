@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * The catalogue of what can be wrong with a SAPL document. All implementations
- * of SAPL share it: the same identifiers and the same texts, word for word.
+ * The catalogue of what can be wrong with a SAPL document, with fixed
+ * identifiers and texts.
  * <p>
  * Each constant is one message. It belongs to a class of problems, named by
  * its identifier, has a short form that says what is wrong, and an explanation
@@ -263,8 +263,7 @@ public enum Problem {
             "At most %1$s levels of parentheses, brackets and braces are allowed."),
 
     /**
-     * Not part of the catalogue that all implementations of SAPL share. An
-     * expression nests too deeply to be read without brackets that explain it,
+     * Not part of the conformance catalogue. An expression nests too deeply to be read without brackets that explain it,
      * for example through a long chain of prefix operators or subtemplates: a
      * step of reading exhausted the stack. It is marked at the start of the
      * document, as no place in it is known.
@@ -1203,8 +1202,7 @@ public enum Problem {
             "Only the first %1$s problems are reported. Resolve them and check the document again."),
 
     /**
-     * Not part of the catalogue that all implementations of SAPL share. It stands
-     * in for a failure of reading a document that the checks did not foresee: an
+     * Not part of the conformance catalogue. It stands in for a failure of reading a document that the checks did not foresee: an
      * exception of the lexer, the parser, the analysis or the transformation into
      * the AST. Such a failure is logged, and the document is refused with this
      * problem instead of the exception reaching the caller. The analysis refuses
@@ -1254,8 +1252,7 @@ public enum Problem {
     }
 
     /**
-     * @return the identifier of the class of the problem, which is the same in
-     * all implementations of SAPL
+     * @return the identifier of the class of the problem
      */
     public String identifier() {
         return identifier;

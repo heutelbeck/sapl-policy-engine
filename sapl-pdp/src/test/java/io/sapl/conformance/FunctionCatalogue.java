@@ -39,10 +39,9 @@ import java.util.TreeMap;
 /**
  * The catalogue of the function libraries that the function corpus covers:
  * the contract of each library as JSON, with its name and functions, and of
- * each function its name, parameters and the schema of what it returns. Other
- * implementations of SAPL compare their libraries with it, so that the names
- * and signatures a policy relies on do not drift apart. The documentation is
- * each implementation's own and not part of the catalogue.
+ * each function its name, parameters and the schema of what it returns. The
+ * catalogue fixes the names and signatures a policy relies on. The
+ * documentation of the functions is not part of the catalogue.
  * <p>
  * The corpus covers a library if the directory "functions" holds a case file
  * named after it. Libraries are sorted by name, functions by name and number

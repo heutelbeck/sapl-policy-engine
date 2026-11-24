@@ -24,7 +24,7 @@ import io.sapl.api.model.DocumentLines;
  * position marks a place between two characters.
  * <p>
  * The offsets address the text of the document as Java holds it. Lines and
- * columns are counted as all implementations of SAPL report them: a line ends
+ * columns are counted as follows: a line ends
  * with a line feed, with a carriage return, or with a carriage return and a
  * line feed, and a column counts Unicode code points.
  *

@@ -55,8 +55,7 @@ public record Diagnostic(
     }
 
     /**
-     * @return the identifier of the class of the problem, which is the same in
-     * all implementations of SAPL
+     * @return the identifier of the class of the problem
      */
     public String identifier() {
         return problem.identifier();
