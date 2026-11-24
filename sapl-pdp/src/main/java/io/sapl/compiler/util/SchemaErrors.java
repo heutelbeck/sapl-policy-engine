@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.util;
 
-import com.google.re2j.PatternSyntaxException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -29,14 +28,17 @@ import lombok.val;
 public class SchemaErrors {
 
     private static final String ERROR_INVALID_REGULAR_EXPRESSION = "The schema holds an invalid regular expression: %s.";
+    private static final String ERROR_MATCHING_FAILED            = "Matching the regular expression '%s' of the schema failed: %s.";
 
     private static final String NO_REASON_GIVEN = "no reason given";
 
     /**
      * Describes an exception thrown while a schema was loaded or applied. A
-     * regular expression RE2/J refused anywhere in the causes is described by the
-     * reason RE2/J gives. Any other exception is described by its message, or by
-     * the message of its cause if the message only names the cause.
+     * regular expression {@link LinearRegex} refused anywhere in the causes is
+     * described by the reason {@link LinearRegex#describe} gives, a text it
+     * could not search by the pattern and the reason. Any other
+     * exception is described by its message, or by the message of its cause if
+     * the message only names the cause.
      *
      * @param error the exception thrown by the schema validator
      * @param otherErrorFormat the format of the description of an exception other
@@ -45,8 +47,11 @@ public class SchemaErrors {
      */
     public static String describe(Throwable error, String otherErrorFormat) {
         for (var cause = error; cause != null; cause = cause.getCause()) {
-            if (cause instanceof PatternSyntaxException refusal) {
+            if (cause instanceof RegexRefusedException refusal) {
                 return ERROR_INVALID_REGULAR_EXPRESSION.formatted(refusal.getDescription());
+            }
+            if (cause instanceof RegexSearchFailedException failure) {
+                return ERROR_MATCHING_FAILED.formatted(failure.getPattern(), failure.getDescription());
             }
         }
         return otherErrorFormat.formatted(plainMessage(error));

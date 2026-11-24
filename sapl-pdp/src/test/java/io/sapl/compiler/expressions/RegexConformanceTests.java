@@ -40,15 +40,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * The cases of the operator '=~' that every implementation of SAPL shares. The
- * pattern must match the whole text, is matched in linear time without
- * backtracking, and constructs that need backtracking are refused as invalid.
+ * The conformance cases of the operator '=~'. The pattern must match the
+ * whole text, is matched in linear time without backtracking, and constructs
+ * that need backtracking are refused as invalid.
  * <p>
- * The outcome is written as in the shared evaluation corpus: what the
- * expression compiles to, followed by its value. Where this engine differs
- * from the other implementations, the case says so in its comment.
+ * The outcome is written as in the evaluation corpus: what the expression
+ * compiles to, followed by its value. Where this engine differs from the
+ * corpus, the case says so in its comment.
  */
-@DisplayName("The operator '=~' as all implementations of SAPL evaluate it")
+@DisplayName("The operator '=~' as the conformance cases demand it")
 class RegexConformanceTests {
 
     private static final Value NO_INPUT = Value.UNDEFINED;
@@ -105,28 +105,30 @@ class RegexConformanceTests {
             arguments("the subject matching the action as pattern", "subject =~ action", Value.of("alice"), Value.of("a.*e"),
                     "pure: true"),
             // This engine refuses an invalid constant pattern while compiling where the
-            // other implementations yield a constant error. The reason is that of RE2/J.
+            // corpus expects a constant error. The reason is the one the parser of the
+            // regex crate gives.
             arguments("an unclosed group", "\"a\" =~ \"(\"", NO_INPUT, NO_INPUT,
-                    "refused: Invalid regular expression '(': missing closing )."),
+                    "refused: Invalid regular expression '(': unclosed group."),
             arguments("the subject as pattern that is an unclosed group", "\"a\" =~ subject", Value.of("("), NO_INPUT,
-                    "pure error: Invalid regular expression '(': missing closing )."),
+                    "pure error: Invalid regular expression '(': unclosed group."),
             arguments("a look-ahead", "\"ab\" =~ \"a(?=b)b\"", NO_INPUT, NO_INPUT,
-                    "refused: Invalid regular expression 'a(?=b)b': invalid or unsupported Perl syntax."),
+                    "refused: Invalid regular expression 'a(?=b)b': look-around, including look-ahead and look-behind, is not supported."),
             arguments("a look-behind", "\"ab\" =~ \"a(?<=a)b\"", NO_INPUT, NO_INPUT,
-                    "refused: Invalid regular expression 'a(?<=a)b': invalid named capture."),
+                    "refused: Invalid regular expression 'a(?<=a)b': look-around, including look-ahead and look-behind, is not supported."),
             arguments("a backreference", "\"aa\" =~ \"(a)\\\\1\"", NO_INPUT, NO_INPUT,
-                    "refused: Invalid regular expression '(a)\\1': invalid escape sequence."),
-            arguments("a possessive quantifier", "\"aaa\" =~ \"a*+a\"", NO_INPUT, NO_INPUT,
-                    "refused: Invalid regular expression 'a*+a': invalid nested repetition operator."),
+                    "refused: Invalid regular expression '(a)\\1': backreferences are not supported."),
+            // There are no possessive quantifiers: a*+ is a repetition of the repetition a*.
+            arguments("a possessive quantifier", "\"aaa\" =~ \"a*+a\"", NO_INPUT, NO_INPUT, "constant: true"),
             arguments("an atomic group", "\"a\" =~ \"(?>a)\"", NO_INPUT, NO_INPUT,
-                    "refused: Invalid regular expression '(?>a)': invalid or unsupported Perl syntax."),
-            // RE2/J reads a quoted section, the other implementations refuse it.
-            arguments("a quoted section", "\"a.b\" =~ \"\\\\Qa.b\\\\E\"", NO_INPUT, NO_INPUT, "constant: true"),
-            // The classes of RE2/J hold ASCII characters only, those of the other
-            // implementations follow Unicode.
+                    "refused: Invalid regular expression '(?>a)': unrecognized flag."),
+            arguments("a quoted section", "\"a.b\" =~ \"\\\\Qa.b\\\\E\"", NO_INPUT, NO_INPUT,
+                    "refused: Invalid regular expression '\\Qa.b\\E': unrecognized escape sequence."),
+            // The classes follow Unicode unless (?-u) restricts them to ASCII.
             arguments("a letter with an accent matched by the class of word characters", "\"\\u00e9\" =~ \"\\\\w\"", NO_INPUT, NO_INPUT,
-                    "constant: false"),
+                    "constant: true"),
             arguments("an Arabic digit matched by the class of digits", "\"\\u0663\" =~ \"\\\\d\"", NO_INPUT, NO_INPUT,
+                    "constant: true"),
+            arguments("an Arabic digit matched by the class of ASCII digits", "\"\\u0663\" =~ \"(?-u:\\\\d)\"", NO_INPUT, NO_INPUT,
                     "constant: false"),
             arguments("a capital letter with an accent matched without regard to case", "\"\\u00c9\" =~ \"(?i)\\u00e9\"", NO_INPUT, NO_INPUT,
                     "constant: true"),

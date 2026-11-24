@@ -95,7 +95,7 @@
 		<sapl.full.tests>false</sapl.full.tests>
 
 		<!-- Dependencies -->
-		<re2j.version>1.8</re2j.version>
+		<rustregex4j.version>0.1.0</rustregex4j.version>
 		<asm.version>9.11.1</asm.version>
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
@@ -335,11 +335,12 @@
 				<artifactId>json-schema-validator</artifactId>
 				<version>${json-schema-validator.version}</version>
 			</dependency>
-			<!-- Linear time regular expressions for patterns from policies. BSD-3-Clause. -->
+			<!-- Linear time regular expressions for patterns from policies: the regex crate of Rust
+			     through JNI. MIT. -->
 			<dependency>
-				<groupId>com.google.re2j</groupId>
-				<artifactId>re2j</artifactId>
-				<version>${re2j.version}</version>
+				<groupId>com.heutelbeck</groupId>
+				<artifactId>rustregex4j</artifactId>
+				<version>${rustregex4j.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.github.jsqlparser</groupId>

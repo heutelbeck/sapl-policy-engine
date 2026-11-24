@@ -22,6 +22,7 @@ import io.sapl.ast.*;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedElementValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
+import io.sapl.compiler.util.LinearRegex;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaException;
 import lombok.val;
@@ -205,13 +206,15 @@ class SchemaValidatorCompilerTests {
         }
 
         static Stream<Arguments> invalidSchemaPatterns() {
-            return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$", "invalid or unsupported Perl syntax"),
+            return Stream.of(
+                    arguments("a look-ahead", "^(?=.*[0-9]).{8,}$",
+                            "look-around, including look-ahead and look-behind, is not supported"),
                     arguments("too large to compile", "(?:a{1000}){1000}", "expression too large"));
         }
 
         @ParameterizedTest(name = "when schema holds {0} then the document is refused at compile time")
         @MethodSource
-        void whenSchemaHoldsPatternRefusedByRe2ThenThrowsCompilerException(String description, String schema,
+        void whenSchemaHoldsPatternRefusedByTheRegexEngineThenThrowsCompilerException(String description, String schema,
                 String reason) {
             val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, json(schema)));
             val ctx     = compilationContext();
@@ -219,19 +222,20 @@ class SchemaValidatorCompilerTests {
                     .hasMessage(INVALID_REGULAR_EXPRESSION.formatted(reason));
         }
 
-        static Stream<Arguments> whenSchemaHoldsPatternRefusedByRe2ThenThrowsCompilerException() {
+        static Stream<Arguments> whenSchemaHoldsPatternRefusedByTheRegexEngineThenThrowsCompilerException() {
             return Stream.of(arguments("a backreference in a nested pattern", """
                     {"type": "object", "properties": {"code": {"type": "string", "pattern": "(a)\\\\1"}}}
-                    """, "invalid escape sequence"), arguments("a look-behind in a patternProperties key", """
+                    """, "backreferences are not supported"), arguments("a look-behind in a patternProperties key", """
                     {"type": "object", "patternProperties": {"(?<=x)y": {"type": "number"}}}
-                    """, "invalid named capture"), arguments("a look-ahead in a branch a subject need not take", """
-                    {"anyOf": [{"type": "number"}, {"type": "string", "pattern": "(?!admin)"}]}
-                    """, "invalid or unsupported Perl syntax"));
+                    """, "look-around, including look-ahead and look-behind, is not supported"),
+                    arguments("a look-ahead in a branch a subject need not take", """
+                            {"anyOf": [{"type": "number"}, {"type": "string", "pattern": "(?!admin)"}]}
+                            """, "look-around, including look-ahead and look-behind, is not supported"));
         }
 
         @Test
-        @DisplayName("when schema references a schema of the schemas variable whose pattern RE2 refuses then the document is refused at compile time")
-        void whenReferencedSchemaHoldsPatternRefusedByRe2ThenThrowsCompilerException() {
+        @DisplayName("when schema references a schema of the schemas variable whose pattern the regex engine refuses then the document is refused at compile time")
+        void whenReferencedSchemaHoldsPatternRefusedByTheRegexEngineThenThrowsCompilerException() {
             val variables = (ObjectValue) json(
                     """
                             {"schemas": [{"$id": "https://example.com/password", "type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}]}
@@ -241,7 +245,8 @@ class SchemaValidatorCompilerTests {
                     """)));
             val ctx       = compilationContext(variables);
             assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessage(INVALID_REGULAR_EXPRESSION.formatted("invalid or unsupported Perl syntax"));
+                    .hasMessage(INVALID_REGULAR_EXPRESSION
+                            .formatted("look-around, including look-ahead and look-behind, is not supported"));
         }
 
         @Test
@@ -384,6 +389,37 @@ class SchemaValidatorCompilerTests {
             val result = evaluate(validator, ctx);
 
             assertThat(result).isEqualTo(Value.FALSE);
+        }
+
+        @Test
+        @DisplayName("when the size limit of the compiler options is raised then a schema pattern the default refuses is admitted")
+        void whenSizeLimitIsRaisedThenLargerSchemaPatternIsAdmitted() {
+            val schema   = (ObjectValue) obj("type", Value.of("string"), "pattern", Value.of("^\\w{3,32}$"));
+            val enforced = List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema));
+            val defaults = compilationContext();
+            val raised   = compilationContext();
+            raised.setCompilerOptions((ObjectValue) obj("regexSizeLimitKibibytes", Value.of(2048)));
+
+            assertThatThrownBy(() -> compileValidator(enforced, defaults)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessage(INVALID_REGULAR_EXPRESSION.formatted("expression too large"));
+            assertThat(evaluate(compileValidator(enforced, raised), subscriptionContext("""
+                    {"subject": "Gr\u00fc\u00dfe", "action": "read", "resource": "data"}
+                    """))).isEqualTo(Value.TRUE);
+        }
+
+        @Test
+        @DisplayName("when the subject is a text the regex engine cannot search then a negated pattern yields an error, not a compliant subject")
+        void whenSubjectCannotBeSearchedThenNegatedPatternYieldsError() {
+            val schema    = (ObjectValue) obj("not", obj("pattern", Value.of(".*")));
+            val validator = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema)),
+                    compilationContext());
+            val ctx       = subscriptionContext("""
+                    {"subject": "%s", "action": "read", "resource": "data"}
+                    """.formatted("a".repeat(LinearRegex.LIMITS.maxTextBytes() + 1)));
+
+            assertThat(evaluate(validator, ctx)).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message())
+                            .isEqualTo("Matching the regular expression '.*' of the schema failed: text too long."));
         }
     }
 

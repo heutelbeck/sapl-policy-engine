@@ -19,6 +19,7 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.util.LinearRegex;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -71,6 +72,14 @@ class SanitizationFunctionLibraryTests {
         val result = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
 
         assertThat(result).isEqualTo(inputVal);
+    }
+
+    @Test
+    @DisplayName("a text the regex engine cannot search counts as an injection, so the check fails closed")
+    void assertNoSqlInjectionWhenTextExceedsRegexTextLimitThenReturnsError() {
+        val inputVal = Value.of("A".repeat(LinearRegex.LIMITS.maxTextBytes() + 1));
+
+        assertThat(SanitizationFunctionLibrary.assertNoSqlInjection(inputVal)).isInstanceOf(ErrorValue.class);
     }
 
     @Test

@@ -17,426 +17,208 @@
  */
 package io.sapl.compiler.util;
 
-import com.google.re2j.Pattern;
-import com.google.re2j.PatternSyntaxException;
+import com.heutelbeck.rustregex4j.IsMatch;
+import com.heutelbeck.rustregex4j.Regex;
+import com.heutelbeck.rustregex4j.RegexCompilation;
+import com.heutelbeck.rustregex4j.RegexError;
+import com.heutelbeck.rustregex4j.RegexLimits;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.ArrayDeque;
-import java.util.Map;
-
 /**
- * Compiles the regular expressions of policies with RE2/J, which matches in
- * time linear in the length of the input and never backtracks. Patterns may
- * come from policies, from authorization subscriptions or from policy
- * information points, so a pattern is hostile input.
+ * Compiles the regular expressions of SAPL with the {@code regex} crate of
+ * Rust through rustregex4j, which matches in time linear in the length of the
+ * text and never backtracks. Patterns may come from policies, from
+ * authorization subscriptions or from policy information points, so a pattern
+ * is hostile input.
  * <p>
- * Linear matching makes a time budget for matching unnecessary. What remains
- * is the size of the compiled program: RE2/J expands counted repetitions, so
- * {@code (?:a{1000}){1000}} compiles to a million instructions, and a third
- * level of nesting exhausts the heap. Matching costs time proportional to the
- * length of the input times the size of the program. Before compiling, the
- * size of the program is therefore estimated from the pattern, and a pattern
- * whose program would exceed {@value #MAX_PROGRAM_SIZE} instructions, or whose
- * groups nest deeper than {@value #MAX_NESTING_DEPTH} levels, is refused like a
- * pattern with a syntax error.
+ * The syntax is that of the {@code regex} crate. Look-around, backreferences,
+ * atomic groups and possessive quantifiers do not exist in it and are refused.
+ * The classes {@code \d}, {@code \w}, {@code \s} and the word boundary
+ * {@code \b} are Unicode-aware; {@code (?-u)} or explicit classes such as
+ * {@code [0-9]} restrict them to ASCII. Matching without regard to case follows
+ * the simple case folding of Unicode, and {@code .} matches every character
+ * except the line feed.
  * <p>
- * A large Unicode class such as {@code \p{L}} counts for more than one
- * instruction. RE2/J matches a class with one instruction, but the automata
- * other implementations of SAPL build grow with the number of UTF-8 byte
- * sequences a class spans, so {@code \p{L}{1,1000}} needs about 48 MB there.
- * The weights of the classes keep the patterns this engine accepts within
- * those the other implementations accept.
- * <p>
- * The syntax is that of RE2. Look-around, backreferences, atomic groups and
- * possessive quantifiers do not exist in it and are refused. The classes
- * {@code \d}, {@code \w}, {@code \s} and {@code \b} hold ASCII characters
- * only, matching without regard to case follows the simple case folding of
- * Unicode, and {@code .} matches every character except the line feed.
+ * The limits of {@link #LIMITS} bound the cost of every pattern: its length,
+ * the depth of its nesting, the size of its compiled program and of the lazy
+ * DFA, and the length of the texts it is matched against. A pattern beyond a
+ * limit is refused like a pattern with a syntax error, a text beyond the limit
+ * fails the match.
  */
 @UtilityClass
 public class LinearRegex {
 
+    /** The default length limit of a pattern in UTF-8 bytes. */
+    public static final int DEFAULT_MAX_PATTERN_BYTES = 1024;
+
+    /** The default size limit of a compiled pattern in KiB. */
+    public static final int DEFAULT_SIZE_LIMIT_KIBIBYTES = 256;
+
+    /** The default length limit of a searched text in UTF-8 bytes. */
+    public static final int DEFAULT_MAX_TEXT_BYTES = 64 * 1024;
+
     /**
-     * The largest number of instructions a compiled pattern may have.
+     * The default limits for the regular expressions of SAPL: patterns up to 1024
+     * UTF-8 bytes, nested up to 64 levels, compiled to at most 256 KiB with a
+     * lazy DFA of at most 2 MiB, matched against texts up to 64 KiB of UTF-8.
+     * The operator {@code =~} and the patterns of enforced schemas follow the
+     * limits of the PDP configuration instead, which default to these.
      */
-    public static final int MAX_PROGRAM_SIZE = 10_000;
+    public static final RegexLimits LIMITS = limits(DEFAULT_MAX_PATTERN_BYTES, DEFAULT_SIZE_LIMIT_KIBIBYTES,
+            DEFAULT_MAX_TEXT_BYTES);
+
+    private static final int  NEST_LIMIT     = 64;
+    private static final long DFA_SIZE_LIMIT = 2L * 1024 * 1024;
+
+    static final String ERROR_EXPRESSION_NESTS_TOO_DEEPLY = "expression nests too deeply";
+    static final String ERROR_EXPRESSION_TOO_LARGE        = "expression too large";
+    static final String ERROR_EXPRESSION_TOO_LONG         = "expression too long";
+    static final String ERROR_INTERNAL                    = "internal error of the regular expression engine";
+    static final String ERROR_INVALID_ARGUMENT            = "invalid argument";
+    static final String ERROR_MALFORMED_UNICODE           = "malformed Unicode";
+    static final String ERROR_RESULT_TOO_LONG             = "result too long";
+    static final String ERROR_TEXT_TOO_LONG               = "text too long";
+
+    private static final String SYNTAX_ERROR_LINE_PREFIX = "error: ";
 
     /**
-     * The deepest nesting of groups a pattern may have.
-     */
-    public static final int MAX_NESTING_DEPTH = 250;
-
-    static final String ERROR_EXPRESSION_NESTS_TOO_DEEPLY    = "expression nests too deeply";
-    static final String ERROR_EXPRESSION_TOO_LARGE           = "expression too large";
-    static final String ERROR_UNEXPECTED_CLOSING_PARENTHESIS = "unexpected )";
-
-    private static final int UNBOUNDED         = -1;
-    private static final int NO_COUNT          = -2;
-    private static final int MAX_REPEAT_COUNT  = 1_000;
-    private static final int CAPTURE_SIZE      = 2;
-    private static final int MAX_OCTAL_DIGITS  = 3;
-    private static final int MAX_REPEAT_DIGITS = 4;
-
-    /**
-     * The instructions a Unicode class counts for, by its name, where it is more
-     * than one. A class counts for about one instruction for every 800 bytes of
-     * the automaton that matches it backwards byte by byte, rounded up, so that
-     * a pattern within {@value #MAX_PROGRAM_SIZE} instructions needs an automaton
-     * of at most about 8 MB. The negated class counts alike.
-     */
-    private static final Map<String, Integer> UNICODE_CLASS_WEIGHTS = Map.ofEntries(Map.entry("L", 41),
-            Map.entry("Lo", 33), Map.entry("Ll", 27), Map.entry("Lu", 26), Map.entry("Mn", 19), Map.entry("M", 18),
-            Map.entry("S", 16), Map.entry("So", 13), Map.entry("Common", 13), Map.entry("P", 12), Map.entry("Po", 11),
-            Map.entry("N", 9), Map.entry("Mc", 9), Map.entry("No", 5), Map.entry("Nd", 5), Map.entry("Lm", 5),
-            Map.entry("Sm", 4), Map.entry("Ps", 4), Map.entry("Pe", 4), Map.entry("Han", 4), Map.entry("Arabic", 4),
-            Map.entry("Latin", 3), Map.entry("Inherited", 3), Map.entry("Greek", 3), Map.entry("C", 3),
-            Map.entry("Sk", 2), Map.entry("Sc", 2), Map.entry("Pd", 2), Map.entry("Nl", 2), Map.entry("Katakana", 2),
-            Map.entry("Hangul", 2), Map.entry("Ethiopic", 2), Map.entry("Cyrillic", 2), Map.entry("Cf", 2));
-
-    /**
-     * Compiles a pattern for matching in linear time.
+     * Creates limits with the nesting depth and the size of the lazy DFA that
+     * SAPL fixes for all regular expressions.
      *
-     * @param regex the pattern in RE2 syntax
+     * @param maxPatternBytes the length limit of a pattern in UTF-8 bytes
+     * @param sizeLimitKibibytes the size limit of a compiled pattern in KiB
+     * @param maxTextBytes the length limit of a searched text in UTF-8 bytes
+     * @return the limits
+     * @throws IllegalArgumentException if a limit is not positive
+     */
+    public static RegexLimits limits(int maxPatternBytes, int sizeLimitKibibytes, int maxTextBytes) {
+        return new RegexLimits(maxPatternBytes, NEST_LIMIT, 1024L * sizeLimitKibibytes, DFA_SIZE_LIMIT, maxTextBytes);
+    }
+
+    /**
+     * Compiles a pattern whose matches may lie anywhere in a text, with the
+     * default limits.
+     *
+     * @param pattern the pattern
+     * @return the compiled pattern, or the error that refuses it
+     */
+    public static RegexCompilation compile(String pattern) {
+        return Regex.compile(pattern, LIMITS);
+    }
+
+    /**
+     * Compiles a pattern that matches a text only if it matches the whole text,
+     * with the default limits.
+     *
+     * @param pattern the pattern
+     * @return the compiled pattern, or the error that refuses it
+     */
+    public static RegexCompilation compileWholeText(String pattern) {
+        return compileWholeText(pattern, LIMITS);
+    }
+
+    /**
+     * Compiles a pattern that matches a text only if it matches the whole text, as
+     * the operator {@code =~} demands.
+     *
+     * @param pattern the pattern
+     * @param limits the limits of the PDP configuration
+     * @return the compiled pattern, or the error that refuses it
+     */
+    public static RegexCompilation compileWholeText(String pattern, RegexLimits limits) {
+        return Regex.compileWholeText(pattern, limits);
+    }
+
+    /**
+     * Compiles a pattern whose matches may lie anywhere in a text, where an
+     * interface demands an exception for a refused pattern, as for a constant of
+     * the code.
+     *
+     * @param pattern the pattern
      * @return the compiled pattern
-     * @throws PatternSyntaxException if the pattern is invalid, too large, or
-     * nests its groups too deeply. {@link PatternSyntaxException#getDescription()}
-     * states the reason.
+     * @throws RegexRefusedException if the pattern is refused
      */
-    public static Pattern compile(String regex) {
-        new SizeEstimate(regex).check();
-        return Pattern.compile(regex);
+    public static Regex compileOrRefuse(String pattern) {
+        return compileOrRefuse(pattern, LIMITS);
     }
 
     /**
-     * Walks the pattern once and sums up the instructions RE2/J compiles it to.
-     * The walk is iterative, so a deeply nested pattern cannot exhaust the stack
-     * here. A pattern RE2/J refuses for its syntax may be estimated in any way,
-     * as long as the walk ends. RE2/J reports the syntax error afterwards, except
-     * for a closing parenthesis without an open group, which RE2/J reports as an
-     * internal error only.
+     * Compiles a pattern whose matches may lie anywhere in a text, where an
+     * interface demands an exception for a refused pattern.
+     *
+     * @param pattern the pattern
+     * @param limits the limits of the PDP configuration
+     * @return the compiled pattern
+     * @throws RegexRefusedException if the pattern is refused
      */
-    private static final class SizeEstimate {
-
-        private final String            regex;
-        private final ArrayDeque<Group> enclosing = new ArrayDeque<>();
-        private Group                   current   = new Group(false);
-        private int                     position;
-
-        SizeEstimate(String regex) {
-            this.regex = regex;
-        }
-
-        void check() {
-            while (position < regex.length()) {
-                step();
-                failIfTooLarge(current.size());
-            }
-            while (!enclosing.isEmpty()) {
-                closeGroup();
-                failIfTooLarge(current.size());
-            }
-        }
-
-        private void step() {
-            val character = regex.charAt(position);
-            switch (character) {
-            case '\\'          -> escape();
-            case '['           -> characterClass();
-            case '('           -> openGroup();
-            case ')'           -> {
-                position++;
-                if (enclosing.isEmpty()) {
-                    throw new PatternSyntaxException(ERROR_UNEXPECTED_CLOSING_PARENTHESIS, regex);
-                }
-                closeGroup();
-            }
-            case '|'           -> {
-                position++;
-                current.alternative();
-            }
-            case '*', '+', '?' -> {
-                position++;
-                skipNonGreedyMark();
-                current.repeat(character == '+' ? 1 : 0, character == '?' ? 1 : UNBOUNDED);
-            }
-            case '{'           -> countedRepetition();
-            default            -> {
-                position += Character.charCount(regex.codePointAt(position));
-                current.atom(1);
-            }
-            }
-        }
-
-        private void escape() {
-            position++;
-            if (position >= regex.length()) {
-                current.atom(1);
-                return;
-            }
-            val escaped = regex.charAt(position++);
-            switch (escaped) {
-            case 'Q'      -> quotedSection();
-            case 'p', 'P' -> current.atom(unicodeClassWeight());
-            case 'x'      -> skipBracedOrHexadecimal();
-            default       -> {
-                if (escaped >= '0' && escaped <= '7') {
-                    skipOctalDigits();
-                }
-                current.atom(1);
-            }
-            }
-        }
-
-        private void quotedSection() {
-            val end        = regex.indexOf("\\E", position);
-            val sectionEnd = end < 0 ? regex.length() : end;
-            while (position < sectionEnd) {
-                position += Character.charCount(regex.codePointAt(position));
-                current.atom(1);
-                failIfTooLarge(current.size());
-            }
-            position = end < 0 ? regex.length() : end + 2;
-        }
-
-        /**
-         * Reads the name of a Unicode class after {@code \p} or {@code \P}, braced
-         * or a single letter, and weighs the class.
-         *
-         * @return the instructions the class counts for
-         */
-        private long unicodeClassWeight() {
-            if (position >= regex.length()) {
-                return 1;
-            }
-            final String name;
-            if (regex.charAt(position) == '{') {
-                val end = regex.indexOf('}', position);
-                name     = end < 0 ? "" : regex.substring(position + 1, end);
-                position = end < 0 ? regex.length() : end + 1;
-            } else {
-                name = regex.substring(position, position + 1);
-                position++;
-            }
-            return UNICODE_CLASS_WEIGHTS.getOrDefault(name.startsWith("^") ? name.substring(1) : name, 1);
-        }
-
-        private void skipBracedOrHexadecimal() {
-            if (position < regex.length() && regex.charAt(position) == '{') {
-                skipPast('}');
-            } else {
-                position = Math.min(regex.length(), position + 2);
-            }
-            current.atom(1);
-        }
-
-        private void skipOctalDigits() {
-            var digits = 1;
-            while (digits < MAX_OCTAL_DIGITS && position < regex.length() && regex.charAt(position) >= '0'
-                    && regex.charAt(position) <= '7') {
-                position++;
-                digits++;
-            }
-        }
-
-        private void skipPast(char terminator) {
-            val end = regex.indexOf(terminator, position);
-            position = end < 0 ? regex.length() : end + 1;
-        }
-
-        private void characterClass() {
-            position++;
-            if (position < regex.length() && regex.charAt(position) == '^') {
-                position++;
-            }
-            if (position < regex.length() && regex.charAt(position) == ']') {
-                position++;
-            }
-            long weight = 0;
-            while (position < regex.length()) {
-                val character = regex.charAt(position);
-                if (character == ']') {
-                    position++;
-                    break;
-                }
-                if (character == '\\') {
-                    position++;
-                    weight += classEscapeWeight();
-                } else if (regex.startsWith("[:", position)) {
-                    val end = regex.indexOf(":]", position + 2);
-                    position = end < 0 ? position + 1 : end + 2;
-                } else {
-                    position++;
-                }
-            }
-            current.atom(Math.max(1, weight));
-        }
-
-        /**
-         * Skips an escape in a class and weighs it: a Unicode class by its weight,
-         * any other escape as nothing.
-         *
-         * @return the instructions the escape counts for
-         */
-        private long classEscapeWeight() {
-            if (position >= regex.length()) {
-                return 0;
-            }
-            val escaped = regex.charAt(position++);
-            if (escaped == 'p' || escaped == 'P') {
-                return unicodeClassWeight();
-            }
-            if (escaped == 'x' && position < regex.length() && regex.charAt(position) == '{') {
-                skipPast('}');
-            }
-            return 0;
-        }
-
-        private void openGroup() {
-            position++;
-            var capturing = true;
-            if (regex.startsWith("?", position)) {
-                position++;
-                if (regex.startsWith("P<", position) || regex.startsWith("<", position)) {
-                    skipPast('>');
-                } else {
-                    while (position < regex.length() && isFlagCharacter(regex.charAt(position))) {
-                        position++;
-                    }
-                    if (regex.startsWith(")", position)) {
-                        position++;
-                        return;
-                    }
-                    if (regex.startsWith(":", position)) {
-                        position++;
-                    }
-                    capturing = false;
-                }
-            }
-            enclosing.push(current);
-            if (enclosing.size() > MAX_NESTING_DEPTH) {
-                throw new PatternSyntaxException(ERROR_EXPRESSION_NESTS_TOO_DEEPLY, regex);
-            }
-            current = new Group(capturing);
-        }
-
-        private static boolean isFlagCharacter(char character) {
-            return Character.isLetter(character) || character == '-';
-        }
-
-        private void closeGroup() {
-            val group = current;
-            current = enclosing.pop();
-            current.atom(group.size());
-        }
-
-        private void skipNonGreedyMark() {
-            if (position < regex.length() && regex.charAt(position) == '?') {
-                position++;
-            }
-        }
-
-        private void countedRepetition() {
-            val start = position;
-            position++;
-            val minimum = readCount();
-            if (minimum == NO_COUNT) {
-                position = start + 1;
-                current.atom(1);
-                return;
-            }
-            var maximum = minimum;
-            if (regex.startsWith(",", position)) {
-                position++;
-                maximum = regex.startsWith("}", position) ? UNBOUNDED : readCount();
-            }
-            if (maximum == NO_COUNT || !regex.startsWith("}", position)) {
-                position = start + 1;
-                current.atom(1);
-                return;
-            }
-            position++;
-            skipNonGreedyMark();
-            current.repeat(minimum, maximum);
-        }
-
-        /**
-         * Reads a repetition count. Counts above the largest RE2 accepts are read as
-         * one more than that, which RE2/J refuses later.
-         *
-         * @return the count, or {@code NO_COUNT} if no digit stands at the position
-         */
-        private int readCount() {
-            val start = position;
-            while (position < regex.length() && regex.charAt(position) >= '0' && regex.charAt(position) <= '9') {
-                position++;
-            }
-            if (position == start) {
-                return NO_COUNT;
-            }
-            if (position - start > MAX_REPEAT_DIGITS) {
-                return MAX_REPEAT_COUNT + 1;
-            }
-            return Math.min(Integer.parseInt(regex, start, position, 10), MAX_REPEAT_COUNT + 1);
-        }
-
-        private void failIfTooLarge(long size) {
-            if (size > MAX_PROGRAM_SIZE) {
-                throw new PatternSyntaxException(ERROR_EXPRESSION_TOO_LARGE, regex);
-            }
-        }
+    public static Regex compileOrRefuse(String pattern, RegexLimits limits) {
+        return orRefuse(pattern, Regex.compile(pattern, limits));
     }
 
     /**
-     * The estimated size of an open group: the alternatives read so far and the
-     * concatenation being read.
+     * Compiles a pattern that must match the whole text, where an interface
+     * demands an exception for a refused pattern, as for a constant of the code.
+     *
+     * @param pattern the pattern
+     * @return the compiled pattern
+     * @throws RegexRefusedException if the pattern is refused
      */
-    private static final class Group {
+    public static Regex compileWholeTextOrRefuse(String pattern) {
+        return orRefuse(pattern, compileWholeText(pattern));
+    }
 
-        private final boolean capturing;
-        private long          alternatives;
-        private long          separators;
-        private long          concatenation;
-        private long          last;
+    /**
+     * Reports whether a compiled pattern matches a text, where an interface
+     * demands a boolean. A text the engine cannot search, because it exceeds the
+     * text limit or holds an unpaired surrogate, is neither a match nor a
+     * non-match, so it fails with an exception instead.
+     *
+     * @param regex the compiled pattern
+     * @param text the text
+     * @return whether the pattern matches the text
+     * @throws RegexSearchFailedException if the engine cannot search the text
+     */
+    public static boolean matches(Regex regex, String text) {
+        return switch (regex.isMatch(text)) {
+        case IsMatch(var matches) -> matches;
+        case RegexError error     -> throw new RegexSearchFailedException(regex.pattern(), describe(error));
+        };
+    }
 
-        Group(boolean capturing) {
-            this.capturing = capturing;
-        }
+    private static Regex orRefuse(String pattern, RegexCompilation compilation) {
+        return switch (compilation) {
+        case Regex regex      -> regex;
+        case RegexError error -> throw new RegexRefusedException(pattern, describe(error));
+        };
+    }
 
-        void atom(long size) {
-            concatenation += size;
-            last           = size;
-        }
+    /**
+     * Describes why a pattern was refused or a search failed, in the words SAPL
+     * reports. A syntax error is described by the
+     * last line of the message of the parser, which names the error without the
+     * pattern.
+     *
+     * @param error the error
+     * @return the description, a lower case phrase without a final period
+     */
+    public static String describe(RegexError error) {
+        return switch (error.kind()) {
+        case SYNTAX            -> syntaxErrorDescription(error.message());
+        case NESTING_TOO_DEEP  -> ERROR_EXPRESSION_NESTS_TOO_DEEPLY;
+        case PATTERN_TOO_LONG  -> ERROR_EXPRESSION_TOO_LONG;
+        case PATTERN_TOO_LARGE -> ERROR_EXPRESSION_TOO_LARGE;
+        case MALFORMED_UNICODE -> ERROR_MALFORMED_UNICODE;
+        case TEXT_TOO_LONG     -> ERROR_TEXT_TOO_LONG;
+        case INVALID_ARGUMENT  -> ERROR_INVALID_ARGUMENT;
+        case RESULT_TOO_LONG   -> ERROR_RESULT_TOO_LONG;
+        case INTERNAL          -> ERROR_INTERNAL;
+        };
+    }
 
-        /**
-         * Applies a repetition to the last atom the way RE2 expands it: the minimum
-         * as copies, each optional repetition as a copy and a split, and an unbounded
-         * maximum as a loop.
-         *
-         * @param minimum the least number of repetitions
-         * @param maximum the largest number of repetitions, or {@code UNBOUNDED} for no
-         * bound
-         */
-        void repeat(int minimum, int maximum) {
-            final long repeated;
-            if (maximum == UNBOUNDED) {
-                repeated = minimum == 0 ? last + 1 : minimum * last + 1;
-            } else {
-                repeated = minimum * last + Math.max(0, maximum - minimum) * (last + 1);
-            }
-            concatenation += repeated - last;
-            last           = repeated;
-        }
-
-        void alternative() {
-            alternatives += concatenation;
-            separators++;
-            concatenation = 0;
-            last          = 0;
-        }
-
-        long size() {
-            return alternatives + concatenation + separators + (capturing ? CAPTURE_SIZE : 0);
-        }
+    private static String syntaxErrorDescription(String message) {
+        val lines = message.strip().lines().toList();
+        val last  = lines.isEmpty() ? "" : lines.getLast().strip();
+        return last.startsWith(SYNTAX_ERROR_LINE_PREFIX) ? last.substring(SYNTAX_ERROR_LINE_PREFIX.length()) : last;
     }
 }

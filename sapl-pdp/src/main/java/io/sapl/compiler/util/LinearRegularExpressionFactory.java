@@ -17,11 +17,12 @@
  */
 package io.sapl.compiler.util;
 
+import com.heutelbeck.rustregex4j.RegexLimits;
+import com.networknt.schema.SchemaException;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SchemaRegistryConfig;
 import com.networknt.schema.regex.RegularExpression;
 import com.networknt.schema.regex.RegularExpressionFactory;
-import com.networknt.schema.regex.RegularExpressions;
 
 import lombok.val;
 
@@ -32,40 +33,48 @@ import lombok.val;
  * {@code =~}.
  * <p>
  * As the JSON Schema specification demands, a {@code pattern} matches if it
- * matches any part of the text. Long form Unicode properties such as
- * {@code \p{Letter}} are rewritten to their short forms, which RE2 reads. In
- * RE2, {@code $} outside multi line mode matches at the end of the text only,
- * as in ECMAScript, so it needs no rewriting. An invalid or too large pattern
- * throws a {@link com.google.re2j.PatternSyntaxException} when the schema is
- * loaded.
+ * matches any part of the text. The syntax is that of {@link LinearRegex}, not
+ * ECMAScript: long form Unicode properties such as {@code \p{Letter}} are read
+ * as they are, and {@code $} outside multi line mode matches at the end of the
+ * text only, as in ECMAScript. An invalid or too large pattern throws a
+ * {@link RegexRefusedException} when the schema is loaded. A text the engine
+ * cannot search, because it exceeds the text limit or holds an unpaired
+ * surrogate, fails the validation with a {@link SchemaException}, so that a
+ * negated pattern cannot let it through.
  */
 public final class LinearRegularExpressionFactory implements RegularExpressionFactory {
 
-    private static final LinearRegularExpressionFactory INSTANCE = new LinearRegularExpressionFactory();
+    private final RegexLimits limits;
 
-    private LinearRegularExpressionFactory() {
-    }
-
-    public static LinearRegularExpressionFactory getInstance() {
-        return INSTANCE;
+    LinearRegularExpressionFactory(RegexLimits limits) {
+        this.limits = limits;
     }
 
     @Override
     public RegularExpression getRegularExpression(String regex) {
-        val pattern = LinearRegex.compile(RegularExpressions.replaceLongformCharacterProperties(regex));
-        return value -> pattern.matcher(value).find();
+        val pattern = LinearRegex.compileOrRefuse(regex, limits);
+        return value -> {
+            try {
+                return LinearRegex.matches(pattern, value);
+            } catch (RegexSearchFailedException failure) {
+                // networknt passes a SchemaException on without logging it.
+                throw new SchemaException(failure);
+            }
+        };
     }
 
     /**
      * Installs this factory on a {@link SchemaRegistry} builder, so that every
      * {@code pattern} keyword evaluated by the resulting registry is matched in
-     * linear time, and a pattern RE2/J refuses fails the schema with a
-     * {@link com.networknt.schema.SchemaException} without being logged.
+     * linear time, and a pattern {@link LinearRegex} refuses fails the schema
+     * with a {@link com.networknt.schema.SchemaException} without being logged.
      *
      * @param builder the schema-registry builder to configure
+     * @param limits the limits for the patterns of the schemas
      */
-    public static void applyTo(SchemaRegistry.Builder builder) {
-        builder.schemaRegistryConfig(SchemaRegistryConfig.builder().regularExpressionFactory(INSTANCE).build())
-                .dialectRegistry(new LinearRegexDialectRegistry());
+    public static void applyTo(SchemaRegistry.Builder builder, RegexLimits limits) {
+        val factory = new LinearRegularExpressionFactory(limits);
+        builder.schemaRegistryConfig(SchemaRegistryConfig.builder().regularExpressionFactory(factory).build())
+                .dialectRegistry(new LinearRegexDialectRegistry(factory));
     }
 }

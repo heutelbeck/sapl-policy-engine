@@ -17,7 +17,8 @@
  */
 package io.sapl.test;
 
-import com.google.re2j.PatternSyntaxException;
+import io.sapl.compiler.util.RegexRefusedException;
+import io.sapl.compiler.util.RegexSearchFailedException;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("Matchers tests")
@@ -206,7 +208,7 @@ class MatchersTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    @DisplayName("textMatching matches like the =~ operator of policies, in RE2 syntax against the whole text")
+    @DisplayName("textMatching matches like the =~ operator of policies, in the syntax of the regex crate against the whole text")
     void whenTextMatchingThenMatchesLikePolicies(String description, String regex, String text, boolean matches) {
         assertThat(textMatching(regex).matches(Value.of(text))).isEqualTo(matches);
     }
@@ -215,14 +217,23 @@ class MatchersTests {
         return Stream.of(arguments("a part of the text does not match", "admin", "administrator", false),
                 arguments("the whole text matches", "admin.*", "administrator", true),
                 arguments("case folding follows Unicode", "(?i)é", "É", true),
-                arguments("a named group in Python syntax", "(?P<word>[a-z]+)", "cthulhu", true));
+                arguments("a named group in Python syntax", "(?P<word>[a-z]+)", "cthulhu", true),
+                arguments("word characters follow Unicode", "\\w+", "caf\u00e9", true));
+    }
+
+    @Test
+    @DisplayName("textMatching fails on a text the regex engine cannot search instead of reporting a non-match")
+    void whenTextCannotBeSearchedThenTextMatchingFails() {
+        val matcher      = textMatching(".*");
+        val unsearchable = Value.of("a\uD800");
+        assertThatThrownBy(() -> matcher.matches(unsearchable)).isInstanceOf(RegexSearchFailedException.class);
     }
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
     @DisplayName("textMatching refuses a regex that policies refuse when the matcher is created")
     void whenTextMatchingWithRegexRefusedByPoliciesThenThrows(String description, String regex) {
-        assertThatThrownBy(() -> textMatching(regex)).isInstanceOf(PatternSyntaxException.class);
+        assertThatThrownBy(() -> textMatching(regex)).isInstanceOf(RegexRefusedException.class);
     }
 
     static Stream<Arguments> whenTextMatchingWithRegexRefusedByPoliciesThenThrows() {

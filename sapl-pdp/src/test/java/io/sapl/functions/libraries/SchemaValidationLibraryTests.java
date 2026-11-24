@@ -22,6 +22,7 @@ import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.dialect.Dialect;
 import com.networknt.schema.keyword.PatternValidator;
 import io.sapl.api.model.*;
+import io.sapl.compiler.util.LinearRegex;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class SchemaValidationLibraryTests {
 
     private static final String INVALID_REGULAR_EXPRESSION = "The schema holds an invalid regular expression: %s.";
+    private static final String MATCHING_FAILED            = "Matching the regular expression '.*' of the schema failed: text too long.";
+    private static final String TEXT_BEYOND_LIMIT          = "a".repeat(LinearRegex.LIMITS.maxTextBytes() + 1);
     private static final String SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s.";
 
     @Test
@@ -86,7 +89,7 @@ class SchemaValidationLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    @DisplayName("a schema with a pattern RE2 refuses is an error in every function, never a compliant subject")
+    @DisplayName("a schema with a pattern the regex engine refuses is an error in every function, never a compliant subject")
     void whenSchemaPatternRefusedThenEveryFunctionReturnsError(String description, String schema, String subject,
             String reason) {
         val jsonSchema        = (ObjectValue) json(schema);
@@ -103,21 +106,61 @@ class SchemaValidationLibraryTests {
     static Stream<Arguments> whenSchemaPatternRefusedThenEveryFunctionReturnsError() {
         return Stream.of(arguments("a look-ahead in pattern", """
                 {"type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}
-                """, "\"password1\"", "invalid or unsupported Perl syntax"),
+                """, "\"password1\"", "look-around, including look-ahead and look-behind, is not supported"),
                 arguments("a backreference in a nested pattern", """
                         {"type": "object", "properties": {"code": {"type": "string", "pattern": "(a)\\\\1"}}}
-                        """, "{}", "invalid escape sequence"), arguments("a look-behind in a patternProperties key", """
+                        """, "{}", "backreferences are not supported"),
+                arguments("a look-behind in a patternProperties key", """
                         {"type": "object", "patternProperties": {"(?<=x)y": {"type": "number"}}}
-                        """, "{\"other\": 1}", "invalid named capture"),
+                        """, "{\"other\": 1}", "look-around, including look-ahead and look-behind, is not supported"),
                 arguments("a look-ahead in a branch the subject does not need", """
                         {"anyOf": [{"type": "number"}, {"type": "string", "pattern": "(?!admin)"}]}
-                        """, "1", "invalid or unsupported Perl syntax"), arguments("a pattern too large to compile", """
+                        """, "1", "look-around, including look-ahead and look-behind, is not supported"),
+                arguments("a pattern too large to compile", """
                         {"type": "string", "pattern": "(?:a{1000}){1000}"}
                         """, "\"a\"", "expression too large"));
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    @DisplayName("a subject the regex engine cannot search is an error in every function, never a compliant subject")
+    void whenSubjectCannotBeSearchedThenEveryFunctionReturnsError(String description, String schema,
+            Value validationSubject) {
+        val jsonSchema = (ObjectValue) json(schema);
+
+        assertThat(List.of(isCompliant(validationSubject, jsonSchema),
+                isCompliantWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY),
+                validate(validationSubject, jsonSchema),
+                validateWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY)))
+                .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                        error -> assertThat(error.message()).isEqualTo(MATCHING_FAILED)));
+    }
+
+    static Stream<Arguments> whenSubjectCannotBeSearchedThenEveryFunctionReturnsError() {
+        return Stream.of(arguments("a negated pattern on a text beyond the text limit", """
+                {"not": {"pattern": ".*"}}
+                """, Value.of(TEXT_BEYOND_LIMIT)),
+                arguments("a patternProperties key on a name beyond the text limit", """
+                        {"type": "object", "patternProperties": {".*": false}}
+                        """, ObjectValue.builder().put(TEXT_BEYOND_LIMIT, Value.of(1)).build()));
+    }
+
     @Test
-    @DisplayName("an external schema with a pattern RE2 refuses is an error, never a compliant subject")
+    @DisplayName("a subject the regex engine cannot search leaves no trace in the log")
+    void whenSubjectCannotBeSearchedThenNothingIsLogged() {
+        val networkntLogs = List.of(getTestLogger(PatternValidator.class), getTestLogger(Dialect.class));
+        networkntLogs.forEach(TestLogger::clearAll);
+
+        val result = validate(Value.of(TEXT_BEYOND_LIMIT), (ObjectValue) json("""
+                {"not": {"pattern": ".*"}}
+                """));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(networkntLogs).allSatisfy(log -> assertThat(log.getAllLoggingEvents()).isEmpty());
+    }
+
+    @Test
+    @DisplayName("an external schema with a pattern the regex engine refuses is an error, never a compliant subject")
     void whenExternalSchemaPatternRefusedThenError() {
         val externals = (ArrayValue) json("""
                 [{"$id": "https://example.com/password", "type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}]
@@ -126,14 +169,14 @@ class SchemaValidationLibraryTests {
                 {"$ref": "https://example.com/password"}
                 """);
 
-        assertThat(isCompliantWithExternalSchemas(Value.of("password1"), schema, externals))
-                .isInstanceOfSatisfying(ErrorValue.class, error -> assertThat(error.message())
-                        .isEqualTo(INVALID_REGULAR_EXPRESSION.formatted("invalid or unsupported Perl syntax")));
+        assertThat(isCompliantWithExternalSchemas(Value.of("password1"), schema, externals)).isInstanceOfSatisfying(
+                ErrorValue.class, error -> assertThat(error.message()).isEqualTo(INVALID_REGULAR_EXPRESSION
+                        .formatted("look-around, including look-ahead and look-behind, is not supported")));
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    @DisplayName("a schema pattern RE2 refuses leaves no trace in the log, as subscriptions may supply schemas")
+    @DisplayName("a schema pattern the regex engine refuses leaves no trace in the log, as subscriptions may supply schemas")
     void whenSchemaPatternRefusedThenNothingIsLogged(String description, String schema) {
         val jsonSchema    = (ObjectValue) json(schema);
         val networkntLogs = List.of(getTestLogger(PatternValidator.class), getTestLogger(Dialect.class));

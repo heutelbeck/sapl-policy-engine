@@ -17,13 +17,13 @@
  */
 package io.sapl.test;
 
-import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
 import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.RegexRefusedException;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -234,18 +234,20 @@ public class Matchers {
     }
 
     /**
-     * Matches text values matching a regex pattern. The pattern follows the RE2
-     * syntax and must match the whole text, like the {@code =~} operator of
-     * policies.
+     * Matches text values matching a regex pattern. The pattern follows the
+     * syntax of the regex crate and must match the whole text, like the
+     * {@code =~} operator of policies. Matching a text the engine cannot search,
+     * because it exceeds the text limit or holds an unpaired surrogate, throws a
+     * {@link io.sapl.compiler.util.RegexSearchFailedException}.
      *
      * @param regex the regex pattern
      * @return the matcher
-     * @throws PatternSyntaxException if the pattern is invalid, too large, or
-     * nests its groups too deeply
+     * @throws RegexRefusedException if the pattern is invalid, too long, too
+     * large, or nests too deeply
      */
     public static ArgumentMatcher textMatching(@NonNull String regex) {
-        val pattern = LinearRegex.compile(regex);
-        return matching(v -> v instanceof TextValue(String value) && pattern.matches(value));
+        val pattern = LinearRegex.compileWholeTextOrRefuse(regex);
+        return matching(v -> v instanceof TextValue(String value) && LinearRegex.matches(pattern, value));
     }
 
     /**

@@ -17,10 +17,12 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.google.re2j.Pattern;
+import com.heutelbeck.rustregex4j.IsMatch;
+import com.heutelbeck.rustregex4j.Regex;
 import io.sapl.api.SaplVersion;
 import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.attributes.tls.PemTrust;
+import io.sapl.compiler.util.LinearRegex;
 import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -69,7 +71,7 @@ public class JWTKeyProvider {
     // The kid comes from an unverified JWT header and is interpolated into the
     // operator's key-server URI template. Restricting it to base64url-safe
     // characters prevents path, query, authority, or CRLF injection.
-    private static final Pattern  SAFE_KEY_ID            = Pattern.compile("[A-Za-z0-9._-]+");
+    private static final Regex    SAFE_KEY_ID            = LinearRegex.compileWholeTextOrRefuse("[A-Za-z0-9._-]+");
     public static final String    PUBLIC_KEY_URI_KEY     = "uri";
     public static final String    PUBLIC_KEY_METHOD_KEY  = "method";
     public static final String    KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
@@ -148,7 +150,8 @@ public class JWTKeyProvider {
      * @throws CachingException if the caching configuration is invalid
      */
     public Optional<Key> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
-        if (kid == null || !SAFE_KEY_ID.matcher(kid).matches()) {
+        // A key id the engine cannot search is not known to be safe.
+        if (kid == null || !(SAFE_KEY_ID.isMatch(kid) instanceof IsMatch(var safe) && safe)) {
             log.warn(WARN_JWT_KID_REJECTED);
             return Optional.empty();
         }

@@ -103,7 +103,7 @@ public class SchemaValidatorCompiler {
         if (enforced.isEmpty()) {
             return Value.TRUE;
         }
-        val registry = JsonSchemaPreparation.registry(ctx.getData().variables().get("schemas"));
+        val registry = JsonSchemaPreparation.registry(ctx.getData().variables().get("schemas"), ctx.regexLimits());
         // Grouped in the order of the subscription elements, not in the iteration order of a
         // hash map over enum constants, which differs from one run to the next and would
         // change the semantic hash of the combined validator.

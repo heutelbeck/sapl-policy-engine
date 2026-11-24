@@ -153,7 +153,7 @@ class SAPLTestValidatorTests {
         var errors = validate(document);
 
         assertThat(errors).hasSize(1).first().satisfies(e -> assertThat(e.message())
-                .isEqualTo("The regular expression '[invalid(' is invalid: missing closing ]."));
+                .isEqualTo("The regular expression '[invalid(' is invalid: unclosed character class."));
     }
 
     @Test
@@ -174,7 +174,7 @@ class SAPLTestValidatorTests {
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    @DisplayName("a regex that policies refuse is refused in tests with the reason, as policies and tests share the RE2 syntax")
+    @DisplayName("a regex that policies refuse is refused in tests with the reason, as policies and tests share the syntax of the regex crate")
     void whenRegexRefusedByPoliciesThenError(String description, String regex, String reason) {
         var errors = validate(documentWithRegex(regex));
 
@@ -183,17 +183,20 @@ class SAPLTestValidatorTests {
     }
 
     static Stream<Arguments> whenRegexRefusedByPoliciesThenError() {
-        return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$", "invalid or unsupported Perl syntax"),
-                arguments("a backreference", "(a)\\\\1", "invalid escape sequence"),
-                arguments("a possessive quantifier", "a*+", "invalid nested repetition operator"),
-                arguments("an atomic group", "(?>a)", "invalid or unsupported Perl syntax"),
-                arguments("a class only Java knows", "\\\\h+", "invalid escape sequence"),
-                arguments("a program too large to compile", "a".repeat(20_000), "expression too large"));
+        return Stream.of(
+                arguments("a look-ahead", "^(?=.*[0-9]).{8,}$",
+                        "look-around, including look-ahead and look-behind, is not supported"),
+                arguments("a backreference", "(a)\\\\1", "backreferences are not supported"),
+                arguments("an atomic group", "(?>a)", "unrecognized flag"),
+                arguments("a class only Java knows", "\\\\h+", "unrecognized escape sequence"),
+                arguments("a quoted section of java.util.regex", "\\\\Qa\\\\E", "unrecognized escape sequence"),
+                arguments("a program too large to compile", "(?:a{1000}){1000}", "expression too large"),
+                arguments("a pattern longer than the pattern limit", "a".repeat(20_000), "expression too long"));
     }
 
     @MethodSource
     @ParameterizedTest(name = "{0}")
-    @DisplayName("a regex that policies accept is accepted in tests, as policies and tests share the RE2 syntax")
+    @DisplayName("a regex that policies accept is accepted in tests, as policies and tests share the syntax of the regex crate")
     void whenRegexAcceptedByPoliciesThenNoError(String description, String regex) {
         var errors = validate(documentWithRegex(regex));
 
@@ -202,7 +205,7 @@ class SAPLTestValidatorTests {
 
     static Stream<Arguments> whenRegexAcceptedByPoliciesThenNoError() {
         return Stream.of(arguments("a named group in Python syntax", "(?P<word>[a-z]+)"),
-                arguments("a literal longer than a thousand characters", "a".repeat(1_500)));
+                arguments("a literal as long as the pattern limit", "a".repeat(1_024)));
     }
 
     private static String documentWithRegex(String regex) {
@@ -367,8 +370,8 @@ class SAPLTestValidatorTests {
 
         var errors = validate(document);
 
-        assertThat(errors).hasSize(1).first().satisfies(
-                e -> assertThat(e.message()).isEqualTo("The regular expression '[' is invalid: missing closing ]."));
+        assertThat(errors).hasSize(1).first().satisfies(e -> assertThat(e.message())
+                .isEqualTo("The regular expression '[' is invalid: unclosed character class."));
     }
 
     @Test

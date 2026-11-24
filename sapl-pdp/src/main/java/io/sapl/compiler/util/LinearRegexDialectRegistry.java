@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.util;
 
-import com.google.re2j.PatternSyntaxException;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaContext;
 import com.networknt.schema.SchemaException;
@@ -38,8 +37,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Resolves the JSON Schema dialects as networknt does, with the keywords that
- * compile regular expressions changed so that a pattern RE2/J refuses fails the
- * schema with a {@link SchemaException} that networknt passes on silently.
+ * compile regular expressions changed so that a pattern {@link LinearRegex}
+ * refuses fails the schema with a {@link SchemaException} that networknt
+ * passes on silently.
  * <p>
  * Unchanged, networknt logs a pattern it cannot compile at ERROR, the pattern
  * text included, and logs a keyword that fails with an exception other than a
@@ -52,19 +52,24 @@ final class LinearRegexDialectRegistry implements DialectRegistry {
     private static final Set<String> KEYWORDS_WITH_PATTERNS = Set.of(KeywordType.PATTERN.getValue(),
             KeywordType.PATTERN_PROPERTIES.getValue(), KeywordType.ADDITIONAL_PROPERTIES.getValue());
 
-    private final DialectRegistry       standardDialects = new DefaultDialectRegistry();
-    private final Map<Dialect, Dialect> dialects         = new ConcurrentHashMap<>();
+    private final DialectRegistry                standardDialects = new DefaultDialectRegistry();
+    private final Map<Dialect, Dialect>          dialects         = new ConcurrentHashMap<>();
+    private final LinearRegularExpressionFactory patterns;
+
+    LinearRegexDialectRegistry(LinearRegularExpressionFactory patterns) {
+        this.patterns = patterns;
+    }
 
     @Override
     public Dialect getDialect(String dialectId, SchemaRegistry schemaRegistry) {
         return dialects.computeIfAbsent(standardDialects.getDialect(dialectId, schemaRegistry),
-                LinearRegexDialectRegistry::refusingPatternsSilently);
+                this::refusingPatternsSilently);
     }
 
-    private static Dialect refusingPatternsSilently(Dialect dialect) {
+    private Dialect refusingPatternsSilently(Dialect dialect) {
         val keywords = dialect.getKeywords().values().stream()
                 .filter(keyword -> KEYWORDS_WITH_PATTERNS.contains(keyword.getValue()))
-                .map(SilentlyRefusingKeyword::new).toList();
+                .map(keyword -> new SilentlyRefusingKeyword(keyword, patterns)).toList();
         return Dialect.builder(dialect).keywords(keywords).build();
     }
 
@@ -74,7 +79,8 @@ final class LinearRegexDialectRegistry implements DialectRegistry {
      * before networknt compiles it, as networknt logs a refusal before passing it
      * on.
      */
-    private record SilentlyRefusingKeyword(Keyword keyword) implements Keyword {
+    private record SilentlyRefusingKeyword(Keyword keyword, LinearRegularExpressionFactory patterns)
+            implements Keyword {
 
         @Override
         public String getValue() {
@@ -86,10 +92,10 @@ final class LinearRegexDialectRegistry implements DialectRegistry {
                 SchemaContext schemaContext) throws Exception {
             try {
                 if (KeywordType.PATTERN.getValue().equals(getValue()) && schemaNode.isString()) {
-                    LinearRegularExpressionFactory.getInstance().getRegularExpression(schemaNode.asString());
+                    patterns.getRegularExpression(schemaNode.asString());
                 }
                 return keyword.newValidator(schemaLocation, schemaNode, parentSchema, schemaContext);
-            } catch (PatternSyntaxException e) {
+            } catch (RegexRefusedException e) {
                 throw new SchemaException(e);
             }
         }

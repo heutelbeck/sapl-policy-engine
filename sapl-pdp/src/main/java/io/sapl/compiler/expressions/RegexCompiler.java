@@ -19,12 +19,15 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.compiler.expressions.BooleanGuard.BooleanResult;
 
-import com.google.re2j.Pattern;
-import com.google.re2j.PatternSyntaxException;
+import com.heutelbeck.rustregex4j.IsMatch;
+import com.heutelbeck.rustregex4j.Regex;
+import com.heutelbeck.rustregex4j.RegexError;
+import com.heutelbeck.rustregex4j.RegexLimits;
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.RegexRefusedException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -37,7 +40,9 @@ import static io.sapl.api.model.StreamOperator.evalChild;
  * Compiler for REGEX binary operations with pre-compilation optimization.
  * <p>
  * The pattern must match the whole text. Patterns are compiled by
- * {@link LinearRegex} and matched in linear time without backtracking.
+ * {@link LinearRegex#compileWholeText(String)} and matched in linear time
+ * without backtracking. A text the engine cannot search, because it exceeds
+ * the text limit or holds an unpaired surrogate, yields an error.
  * <p>
  * When the regex pattern is a compile-time constant (literal string), the
  * pattern is pre-compiled for better runtime performance. When the pattern
@@ -47,9 +52,9 @@ import static io.sapl.api.model.StreamOperator.evalChild;
 @UtilityClass
 public class RegexCompiler {
 
-    private static final String          ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
-    private static final String          ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
-    private static final BinaryOperation MATCHER                    = RegexCompiler::matchRegex;
+    private static final String ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
+    private static final String ERROR_REGEX_MATCH_FAILED   = "Matching the regular expression '%s' failed: %s.";
+    private static final String ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(binaryOperation.left(), ctx),
@@ -64,7 +69,7 @@ public class RegexCompiler {
                 return left;
             }
             if (left instanceof Value lv) {
-                return matchRegex(lv, compiled);
+                return matchRegex(lv, compiled, loc);
             }
             if (left instanceof StreamOperator ls) {
                 return new RegexPrecompiledStream(ls, compiled, loc);
@@ -84,46 +89,50 @@ public class RegexCompiler {
             return Value.errorAt(loc, ERROR_REGEX_MUST_BE_STRING, right);
         }
         if (left instanceof StreamOperator || right instanceof StreamOperator) {
-            return new RegexStream(left, right, loc);
+            return new RegexStream(left, right, ctx.regexLimits(), loc);
         }
-        return new RegexPure(left, right, loc);
+        return new RegexPure(left, right, ctx.regexLimits(), loc);
     }
 
-    private record PreparedPattern(CompiledExpression operand, Pattern pattern) {}
+    private record PreparedPattern(CompiledExpression operand, Regex pattern) {}
 
     private static PreparedPattern preparePattern(BinaryOperator operation, CompilationContext ctx) {
         val operand = ExpressionCompiler.compile(operation.right(), ctx);
         if (operand instanceof TextValue(String value)) {
-            try {
-                return new PreparedPattern(operand, LinearRegex.compile(value));
-            } catch (PatternSyntaxException e) {
-                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getDescription()), e, operation);
+            return switch (LinearRegex.compileWholeText(value, ctx.regexLimits())) {
+            case Regex regex      -> new PreparedPattern(operand, regex);
+            case RegexError error -> {
+                val description = LinearRegex.describe(error);
+                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, description),
+                        new RegexRefusedException(value, description), operation);
             }
+            };
         }
         return new PreparedPattern(operand, null);
     }
 
-    static Value matchRegex(Value input, Pattern pattern) {
+    static Value matchRegex(Value input, Regex pattern, SourceLocation loc) {
         if (!(input instanceof TextValue(String value))) {
             return Value.FALSE; // Non-text doesn't match
         }
-        return pattern.matches(value) ? Value.TRUE : Value.FALSE;
+        return switch (pattern.isMatch(value)) {
+        case IsMatch(var matches) -> matches ? Value.TRUE : Value.FALSE;
+        case RegexError error     ->
+            Value.errorAt(loc, ERROR_REGEX_MATCH_FAILED, pattern.pattern(), LinearRegex.describe(error));
+        };
     }
 
-    static Value matchRegex(Value input, Value pattern, SourceLocation loc) {
+    static Value matchRegex(Value input, Value pattern, RegexLimits limits, SourceLocation loc) {
         if (!(pattern instanceof TextValue(String patternText))) {
             return Value.errorAt(loc, ERROR_REGEX_MUST_BE_STRING, pattern);
         }
-        if (!(input instanceof TextValue(String inputText))) {
+        if (!(input instanceof TextValue)) {
             return Value.FALSE; // Non-text doesn't match
         }
-        final Pattern compiled;
-        try {
-            compiled = LinearRegex.compile(patternText);
-        } catch (PatternSyntaxException e) {
-            return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getDescription());
-        }
-        return compiled.matches(inputText) ? Value.TRUE : Value.FALSE;
+        return switch (LinearRegex.compileWholeText(patternText, limits)) {
+        case Regex regex      -> matchRegex(input, regex, loc);
+        case RegexError error -> Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, LinearRegex.describe(error));
+        };
     }
 
     /**
@@ -131,7 +140,7 @@ public class RegexCompiler {
      * {@link Predicate} cached at compile time bypasses per-evaluation
      * pattern compilation.
      */
-    record RegexPrecompiledPure(PureOperator input, String patternSource, Pattern pattern, SourceLocation location)
+    public record RegexPrecompiledPure(PureOperator input, String patternSource, Regex pattern, SourceLocation location)
             implements PureOperator, BooleanResult {
         private static final long KIND = SemanticHashing.kindHash(RegexPrecompiledPure.class);
 
@@ -141,7 +150,7 @@ public class RegexCompiler {
             if (v instanceof ErrorValue) {
                 return v;
             }
-            return matchRegex(v, pattern);
+            return matchRegex(v, pattern, location);
         }
 
         @Override
@@ -163,7 +172,7 @@ public class RegexCompiler {
     /**
      * Pre-compiled regex against a {@link StreamOperator} input.
      */
-    record RegexPrecompiledStream(StreamOperator input, Pattern pattern, SourceLocation location)
+    record RegexPrecompiledStream(StreamOperator input, Regex pattern, SourceLocation location)
             implements StreamOperator, BooleanResult {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
@@ -172,7 +181,7 @@ public class RegexCompiler {
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(matchRegex(v, pattern), deps);
+            return new ExpressionResult(matchRegex(v, pattern, location), deps);
         }
     }
 
@@ -182,7 +191,7 @@ public class RegexCompiler {
      * branch is unreachable by construction and folds to an
      * {@link ErrorValue} defensively.
      */
-    record RegexPure(CompiledExpression input, CompiledExpression pattern, SourceLocation location)
+    record RegexPure(CompiledExpression input, CompiledExpression pattern, RegexLimits limits, SourceLocation location)
             implements PureOperator, BooleanResult {
         private static final long KIND = SemanticHashing.kindHash(RegexPure.class);
 
@@ -204,7 +213,7 @@ public class RegexCompiler {
             if (p instanceof ErrorValue) {
                 return p;
             }
-            return matchRegex(i, p, location);
+            return matchRegex(i, p, limits, location);
         }
 
         @Override
@@ -234,11 +243,15 @@ public class RegexCompiler {
      * binary-op eager evaluator which walks both children to accumulate
      * the maximum subscription set.
      */
-    record RegexStream(CompiledExpression input, CompiledExpression pattern, SourceLocation location)
-            implements StreamOperator, BooleanResult {
+    record RegexStream(
+            CompiledExpression input,
+            CompiledExpression pattern,
+            RegexLimits limits,
+            SourceLocation location) implements StreamOperator, BooleanResult {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return MATCHER.evalEager(input, pattern, location, ctx);
+            final BinaryOperation matcher = (text, regex, loc) -> matchRegex(text, regex, limits, loc);
+            return matcher.evalEager(input, pattern, location, ctx);
         }
     }
 

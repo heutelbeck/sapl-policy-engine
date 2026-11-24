@@ -17,7 +17,8 @@
  */
 package io.sapl.functions.libraries;
 
-import com.google.re2j.Pattern;
+import com.heutelbeck.rustregex4j.IsMatch;
+import com.heutelbeck.rustregex4j.Regex;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
@@ -27,6 +28,7 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.SubjectAlternativeName;
+import io.sapl.compiler.util.LinearRegex;
 import lombok.val;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
@@ -173,9 +175,9 @@ public class X509FunctionLibrary {
     private static final String ERROR_INVALID_TIMESTAMP          = "Invalid timestamp: %s.";
     private static final String ERROR_NO_COMMON_NAME             = "Certificate subject does not contain a Common Name.";
 
-    private static final String  IPV4_OCTET   = "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
-    private static final Pattern IPV4_LITERAL = Pattern
-            .compile(IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET);
+    private static final String IPV4_OCTET   = "(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])";
+    private static final Regex  IPV4_LITERAL = LinearRegex
+            .compileWholeTextOrRefuse(IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET);
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -545,7 +547,8 @@ public class X509FunctionLibrary {
      * @return true if the text is an IPv4 or IPv6 literal
      */
     private static boolean isIpLiteral(String ip) {
-        return ip.indexOf(':') >= 0 || IPV4_LITERAL.matcher(ip).matches();
+        // A text the engine cannot search is no literal, so it is never resolved.
+        return ip.indexOf(':') >= 0 || (IPV4_LITERAL.isMatch(ip) instanceof IsMatch(var literal) && literal);
     }
 
     @Function(docs = """

@@ -17,11 +17,14 @@
  */
 package io.sapl.compiler.expressions;
 
-import com.google.re2j.PatternSyntaxException;
+import com.heutelbeck.rustregex4j.IsMatch;
+import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.RegexRefusedException;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.ast.EnvironmentAttribute;
 import io.sapl.ast.FunctionCall;
@@ -204,7 +207,7 @@ class RegexCompilerTests {
                 [subject =~ "(", [action =~ "[", resource =~ "("]]""";
         val failure    = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(expression));
         assertThat(failure.diagnostics())
-                .allSatisfy(leaf -> assertThat(leaf).hasCauseInstanceOf(PatternSyntaxException.class))
+                .allSatisfy(leaf -> assertThat(leaf).hasCauseInstanceOf(RegexRefusedException.class))
                 .extracting(leaf -> {
                     val location = leaf.getLocation();
                     return expression.substring(location.start(), location.end());
@@ -217,8 +220,8 @@ class RegexCompilerTests {
         val expression = """
                 [1 / 0, subject =~ "(", 3]""";
         val failure    = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(expression));
-        assertThat(failure).hasMessage("Invalid regular expression '(': missing closing ).")
-                .hasCauseInstanceOf(PatternSyntaxException.class);
+        assertThat(failure).hasMessage("Invalid regular expression '(': unclosed group.")
+                .hasCauseInstanceOf(RegexRefusedException.class);
         assertThat(failure.diagnostics()).singleElement().isSameAs(failure);
     }
 
@@ -292,6 +295,87 @@ class RegexCompilerTests {
     }
     // @formatter:on
 
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("a text the regex engine cannot search makes the match an error, never a decision")
+    void whenTextCannotBeSearchedThenMatchIsError(String description, String text, String reason) {
+        var subscription = AuthorizationSubscription.of(Value.of(text), Value.NULL, Value.NULL, Value.NULL);
+        var compiled     = compileExpression("subject =~ \"[a-z]*\"");
+        assertThat(((PureOperator) compiled).evaluate(evaluationContext(subscription)))
+                .isInstanceOfSatisfying(ErrorValue.class, error -> assertThat(error.message()).contains(reason));
+    }
+
+    private static Stream<Arguments> whenTextCannotBeSearchedThenMatchIsError() {
+        return Stream.of(arguments("a text above the text limit", "a".repeat(LinearRegex.LIMITS.maxTextBytes() + 1),
+                "text too long"), arguments("an unpaired surrogate", "a\uD800", "malformed Unicode"));
+    }
+
+    private static CompilationContext contextWithOptions(String options) {
+        val context = compilationContext();
+        context.setCompilerOptions((ObjectValue) ValueJsonMarshaller.json(options));
+        return context;
+    }
+
+    @Test
+    @DisplayName("a raised size limit admits a pattern the default refuses")
+    void whenSizeLimitIsRaisedThenLargerPatternCompiles() {
+        val pattern = "subject =~ \"\\\\w{3,32}\"";
+        assertThatThrownBy(() -> compileExpression(pattern)).isInstanceOf(SaplCompilerException.class)
+                .hasMessageContaining("expression too large");
+        val subscription = AuthorizationSubscription.of(Value.of("Gr\u00fc\u00dfe"), Value.NULL, Value.NULL,
+                Value.NULL);
+        val compiled     = compileExpression(pattern, contextWithOptions("{\"regexSizeLimitKibibytes\": 2048}"));
+        assertThat(((PureOperator) compiled).evaluate(evaluationContext(subscription))).isEqualTo(Value.TRUE);
+    }
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("lowered limits refuse what the defaults admit, for constant and computed patterns")
+    void whenLimitIsLoweredThenItApplies(String description, String options, String expression, String reason) {
+        val subscription = AuthorizationSubscription.of(Value.of("abcdefgh"), Value.NULL, Value.NULL,
+                Value.of("[a-z]{8}"));
+        val context      = contextWithOptions(options);
+        assertThat(evaluateOrCompilationError(expression, context, subscription)).contains(reason);
+    }
+
+    private static Stream<Arguments> whenLimitIsLoweredThenItApplies() {
+        return Stream.of(
+                arguments("a text limit on a constant pattern", "{\"regexMaxTextBytes\": 4}", "subject =~ \"[a-z]+\"",
+                        "text too long"),
+                arguments("a pattern limit on a constant pattern", "{\"regexMaxPatternBytes\": 4}",
+                        "subject =~ \"[a-z]+\"", "expression too long"),
+                arguments("a pattern limit on a computed pattern", "{\"regexMaxPatternBytes\": 4}",
+                        "subject =~ environment", "expression too long"),
+                arguments("a text limit on a computed pattern", "{\"regexMaxTextBytes\": 4}", "subject =~ environment",
+                        "text too long"),
+                arguments("a size limit on a computed pattern", "{\"regexSizeLimitKibibytes\": 1}",
+                        "subject =~ (environment + \"\\\\w\")", "expression too large"));
+    }
+
+    private static String evaluateOrCompilationError(String expression, CompilationContext context,
+            AuthorizationSubscription subscription) {
+        try {
+            val compiled = compileExpression(expression, context);
+            val result   = compiled instanceof PureOperator pure ? pure.evaluate(evaluationContext(subscription))
+                    : compiled;
+            return result instanceof ErrorValue error ? error.message() : result.toString();
+        } catch (SaplCompilerException refusal) {
+            return refusal.getMessage();
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "{\"regexMaxPatternBytes\": 0}", "{\"regexMaxTextBytes\": -1}",
+            "{\"regexSizeLimitKibibytes\": 1048577}", "{\"regexSizeLimitKibibytes\": 1.5}",
+            "{\"regexMaxTextBytes\": \"large\"}" })
+    @DisplayName("an invalid regex limit refuses the compiler options")
+    void whenRegexLimitIsInvalidThenOptionsAreRefused(String options) {
+        val context = compilationContext();
+        val parsed  = (ObjectValue) ValueJsonMarshaller.json(options);
+        assertThatThrownBy(() -> context.setCompilerOptions(parsed)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be an integer from 1 to");
+    }
+
     @Test
     void whenPureRegexWithInvalidSubscriptionPatternThenReturnsError() {
         // Use subscription element so pattern is resolved at runtime
@@ -310,8 +394,8 @@ class RegexCompilerTests {
         var precompiled = (RegexCompiler.RegexPrecompiledPure) compiled;
         // Pattern is compiled at compile time. Same reference reused per evaluate call.
         assertThat(precompiled.pattern()).isNotNull().isSameAs(precompiled.pattern())
-                .satisfies(p -> assertThat(p.matcher("apple").matches()).isTrue())
-                .satisfies(p -> assertThat(p.matcher("banana").matches()).isFalse());
+                .satisfies(p -> assertThat(p.isMatch("apple")).isEqualTo(new IsMatch(true)))
+                .satisfies(p -> assertThat(p.isMatch("banana")).isEqualTo(new IsMatch(false)));
         assertThat(precompiled.patternSource()).isEqualTo("^a.*");
     }
 
@@ -322,8 +406,8 @@ class RegexCompilerTests {
         assertThat(compiled).isInstanceOf(RegexCompiler.RegexPrecompiledStream.class);
         var precompiled = (RegexCompiler.RegexPrecompiledStream) compiled;
         assertThat(precompiled.pattern()).isNotNull().isSameAs(precompiled.pattern())
-                .satisfies(p -> assertThat(p.matcher("apple").matches()).isTrue())
-                .satisfies(p -> assertThat(p.matcher("banana").matches()).isFalse());
+                .satisfies(p -> assertThat(p.isMatch("apple")).isEqualTo(new IsMatch(true)))
+                .satisfies(p -> assertThat(p.isMatch("banana")).isEqualTo(new IsMatch(false)));
     }
 
 }

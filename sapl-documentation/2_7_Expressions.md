@@ -232,7 +232,7 @@ Except for the unary operators, multiple operators with the same precedence (e.g
 
    The expression evaluates to `true` if the result of evaluating `exp1` matches the pattern contained in the result of evaluating `exp2`. The pattern must match the whole text: `"administrator" =~ "admin"` is `false`, `"administrator" =~ "admin.*"` is `true`. If `exp1` is not a string, the expression evaluates to `false`. If `exp2` is not a string or not a valid pattern, the expression evaluates to an error. A constant pattern that is not valid is reported when the policy is compiled.
 
-   Patterns are written in the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) and are matched in time linear in the length of the text, without backtracking. See [Regular Expressions](#regular-expressions) for the syntax, its limits and how to migrate patterns written for `java.util.regex`.
+   Patterns are written in the syntax of the Rust [regex crate](https://docs.rs/regex/1.13.2/regex/#syntax) and are matched in time linear in the length of the text, without backtracking. A text the engine cannot search, because it is longer than the text limit or holds an unpaired surrogate, makes the expression an error. See [Regular Expressions](#regular-expressions) for the syntax, its limits and how to migrate older patterns.
 
 4. `in` (element of)
 
@@ -263,7 +263,7 @@ Except for the unary operators, multiple operators with the same precedence (e.g
 
 ### Regular Expressions
 
-SAPL uses the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) for every regular expression: the `=~` operator, the functions of the `patterns` library, the `pattern` and `patternProperties` keywords of [JSON schemas](../2_10_Schemas/#patterns-in-schemas), the `=~` conditions of the content filter of the [Spring integration](../6_3_Spring/), and the `text with regex` matcher of the [test language](../5_5_Matchers/). RE2 matches in time linear in the length of the text and never backtracks, even if the pattern or the text comes from the authorization subscription. Up to SAPL 4.1.x, patterns followed `java.util.regex` instead. The changelog lists the differences.
+SAPL uses the syntax of the Rust [regex crate](https://docs.rs/regex/1.13.2/regex/#syntax), version 1.13.2, for every regular expression: the `=~` operator, the functions of the `patterns` library, the `pattern` and `patternProperties` keywords of [JSON schemas](../2_10_Schemas/#patterns-in-schemas), the `=~` conditions of the content filter of the [Spring integration](../6_3_Spring/), and the `text with regex` matcher of the [test language](../5_5_Matchers/). The engine uses the crate through the library [rustregex4j](https://github.com/heutelbeck/rustregex4j). The engine matches in time linear in the length of the text and never backtracks, even if the pattern or the text comes from the authorization subscription. Up to SAPL 4.1.x, patterns followed `java.util.regex`. The changelog lists the differences.
 
 #### Whole Text or Any Part
 
@@ -271,14 +271,29 @@ The `=~` operator, the `=~` conditions of the content filter and the `text with 
 
 #### Syntax
 
-- Look-ahead, look-behind, backreferences, atomic groups and possessive quantifiers do not exist in RE2. A pattern that uses them is invalid.
-- The classes `\d`, `\w`, `\s`, the word boundary `\b` and the POSIX classes such as `[[:alpha:]]` hold ASCII characters only. Use Unicode classes such as `\p{L}`, `\p{Lu}`, `\p{Nd}` or `\p{Greek}` for other scripts. The Unicode tables of the Java engine (RE2/J) are older than those of the other SAPL engines, so a few newer characters may not belong to a property class there.
+- Look-ahead, look-behind, backreferences and atomic groups do not exist. A pattern that uses them is invalid. There are no possessive quantifiers either: `a*+` is a repetition of `a*`.
+- The classes `\d`, `\w`, `\s` and the word boundary `\b` follow Unicode: `\d` holds every decimal digit such as the Arabic-Indic `٣`, `\w` every letter, mark and digit such as `é`. To restrict them to ASCII, use `(?-u:\d)`, `(?-u:\w)` and `(?-u:\b)`, or explicit classes such as `[0-9]` and `[A-Za-z0-9_]`. The POSIX classes such as `[[:alpha:]]` hold ASCII characters only. Unicode classes such as `\p{L}`, `\p{Lu}`, `\p{Nd}` or `\p{Greek}` select scripts and categories, also in their long forms such as `\p{Letter}`.
 - `(?i)` matches without regard to case by the simple case folding of Unicode.
+- A backslash escapes only characters that have a meaning in patterns, such as `\.`, `\*` or `\-`. A backslash before a letter or digit without a meaning, such as `\h`, `\Z` or `\1`, makes the pattern invalid. There is no quoted section `\Q...\E`; escape each metacharacter instead. Within a class, `&&`, `--` and `~~` are the intersection, difference and symmetric difference of classes, so `[a-z&&[^aeiou]]` holds the consonants.
 - `.` matches every character except the line feed, `^` and `$` match at the start and the end of the text only. The flags `(?s)` and `(?m)` change this.
 
 #### Limits
 
-A pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. A single repetition count may be at most 1000, and nested repetitions multiply, so `(?:a{100}){101}` is too large. A large Unicode class counts for more than one instruction, as other implementations of SAPL build an automaton for it whose size grows with the class: `\p{L}` counts for 41 instructions, so `\p{L}{1,238}` is accepted and `\p{L}{1,239}` is too large. Smaller classes such as `\p{Lu}`, `\p{N}` or `\p{Greek}` count for fewer, and a class written in brackets counts for the Unicode classes it holds. An invalid pattern, or one beyond these limits, is reported with the reason RE2 gives: a constant pattern in a policy when the policy is compiled, a pattern computed at evaluation time as an error of the expression.
+Every pattern and every text is bounded, so that no pattern and no text can exhaust the time or memory of the engine:
+
+| Limit | Default | Compiler option |
+|---|---|---|
+| Length of a pattern | 1024 bytes in UTF-8 | [`regexMaxPatternBytes`](../2_2_PDPConfiguration/#regexMaxPatternBytes) |
+| Size of the compiled pattern | 256 KiB | [`regexSizeLimitKibibytes`](../2_2_PDPConfiguration/#regexSizeLimitKibibytes) |
+| Length of a text matched against a pattern | 64 KiB in UTF-8 | [`regexMaxTextBytes`](../2_2_PDPConfiguration/#regexMaxTextBytes) |
+| Nesting of groups, classes and repetitions | 64 levels | fixed |
+| Cache of the lazy DFA per search | 2 MiB | fixed |
+
+The compiler options apply to the `=~` operator and to the patterns of enforced schemas. The function libraries, the content filter of the Spring integration and the test language always use the defaults.
+
+Repetitions are expanded when a pattern is compiled, so nested repetitions multiply: `(?:a{1000}){1000}` is too large. Unicode classes are large, and a bounded repetition of one copies the class: `\w{1,5}` and `\p{L}{1,6}` are accepted, `\w{1,6}` and `\p{L}{1,7}` are too large. An unbounded repetition such as `\w+` or `\p{L}*` does not copy the class and is always small. For a bounded repetition, restrict the class to ASCII or name the characters: `(?-u:\w){1,1000}`, `[A-Za-z0-9_]{3,32}` and `[0-9]{1,1000}` are small.
+
+An invalid pattern, or one beyond these limits, is reported with the reason the parser gives: a constant pattern in a policy when the policy is compiled, a pattern computed at evaluation time as an error of the expression. A text beyond the text limit, or one holding an unpaired surrogate, makes the match an error: the `=~` operator and the functions of the `patterns` and `jsonschema` libraries evaluate to an error, an enforced schema yields an error, and a content filter condition denies access. Such a text is never treated as a non-match, so that a negated pattern cannot let it through.
 
 ### Key Membership Operator
 

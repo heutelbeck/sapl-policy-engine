@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.util;
 
+import com.heutelbeck.rustregex4j.RegexLimits;
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.Schema;
@@ -55,7 +56,7 @@ public class JsonSchemaPreparation {
     private static final SchemaLocation INLINE    = SchemaLocation.of("mem://inline");
     private static final JsonMapper     MAPPER    = JsonMapper.builder(JSON_FACTORY)
             .enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
-    private static final SchemaRegistry BUILT_INS = confinedRegistry(Map.of());
+    private static final SchemaRegistry BUILT_INS = confinedRegistry(Map.of(), LinearRegex.LIMITS);
 
     /**
      * Creates the registry for a set of locally supplied schemas.
@@ -64,6 +65,17 @@ public class JsonSchemaPreparation {
      * @return a registry confined to bundled dialects and the supplied schema identifiers
      */
     public static SchemaRegistry registry(Value externalSchemas) {
+        return registry(externalSchemas, LinearRegex.LIMITS);
+    }
+
+    /**
+     * Creates the registry for a set of locally supplied schemas.
+     *
+     * @param externalSchemas schemas supplied by the configuration or the function caller
+     * @param limits the limits for the patterns of the schemas
+     * @return a registry confined to bundled dialects and the supplied schema identifiers
+     */
+    public static SchemaRegistry registry(Value externalSchemas, RegexLimits limits) {
         val schemas = new HashMap<String, String>();
         if (externalSchemas instanceof ArrayValue array) {
             for (val entry : array) {
@@ -72,7 +84,7 @@ public class JsonSchemaPreparation {
                 }
             }
         }
-        return schemas.isEmpty() ? BUILT_INS : confinedRegistry(schemas);
+        return schemas.isEmpty() && LinearRegex.LIMITS.equals(limits) ? BUILT_INS : confinedRegistry(schemas, limits);
     }
 
     /**
@@ -162,11 +174,11 @@ public class JsonSchemaPreparation {
         return node.deepCopy();
     }
 
-    private static SchemaRegistry confinedRegistry(Map<String, String> schemas) {
+    private static SchemaRegistry confinedRegistry(Map<String, String> schemas, RegexLimits limits) {
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
             builder.nodeReader(reader -> reader.jsonMapper(MAPPER));
             builder.schemaLoader(new ConfinedSchemaLoader(schemas));
-            LinearRegularExpressionFactory.applyTo(builder);
+            LinearRegularExpressionFactory.applyTo(builder, limits);
         });
     }
 

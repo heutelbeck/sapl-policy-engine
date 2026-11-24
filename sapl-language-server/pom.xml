@@ -327,6 +327,9 @@
 								<buildArg>-march=compatibility</buildArg>
 								<buildArg>--static</buildArg>
 								<buildArg>--libc=musl</buildArg>
+								<!-- A fully static image cannot load the regex engine library;
+								     link the static musl build of rustregex4j into the executable. -->
+								<buildArg>--features=com.heutelbeck.rustregex4j.StaticEngineFeature</buildArg>
 							</buildArgs>
 							<quickBuild>false</quickBuild>
 						</configuration>

@@ -100,7 +100,7 @@ This subscription fails schema validation (missing required field `role`), so th
 
 ### Patterns in Schemas
 
-The `pattern` and `patternProperties` keywords use the [regular expressions](../2_7_Expressions/#regular-expressions) of SAPL in RE2 syntax, not the ECMA-262 syntax the JSON Schema specification names, so matching stays linear in time. A pattern matches if it matches any part of the text. Anchor it with `^` and `$` to match the whole text.
+The `pattern` and `patternProperties` keywords use the [regular expressions](../2_7_Expressions/#regular-expressions) of SAPL in the syntax of the `regex` crate, not the ECMA-262 syntax the JSON Schema specification names, so matching stays linear in time. A pattern matches if it matches any part of the text. Anchor it with `^` and `$` to match the whole text.
 
 A rule written with look-ahead is written as several patterns under `allOf` instead. `"pattern": "^(?=.*[0-9])(?=.*[A-Z]).{12,}$"` becomes:
 
@@ -112,6 +112,6 @@ A rule written with look-ahead is written as several patterns under `allOf` inst
 }
 ```
 
-A schema with a pattern RE2 refuses never lets a subscription through, even if the subscription never reaches the pattern. An enforced schema statement with such a pattern is refused when the policy is compiled, and the functions of the `jsonschema` library return an error. Both name the reason.
+A schema with a pattern the regex engine refuses never lets a subscription through, even if the subscription never reaches the pattern. An enforced schema statement with such a pattern is refused when the policy is compiled, and the functions of the `jsonschema` library return an error. Both name the reason.
 
 The `format` keyword is an annotation and is not checked. `"format": "regex"` does not test whether a text is a valid pattern. Use `patterns.isValidRegex` for that.

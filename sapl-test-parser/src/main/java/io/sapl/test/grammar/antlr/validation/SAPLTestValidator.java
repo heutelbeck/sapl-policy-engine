@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import com.google.re2j.PatternSyntaxException;
+import com.heutelbeck.rustregex4j.RegexError;
 
 import io.sapl.compiler.util.LinearRegex;
 import io.sapl.test.grammar.antlr.SAPLTestParser.CountedAmountContext;
@@ -150,11 +150,10 @@ public class SAPLTestValidator {
 
     private void validateRegex(StringMatchesRegexContext context, Consumer<ValidationError> errorConsumer) {
         var regex = unquote(context.regex.getText());
-        try {
-            LinearRegex.compile(regex);
-        } catch (PatternSyntaxException e) {
+        if (LinearRegex.compileWholeText(regex) instanceof RegexError error) {
             errorConsumer.accept(ValidationError.fromToken(
-                    MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX.formatted(regex, e.getDescription()), context.regex));
+                    MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX.formatted(regex, LinearRegex.describe(error)),
+                    context.regex));
         }
     }
 

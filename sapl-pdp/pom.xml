@@ -135,8 +135,8 @@
         </dependency>
         <!-- Linear time regular expressions -->
         <dependency>
-            <groupId>com.google.re2j</groupId>
-            <artifactId>re2j</artifactId>
+            <groupId>com.heutelbeck</groupId>
+            <artifactId>rustregex4j</artifactId>
         </dependency>
         <!-- JSON Web Token Support -->
         <dependency>

@@ -17,11 +17,13 @@
  */
 package io.sapl.functions.libraries;
 
-import com.google.re2j.Pattern;
+import com.heutelbeck.rustregex4j.IsMatch;
+import com.heutelbeck.rustregex4j.Regex;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.util.LinearRegex;
 import lombok.val;
 
 import java.text.Normalizer;
@@ -126,61 +128,55 @@ public class SanitizationFunctionLibrary {
 
     static final String ERROR_POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
 
-    private static final Pattern ZERO_WIDTH_CHARACTERS = Pattern.compile("[\\x{200b}\\x{200c}\\x{200d}\\x{feff}]");
+    private static final String ZERO_WIDTH_CHARACTERS = "\u200b\u200c\u200d\ufeff";
 
-    private static final Pattern SQL_METACHARACTERS    = Pattern.compile("[';*()@]");
-    private static final Pattern SQL_DML_DDL_KEYWORDS  = Pattern.compile(
-            "\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_LOGICAL_OPERATORS = Pattern.compile("(OR|AND|NOT|XOR)", Pattern.CASE_INSENSITIVE);
+    private static final Regex SQL_METACHARACTERS    = LinearRegex.compileOrRefuse("[';*()@]");
+    private static final Regex SQL_DML_DDL_KEYWORDS  = LinearRegex.compileOrRefuse(
+            "(?i)\\b(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|ALTER|EXEC|EXECUTE|TRUNCATE|CREATE|REPLACE)\\b");
+    private static final Regex SQL_LOGICAL_OPERATORS = LinearRegex.compileOrRefuse("(?i)(OR|AND|NOT|XOR)");
 
-    private static final Pattern URL_ENCODED_CHARACTERS = Pattern.compile("%[0-9a-f]{2}", Pattern.CASE_INSENSITIVE);
-    private static final Pattern HEX_ENCODED_STRINGS    = Pattern.compile("0x[0-9a-f]{2,}", Pattern.CASE_INSENSITIVE);
+    private static final Regex URL_ENCODED_CHARACTERS = LinearRegex.compileOrRefuse("(?i)%[0-9a-f]{2}");
+    private static final Regex HEX_ENCODED_STRINGS    = LinearRegex.compileOrRefuse("(?i)0x[0-9a-f]{2,}");
 
-    private static final Pattern SQL_COMMENT_MARKERS = Pattern.compile("--|#");
+    private static final Regex SQL_COMMENT_MARKERS = LinearRegex.compileOrRefuse("--|#");
 
-    private static final Pattern SQL_SELECT_FROM_STATEMENT = Pattern
-            .compile("\\bSELECT\\s+\\S+(?:\\s*,\\s*\\S+)*\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_INSERT_INTO_STATEMENT = Pattern.compile("\\bINSERT\\s+INTO\\b",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_DELETE_FROM_STATEMENT = Pattern.compile("\\bDELETE\\s+FROM\\b",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern SQL_UPDATE_SET_STATEMENT  = Pattern.compile("\\bUPDATE\\s+\\w+\\s+SET\\b",
-            Pattern.CASE_INSENSITIVE);
+    private static final Regex SQL_SELECT_FROM_STATEMENT = LinearRegex
+            .compileOrRefuse("(?i)\\bSELECT\\s+\\S+(?:\\s*,\\s*\\S+)*\\s+FROM\\b");
+    private static final Regex SQL_INSERT_INTO_STATEMENT = LinearRegex.compileOrRefuse("(?i)\\bINSERT\\s+INTO\\b");
+    private static final Regex SQL_DELETE_FROM_STATEMENT = LinearRegex.compileOrRefuse("(?i)\\bDELETE\\s+FROM\\b");
+    private static final Regex SQL_UPDATE_SET_STATEMENT  = LinearRegex
+            .compileOrRefuse("(?i)\\bUPDATE\\s+\\w+\\s+SET\\b");
 
-    private static final Pattern QUOTE_FOLLOWED_BY_SQL_KEYWORD    = Pattern
-            .compile("'\\s*(OR|AND|UNION|SELECT|INSERT|DELETE|UPDATE|DROP|--|#)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern QUOTED_BOOLEAN_OR_AND_EXPRESSION = Pattern
-            .compile("'\\s*(OR|AND)\\s*'[^']*'\\s*=\\s*'", Pattern.CASE_INSENSITIVE);
+    private static final Regex QUOTE_FOLLOWED_BY_SQL_KEYWORD    = LinearRegex
+            .compileOrRefuse("(?i)'\\s*(OR|AND|UNION|SELECT|INSERT|DELETE|UPDATE|DROP|--|#)");
+    private static final Regex QUOTED_BOOLEAN_OR_AND_EXPRESSION = LinearRegex
+            .compileOrRefuse("(?i)'\\s*(OR|AND)\\s*'[^']*'\\s*=\\s*'");
 
-    private static final Pattern SQL_COMMENT_WITH_CONTENT = Pattern.compile("(--|#)\\s*(\\w|$)");
+    private static final Regex SQL_COMMENT_WITH_CONTENT = LinearRegex.compileOrRefuse("(--|#)\\s*(\\w|$)");
 
-    private static final Pattern SEMICOLON_FOLLOWED_BY_SQL_COMMAND = Pattern.compile(
-            ";\\s*(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE)",
-            Pattern.CASE_INSENSITIVE);
+    private static final Regex SEMICOLON_FOLLOWED_BY_SQL_COMMAND = LinearRegex
+            .compileOrRefuse("(?i);\\s*(SELECT|INSERT|DELETE|UPDATE|DROP|UNION|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE)");
 
-    private static final Pattern DROP_OR_TRUNCATE_TABLE = Pattern.compile("\\b(DROP|TRUNCATE)\\s+TABLE\\b",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern CREATE_OR_ALTER_TABLE  = Pattern.compile("\\b(CREATE|ALTER)\\s+TABLE\\b",
-            Pattern.CASE_INSENSITIVE);
+    private static final Regex DROP_OR_TRUNCATE_TABLE = LinearRegex
+            .compileOrRefuse("(?i)\\b(DROP|TRUNCATE)\\s+TABLE\\b");
+    private static final Regex CREATE_OR_ALTER_TABLE  = LinearRegex
+            .compileOrRefuse("(?i)\\b(CREATE|ALTER)\\s+TABLE\\b");
 
-    private static final Pattern UNION_SELECT_STATEMENT = Pattern.compile("\\bUNION\\s+(ALL\\s+)?SELECT\\b",
-            Pattern.CASE_INSENSITIVE);
+    private static final Regex UNION_SELECT_STATEMENT = LinearRegex
+            .compileOrRefuse("(?i)\\bUNION\\s+(ALL\\s+)?SELECT\\b");
 
-    private static final Pattern BOOLEAN_NUMERIC_EQUALITY = Pattern.compile("(OR|AND)\\s+\\d+\\s*=\\s*\\d+",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern BOOLEAN_STRING_EQUALITY  = Pattern.compile("(OR|AND)\\s+'[^']*'\\s*=\\s*'[^']*'",
-            Pattern.CASE_INSENSITIVE);
+    private static final Regex BOOLEAN_NUMERIC_EQUALITY = LinearRegex
+            .compileOrRefuse("(?i)(OR|AND)\\s+\\d+\\s*=\\s*\\d+");
+    private static final Regex BOOLEAN_STRING_EQUALITY  = LinearRegex
+            .compileOrRefuse("(?i)(OR|AND)\\s+'[^']*'\\s*=\\s*'[^']*'");
 
-    private static final Pattern SQL_SPECIFIC_URL_ENCODED_CHARS = Pattern.compile("%27|%3B|%2D%2D|%23",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern LONG_URL_ENCODED_SEQUENCES     = Pattern.compile("(%[0-9a-f]{2}){3,}",
-            Pattern.CASE_INSENSITIVE);
+    private static final Regex SQL_SPECIFIC_URL_ENCODED_CHARS = LinearRegex.compileOrRefuse("(?i)%27|%3B|%2D%2D|%23");
+    private static final Regex LONG_URL_ENCODED_SEQUENCES     = LinearRegex.compileOrRefuse("(?i)(%[0-9a-f]{2}){3,}");
 
-    private static final Pattern[] STRICT_SQL_PATTERNS = { SQL_METACHARACTERS, SQL_COMMENT_MARKERS,
-            SQL_DML_DDL_KEYWORDS, SQL_LOGICAL_OPERATORS, URL_ENCODED_CHARACTERS, HEX_ENCODED_STRINGS };
+    private static final Regex[] STRICT_SQL_PATTERNS = { SQL_METACHARACTERS, SQL_COMMENT_MARKERS, SQL_DML_DDL_KEYWORDS,
+            SQL_LOGICAL_OPERATORS, URL_ENCODED_CHARACTERS, HEX_ENCODED_STRINGS };
 
-    private static final Pattern[] BALANCED_SQL_PATTERNS = { SQL_SELECT_FROM_STATEMENT, SQL_INSERT_INTO_STATEMENT,
+    private static final Regex[] BALANCED_SQL_PATTERNS = { SQL_SELECT_FROM_STATEMENT, SQL_INSERT_INTO_STATEMENT,
             SQL_DELETE_FROM_STATEMENT, SQL_UPDATE_SET_STATEMENT, QUOTE_FOLLOWED_BY_SQL_KEYWORD,
             QUOTED_BOOLEAN_OR_AND_EXPRESSION, SQL_COMMENT_WITH_CONTENT, SEMICOLON_FOLLOWED_BY_SQL_COMMAND,
             DROP_OR_TRUNCATE_TABLE, CREATE_OR_ALTER_TABLE, UNION_SELECT_STATEMENT, BOOLEAN_NUMERIC_EQUALITY,
@@ -191,7 +187,7 @@ public class SanitizationFunctionLibrary {
     private static final Predicate<String> BALANCED_SQL_INJECTION_PREDICATE = createInjectionPredicate(
             BALANCED_SQL_PATTERNS);
 
-    private static Predicate<String> createInjectionPredicate(Pattern[] patterns) {
+    private static Predicate<String> createInjectionPredicate(Regex[] patterns) {
         return userInput -> {
             if (userInput == null || userInput.isEmpty()) {
                 return false;
@@ -199,14 +195,22 @@ public class SanitizationFunctionLibrary {
             val canonicalInput = Normalizer.normalize(userInput, Normalizer.Form.NFKC);
             // Strip zero-width and format characters so keywords obfuscated by an
             // interior zero-width character are matched as the plain keyword.
-            val normalizedInput = ZERO_WIDTH_CHARACTERS.matcher(canonicalInput).replaceAll("");
-            for (Pattern pattern : patterns) {
-                if (pattern.matcher(normalizedInput).find()) {
+            val normalizedInput = withoutZeroWidthCharacters(canonicalInput);
+            for (val pattern : patterns) {
+                // A text the engine cannot search counts as an injection: fail closed.
+                if (!(pattern.isMatch(normalizedInput) instanceof IsMatch(var found)) || found) {
                     return true;
                 }
             }
             return false;
         };
+    }
+
+    private static String withoutZeroWidthCharacters(String text) {
+        val result = new StringBuilder(text.length());
+        text.codePoints().filter(codePoint -> ZERO_WIDTH_CHARACTERS.indexOf(codePoint) < 0)
+                .forEach(result::appendCodePoint);
+        return result.toString();
     }
 
     /**

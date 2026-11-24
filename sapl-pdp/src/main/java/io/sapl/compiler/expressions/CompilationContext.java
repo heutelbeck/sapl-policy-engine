@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
+import com.heutelbeck.rustregex4j.RegexLimits;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.Set;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.compiler.util.LinearRegex;
 import io.sapl.compiler.document.Document;
 import io.sapl.compiler.document.ExpressionDepthValidator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
@@ -61,6 +63,9 @@ public class CompilationContext {
     public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
     public static final String OPTION_MAX_TOTAL_SIZE_MEGABYTES  = "maxTotalSizeMegabytes";
     public static final String OPTION_MIN_POLICIES_FOR_INDEXING = "minPoliciesForIndexing";
+    public static final String OPTION_REGEX_MAX_PATTERN_BYTES   = "regexMaxPatternBytes";
+    public static final String OPTION_REGEX_MAX_TEXT_BYTES      = "regexMaxTextBytes";
+    public static final String OPTION_REGEX_SIZE_LIMIT_KIB      = "regexSizeLimitKibibytes";
     public static final String OPTION_UNROLL_IN_OPERATOR        = "unrollInOperator";
 
     public static final String  DEFAULT_INDEXING                  = "AUTO";
@@ -71,8 +76,15 @@ public class CompilationContext {
     public static final int     DEFAULT_MAX_INDEX_NODES           = 500_000;
     public static final int     DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
     public static final int     DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
+    public static final int     DEFAULT_REGEX_MAX_PATTERN_BYTES   = LinearRegex.DEFAULT_MAX_PATTERN_BYTES;
+    public static final int     DEFAULT_REGEX_MAX_TEXT_BYTES      = LinearRegex.DEFAULT_MAX_TEXT_BYTES;
+    public static final int     DEFAULT_REGEX_SIZE_LIMIT_KIB      = LinearRegex.DEFAULT_SIZE_LIMIT_KIBIBYTES;
+
+    /** The size limit is passed on in bytes as a signed 64-bit number. */
+    public static final int MAX_REGEX_SIZE_LIMIT_KIB = 1024 * 1024;
 
     private static final String ERROR_MAX_EXPRESSION_DEPTH = "The compiler option maxExpressionDepth must be an integer from 1 to %s.";
+    private static final String ERROR_REGEX_LIMIT          = "The compiler option %s must be an integer from 1 to %s.";
 
     // A single configuration may generate at most this much extra predicate work for indexing.
     private static final int MAX_MEMBERSHIP_EXPANSION = 4_096;
@@ -122,7 +134,48 @@ public class CompilationContext {
      */
     public void setCompilerOptions(ObjectValue options) {
         expressionDepthOption(options);
+        regexLimitsOption(options);
         compilerOptions = options;
+    }
+
+    /**
+     * The limits for the operator {@code =~} and the patterns of enforced
+     * schemas, from the options {@code regexMaxPatternBytes},
+     * {@code regexSizeLimitKibibytes} and {@code regexMaxTextBytes}. A larger
+     * size limit admits larger patterns at the price of compile time and of
+     * native memory per pattern and thread.
+     *
+     * @return the limits, the defaults of {@link LinearRegex} where an option is absent
+     */
+    public RegexLimits regexLimits() {
+        return regexLimitsOption(compilerOptions);
+    }
+
+    private static RegexLimits regexLimitsOption(ObjectValue options) {
+        return LinearRegex.limits(
+                regexLimitOption(options, OPTION_REGEX_MAX_PATTERN_BYTES, DEFAULT_REGEX_MAX_PATTERN_BYTES,
+                        Integer.MAX_VALUE),
+                regexLimitOption(options, OPTION_REGEX_SIZE_LIMIT_KIB, DEFAULT_REGEX_SIZE_LIMIT_KIB,
+                        MAX_REGEX_SIZE_LIMIT_KIB),
+                regexLimitOption(options, OPTION_REGEX_MAX_TEXT_BYTES, DEFAULT_REGEX_MAX_TEXT_BYTES,
+                        Integer.MAX_VALUE));
+    }
+
+    private static int regexLimitOption(ObjectValue options, String key, int defaultValue, int maximum) {
+        if (!options.containsKey(key)) {
+            return defaultValue;
+        }
+        if (options.get(key) instanceof NumberValue(var number)) {
+            try {
+                val limit = number.intValueExact();
+                if (limit >= 1 && limit <= maximum) {
+                    return limit;
+                }
+            } catch (ArithmeticException invalid) {
+                throw new IllegalArgumentException(ERROR_REGEX_LIMIT.formatted(key, maximum), invalid);
+            }
+        }
+        throw new IllegalArgumentException(ERROR_REGEX_LIMIT.formatted(key, maximum));
     }
 
     /** @return maximum expanded source expression depth before folding */

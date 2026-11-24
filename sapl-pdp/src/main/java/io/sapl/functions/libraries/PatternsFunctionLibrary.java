@@ -17,8 +17,13 @@
  */
 package io.sapl.functions.libraries;
 
-import com.google.re2j.Pattern;
-import com.google.re2j.PatternSyntaxException;
+import com.heutelbeck.rustregex4j.AllCaptures;
+import com.heutelbeck.rustregex4j.IsMatch;
+import com.heutelbeck.rustregex4j.Matches;
+import com.heutelbeck.rustregex4j.Parts;
+import com.heutelbeck.rustregex4j.Regex;
+import com.heutelbeck.rustregex4j.RegexError;
+import com.heutelbeck.rustregex4j.Replaced;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
@@ -48,10 +53,10 @@ import java.util.function.BiFunction;
  * structure matters. The syntax is simpler and
  * more intuitive for non-technical users than regular expressions.
  * <p>
- * <b>Regular Expressions</b> - Full pattern matching in the syntax of RE2,
- * matched in linear time by {@link LinearRegex}. Use regex when glob patterns
- * are insufficient. Regular expressions are more powerful but require
- * familiarity with regex syntax.
+ * <b>Regular Expressions</b> - Full pattern matching in the syntax of the regex
+ * crate of Rust, matched in linear time by {@link LinearRegex}. Use regex when
+ * glob patterns are insufficient. Regular expressions are more powerful but
+ * require familiarity with regex syntax.
  * <p>
  * For simple literal operations like checking prefixes, suffixes, or
  * substrings, use the string library instead. It is
@@ -92,18 +97,19 @@ public class PatternsFunctionLibrary {
 
             ## Regular Expressions
 
-            Regular expressions provide full pattern matching power in the syntax of RE2
-            (https://github.com/google/re2/wiki/Syntax), the same syntax as the `=~` operator. Use them when:
+            Regular expressions provide full pattern matching power in the syntax of the Rust regex crate
+            (https://docs.rs/regex/1.13.2/regex/#syntax), the same syntax as the `=~` operator. Use them when:
             - Glob patterns cannot express the required matching logic
             - Complex validation rules require regex capabilities
 
             Regular expressions are matched in time linear in the length of the input and never backtrack.
-            Look-around, backreferences, atomic groups and possessive quantifiers do not exist in this syntax and
-            make a pattern invalid. The classes `\\d`, `\\w`, `\\s` and `\\b` hold ASCII characters only. Use
-            `\\p{L}`, `\\p{Nd}` and similar Unicode classes for other scripts.
+            Look-around, backreferences and atomic groups do not exist in this syntax and make a pattern invalid.
+            The classes `\\d`, `\\w`, `\\s` and `\\b` follow Unicode. Use `(?-u:\\d)`, `(?-u:\\w)` or explicit
+            classes such as `[0-9]` to restrict them to ASCII. A text longer than 64 KiB in UTF-8 makes a
+            function return an error.
 
-            In the replacement of `replaceAll`, `$1` or `${name}` insert a captured group, and a backslash makes the
-            next character literal.
+            In the replacement of `replaceAll`, `$1` or `${1}` insert a group by number, `$name` or `${name}` by
+            name, and `$$` inserts `$`. Every other character, the backslash included, stands for itself.
 
             ## When to Use Simple String Operations
 
@@ -122,16 +128,17 @@ public class PatternsFunctionLibrary {
 
             - The pattern or template argument may be at most 1000 characters. This applies to glob patterns,
               regular expressions, and templates.
-            - The input value being matched, searched, replaced, or split may be at most 100000 characters.
+            - The input value being matched, searched, replaced, or split may be at most 64 KiB long in UTF-8.
             - Match-returning functions return at most 10000 matches. This caps `findMatches`, `findMatchesLimited`,
               `findAllSubmatch`, and `findAllSubmatchLimited`, and it caps the number of segments produced by `split`.
               A larger explicit limit is reduced to 10000.
             - Glob patterns may nest alternative groups at most 50 levels deep, and a single glob pattern may contain
               at most 30 alternative groups.
-            - A regular expression may compile to at most 10000 instructions, and its groups may nest at most 250
-              levels deep. Each repetition counts with its number of copies, so `(?:a{100}){101}` is too large.
-            - The output of `replaceAll` may be at most 10000000 characters. Replacement stops with an error once the
-              accumulated result exceeds this length.
+            - A regular expression may compile to at most 256 KiB and nest at most 64 levels deep. Each repetition
+              counts with its number of copies, so `(?:a{1000}){1000}` and `\\w{1,6}` are too large. Use an
+              ASCII class such as `[A-Za-z0-9_]{1,64}` for a bounded repetition, or `\\w+` without a bound.
+            - The replacement of `replaceAll` and its result may be at most 64 KiB long in UTF-8, like every text
+              a regular expression is matched against.
 
             These limits apply because this input may originate from the authorization subscription or from policy
             information points, which are not vetted to the same degree as the policies and variables shipped with the
@@ -139,14 +146,13 @@ public class PatternsFunctionLibrary {
             """;
 
     private static final int    MAX_PATTERN_LENGTH        = 1_000;
-    private static final int    MAX_INPUT_LENGTH          = 100_000;
+    private static final int    MAX_INPUT_LENGTH          = LinearRegex.DEFAULT_MAX_TEXT_BYTES;
     private static final int    MAX_MATCHES               = 10_000;
     private static final int    MAX_GLOB_RECURSION_DEPTH  = 50;
     private static final int    MAX_ALTERNATIVE_GROUPS    = 30;
-    private static final int    MAX_OUTPUT_LENGTH         = 10_000_000;
     private static final String REGEX_METACHARACTERS      = ".^$*+?()[]{}\\|";
-    private static final String CHAR_CLASS_METACHARACTERS = "\\]^[";
-    private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[";
+    private static final String CHAR_CLASS_METACHARACTERS = "\\]^[&~";
+    private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[&~";
     private static final String GLOB_METACHARACTERS       = "*?[]{}\\-!";
 
     private static final String ERROR_DELIMITERS_EMPTY    = "Delimiters cannot be empty.";
@@ -157,9 +163,8 @@ public class PatternsFunctionLibrary {
     private static final String ERROR_INVALID_REGEX       = "Invalid regular expression '%s': %s.";
     private static final String ERROR_INVALID_TEMPLATE    = "Invalid regex in template: %s";
     private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative.";
-    private static final String ERROR_OUTPUT_TOO_LONG     = "Replacement result too long (max %d characters).";
     private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters).";
-    private static final String ERROR_REPLACEMENT_FAILED  = "Replacement failed: %s";
+    private static final String ERROR_SEARCH_FAILED       = "Searching with the regular expression '%s' failed: %s.";
     private static final String ERROR_TEMPLATE_FORMAT     = "Invalid template format: mismatched or nested delimiters.";
     private static final String ERROR_TEMPLATE_LENGTH     = "Template or value exceeds maximum length.";
     private static final String ERROR_TOO_MANY_ALT_GROUPS = "Too many alternative groups (max %d groups).";
@@ -319,12 +324,7 @@ public class PatternsFunctionLibrary {
             return Value.of(false);
         }
 
-        try {
-            LinearRegex.compile(pattern.value());
-            return Value.of(true);
-        } catch (PatternSyntaxException e) {
-            return Value.of(false);
-        }
+        return Value.of(LinearRegex.compile(pattern.value()) instanceof Regex);
     }
 
     @Function(docs = """
@@ -442,8 +442,10 @@ public class PatternsFunctionLibrary {
             ```replaceAll(TEXT value, TEXT pattern, TEXT replacement)```: Replaces all regex matches with
             replacement text.
 
-            Replacement can include references like `$1` or `${name}` to insert captured groups from
-            parentheses in the pattern. A backslash makes the next character of the replacement literal.
+            In the replacement, `$1` and `${1}` insert a group by number, `$name` and `${name}` insert a group by
+            name, and `$$` inserts `$`. A group that does not exist or did not take part in the match inserts
+            nothing. A name takes all following letters, digits and `_`, so write `${1}a` for group 1 followed
+            by `a`. Every other character, the backslash included, stands for itself.
 
             **Examples**:
             ```sapl
@@ -468,34 +470,22 @@ public class PatternsFunctionLibrary {
             ```
             """)
     public static Value replaceAll(TextValue value, TextValue pattern, TextValue replacement) {
-        return withRegex(pattern, value,
-                (compiledPattern, text) -> replaceAllMatches(compiledPattern, text, replacement.value()));
+        return withRegex(pattern, value, (regex, text) -> replaceAllMatches(regex, text, replacement.value()));
     }
 
-    private static Value replaceAllMatches(Pattern compiledPattern, String text, String replacement) {
-        try {
-            val matcher = compiledPattern.matcher(text);
-            val result  = new StringBuilder();
-            while (matcher.find()) {
-                matcher.appendReplacement(result, replacement);
-                if (result.length() > MAX_OUTPUT_LENGTH) {
-                    return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
-                }
-            }
-            matcher.appendTail(result);
-            if (result.length() > MAX_OUTPUT_LENGTH) {
-                return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
-            }
-            return Value.of(result.toString());
-        } catch (IndexOutOfBoundsException | IllegalArgumentException e) {
-            return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));
-        }
+    private static Value replaceAllMatches(Regex regex, String text, String replacement) {
+        return switch (regex.replaceAll(text, replacement)) {
+        case Replaced(var result) -> Value.of(result);
+        case RegexError error     -> searchFailed(regex, error);
+        };
     }
 
     @Function(docs = """
             ```split(TEXT pattern, TEXT value)```: Splits text by a regex pattern into array segments.
 
-            Each match of the pattern becomes a boundary where the string is divided.
+            Each match of the pattern becomes a boundary where the string is divided. Empty segments are kept,
+            also at the start and the end: `patterns.split(",", ",a,")` is `["", "a", ""]`. Once 10000
+            segments are reached, the last one holds the rest of the text.
 
             **Examples**:
             ```sapl
@@ -520,12 +510,15 @@ public class PatternsFunctionLibrary {
             ```
             """)
     public static Value split(TextValue pattern, TextValue value) {
-        return withRegex(pattern, value, (compiledPattern, text) -> {
+        return withRegex(pattern, value, (regex, text) -> switch (regex.split(text, MAX_MATCHES)) {
+        case RegexError error -> searchFailed(regex, error);
+        case Parts(var parts) -> {
             val result = ArrayValue.builder();
-            for (val part : compiledPattern.split(text, MAX_MATCHES)) {
+            for (val part : parts) {
                 result.add(Value.of(part));
             }
-            return result.build();
+            yield result.build();
+        }
         });
     }
 
@@ -592,11 +585,10 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_TEMPLATE_FORMAT);
         }
 
-        try {
-            return Value.of(LinearRegex.compile(regexPattern).matches(valueText));
-        } catch (PatternSyntaxException e) {
-            return Value.error(ERROR_INVALID_TEMPLATE.formatted(e.getDescription()));
-        }
+        return switch (LinearRegex.compileWholeText(regexPattern)) {
+        case Regex regex      -> matchWholeText(regex, valueText);
+        case RegexError error -> Value.error(ERROR_INVALID_TEMPLATE.formatted(LinearRegex.describe(error)));
+        };
     }
 
     /**
@@ -712,14 +704,16 @@ public class PatternsFunctionLibrary {
      * Implements glob pattern matching by converting glob to regex and matching.
      */
     private static Value matchGlobImplementation(String pattern, String value, List<String> delimiters) {
+        final String regex;
         try {
-            val regex = convertGlobToRegex(pattern, delimiters, 0);
-            return Value.of(LinearRegex.compile(regex).matches(value));
+            regex = convertGlobToRegex(pattern, delimiters, 0);
         } catch (IllegalStateException e) {
             return Value.error(e.getMessage());
-        } catch (PatternSyntaxException e) {
-            return Value.error(ERROR_INVALID_GLOB.formatted(e.getDescription()));
         }
+        return switch (LinearRegex.compileWholeText(regex)) {
+        case Regex compiled   -> matchWholeText(compiled, value);
+        case RegexError error -> Value.error(ERROR_INVALID_GLOB.formatted(LinearRegex.describe(error)));
+        };
     }
 
     /**
@@ -1037,35 +1031,42 @@ public class PatternsFunctionLibrary {
      * Validates the pattern and the value, compiles the pattern, and applies the
      * operation to the compiled pattern and the text of the value.
      */
-    private static Value withRegex(TextValue pattern, TextValue value, BiFunction<Pattern, String, Value> operation) {
+    private static Value withRegex(TextValue pattern, TextValue value, BiFunction<Regex, String, Value> operation) {
         val error = validateInputs(pattern, value);
         if (error != null)
             return error;
 
-        final Pattern compiledPattern;
-        try {
-            compiledPattern = LinearRegex.compile(pattern.value());
-        } catch (PatternSyntaxException e) {
-            return Value.error(ERROR_INVALID_REGEX.formatted(pattern.value(), e.getDescription()));
-        }
-        return operation.apply(compiledPattern, value.value());
+        return switch (LinearRegex.compile(pattern.value())) {
+        case Regex regex           -> operation.apply(regex, value.value());
+        case RegexError regexError ->
+            Value.error(ERROR_INVALID_REGEX.formatted(pattern.value(), LinearRegex.describe(regexError)));
+        };
+    }
+
+    private static Value matchWholeText(Regex regex, String text) {
+        return switch (regex.isMatch(text)) {
+        case IsMatch(var matches) -> Value.of(matches);
+        case RegexError error     -> searchFailed(regex, error);
+        };
+    }
+
+    private static Value searchFailed(Regex regex, RegexError error) {
+        return Value.error(ERROR_SEARCH_FAILED.formatted(regex.pattern(), LinearRegex.describe(error)));
     }
 
     /**
      * Finds all matches of regex pattern in value, up to specified limit.
      */
     private static Value findMatchesWithLimit(TextValue pattern, TextValue value, int limit) {
-        return withRegex(pattern, value, (compiledPattern, text) -> {
-            val matcher = compiledPattern.matcher(text);
-            val matches = ArrayValue.builder();
-
-            var count = 0;
-            while (count < limit && matcher.find()) {
-                matches.add(Value.of(matcher.group()));
-                count++;
+        return withRegex(pattern, value, (regex, text) -> switch (regex.findAll(text, limit)) {
+        case RegexError error     -> searchFailed(regex, error);
+        case Matches(var matches) -> {
+            val result = ArrayValue.builder();
+            for (val match : matches) {
+                result.add(Value.of(match.of(text)));
             }
-
-            return matches.build();
+            yield result.build();
+        }
         });
     }
 
@@ -1073,25 +1074,19 @@ public class PatternsFunctionLibrary {
      * Finds all matches with capturing groups, up to specified limit.
      */
     private static Value findAllSubmatchWithLimit(TextValue pattern, TextValue value, int limit) {
-        return withRegex(pattern, value, (compiledPattern, text) -> {
-            val matcher = compiledPattern.matcher(text);
+        return withRegex(pattern, value, (regex, text) -> switch (regex.capturesAll(text, limit)) {
+        case RegexError error         -> searchFailed(regex, error);
+        case AllCaptures(var matches) -> {
             val results = ArrayValue.builder();
-
-            var count = 0;
-            while (count < limit && matcher.find()) {
+            for (val groups : matches) {
                 val matchArray = ArrayValue.builder();
-                matchArray.add(Value.of(matcher.group()));
-
-                for (int i = 1; i <= matcher.groupCount(); i++) {
-                    val group = matcher.group(i);
-                    matchArray.add(group != null ? Value.of(group) : Value.NULL);
+                for (val group : groups.groups()) {
+                    matchArray.add(group.<Value>map(match -> Value.of(match.of(text))).orElse(Value.NULL));
                 }
-
                 results.add(matchArray.build());
-                count++;
             }
-
-            return results.build();
+            yield results.build();
+        }
         });
     }
 

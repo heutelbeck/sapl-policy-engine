@@ -31,8 +31,8 @@ import java.util.stream.Stream;
 
 import org.reactivestreams.Publisher;
 
-import com.google.re2j.Pattern;
-import com.google.re2j.PatternSyntaxException;
+import com.heutelbeck.rustregex4j.Regex;
+import com.heutelbeck.rustregex4j.RegexError;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.MapFunction;
@@ -44,6 +44,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.RegexSearchFailedException;
 import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import lombok.experimental.UtilityClass;
@@ -303,15 +304,21 @@ public class ContentFilter {
         if (!(conditionValue instanceof TextValue(var patternText))) {
             throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
         }
-        final Pattern regex;
-        try {
-            regex = LinearRegex.compile(patternText);
-        } catch (PatternSyntaxException e) {
-            throw new AccessDeniedException(ERROR_PREDICATE_REGEX_INVALID.formatted(patternText, e.getDescription()),
-                    e);
-        }
-        return original -> getValueAtPath(original, path, objectMapper) instanceof String stringValue
-                && regex.matches(stringValue);
+        val regex = switch (LinearRegex.compileWholeText(patternText)) {
+        case Regex compiled   -> compiled;
+        case RegexError error -> throw new AccessDeniedException(
+                ERROR_PREDICATE_REGEX_INVALID.formatted(patternText, LinearRegex.describe(error)));
+        };
+        // A value the engine cannot search denies access: neither keeping nor
+        // transforming it would be safe.
+        return original -> {
+            try {
+                return getValueAtPath(original, path, objectMapper) instanceof String stringValue
+                        && LinearRegex.matches(regex, stringValue);
+            } catch (RegexSearchFailedException failure) {
+                throw new AccessDeniedException(failure.getMessage(), failure);
+            }
+        };
     }
 
     private static Predicate<Object> equalsCondition(Value condition, String path, Value conditionValue,

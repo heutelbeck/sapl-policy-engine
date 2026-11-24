@@ -39,6 +39,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.compiler.util.LinearRegex;
 import org.springframework.security.access.AccessDeniedException;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -422,10 +423,27 @@ class ContentFilterTests {
         }
 
         static Stream<Arguments> invalidRegexConditionDeniesAccessWithReason() {
-            return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$", "invalid or unsupported Perl syntax"),
-                    arguments("a backreference", "(a)\\\\1", "invalid escape sequence"),
-                    arguments("an unclosed group", "(abc", "missing closing )"),
+            return Stream.of(
+                    arguments("a look-ahead", "^(?=.*[0-9]).{8,}$",
+                            "look-around, including look-ahead and look-behind, is not supported"),
+                    arguments("a backreference", "(a)\\\\1", "backreferences are not supported"),
+                    arguments("an unclosed group", "(abc", "unclosed group"),
                     arguments("a program too large to compile", "(?:(?:a{1000}){1000}){1000}", "expression too large"));
+        }
+
+        @Test
+        @DisplayName("a value the regex engine cannot search denies access instead of skipping the transformation")
+        void unsearchableValueDeniesAccessInsteadOfSkippingTheTransformation() {
+            val handler = ContentFilter.getHandler(v("""
+                    {
+                      "conditions": [{"path": "$.secret", "type": "=~", "value": ".*"}],
+                      "actions": [{"path": "$.secret", "type": "delete"}]
+                    }
+                    """), MAPPER);
+            val input   = Map.of("secret", "a".repeat(LinearRegex.LIMITS.maxTextBytes() + 1));
+
+            assertThatThrownBy(() -> handler.apply(input)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("Matching the regular expression '.*' failed: text too long.");
         }
 
         @Test

@@ -326,21 +326,13 @@ class PatternsFunctionLibraryTests {
     @CsvSource(delimiter = '|', textBlock = """
             numbered groups        | (\\w+) (\\w+)                 | $2, $1             | Doe, John
             named groups           | (?P<first>\\w+) (?P<last>\\w+) | ${last}, ${first}  | Doe, John
-            an escaped dollar sign | (\\w+) (\\w+)                 | \\$1               | $1
+            a doubled dollar sign  | (\\w+) (\\w+)                 | $$1                | $1
             """)
     @DisplayName("a replacement inserts the captured groups it refers to")
     void whenReplaceAllWithGroupReferencesThenInsertsGroups(String description, String pattern, String replacement,
             String expected) {
         val result = PatternsFunctionLibrary.replaceAll(Value.of("John Doe"), Value.of(pattern), Value.of(replacement));
         assertThat(result).isEqualTo(Value.of(expected));
-    }
-
-    @Test
-    @DisplayName("a replacement that refers to a group the pattern does not have is an error")
-    void whenReplaceAllRefersToMissingGroupThenError() {
-        val result = PatternsFunctionLibrary.replaceAll(Value.of("John Doe"), Value.of("(\\w+)"), Value.of("$2"));
-        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                e -> assertThat(e.message()).startsWith("Replacement failed"));
     }
 
     @Test
@@ -427,7 +419,7 @@ class PatternsFunctionLibraryTests {
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     @DisplayName("nested quantifiers that backtracking engines take exponential time for are matched in linear time")
     void whenNestedQuantifiersOnHostileInputThenMatchedInLinearTime(String pattern) {
-        val result = PatternsFunctionLibrary.findMatchesLimited(Value.of(pattern), Value.of("a".repeat(99_999) + "X"),
+        val result = PatternsFunctionLibrary.findMatchesLimited(Value.of(pattern), Value.of("a".repeat(59_999) + "X"),
                 Value.of(1));
         assertThat(result).isInstanceOf(ArrayValue.class);
     }
@@ -442,14 +434,14 @@ class PatternsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @CsvSource(delimiter = '|', textBlock = """
-            a look-ahead                        | a(?=b)           | invalid or unsupported Perl syntax
-            a negative look-ahead               | a(?!b)           | invalid or unsupported Perl syntax
-            a look-behind                       | (?<=a)b          | invalid named capture
-            a backreference                     | (a)\\1           | invalid escape sequence
-            a possessive quantifier             | a*+              | invalid nested repetition operator
-            an atomic group                     | (?>a)            | invalid or unsupported Perl syntax
-            a repetition without an argument    | {5,10}{5,10}     | missing argument to repetition operator
-            a program that is too large         | (?:a{100}){101}  | expression too large
+            a look-ahead                        | a(?=b)             | look-around, including look-ahead and look-behind, is not supported
+            a negative look-ahead               | a(?!b)             | look-around, including look-ahead and look-behind, is not supported
+            a look-behind                       | (?<=a)b            | look-around, including look-ahead and look-behind, is not supported
+            a backreference                     | (a)\\1             | backreferences are not supported
+            an atomic group                     | (?>a)              | unrecognized flag
+            a repetition without an argument    | {5,10}{5,10}       | repetition operator missing expression
+            a quoted section of Java            | \\Qa.b\\E          | unrecognized escape sequence
+            a program that is too large         | (?:a{1000}){1000}  | expression too large
             """)
     @DisplayName("a construct that needs backtracking or a too large program makes a regex invalid")
     void whenRegexNeedsBacktrackingOrIsTooLargeThenInvalid(String description, String pattern, String reason) {
@@ -461,13 +453,60 @@ class PatternsFunctionLibraryTests {
 
     @ParameterizedTest(name = "{0}")
     @CsvSource(delimiter = '|', textBlock = """
-            ASCII word characters only          | \\w+          | caf\u00e9   | caf
+            an ampersand pair is literal                 | [a&&b]  | &     | true
+            an ampersand pair excludes other characters  | [a&&b]  | x     | false
+            a tilde pair is literal                      | [~~]    | ~     | true
+            """)
+    @DisplayName("a glob class holds the characters written in it, never a set operation of the regex syntax")
+    void whenGlobClassHoldsSetOperatorsThenTheyAreLiterals(String description, String glob, String text,
+            boolean expected) {
+        assertThat(PatternsFunctionLibrary.matchGlobWithoutDelimiters(Value.of(glob), Value.of(text)))
+                .isEqualTo(Value.of(expected));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            a numbered group                    | (a)(b)     | ab   | $2$1       | ba
+            a named group                       | (?<x>a)b   | ab   | ${x}${x}   | aa
+            a group that did not participate    | (a)?b      | b    | [$1]       | []
+            a doubled dollar                    | a          | a    | $$1        | $1
+            a backslash stands for itself       | (a)        | a    | \\$1       | \\a
+            braces end a group number           | (a)        | a    | ${1}0      | a0
+            a name takes all following digits   | (a)        | a    | <$10>      | <>
+            a group the pattern does not have   | (a)        | a    | <$2>       | <>
+            an unknown group name               | (a)        | a    | <${y}>     | <>
+            """)
+    @DisplayName("a replacement inserts the groups of each match")
+    void whenReplacementReferencesGroupsThenGroupsAreInserted(String description, String pattern, String text,
+            String replacement, String expected) {
+        assertThat(PatternsFunctionLibrary.replaceAll(Value.of(text), Value.of(pattern), Value.of(replacement)))
+                .isEqualTo(Value.of(expected));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            a separator between parts           | ,     | a,b,c   | ["a","b","c"]
+            empty parts are kept                | ,     | a,,b,   | ["a","","b",""]
+            empty parts at both ends are kept   | ,     | ,a,     | ["","a",""]
+            empty matches split every character | x*    | ab      | ["","a","b",""]
+            no match keeps the text             | ;     | abc     | ["abc"]
+            """)
+    @DisplayName("split divides the text at each match")
+    void whenSplittingThenTextIsDividedAtMatches(String description, String pattern, String text, String expected) {
+        assertThat(ValueJsonMarshaller.toJsonString(PatternsFunctionLibrary.split(Value.of(pattern), Value.of(text))))
+                .isEqualTo(expected);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', textBlock = """
+            Unicode word characters             | \\w+          | caf\u00e9   | caf\u00e9
+            ASCII word characters on request    | (?-u:\\w)+    | caf\u00e9   | caf
             Unicode letters by category         | \\p{L}+       | caf\u00e9   | caf\u00e9
             case folding follows Unicode        | (?i)\u00e9     | \u00c9      | \u00c9
-            a quoted section is literal         | \\Qa.b\\E     | a.b         | a.b
+            an escaped metacharacter is literal | a\\.b         | a.b         | a.b
             """)
-    @DisplayName("regular expressions follow the syntax and the classes of RE2")
-    void whenRegexUsesClassesThenSemanticsOfRe2Apply(String description, String pattern, String text,
+    @DisplayName("regular expressions follow the syntax and the Unicode classes of the regex crate")
+    void whenRegexUsesClassesThenSemanticsOfRegexCrateApply(String description, String pattern, String text,
             String firstMatch) {
         val result = PatternsFunctionLibrary.findMatchesLimited(Value.of(pattern), Value.of(text), Value.of(1));
         assertThat(result).isEqualTo(Value.ofArray(Value.of(firstMatch)));
@@ -571,8 +610,9 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
+    @DisplayName("a replacement whose result exceeds the text limit is an error")
     void whenReplaceAllOutputExceedsMaximumThenError() {
-        val value       = Value.of("a".repeat(100_000));
+        val value       = Value.of("a".repeat(60_000));
         val replacement = Value.of("X".repeat(200));
         val result      = PatternsFunctionLibrary.replaceAll(value, Value.of("a"), replacement);
 
@@ -581,9 +621,10 @@ class PatternsFunctionLibraryTests {
     }
 
     @Test
-    void whenReplacementTailPushesOutputOverLimitThenErrorValue() {
-        val value       = Value.of("a" + "b".repeat(99_999));
-        val replacement = Value.of("X".repeat(10_000_000));
+    @DisplayName("a replacement longer than the text limit is an error")
+    void whenReplacementExceedsTextLimitThenErrorValue() {
+        val value       = Value.of("a" + "b".repeat(59_999));
+        val replacement = Value.of("X".repeat(70_000));
         val result      = PatternsFunctionLibrary.replaceAll(value, Value.of("a"), replacement);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
