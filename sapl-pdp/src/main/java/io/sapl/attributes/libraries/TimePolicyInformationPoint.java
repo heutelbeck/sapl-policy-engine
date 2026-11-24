@@ -42,6 +42,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.function.Supplier;
 
 @RequiredArgsConstructor
@@ -308,7 +309,7 @@ public class TimePolicyInformationPoint {
 
     /**
      * Stream that emits {@code true} while the current local time of day is within
-     * {@code [startTime, endTime]} in the
+     * {@code [startTime, endTime)} in the
      * clock's configured zone, transitioning at each boundary. When
      * {@code startTime > endTime} the interval is treated
      * as wrapping past midnight.
@@ -417,9 +418,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that emits {@code true} while the current instant lies inside
-     * {@code [startTime, endTime]}, transitioning
-     * at each boundary.
+     * Stream for an absolute time window, with a {@code true} event at
+     * {@code startTime} and a {@code false} event at {@code endTime}.
+     * The initial comparison uses {@code (startTime, endTime]}. Opening exactly
+     * at the start therefore produces an initial {@code false} followed by the
+     * already-due {@code true} event; opening at the end does the reverse.
+     * A reader may observe only the latest value. Equal or reversed endpoints
+     * produce only {@code false}.
      *
      * @param startTime
      * an ISO-8601 UTC instant
@@ -431,10 +436,13 @@ public class TimePolicyInformationPoint {
     @EnvironmentAttribute(docs = """
             ```<time.nowIsBetween(TEXT startTime, TEXT endTime)>``` is an environment attribute stream and takes no left-hand
             arguments.
-            ```<time.nowIsBetween(startTime, endTime)>``` ```true```, if the current date time is after the ```startTime``` and
-            before the ```endTime``` (both ISO 8601 String at UTC) and ```false```otherwise.
-            The attribute immediately emits the comparison result between the current time and the provided time interval.
-            A new result will be emitted, if the current time crosses any of the interval boundaries.
+            ```<time.nowIsBetween(startTime, endTime)>``` reports the absolute time window between ```startTime``` and
+            ```endTime``` (both ISO 8601 strings at UTC).
+            The initial comparison excludes the start and includes the end. A scheduled event sets the result to
+            ```true``` at the start and ```false``` at the end. Opening exactly at the start can therefore produce
+            ```false``` then ```true```; opening exactly at the end can produce ```true``` then ```false```.
+            A reader may receive only the latest value. Equal or reversed endpoints produce only ```false```.
+            Between boundary events, the window includes its start and excludes its end.
             This *attribute is not polling the clock* and should be used instead of  manually comparing the interval
             to ```<time.now>```.
 
@@ -838,7 +846,7 @@ public class TimePolicyInformationPoint {
                             val deadline = window.nextChange(cursor);
                             return Streams.map(Streams.scheduledAt(Value.TRUE, deadline, scheduler), ignored -> {
                                             val observed = clock.instant();
-                                            cursor = observed.isAfter(deadline) ? observed : deadline;
+                                            cursor = observed;
                                             return Value.of(window.contains(cursor.atZone(zone).toLocalTime()));
                                         });
                         }
@@ -858,8 +866,9 @@ public class TimePolicyInformationPoint {
             val nextBoundary = now.toLocalDate().plusDays(daysToNext).atStartOfDay(zone);
             val nextInstant  = nextBoundary.toInstant();
             val current      = Value.of(isIn);
-            val next         = Value.of(!isIn);
-            return Streams.concat(Streams.just(current), Streams.scheduledAt(next, nextInstant, scheduler));
+            val next         = Streams.map(Streams.scheduledAt(Value.TRUE, nextInstant, scheduler),
+                    ignored -> Value.of(daySet.contains(zonedNow(zone).getDayOfWeek())));
+            return Streams.concat(Streams.just(current), next);
         });
     }
 
@@ -875,8 +884,9 @@ public class TimePolicyInformationPoint {
             val nextBoundary = now.toLocalDate().withDayOfMonth(1).plusMonths(monthsToNext).atStartOfDay(zone);
             val nextInstant  = nextBoundary.toInstant();
             val current      = Value.of(isIn);
-            val next         = Value.of(!isIn);
-            return Streams.concat(Streams.just(current), Streams.scheduledAt(next, nextInstant, scheduler));
+            val next         = Streams.map(Streams.scheduledAt(Value.TRUE, nextInstant, scheduler),
+                    ignored -> Value.of(monthSet.contains(zonedNow(zone).getMonth())));
+            return Streams.concat(Streams.just(current), next);
         });
     }
 
@@ -959,7 +969,7 @@ public class TimePolicyInformationPoint {
                 throw new IllegalArgumentException(String.format(ERROR_DAY_NAME_INVALID, day));
             }
             try {
-                daySet.add(DayOfWeek.valueOf(name.toUpperCase()));
+                daySet.add(DayOfWeek.valueOf(name.toUpperCase(Locale.ROOT)));
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format(ERROR_DAY_NAME_INVALID, name), e);
             }
@@ -970,13 +980,13 @@ public class TimePolicyInformationPoint {
     private static EnumSet<DayOfWeek> buildDayRange(TextValue startDay, TextValue endDay) {
         DayOfWeek start;
         try {
-            start = DayOfWeek.valueOf(startDay.value().toUpperCase());
+            start = DayOfWeek.valueOf(startDay.value().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(ERROR_START_DAY_INVALID, startDay.value()), e);
         }
         DayOfWeek end;
         try {
-            end = DayOfWeek.valueOf(endDay.value().toUpperCase());
+            end = DayOfWeek.valueOf(endDay.value().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(ERROR_END_DAY_INVALID, endDay.value()), e);
         }
@@ -1011,7 +1021,7 @@ public class TimePolicyInformationPoint {
             switch (month) {
             case TextValue(var name)     -> {
                 try {
-                    monthSet.add(Month.valueOf(name.toUpperCase()));
+                    monthSet.add(Month.valueOf(name.toUpperCase(Locale.ROOT)));
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException(String.format(ERROR_MONTH_NAME_INVALID, name), e);
                 }
