@@ -37,6 +37,7 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
@@ -123,7 +124,6 @@ public class SaplTestFixture {
             new TemporalFunctionLibrary(), new FilterFunctionLibrary(), new ArrayFunctionLibrary(),
             new StringFunctionLibrary(), new GraphFunctionLibrary());
 
-    private static final String COMPILER_OPTION_LOW_LATENCY_MODE = "lowLatencyMode";
 
     private static final String ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST          = "withBundle not allowed in single test mode.";
     private static final String ERROR_BUNDLE_RESOURCE_NOT_FOUND                  = "Bundle resource not found: %s";
@@ -856,8 +856,8 @@ public class SaplTestFixture {
         var effectiveVariables = resolveVariables();
         var effectiveSecrets   = resolveSecrets();
         var pdpData            = new PdpData(toObjectValue(effectiveVariables), toObjectValue(effectiveSecrets));
-        var compilerOptions    = ObjectValue.builder().put(COMPILER_OPTION_LOW_LATENCY_MODE, Value.of(lowLatencyMode))
-                .build();
+        var compilerOptions    = ObjectValue.builder().put(CompilationContext.OPTION_INDEXING, Value.of("NAIVE"))
+                .put(CompilationContext.OPTION_LOW_LATENCY_MODE, Value.of(lowLatencyMode)).build();
         var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
                 effectiveAlgorithm, compilerOptions, effectivePolicies, pdpData);
 
