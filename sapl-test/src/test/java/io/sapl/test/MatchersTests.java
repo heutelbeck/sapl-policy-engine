@@ -17,6 +17,7 @@
  */
 package io.sapl.test;
 
+import io.sapl.compiler.util.LinearRegex;
 import io.sapl.compiler.util.RegexRefusedException;
 import io.sapl.compiler.util.RegexSearchFailedException;
 import io.sapl.api.model.ArrayValue;
@@ -219,6 +220,14 @@ class MatchersTests {
                 arguments("case folding follows Unicode", "(?i)é", "É", true),
                 arguments("a named group in Python syntax", "(?P<word>[a-z]+)", "cthulhu", true),
                 arguments("word characters follow Unicode", "\\w+", "caf\u00e9", true));
+    }
+
+    @Test
+    @DisplayName("textMatching matches a text beyond the text limit of policies")
+    void whenTextIsBeyondTheTextLimitOfPoliciesThenTextMatchingStillMatches() {
+        val text = Value.of("a".repeat(LinearRegex.DEFAULT_MAX_TEXT_BYTES + 1));
+        assertThat(List.of(textMatching("a+").matches(text), textMatching("b+").matches(text))).containsExactly(true,
+                false);
     }
 
     @Test

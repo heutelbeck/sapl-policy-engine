@@ -17,6 +17,7 @@
  */
 package io.sapl.test;
 
+import com.heutelbeck.rustregex4j.RegexLimits;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
@@ -48,6 +49,9 @@ import java.util.function.Predicate;
  */
 @UtilityClass
 public class Matchers {
+
+    private static final RegexLimits LIMITS_WITHOUT_TEXT_LIMIT = LinearRegex
+            .limits(LinearRegex.DEFAULT_MAX_PATTERN_BYTES, LinearRegex.DEFAULT_SIZE_LIMIT_KIBIBYTES, Integer.MAX_VALUE);
 
     /**
      * Creates argument matchers for a function mock.
@@ -236,9 +240,9 @@ public class Matchers {
     /**
      * Matches text values matching a regex pattern. The pattern follows the
      * syntax of the regex crate and must match the whole text, like the
-     * {@code =~} operator of policies. Matching a text the engine cannot search,
-     * because it exceeds the text limit or holds an unpaired surrogate, throws a
-     * {@link io.sapl.compiler.util.RegexSearchFailedException}.
+     * {@code =~} operator of policies. The texts of a test are those of its
+     * author, so no text limit applies. Matching a text that holds an unpaired
+     * surrogate throws a {@link io.sapl.compiler.util.RegexSearchFailedException}.
      *
      * @param regex the regex pattern
      * @return the matcher
@@ -246,7 +250,7 @@ public class Matchers {
      * large, or nests too deeply
      */
     public static ArgumentMatcher textMatching(@NonNull String regex) {
-        val pattern = LinearRegex.compileWholeTextOrRefuse(regex);
+        val pattern = LinearRegex.compileWholeTextOrRefuse(regex, LIMITS_WITHOUT_TEXT_LIMIT);
         return matching(v -> v instanceof TextValue(String value) && LinearRegex.matches(pattern, value));
     }
 

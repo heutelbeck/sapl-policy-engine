@@ -23,6 +23,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import io.sapl.compiler.util.JsonSchemaPreparation;
+import io.sapl.compiler.util.LinearRegex;
 import io.sapl.compiler.util.SchemaErrors;
 import lombok.val;
 
@@ -137,6 +138,15 @@ public class SchemaValidationLibrary {
             rule written with look-ahead is written as several `pattern` keywords under
             `allOf` instead:
             `{"type": "string", "minLength": 12, "allOf": [{"pattern": "[0-9]"}, {"pattern": "[A-Z]"}]}`.
+
+            A text longer than the text limit that a pattern would search makes the
+            validation an error, and so does a property name longer than the text limit
+            anywhere in the subject.
+
+            The Java engine and the Rust engine differ in one case. A key of
+            `patternProperties` that holds an ASCII word boundary, `(?-u:\\b)` or
+            `(?-u:\\B)`, is read by the Java engine like any other pattern. The Rust engine
+            refuses a schema with such a key.
             """;
 
     // JSON result field names
@@ -401,7 +411,8 @@ public class SchemaValidationLibrary {
                 return createValidationResult(false, List.of());
             }
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
-            val errors      = validator.validate(subjectNode);
+            JsonSchemaPreparation.requireSearchablePropertyNames(subjectNode, LinearRegex.LIMITS.maxTextBytes());
+            val errors = validator.validate(subjectNode);
             return createValidationResult(errors.isEmpty(), errors);
         } catch (SchemaException e) {
             // An uncompilable schema (malformed, bad or unresolvable $ref) is an author

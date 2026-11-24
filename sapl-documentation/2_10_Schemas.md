@@ -114,4 +114,8 @@ A rule written with look-ahead is written as several patterns under `allOf` inst
 
 A schema with a pattern the regex engine refuses never lets a subscription through, even if the subscription never reaches the pattern. An enforced schema statement with such a pattern is refused when the policy is compiled, and the functions of the `jsonschema` library return an error. Both name the reason.
 
+A text longer than the text limit that a pattern would search is an error of the validation, never a text that matches or does not match. A property name longer than the text limit anywhere in the validated value is an error as well, whether a pattern reaches the name or not.
+
+The Java engine and the Rust engine differ in one case. A key of `patternProperties` that holds an ASCII word boundary, `(?-u:\b)` or `(?-u:\B)`, is read by the Java engine like any other pattern. The Rust engine refuses a schema with such a key.
+
 The `format` keyword is an annotation and is not checked. `"format": "regex"` does not test whether a text is a valid pattern. Use `patterns.isValidRegex` for that.

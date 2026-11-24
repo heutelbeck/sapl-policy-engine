@@ -152,18 +152,18 @@ public class SchemaValidatorCompiler {
         case ErrorValue error           ->
             throw new SaplCompilerException(ERROR_SCHEMA_EVALUATION_FAILED.formatted(error.message()), location);
         case PureOperator ignored       -> throw new SaplCompilerException(ERROR_SCHEMA_MUST_BE_CONSTANT, location);
-        case ObjectValue constantSchema ->
-            createPrecompiledValidator(schema.element(), constantSchema, location, registry);
+        case ObjectValue constantSchema -> createPrecompiledValidator(schema.element(), constantSchema, location,
+                registry, ctx.regexLimits().maxTextBytes());
         default                         -> throw new SaplCompilerException(
                 ERROR_SCHEMA_MUST_BE_OBJECT.formatted(compiledSchema.getClass().getSimpleName()), location);
         };
     }
 
     private static PrecompiledSchemaValidator createPrecompiledValidator(SubscriptionElement element,
-            ObjectValue constantSchema, SourceLocation location, SchemaRegistry registry) {
+            ObjectValue constantSchema, SourceLocation location, SchemaRegistry registry, int maxTextBytes) {
         try {
             val precompiledSchema = JsonSchemaPreparation.prepare(registry, constantSchema);
-            return new PrecompiledSchemaValidator(element, constantSchema, precompiledSchema, location);
+            return new PrecompiledSchemaValidator(element, constantSchema, precompiledSchema, maxTextBytes, location);
         } catch (SchemaException e) {
             throw new SaplCompilerException(SchemaErrors.describe(e, ERROR_SCHEMA_INVALID_JSON_SCHEMA), e, location);
         }
@@ -173,6 +173,7 @@ public class SchemaValidatorCompiler {
             SubscriptionElement element,
             ObjectValue schemaSource,
             Schema schema,
+            int maxTextBytes,
             SourceLocation location) implements SchemaValidator {
         private static final long KIND = SemanticHashing.kindHash(PrecompiledSchemaValidator.class);
 
@@ -189,7 +190,8 @@ public class SchemaValidatorCompiler {
             }
             try {
                 val subjectNode = ValueJsonMarshaller.toJsonNode(elementValue);
-                val messages    = schema.validate(subjectNode);
+                JsonSchemaPreparation.requireSearchablePropertyNames(subjectNode, maxTextBytes);
+                val messages = schema.validate(subjectNode);
                 return messages.isEmpty() ? Value.TRUE : Value.FALSE;
             } catch (Throwable e) {
                 // Third-party validation on hostile input must never crash evaluation. Surface

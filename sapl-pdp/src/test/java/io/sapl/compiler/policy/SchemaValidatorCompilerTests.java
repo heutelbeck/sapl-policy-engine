@@ -421,6 +421,22 @@ class SchemaValidatorCompilerTests {
                     error -> assertThat(error.message())
                             .isEqualTo("Matching the regular expression '.*' of the schema failed: text too long."));
         }
+
+        @Test
+        @DisplayName("when the subject holds a property name beyond the text limit of the compiler options then the schema yields an error, whether a pattern reaches the name or not")
+        void whenSubjectHoldsPropertyNameBeyondTheTextLimitThenError() {
+            val schema  = (ObjectValue) obj("type", Value.of("object"));
+            val limited = compilationContext();
+            limited.setCompilerOptions((ObjectValue) obj("regexMaxTextBytes", Value.of(8)));
+            val validator = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema)), limited);
+            val ctx       = subscriptionContext("""
+                    {"subject": {"Gr\u00fc\u00dfe a": {"12345678": 1}}, "action": "read", "resource": "data"}
+                    """);
+
+            assertThat(evaluate(validator, ctx)).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message())
+                            .isEqualTo("Schema validation failed: property name too long."));
+        }
     }
 
     @Nested
@@ -707,7 +723,7 @@ class SchemaValidatorCompilerTests {
             when(throwingSchema.validate(any(JsonNode.class)))
                     .thenThrow(new SchemaException(new IllegalStateException("boom")));
             val validator = new PrecompiledSchemaValidator(SubscriptionElement.SUBJECT, STRING_SCHEMA, throwingSchema,
-                    TEST_LOCATION);
+                    LinearRegex.DEFAULT_MAX_TEXT_BYTES, TEST_LOCATION);
             val ctx       = subscriptionContext("""
                     { "subject": "anything", "action": "read", "resource": "data" }
                     """);

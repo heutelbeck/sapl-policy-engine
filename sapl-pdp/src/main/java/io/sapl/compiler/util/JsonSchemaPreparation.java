@@ -38,6 +38,7 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +53,8 @@ import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 /** Prepares a schema and its resolved references before validating SAPL values. */
 @UtilityClass
 public class JsonSchemaPreparation {
+
+    private static final String ERROR_PROPERTY_NAME_TOO_LONG = "property name too long";
 
     private static final SchemaLocation INLINE    = SchemaLocation.of("mem://inline");
     private static final JsonMapper     MAPPER    = JsonMapper.builder(JSON_FACTORY)
@@ -112,6 +115,36 @@ public class JsonSchemaPreparation {
             validateAgainstDialect(schema, embedded);
         }
         return root;
+    }
+
+    /**
+     * Refuses a value with a property name longer than the text limit. A
+     * pattern of a schema could not search such a name, and whether a schema
+     * applies a pattern to a name depends on the course of the validation. So
+     * no value with such a name is validated at all.
+     *
+     * @param subject the value to validate
+     * @param maxTextBytes the longest text a pattern searches, in bytes of UTF-8
+     * @throws SchemaException if a property name anywhere in the value is longer
+     */
+    public static void requireSearchablePropertyNames(JsonNode subject, int maxTextBytes) {
+        if (subject instanceof ObjectNode object) {
+            for (val property : object.properties()) {
+                if (isLongerThan(property.getKey(), maxTextBytes)) {
+                    throw new SchemaException(ERROR_PROPERTY_NAME_TOO_LONG);
+                }
+                requireSearchablePropertyNames(property.getValue(), maxTextBytes);
+            }
+        } else if (subject instanceof ArrayNode array) {
+            for (val element : array) {
+                requireSearchablePropertyNames(element, maxTextBytes);
+            }
+        }
+    }
+
+    private static boolean isLongerThan(String text, int maxBytes) {
+        // A character takes at most three bytes of UTF-8.
+        return text.length() > maxBytes / 3 && text.getBytes(StandardCharsets.UTF_8).length > maxBytes;
     }
 
     private static Set<Schema> resolvedSchemas(Schema root) {

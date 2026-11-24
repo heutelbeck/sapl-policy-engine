@@ -165,7 +165,20 @@ public class LinearRegex {
      * @throws RegexRefusedException if the pattern is refused
      */
     public static Regex compileWholeTextOrRefuse(String pattern) {
-        return orRefuse(pattern, compileWholeText(pattern));
+        return compileWholeTextOrRefuse(pattern, LIMITS);
+    }
+
+    /**
+     * Compiles a pattern that must match the whole text, where an interface
+     * demands an exception for a refused pattern.
+     *
+     * @param pattern the pattern
+     * @param limits the limits for the pattern and its texts
+     * @return the compiled pattern
+     * @throws RegexRefusedException if the pattern is refused
+     */
+    public static Regex compileWholeTextOrRefuse(String pattern, RegexLimits limits) {
+        return orRefuse(pattern, compileWholeText(pattern, limits));
     }
 
     /**

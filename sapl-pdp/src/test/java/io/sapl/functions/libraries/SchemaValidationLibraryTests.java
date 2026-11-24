@@ -49,6 +49,7 @@ class SchemaValidationLibraryTests {
 
     private static final String INVALID_REGULAR_EXPRESSION = "The schema holds an invalid regular expression: %s.";
     private static final String MATCHING_FAILED            = "Matching the regular expression '.*' of the schema failed: text too long.";
+    private static final String NAME_TOO_LONG              = "Schema validation failed: property name too long.";
     private static final String TEXT_BEYOND_LIMIT          = "a".repeat(LinearRegex.LIMITS.maxTextBytes() + 1);
     private static final String SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s.";
 
@@ -125,7 +126,7 @@ class SchemaValidationLibraryTests {
     @MethodSource
     @DisplayName("a subject the regex engine cannot search is an error in every function, never a compliant subject")
     void whenSubjectCannotBeSearchedThenEveryFunctionReturnsError(String description, String schema,
-            Value validationSubject) {
+            Value validationSubject, String message) {
         val jsonSchema = (ObjectValue) json(schema);
 
         assertThat(List.of(isCompliant(validationSubject, jsonSchema),
@@ -133,16 +134,31 @@ class SchemaValidationLibraryTests {
                 validate(validationSubject, jsonSchema),
                 validateWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY)))
                 .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                        error -> assertThat(error.message()).isEqualTo(MATCHING_FAILED)));
+                        error -> assertThat(error.message()).isEqualTo(message)));
     }
 
     static Stream<Arguments> whenSubjectCannotBeSearchedThenEveryFunctionReturnsError() {
         return Stream.of(arguments("a negated pattern on a text beyond the text limit", """
                 {"not": {"pattern": ".*"}}
-                """, Value.of(TEXT_BEYOND_LIMIT)),
+                """, Value.of(TEXT_BEYOND_LIMIT), MATCHING_FAILED),
                 arguments("a patternProperties key on a name beyond the text limit", """
                         {"type": "object", "patternProperties": {".*": false}}
-                        """, ObjectValue.builder().put(TEXT_BEYOND_LIMIT, Value.of(1)).build()));
+                        """, ObjectValue.builder().put(TEXT_BEYOND_LIMIT, Value.of(1)).build(), NAME_TOO_LONG),
+                arguments("a pattern behind a keyword that already failed", """
+                        {"type": "number", "pattern": ".*"}
+                        """, Value.of(TEXT_BEYOND_LIMIT), MATCHING_FAILED),
+                arguments("a pattern behind a subschema that already failed", """
+                        {"allOf": [{"type": "number"}, {"pattern": ".*"}]}
+                        """, Value.of(TEXT_BEYOND_LIMIT), MATCHING_FAILED),
+                arguments("a name beyond the text limit that no pattern of the schema reaches", """
+                        {"anyOf": [{"type": "array"}, {"items": {"patternProperties": {".*": false}}}]}
+                        """,
+                        ArrayValue.builder().add(ObjectValue.builder().put(TEXT_BEYOND_LIMIT, Value.of(1)).build())
+                                .build(),
+                        NAME_TOO_LONG),
+                arguments("a name beyond the text limit under a schema without patterns", """
+                        {"type": "object"}
+                        """, ObjectValue.builder().put(TEXT_BEYOND_LIMIT, Value.of(1)).build(), NAME_TOO_LONG));
     }
 
     @Test
