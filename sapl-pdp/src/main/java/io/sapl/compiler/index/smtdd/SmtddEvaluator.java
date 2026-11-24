@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.index.smtdd;
 
+import com.heutelbeck.rustregex4j.RegexError;
+import com.heutelbeck.rustregex4j.SetMatches;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -25,22 +27,31 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.index.smtdd.SmtddNode.BinaryDecision;
 import io.sapl.compiler.index.smtdd.SmtddNode.EqualityBranch;
+import io.sapl.compiler.index.smtdd.SmtddNode.RegexBranch;
 import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
+import io.sapl.compiler.util.LinearRegex;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.BitSet;
+import java.util.List;
 
 /**
  * Evaluates an SMTDD against a request context.
  * <p>
  * Traversal is top-down: first through EqualityBranch nodes (one
- * HashMap lookup per branch), then through BinaryDecision nodes
- * (one predicate evaluation per node). Errors are accumulated
+ * HashMap lookup per branch), then through RegexBranch nodes (one search
+ * with the set of patterns per branch), then through BinaryDecision nodes
+ * (one predicate evaluation per node). An equality branch and a binary
+ * decision continue with one child. A regex branch continues with its
+ * default child and with the child of every pattern that matches, and the
+ * matched formulas of all these paths are united. Errors are accumulated
  * from the precomputed affected-formulas sets.
  */
 @UtilityClass
 class SmtddEvaluator {
+
+    private static final String ERROR_REGEX_SET_SEARCH_FAILED = "Matching the regular expressions of the policy index failed: %s.";
 
     /**
      * Result of evaluating an SMTDD.
@@ -59,61 +70,117 @@ class SmtddEvaluator {
      * @param ctx the evaluation context
      * @return matched and errored formula indices
      */
-    private static ErrorValue firstEncountered(ErrorValue previous, ErrorValue current) {
-        return previous != null ? previous : current;
+    static EvaluationResult evaluate(SmtddNode root, BinaryVariableOrder binaryOrder, EvaluationContext ctx) {
+        val traversal = new Traversal(binaryOrder, ctx);
+        traversal.follow(root);
+        traversal.matched.andNot(traversal.errored);
+        return new EvaluationResult(traversal.matched, traversal.errored, traversal.firstError);
     }
 
-    static EvaluationResult evaluate(SmtddNode root, BinaryVariableOrder binaryOrder, EvaluationContext ctx) {
-        val        accumulatedErrors = new BitSet();
-        ErrorValue firstError        = null;
-        var        node              = root;
+    /** The state of one evaluation, shared by all paths that a regex branch opens. */
+    private static final class Traversal {
 
-        // Traverse equality branches and binary decisions
-        while (!(node instanceof Terminal(BitSet matchedByTerminal))) {
-            switch (node) {
-            case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected, var keyFormulas) -> {
-                val result = ctx.evaluate(operand);
-                if (result instanceof ErrorValue error) {
-                    firstError = firstEncountered(firstError, error);
-                    accumulatedErrors.or(affected);
-                    node = errorChild;
-                } else {
-                    markInvalidKeyFormulas(result, keyFormulas, accumulatedErrors);
-                    val branch = branches.get(result);
-                    node = branch != null ? branch : defaultChild;
-                }
-            }
-            case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                                   -> {
-                val result = ctx.evaluate(binaryOrder.predicateAt(level).operator());
-                switch (result) {
-                case ErrorValue error           -> {
-                    firstError = firstEncountered(firstError, error);
-                    accumulatedErrors.or(binaryOrder.erroredFormulas(level));
-                    node = errorChild;
-                }
-                case BooleanValue(var b) when b -> node = trueChild;
-                case BooleanValue ignored       -> node = falseChild;
-                default                         -> {
-                    // Non-boolean (type error now that the body type-check is gone):
-                    // route to the error branch and reconcile through Kleene naive.
-                    accumulatedErrors.or(binaryOrder.erroredFormulas(level));
-                    node = errorChild;
-                }
-                }
-            }
-            case Terminal ignored                                                                                           ->
-                { /* handled by while condition */ }
-            }
+        private final BinaryVariableOrder binaryOrder;
+        private final EvaluationContext   ctx;
+        private final BitSet              matched = new BitSet();
+        private final BitSet              errored = new BitSet();
+        private ErrorValue                firstError;
+
+        Traversal(BinaryVariableOrder binaryOrder, EvaluationContext ctx) {
+            this.binaryOrder = binaryOrder;
+            this.ctx         = ctx;
         }
 
-        val matched = (BitSet) matchedByTerminal.clone();
-        matched.andNot(accumulatedErrors);
-        return new EvaluationResult(matched, accumulatedErrors, firstError);
-    }
+        void follow(SmtddNode root) {
+            var node = root;
+            while (!(node instanceof Terminal(BitSet matchedByTerminal))) {
+                node = switch (node) {
+                case EqualityBranch branch   -> childOf(branch);
+                case RegexBranch branch      -> defaultChildAfterMatchingPatterns(branch);
+                case BinaryDecision decision -> childOf(decision);
+                case Terminal terminal       -> terminal;
+                };
+            }
+            matched.or(matchedByTerminal);
+        }
 
-    private static void markInvalidKeyFormulas(Value value, BitSet keyFormulas, BitSet accumulatedErrors) {
-        if (!(value instanceof TextValue || value instanceof UndefinedValue)) {
-            accumulatedErrors.or(keyFormulas);
+        private SmtddNode childOf(EqualityBranch branch) {
+            val result = ctx.evaluate(branch.operand());
+            if (result instanceof ErrorValue error) {
+                failed(error, branch.affectedFormulas());
+                return branch.errorChild();
+            }
+            if (!(result instanceof TextValue || result instanceof UndefinedValue)) {
+                errored.or(branch.keyFormulas());
+            }
+            val child = branch.branches().get(result);
+            return child != null ? child : branch.defaultChild();
+        }
+
+        private SmtddNode childOf(BinaryDecision decision) {
+            val result = ctx.evaluate(binaryOrder.predicateAt(decision.level()).operator());
+            return switch (result) {
+            case ErrorValue error           -> {
+                failed(error, binaryOrder.erroredFormulas(decision.level()));
+                yield decision.errorChild();
+            }
+            case BooleanValue(var b) when b -> decision.trueChild();
+            case BooleanValue ignored       -> decision.falseChild();
+            default                         -> {
+                // Non-boolean (type error now that the body type-check is gone):
+                // route to the error branch and reconcile through Kleene naive.
+                errored.or(binaryOrder.erroredFormulas(decision.level()));
+                yield decision.errorChild();
+            }
+            };
+        }
+
+        /**
+         * Follows the children of all patterns that match the operand. A value
+         * that is no text matches no pattern, as for the operator {@code =~}. If
+         * the operand errors or the engine cannot search the text, the formulas
+         * of the branch are suspect and no child is followed.
+         */
+        private SmtddNode defaultChildAfterMatchingPatterns(RegexBranch branch) {
+            val result = ctx.evaluate(branch.operand());
+            if (result instanceof ErrorValue error) {
+                failed(error, branch.affectedFormulas());
+            } else if (result instanceof TextValue(var text)) {
+                switch (branch.patterns().matches(text)) {
+                case SetMatches(var matching) -> followMatching(branch, matching);
+                case RegexError error         ->
+                    failed(Value.error(ERROR_REGEX_SET_SEARCH_FAILED.formatted(LinearRegex.describe(error))),
+                            branch.affectedFormulas());
+                }
+            }
+            return branch.defaultChild();
+        }
+
+        private void followMatching(RegexBranch branch, List<Integer> matching) {
+            for (val pattern : matching) {
+                follow(branch.children().get(pattern));
+            }
+            if (branch.conjunctions().isEmpty()) {
+                return;
+            }
+            // A formula that demands several patterns was routed to the child of one
+            // of them and holds only if all of them match.
+            val matchingPatterns = new BitSet();
+            matching.forEach(matchingPatterns::set);
+            branch.conjunctions().forEach((formula, demanded) -> {
+                val missing = (BitSet) demanded.clone();
+                missing.andNot(matchingPatterns);
+                if (!missing.isEmpty()) {
+                    matched.clear(formula);
+                }
+            });
+        }
+
+        private void failed(ErrorValue error, BitSet affectedFormulas) {
+            if (firstError == null) {
+                firstError = error;
+            }
+            errored.or(affectedFormulas);
         }
     }
 

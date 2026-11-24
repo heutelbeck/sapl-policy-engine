@@ -51,6 +51,7 @@ import static io.sapl.compiler.index.smtdd.SmtddNode.*;
 public class SmtddBuilder {
 
     private static final String ERROR_EQUALITY_BRANCH_IN_BINARY_MERGE = "EqualityBranch encountered in binary merge context";
+    private static final String ERROR_REGEX_BRANCH_IN_BINARY_MERGE    = "RegexBranch encountered in binary merge context";
 
     /**
      * Builds the SMTDD from analyzed predicates and boolean expressions.
@@ -84,24 +85,27 @@ public class SmtddBuilder {
         val allFormulas = new BitSet(formulaCount);
         allFormulas.set(0, formulaCount);
 
-        val root = buildEqualityLevels(equalityGroups, 0, allFormulas, formulaBdds, table, maxIndexNodes);
+        val root = buildEqualityLevels(equalityGroups, analysis.regexGroups(), 0, allFormulas, formulaBdds, table,
+                maxIndexNodes);
 
         log.debug("SMTDD: construction complete ({} nodes in table)", table.size());
         return root;
     }
 
-    private static SmtddNode buildEqualityLevels(List<EqualityGroup> groups, int groupIndex, BitSet formulasInBucket,
-            SmtddNode[] formulaBdds, SmtddUniqueTable table, int maxIndexNodes) {
+    private static SmtddNode buildEqualityLevels(List<EqualityGroup> groups, List<RegexGroup> regexGroups,
+            int groupIndex, BitSet formulasInBucket, SmtddNode[] formulaBdds, SmtddUniqueTable table,
+            int maxIndexNodes) {
 
         if (groupIndex >= groups.size()) {
-            return mergeBucket(formulasInBucket, formulaBdds, table, maxIndexNodes);
+            return buildRegexLevels(regexGroups, 0, formulasInBucket, formulaBdds, table, maxIndexNodes);
         }
 
         val group     = groups.get(groupIndex);
         val compacted = group.compact(formulasInBucket);
 
         if (compacted.doesNotSplit(formulasInBucket)) {
-            return buildEqualityLevels(groups, groupIndex + 1, formulasInBucket, formulaBdds, table, maxIndexNodes);
+            return buildEqualityLevels(groups, regexGroups, groupIndex + 1, formulasInBucket, formulaBdds, table,
+                    maxIndexNodes);
         }
 
         log.debug("SMTDD: equality branch (group {}/{}): {} branches", groupIndex + 1, groups.size(),
@@ -109,15 +113,52 @@ public class SmtddBuilder {
 
         val branches = new LinkedHashMap<Value, SmtddNode>();
         for (val entry : compacted.branchFormulas().entrySet()) {
-            branches.put(entry.getKey(),
-                    buildEqualityLevels(groups, groupIndex + 1, entry.getValue(), formulaBdds, table, maxIndexNodes));
+            branches.put(entry.getKey(), buildEqualityLevels(groups, regexGroups, groupIndex + 1, entry.getValue(),
+                    formulaBdds, table, maxIndexNodes));
         }
 
-        val defaultChild = buildEqualityLevels(groups, groupIndex + 1, compacted.defaultFormulas(), formulaBdds, table,
-                maxIndexNodes);
+        val defaultChild = buildEqualityLevels(groups, regexGroups, groupIndex + 1, compacted.defaultFormulas(),
+                formulaBdds, table, maxIndexNodes);
 
         return new EqualityBranch(group.getSharedOperand(), branches, defaultChild, defaultChild,
                 compacted.affectedFormulas(), compacted.keyFormulas());
+    }
+
+    /**
+     * Builds the regex branches below the equality branches. Each formula of the
+     * bucket that matches the operand of the group goes to the child of one
+     * pattern, all other formulas go to the default child, so the children hold
+     * the formulas of the bucket once and the diagram does not enumerate the
+     * sets of patterns that may match together.
+     */
+    private static SmtddNode buildRegexLevels(List<RegexGroup> groups, int groupIndex, BitSet formulasInBucket,
+            SmtddNode[] formulaBdds, SmtddUniqueTable table, int maxIndexNodes) {
+
+        if (groupIndex >= groups.size()) {
+            return mergeBucket(formulasInBucket, formulaBdds, table, maxIndexNodes);
+        }
+
+        val group    = groups.get(groupIndex);
+        val affected = (BitSet) formulasInBucket.clone();
+        affected.and(group.getAffectedFormulas());
+        if (affected.isEmpty()) {
+            return buildRegexLevels(groups, groupIndex + 1, formulasInBucket, formulaBdds, table, maxIndexNodes);
+        }
+
+        log.debug("SMTDD: regex branch (group {}/{}): {} patterns", groupIndex + 1, groups.size(),
+                group.patternCount());
+
+        val children = new ArrayList<SmtddNode>(group.patternCount());
+        for (val routed : group.route(affected)) {
+            children.add(buildRegexLevels(groups, groupIndex + 1, routed, formulaBdds, table, maxIndexNodes));
+        }
+
+        val unaffected = (BitSet) formulasInBucket.clone();
+        unaffected.andNot(affected);
+        val defaultChild = buildRegexLevels(groups, groupIndex + 1, unaffected, formulaBdds, table, maxIndexNodes);
+
+        return new RegexBranch(group.getSharedOperand(), group.getSet(), List.copyOf(children), defaultChild, affected,
+                group.conjunctions(affected));
     }
 
     private static SmtddNode mergeBucket(BitSet formulasInBucket, SmtddNode[] formulaBdds, SmtddUniqueTable table,
@@ -203,8 +244,8 @@ public class SmtddBuilder {
         case Atom(var predicate) -> {
             val level = order.levelOf(predicate);
             if (level < 0) {
-                // Predicate not in binary order (it's an equality predicate handled by
-                // EqualityBranch)
+                // Predicate not in binary order (it's a predicate handled by an
+                // EqualityBranch or a RegexBranch)
                 // In the correct branch, this predicate is always true -> matched
                 yield matched;
             }
@@ -318,6 +359,7 @@ public class SmtddBuilder {
         case Terminal ignored        -> Integer.MAX_VALUE;
         case BinaryDecision decision -> decision.level();
         case EqualityBranch ignored  -> throw new SaplCompilerException(ERROR_EQUALITY_BRANCH_IN_BINARY_MERGE);
+        case RegexBranch ignored     -> throw new SaplCompilerException(ERROR_REGEX_BRANCH_IN_BINARY_MERGE);
         };
     }
 

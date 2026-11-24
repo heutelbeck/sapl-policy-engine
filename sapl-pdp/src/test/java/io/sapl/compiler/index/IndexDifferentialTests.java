@@ -243,6 +243,80 @@ class IndexDifferentialTests {
     }
 
     @Nested
+    @DisplayName("Regular expressions on a shared operand")
+    class RegexGroups {
+
+        private static final List<CompiledDocument> ROUTES = policies(
+                "policy \"api\" permit subject.path =~ \"/api/[a-z]+\"",
+                "policy \"users\" permit subject.path =~ \"/api/users\"",
+                "policy \"admin\" permit subject.path =~ \"/admin/.*\" && subject.role == \"admin\"",
+                "policy \"api-users\" permit subject.path =~ \"/api/.*\" && subject.path =~ \".*/users\"",
+                "policy \"not-internal\" permit !(subject.path =~ \"/internal/.*\")",
+                "policy \"orders-or-root\" permit subject.path =~ \"/api/orders\" || subject.role == \"root\"",
+                "policy \"named-orders\" permit subject.name =~ \"[a-z]+\" && subject.path =~ \"/api/orders/[0-9]+\"",
+                "policy \"bob\" permit subject.name =~ \"bob\"",
+                "policy \"api-quota\" permit subject.path =~ \"/api/[a-z]+\" && (10 / subject.n) > 1",
+                "policy \"ratio-one\" permit (10 / subject.n) =~ \"1\"",
+                "policy \"ratio-digits\" permit (10 / subject.n) =~ \"[0-9]+\"");
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource
+        @DisplayName("the indexes report the matches and errors of the single predicates")
+        void whenPatternsShareAnOperandThenIndexesAgreeWithNaive(String description, String subject,
+                Set<String> expectedMatches, Set<String> expectedErrors) {
+            val ctx    = subscriptionContext(wrap(subject));
+            val oracle = NaivePolicyIndex.create(ROUTES).matchKleene(ctx);
+            assertThat(List.of(matchedKleene(oracle), erroredKleene(oracle))).containsExactly(expectedMatches,
+                    expectedErrors);
+            assertComplementMatches(ROUTES, ctx, oracle);
+        }
+
+        static Stream<Arguments> whenPatternsShareAnOperandThenIndexesAgreeWithNaive() {
+            return Stream.of(
+                    arguments("several patterns match the same path", """
+                            {"path":"/api/users","n":2}""",
+                            Set.of("api", "users", "api-users", "not-internal", "api-quota"), Set.of()),
+                    arguments("a pattern in a disjunction and a pattern of another operand", """
+                            {"path":"/api/orders","name":"bob","n":20}""",
+                            Set.of("api", "not-internal", "orders-or-root", "bob"), Set.of()),
+                    arguments("a pattern combined with an equality", """
+                            {"path":"/admin/x","role":"admin","n":5}""", Set.of("admin", "not-internal"), Set.of()),
+                    arguments("only one of two demanded patterns matches", """
+                            {"path":"/api/orders/7","name":"alice","n":5}""", Set.of("not-internal", "named-orders"),
+                            Set.of()),
+                    arguments("a negated pattern", """
+                            {"path":"/internal/x","n":5}""", Set.of(), Set.of()),
+                    arguments("a path that is no text", """
+                            {"path":42,"n":5}""", Set.of("not-internal"), Set.of()),
+                    arguments("a path that is missing", """
+                            {"n":5}""", Set.of("not-internal"), Set.of()),
+                    arguments("an operand that errors", """
+                            {"path":"/api/users","n":0}""", Set.of("api", "users", "api-users", "not-internal"),
+                            Set.of("api-quota", "ratio-one", "ratio-digits")),
+                    // A conjunction with a false predicate is false, also if the pattern errors.
+                    arguments("a path the regex engine cannot search", """
+                            {"path":"%s","n":5}""".formatted("/api/" + "a".repeat(70_000)), Set.of(),
+                            Set.of("api", "users", "api-users", "not-internal", "orders-or-root", "api-quota")));
+        }
+
+        @Test
+        @DisplayName("many patterns on one operand fit into a small index and select the policy of the matching pattern")
+        void whenManyPatternsShareAnOperandThenIndexStaysSmall() {
+            val sources = new String[200];
+            for (var tenant = 0; tenant < sources.length; tenant++) {
+                sources[tenant] = "policy \"tenant-%d\" permit subject.path =~ \"/api/tenant-%d/users/[0-9]+\""
+                        .formatted(tenant, tenant);
+            }
+            val index = SmtddPolicyIndex.create(policies(sources), 1_000);
+            assertThat(List.of(matchedKleene(index.matchKleene(subscriptionContext(wrap("""
+                    {"path":"/api/tenant-123/users/42"}""")))),
+                    matchedKleene(index.matchKleene(subscriptionContext(wrap("""
+                            {"path":"/api/tenant-999/users/42"}"""))))))
+                    .containsExactly(Set.of("tenant-123"), Set.of());
+        }
+    }
+
+    @Nested
     @DisplayName("Kleene contract: backends agree on true and error matches")
     class KleeneContract {
 

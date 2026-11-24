@@ -28,8 +28,10 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.util.List;
+import java.util.stream.LongStream;
 
 import static io.sapl.compiler.index.IndexTestFixtures.configurablePredicate;
 import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.*;
@@ -216,6 +218,24 @@ class SmtddBuilderTests {
 
             assertThatThrownBy(() -> SmtddBuilder.build(analysis, expressions, 1))
                     .isInstanceOf(IndexSizeLimitExceededException.class).hasMessageContaining("exceeds limit");
+        }
+
+        /**
+         * Formulas over independent predicates need a diagram with a leaf per
+         * subset of formulas, so the node limit must stop the construction. It has
+         * to do so quickly, as every policy update builds the index again.
+         */
+        @Test
+        @Timeout(5)
+        @DisplayName("many formulas over independent predicates reach the default node limit quickly")
+        void whenManyIndependentPredicatesThenNodeLimitIsReachedQuickly() {
+            val expressions          = LongStream.rangeClosed(1, 24)
+                    .<BooleanExpression>mapToObj(hash -> new Atom(configurablePredicate(hash))).toList();
+            val predicatesPerFormula = extractPredicates(expressions);
+            val analysis             = SemanticVariableOrder.analyze(predicatesPerFormula);
+
+            assertThatThrownBy(() -> SmtddBuilder.build(analysis, expressions, 500_000))
+                    .isInstanceOf(IndexSizeLimitExceededException.class);
         }
     }
 

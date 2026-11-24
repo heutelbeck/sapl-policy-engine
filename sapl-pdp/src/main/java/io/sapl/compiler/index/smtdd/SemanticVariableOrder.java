@@ -20,6 +20,7 @@ package io.sapl.compiler.index.smtdd;
 import io.sapl.api.model.*;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
+import io.sapl.compiler.expressions.RegexCompiler.RegexPrecompiledPure;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -45,11 +46,14 @@ public class SemanticVariableOrder {
      *
      * @param equalityGroups groups of predicates sharing a PureOperator, sorted by
      * total formula count descending
+     * @param regexGroups groups of predicates matching a shared PureOperator
+     * against constant regular expressions
      * @param remainingPredicates predicates that could not be grouped
      * @param formulasPerRemainingPredicate formula indices per remaining predicate
      */
     public record AnalysisResult(
             List<EqualityGroup> equalityGroups,
+            List<RegexGroup> regexGroups,
             List<IndexPredicate> remainingPredicates,
             Map<IndexPredicate, List<Integer>> formulasPerRemainingPredicate) {
 
@@ -67,6 +71,10 @@ public class SemanticVariableOrder {
                         .append(", ").append(group.getEqualsFormulas().size()).append(" == branches, ")
                         .append(group.getExcludeFormulas().size()).append(" != branches, ")
                         .append(group.constantCount()).append(" distinct constants\n");
+            }
+            for (val group : regexGroups) {
+                report.append("  Regex group: hash=").append(group.getSharedOperand().semanticHash()).append(", ")
+                        .append(group.patternCount()).append(" patterns\n");
             }
             report.append("Remaining binary predicates: ").append(remainingPredicates.size()).append('\n');
             for (val pred : remainingPredicates) {
@@ -108,13 +116,15 @@ public class SemanticVariableOrder {
     public static AnalysisResult analyze(List<List<IndexPredicate>> formulaPredicates,
             Set<IndexPredicate> nonGroupablePredicates) {
         val groupsByOperandHash          = new HashMap<Long, EqualityGroup>();
+        val regexGroupsByOperandHash     = new HashMap<Long, RegexGroup>();
         val ungroupablePredicateFormulas = new HashMap<IndexPredicate, List<Integer>>();
 
         // Phase 1: classify each predicate into its equality group or ungroupable
         for (var formulaIndex = 0; formulaIndex < formulaPredicates.size(); formulaIndex++) {
             for (val predicate : formulaPredicates.get(formulaIndex)) {
                 if (nonGroupablePredicates.contains(predicate)
-                        || !classifyIntoGroup(predicate, formulaIndex, groupsByOperandHash)) {
+                        || !(classifyIntoGroup(predicate, formulaIndex, groupsByOperandHash)
+                                || classifyIntoRegexGroup(predicate, formulaIndex, regexGroupsByOperandHash))) {
                     ungroupablePredicateFormulas.computeIfAbsent(predicate, k -> new ArrayList<>()).add(formulaIndex);
                 }
             }
@@ -124,8 +134,41 @@ public class SemanticVariableOrder {
         val equalityGroups = pruneSmallGroups(groupsByOperandHash, formulaPredicates, ungroupablePredicateFormulas);
         equalityGroups.sort(Comparator.comparingInt(EqualityGroup::constantCount).reversed());
 
+        val regexGroups = new ArrayList<RegexGroup>();
+        for (val group : regexGroupsByOperandHash.values()) {
+            // A single pattern gains nothing from a set, and a set the engine refuses
+            // leaves its patterns to single searches.
+            if (group.patternCount() >= 2 && group.compileSet()) {
+                regexGroups.add(group);
+            } else {
+                pushBackToUngroupable(group.getPredicates(), formulaPredicates, ungroupablePredicateFormulas);
+            }
+        }
+        regexGroups.sort(Comparator.comparingInt(RegexGroup::patternCount).reversed()
+                .thenComparingLong(group -> group.getSharedOperand().semanticHash()));
+
         val remainingPredicates = new ArrayList<>(ungroupablePredicateFormulas.keySet());
-        return new AnalysisResult(equalityGroups, remainingPredicates, ungroupablePredicateFormulas);
+        return new AnalysisResult(equalityGroups, regexGroups, remainingPredicates, ungroupablePredicateFormulas);
+    }
+
+    /**
+     * Attempts to classify a predicate into the group of the regular expressions
+     * its operand is matched against. Patterns compiled with other limits than
+     * those of the group stay single predicates.
+     */
+    private static boolean classifyIntoRegexGroup(IndexPredicate predicate, int formulaIndex,
+            Map<Long, RegexGroup> groupsByOperandHash) {
+        if (!(predicate
+                .operator() instanceof RegexPrecompiledPure(var operand, var patternSource, var pattern, var ignored))) {
+            return false;
+        }
+        val group = groupsByOperandHash.computeIfAbsent(operand.semanticHash(),
+                hash -> new RegexGroup(operand, pattern.limits()));
+        if (!group.getSharedOperand().semanticEquals(operand) || !group.getLimits().equals(pattern.limits())) {
+            return false;
+        }
+        group.add(patternSource, formulaIndex, predicate);
+        return true;
     }
 
     private static ArrayList<EqualityGroup> pruneSmallGroups(Map<Long, EqualityGroup> groupsByOperandHash,
@@ -135,15 +178,15 @@ public class SemanticVariableOrder {
             if (group.constantCount() >= 2) {
                 equalityGroups.add(group);
             } else {
-                pushBackToUngroupable(group, formulaPredicates, ungroupable);
+                pushBackToUngroupable(group.getTentativePredicates(), formulaPredicates, ungroupable);
             }
         }
         return equalityGroups;
     }
 
-    private static void pushBackToUngroupable(EqualityGroup group, List<List<IndexPredicate>> formulaPredicates,
-            Map<IndexPredicate, List<Integer>> ungroupable) {
-        for (val predicate : group.getTentativePredicates()) {
+    private static void pushBackToUngroupable(Set<IndexPredicate> predicates,
+            List<List<IndexPredicate>> formulaPredicates, Map<IndexPredicate, List<Integer>> ungroupable) {
+        for (val predicate : predicates) {
             for (var formulaIndex = 0; formulaIndex < formulaPredicates.size(); formulaIndex++) {
                 if (formulaPredicates.get(formulaIndex).contains(predicate)) {
                     ungroupable.computeIfAbsent(predicate, k -> new ArrayList<>()).add(formulaIndex);

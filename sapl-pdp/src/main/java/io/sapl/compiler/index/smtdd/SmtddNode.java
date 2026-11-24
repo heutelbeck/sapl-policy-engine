@@ -17,23 +17,28 @@
  */
 package io.sapl.compiler.index.smtdd;
 
+import com.heutelbeck.rustregex4j.RegexSet;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import lombok.val;
 
 import java.util.BitSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * A node in a Semantic Multi-Terminal Decision Diagram (SMTDD).
  * <p>
- * Three node types:
+ * Four node types:
  * <ul>
  * <li>{@link Terminal} - leaf with matched formula indices</li>
  * <li>{@link EqualityBranch} - multi-way branch: evaluates a shared
  * operand once, looks up the result in a HashMap of constant values.
  * Collapses N binary equality predicates into one evaluation + lookup.</li>
+ * <li>{@link RegexBranch} - union branch: evaluates a shared operand
+ * once, matches it against a set of regular expressions with one search and
+ * follows the child of every pattern that matches.</li>
  * <li>{@link BinaryDecision} - standard ternary decision node for
  * predicates that cannot be grouped</li>
  * </ul>
@@ -111,6 +116,18 @@ public sealed interface SmtddNode {
                 renderNode(errorChild, nextPrefix, true, "error:", output, nodeIds, binaryOrder);
             }
         }
+        case RegexBranch(var operand, var patterns, var children, var defaultChild, var ignoredA, var ignoredC)     -> {
+            output.append(prefix).append(connector).append(label).append('#').append(id).append(" REGEX(hash=")
+                    .append(operand.semanticHash()).append(", ").append(children.size()).append(" patterns)\n");
+            val pattern = patterns.patterns().iterator();
+            for (val child : children) {
+                val childLabel = "=~" + pattern.next() + ":";
+                if (child != SmtddUniqueTable.EMPTY) {
+                    renderNode(child, nextPrefix, false, childLabel, output, nodeIds, binaryOrder);
+                }
+            }
+            renderNode(defaultChild, nextPrefix, true, "default:", output, nodeIds, binaryOrder);
+        }
         case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                               -> {
             val predicateLabel = binaryOrder != null ? "p" + binaryOrder.predicateAt(level).semanticHash()
                     : "level" + level;
@@ -173,7 +190,39 @@ public sealed interface SmtddNode {
     }
 
     /**
+     * Union branch over the regular expressions that one shared operand is
+     * matched against. Several patterns may match the same text, so the
+     * matched formulas are the union of the default child and of the children
+     * of all matching patterns.
+     *
+     * @param operand the shared PureOperator to evaluate once
+     * @param patterns the set of all patterns, matched with one search
+     * @param children one child per pattern of the set, holding the formulas
+     * that demand the pattern
+     * @param defaultChild child holding the formulas that do not match the
+     * operand against a pattern of the set
+     * @param affectedFormulas formulas matching the operand against a pattern of
+     * the set, suspect when the operand errors or cannot be searched
+     * @param conjunctions formulas that demand several patterns, with the
+     * indexes of the patterns that must all match
+     */
+    record RegexBranch(
+            PureOperator operand,
+            RegexSet patterns,
+            List<SmtddNode> children,
+            SmtddNode defaultChild,
+            BitSet affectedFormulas,
+            Map<Integer, BitSet> conjunctions) implements SmtddNode {}
+
+    /**
      * Standard ternary decision node for non-groupable predicates.
+     * <p>
+     * Two decisions are equal if they decide the same level and lead to the
+     * same child instances. The children of a decision are interned by the
+     * {@link SmtddUniqueTable}, so structurally equal children are the same
+     * instance, and comparing and hashing them by identity takes constant time.
+     * Comparing them by structure would walk the whole diagram below the node
+     * on every lookup in the table.
      *
      * @param level predicate index in the binary variable order
      * @param trueChild child when predicate is true
@@ -181,6 +230,22 @@ public sealed interface SmtddNode {
      * @param errorChild child when predicate errors
      */
     record BinaryDecision(int level, SmtddNode trueChild, SmtddNode falseChild, SmtddNode errorChild)
-            implements SmtddNode {}
+            implements SmtddNode {
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof BinaryDecision decision && level == decision.level
+                    && trueChild == decision.trueChild && falseChild == decision.falseChild
+                    && errorChild == decision.errorChild;
+        }
+
+        @Override
+        public int hashCode() {
+            var hash = level;
+            hash = 31 * hash + System.identityHashCode(trueChild);
+            hash = 31 * hash + System.identityHashCode(falseChild);
+            return 31 * hash + System.identityHashCode(errorChild);
+        }
+    }
 
 }
