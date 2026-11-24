@@ -68,11 +68,18 @@ public class SaplInstant {
         if (!parts.matches()) {
             throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0);
         }
-        val hour     = Integer.parseInt(parts.group(4));
-        val minute   = parts.group(5) == null ? 0 : Integer.parseInt(parts.group(5));
-        val second   = parts.group(6) == null ? 0 : Integer.parseInt(parts.group(6));
-        val digits   = parts.group(7);
-        val unit     = parts.group(5) == null ? 3600L : parts.group(6) == null ? 60L : 1L;
+        val        hour   = Integer.parseInt(parts.group(4));
+        val        minute = parts.group(5) == null ? 0 : Integer.parseInt(parts.group(5));
+        val        second = parts.group(6) == null ? 0 : Integer.parseInt(parts.group(6));
+        val        digits = parts.group(7);
+        final long unit;
+        if (parts.group(5) == null) {
+            unit = 3600L;
+        } else if (parts.group(6) == null) {
+            unit = 60L;
+        } else {
+            unit = 1L;
+        }
         val fraction = digits == null ? 0L : Long.parseLong((digits + "000000000").substring(0, 9)) * unit;
         val endOfDay = hour == 24;
         if (endOfDay && (minute != 0 || second != 0 || fraction != 0)) {

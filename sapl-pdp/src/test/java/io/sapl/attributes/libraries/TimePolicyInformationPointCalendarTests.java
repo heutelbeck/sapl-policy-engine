@@ -150,7 +150,7 @@ class TimePolicyInformationPointCalendarTests {
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "checkpoint {0}: {1}")
     @CsvFileSource(resources = "/time-checkpoints.tsv", delimiter = '\t')
     @DisplayName("ISO calendar checkpoints schedule the exact instant")
     void whenCalendarCheckpointIsParsedThenItSchedulesTheExpectedInstant(String text, String expected)
@@ -175,6 +175,7 @@ class TimePolicyInformationPointCalendarTests {
     }
 
     @Test
+    @DisplayName("a window with end-of-day and minute checkpoints changes at the UTC boundaries")
     void whenWindowUsesEndOfDayAndMinutesThenItOpensAtTheUtcBoundary() throws InterruptedException {
         val before    = Instant.parse("2021-11-07T23:59:59Z");
         val scheduler = new QueuedScheduler();
