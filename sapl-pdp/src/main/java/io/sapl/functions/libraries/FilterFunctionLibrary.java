@@ -28,6 +28,10 @@ import lombok.val;
 import java.math.BigDecimal;
 import java.util.Arrays;
 
+import static java.lang.String.format;
+import static java.util.Locale.ROOT;
+import static java.util.Objects.checkFromToIndex;
+
 /**
  * Function library implementing content filtering functions for data
  * transformation in access control policies.
@@ -92,8 +96,8 @@ public class FilterFunctionLibrary {
 
             To bound memory and computation on untrusted input, the following limits apply:
 
-            - `blacken` rejects a blacken length above 10,000, whether derived from the input or supplied as the optional length override, returning an error.
-            - `blacken` rejects an output that would exceed 10,000,000 characters once the replacement string is repeated, returning an error.
+            - `blacken` rejects more than 10,000 replacement repetitions, whether derived from the undisclosed code points or supplied as the optional length override.
+            - `blacken` limits the repeated replacement text to 10,000,000 UTF-16 code units. Disclosed prefix and suffix text do not count toward this limit.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -106,6 +110,7 @@ public class FilterFunctionLibrary {
     private static final String ERROR_ILLEGAL_PARAMETER_REPLACEMENT    = "Illegal parameter for REPLACEMENT. Expecting a string. Got: %s.";
     private static final String ERROR_ILLEGAL_PARAMETER_STRING         = "Illegal parameter for STRING. Expecting a string. Got: %s.";
     private static final String ERROR_ILLEGAL_PARAMETERS_COUNT         = "Illegal number of parameters provided.";
+    private static final String ERROR_RANGE_OUT_OF_BOUNDS              = "Range [%d, %d) out of bounds for length %d";
 
     private static final int    ORIGINAL_STRING_INDEX                      = 0;
     private static final int    DISCLOSE_LEFT_INDEX                        = 1;
@@ -120,11 +125,11 @@ public class FilterFunctionLibrary {
     private static final String DEFAULT_REPLACEMENT                        = "X";
 
     /**
-     * Replaces a section of a text with a fixed character.
+     * Replaces a section of a text with a replacement string, using Unicode code point positions.
      *
      * @param parameters
      * STRING (original textual Value), DISCLOSE_LEFT leave this number of
-     * characters original on the left
+     * code points original on the left
      * side of the string, DISCLOSE_RIGHT leave this number of characters original
      * on the right side of the
      * string, REPLACEMENT the replacement characters, defaulting to X,
@@ -134,7 +139,13 @@ public class FilterFunctionLibrary {
      * @return the original Text value with the indicated characters replaced with
      * the replacement characters.
      */
-    @Function(docs = "Blacken text by replacing characters with a replacement string")
+    @Function(docs = """
+            Blacken text by replacing Unicode code points with a replacement string.
+
+            Disclosure counts and the automatically calculated replacement count use Unicode code
+            points. Combining marks count separately. The optional width overrides the number of
+            replacement repetitions. Overlapping disclosed ends leave the original text unchanged.
+            """)
     public static Value blacken(Value... parameters) {
         validateParameterCount(parameters);
         val originalString = extractOriginalText(parameters);
@@ -151,16 +162,16 @@ public class FilterFunctionLibrary {
     }
 
     /**
-     * Utility method to blacken a string with optional length override.
+     * Masks a string using Unicode code point disclosure counts and an optional replacement count.
      *
      * @param originalString
      * the original string to blacken
      * @param replacement
      * the replacement character(s)
      * @param discloseRight
-     * number of characters to keep on the right
+     * number of code points to keep on the right
      * @param discloseLeft
-     * number of characters to keep on the left
+     * number of code points to keep on the left
      * @param blackenLength
      * override length for replacement characters, or null to use calculated length
      *
@@ -168,14 +179,16 @@ public class FilterFunctionLibrary {
      */
     public static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
             Integer blackenLength) {
-        if (discloseLeft + discloseRight >= originalString.length())
+        val length = originalString.codePointCount(0, originalString.length());
+        if (discloseLeft + discloseRight >= length)
             return originalString;
 
         val result        = new StringBuilder();
-        val replacedChars = originalString.length() - discloseLeft - discloseRight;
+        val replacedChars = length - discloseLeft - discloseRight;
 
         if (discloseLeft > 0) {
-            result.append(originalString, 0, discloseLeft);
+            checkFromToIndex(0, discloseLeft, length);
+            result.append(originalString, 0, originalString.offsetByCodePoints(0, discloseLeft));
         }
 
         val blackenFinalLength = blackenLength != null ? blackenLength : replacedChars;
@@ -190,7 +203,12 @@ public class FilterFunctionLibrary {
         result.append(replacementText.repeat(blackenFinalLength));
 
         if (discloseRight > 0) {
-            result.append(originalString.substring(discloseLeft + replacedChars));
+            val begin = discloseLeft + replacedChars;
+            if (begin < 0) {
+                throw new StringIndexOutOfBoundsException(
+                        format(ROOT, ERROR_RANGE_OUT_OF_BOUNDS, begin, length, length));
+            }
+            result.append(originalString.substring(originalString.offsetByCodePoints(0, begin)));
         }
 
         return result.toString();

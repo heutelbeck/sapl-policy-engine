@@ -17,12 +17,16 @@
  */
 package io.sapl.functions.libraries;
 
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -277,6 +281,53 @@ class FilterFunctionLibraryTests {
             String expected) {
         val result = FilterFunctionLibrary.blackenUtil(text, replacement, right, left, length);
         assertThat(result).isEqualTo(expected);
+    }
+
+    @DisplayName("blacken discloses and masks Unicode code points")
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', nullValues = "null", textBlock = """
+            fully masked | a\uD83D\uDE42b | 0 | 0 | X | null | XXX
+            left whole emoji | a\uD83D\uDE42b | 2 | 0 | X | null | a\uD83D\uDE42X
+            right whole emoji | a\uD83D\uDE42b | 0 | 2 | X | null | X\uD83D\uDE42b
+            masked emoji | a\uD83D\uDE42b | 1 | 1 | X | null | aXb
+            only left | a\uD83D\uDE42b | 1 | 0 | X | null | aXX
+            only right | a\uD83D\uDE42b | 0 | 1 | X | null | XXb
+            exact coverage | a\uD83D\uDE42b | 2 | 1 | X | null | a\uD83D\uDE42b
+            overlap | a\uD83D\uDE42b | 2 | 2 | X | null | a\uD83D\uDE42b
+            left fully visible | a\uD83D\uDE42b | 3 | 0 | X | null | a\uD83D\uDE42b
+            right fully visible | a\uD83D\uDE42b | 0 | 3 | X | null | a\uD83D\uDE42b
+            one emoji | \uD83D\uDE42 | 0 | 0 | X | null | X
+            combining mark | e\u0301b | 1 | 1 | X | null | eXb
+            supplementary ends | \uD83D\uDE42a\uD83D\uDE42 | 1 | 1 | X | null | \uD83D\uDE42X\uD83D\uDE42
+            multi-character replacement | a\uD83D\uDE42b | 0 | 0 | [] | null | [][][]
+            supplementary replacement | a\uD83D\uDE42b | 1 | 1 | \uD83D\uDE42 | null | a\uD83D\uDE42b
+            explicit width | a\uD83D\uDE42b | 1 | 1 | * | 4 | a****b
+            zero width | a\uD83D\uDE42b | 1 | 1 | * | 0 | ab
+            empty replacement | a\uD83D\uDE42b | 1 | 1 | '' | null | ab
+            empty text | '' | 0 | 0 | X | null | ''
+            ASCII control | abc | 1 | 1 | X | null | aXc
+            """)
+    void whenBlackeningTextThenDisclosureAndAutomaticWidthCountCodePoints(String name, String text, int left, int right,
+            String replacement, Integer width, String expected) {
+        val parameters = new ArrayList<>(
+                List.of(Value.of(text), Value.of(left), Value.of(right), Value.of(replacement)));
+        if (width != null) {
+            parameters.add(Value.of(width));
+        }
+        assertThat(callBlacken(parameters.toArray(Value[]::new))).as(name).isEqualTo(Value.of(expected));
+    }
+
+    @Test
+    @DisplayName("blacken defaults replace each Unicode code point")
+    void whenBlackeningWithDefaultsThenEachCodePointIsReplaced() {
+        assertThat(callBlacken(Value.of("a\uD83D\uDE42b"))).isEqualTo(Value.of("XXX"));
+        assertThat(callBlacken(Value.of("a\uD83D\uDE42b"), Value.of(2))).isEqualTo(Value.of("a\uD83D\uDE42X"));
+    }
+
+    private static Value callBlacken(Value... parameters) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new FilterFunctionLibrary());
+        return broker.evaluateFunction(new FunctionInvocation("filter.blacken", List.of(parameters)));
     }
 
     @Test

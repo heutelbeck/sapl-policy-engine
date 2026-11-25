@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `filter.blacken` counts visible prefix and suffix characters and its automatic replacement count in Unicode code points, preserving supplementary characters.
+
 - Secrets files reject duplicate field names within an object when loaded from local sources or bundles; the error names the file and field.
 
 - XML output requires an object under `root`, repeats array elements, rejects nested arrays and invalid element names, writes null as an empty element, and uses canonical number text.
