@@ -149,6 +149,9 @@ public class SchemaValidationLibrary {
             drafts as ECMA-262 expressions, and ECMA-262 cannot state these assertions.
 
             Drafts 4, 6, 7, 2019-09 and 2020-12 are supported. The default is 2020-12.
+            Custom meta-schemas named by `$schema` are outside the portable SAPL profile.
+            Draft 2020-12 `$dynamicRef` can address a document supplied in the external schemas
+            array by its `$id`, including a named `$dynamicAnchor`.
             A schema selects its dialect with `$schema`. A provided external schema without
             `$schema` inherits the root schema's dialect. An explicit declaration in the
             external resource takes precedence.

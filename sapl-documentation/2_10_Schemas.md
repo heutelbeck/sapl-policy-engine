@@ -36,6 +36,16 @@ SAPL resolves references within the current schema, to built-in meta-schemas for
 
 For an enforced schema statement, supply additional schemas in the PDP configuration variable `schemas`, an array of objects identified by `$id`. The functions `jsonschema.isCompliantWithExternalSchemas` and `jsonschema.validateWithExternalSchemas` accept this array as their third argument. For example, `{"$ref":"https://example.org/address"}` can use a supplied schema whose `$id` is `https://example.org/address`, even when the PDP is offline. See [PDP configuration variables](../2_2_PDPConfiguration/#variables).
 
+The portable SAPL profile covers Drafts 4, 6, 7, 2019-09 and 2020-12. Draft 2020-12 is the default. A custom meta-schema named by `$schema` lies outside this profile, even if the PDP receives that meta-schema together with the policy. Engine-specific validation of a custom dialect may differ.
+
+In Draft 2020-12, `$dynamicRef` can address another explicitly supplied document by its `$id`, including a named `$dynamicAnchor`. For example, supply the following document in `schemas`:
+
+```json
+{"$id": "urn:example:district", "$dynamicAnchor": "name", "type": "string"}
+```
+
+An enforced schema or schema function can reference it with `{"$dynamicRef": "urn:example:district#name"}`. The text `"West"` is valid and the number `7` is invalid. Supply the target to each PDP that evaluates the policy.
+
 The following rules apply when authoring portable schemas:
 
 - Put reusable subschemas in a location defined by the dialect, such as `definitions` in Drafts 4, 6 and 7 or `$defs` in Draft 2020-12, and reference them with a JSON Pointer such as `#/$defs/address`. A reference into an arbitrary JSON field such as `#/elsewhere` has implementation-dependent behavior. Draft 4 also treats `$defs` as an unknown keyword. If it contains an unresolved reference, one engine can accept the schema and the other can reject it.
