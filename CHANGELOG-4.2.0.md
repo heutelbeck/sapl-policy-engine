@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Glob character classes keep escaped hyphens literal and retain commas and braces inside alternative groups.
+
 - Time functions use UTC for local date-times, blank zone arguments and calendar-unit `timeBetween` calculations, independently of the JVM default zone.
 
 - Explicit time-library zone arguments refuse `ZoneId.SHORT_IDS` aliases such as `EST` and `PST`. Use region IDs, UTC or fixed offsets.

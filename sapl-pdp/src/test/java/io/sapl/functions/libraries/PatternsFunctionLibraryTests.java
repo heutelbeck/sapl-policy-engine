@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +29,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +37,22 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 @DisplayName("PatternsFunctionLibrary")
 class PatternsFunctionLibraryTests {
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource(delimiter = '|', value = { "escaped a | [a\\-c] | a | true", "escaped hyphen | [a\\-c] | - | true",
+            "escaped c | [a\\-c] | c | true", "escaped excludes range | [a\\-c] | b | false",
+            "class a | {[a,b],x} | a | true", "class comma | {[a,b],x} | , | true", "class b | {[a,b],x} | b | true",
+            "class alternative | {[a,b],x} | x | true", "class excludes c | {[a,b],x} | c | false",
+            "class closing brace | {[}],x} | } | true", "brace alternative | {[}],x} | x | true",
+            "brace excludes a | {[}],x} | a | false" })
+    void whenCharacterClassesContainEscapedHyphensOrAlternativePunctuationThenMatchTheirCharacters(String name,
+            String pattern, String text, boolean expected) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new PatternsFunctionLibrary());
+        val invocation = new FunctionInvocation("patterns.matchGlobWithoutDelimiters",
+                List.of(Value.of(pattern), Value.of(text)));
+        assertThat(broker.evaluateFunction(invocation)).isEqualTo(Value.of(expected));
+    }
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {

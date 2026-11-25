@@ -842,7 +842,7 @@ public class PatternsFunctionLibrary {
 
             if (currentChar == '\\' && contentPosition + 1 < content.length()) {
                 val escapedChar = content.charAt(contentPosition + 1);
-                if (CHAR_CLASS_METACHARACTERS.indexOf(escapedChar) >= 0) {
+                if (CHAR_CLASS_METACHARACTERS.indexOf(escapedChar) >= 0 || escapedChar == '-') {
                     processed.append('\\');
                 }
                 processed.append(escapedChar);
@@ -952,6 +952,9 @@ public class PatternsFunctionLibrary {
 
             if (currentChar == '\\' && position + 1 < pattern.length()) {
                 position += 2;
+            } else if (currentChar == '[') {
+                val closingBracket = findClosingBracket(pattern, position);
+                position = closingBracket == -1 ? position + 1 : closingBracket + 1;
             } else if (currentChar == '{') {
                 depth++;
                 position++;
@@ -1005,6 +1008,11 @@ public class PatternsFunctionLibrary {
             if (character == '\\' && position + 1 < alternatives.length()) {
                 current.append(character).append(alternatives.charAt(position + 1));
                 position += 2;
+            } else if (character == '[') {
+                val closingBracket = findClosingBracket(alternatives, position);
+                val nextPosition   = closingBracket == -1 ? position + 1 : closingBracket + 1;
+                current.append(alternatives, position, nextPosition);
+                position = nextPosition;
             } else if (character == '{') {
                 nestingDepth++;
                 current.append(character);
