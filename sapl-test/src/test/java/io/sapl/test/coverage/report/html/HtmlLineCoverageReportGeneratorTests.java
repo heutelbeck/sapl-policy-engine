@@ -247,6 +247,20 @@ class HtmlLineCoverageReportGeneratorTests {
         }
 
         @Test
+        @DisplayName("each physical source has its own linked detail page")
+        void whenTwoSourcePathsHaveTheSameHashThenBothDetailPagesAreLinked() throws IOException {
+            val first  = new PolicyCoverageData("read", "policy \"read\" permit", "policy");
+            val second = new PolicyCoverageData("read", "policy \"read\" permit", "policy");
+            first.setFilePath("Aa/read.sapl");
+            second.setFilePath("BB/read.sapl");
+            val report = new HtmlLineCoverageReportGenerator().generateHtmlReport(List.of(first, second), tempDir,
+                    POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
+            val links = Pattern.compile("<a href=\"(policies/[^\"]+)\"").matcher(Files.readString(report)).results()
+                    .map(match -> report.getParent().resolve(match.group(1))).toList();
+            assertThat(links).hasSize(2).doesNotHaveDuplicates().allSatisfy(path -> assertThat(path).isRegularFile());
+        }
+
+        @Test
         @DisplayName("every index link resolves to an existing file when document names collide on their slug")
         void whenDocumentNamesCollideOnSlugThenEveryIndexLinkResolvesToAnExistingFile() throws IOException {
             val first     = new PolicyCoverageData("a/b", "policy \"first\"\npermit;", "policy");

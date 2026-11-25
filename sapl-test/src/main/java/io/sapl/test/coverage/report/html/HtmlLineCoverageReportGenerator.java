@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -69,37 +70,31 @@ public class HtmlLineCoverageReportGenerator {
             float policyHitRatio, float policyConditionHitRatio) throws IOException {
         val policiesWithSource = policies.stream().filter(p -> p.getDocumentSource() != null).toList();
 
-        val mainReportPath = generateMainReport(policiesWithSource, baseDir, policySetHitRatio, policyHitRatio,
+        val documentLinks  = generatePolicyReports(policiesWithSource, baseDir);
+        val mainReportPath = generateMainReport(documentLinks, baseDir, policySetHitRatio, policyHitRatio,
                 policyConditionHitRatio);
-        generatePolicyReports(policiesWithSource, baseDir);
         copyAssets(baseDir, WebDependencyFactory.getWebDependencies());
         return mainReportPath;
     }
 
-    private Path generateMainReport(List<PolicyCoverageData> policies, Path baseDir, float policySetHitRatio,
+    private Path generateMainReport(String documentLinks, Path baseDir, float policySetHitRatio,
             float policyHitRatio, float policyConditionHitRatio) throws IOException {
         val template = loadTemplate("report.html");
-
-        val links = new StringBuilder();
-        for (val policy : policies) {
-            val name = policy.getDocumentName();
-            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(reportFileName(policy)))
-                    .append("\" class=\"list-group-item list-group-item-action\">").append(escapeHtml(name))
-                    .append("</a>\n");
-        }
 
         val html = fillTemplate(template,
                 Map.of("policySetHitRatio", String.format("%.2f", policySetHitRatio), "policyHitRatio",
                         String.format("%.2f", policyHitRatio), "policyConditionHitRatio",
-                        String.format("%.2f", policyConditionHitRatio), "documentLinks", links.toString()));
+                        String.format("%.2f", policyConditionHitRatio), "documentLinks", documentLinks));
 
         val outputFile = baseDir.resolve("html").resolve("report.html");
         writeFile(outputFile, html);
         return outputFile;
     }
 
-    private void generatePolicyReports(List<PolicyCoverageData> policies, Path baseDir) throws IOException {
+    private String generatePolicyReports(List<PolicyCoverageData> policies, Path baseDir) throws IOException {
         val template = loadTemplate("policy.html");
+        val links    = new StringBuilder();
+        val counts   = new HashMap<String, Integer>();
 
         for (val policy : policies) {
             val lineModels     = createLineModels(policy);
@@ -109,12 +104,20 @@ public class HtmlLineCoverageReportGenerator {
                     escapeHtml(policy.getDocumentSource()), "lineModelsJson", lineModelsJson));
 
             val policiesDir = baseDir.resolve("html").resolve("policies");
-            val outputFile  = policiesDir.resolve(reportFileName(policy));
+            val stem        = reportFileStem(policy);
+            val occurrence  = counts.merge(stem, 1, Integer::sum);
+            val fileName    = (occurrence == 1 ? stem : stem + "~" + occurrence) + ".html";
+            val outputFile  = policiesDir.resolve(fileName);
             if (!outputFile.normalize().startsWith(policiesDir.normalize())) {
                 throw new IOException(ERROR_REPORT_FILE_ESCAPES_OUTPUT_DIRECTORY.formatted(outputFile));
             }
             writeFile(outputFile, html);
+            val name = policy.getDocumentName();
+            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(fileName))
+                    .append("\" class=\"list-group-item list-group-item-action\">").append(escapeHtml(name))
+                    .append("</a>\n");
         }
+        return links.toString();
     }
 
     List<HtmlPolicyLineModel> createLineModels(PolicyCoverageData policy) {
@@ -209,18 +212,8 @@ public class HtmlLineCoverageReportGenerator {
         }
     }
 
-    /**
-     * Derives the per-policy report file name. The document name is
-     * attacker-influenceable SAPL source content, so it is slugged to a safe path
-     * segment and a short deterministic suffix keyed on the document name, source
-     * and file path is appended. Slugging guarantees the result stays inside the policies
-     * directory. The suffix keeps genuinely distinct documents that slug to the
-     * same segment from overwriting one another, while keeping the file name
-     * idempotent for repeated emissions of the same document.
-     */
-    private static String reportFileName(PolicyCoverageData policy) {
-        val slug = toFileNameSlug(policy.getDocumentName());
-        return slug + "-" + disambiguator(policy) + ".html";
+    private static String reportFileStem(PolicyCoverageData policy) {
+        return toFileNameSlug(policy.getDocumentName()) + "-" + disambiguator(policy);
     }
 
     private static String disambiguator(PolicyCoverageData policy) {
