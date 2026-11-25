@@ -109,9 +109,9 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "revoke_permission"
             permit
-            transform
                 var WRITE_BIT = 1;
-                subject.permissions = bitwise.clearBit(subject.permissions, WRITE_BIT);
+            transform
+                { "permissions": bitwise.clearBit(subject.permissions, WRITE_BIT) }
             ```
 
             Count active permissions or enabled features using bit counting. This enforces
@@ -129,9 +129,9 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "toggle_debug_mode"
             permit action == "toggle_debug";
-            transform
                 var DEBUG_BIT = 7;
-                subject.flags = bitwise.toggleBit(subject.flags, DEBUG_BIT);
+            transform
+                { "flags": bitwise.toggleBit(subject.flags, DEBUG_BIT) }
             ```
             """;
 
@@ -399,9 +399,9 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit action == "grant_read";
-            transform
                 var READ_BIT = 0;
-                subject.permissions = bitwise.setBit(subject.permissions, READ_BIT);
+            transform
+                { "permissions": bitwise.setBit(subject.permissions, READ_BIT) }
             ```
             """, schema = RETURNS_NUMBER)
     public static Value setBit(NumberValue value, NumberValue position) {
@@ -446,9 +446,9 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit action == "revoke_write";
-            transform
                 var WRITE_BIT = 1;
-                subject.permissions = bitwise.clearBit(subject.permissions, WRITE_BIT);
+            transform
+                { "permissions": bitwise.clearBit(subject.permissions, WRITE_BIT) }
             ```
             """, schema = RETURNS_NUMBER)
     public static Value clearBit(NumberValue value, NumberValue position) {
@@ -494,9 +494,9 @@ public class BitwiseFunctionLibrary {
             ```sapl
             policy "example"
             permit action == "toggle_feature";
-            transform
                 var FEATURE_BIT = 5;
-                subject.flags = bitwise.toggleBit(subject.flags, FEATURE_BIT);
+            transform
+                { "flags": bitwise.toggleBit(subject.flags, FEATURE_BIT) }
             ```
             """, schema = RETURNS_NUMBER)
     public static Value toggleBit(NumberValue value, NumberValue position) {
