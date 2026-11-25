@@ -73,6 +73,8 @@ public class TemporalFunctionLibrary {
 
             UTC (Coordinated Universal Time) is timezone zero. Central European Time has a +01:00 offset.
             Functions work with UTC timestamps and support timezone conversions.
+            Zone arguments accept region IDs such as Europe/Berlin, UTC and fixed offsets such as +02:00.
+            Short aliases from ZoneId.SHORT_IDS, such as EST and PST, are refused.
 
             **Examples:**
             ```sapl
@@ -1346,10 +1348,11 @@ public class TemporalFunctionLibrary {
         if (zoneIdStr.isBlank())
             return ZoneId.systemDefault();
 
-        try {
-            if (ZoneId.SHORT_IDS.containsKey(zoneIdStr))
-                return ZoneId.of(zoneIdStr, ZoneId.SHORT_IDS);
+        if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
+            throw new IllegalArgumentException(ERROR_INVALID_ZONE_ID.formatted(zoneIdStr));
+        }
 
+        try {
             return ZoneId.of(zoneIdStr);
         } catch (DateTimeException e) {
             throw new IllegalArgumentException(ERROR_INVALID_ZONE_ID.formatted(zoneIdStr), e);

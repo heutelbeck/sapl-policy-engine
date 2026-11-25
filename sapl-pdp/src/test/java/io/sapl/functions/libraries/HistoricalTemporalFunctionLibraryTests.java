@@ -25,6 +25,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ErrorValue;
@@ -86,6 +87,22 @@ class HistoricalTemporalFunctionLibraryTests {
         }
         val actual = broker.evaluateFunction(new FunctionInvocation(function, arguments));
         assertThat(actual).isEqualTo(Value.of(expected));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "ACT", "AET", "AGT", "ART", "AST", "BET", "BST", "CAT", "CNT", "CST", "CTT", "EAT", "ECT",
+            "IET", "IST", "JST", "MIT", "NET", "NST", "PLT", "PNT", "PRT", "PST", "SST", "VST", "EST", "MST", "HST" })
+    @DisplayName("short zone aliases are refused at every explicit time-library zone entry")
+    void whenZoneIsAShortAliasThenTheBrokerRefusesIt(String alias) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new TemporalFunctionLibrary());
+        for (val invocation : List.of(
+                new FunctionInvocation("time.dateTimeAtZone", List.of(Value.of("1880-01-01T13:00"), Value.of(alias))),
+                new FunctionInvocation("time.timeInZone",
+                        List.of(Value.of("13:00"), Value.of("1880-01-01"), Value.of(alias))),
+                new FunctionInvocation("time.toZone", List.of(Value.of("1880-01-01T13:00:00Z"), Value.of(alias))))) {
+            assertThat(broker.evaluateFunction(invocation)).as("%s", invocation).isInstanceOf(ErrorValue.class);
+        }
     }
 
 }

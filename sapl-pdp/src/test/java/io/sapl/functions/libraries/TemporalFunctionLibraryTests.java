@@ -400,15 +400,13 @@ class TemporalFunctionLibraryTests {
     }
 
     @Test
-    void whenZoneIdHandlingThenHandlesShortIdsAndEmptyString() {
-        val defaultZoneId = ZoneId.of("AET", ZoneId.SHORT_IDS);
+    void whenZoneIdIsEmptyThenUsesSystemDefault() {
+        val defaultZoneId = ZoneId.of("Australia/Sydney");
         try (MockedStatic<ZoneId> zoneIdMock = Mockito.mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
             zoneIdMock.when(ZoneId::systemDefault).thenReturn(defaultZoneId);
             assertThat(TemporalFunctionLibrary.dateTimeAtZone(Value.of("2021-11-08T13:12:35"), Value.of("")))
                     .isEqualTo(Value.of("2021-11-08T02:12:35Z"));
         }
-        assertThat(TemporalFunctionLibrary.dateTimeAtZone(Value.of("2021-11-08T13:12:35"), Value.of("EST")))
-                .isEqualTo(Value.of("2021-11-08T18:12:35Z"));
     }
 
     @Test
