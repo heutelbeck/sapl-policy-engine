@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
@@ -24,12 +25,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("JsonFunctionLibrary")
 class JsonFunctionLibraryTests {
@@ -250,6 +256,38 @@ class JsonFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
+
+    @ParameterizedTest(name = "{index}: {0}")
+    @MethodSource("jsonDocumentsWithByteOrderMarks")
+    void whenOneByteOrderMarkLeadsJsonThenItIsConsumed(String text, Value expected) {
+        assertThat(callJsonToVal(text)).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> jsonDocumentsWithByteOrderMarks() {
+        return Stream.of(arguments("\uFEFFtrue", Value.TRUE), arguments("\uFEFF \t\r\ntrue", Value.TRUE),
+                arguments("\uFEFF{\"a\":1}", ObjectValue.builder().put("a", Value.of(1)).build()),
+                arguments("\"\uFEFF\"", Value.of("\uFEFF")), arguments("\uFEFF\"\uFEFF\"", Value.of("\uFEFF")));
+    }
+
+    @ParameterizedTest(name = "{index}: {0}")
+    @ValueSource(strings = { " \uFEFFtrue", "\uFEFF\uFEFFtrue", "true\uFEFF", "\uFEFF" })
+    void whenAByteOrderMarkIsNotTheSinglePrefixThenJsonIsRejected(String text) {
+        assertThat(callJsonToVal(text)).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void whenALeadingByteOrderMarkExceedsTheRawInputLimitThenJsonIsRejected() {
+        val text = " ".repeat(TextParseLimits.MAX_INPUT_CHARS - 4) + "true";
+        assertThat(callJsonToVal(text)).isEqualTo(Value.TRUE);
+        assertThat(callJsonToVal("\uFEFF" + text)).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).startsWith("Input exceeds the maximum length"));
+    }
+
+    private static Value callJsonToVal(String text) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new JsonFunctionLibrary());
+        return broker.evaluateFunction(new FunctionInvocation("json.jsonToVal", List.of(Value.of(text))));
     }
 
     @Nested

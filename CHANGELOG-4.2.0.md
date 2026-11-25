@@ -18,6 +18,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `json.jsonToVal` accepts exactly one leading U+FEFF byte order mark and checks the existing input length limit before removing it.
+
 - `filter.blacken` counts visible prefix and suffix characters and its automatic replacement count in Unicode code points, preserving supplementary characters.
 
 - Secrets files reject duplicate field names within an object when loaded from local sources or bundles; the error names the file and field.

@@ -57,6 +57,9 @@ public class JsonFunctionLibrary {
             Use json.valToJson to serialize SAPL values into JSON strings for obligations,
             advice, or when passing data to external systems.
 
+            A single leading U+FEFF byte order mark is accepted before the JSON document.
+            The input length limit includes this mark. U+FEFF inside a JSON string is preserved.
+
             ## Examples
 
             Parse stored configuration:
@@ -126,6 +129,8 @@ public class JsonFunctionLibrary {
 
             Input longer than 1 MB (1048576 characters) is rejected with an error. Arrays and
             objects can nest at most 499 levels, including empty containers.
+            A single leading U+FEFF byte order mark is accepted. The input length limit includes
+            this mark. U+FEFF inside a JSON string is preserved.
 
             **Example:**
             ```sapl
@@ -136,10 +141,11 @@ public class JsonFunctionLibrary {
             ```
             """)
     public static Value jsonToVal(TextValue json) {
-        if (TextParseLimits.exceedsMaxInput(json.value())) {
+        val text = json.value();
+        if (TextParseLimits.exceedsMaxInput(text)) {
             return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
         }
-        return ValueJsonMarshaller.json(json.value());
+        return ValueJsonMarshaller.json(text.startsWith("\uFEFF") ? text.substring(1) : text);
     }
 
     /**
