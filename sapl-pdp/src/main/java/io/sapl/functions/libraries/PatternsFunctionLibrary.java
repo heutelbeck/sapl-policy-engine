@@ -135,7 +135,7 @@ public class PatternsFunctionLibrary {
             - Glob patterns may nest alternative groups at most 50 levels deep, and a single glob pattern may contain
               at most 30 alternative groups.
             - A regular expression may compile to at most 256 KiB and nest at most 64 levels deep. Each repetition
-              counts with its number of copies, so `(?:a{1000}){1000}` and `\\w{1,6}` are too large. Use an
+              counts with its number of copies, so `(?:a{1000}){1000}` and `\\w{1,32}` exceed the default size limit. Use an
               ASCII class such as `[A-Za-z0-9_]{1,64}` for a bounded repetition, or `\\w+` without a bound.
             - The replacement of `replaceAll` and its result may be at most 64 KiB long in UTF-8, like every text
               a regular expression is matched against.
