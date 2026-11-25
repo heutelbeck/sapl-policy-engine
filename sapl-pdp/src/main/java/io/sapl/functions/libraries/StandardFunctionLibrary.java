@@ -36,14 +36,13 @@ public class StandardFunctionLibrary {
 
             ## Error Handling
 
-            Use `onErrorMap` to provide fallback values when expressions might fail:
+            Check the denominator before dividing in a policy.
 
             ```sapl
             policy "safe division"
             permit
-            where
-                var ratio = standard.onErrorMap(resource.count / resource.total, 0);
-                ratio > 0.5;
+                resource.total != 0;
+                resource.count / resource.total > 0.5;
             ```
 
             ## Measuring Size
@@ -111,7 +110,7 @@ public class StandardFunctionLibrary {
             ```sapl
             policy "example"
             permit
-              standard.asString([1,2,3]) == "[1,2,3]";
+              standard.toString([1, 2, 3]) == "[1, 2, 3]";
             ```
             """, schema = """
             {
@@ -135,15 +134,9 @@ public class StandardFunctionLibrary {
      * @return the guardedExpression if not an error, otherwise the fallback
      */
     @Function(docs = """
-            ```onErrorMap(guardedExpression, fallbackExpression)```: If evaluation of ```guardedExpression``` results in an error,
-            the ```fallback``` is returned instead. Otherwise the result of ```guardedExpression``` is returned.
-
-            **Example:**
-            ```sapl
-            policy "example"
-            permit
-              standard.onErrorMap(1/0,999) == 999;
-            ```
+            ```onErrorMap(guardedExpression, fallbackExpression)``` returns the fallback when the first argument is an error.
+            Otherwise it returns the first argument.
+            A SAPL policy propagates errors while evaluating the arguments, before it calls the function.
             """)
     public static Value onErrorMap(Value guardedExpression, Value fallback) {
         if (guardedExpression instanceof ErrorValue) {
