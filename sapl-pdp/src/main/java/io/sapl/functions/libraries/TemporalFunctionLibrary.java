@@ -1173,13 +1173,13 @@ public class TemporalFunctionLibrary {
             ```durationToISOCompact(NUMBER milliseconds)```: Converts a duration in milliseconds to a compact
             ISO 8601 duration string.
 
-            Uses only time-based units (days, hours, minutes, seconds) for precision.
+            Uses hours, minutes and seconds for precision.
 
             **Examples:**
 
-            The expression ```time.durationToISOCompact(86400000)``` returns ```"P1D"```.
+            The expression ```time.durationToISOCompact(86400000)``` returns ```"PT24H"```.
             The expression ```time.durationToISOCompact(9000000)``` returns ```"PT2H30M"```.
-            The expression ```time.durationToISOCompact(90061000)``` returns ```"P1DT1H1M1S"```.""")
+            The expression ```time.durationToISOCompact(90061000)``` returns ```"PT25H1M1S"```.""")
     public static Value durationToISOCompact(NumberValue milliseconds) {
         try {
             val duration = Duration.ofMillis(exactLong(milliseconds));
