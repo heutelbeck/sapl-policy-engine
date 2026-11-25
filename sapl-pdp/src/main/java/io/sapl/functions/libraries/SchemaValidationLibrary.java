@@ -124,9 +124,10 @@ public class SchemaValidationLibrary {
                 { "type": "validationError", "errors": result.errors }
             ```
 
-            Example: If `resource.form = {"zip": "ABC"}` fails pattern validation,
-            `result.errors` contains: `[{"path": "/zip", "message": "does not match
-            pattern ^[0-9]{5}$", "type": "pattern", "schemaPath": "/properties/zip"}]`.
+            For `{"properties":{"zip":{"pattern":"^[0-9]{5}$"}}}`, the value
+            `{"zip":"ABC"}` gives `valid: false`. The error has `path` equal to `/zip`,
+            `type` equal to `pattern` and `schemaPath` equal to `/properties/zip/pattern`.
+            The `message` describes the mismatch in the validator's own words.
 
             ## Patterns
 
@@ -154,18 +155,20 @@ public class SchemaValidationLibrary {
             drafts as ECMA-262 expressions, and ECMA-262 cannot state these assertions.
 
             Drafts 4, 6, 7, 2019-09 and 2020-12 are supported. The default is 2020-12.
-            Custom meta-schemas named by `$schema` are outside the portable SAPL profile.
-            Draft 2020-12 `$dynamicRef` can address a document supplied in the external schemas
-            array by its `$id`, including a named `$dynamicAnchor`. A broken ordinary reference in a
-            reachable dynamic target is a schema preparation error, even inside a conditional branch.
-            A schema selects its dialect with `$schema`. A provided external schema without
-            `$schema` inherits the root schema's dialect. An explicit declaration in the
-            external resource takes precedence.
+            Custom meta-schema dialects are outside the portable SAPL profile. A schema selects its
+            dialect with `$schema`. A supplied resource inherits the root schema's dialect unless it
+            declares its own.
 
             References can resolve within the current schema, to bundled meta-schemas or to supplied
-            resources. SAPL checks ordinary `$ref` and active Draft 2020-12 `$dynamicRef` targets at
-            load time, including those in unused definitions. A supplied document with no referring schema
-            stays unloaded. In Drafts 4, 6 and 7, put resource identifiers on enclosing schemas. In Java
+            resources. In Draft 2020-12, `$dynamicRef` can name a supplied resource by its `$id`
+            and target a named `$dynamicAnchor`. Earlier drafts treat `$dynamicRef` as an annotation.
+
+            When loading a schema, SAPL checks ordinary `$ref` and active `$dynamicRef` targets even
+            inside unused definitions or conditional branches. A missing reference within a loaded
+            dynamic target fails preparation. A valid unused definition constrains an instance only
+            when applied. A supplied resource that no reference reaches stays unloaded.
+
+            In Drafts 4, 6 and 7, put resource identifiers on enclosing schemas. In the Java PDP
             an identifier beside `$ref` can cause validation against an unintended subschema.
             In draft 2019-09, `$recursiveRef` must be `"#"`. Any other value is a schema error. Definitions
             should use regular schema locations such as `$defs` or `definitions`. Reference
