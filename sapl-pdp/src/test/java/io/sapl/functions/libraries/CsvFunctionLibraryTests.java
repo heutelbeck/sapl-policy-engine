@@ -412,4 +412,24 @@ class CsvFunctionLibraryTests {
     private static Value oversizedOutputText() {
         return Value.of("a".repeat(TextOutputLimits.MAX_OUTPUT_CHARS));
     }
+
+    @MethodSource("nonScalarCsvCells")
+    @DisplayName("CSV generation refuses non-scalar input cells")
+    @ParameterizedTest(name = "refuses the {0} cell before and after key normalization")
+    void whenCsvCellIsNotScalarThenReturnsErrorEvenIfItIsOverwritten(String name, Value cell) {
+        val ordinary    = ArrayValue.builder().add(ObjectValue.builder().put("note", cell).build()).build();
+        val overwritten = ArrayValue.builder()
+                .add(ObjectValue.builder().put("-x", cell).put("'-x", Value.of(2)).build()).build();
+        assertThat(CsvFunctionLibrary.valToCsv(ordinary)).as(name).isInstanceOf(ErrorValue.class);
+        assertThat(CsvFunctionLibrary.valToCsv(overwritten)).as(name + " overwritten").isInstanceOf(ErrorValue.class);
+    }
+
+    private static Stream<Arguments> nonScalarCsvCells() {
+        return Stream.of(arguments("error", Value.error("Missing garden.")), arguments("undefined", Value.UNDEFINED),
+                arguments("undefined item", ArrayValue.builder().add(Value.UNDEFINED).build()),
+                arguments("array", ArrayValue.builder().add(Value.of("elm")).build()),
+                arguments("empty array", ArrayValue.builder().build()),
+                arguments("object", ObjectValue.builder().put("enabled", Value.of(true)).build()));
+    }
+
 }

@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- CSV output cells must be text, numbers, booleans or null, including cells overwritten by normalized keys. Arrays, objects, undefined and errors are rejected. Public CSV SDK calls return an error for unsupported cells instead of throwing an argument exception.
+
 - The Base64 and Base64 URL functions in `encoding` require zero unused pad bits. For example, use `Zg==` for `f`. Both strict and lenient functions accept the empty string. Only the lenient functions accept omitted padding. Decoding errors for invalid Base64 text now use SAPL messages.
 
 - `time.timeBetween` recognizes English unit names independently of the JVM locale. For example, `minutes` also works under a Turkish default locale.

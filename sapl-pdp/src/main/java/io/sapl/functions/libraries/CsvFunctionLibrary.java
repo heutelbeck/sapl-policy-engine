@@ -56,7 +56,8 @@ public class CsvFunctionLibrary {
             object with properties named after the headers. All values are parsed as strings.
             Type conversion must be done explicitly in policies. CSV generation takes an array
             of objects and uses the first object's keys as column headers. Empty arrays produce
-            empty CSV output.
+            empty CSV output. Cells must be text, numbers, booleans or null. Arrays, objects,
+            undefined values and errors are rejected, including cells overwritten by normalized keys.
 
             ## Access Control Patterns
 
@@ -167,6 +168,7 @@ public class CsvFunctionLibrary {
 
     private static final String ERROR_ARRAY_ELEMENT_NOT_OBJECT   = "CSV array element at index %d is not an object.";
     private static final String ERROR_ARRAY_MUST_CONTAIN_OBJECTS = "CSV array must contain objects.";
+    private static final String ERROR_CELL_MUST_BE_SCALAR        = "CSV fields must be texts, numbers, booleans or null.";
     private static final String ERROR_FAILED_TO_GENERATE_CSV     = "Failed to generate CSV: %s.";
     private static final String ERROR_FAILED_TO_PARSE_CSV        = "Failed to parse CSV: %s.";
 
@@ -242,7 +244,8 @@ public class CsvFunctionLibrary {
 
             Converts a SAPL array of objects into a CSV string with headers. The keys of the
             first object determine the column headers. Subsequent objects should have the same
-            keys for consistent output. Returns an empty string for empty arrays.
+            keys for consistent output. Returns an empty string for empty arrays. Cells must be text,
+            numbers, booleans or null. This also applies to cells overwritten by normalized keys.
 
             To prevent CSV formula injection, a cell whose text begins with =, +, -, @, a tab,
             or a carriage return is prefixed with a single quote, so a spreadsheet that opens
@@ -287,20 +290,19 @@ public class CsvFunctionLibrary {
             }
         }
 
-        val sanitized     = sanitizeAgainstFormulaInjection(array);
-        val schemaBuilder = CsvSchema.builder();
-        for (val key : ((ObjectValue) sanitized.getFirst()).keySet()) {
-            schemaBuilder.addColumn(key);
-        }
-        val schema = schemaBuilder.build().withHeader();
-
         try {
+            val sanitized     = sanitizeAgainstFormulaInjection(array);
+            val schemaBuilder = CsvSchema.builder();
+            for (val key : ((ObjectValue) sanitized.getFirst()).keySet()) {
+                schemaBuilder.addColumn(key);
+            }
+            val schema    = schemaBuilder.build().withHeader();
             val arrayNode = convertToJacksonArrayNode(sanitized);
             val csvText   = TextOutputLimits.write(writer -> CSV_MAPPER.writer(schema).writeValue(writer, arrayNode));
             return Value.of(csvText);
         } catch (TextOutputLimits.OutputLimitExceededException exception) {
             return Value.error(exception.getMessage());
-        } catch (JacksonException | IOException exception) {
+        } catch (IllegalArgumentException | JacksonException | IOException exception) {
             return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
         }
     }
@@ -336,7 +338,10 @@ public class CsvFunctionLibrary {
         if (cell instanceof TextValue(String text)) {
             return Value.of(escapeFormula(text));
         }
-        return cell;
+        if (cell instanceof NullValue || cell instanceof NumberValue || cell instanceof BooleanValue) {
+            return cell;
+        }
+        throw new IllegalArgumentException(ERROR_CELL_MUST_BE_SCALAR);
     }
 
     private static String escapeFormula(String text) {
