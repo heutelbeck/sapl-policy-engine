@@ -175,7 +175,8 @@ final class YamlValueReader {
         return switch (tag.getValue()) {
         case Tag.PREFIX + "str"                       -> Value.of(text);
         case Tag.PREFIX + "null"                      -> {
-            if (!text.isEmpty() && !CoreScalarResolver.NULL.matcher(text).matches()) {
+            // SnakeYAML also matches a space, which is not a YAML Core null spelling.
+            if (!text.isEmpty() && (" ".equals(text) || !CoreScalarResolver.NULL.matcher(text).matches())) {
                 throw new YamlEngineException(
                         ERROR_SCALAR.formatted(text, tag.getValue().substring(Tag.PREFIX.length())));
             }

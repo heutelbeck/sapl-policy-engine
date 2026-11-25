@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `yaml.yamlToVal` rejects `!!null " "` as an invalid null value instead of returning null.
+
 - CSV output cells must be text, numbers, booleans or null, including cells overwritten by normalized keys. Arrays, objects, undefined and errors are rejected. Public CSV SDK calls return an error for unsupported cells instead of throwing an argument exception.
 
 - The Base64 and Base64 URL functions in `encoding` require zero unused pad bits. For example, use `Zg==` for `f`. Both strict and lenient functions accept the empty string. Only the lenient functions accept omitted padding. Decoding errors for invalid Base64 text now use SAPL messages.

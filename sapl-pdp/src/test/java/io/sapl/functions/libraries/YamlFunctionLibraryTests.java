@@ -24,12 +24,34 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.Arguments;
+
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("YamlFunctionLibrary")
 class YamlFunctionLibraryTests {
+
+    @MethodSource("coreNullExamples")
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("Explicit null tags admit only YAML Core null forms")
+    void whenExplicitNullIsReadThenOnlyCoreNullSpellingsAreAccepted(String yaml, Value expected) {
+        assertThat(YamlFunctionLibrary.yamlToVal(Value.of(yaml))).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> coreNullExamples() {
+        val invalidNull = Value.error("Failed to parse YAML: Invalid value ' ' for YAML tag 'null'.");
+        return Stream.of(arguments("!!null \" \"", invalidNull), arguments("{item: !!null \" \"}", invalidNull),
+                arguments("[!!null \" \"]", invalidNull), arguments("!!null \"\"", Value.NULL),
+                arguments("!!null null", Value.NULL), arguments("!!null Null", Value.NULL),
+                arguments("!!null NULL", Value.NULL), arguments("!!null ~", Value.NULL),
+                arguments("!!null", Value.NULL), arguments("\" \"", Value.of(" ")),
+                arguments("!!str \" \"", Value.of(" ")));
+    }
 
     @Test
     void whenWritingNestedSettingsThenTheBlockTextPreservesTypesAndKeyOrder() {
