@@ -77,7 +77,7 @@ class StandardFunctionLibraryTests {
     }
 
     private static Stream<Arguments> textAndLengths() {
-        return Stream.of(arguments("ABC", 3), arguments("Hello, World!", 13), arguments("", 0), arguments("🌸", 2),
+        return Stream.of(arguments("ABC", 3), arguments("Hello, World!", 13), arguments("", 0), arguments("🌸", 1),
                 arguments("多言語", 3));
     }
 

@@ -16,6 +16,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- String lengths, search and substring indices, padding, and `standard.length` on text count Unicode code points. Supplementary characters count once and are not split. Explicit text size limits still count UTF-16 code units.
 - Indeterminate `unique`, `unanimous`, and `unanimous strict` policy sets retain applicable effects across constant, subscription, and streaming evaluation. An enclosing priority voter can now classify a previously missed effect as critical.
 - Java record patterns for `EvaluationContext`, `BranchHit`, the AST record `PolicySet`, and the `Coverage` records `PolicyCoverage`, `PolicySetCoverage`, `BodyCoverage` and `ConditionHit` must include their new components. The previous constructors remain available.
 - The expression compiler rejects `<`, `<=`, `>` and `>=` when an operand folds to a boolean. The diagnostic points to that operand. Operand types that depend on the request are checked during evaluation.

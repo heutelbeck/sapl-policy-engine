@@ -97,8 +97,8 @@ public class StringFunctionLibrary {
             To bound memory and computation on untrusted input, the following limits apply:
 
             - `repeat` rejects a count above 10,000, returning an error.
-            - `leftPad` and `rightPad` reject a target length above 10,000, returning an error.
-            - `join`, `concat`, `replace`, and `repeat` reject output longer than 10,000,000 characters, returning an error.
+            - `leftPad` and `rightPad` reject padding to more than 10,000 code points. An already long enough input is unchanged.
+            - `join`, `concat`, `replace`, and `repeat` reject output longer than 10,000,000 UTF-16 code units, returning an error.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -350,7 +350,8 @@ public class StringFunctionLibrary {
     @Function(docs = """
             ```length(TEXT str)```: Returns the number of characters in the string.
 
-            Useful for validating input length constraints in authorization policies.
+            Counts Unicode code points, including each combining mark separately. Useful for
+            validating input length constraints in authorization policies.
 
             **Examples:**
             ```sapl
@@ -367,7 +368,8 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value length(TextValue str) {
-        return Value.of(str.value().length());
+        val text = str.value();
+        return Value.of(text.codePointCount(0, text.length()));
     }
 
     @Function(docs = """
@@ -396,7 +398,8 @@ public class StringFunctionLibrary {
             ```substring(TEXT str, NUMBER start)```: Extracts substring from start index to end of string.
 
             Returns the portion of the string beginning at the specified index. Start index is
-            zero-based and inclusive. Returns error if start is negative or exceeds string length.
+            zero-based and inclusive, counting Unicode code points. Returns error if start is negative
+            or exceeds string length.
 
             **Examples:**
             ```sapl
@@ -418,7 +421,7 @@ public class StringFunctionLibrary {
 
         try {
             val startIndex = exactInt(start);
-            return extractSubstring(text, startIndex, text.length());
+            return extractSubstring(text, startIndex, text.codePointCount(0, text.length()));
         } catch (ArithmeticException e) {
             return Value.error(ERROR_NUMBER_VALUE_OUT_OF_RANGE, e);
         }
@@ -428,7 +431,8 @@ public class StringFunctionLibrary {
             ```substringRange(TEXT str, NUMBER start, NUMBER end)```: Extracts substring between indices.
 
             Returns the portion of the string from start index (inclusive) to end index (exclusive).
-            Both indices are zero-based. Returns error if indices are invalid or out of bounds.
+            Both indices are zero-based and count Unicode code points. Returns error if indices
+            are invalid or out of bounds.
 
             **Examples:**
             ```sapl
@@ -461,7 +465,7 @@ public class StringFunctionLibrary {
             ```indexOf(TEXT str, TEXT substring)```: Returns the index of the first occurrence of substring.
 
             Returns the zero-based index of the first occurrence, or -1 if the substring is not found.
-            Case-sensitive search.
+            Indices count Unicode code points. Case-sensitive search.
 
             **Examples:**
             ```sapl
@@ -478,14 +482,16 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value indexOf(TextValue str, TextValue substring) {
-        return Value.of(str.value().indexOf(substring.value()));
+        val text  = str.value();
+        val index = text.indexOf(substring.value());
+        return Value.of(index < 0 ? -1 : text.codePointCount(0, index));
     }
 
     @Function(docs = """
             ```lastIndexOf(TEXT str, TEXT substring)```: Returns the index of the last occurrence of substring.
 
             Returns the zero-based index of the last occurrence, or -1 if the substring is not found.
-            Case-sensitive search.
+            Indices count Unicode code points. Case-sensitive search.
 
             **Examples:**
             ```sapl
@@ -505,7 +511,9 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value lastIndexOf(TextValue str, TextValue substring) {
-        return Value.of(str.value().lastIndexOf(substring.value()));
+        val text  = str.value();
+        val index = text.lastIndexOf(substring.value());
+        return Value.of(index < 0 ? -1 : text.codePointCount(0, index));
     }
 
     @Function(docs = """
@@ -679,7 +687,8 @@ public class StringFunctionLibrary {
 
             Adds padding characters to the left of the string until it reaches the specified length.
             If the string is already longer than or equal to the target length, returns the original
-            string unchanged. Returns error if padChar is not exactly one character.
+            string unchanged. Lengths and padChar count Unicode code points. Returns error if
+            padChar is not exactly one code point.
 
             **Examples:**
             ```sapl
@@ -713,7 +722,8 @@ public class StringFunctionLibrary {
 
             Adds padding characters to the right of the string until it reaches the specified length.
             If the string is already longer than or equal to the target length, returns the original
-            string unchanged. Returns error if padChar is not exactly one character.
+            string unchanged. Lengths and padChar count Unicode code points. Returns error if
+            padChar is not exactly one code point.
 
             **Examples:**
             ```sapl
@@ -814,23 +824,27 @@ public class StringFunctionLibrary {
     }
 
     private static Value extractSubstring(String text, int start, int end) {
-        if (start < 0 || start > text.length()) {
+        val length = text.codePointCount(0, text.length());
+        if (start < 0 || start > length) {
             return Value.error(ERROR_START_INDEX_OUT_OF_BOUNDS, start);
         }
 
-        if (end < start || end > text.length()) {
+        if (end < start || end > length) {
             return Value.error(ERROR_END_INDEX_OUT_OF_BOUNDS, end);
         }
 
-        return Value.of(text.substring(start, end));
+        val startOffset = text.offsetByCodePoints(0, start);
+        val endOffset   = text.offsetByCodePoints(startOffset, end - start);
+        return Value.of(text.substring(startOffset, endOffset));
     }
 
     private static Value padString(String text, int targetLength, String padString, boolean padLeft) {
-        if (padString.length() != 1) {
+        if (padString.codePointCount(0, padString.length()) != 1) {
             return Value.error(ERROR_PADDING_MUST_BE_ONE_CHARACTER);
         }
 
-        if (text.length() >= targetLength) {
+        val length = text.codePointCount(0, text.length());
+        if (length >= targetLength) {
             return Value.of(text);
         }
 
@@ -838,16 +852,16 @@ public class StringFunctionLibrary {
             return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
         }
 
-        val padChar       = padString.charAt(0);
-        val paddingNeeded = targetLength - text.length();
-        val result        = new StringBuilder(targetLength);
+        val paddingNeeded = targetLength - length;
+        val padding       = padString.repeat(paddingNeeded);
+        val result        = new StringBuilder(text.length() + paddingNeeded * padString.length());
 
         if (padLeft) {
-            result.append(String.valueOf(padChar).repeat(paddingNeeded));
+            result.append(padding);
             result.append(text);
         } else {
             result.append(text);
-            result.append(String.valueOf(padChar).repeat(paddingNeeded));
+            result.append(padding);
         }
 
         return Value.of(result.toString());

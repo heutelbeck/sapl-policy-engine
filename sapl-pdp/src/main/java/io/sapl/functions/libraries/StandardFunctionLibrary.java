@@ -64,10 +64,10 @@ public class StandardFunctionLibrary {
      * @param value
      * the value to measure (TEXT, ARRAY, or OBJECT)
      *
-     * @return the length as a NumberValue, or an ErrorValue for unsupported types
+     * @return the codepoint count for text or collection size as a NumberValue, or an ErrorValue for unsupported types
      */
     @Function(docs = """
-            ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string.
+            ```length(ARRAY|TEXT|JSON value)```: For TEXT it counts Unicode code points, including combining marks separately.
             For ARRAY, it returns the number of elements in the array.
             For OBJECT, it returns the number of keys in the OBJECT.
             For NUMBER, BOOLEAN, or NULL, the function will return an error.
@@ -86,7 +86,7 @@ public class StandardFunctionLibrary {
             }""")
     public static Value length(Value value) {
         return switch (value) {
-        case TextValue text     -> Value.of(text.value().length());
+        case TextValue text     -> Value.of(text.value().codePointCount(0, text.value().length()));
         case ObjectValue object -> Value.of(object.size());
         case ArrayValue array   -> Value.of(array.size());
         default                 -> Value.error(ERROR_ARGUMENT_MUST_BE_TEXT_ARRAY_OR_OBJECT);
