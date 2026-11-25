@@ -79,7 +79,11 @@ import tools.jackson.databind.node.JsonNodeFactory;
  * The {@code version} field is recorded provenance: it is minted at build time
  * from the engine library version that wrote the manifest and is not validated
  * on load. The {@code attribution} field is an arbitrary JSON string or object,
- * never interpreted by the engine. The {@code audience.sealingRecipient} field
+ * never interpreted by the engine. For its size limit, JSON string tokens are
+ * measured after decoding escapes and serializing as compact UTF-8 JSON,
+ * including the necessary quotes and escapes. This applies to keys and nested
+ * string values and is separate from signature canonicalization.
+ * The {@code audience.sealingRecipient} field
  * names the single recipient key id of the bundle's sealed content and is
  * required exactly when sealed content is present. Parsing is strict: unknown
  * top-level fields and missing required fields are rejected fail-closed.

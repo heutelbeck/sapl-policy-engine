@@ -346,6 +346,11 @@ a migration message on new engines).
 | `files` | Yes | SHA-256 hash per bundle file (the manifest itself excluded). |
 | `signature` | If signed | Ed25519 signature over the canonical manifest bytes. |
 
+For the attribution size limit, JSON string tokens are measured after decoding
+escapes and serializing as compact UTF-8 JSON, including necessary quotes and
+escapes. This applies to object keys and nested string values. Size measurement
+is separate from signature canonicalization.
+
 ### Bundle Validity
 
 A bundle that is fetched successfully but is definitively invalid is handled as a
