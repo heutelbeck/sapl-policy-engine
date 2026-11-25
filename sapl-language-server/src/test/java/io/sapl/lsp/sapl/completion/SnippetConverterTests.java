@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -36,6 +37,23 @@ import io.sapl.api.documentation.ParameterDocumentation;
  * Tests for SnippetConverter LSP snippet generation.
  */
 class SnippetConverterTests {
+
+    @MethodSource("literalParameterNames")
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("Parameter names stay literal inside snippet placeholders")
+    void whenParameterNameContainsSnippetSyntaxThenItsDefaultStaysLiteral(String name, String escaped) {
+        var entry = new EntryDocumentation(EntryType.FUNCTION, "read", "", null,
+                List.of(ParameterDocumentation.untyped(name)));
+
+        assertThat(SnippetConverter.toSnippet(entry, "audit")).isEqualTo("audit.read(${1:" + escaped + "})");
+        assertThat(SnippetConverter.toSnippetWithAlias(entry, "read")).isEqualTo("read(${1:" + escaped + "})");
+        assertThat(entry.codeTemplate("audit")).isEqualTo("audit.read(" + name + ")");
+    }
+
+    static Stream<Arguments> literalParameterNames() {
+        return Stream.of(arguments("value", "value"), arguments("$value", "\\$value"),
+                arguments("$TM_FILENAME", "\\$TM_FILENAME"));
+    }
 
     @Test
     void whenFunctionWithNoParameters_thenEmptyParentheses() {

@@ -2,6 +2,8 @@
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
+- LSP completion snippets preserve dollar signs in private function parameter names.
+
 - PDP configuration bundles can carry extension data that the host runtime deploys transactionally with each configuration update. The capability is host specific and intentionally not covered in detail in the reference documentation.
 - Secrets in PDP configurations can be sealed as JWE tokens (ECDH-ES on X25519 with A256GCM) and are unsealed by the PDP at configuration load, so bundles at rest never contain cleartext secrets.
 - Realm indexes sign the set of bundles a consumer tracks (EdDSA JWS) and carry a monotonic sequence that rejects rollback and replay of older configurations.

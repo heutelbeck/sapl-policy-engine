@@ -118,7 +118,7 @@ public class SnippetConverter {
             }
             var param     = parameters.get(i);
             var paramName = param.varArgs() ? param.name() + "..." : param.name();
-            snippet.append("${").append(i + 1).append(':').append(paramName).append('}');
+            snippet.append("${").append(i + 1).append(':').append(escapeSnippetText(paramName)).append('}');
         }
     }
 
