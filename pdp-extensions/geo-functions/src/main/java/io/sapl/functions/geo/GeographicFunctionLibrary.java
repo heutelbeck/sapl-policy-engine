@@ -769,7 +769,8 @@ public class GeographicFunctionLibrary {
 
             **Notes:**
 
-            - Useful for creating buffer zones around points, lines, or polygons.
+            - A zero-width buffer extracts polygonal area. For a self-crossing ring it can retain only one lobe.
+              Points and lines give an empty polygon.
             """)
     public static Value buffer(ObjectValue geometry, NumberValue bufferWidth) {
         return applyUnaryTransformation(geometry, g -> g.buffer(bufferWidth.value().doubleValue()));
