@@ -57,12 +57,12 @@ public class TraccarFunctionLibrary {
      * @return a GeoJSON Point value, or an error if conversion fails
      */
     @Function(docs = """
-            ```traccarPositionToGeoJSON(OBJECT traccarPosition)```: Converts a Traccar position object to a GeoJSON string
+            ```traccarPositionToGeoJSON(OBJECT traccarPosition)```: Converts a Traccar position object to a GeoJSON geometry object
             representing a Point.
             The function expects a Traccar position object as input, which must contain at least the `latitude` and
             `longitude` fields.
             If the position object also contains an `altitude` field, this will be included in the GeoJSON output.
-            The output is a plain GeoJSON geometry as RFC 7946 defines it, in WGS84 coordinates.
+            The Point includes a `crs` member naming EPSG:4326. Its coordinates are longitude, latitude and optional altitude.
 
             **Example:**
 
@@ -88,7 +88,7 @@ public class TraccarFunctionLibrary {
                       "motion": false
                       }
                 };
-                traccar.traccarPositionToGeoJSON(position) == '{"type":"Point","coordinates":[-122.4194,37.7749,100.0]}';
+                traccar.traccarPositionToGeoJSON(position).coordinates == [-122.4194,37.7749,100.0];
             ```
             """)
     public static Value traccarPositionToGeoJSON(ObjectValue traccarPosition) {
@@ -138,7 +138,7 @@ public class TraccarFunctionLibrary {
      * @return a GeoJSON geometry value, or an error if conversion fails
      */
     @Function(docs = """
-            ```traccarGeofenceToGeoJson(OBJECT geofence)```: Converts a Traccar geofence object to a GeoJSON string
+            ```traccarGeofenceToGeoJson(OBJECT geofence)```: Converts a Traccar geofence object to a GeoJSON geometry object
             representing the geofence's geometry.
             The function expects a Traccar geofence object as input, which must contain an `area` field. The `area` field
             represents the geofence's geometry in Well-Known Text (WKT) format.
@@ -161,7 +161,7 @@ public class TraccarFunctionLibrary {
                           "type": "polygon"
                       }
                    };
-                 traccar.traccarGeofenceToGeoJson(geofence) == '{"type":"Polygon","coordinates":[[[10.0,30.0],[40.0,40.0],[40.0,20.0],[20.0,10.0],[10.0,30.0]]]}';
+                 traccar.traccarGeofenceToGeoJson(geofence) == {"type":"Polygon","coordinates":[[[10.0,30.0],[40.0,40.0],[40.0,20.0],[20.0,10.0],[10.0,30.0]]]};
             ```
             """)
     public static Value traccarGeofenceToGeoJson(ObjectValue geofence) {
