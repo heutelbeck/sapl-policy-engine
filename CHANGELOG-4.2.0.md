@@ -22,6 +22,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - WebSocket attribute first-value timeouts include the opening handshake; closing the subscription cancels a pending opening.
 
+- JWT maturity and expiration streams now schedule representable transitions more than 36,500 days in the future. Closing the stream cancels pending timers.
+
 - HTTP server-sent event fields remove only the optional single ASCII space after `data:`; other leading characters remain JSON input.
 
 - The HTTP PIP closes single JSON and text responses whose bodies take more than 30 seconds to arrive after the headers. It emits a timeout error for that attempt.

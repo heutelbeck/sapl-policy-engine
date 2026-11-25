@@ -74,15 +74,6 @@ public class JWTPolicyInformationPoint {
     static final long DEFAULT_CLOCK_SKEW_SECONDS   = 0L;
     static final long MAX_REASONABLE_EPOCH_SECONDS = 253_402_300_799L;
 
-    /**
-     * Upper bound on how far ahead an expiration or maturity transition may be
-     * scheduled. The scheduler converts the delay to nanoseconds, and
-     * {@link java.time.Duration#toNanos()} overflows for delays beyond roughly
-     * 292 years. A delay beyond this bound is treated as never firing, so the
-     * token simply stays in its current validity state.
-     */
-    static final long MAX_SCHEDULABLE_DELAY_MILLIS = 100L * 365 * 24 * 60 * 60 * 1000;
-
     public static final String DOCUMENTATION = """
             This Policy Information Point validates JSON Web Tokens and monitors their validity state over time.
 
@@ -129,6 +120,10 @@ public class JWTPolicyInformationPoint {
             * `exp` (expiration): Token becomes invalid at this timestamp
 
             Validity states transition automatically, triggering policy re-evaluation.
+            Future maturity and expiration transitions are scheduled at absolute millisecond boundaries,
+            without a fixed lifetime cutoff. A boundary must be representable by the engine's clock;
+            an unsupported time is an error. Closing the stream cancels pending timers. After the
+            final transition, or when no future transition exists, the token stream completes.
 
             **Configuration**
 
@@ -632,10 +627,6 @@ public class JWTPolicyInformationPoint {
                         Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler));
             }
             val expInstant = Instant.ofEpochMilli(expWithSkew);
-            if (isBeyondSchedulingHorizon(expInstant, now)) {
-                return Streams.concat(Streams.just(stateValue(ValidityState.IMMATURE)),
-                        Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler));
-            }
             return Streams.concat(Streams.just(stateValue(ValidityState.IMMATURE)),
                     Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler),
                     Streams.scheduledAt(stateValue(ValidityState.EXPIRED), expInstant, scheduler));
@@ -645,19 +636,8 @@ public class JWTPolicyInformationPoint {
             return Streams.just(stateValue(ValidityState.VALID));
         }
 
-        return validThenExpiredAt(Instant.ofEpochMilli(expWithSkew), now);
-    }
-
-    private Stream<Value> validThenExpiredAt(Instant expiry, Instant now) {
-        if (isBeyondSchedulingHorizon(expiry, now)) {
-            return Streams.just(stateValue(ValidityState.VALID));
-        }
         return Streams.concat(Streams.just(stateValue(ValidityState.VALID)),
-                Streams.scheduledAt(stateValue(ValidityState.EXPIRED), expiry, scheduler));
-    }
-
-    private static boolean isBeyondSchedulingHorizon(Instant when, Instant now) {
-        return when.toEpochMilli() - now.toEpochMilli() > MAX_SCHEDULABLE_DELAY_MILLIS;
+                Streams.scheduledAt(stateValue(ValidityState.EXPIRED), Instant.ofEpochMilli(expWithSkew), scheduler));
     }
 
     private static long saturatingAdd(long a, long b) {
