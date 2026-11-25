@@ -57,11 +57,17 @@ public class TemporalFunctionLibrary {
 
             DIN 1355 uses DD.MM.YYYY for dates (e.g., "28.10.2017").
 
-            An instant uses a four-digit Gregorian year, a date, T, hours from 00 to 23, minutes and seconds.
+            Policy dates and instants support ISO proleptic years -9999 through 9999, including year 0000.
+            A negative input year has four or six digits, for example -0001 or -000001; output uses -0001.
+            Canonical results in this range can be read again. A valid offset can normalize a boundary date
+            outside this range; explicit input years outside the range are not part of this instant profile.
+            An instant has a date, T, hours from 00 to 23, minutes and seconds.
             An optional fraction has one to nine digits. The offset is Z or a signed HH:MM up to 18:00.
             The letters T and Z accept either case. A leap second in the last UTC minute of the day
             denotes second 59 with the same fraction, including when written at another offset.
-            Time functions that accept a date alone interpret it as midnight UTC. validRFC3339 requires a full timestamp.
+            Time functions that accept a date alone interpret it as midnight UTC.
+            For example, time.plusSeconds("-000001-12-31", 0) returns "-0001-12-31T00:00:00Z".
+            validRFC3339 and certificate validity checks require the unsigned four-digit-year full timestamp profile.
 
             ## Timezone Handling
 

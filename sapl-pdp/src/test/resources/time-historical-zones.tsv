@@ -1,0 +1,13 @@
+time.dateTimeAtZone	-9999-01-01T00:00:00	Europe/Berlin	unused	-10000-12-31T23:06:32Z
+time.dateTimeAtZone	-9999-01-01T00:00:00	Australia/Sydney	unused	-10000-12-31T13:55:08Z
+time.timeInZone	00:00:00	-9999-01-01	Europe/Berlin	23:06:32
+time.timeInZone	00:00:00	-9999-01-01	Australia/Sydney	13:55:08
+time.dateTimeAtZone	9999-12-31T23:59:59	Europe/Berlin	unused	9999-12-31T22:59:59Z
+time.dateTimeAtZone	9999-12-31T23:59:59	Australia/Sydney	unused	9999-12-31T12:59:59Z
+time.timeInZone	23:59:59	9999-12-31	Europe/Berlin	22:59:59
+time.timeInZone	23:59:59	9999-12-31	Australia/Sydney	12:59:59
+time.toZone	-9999-01-01T00:00:00Z	Europe/Berlin	unused	-9999-01-01T00:53:28+00:53:28
+time.toZone	-9999-01-01T00:00:00+18:00	Europe/Berlin	unused	-10000-12-31T06:53:28+00:53:28
+time.toZone	9999-12-31T23:59:59Z	Europe/Berlin	unused	+10000-01-01T00:59:59+01:00
+time.dateTimeAtZone	2024-03-31T02:30:00	Europe/Berlin	unused	2024-03-31T01:30:00Z
+time.dateTimeAtZone	2024-10-27T02:30:00	Europe/Berlin	unused	2024-10-27T00:30:00Z

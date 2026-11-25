@@ -472,7 +472,7 @@ class TemporalFunctionLibraryTests {
                 arguments("2023-02-29T00:00:00Z", false, false), arguments("1900-02-29T00:00:00Z", false, false),
                 arguments("2024-04-31T00:00:00Z", false, false), arguments("2016-12-31T23:59:60+01:00", false, false),
                 arguments("2024-01-01 00:00:00Z", false, false), arguments("+10000-01-01T00:00:00Z", false, false),
-                arguments("-0001-01-01T00:00:00Z", false, false), arguments("0000-02-29", false, true),
+                arguments("-0001-01-01T00:00:00Z", false, true), arguments("0000-02-29", false, true),
                 arguments("2000-02-29", false, true), arguments("9999-12-31", false, true));
     }
 

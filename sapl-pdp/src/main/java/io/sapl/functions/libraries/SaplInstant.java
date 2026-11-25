@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
+import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -32,25 +33,29 @@ import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-/** The instant profile shared by time functions and certificate validity checks. */
+/** Strict certificate timestamps and historical ISO calendar timestamps for policy time inputs. */
 @UtilityClass
 public class SaplInstant {
     private static final String ERROR_INVALID_LEAP_SECOND = "A leap second requires the last minute of the UTC day.";
 
-    private static final DateTimeFormatter DATE      = new DateTimeFormatterBuilder().appendValue(ChronoField.YEAR, 4)
-            .appendLiteral('-').appendValue(ChronoField.MONTH_OF_YEAR, 2).appendLiteral('-')
-            .appendValue(ChronoField.DAY_OF_MONTH, 2).toFormatter(Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
-    private static final DateTimeFormatter TIMESTAMP = new DateTimeFormatterBuilder().parseCaseInsensitive()
-            .append(DATE).appendLiteral('T').appendPattern("HH:mm:ss").optionalStart()
-            .appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true).optionalEnd().appendOffset("+HH:MM", "Z")
+    private static final DateTimeFormatter DATE                 = new DateTimeFormatterBuilder()
+            .appendValue(ChronoField.YEAR, 4).appendLiteral('-').appendValue(ChronoField.MONTH_OF_YEAR, 2)
+            .appendLiteral('-').appendValue(ChronoField.DAY_OF_MONTH, 2).toFormatter(Locale.ROOT)
+            .withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter POLICY_DATE          = new DateTimeFormatterBuilder()
+            .appendValue(ChronoField.YEAR, 4, 4, SignStyle.NORMAL).appendLiteral('-')
+            .appendValue(ChronoField.MONTH_OF_YEAR, 2).appendLiteral('-').appendValue(ChronoField.DAY_OF_MONTH, 2)
             .toFormatter(Locale.ROOT).withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter TIMESTAMP            = timestampFormatter(DATE);
+    private static final DateTimeFormatter POLICY_TIMESTAMP     = timestampFormatter(POLICY_DATE);
+    private static final Pattern           NEGATIVE_POLICY_YEAR = Pattern.compile("-(?:[0-9]{4}|00[0-9]{4})(?=-)");
 
     private static final String  ERROR_TIMESTAMP     = "Invalid timestamp. Expected an ISO 8601 calendar date with a time and UTC offset.";
     private static final Pattern BASIC_CHECKPOINT    = checkpointNotation("", "");
     private static final Pattern EXTENDED_CHECKPOINT = checkpointNotation("-", ":");
 
     private static Pattern checkpointNotation(String date, String time) {
-        return Pattern.compile(("([0-9]{4})%1$s([0-9]{2})%1$s([0-9]{2})T([0-9]{2})"
+        return Pattern.compile(("([0-9]{4}|-(?:[0-9]{4}|00[0-9]{4}))%1$s([0-9]{2})%1$s([0-9]{2})T([0-9]{2})"
                 + "(?:%2$s([0-9]{2})(?:%2$s([0-9]{2}))?)?(?:[.,]([0-9]{1,9}))?(Z|[+-][0-9]{2}(?:%2$s[0-9]{2})?)")
                 .formatted(date, time), Pattern.CASE_INSENSITIVE);
     }
@@ -58,12 +63,17 @@ public class SaplInstant {
     /**
      * Parses an absolute time-PIP checkpoint expressed as a calendar date, time and UTC offset.
      *
-     * @param text a basic or extended ISO calendar timestamp
+     * Negative years -9999 through -0001 accept four or six digits. Offsets can move a written boundary
+     * date outside that year range on the UTC timeline.
+     *
+     * @param text a basic or extended ISO calendar timestamp with a year from -9999 through 9999
      * @return the represented instant, with up to nanosecond precision
      * @throws DateTimeParseException if the input is outside the supported ISO calendar format
      */
     public static Instant parseCheckpoint(String text) {
-        val notation = text.length() > 4 && text.charAt(4) == '-' ? EXTENDED_CHECKPOINT : BASIC_CHECKPOINT;
+        val extended = text.length() > 4 && text.charAt(4) == '-' || text.startsWith("-")
+                && (text.length() > 5 && text.charAt(5) == '-' || text.length() > 7 && text.charAt(7) == '-');
+        val notation = extended ? EXTENDED_CHECKPOINT : BASIC_CHECKPOINT;
         val parts    = notation.matcher(text);
         if (!parts.matches()) {
             throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0);
@@ -95,32 +105,62 @@ public class SaplInstant {
                 parts.group(3), endOfDay ? 0 : hour, minute + fraction / 1_000_000_000L / 60,
                 second + fraction / 1_000_000_000L % 60, fraction % 1_000_000_000L, offset);
         try {
-            val instant = parse(normalized);
+            val instant = parsePolicy(normalized);
             return endOfDay ? instant.plusSeconds(86_400L) : instant;
         } catch (DateTimeParseException invalid) {
             throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0, invalid);
         }
     }
 
+    private static DateTimeFormatter timestampFormatter(DateTimeFormatter date) {
+        return new DateTimeFormatterBuilder().parseCaseInsensitive().append(date).appendLiteral('T')
+                .appendPattern("HH:mm:ss").optionalStart().appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true)
+                .optionalEnd().appendOffset("+HH:MM", "Z").toFormatter(Locale.ROOT)
+                .withResolverStyle(ResolverStyle.STRICT);
+    }
+
     static Instant parse(String text) {
-        val          leap = text.length() <= 35 && text.startsWith("60", 17);
+        return parseTimestamp(text, TIMESTAMP, 17);
+    }
+
+    private static Instant parsePolicy(String text) {
+        val normalized = normalizePolicyYear(text);
+        return parseTimestamp(normalized, POLICY_TIMESTAMP, normalized.startsWith("-") ? 18 : 17);
+    }
+
+    private static Instant parseTimestamp(String text, DateTimeFormatter formatter, int secondsPosition) {
+        val          leap = text.startsWith("60", secondsPosition);
         final String normalized;
         if (leap) {
-            normalized = text.substring(0, 17) + "59" + text.substring(19);
+            normalized = text.substring(0, secondsPosition) + "59" + text.substring(secondsPosition + 2);
         } else {
             normalized = text;
         }
-        val instant = OffsetDateTime.parse(normalized, TIMESTAMP).toInstant();
+        val instant = OffsetDateTime.parse(normalized, formatter).toInstant();
         if (leap && Math.floorMod(instant.getEpochSecond(), 86_400) != 86_399) {
-            throw new DateTimeParseException(ERROR_INVALID_LEAP_SECOND, text, 17);
+            throw new DateTimeParseException(ERROR_INVALID_LEAP_SECOND, text, secondsPosition);
         }
         return instant;
     }
 
-    static Instant parseOrDate(String text) {
-        if (text.length() == 10) {
-            return LocalDate.parse(text, DATE).atStartOfDay().toInstant(ZoneOffset.UTC);
+    private static String normalizePolicyYear(String text) {
+        if (!text.startsWith("-")) {
+            return text;
         }
-        return parse(text);
+        if (text.length() > 38) {
+            throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0);
+        }
+        val year = NEGATIVE_POLICY_YEAR.matcher(text);
+        if (!year.lookingAt() || Integer.parseInt(text.substring(1, year.end())) == 0) {
+            throw new DateTimeParseException(ERROR_TIMESTAMP, text, 0);
+        }
+        return year.end() == 7 ? "-" + text.substring(3) : text;
+    }
+
+    static Instant parseOrDate(String text) {
+        if (text.length() == 10 || text.length() == 11 || text.length() == 13) {
+            return LocalDate.parse(normalizePolicyYear(text), POLICY_DATE).atStartOfDay().toInstant(ZoneOffset.UTC);
+        }
+        return parsePolicy(text);
     }
 }
