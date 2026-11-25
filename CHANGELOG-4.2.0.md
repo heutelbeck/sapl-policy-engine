@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `yaml.yamlToVal` rejects a whole document when a number cannot fit the SAPL number domain exactly, such as `1e2000` or `1e-1001`. Exactly representable values such as `1e1999` remain supported.
+
 - CSV readers skip empty records, remove a leading byte order mark and reject duplicate headers. Writers end every record with CRLF.
 
 - `geo.geoDistance` accepts ASCII case variants of the `CRS:84` alias. A Unicode lookalike such as `CRſ:84` now produces the same unknown-coordinate-system error as other unsupported codes.

@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
@@ -42,6 +43,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 
+import static io.sapl.api.model.NumberValueLimits.boundedNumber;
+
 /** Reads the YAML core types that have a SAPL value and resolves aliases to immutable values. */
 final class YamlValueReader {
     private static final String ERROR_DEPTH                          = "The YAML collection exceeds the maximum nesting depth of %d";
@@ -50,6 +53,7 @@ final class YamlValueReader {
     private static final String ERROR_MISSING                        = "Unknown JsonNode type: MISSING.";
     private static final String ERROR_NONFINITE                      = "YAML infinity and NaN are no numbers";
     private static final String ERROR_NUMBER                         = "The YAML number exceeds the maximum length of %d characters";
+    private static final String ERROR_NUMBER_OUT_OF_RANGE            = "The number is out of range";
     private static final String ERROR_RECURSIVE                      = "A YAML alias refers to a recursive collection";
     private static final String ERROR_SCALAR                         = "Invalid value '%s' for YAML tag '%s'";
     private static final String ERROR_TAG                            = "Unsupported YAML tag '%s'";
@@ -230,6 +234,10 @@ final class YamlValueReader {
                 throw new YamlEngineException(ERROR_NONFINITE);
             }
         }
-        return Value.of(new BigDecimal(text));
+        val number = boundedNumber(new BigDecimal(text));
+        if (number instanceof ErrorValue) {
+            throw new YamlEngineException(ERROR_NUMBER_OUT_OF_RANGE);
+        }
+        return number;
     }
 }

@@ -79,8 +79,9 @@ public class YamlFunctionLibrary {
      */
     @Function(docs = """
             ```yamlToVal(TEXT yaml)```: Reads one YAML document using the YAML 1.2 core scalar types.
-            Decimals keep their exact digits. Each scalar key keeps its written text after its
-            tag is validated. Aliases use the value of the referenced anchor.
+            Decimals keep their exact digits. Numbers outside the SAPL number domain reject the whole
+            document. Each scalar key keeps its written text after its tag is validated. Aliases use
+            the value of the referenced anchor.
 
             Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
             depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.

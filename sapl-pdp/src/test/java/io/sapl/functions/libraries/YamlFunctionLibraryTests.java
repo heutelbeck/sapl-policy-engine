@@ -28,6 +28,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.stream.Stream;
+import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -51,6 +52,24 @@ class YamlFunctionLibraryTests {
                 arguments("!!null NULL", Value.NULL), arguments("!!null ~", Value.NULL),
                 arguments("!!null", Value.NULL), arguments("\" \"", Value.of(" ")),
                 arguments("!!str \" \"", Value.of(" ")));
+    }
+
+    @MethodSource("numberDomainExamples")
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("YAML numbers use exact shared number admission")
+    void whenYamlNumberIsOutsideTheDomainThenTheWholeDocumentFails(String yaml, Value expected) {
+        assertThat(YamlFunctionLibrary.yamlToVal(Value.of(yaml))).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> numberDomainExamples() {
+        val outside = Value.error("Failed to parse YAML: The number is out of range.");
+        return Stream.of(arguments("1e2000", outside), arguments("{amount: 1e2000}", outside),
+                arguments("[1e2000]", outside), arguments("1e-1001", outside), arguments("!!float 1e2000", outside),
+                arguments("1e2000: West", outside), arguments("1e1999", Value.of(new BigDecimal("1e1999"))),
+                arguments("1e-1000", Value.of(new BigDecimal("1e-1000"))),
+                arguments("1e1001", Value.of(new BigDecimal("1e1001"))), arguments("'1e2000'", Value.of("1e2000")),
+                arguments("!!str 1e2000", Value.of("1e2000")),
+                arguments("'1e2000': West", ObjectValue.builder().put("1e2000", Value.of("West")).build()));
     }
 
     @Test
