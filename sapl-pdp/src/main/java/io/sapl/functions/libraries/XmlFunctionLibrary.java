@@ -123,7 +123,8 @@ public class XmlFunctionLibrary {
      */
     @Function(docs = """
             ```xmlToVal(TEXT xml)```: Converts a well-formed XML document into a SAPL value
-            representing the content of the XML document.
+            representing the content of the XML document. The Java XML reader rejects some valid
+            XML 1.0 element names, including `㐀` (U+3400).
 
             DTD processing and external entity resolution are disabled. Documents that declare
             or reference entities, such as XXE or entity-expansion payloads, are rejected with
@@ -134,8 +135,8 @@ public class XmlFunctionLibrary {
             policy "permit_with_resource_attributes"
             permit
                var resourceXml = "<Resource><owner>alice</owner><classification>PUBLIC</classification></Resource>";
-               var resource = xml.xmlToVal(resourceXml);
-               resource.owner == subject.name;
+               var parsedResource = xml.xmlToVal(resourceXml);
+               parsedResource.owner == subject.name;
             ```
             """)
     public static Value xmlToVal(TextValue xml) {
@@ -164,6 +165,7 @@ public class XmlFunctionLibrary {
 
             Keys must be unqualified XML element names. Arrays become repeated siblings, nested
             arrays are rejected, null becomes an empty element and text is escaped as XML requires.
+            The Java XML writer rejects some valid element names, including `㐀` (U+3400).
 
             **Example:**
             ```sapl
