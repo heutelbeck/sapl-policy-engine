@@ -48,7 +48,7 @@ import java.util.HexFormat;
  * <p>
  * <strong>Security Considerations:</strong>
  * <ul>
- * <li>Input length is limited to {@value #MAX_INPUT_LENGTH} characters to
+ * <li>Input length is limited to {@value #MAX_INPUT_LENGTH} UTF-16 code units to
  * prevent resource exhaustion attacks
  * <li>All decoded output is validated as proper UTF-8 to prevent injection of
  * invalid character sequences
@@ -78,44 +78,43 @@ public class EncodingFunctionLibrary {
 
             Both Base64 alphabets require zero unused pad bits and accept the empty string.
             Lenient functions accept complete encodings with or without padding. Strict functions
-            require the padding produced by the encoder. For example, `Zg==` encodes `f`. The
+            require the padding produced by the encoder. For example, `f` encodes as `Zg==`. The
             lenient decoder also reads `Zg`. Both forms of the decoder reject `Zh==`.
 
             ```sapl
             policy "validate token format"
             permit
-                action == "authenticate"
-            where
+                action == "authenticate";
+                resource.token != "";
                 encoding.isValidBase64UrlStrict(resource.token);
             ```
 
-            ## Working with Cryptographic Data
+            ## Decoding Text
 
-            Decode Base64-encoded signatures or certificates for verification:
+            Decode Base64-encoded UTF-8 text. Use a validation function for encoded binary data:
 
             ```sapl
-            policy "verify signature format"
+            policy "decode text"
             permit
-            where
-                var sig = encoding.base64Decode(resource.signature);
-                standard.length(sig) > 0;
+                var text = encoding.base64Decode(resource.text);
+                standard.length(text) > 0;
             ```
 
             ## Limits
 
             To bound memory and computation on untrusted input, the following limits apply:
 
-            - Input length is capped at 10000000 characters (10 MB). This applies to every encode and decode function, base64Encode, base64Decode, base64DecodeStrict, base64UrlEncode, base64UrlDecode, base64UrlDecodeStrict, and hexEncode, hexDecode, as well as the validation functions isValidBase64, isValidBase64Strict, isValidBase64Url, isValidBase64UrlStrict, and isValidHex. Encode and decode functions return an error when the input exceeds this length. The validation functions return false.
+            - Input length is capped at 10000000 UTF-16 code units. This applies to every encode and decode function, base64Encode, base64Decode, base64DecodeStrict, base64UrlEncode, base64UrlDecode, base64UrlDecodeStrict, and hexEncode, hexDecode, as well as the validation functions isValidBase64, isValidBase64Strict, isValidBase64Url, isValidBase64UrlStrict, and isValidHex. Encode and decode functions return an error when the input exceeds this length. The validation functions return false.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     /**
-     * Maximum allowed input length in characters to prevent resource exhaustion
+     * Maximum allowed input length in UTF-16 code units to prevent resource exhaustion
      * attacks. This limit applies to both
      * encoded and decoded strings.
      */
-    private static final int MAX_INPUT_LENGTH = 10_000_000; // 10MB
+    private static final int MAX_INPUT_LENGTH = 10_000_000;
 
     private static final String RETURNS_TEXT = """
             {
@@ -164,7 +163,8 @@ public class EncodingFunctionLibrary {
             ```base64Decode(TEXT data)```: Decodes Base64 standard format to text (lenient).
 
             Decodes data encoded with the standard Base64 alphabet. This function is lenient
-            and accepts input with or without proper padding. For strict RFC-compliant
+            and accepts input with complete padding or no padding. Pad bits must be zero and
+            whitespace is rejected. Empty input is valid. For strict
             validation that requires proper padding, use base64DecodeStrict.
 
             The decoded output is validated as proper UTF-8. Invalid UTF-8 sequences will
@@ -186,8 +186,8 @@ public class EncodingFunctionLibrary {
             ```base64DecodeStrict(TEXT data)```: Decodes Base64 standard format to text (strict).
 
             Decodes data encoded with the standard Base64 alphabet with strict validation.
-            Requires proper padding with '=' characters and input length to be a multiple of 4.
-            Rejects improperly formatted input that would be accepted by the lenient decoder.
+            Requires complete padding and zero pad bits. Empty input is valid. Whitespace and
+            partially omitted padding are rejected.
 
             The decoded output is validated as proper UTF-8. Invalid UTF-8 sequences will
             result in an error.
@@ -207,9 +207,9 @@ public class EncodingFunctionLibrary {
     @Function(docs = """
             ```isValidBase64(TEXT data)```: Checks whether text is valid Base64 standard format (lenient).
 
-            Validates that the text can be successfully decoded as Base64. This function is
-            lenient and accepts input with or without proper padding. For strict RFC-compliant
-            validation that requires proper padding, use isValidBase64Strict.
+            Validates canonical binary encoding with zero pad bits and no whitespace. Empty input
+            is valid. Complete padding or no padding is accepted. The decoded bytes need not be UTF-8.
+            For required padding, use isValidBase64Strict.
 
             **Examples:**
             ```sapl
@@ -228,9 +228,8 @@ public class EncodingFunctionLibrary {
             ```isValidBase64Strict(TEXT data)```: Checks whether text is valid Base64 standard format (strict).
 
             Validates that the text is properly formatted Base64 with required padding.
-            Requires input length to be a multiple of 4 and padding characters to appear
-            only at the end if present. Rejects improperly formatted input that would be
-            accepted by the lenient validator.
+            Requires complete padding and zero pad bits, with no whitespace. Empty input is valid.
+            This validates binary encoding without requiring the decoded bytes to be UTF-8.
 
             **Examples:**
             ```sapl
@@ -272,7 +271,8 @@ public class EncodingFunctionLibrary {
             ```base64UrlDecode(TEXT data)```: Decodes Base64 URL-safe format to text (lenient).
 
             Decodes data encoded with the URL-safe Base64 alphabet. This function is lenient
-            and accepts input with or without proper padding. For strict RFC-compliant
+            and accepts input with complete padding or no padding. Pad bits must be zero and
+            whitespace is rejected. Empty input is valid. For strict
             validation that requires proper padding, use base64UrlDecodeStrict.
 
             The decoded output is validated as proper UTF-8. Invalid UTF-8 sequences will
@@ -294,8 +294,8 @@ public class EncodingFunctionLibrary {
             ```base64UrlDecodeStrict(TEXT data)```: Decodes Base64 URL-safe format to text (strict).
 
             Decodes data encoded with the URL-safe Base64 alphabet with strict validation.
-            Requires proper padding with '=' characters and input length to be a multiple of 4.
-            Rejects improperly formatted input that would be accepted by the lenient decoder.
+            Requires complete padding and zero pad bits. Empty input is valid. Whitespace and
+            partially omitted padding are rejected.
 
             The decoded output is validated as proper UTF-8. Invalid UTF-8 sequences will
             result in an error.
@@ -315,9 +315,9 @@ public class EncodingFunctionLibrary {
     @Function(docs = """
             ```isValidBase64Url(TEXT data)```: Checks whether text is valid Base64 URL-safe format (lenient).
 
-            Validates that the text can be successfully decoded as URL-safe Base64. This
-            function is lenient and accepts both padded and unpadded input. For strict
-            validation that requires proper padding, use isValidBase64UrlStrict.
+            Validates canonical binary encoding with zero pad bits and no whitespace. Empty input
+            is valid. Complete padding or no padding is accepted. The decoded bytes need not be UTF-8.
+            For required padding, use isValidBase64UrlStrict.
 
             **Examples:**
             ```sapl
@@ -336,9 +336,8 @@ public class EncodingFunctionLibrary {
             ```isValidBase64UrlStrict(TEXT data)```: Checks whether text is valid Base64 URL-safe format (strict).
 
             Validates that the text is properly formatted URL-safe Base64 with required padding.
-            Requires input length to be a multiple of 4 and padding characters to appear only
-            at the end if present. Rejects improperly formatted input that would be accepted
-            by the lenient validator.
+            Requires complete padding and zero pad bits, with no whitespace. Empty input is valid.
+            This validates binary encoding without requiring the decoded bytes to be UTF-8.
 
             **Examples:**
             ```sapl
