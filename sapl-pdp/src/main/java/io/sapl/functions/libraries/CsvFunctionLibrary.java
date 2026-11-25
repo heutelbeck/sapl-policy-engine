@@ -60,7 +60,8 @@ public class CsvFunctionLibrary {
             Type conversion must be done explicitly in policies. CSV generation takes an array
             of objects and uses the first object's keys as column headers. Empty arrays produce
             empty CSV output. Cells must be text, numbers, booleans or null. Arrays, objects,
-            undefined values and errors are rejected, including cells overwritten by normalized keys.
+            undefined values and errors are rejected. Distinct field names in one object must remain
+            distinct after formula escaping; a collision rejects the entire export.
 
             ## Access Control Patterns
 
@@ -257,8 +258,8 @@ public class CsvFunctionLibrary {
             Converts a SAPL array of objects into a CSV string with headers. The keys of the
             first object determine the column headers. Subsequent objects should have the same
             keys for consistent output. Returns an empty string for empty arrays. Cells must be text,
-            numbers, booleans or null. This also applies to cells overwritten by normalized keys.
-            Records end in CRLF.
+            numbers, booleans or null. If two distinct field names in any object become the same
+            header after formula escaping, the entire export is rejected. Records end in CRLF.
 
             To prevent CSV formula injection, a cell whose text begins with =, +, -, @, a tab,
             or a carriage return is prefixed with a single quote, so a spreadsheet that opens
@@ -358,7 +359,11 @@ public class CsvFunctionLibrary {
                 for (val entry : object.entrySet()) {
                     objectBuilder.put(escapeFormula(entry.getKey()), escapeFormulaCell(entry.getValue()));
                 }
-                builder.add(objectBuilder.build());
+                val sanitized = objectBuilder.build();
+                if (sanitized.size() != object.size()) {
+                    throw new IllegalArgumentException(ERROR_DUPLICATE_HEADER);
+                }
+                builder.add(sanitized);
             } else {
                 builder.add(array.get(i));
             }

@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- CSV writers reject the entire export when distinct field names in one row collide after formula escaping.
+
 - Decimal values in `pdp.json` variables retain their SAPL precision. For example, a supplied schema with `minimum: 1e-400` now rejects zero. Earlier Java releases could round that minimum to zero when loading the configuration.
 
 - Integer-only compiler options now reject fractional values that previously rounded to an integer when reading `pdp.json`. For example, `maxExpressionDepth: 64.0000000000000001` fails configuration loading. `64.0` remains valid.

@@ -461,6 +461,51 @@ class CsvFunctionLibraryTests {
         assertThat(CsvFunctionLibrary.csvToVal(Value.of(csv))).isInstanceOf(ErrorValue.class);
     }
 
+    @MethodSource("collidingCsvHeaders")
+    @DisplayName("CSV writing rejects an entire export when two fields escape to the same header")
+    @ParameterizedTest(name = "{0}, {1}, {2}")
+    void whenTwoAuthoredHeadersEscapeToOneNameThenTheWholeExportIsRejected(String cellKind, String keyOrder,
+            String rowPosition, ArrayValue rows) {
+        assertThat(CsvFunctionLibrary.valToCsv(rows))
+                .isEqualTo(Value.error("Failed to generate CSV: Duplicate CSV header."));
+    }
+
+    private static Stream<Arguments> collidingCsvHeaders() {
+        return Stream.of(arguments("numbers", Value.of(1), Value.of(2)),
+                arguments("null then empty", Value.NULL, Value.EMPTY_TEXT),
+                arguments("empty then null", Value.EMPTY_TEXT, Value.NULL)).flatMap(cells -> {
+                    val values = cells.get();
+                    return Stream.of("-x", "'-x").flatMap(firstKey -> {
+                        val secondKey = "-x".equals(firstKey) ? "'-x" : "-x";
+                        val collision = ObjectValue.builder().put(firstKey, (Value) values[1]).put(secondKey, (Value) values[2])
+                                .build();
+                        return Stream.of("first row", "later row", "unknown columns").map(rowPosition -> {
+                            val rows = ArrayValue.builder();
+                            if (!"first row".equals(rowPosition)) {
+                                val header = "later row".equals(rowPosition) ? "'-x" : "a";
+                                rows.add(ObjectValue.builder().put(header, Value.of(0)).build());
+                            }
+                            rows.add(collision);
+                            return arguments(values[0], firstKey, rowPosition, rows.build());
+                        });
+                    });
+                });
+    }
+
+    @MethodSource("repeatedCsvHeaders")
+    @DisplayName("Distinct escaped headers in each row preserve repeated columns")
+    @ParameterizedTest(name = "{0}, {1}")
+    void whenEachRowHasDistinctEscapedHeadersThenRepeatedColumnsStayValid(String firstKey, String secondKey) {
+        val rows = ArrayValue.builder().add(ObjectValue.builder().put(firstKey, Value.of(1)).build())
+                .add(ObjectValue.builder().put(secondKey, Value.of(2)).build()).build();
+        assertThat(CsvFunctionLibrary.valToCsv(rows)).isEqualTo(Value.of("\"'-x\"\r\n1\r\n2\r\n"));
+    }
+
+    private static Stream<Arguments> repeatedCsvHeaders() {
+        return Stream.of(arguments("-x", "-x"), arguments("'-x", "'-x"), arguments("-x", "'-x"),
+                arguments("'-x", "-x"));
+    }
+
     @Test
     @DisplayName("CSV records end in CRLF while embedded line breaks remain unchanged")
     void whenCsvIsWrittenThenRecordsEndInCrlf() {
