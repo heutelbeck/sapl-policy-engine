@@ -56,9 +56,8 @@ public class SchemaValidationLibrary {
             ```sapl
             policy "validate request body"
             permit
-                action == "api:create"
-            where
-                var schema = {
+                action == "api:create";
+                var jsonSchema = {
                     "type": "object",
                     "properties": {
                         "name": { "type": "string", "minLength": 1 },
@@ -66,7 +65,7 @@ public class SchemaValidationLibrary {
                     },
                     "required": ["name"]
                 };
-                jsonschema.isCompliant(resource.body, schema);
+                jsonschema.isCompliant(resource.body, jsonSchema);
             ```
 
             Example: `resource.body = {"name": "Alice", "age": 30}`. Schema requires
@@ -82,7 +81,6 @@ public class SchemaValidationLibrary {
             ```sapl
             policy "validate with shared schemas"
             permit
-            where
                 var addressSchema = {
                     "$id": "https://example.com/address",
                     "type": "object",
@@ -114,8 +112,7 @@ public class SchemaValidationLibrary {
             ```sapl
             policy "reject with details"
             deny
-                action == "submit"
-            where
+                action == "submit";
                 var result = jsonschema.validate(resource.form, resource.formSchema);
                 !result.valid;
             obligation
@@ -156,8 +153,8 @@ public class SchemaValidationLibrary {
             `$schema` inherits the root schema's dialect. An explicit declaration in the
             external resource takes precedence.
 
-            References are checked while loading, including unused definitions. They may
-            name only bundled meta-schemas or provided resources. In draft 2019-09,
+            References can resolve within the current schema, to bundled meta-schemas or to supplied
+            resources. SAPL checks their targets at load time, including those in unused definitions. In draft 2019-09,
             `$recursiveRef` must be `"#"`. Any other value is a schema error. Definitions
             should use regular schema locations such as `$defs` or `definitions`. Reference
             targets in arbitrary annotation fields have no portable meaning. Neither engine
@@ -290,7 +287,7 @@ public class SchemaValidationLibrary {
                         "z": { "type": "integer" }
                     }
                 };
-              var schema = {
+              var jsonSchema = {
                     "$id": "https://example.com/triangle.schema.json",
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
                     "title": "Triangle",
@@ -299,19 +296,20 @@ public class SchemaValidationLibrary {
                         "A": { "$ref": "https://example.com/coordinates" },
                         "B": { "$ref": "https://example.com/coordinates" },
                         "C": { "$ref": "https://example.com/coordinates" }
+                    }
                   };
               var valid = {
                        "A" : { "x" : 1, "y" : 2, "z" : 3 },
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
                        "C" : { "x" : 1, "y" : 2, "z" : 3 }
                     };
-              isCompliantWithExternalSchemas(valid, schema, [externals]) == true;
+              jsonschema.isCompliantWithExternalSchemas(valid, jsonSchema, [externals]) == true;
               var invalid = {
                        "A" : { "x" : "I AM NOT A NUMBER I AM A FREE MAN", "y" : 2, "z" : 3 },
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
                        "C" : { "x" : 1, "y" : 2, "z" : 3 }
                     };
-              isCompliantWithExternalSchemas(invalid, schema, [externals]) == false;
+              jsonschema.isCompliantWithExternalSchemas(invalid, jsonSchema, [externals]) == false;
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isCompliantWithExternalSchemas(Value validationSubject, ObjectValue jsonSchema,
