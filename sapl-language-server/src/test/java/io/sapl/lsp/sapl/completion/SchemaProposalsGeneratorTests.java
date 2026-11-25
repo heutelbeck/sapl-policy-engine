@@ -357,6 +357,15 @@ class SchemaProposalsGeneratorTests {
                             ]
                         }
                         """, new String[] { ".x", ".y", ".z", ".name", ".age" }),
+                arguments("nullableObject", List.of(), """
+                        {"type":["object","null"],"properties":{"name":{}}}
+                        """, new String[] { ".name" }), arguments("nullableArray", List.of(), """
+                        {"type":["array","null"],"items":{"properties":{"name":{}}}}
+                        """, new String[] { "[]", "[].name" }),
+                arguments("composedObjectWithSiblingProperties", List.of(), """
+                        {"properties":{"id":{}},"allOf":[{"properties":{"role":{}}}],
+                         "anyOf":[{"properties":{"mail":{}}}]}
+                        """, new String[] { ".id", ".role", ".mail" }),
                 arguments("overloadingTypeWithAnyOf", List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA), """
                          {
                             "$id": "https://example.com/triangle.schema.json",
@@ -510,7 +519,8 @@ class SchemaProposalsGeneratorTests {
                                 "first-name": {}, "permit": {}, "first": {}, "9lives": {}, "`city`": {}, "": {}
                             }
                         }
-                        """, new String[] { ".'a\\\"b'", ".'c\\\\d'", ".'e\\tf'", ".'first-name'", ".'permit'", ".first",
+                        """,
+                        new String[] { ".'a\\\"b'", ".'c\\\\d'", ".'e\\tf'", ".'first-name'", ".'permit'", ".first",
                                 ".'9lives'", ".'`city`'", ".''" }),
                 arguments("simpleRecursiveSchema", List.of(), """
                          {

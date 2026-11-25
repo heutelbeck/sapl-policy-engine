@@ -39,7 +39,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Generates code completion proposals from JSON Schema definitions.
@@ -64,7 +63,7 @@ public class SchemaProposalsGenerator {
 
     private static final int MAX_DEPTH = 10;
 
-    private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
+    private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = List.of("allOf", "anyOf", "oneOf", TYPE);
 
     /**
      * Generates code templates from an ANTLR expression parse tree.
@@ -272,18 +271,16 @@ public class SchemaProposalsGenerator {
                 // Increment depth so an allOf/anyOf/oneOf cycle is bounded too.
                 addMultipleProposals(baseSchema, prefix, schema.get(multiTypeKeyword), definitions, proposals,
                         recursionDepth + 1);
-                return;
             }
         }
 
         addObjectProposals(baseSchema, prefix, schema, definitions, proposals, recursionDepth);
 
         var arrayPrefix = prefix + "[]";
-        if (schema.has(TYPE)) {
-            var typeNode = schema.get(TYPE);
-            if (typeNode.isString() && ARRAY.equals(typeNode.asString())) {
-                proposals.add(arrayPrefix);
-            }
+        var type        = schema.path(TYPE);
+        if (ARRAY.equals(type.asString(""))
+                || (type.isArray() && type.valueStream().anyMatch(member -> ARRAY.equals(member.asString(""))))) {
+            proposals.add(arrayPrefix);
         }
 
         addArrayProposals(baseSchema, arrayPrefix, schema, definitions, proposals, recursionDepth);
