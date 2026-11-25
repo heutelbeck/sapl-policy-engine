@@ -35,6 +35,7 @@ import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Functions for temporal operations in authorization policies. Handles
@@ -98,6 +99,17 @@ public class TemporalFunctionLibrary {
     private static final DateTimeFormatter DIN_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
     private static final DateTimeFormatter US_TIME_FORMATTER       = new DateTimeFormatterBuilder()
             .parseCaseInsensitive().appendPattern("hh:mm:ss a").toFormatter(Locale.US);
+
+    private static final Pattern ISO_DURATION = Pattern
+            .compile(
+                    "-?P(?=[0-9T])(?:(?<weeks>[0-9]++)W|(?:(?<years>[0-9]++)Y)?(?:(?<months>[0-9]++)M)?"
+                            + "(?:(?<days>[0-9]++)D)?(?:T(?=[0-9])(?:(?<hours>[0-9]++)H)?(?:(?<minutes>[0-9]++)M)?"
+                            + "(?:(?<seconds>[0-9]++)(?:[.,](?<fraction>[0-9]{1,3})[0-9]*+)?S)?)?)",
+                    Pattern.CASE_INSENSITIVE);
+
+    // The integer capture groups in ISO_DURATION, in order.
+    private static final ChronoUnit[] DURATION_UNITS = { ChronoUnit.WEEKS, ChronoUnit.YEARS, ChronoUnit.MONTHS,
+            ChronoUnit.DAYS, ChronoUnit.HOURS, ChronoUnit.MINUTES, ChronoUnit.SECONDS };
 
     // Error messages (sorted alphabetically by constant name)
     private static final String ERROR_CHRONO_UNIT_BLANK            = "ChronoUnit parameter cannot be blank.";
@@ -1128,45 +1140,39 @@ public class TemporalFunctionLibrary {
             ```durationFromISO(TEXT isoDuration)```: Parses an ISO 8601 duration string and returns the duration
             in milliseconds.
 
-            Format: P[n]Y[n]M[n]DT[n]H[n]M[n]S. Years (Y) and Months (M) are approximated:
-            1 year = 365.2425 days, 1 month = 30.436875 days.
+            Supply ordered years, months, days and an optional time, or weeks alone (for example P2W).
+            A leading minus negates the whole duration. A year is 31,556,952,000 milliseconds and a month
+            is 2,629,746,000 milliseconds. Fractional seconds are truncated toward zero to milliseconds.
+            Results must fit in a signed 64-bit integer.
 
             **Examples:**
 
             The expression ```time.durationFromISO("P1D")``` returns ```86400000``` (1 day in milliseconds).
             The expression ```time.durationFromISO("PT2H30M")``` returns ```9000000``` (2.5 hours in milliseconds).
-            The expression ```time.durationFromISO("P1Y2M3DT4H5M6S")``` returns duration in milliseconds.""")
+            The expression ```time.durationFromISO("P1Y2M3DT4H5M6S")``` returns ```37090350000```.""")
     public static Value durationFromISO(TextValue isoDuration) {
+        val text = isoDuration.value();
+        if (text.isBlank()) {
+            return Value.error(ERROR_ISO_DURATION_BLANK);
+        }
+        val parts = ISO_DURATION.matcher(text);
+        if (!parts.matches()) {
+            return Value.error(ERROR_INVALID_ISO_DURATION, isoDuration);
+        }
         try {
-            if (isoDuration.value().isBlank()) {
-                return Value.error(ERROR_ISO_DURATION_BLANK);
-            }
-
-            val durationStr = isoDuration.value();
-            var totalMillis = 0L;
-
-            val hasPeriodComponents = durationStr.contains("Y")
-                    || (durationStr.contains("M") && !durationStr.contains("T"));
-
-            if (hasPeriodComponents) {
-                val period = Period.parse(durationStr);
-                totalMillis += (long) (period.getYears() * 365.2425 * 24 * 60 * 60 * 1000);
-                totalMillis += (long) (period.getMonths() * 30.436875 * 24 * 60 * 60 * 1000);
-                totalMillis += period.getDays() * 24L * 60 * 60 * 1000;
-
-                if (durationStr.contains("T")) {
-                    val timePartStart = durationStr.indexOf('T');
-                    val timePart      = "PT" + durationStr.substring(timePartStart + 1);
-                    val duration      = Duration.parse(timePart);
-                    totalMillis += duration.toMillis();
+            val  sign     = text.charAt(0) == '-' ? -1 : 1;
+            val  fraction = parts.group("fraction");
+            long millis   = fraction == null ? 0 : sign * Integer.parseInt((fraction + "00").substring(0, 3));
+            for (int i = 0; i < DURATION_UNITS.length; i++) {
+                val group = i + 1;
+                if (parts.start(group) >= 0) {
+                    val amount = Long.parseLong(text, parts.start(group), parts.end(group), 10);
+                    val unit   = sign * DURATION_UNITS[i].getDuration().toMillis();
+                    millis = Math.addExact(millis, Math.multiplyExact(amount, unit));
                 }
-            } else {
-                val duration = Duration.parse(durationStr);
-                totalMillis = duration.toMillis();
             }
-
-            return Value.of(totalMillis);
-        } catch (Exception e) {
+            return Value.of(millis);
+        } catch (NumberFormatException | ArithmeticException e) {
             return Value.error(ERROR_INVALID_ISO_DURATION.formatted(isoDuration), e);
         }
     }
@@ -1175,7 +1181,7 @@ public class TemporalFunctionLibrary {
             ```durationToISOCompact(NUMBER milliseconds)```: Converts a duration in milliseconds to a compact
             ISO 8601 duration string.
 
-            Uses hours, minutes and seconds for precision.
+            Uses hours, minutes and seconds for precision. Negative durations have a single leading minus.
 
             **Examples:**
 
@@ -1185,7 +1191,7 @@ public class TemporalFunctionLibrary {
     public static Value durationToISOCompact(NumberValue milliseconds) {
         try {
             val duration = Duration.ofMillis(exactLong(milliseconds));
-            return Value.of(duration.toString());
+            return Value.of(duration.isNegative() ? "-" + duration.abs() : duration.toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_DURATION_MILLIS.formatted(milliseconds), e);
         }
@@ -1199,14 +1205,14 @@ public class TemporalFunctionLibrary {
 
             **Examples:**
 
-            The expression ```time.durationToISOVerbose(31536000000)``` returns approximately ```"P1Y"```.
+            The expression ```time.durationToISOVerbose(31556952000)``` returns ```"P1Y"```.
             The expression ```time.durationToISOVerbose(86400000)``` returns ```"P1D"```.""")
     public static Value durationToISOVerbose(NumberValue milliseconds) {
         try {
             var remainingMillis = exactLong(milliseconds);
 
-            val millisPerYear  = (long) (365.2425 * 24 * 60 * 60 * 1000);
-            val millisPerMonth = (long) (30.436875 * 24 * 60 * 60 * 1000);
+            val millisPerYear  = ChronoUnit.YEARS.getDuration().toMillis();
+            val millisPerMonth = ChronoUnit.MONTHS.getDuration().toMillis();
 
             val years = remainingMillis / millisPerYear;
             remainingMillis %= millisPerYear;

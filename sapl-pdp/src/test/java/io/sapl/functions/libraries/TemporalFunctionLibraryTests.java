@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import java.util.stream.Stream;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -299,27 +300,41 @@ class TemporalFunctionLibraryTests {
         assertThat(TemporalFunctionLibrary.truncateToYear(time)).isEqualTo(Value.of("2021-01-01T00:00:00Z"));
     }
 
-    @Test
-    void whenDurationFromIsoThenParsesCorrectly() {
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of("P1D"))).isEqualTo(Value.of(86400000L));
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of("PT2H"))).isEqualTo(Value.of(7200000L));
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of("PT30M"))).isEqualTo(Value.of(1800000L));
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of("P1DT2H30M"))).isEqualTo(Value.of(95400000L));
+    @ParameterizedTest(name = "{0} is {1} milliseconds")
+    @MethodSource("isoDurations")
+    void whenIsoDurationIsValidThenReturnsExactMilliseconds(String duration, long expected) {
+        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of(duration))).isEqualTo(Value.of(expected));
     }
 
-    @Test
-    void whenDurationFromIsoWithPeriodThenParsesCorrectly() {
-        val oneYear = (long) (365.2425 * 24 * 60 * 60 * 1000);
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of("P1Y"))).isEqualTo(Value.of(oneYear));
-
-        val oneMonth = (long) (30.436875 * 24 * 60 * 60 * 1000);
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of("P1M"))).isEqualTo(Value.of(oneMonth));
+    static Stream<Arguments> isoDurations() {
+        return Stream.of(arguments("P1D", 86_400_000L), arguments("PT2H", 7_200_000L), arguments("PT30M", 1_800_000L),
+                arguments("P1DT2H30M", 95_400_000L), arguments("P1Y", 31_556_952_000L),
+                arguments("P1M", 2_629_746_000L), arguments("P1Y2M3DT4H5M6S", 37_090_350_000L),
+                arguments("p2w", 1_209_600_000L), arguments("P1MT1M", 2_629_806_000L), arguments("-PT0,1259S", -125L),
+                arguments("PT0.01S", 10L), arguments("PT0.0000000001S", 0L),
+                arguments("PT9223372036854775.807S", Long.MAX_VALUE),
+                arguments("-PT9223372036854775.808S", Long.MIN_VALUE));
     }
 
-    @Test
-    void whenDurationFromIsoInvalidFormatThenReturnsError() {
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of("INVALID"))).isInstanceOf(ErrorValue.class);
-        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of(""))).isInstanceOf(ErrorValue.class);
+    @ParameterizedTest(name = "Reject duration [{0}]")
+    @ValueSource(strings = { "", "INVALID", "P", "PT", "P1DT", "P1W1D", "P1D1M", "PT1M1M", "-P-1Y", "PT1H-30M", "+PT1S",
+            "PT0.S", "PT1.5M", "PT9223372036854775.808S", "-PT9223372036854775.809S" })
+    void whenIsoDurationIsInvalidThenReturnsError(String duration) {
+        assertThat(TemporalFunctionLibrary.durationFromISO(Value.of(duration))).isInstanceOf(ErrorValue.class);
+    }
+
+    @ParameterizedTest(name = "Compact duration for {0} milliseconds is {1}")
+    @MethodSource("compactDurations")
+    void whenFormattingMillisecondsThenCompactDurationCanBeReadAgain(long millis, String expected) {
+        val compact = TemporalFunctionLibrary.durationToISOCompact(Value.of(millis));
+        assertThat(compact).isEqualTo(Value.of(expected));
+        assertThat(TemporalFunctionLibrary.durationFromISO((TextValue) compact)).isEqualTo(Value.of(millis));
+    }
+
+    static Stream<Arguments> compactDurations() {
+        return Stream.of(arguments(-500L, "-PT0.5S"), arguments(-90_061_001L, "-PT25H1M1.001S"),
+                arguments(3_602_000L, "PT1H2S"), arguments(Long.MIN_VALUE, "-PT2562047788015H12M55.808S"),
+                arguments(Long.MAX_VALUE, "PT2562047788015H12M55.807S"));
     }
 
     @Test
@@ -327,7 +342,7 @@ class TemporalFunctionLibraryTests {
         assertThat(TemporalFunctionLibrary.durationToISOCompact(Value.of(7200000L))).isEqualTo(Value.of("PT2H"));
         assertThat(TemporalFunctionLibrary.durationToISOCompact(Value.of(9015000L))).isEqualTo(Value.of("PT2H30M15S"));
 
-        val oneYear = (long) (365.2425 * 24 * 60 * 60 * 1000);
+        val oneYear = 31_556_952_000L;
         assertThat(TemporalFunctionLibrary.durationToISOVerbose(Value.of(oneYear))).isEqualTo(Value.of("P1Y"));
         assertThat(TemporalFunctionLibrary.durationToISOVerbose(Value.of(0L))).isEqualTo(Value.of("PT0S"));
     }

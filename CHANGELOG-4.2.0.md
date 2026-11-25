@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `time.durationFromISO` reads whole weeks and mixed calendar and clock components. It uses exactly 31,556,952,000 milliseconds per year and 2,629,746,000 per month. A negative duration has one minus before `P`. Component signs such as `PT-1S` are rejected. `time.durationToISOCompact(-1500)` now returns `-PT1.5S`. `time.durationToISOVerbose` uses the same exact year and month lengths.
+
 - Glob character classes keep escaped hyphens literal and retain commas and braces inside alternative groups.
 
 - Time functions use UTC for local date-times, blank zone arguments and calendar-unit `timeBetween` calculations, independently of the JVM default zone.
