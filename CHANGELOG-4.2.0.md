@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- The portable Draft 2020-12 schema profile requires every active `$dynamicRef` in a loaded schema to resolve during preparation, including references to local anchors and pointers in unused definitions.
+
 - `yaml.yamlToVal` rejects a whole document when a number cannot fit the SAPL number domain exactly, such as `1e2000` or `1e-1001`. Exactly representable values such as `1e1999` remain supported.
 
 - CSV readers skip empty records, remove a leading byte order mark and reject duplicate headers. Writers end every record with CRLF.

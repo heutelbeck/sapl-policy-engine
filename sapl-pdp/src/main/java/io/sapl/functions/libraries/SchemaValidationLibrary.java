@@ -40,6 +40,11 @@ public class SchemaValidationLibrary {
             Validate data structures against JSON Schema. The default dialect is 2020-12.
             Two modes: simple boolean checks and detailed validation results with errors.
 
+            ## Numeric precision
+
+            All four functions preserve the decimal values in the subject, the inline schema and supplied
+            schemas. For example, `1.0000000000000001` exceeds a `maximum` of `1`.
+
             ## Function Selection
 
             | Need                    | Function                         | Returns  |
@@ -158,7 +163,10 @@ public class SchemaValidationLibrary {
             external resource takes precedence.
 
             References can resolve within the current schema, to bundled meta-schemas or to supplied
-            resources. SAPL checks ordinary `$ref` targets at load time, including those in unused definitions.
+            resources. SAPL checks ordinary `$ref` and active Draft 2020-12 `$dynamicRef` targets at
+            load time, including those in unused definitions. A supplied document with no referring schema
+            stays unloaded. In Drafts 4, 6 and 7, put resource identifiers on enclosing schemas. In Java
+            an identifier beside `$ref` can cause validation against an unintended subschema.
             In draft 2019-09, `$recursiveRef` must be `"#"`. Any other value is a schema error. Definitions
             should use regular schema locations such as `$defs` or `definitions`. Reference
             targets in arbitrary annotation fields have no portable meaning. Neither engine

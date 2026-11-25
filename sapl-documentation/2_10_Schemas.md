@@ -30,6 +30,10 @@ Where `<subscription-element>` is `subject`, `action`, `resource`, or `environme
 
 **Restrictions:** Schema expressions must not contain attribute finder expressions (`<attribute.name>`) since schemas are evaluated at compile time without access to external data sources.
 
+### Numeric Constraints
+
+Numeric bounds apply to the SAPL decimal value in the subscription. For example, `{"maximum": 1}` accepts `1.00` and rejects `1.0000000000000001`. The same rule applies when the bound is declared in a supplied schema.
+
 ### Schema References
 
 SAPL resolves references within the current schema, to built-in meta-schemas for the supported drafts, and to schemas explicitly supplied to the PDP. A URI identifies a schema. Resolving it never triggers a network request or opens a file or an arbitrary classpath resource.
@@ -44,12 +48,13 @@ In Draft 2020-12, `$dynamicRef` can address another explicitly supplied document
 {"$id": "urn:example:district", "$dynamicAnchor": "name", "type": "string"}
 ```
 
-An enforced schema or schema function can reference it with `{"$dynamicRef": "urn:example:district#name"}`. The text `"West"` is valid and the number `7` is invalid. Supply the target to each PDP that evaluates the policy. SAPL checks a reachable dynamic target when preparing the schema, including targets in conditional branches. A broken ordinary reference in that resource makes the entire schema invalid before any subscription is evaluated.
+An enforced schema or schema function can reference it with `{"$dynamicRef": "urn:example:district#name"}`. The text `"West"` is valid and the number `7` is invalid. Supply the target to each PDP that evaluates the policy. SAPL resolves active `$dynamicRef` targets during schema preparation, including those declared inside unused `$defs` entries or conditional branches. A missing target or a broken reference in a loaded target makes the entire schema invalid. The constraints of an unused definition apply only when the definition is used. A separate supplied document that no reference reaches stays unloaded.
 
 The following rules apply when authoring portable schemas:
 
 - Put reusable subschemas in a location defined by the dialect, such as `definitions` in Drafts 4, 6 and 7 or `$defs` in Draft 2020-12, and reference them with a JSON Pointer such as `#/$defs/address`. A reference into an arbitrary JSON field such as `#/elsewhere` has implementation-dependent behavior. Draft 4 also treats `$defs` as an unknown keyword. If it contains an unresolved reference, one engine can accept the schema and the other can reject it.
 - SAPL checks ordinary `$ref` targets when it prepares the schema, including targets named in unused definitions. Supply each referenced schema or remove the unused definition.
+- In Drafts 4, 6 and 7, put the identifier of a schema resource on an enclosing schema object. In the Java PDP, placing `id` (Draft 4) or `$id` (Drafts 6 and 7) alongside `$ref` can change the base URI. This can make validation succeed against a different subschema when the intended target is missing.
 - A supplied schema inherits the main schema's dialect unless it declares its own `$schema`. For example, a Draft 4 main schema passes Draft 4 to its supplied schemas. A supplied schema that declares Draft 2020-12 uses its own dialect.
 - In Draft 2019-09, use `"$recursiveRef": "#"` for dynamic recursion. Using a URL as the value of `$recursiveRef` produces a schema error. Use an ordinary `$ref` to name a supplied schema by its URI.
 

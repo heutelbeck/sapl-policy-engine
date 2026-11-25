@@ -30,7 +30,7 @@ import com.networknt.schema.keyword.KeywordValidator;
 import com.networknt.schema.keyword.RefValidator;
 import tools.jackson.databind.JsonNode;
 
-/** Preloads the static target of an external dynamic reference; evaluation retains native dynamic scope. */
+/** Preloads the static target of a dynamic reference; evaluation retains native dynamic scope. */
 final class PreparedDynamicReference extends AbstractKeyword {
     static final Dialect DIALECT = Dialect.builder(Specification.getDialect(SpecificationVersion.DRAFT_2020_12))
             .keyword(new PreparedDynamicReference()).build();
@@ -44,7 +44,7 @@ final class PreparedDynamicReference extends AbstractKeyword {
         return new DynamicRefValidator(location, node, parent, context) {
             @Override
             public void preloadSchema() {
-                if (node.isString() && !node.asString().isEmpty() && !node.asString().startsWith("#")) {
+                if (node.isString() && !node.asString().isEmpty()) {
                     new RefValidator(location, node, parent, context).preloadSchema();
                 }
             }
