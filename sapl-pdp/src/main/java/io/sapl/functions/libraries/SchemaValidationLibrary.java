@@ -151,7 +151,8 @@ public class SchemaValidationLibrary {
             Drafts 4, 6, 7, 2019-09 and 2020-12 are supported. The default is 2020-12.
             Custom meta-schemas named by `$schema` are outside the portable SAPL profile.
             Draft 2020-12 `$dynamicRef` can address a document supplied in the external schemas
-            array by its `$id`, including a named `$dynamicAnchor`.
+            array by its `$id`, including a named `$dynamicAnchor`. A broken ordinary reference in a
+            reachable dynamic target is a schema preparation error, even inside a conditional branch.
             A schema selects its dialect with `$schema`. A provided external schema without
             `$schema` inherits the root schema's dialect. An explicit declaration in the
             external resource takes precedence.
@@ -423,7 +424,7 @@ public class SchemaValidationLibrary {
 
         try {
             val registry  = JsonSchemaPreparation.registry(externalSchemas);
-            val validator = JsonSchemaPreparation.prepareValidation(registry, jsonSchema);
+            val validator = JsonSchemaPreparation.prepare(registry, jsonSchema);
             if (validationSubject instanceof UndefinedValue) {
                 return createValidationResult(false, List.of());
             }

@@ -19,7 +19,7 @@ package io.sapl.compiler.util;
 
 import com.heutelbeck.rustregex4j.RegexLimits;
 import com.networknt.schema.InputFormat;
-import com.networknt.schema.Error;
+import com.networknt.schema.dialect.DefaultDialectRegistry;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaContext;
@@ -46,7 +46,6 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.List;
 import java.util.Set;
 
 import static io.sapl.api.model.ValueJsonMarshaller.JSON_FACTORY;
@@ -101,18 +100,6 @@ public class JsonSchemaPreparation {
      * @throws SchemaException if the schema or a resolved reference is invalid
      */
     public static Schema prepare(SchemaRegistry registry, ObjectValue source) {
-        return prepareValidation(registry, source).schema();
-    }
-
-    /**
-     * Prepares validation and records whether it can activate external dynamic resources.
-     *
-     * @param registry registry confined to bundled dialects and supplied schemas
-     * @param source the schema to apply to SAPL values
-     * @return validation with checks for references in resources loaded during evaluation
-     * @throws SchemaException if the schema or a resolved reference is invalid
-     */
-    public static PreparedValidation prepareValidation(SchemaRegistry registry, ObjectValue source) {
         val scoped    = source.get("$schema") instanceof TextValue(String dialect)
                 ? SchemaRegistry.builder(registry).defaultDialectId(dialect).build()
                 : registry;
@@ -127,58 +114,10 @@ public class JsonSchemaPreparation {
                 embedded.put(resource.getSchemaNode(), MAPPER.createObjectNode().put("$ref", resource.getId()));
             }
         }
-        boolean dynamicResources = false;
         for (val schema : resources) {
             validateAgainstDialect(schema, embedded);
-            if (!dynamicResources) {
-                dynamicResources = mayLoadDynamicResources(schema);
-            }
         }
-        return new PreparedValidation(root, dynamicResources);
-    }
-
-    /**
-     * Validation prepared for repeated use with immutable supplied schemas.
-     *
-     * @param schema the native initialized schema
-     * @param dynamicResources whether a dynamic reference can load a resource during validation
-     */
-    public record PreparedValidation(Schema schema, boolean dynamicResources) {
-        /**
-         * Validates one value and checks references in dynamically activated resources.
-         *
-         * @param subject the value to validate
-         * @return the native validation errors
-         * @throws SchemaException if a loaded schema has an invalid reference
-         */
-        public List<Error> validate(JsonNode subject) {
-            val errors = schema.validate(subject);
-            if (dynamicResources) {
-                synchronized (schema.getSchemaContext().getSchemaRegistry()) {
-                    resolvedSchemas(schema);
-                }
-            }
-            return errors;
-        }
-    }
-
-    private static boolean mayLoadDynamicResources(Schema schema) {
-        val source            = schema.getSchemaNode();
-        val externalReference = source.findValues("$dynamicRef").stream().anyMatch(reference -> reference.isString()
-                && !reference.asString().isEmpty() && !reference.asString().startsWith("#"));
-        if (!externalReference) {
-            return false;
-        }
-        val version = schema.getSchemaContext().getDialect().getSpecificationVersion();
-        if (version == null || version.getOrder() >= SpecificationVersion.DRAFT_2020_12.getOrder()) {
-            return true;
-        }
-        // A legacy resource can contain a subschema declaring a newer or custom dialect.
-        return source.findValues("$schema").stream().filter(JsonNode::isString).anyMatch(declaration -> {
-            val dialect = Specification.getDialect(declaration.asString());
-            return dialect == null
-                    || dialect.getSpecificationVersion().getOrder() >= SpecificationVersion.DRAFT_2020_12.getOrder();
-        });
+        return root;
     }
 
     /**
@@ -286,7 +225,8 @@ public class JsonSchemaPreparation {
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
             builder.nodeReader(reader -> reader.jsonMapper(MAPPER));
             builder.schemaLoader(new ConfinedSchemaLoader(schemas));
-            LinearRegularExpressionFactory.applyTo(builder, limits);
+            LinearRegularExpressionFactory.applyTo(builder, limits,
+                    new DefaultDialectRegistry(PreparedDynamicReference.DIALECT));
         });
     }
 

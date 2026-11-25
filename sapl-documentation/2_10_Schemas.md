@@ -44,7 +44,7 @@ In Draft 2020-12, `$dynamicRef` can address another explicitly supplied document
 {"$id": "urn:example:district", "$dynamicAnchor": "name", "type": "string"}
 ```
 
-An enforced schema or schema function can reference it with `{"$dynamicRef": "urn:example:district#name"}`. The text `"West"` is valid and the number `7` is invalid. Supply the target to each PDP that evaluates the policy.
+An enforced schema or schema function can reference it with `{"$dynamicRef": "urn:example:district#name"}`. The text `"West"` is valid and the number `7` is invalid. Supply the target to each PDP that evaluates the policy. SAPL checks a reachable dynamic target when preparing the schema, including targets in conditional branches. A broken ordinary reference in that resource makes the entire schema invalid before any subscription is evaluated.
 
 The following rules apply when authoring portable schemas:
 

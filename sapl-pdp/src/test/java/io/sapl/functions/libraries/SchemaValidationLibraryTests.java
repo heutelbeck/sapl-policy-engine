@@ -688,47 +688,46 @@ class SchemaValidationLibraryTests {
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("dynamicResourceCapabilities")
-    @DisplayName("prepared validation distinguishes local and ignored references from possible external activation")
-    void whenSchemaIsPreparedThenDynamicResourceChecksFollowItsCapabilities(String description, String source,
-            String external, String subject, boolean dynamicResources, boolean valid) {
+    @MethodSource("dynamicReferenceCases")
+    @DisplayName("dynamic references use their declared dialect and supplied resources")
+    void whenSchemaContainsDynamicReferencesThenValidationUsesItsDialect(String description, String source,
+            String external, String subject, boolean valid) {
         val registry = JsonSchemaPreparation.registry(json(external));
-        val prepared = JsonSchemaPreparation.prepareValidation(registry, (ObjectValue) json(source));
-        assertThat(prepared.dynamicResources()).isEqualTo(dynamicResources);
+        val prepared = JsonSchemaPreparation.prepare(registry, (ObjectValue) json(source));
         assertThat(prepared.validate(ValueJsonMarshaller.toJsonNode(json(subject))).isEmpty()).isEqualTo(valid);
     }
 
-    static Stream<Arguments> dynamicResourceCapabilities() {
+    static Stream<Arguments> dynamicReferenceCases() {
         val provided = """
                 [{"$id":"urn:example:active","type":"string"}]
                 """;
         return Stream.of(arguments("ordinary schema", """
                 {"type":"string"}
-                """, "[]", "\"text\"", false, true), arguments("local dynamic anchor", """
+                """, "[]", "\"text\"", true), arguments("local dynamic anchor", """
                 {"$dynamicRef":"#kind","$defs":{"code":{"$dynamicAnchor":"kind","type":"string"}}}
-                """, "[]", "\"text\"", false, true), arguments("legacy annotation", """
+                """, "[]", "\"text\"", true), arguments("legacy annotation", """
                 {"$schema":"http://json-schema.org/draft-04/schema#","$dynamicRef":"urn:example:absent"}
-                """, "[]", "\"text\"", false, true), arguments("dynamic target behind ordinary reference", """
+                """, "[]", "\"text\"", true), arguments("dynamic target behind ordinary reference", """
                 {"$ref":"urn:example:outer"}
                 """, """
                 [{"$id":"urn:example:outer","$dynamicRef":"urn:example:active"},
                  {"$id":"urn:example:active","type":"string"}]
-                """, "\"text\"", true, true), arguments("local fragment reaches an ordinary then dynamic reference", """
+                """, "\"text\"", true), arguments("local fragment reaches an ordinary then dynamic reference", """
                 {"$dynamicRef":"#/$defs/start","$defs":{"start":{"$ref":"urn:example:outer"}}}
                 """, """
                 [{"$id":"urn:example:outer","$dynamicRef":"urn:example:active"},
                  {"$id":"urn:example:active","type":"string"}]
-                """, "\"text\"", true, true), arguments("nested dynamic reference", """
+                """, "\"text\"", true), arguments("nested dynamic reference", """
                 {"properties":{"child":{"$dynamicRef":"urn:example:active"}}}
                 """, provided, """
                 {"child":12}
-                """, true, false), arguments("explicit modern subschema in a legacy resource", """
+                """, false), arguments("explicit modern subschema in a legacy resource", """
                 {"$schema":"http://json-schema.org/draft-04/schema#",
                  "properties":{"child":{"$schema":"https://json-schema.org/draft/2020-12/schema",
                    "$dynamicRef":"urn:example:active"}}}
                 """, provided, """
                 {"child":12}
-                """, true, false));
+                """, false));
     }
 
 }

@@ -22,7 +22,6 @@ import com.networknt.schema.SchemaContext;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.dialect.DefaultDialectRegistry;
 import com.networknt.schema.dialect.Dialect;
 import com.networknt.schema.dialect.DialectRegistry;
 import com.networknt.schema.keyword.Keyword;
@@ -52,12 +51,13 @@ final class LinearRegexDialectRegistry implements DialectRegistry {
     private static final Set<String> KEYWORDS_WITH_PATTERNS = Set.of(KeywordType.PATTERN.getValue(),
             KeywordType.PATTERN_PROPERTIES.getValue(), KeywordType.ADDITIONAL_PROPERTIES.getValue());
 
-    private final DialectRegistry                standardDialects = new DefaultDialectRegistry();
-    private final Map<Dialect, Dialect>          dialects         = new ConcurrentHashMap<>();
+    private final DialectRegistry                standardDialects;
+    private final Map<Dialect, Dialect>          dialects = new ConcurrentHashMap<>();
     private final LinearRegularExpressionFactory patterns;
 
-    LinearRegexDialectRegistry(LinearRegularExpressionFactory patterns) {
-        this.patterns = patterns;
+    LinearRegexDialectRegistry(LinearRegularExpressionFactory patterns, DialectRegistry standardDialects) {
+        this.standardDialects = standardDialects;
+        this.patterns         = patterns;
     }
 
     @Override

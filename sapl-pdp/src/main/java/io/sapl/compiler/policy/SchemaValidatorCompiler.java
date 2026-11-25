@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.policy;
 
+import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.SchemaRegistry;
 import io.sapl.api.model.*;
@@ -32,7 +33,6 @@ import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler.LazyAndPu
 import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler.LazyValuePure;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.JsonSchemaPreparation;
-import io.sapl.compiler.util.JsonSchemaPreparation.PreparedValidation;
 import io.sapl.compiler.util.SchemaErrors;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -162,7 +162,7 @@ public class SchemaValidatorCompiler {
     private static PrecompiledSchemaValidator createPrecompiledValidator(SubscriptionElement element,
             ObjectValue constantSchema, SourceLocation location, SchemaRegistry registry, int maxTextBytes) {
         try {
-            val precompiledSchema = JsonSchemaPreparation.prepareValidation(registry, constantSchema);
+            val precompiledSchema = JsonSchemaPreparation.prepare(registry, constantSchema);
             return new PrecompiledSchemaValidator(element, constantSchema, precompiledSchema, maxTextBytes, location);
         } catch (SchemaException e) {
             throw new SaplCompilerException(SchemaErrors.describe(e, ERROR_SCHEMA_INVALID_JSON_SCHEMA), e, location);
@@ -172,7 +172,7 @@ public class SchemaValidatorCompiler {
     record PrecompiledSchemaValidator(
             SubscriptionElement element,
             ObjectValue schemaSource,
-            PreparedValidation schema,
+            Schema schema,
             int maxTextBytes,
             SourceLocation location) implements SchemaValidator {
         private static final long KIND = SemanticHashing.kindHash(PrecompiledSchemaValidator.class);

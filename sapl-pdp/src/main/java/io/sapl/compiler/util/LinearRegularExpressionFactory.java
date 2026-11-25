@@ -20,6 +20,8 @@ package io.sapl.compiler.util;
 import com.heutelbeck.rustregex4j.RegexLimits;
 import com.networknt.schema.SchemaException;
 import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.dialect.DefaultDialectRegistry;
+import com.networknt.schema.dialect.DialectRegistry;
 import com.networknt.schema.SchemaRegistryConfig;
 import com.networknt.schema.regex.RegularExpression;
 import com.networknt.schema.regex.RegularExpressionFactory;
@@ -73,8 +75,12 @@ public final class LinearRegularExpressionFactory implements RegularExpressionFa
      * @param limits the limits for the patterns of the schemas
      */
     public static void applyTo(SchemaRegistry.Builder builder, RegexLimits limits) {
+        applyTo(builder, limits, new DefaultDialectRegistry());
+    }
+
+    static void applyTo(SchemaRegistry.Builder builder, RegexLimits limits, DialectRegistry dialects) {
         val factory = new LinearRegularExpressionFactory(limits);
         builder.schemaRegistryConfig(SchemaRegistryConfig.builder().regularExpressionFactory(factory).build())
-                .dialectRegistry(new LinearRegexDialectRegistry(factory));
+                .dialectRegistry(new LinearRegexDialectRegistry(factory, dialects));
     }
 }
