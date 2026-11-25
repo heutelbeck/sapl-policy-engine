@@ -70,7 +70,9 @@ import java.util.function.Supplier;
  * emitted as a single value, then the stream completes. Repetition is
  * the caller's concern (the attribute broker re-invokes per its
  * configured poll interval). For {@code text/event-stream}, the
- * connection is held open and SSE events are emitted as parsed values.
+ * connection is held open and SSE event data is parsed as JSON values.
+ * Each {@code data:} field removes at most one following ASCII space;
+ * any remaining leading whitespace stays in the event data.
  * For WebSocket, incoming text frames are emitted as parsed values
  * until the session is closed.
  * <p>
@@ -724,7 +726,7 @@ public class BlockingWebClient {
         private long                bytes;
 
         boolean appendDataLine(String line, long maxBytes) {
-            val value      = line.substring(5).stripLeading();
+            val value      = line.substring(line.startsWith("data: ") ? 6 : 5);
             val valueBytes = utf8ByteLength(value);
             val extraBytes = valueBytes + (data.isEmpty() ? 0L : 1L);
             if (extraBytes > maxBytes - bytes) {

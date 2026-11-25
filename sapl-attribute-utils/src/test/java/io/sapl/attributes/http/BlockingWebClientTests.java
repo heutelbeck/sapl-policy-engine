@@ -946,7 +946,7 @@ class BlockingWebClientTests {
      * and {@link InputStream} body.
      */
     @RequiredArgsConstructor
-    private static final class StatusInputStreamHttpClient extends HttpClient {
+    static final class StatusInputStreamHttpClient extends HttpClient {
         private final int         status;
         private final InputStream body;
 
