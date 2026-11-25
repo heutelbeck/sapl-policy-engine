@@ -98,11 +98,10 @@ public class UnanimousVoteCompiler {
         var accumulatorVote = UnanimousVoteCombiner.combineMultipleVotes(classified.foldableVotes(), voterMetadata,
                 strictMode);
 
+        if (completeOutcome) {
+            accumulatorVote = CombiningUtils.completeSetOutcomeFromVotes(accumulatorVote, classified.foldableVotes());
+        }
         if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
-            if (completeOutcome) {
-                accumulatorVote = CombiningUtils.completeSetOutcomeFromVotes(accumulatorVote,
-                        classified.foldableVotes());
-            }
             return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 

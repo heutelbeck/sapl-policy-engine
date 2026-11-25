@@ -153,6 +153,34 @@ class PolicySetCompilerTests {
     @DisplayName("Set outcome metadata")
     class SetOutcomeMetadata {
 
+        static Stream<Arguments> mixedEvaluationCases() {
+            return Stream.of(arguments("unique", "deny", "subject;", "", Outcome.DENY_OR_SUSPEND),
+                    arguments("unique", "deny", "!subject;", "", Outcome.DENY),
+                    arguments("unique", "deny", "", "policy \"evening\" deny !subject;", Outcome.DENY_OR_SUSPEND),
+                    arguments("unanimous", "permit", "", "policy \"evening\" deny !subject;",
+                            Outcome.PERMIT_OR_DENY_OR_SUSPEND),
+                    arguments("unanimous strict", "permit", "", "policy \"evening\" deny !subject;",
+                            Outcome.PERMIT_OR_DENY_OR_SUSPEND));
+        }
+
+        @ParameterizedTest(name = "{0}, second effect {1}, review condition {2}, remaining policies {3}: {4}")
+        @MethodSource("mixedEvaluationCases")
+        @DisplayName("An indeterminate set retains the effects of its applicable policies")
+        void whenSetHasConstantAndSubscriptionPoliciesThenOutcomeIncludesApplicableEffects(String algorithm,
+                String secondEffect, String reviewCondition, String remainingPolicies, Outcome expected) {
+            val compiled = compilePolicySet(String.join("\n", "set \"office\"", algorithm + " or abstain errors propagate",
+                    "policy \"entry\" deny", "policy \"hours\" " + secondEffect, "policy \"review\" suspend " + reviewCondition,
+                    remainingPolicies));
+            val context  = subscriptionContext("""
+                    { "subject": true, "action": "read", "resource": "office" }
+                    """);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, context);
+
+            assertThat(result).satisfies(
+                    vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE),
+                    vote -> assertThat(vote.outcome()).isEqualTo(expected));
+        }
+
         static Stream<Arguments> outcomeUnionCases() {
             return Stream.of(arguments("priority deny or abstain", List.of("permit", "permit"), Outcome.PERMIT),
                     arguments("priority deny or abstain", List.of("permit", "deny"), Outcome.PERMIT_OR_DENY),

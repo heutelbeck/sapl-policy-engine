@@ -88,11 +88,10 @@ public class UniqueVoteCompiler {
         val classified      = classifyPoliciesByEvaluationStrategy(compiledPolicies);
         var accumulatorVote = UniqueVoteCombiner.combineMultipleVotes(classified.foldableVotes(), voterMetadata);
 
+        if (completeOutcome) {
+            accumulatorVote = CombiningUtils.completeSetOutcomeFromVotes(accumulatorVote, classified.foldableVotes());
+        }
         if (classified.purePolicies().isEmpty() && classified.streamPolicies().isEmpty()) {
-            if (completeOutcome) {
-                accumulatorVote = CombiningUtils.completeSetOutcomeFromVotes(accumulatorVote,
-                        classified.foldableVotes());
-            }
             return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
@@ -159,7 +158,7 @@ public class UniqueVoteCompiler {
                 // A pure-path candidate has no streaming section, so an applicability
                 // error is terminal and the policy is INDETERMINATE.
                 vote = UniqueVoteCombiner.combineVotes(vote,
-                        Vote.error(errorMatch.error(), errorMatch.document().metadata()), voterMetadata);
+                        Vote.error(errorMatch.error(), errorMatch.document().metadata()), voterMetadata, true);
             }
             for (var i = 0; i < matching.size(); i++) {
                 val  voter = matching.get(i).voter();
@@ -169,7 +168,7 @@ public class UniqueVoteCompiler {
                 } else {
                     newVote = ((PureVoter) voter).vote(ctx);
                 }
-                vote = UniqueVoteCombiner.combineVotes(vote, newVote, voterMetadata);
+                vote = UniqueVoteCombiner.combineVotes(vote, newVote, voterMetadata, true);
                 if (vote.authorizationDecision().decision() == Decision.INDETERMINATE) {
                     return CombiningUtils.completeSetOutcome(vote, matching.subList(i + 1, matching.size()));
                 }
@@ -207,7 +206,7 @@ public class UniqueVoteCompiler {
                     ObservedVoter.completedBeforePending(ctx, combinedVote.contributingVotes());
                     return new VoteResult(null, deps);
                 }
-                combinedVote = UniqueVoteCombiner.combineVotes(combinedVote, vote, voterMetadata);
+                combinedVote = UniqueVoteCombiner.combineVotes(combinedVote, vote, voterMetadata, completeOutcome);
             }
             for (var i = 0; i < matching.size(); i++) {
                 val sub  = matching.get(i).voter().evaluate(ctx);
@@ -217,7 +216,7 @@ public class UniqueVoteCompiler {
                     ObservedVoter.completedBeforePending(ctx, combinedVote.contributingVotes());
                     return new VoteResult(null, deps);
                 }
-                combinedVote = UniqueVoteCombiner.combineVotes(combinedVote, vote, voterMetadata);
+                combinedVote = UniqueVoteCombiner.combineVotes(combinedVote, vote, voterMetadata, completeOutcome);
                 if (combinedVote.authorizationDecision().decision() == Decision.INDETERMINATE) {
                     if (completeOutcome) {
                         combinedVote = CombiningUtils.completeSetOutcome(combinedVote,

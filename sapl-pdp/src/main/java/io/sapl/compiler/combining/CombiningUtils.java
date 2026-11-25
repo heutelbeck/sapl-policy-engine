@@ -212,8 +212,8 @@ public class CombiningUtils {
 
     /**
      * Completes the could-have-been outcome of a short-circuited INDETERMINATE
-     * set vote built from already-evaluated constant child votes (the all-static
-     * fold). The applicable children's potential is the union of the non
+     * set accumulator using the already-evaluated constant child votes.
+     * The applicable children's potential is the union of the non
      * NOT_APPLICABLE votes' outcomes. Folding all of them is idempotent for the
      * children already incorporated and adds those the short-circuit skipped.
      * Mirrors {@link #completeSetOutcome(Vote, List)} for the static path.

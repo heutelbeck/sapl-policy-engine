@@ -133,18 +133,22 @@ public class UniqueVoteCombiner {
      * @return the combined vote
      */
     public static Vote combineVotes(Vote accumulatorVote, Vote newVote, VoterMetadata voterMetadata) {
+        return combineVotes(accumulatorVote, newVote, voterMetadata, false);
+    }
+
+    static Vote combineVotes(Vote accumulatorVote, Vote newVote, VoterMetadata voterMetadata, boolean completeOutcome) {
         val accDec = accumulatorVote.authorizationDecision().decision();
         val newDec = newVote.authorizationDecision().decision();
 
         val contributingVotes = appendToList(accumulatorVote.contributingVotes(), newVote);
 
-        // INDETERMINATE propagates (first one wins). The unique algorithm
-        // short-circuits on INDETERMINATE accumulator (combineMultipleVotes),
-        // so the source's would-have-been outcome is preserved as-is rather
-        // than combined - no further folds will read it for criticality.
         if (accDec == Decision.INDETERMINATE || newDec == Decision.INDETERMINATE) {
             val source = accDec == Decision.INDETERMINATE ? accumulatorVote : newVote;
-            return indeterminateResult(source.outcome(), source.errors(), contributingVotes, voterMetadata);
+            // An enclosing voter needs the effects of both applicable votes, even when the first error wins.
+            val outcome = completeOutcome && accDec != Decision.NOT_APPLICABLE && newDec != Decision.NOT_APPLICABLE
+                    ? combine(accumulatorVote.outcome(), newVote.outcome())
+                    : source.outcome();
+            return indeterminateResult(outcome, source.errors(), contributingVotes, voterMetadata);
         }
 
         // Both NOT_APPLICABLE

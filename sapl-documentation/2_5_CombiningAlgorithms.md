@@ -74,6 +74,8 @@ If you choose a non-abstain default and omit the error handling clause, the PEP 
 
 Every vote carries an `Outcome` field that records which effects the vote represents. For a concrete vote (`PERMIT`, `DENY`, `SUSPEND`), the outcome is just the vote's own decision. For an `INDETERMINATE` vote, the outcome records which decisions the policy *could have produced* had it not errored. This is the **extended indeterminate marker** from XACML 3.0.
 
+A `unique`, `unanimous`, or `unanimous strict` policy set preserves the possible effects of applicable children when it returns `INDETERMINATE`. This includes children folded at compile time and children matched for the current subscription. The set can account for a remaining matched child from its declared effect without evaluating its body.
+
 Priority-based combining algorithms use this marker to decide whether an error blocks an otherwise-winning concrete decision. An error is **critical** if its outcome includes the priority decision: the policy that errored could have voted the priority, and the algorithm cannot safely return any non-priority decision while that uncertainty exists.
 
 For example, under `priority deny`:
@@ -81,7 +83,7 @@ For example, under `priority deny`:
 - Concrete `PERMIT` + `INDETERMINATE` whose outcome includes `DENY` → result is `INDETERMINATE` (the error could have been the priority deny that should win).
 - Concrete `PERMIT` + `INDETERMINATE` whose outcome is `PERMIT` only → the error could not have produced a deny, so the concrete `PERMIT` survives.
 
-Under `errors abstain` this `INDETERMINATE` result is converted to `NOT_APPLICABLE` at the end, then the default decision applies. Under `errors propagate` the `INDETERMINATE` reaches the PEP directly.
+Under `errors abstain`, a final `INDETERMINATE` becomes `NOT_APPLICABLE`. The default decision applies when the combining algorithm itself returns `NOT_APPLICABLE`. Under `errors propagate` the `INDETERMINATE` reaches the PEP directly.
 
 ### Trace and short-circuit notes
 
