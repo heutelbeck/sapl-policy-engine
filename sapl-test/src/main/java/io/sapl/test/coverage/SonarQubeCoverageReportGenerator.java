@@ -17,6 +17,8 @@
  */
 package io.sapl.test.coverage;
 
+import static io.sapl.test.coverage.CoverageKey.forDocument;
+
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.coverage.PolicyCoverageData;
@@ -115,8 +117,8 @@ public class SonarQubeCoverageReportGenerator {
         return new SonarQubeCoverageReportGenerator(Path.of("target", "sapl-coverage"));
     }
 
-    private Map<CoverageKey, PolicyCoverageData> aggregateCoverage(Path coverageFile) throws IOException {
-        val aggregated = new HashMap<CoverageKey, PolicyCoverageData>();
+    private Map<String, PolicyCoverageData> aggregateCoverage(Path coverageFile) throws IOException {
+        val aggregated = new HashMap<String, PolicyCoverageData>();
 
         for (val line : Files.readAllLines(coverageFile)) {
             if (line.isBlank()) {
@@ -129,7 +131,7 @@ public class SonarQubeCoverageReportGenerator {
         return aggregated;
     }
 
-    private void aggregatePoliciesFromRecord(JsonNode coverageRecord, Map<CoverageKey, PolicyCoverageData> aggregated) {
+    private void aggregatePoliciesFromRecord(JsonNode coverageRecord, Map<String, PolicyCoverageData> aggregated) {
         val policies = coverageRecord.get("policies");
         if (policies == null || !policies.isArray()) {
             return;
@@ -140,14 +142,14 @@ public class SonarQubeCoverageReportGenerator {
         }
     }
 
-    private void aggregatePolicy(JsonNode policy, Map<CoverageKey, PolicyCoverageData> aggregated) {
+    private void aggregatePolicy(JsonNode policy, Map<String, PolicyCoverageData> aggregated) {
         val documentName = getTextOrNull(policy, "documentName");
         if (documentName == null) {
             return;
         }
 
         val sourceHash = getIntOrZero(policy, "sourceHash");
-        val uniqueKey  = new CoverageKey(documentName, sourceHash, getTextOrNull(policy, "filePath"));
+        val uniqueKey  = forDocument(documentName, sourceHash, getTextOrNull(policy, "filePath"));
         val coverage   = aggregated.computeIfAbsent(uniqueKey,
                 key -> createPolicyCoverageData(policy, documentName, sourceHash));
 
@@ -166,7 +168,7 @@ public class SonarQubeCoverageReportGenerator {
         return data;
     }
 
-    private String generateXml(Map<CoverageKey, PolicyCoverageData> coverageByPolicy) throws IOException {
+    private String generateXml(Map<String, PolicyCoverageData> coverageByPolicy) throws IOException {
         val writer        = new StringWriter();
         val outputFactory = XMLOutputFactory.newInstance();
 
@@ -233,8 +235,6 @@ public class SonarQubeCoverageReportGenerator {
 
         return byLine;
     }
-
-    private record CoverageKey(String documentName, int sourceHash, String filePath) {}
 
     private static final class LineAggregate {
         private boolean covered;

@@ -17,6 +17,8 @@
  */
 package io.sapl.test.coverage.report.html;
 
+import static io.sapl.test.coverage.CoverageKey.forDocument;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -210,8 +212,8 @@ public class HtmlLineCoverageReportGenerator {
     /**
      * Derives the per-policy report file name. The document name is
      * attacker-influenceable SAPL source content, so it is slugged to a safe path
-     * segment and a short deterministic suffix keyed on the document name and its
-     * source is appended. Slugging guarantees the result stays inside the policies
+     * segment and a short deterministic suffix keyed on the document name, source
+     * and file path is appended. Slugging guarantees the result stays inside the policies
      * directory. The suffix keeps genuinely distinct documents that slug to the
      * same segment from overwriting one another, while keeping the file name
      * idempotent for repeated emissions of the same document.
@@ -222,7 +224,7 @@ public class HtmlLineCoverageReportGenerator {
     }
 
     private static String disambiguator(PolicyCoverageData policy) {
-        val key  = policy.getDocumentName() + "#" + policy.getSourceHash();
+        val key  = forDocument(policy.getDocumentName(), policy.getSourceHash(), policy.getFilePath());
         val hash = Integer.toHexString(key.hashCode());
         return "00000000".substring(hash.length()) + hash;
     }

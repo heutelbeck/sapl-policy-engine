@@ -57,6 +57,30 @@ class HtmlLineCoverageReportGeneratorTests {
     private static final float POLICY_HIT_RATIO           = 66.6f;
     private static final float POLICY_CONDITION_HIT_RATIO = 43.9f;
 
+    @Test
+    @DisplayName("identical sources at distinct paths keep their own coverage detail pages")
+    void whenIdenticalSourcesHaveDifferentPathsThenDetailPagesKeepTheirOwnCoverage(@TempDir Path output)
+            throws IOException {
+        val source = "policy \"read\" permit subject == \"alice\";";
+        val first  = new PolicyCoverageData("read", source, "policy");
+        first.setFilePath("a/read.sapl");
+        first.recordConditionHit(0, 1, true);
+        first.recordConditionHit(0, 1, false);
+        val second = new PolicyCoverageData("read", source, "policy");
+        second.setFilePath("b/read.sapl");
+        second.recordConditionHit(0, 1, false);
+        new HtmlLineCoverageReportGenerator().generateHtmlReport(List.of(first, second), output, POLICY_SET_HIT_RATIO,
+                POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
+
+        val index = Files.readString(output.resolve("html/report.html"));
+        val links = Pattern.compile("<a href=\"policies/([^\"]+)\"").matcher(index).results()
+                .map(match -> match.group(1)).toList();
+        assertThat(links).hasSize(2).doesNotHaveDuplicates();
+        val details = output.resolve("html/policies");
+        assertThat(Files.readString(details.resolve(links.get(0)))).contains("coverage-green");
+        assertThat(Files.readString(details.resolve(links.get(1)))).contains("coverage-yellow");
+    }
+
     @Nested
     @DisplayName("report generation")
     class ReportGenerationTests {

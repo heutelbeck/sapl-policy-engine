@@ -23,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import io.sapl.api.pdp.Decision;
 import lombok.val;
@@ -298,5 +300,29 @@ class AggregatedCoverageDataTests {
         assertThat(aggregated.getDecisionCount(Decision.DENY)).isOne();
         assertThat(aggregated.getDecisionCount(Decision.NOT_APPLICABLE)).isOne();
         assertThat(aggregated.getDecisionCount(Decision.INDETERMINATE)).isOne();
+    }
+
+    @ParameterizedTest(name = "second file {0}, source hash {1}")
+    @CsvSource({ "a/read.sapl, 11, 1, 100", "b/read.sapl, 11, 2, 50", "b/read.sapl, 22, 2, 50" })
+    @DisplayName("policy hit ratios distinguish files and combine repeated tests of one file")
+    void whenNamedSourcesAreAggregatedThenTheirPathsRemainDistinct(String secondPath, int secondHash, int policyCount,
+            float policyHitRatio) {
+        val aggregated = new AggregatedCoverageData();
+        aggregated.merge(policyRecord("a/read.sapl", 11, true));
+        aggregated.merge(policyRecord(secondPath, secondHash, false));
+
+        assertThat(aggregated)
+                .extracting(AggregatedCoverageData::getPolicyCount, AggregatedCoverageData::getPolicyHitRatio)
+                .containsExactly(policyCount, policyHitRatio);
+    }
+
+    private static TestCoverageRecord policyRecord(String path, int sourceHash, boolean matched) {
+        val policy = new PolicyCoverageData("read", "policy source", "policy");
+        policy.setFilePath(path);
+        policy.setSourceHash(sourceHash);
+        policy.recordPolicyOutcome(1, 1, 0, 6, matched, true);
+        val record = new TestCoverageRecord(path);
+        record.addPolicyCoverage(policy);
+        return record;
     }
 }

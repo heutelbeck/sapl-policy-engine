@@ -17,6 +17,8 @@
  */
 package io.sapl.test.coverage;
 
+import static io.sapl.test.coverage.CoverageKey.forDocument;
+
 import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
 import lombok.Getter;
@@ -29,6 +31,7 @@ import java.util.*;
  * <p>
  * Combines coverage from multiple TestCoverageRecord instances into a unified
  * view suitable for generating reports and validating coverage thresholds.
+ * Distinct source files remain separate even when their names and contents agree.
  */
 @Getter
 public class AggregatedCoverageData {
@@ -63,7 +66,7 @@ public class AggregatedCoverageData {
         }
 
         for (val coverage : coverageRecord.getPolicyCoverageList()) {
-            val key = uniqueKeyFor(coverage);
+            val key = forDocument(coverage.getDocumentName(), coverage.getSourceHash(), coverage.getFilePath());
             policyCoverageByName.merge(key, clonePolicyCoverage(coverage), (existing, incoming) -> {
                 existing.merge(incoming);
                 return existing;
@@ -219,18 +222,6 @@ public class AggregatedCoverageData {
      */
     public int getDecisionCount(Decision decision) {
         return decisionCounts.getOrDefault(decision, 0);
-    }
-
-    /**
-     * Creates a unique key for a policy coverage entry.
-     * <p>
-     * Uses source hash to distinguish policies with the same name but different
-     * content.
-     * This handles cases where integration tests and unit tests use policies with
-     * the same document name but from different source files.
-     */
-    private String uniqueKeyFor(PolicyCoverageData coverage) {
-        return coverage.getDocumentName() + "#" + coverage.getSourceHash();
     }
 
     /**
