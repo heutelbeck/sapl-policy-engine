@@ -32,11 +32,13 @@ import lombok.val;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
  * Static factory methods for creating argument matchers.
+ * Case-insensitive substring, prefix and suffix matchers use locale-independent lowercasing.
  * <p>
  * Use these methods with static imports for a fluent mocking API:
  *
@@ -186,8 +188,9 @@ public class Matchers {
      * @param substring the substring to search for
      */
     public static ArgumentMatcher textContainingIgnoreCase(@NonNull String substring) {
-        var lowerSubstring = substring.toLowerCase();
-        return matching(v -> v instanceof TextValue(String value) && value.toLowerCase().contains(lowerSubstring));
+        var lowerSubstring = substring.toLowerCase(Locale.ROOT);
+        return matching(
+                v -> v instanceof TextValue(String value) && value.toLowerCase(Locale.ROOT).contains(lowerSubstring));
     }
 
     /**
@@ -205,8 +208,9 @@ public class Matchers {
      * @param prefix the prefix
      */
     public static ArgumentMatcher textStartingWithIgnoreCase(@NonNull String prefix) {
-        var lowerPrefix = prefix.toLowerCase();
-        return matching(v -> v instanceof TextValue(String value) && value.toLowerCase().startsWith(lowerPrefix));
+        var lowerPrefix = prefix.toLowerCase(Locale.ROOT);
+        return matching(
+                v -> v instanceof TextValue(String value) && value.toLowerCase(Locale.ROOT).startsWith(lowerPrefix));
     }
 
     /**
@@ -224,8 +228,9 @@ public class Matchers {
      * @param suffix the suffix
      */
     public static ArgumentMatcher textEndingWithIgnoreCase(@NonNull String suffix) {
-        var lowerSuffix = suffix.toLowerCase();
-        return matching(v -> v instanceof TextValue(String value) && value.toLowerCase().endsWith(lowerSuffix));
+        var lowerSuffix = suffix.toLowerCase(Locale.ROOT);
+        return matching(
+                v -> v instanceof TextValue(String value) && value.toLowerCase(Locale.ROOT).endsWith(lowerSuffix));
     }
 
     /**

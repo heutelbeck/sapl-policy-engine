@@ -146,6 +146,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- SAPLTest case-insensitive text containment, prefix and suffix matchers no longer depend on the JVM default locale.
+
 - Shared text-format size errors report their limits using the same digits in every JVM locale.
 
 - The return schemas for `semver.minSatisfying` and `semver.maxSatisfying` include `null` when no version matches.

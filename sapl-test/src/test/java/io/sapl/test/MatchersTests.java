@@ -23,13 +23,17 @@ import io.sapl.compiler.util.RegexSearchFailedException;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -440,6 +444,24 @@ class MatchersTests {
         assertThat(matcher.matches(Value.of("file.txt"))).isTrue();
         assertThat(matcher.matches(Value.of("file.TXT"))).isTrue();
         assertThat(matcher.matches(Value.of("FILE.Txt"))).isTrue();
+    }
+
+    @CsvSource({ "TITLE,ti,true,true,false", "TAXI,xi,true,false,true", "title,TI,true,true,false",
+            "desk,q,false,false,false", "file,i,true,false,false", "file,'',true,true,true" })
+    @ResourceLock(Resources.LOCALE)
+    @ParameterizedTest(name = "{0} with {1}: contains={2}, starts={3}, ends={4}")
+    @DisplayName("Case-insensitive text matchers are independent of the default locale")
+    void whenCaseInsensitiveTextMatchersRun_thenDefaultLocaleDoesNotChangeTheirResults(String actual, String query,
+            boolean contains, boolean starts, boolean ends) {
+        val previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertThat(List.of(textContainingIgnoreCase(query).matches(Value.of(actual)),
+                    textStartingWithIgnoreCase(query).matches(Value.of(actual)),
+                    textEndingWithIgnoreCase(query).matches(Value.of(actual)))).containsExactly(contains, starts, ends);
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 
     @Test
