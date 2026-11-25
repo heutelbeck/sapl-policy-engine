@@ -83,14 +83,6 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenUuidHasAnEmptyGroupThenErrorExplainsTheFailure() {
-        val result = UuidFunctionLibrary.parse(Value.of("1-2-3-4-"));
-
-        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                error -> assertThat(error.message()).isEqualTo("Invalid UUID: For input string: \"\" under radix 16."));
-    }
-
-    @Test
     void whenParseAndCompareSignificantBitsThenMatchesJavaUuid() {
         val uuid   = UUID.fromString(VALID_UUID_V4);
         val result = UuidFunctionLibrary.parse(Value.of(VALID_UUID_V4));

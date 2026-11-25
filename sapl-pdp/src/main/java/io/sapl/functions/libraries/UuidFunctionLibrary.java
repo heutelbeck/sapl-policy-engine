@@ -42,7 +42,6 @@ public class UuidFunctionLibrary {
             """;
 
     private static final String ERROR_INVALID_UUID = "Invalid UUID: %s.";
-    private static final String ERROR_EMPTY_GROUP  = "For input string: \"\" under radix 16";
 
     private static final String FIELD_CLOCK_SEQUENCE    = "clockSequence";
     private static final String FIELD_LEAST_SIGNIFICANT = "leastSignificantBits";
@@ -141,8 +140,7 @@ public class UuidFunctionLibrary {
         try {
             uuid = UUID.fromString(uuidText.value());
         } catch (IllegalArgumentException exception) {
-            val detail = exception.getMessage();
-            return Value.error(ERROR_INVALID_UUID, "".equals(detail) ? ERROR_EMPTY_GROUP : detail);
+            return Value.error(ERROR_INVALID_UUID, exception.getMessage());
         }
 
         val resultBuilder = ObjectValue.builder();
