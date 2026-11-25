@@ -32,8 +32,9 @@ import lombok.val;
  * authorization subscriptions or from policy information points, so a pattern
  * is hostile input.
  * <p>
- * The syntax is that of the {@code regex} crate. Look-around, backreferences,
- * atomic groups and possessive quantifiers do not exist in it and are refused.
+ * The syntax is that of the {@code regex} crate. It rejects look-around,
+ * backreferences and atomic groups. Quantifiers can be stacked. For example,
+ * {@code a*+} repeats the expression {@code a*} one or more times.
  * The classes {@code \d}, {@code \w}, {@code \s} and the word boundary
  * {@code \b} are Unicode-aware; {@code (?-u)} or explicit classes such as
  * {@code [0-9]} restrict them to ASCII. Matching without regard to case follows
