@@ -19,15 +19,25 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import com.ctc.wstx.api.WstxOutputProperties;
+import com.ctc.wstx.io.WstxInputData;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.StringNode;
 import tools.jackson.dataformat.xml.XmlFactory;
 import tools.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.dataformat.xml.XmlWriteFeature;
 
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
 import java.io.IOException;
 
 /**
@@ -46,6 +56,11 @@ public class XmlFunctionLibrary {
             data in XML format. Parse XML from external systems into SAPL values for policy evaluation,
             or serialize policy decisions and context into XML for logging or integration.
 
+            Writing requires an object. It uses a fixed `root` element, unqualified XML element names,
+            repeated sibling elements for arrays and empty elements for null. Nested arrays are rejected.
+            Text is escaped as XML requires, and numbers use the ordinary SAPL number text.
+            Scalar types and array cardinality are not preserved by XML roundtrips.
+
             ## Limits
 
             To bound memory and computation on untrusted input, the following limits apply:
@@ -61,6 +76,9 @@ public class XmlFunctionLibrary {
 
     private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to XML: %s.";
     private static final String ERROR_FAILED_TO_PARSE   = "Failed to parse XML: %s.";
+    private static final String ERROR_INVALID_NAME      = "The key '%s' is no XML name.";
+    private static final String ERROR_NESTED_ARRAYS     = "XML arrays must not contain arrays.";
+    private static final String ERROR_NOT_OBJECT        = "The XML value must be an object.";
 
     private static final String SCHEMA_RETURNS_TEXT = """
             {
@@ -80,8 +98,12 @@ public class XmlFunctionLibrary {
         val inputFactory = XMLInputFactory.newFactory();
         inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
         inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        return new XmlMapper(XmlFactory.builder().xmlInputFactory(inputFactory)
-                .streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build());
+        val outputFactory = XMLOutputFactory.newFactory();
+        outputFactory.setProperty(WstxOutputProperties.P_OUTPUT_VALIDATE_NAMES, true);
+        return XmlMapper
+                .builder(XmlFactory.builder().xmlInputFactory(inputFactory).xmlOutputFactory(outputFactory)
+                        .streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
+                .disable(XmlWriteFeature.UNWRAP_ROOT_OBJECT_NODE, XmlWriteFeature.WRITE_NULLS_AS_XSI_NIL).build();
     }
 
     /**
@@ -131,7 +153,10 @@ public class XmlFunctionLibrary {
      * ErrorValue if conversion fails
      */
     @Function(docs = """
-            ```valToXml(value)```: Converts a SAPL value into an XML string representation.
+            ```valToXml(value)```: Converts an object into XML under the fixed `root` element.
+
+            Keys must be unqualified XML element names. Arrays become repeated siblings, nested
+            arrays are rejected, null becomes an empty element and text is escaped as XML requires.
 
             **Example:**
             ```sapl
@@ -146,14 +171,48 @@ public class XmlFunctionLibrary {
         if (!ValueJsonMarshaller.isJsonCompatible(value)) {
             return Value.error(ERROR_FAILED_TO_CONVERT, value);
         }
+        if (!(value instanceof ObjectValue)) {
+            return conversionFailure(ERROR_NOT_OBJECT);
+        }
         try {
-            val jsonNode  = ValueJsonMarshaller.toJsonNode(value);
-            val xmlString = TextOutputLimits.write(writer -> XML_MAPPER.writeValue(writer, jsonNode));
+            val jsonNode  = prepareXml(ValueJsonMarshaller.toJsonNode(value));
+            val xmlString = TextOutputLimits
+                    .write(writer -> XML_MAPPER.writer().withRootName("root").writeValue(writer, jsonNode));
             return Value.of(xmlString);
         } catch (TextOutputLimits.OutputLimitExceededException exception) {
             return Value.error(exception.getMessage());
-        } catch (JacksonException | IOException exception) {
-            return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
+        } catch (JacksonException exception) {
+            return conversionFailure(exception.getOriginalMessage());
+        } catch (IOException | IllegalArgumentException exception) {
+            return conversionFailure(exception.getMessage());
         }
+    }
+
+    private static Value conversionFailure(String reason) {
+        return Value.error(ERROR_FAILED_TO_CONVERT,
+                reason.endsWith(".") ? reason.substring(0, reason.length() - 1) : reason);
+    }
+
+    private static JsonNode prepareXml(JsonNode node) {
+        if (node instanceof ObjectNode object) {
+            for (val entry : object.properties()) {
+                val name = entry.getKey();
+                if (name.isEmpty() || WstxInputData.findIllegalNameChar(name, true, false) >= 0) {
+                    throw new IllegalArgumentException(ERROR_INVALID_NAME.formatted(name));
+                }
+                object.set(name, prepareXml(entry.getValue()));
+            }
+        } else if (node instanceof ArrayNode array) {
+            for (int index = 0; index < array.size(); index++) {
+                val child = array.get(index);
+                if (child.isArray()) {
+                    throw new IllegalArgumentException(ERROR_NESTED_ARRAYS);
+                }
+                array.set(index, prepareXml(child));
+            }
+        } else if (node.isNumber()) {
+            return StringNode.valueOf(new NumberValue(node.decimalValue()).toString());
+        }
+        return node;
     }
 }

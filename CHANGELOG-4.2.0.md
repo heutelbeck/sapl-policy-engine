@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- XML output requires an object under `root`, repeats array elements, rejects nested arrays and invalid element names, writes null as an empty element, and uses canonical number text.
+
 - X.509 Subject Alternative Name output uses RFC 5952 canonical IPv6 text.
 
 - CSV writers reject the entire export when distinct field names in one row collide after formula escaping.
