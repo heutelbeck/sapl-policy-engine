@@ -49,7 +49,7 @@ import java.util.function.Function;
  * {@link AttributeBroker} mocking facility for tests. Mocks are
  * registered against attribute name + matchers + entity matcher.
  * Values are emitted via {@link #emit(String, Value)} keyed by
- * mockId. Invocations are recorded for after-the-fact verification.
+ * mockId and notify only its active readers. Invocations are recorded for after-the-fact verification.
  * <p>
  * PIP-aware gate semantic: mock registration acts as a PIP registration
  * (gate stays closed until a value lands via {@link #emit}, unless an
@@ -159,7 +159,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
                     mailbox.put(entry.getKey(), new AttributeSnapshot(value, now));
                 }
             }
-            toFire = collectFireable();
+            toFire = collectFireable(mockId);
         }
         for (val sub : toFire) {
             sub.fireCallback();
@@ -425,10 +425,10 @@ public final class MockingAttributeBroker implements AttributeBroker {
                 invocation.arguments(), sequenceCounter.getAndIncrement()));
     }
 
-    private List<SubscriptionImpl> collectFireable() {
+    private List<SubscriptionImpl> collectFireable(String mockId) {
         val toFire = new ArrayList<SubscriptionImpl>();
         for (val sub : subs.values()) {
-            if (sub.closed) {
+            if (sub.closed || sub.deps.stream().noneMatch(key -> mockId.equals(keyToMockId.get(key)))) {
                 continue;
             }
             if (!sub.gateOpen && sub.allDepsFulfilled()) {

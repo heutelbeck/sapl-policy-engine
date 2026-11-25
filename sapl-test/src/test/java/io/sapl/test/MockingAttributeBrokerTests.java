@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +104,61 @@ class MockingAttributeBrokerTests {
             last.set(snapshot);
             return deps;
         }
+    }
+
+    @Test
+    @DisplayName("a mock publication notifies only readers of its keys, including repeated values")
+    void whenUnobservedMockEmitsThenOnlyAffectedReadersAreNotified() {
+        broker.mockEnvironmentAttribute("a", "desk.a", args(), Value.of(1));
+        broker.mockEnvironmentAttribute("b", "desk.b", args(), Value.of(1));
+        val key    = envKey("desk.b");
+        val values = new ArrayList<Value>();
+        broker.open("reader", Set.of(key), current -> {
+            values.add(current.get(key).value());
+            return Set.of(key);
+        });
+
+        broker.emit("a", Value.of(0));
+        broker.emit("b", Value.of(0));
+        broker.emit("b", Value.of(0));
+
+        assertThat(values).containsExactly(Value.of(1), Value.of(0), Value.of(0));
+    }
+
+    @Test
+    @DisplayName("released head keys do not notify the remaining live reader")
+    void whenHeadDependencyIsReleasedThenItsMockDoesNotNotifyTheRemainingReader() {
+        broker.mockEnvironmentAttribute("a", "desk.a", args(), Value.of(1));
+        broker.mockEnvironmentAttribute("b", "desk.b", args(), Value.of(1));
+        val live         = envKey("desk.b");
+        val head         = new SubscriptionKey(envKey("desk.a").invocation(), true);
+        val observedKeys = new ArrayList<Set<SubscriptionKey>>();
+        broker.open("reader", Set.of(head, live), current -> {
+            observedKeys.add(current.keySet());
+            return Set.of(live);
+        });
+
+        broker.emit("a", Value.of(0));
+        broker.emit("b", Value.of(0));
+
+        assertThat(observedKeys).containsExactly(Set.of(head, live), Set.of(live));
+    }
+
+    @Test
+    @DisplayName("one mock publication installs all affected keys before its one callback")
+    void whenOneMockFeedsMultipleKeysThenTheyArriveInOneRound() {
+        broker.mockEnvironmentAttribute("feed", "desk.flag", args(any()), Value.of(1));
+        val first    = envKey("desk.flag", Value.of(1));
+        val second   = envKey("desk.flag", Value.of(2));
+        val deps     = Set.of(first, second);
+        val callback = new RecordingCallback(deps);
+        broker.open("reader", deps, callback::apply);
+
+        broker.emit("feed", Value.of(0));
+
+        assertThat(callback.count).hasValue(2);
+        assertThat(callback.last.get().values()).extracting(AttributeSnapshot::value)
+                .containsExactlyInAnyOrder(Value.of(0), Value.of(0));
     }
 
     @Nested
