@@ -143,6 +143,8 @@ public class TraccarFunctionLibrary {
             The function expects a Traccar geofence object as input, which must contain an `area` field. The `area` field
             represents the geofence's geometry in Well-Known Text (WKT) format.
             The WKT input is bounded by size and nesting depth before parsing.
+            For portable 3D WKT, write the dimension tag separately, as in `POINT Z (1 2 3)` and
+            `LINEARRING Z (0 0 1, 1 0 2, 0 1 3, 0 0 1)`. Java also reads `POINT (1 2 3)` and `LINEARRINGZ`.
             The function will flip the coordinates within the WKT to match the GeoJSON convention of [longitude, latitude].
             The output is a plain GeoJSON geometry as RFC 7946 defines it, in WGS84 coordinates.
 

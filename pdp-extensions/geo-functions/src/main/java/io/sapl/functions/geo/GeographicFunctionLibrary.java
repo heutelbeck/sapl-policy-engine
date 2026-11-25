@@ -785,7 +785,7 @@ public class GeographicFunctionLibrary {
 
             **Output:**
 
-            - Returns a geometry representing the boundary.
+            - Returns a geometry representing the boundary. Boundary points keep their input heights.
 
             **Example:**
 
@@ -843,7 +843,7 @@ public class GeographicFunctionLibrary {
 
             **Output:**
 
-            - Returns a Polygon geometry representing the convex hull.
+            - Returns a Polygon geometry representing the convex hull. Hull vertices keep their input heights. The hull is computed in the XY plane.
 
             **Example:**
 
@@ -1713,6 +1713,8 @@ public class GeographicFunctionLibrary {
 
             - Useful for converting WKT geometries into GeoJSON for processing.
             - The WKT input is bounded by size and nesting depth before parsing.
+            - For portable 3D WKT, write the dimension tag separately, as in `POINT Z (1 2 3)` and
+              `LINEARRING Z (0 0 1, 1 0 2, 0 1 3, 0 0 1)`. Java also reads `POINT (1 2 3)` and `LINEARRINGZ`.
             """)
     public static Value wktToGeoJSON(TextValue wkt) {
         val wktString = wkt.value();
