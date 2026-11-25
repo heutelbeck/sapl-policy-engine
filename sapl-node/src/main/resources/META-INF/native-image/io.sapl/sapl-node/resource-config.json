@@ -20,6 +20,9 @@
         "pattern": "io/sapl/test/coverage/report/html/js/.*\\.js"
       },
       {
+        "pattern": "\\QMETA-INF/maven/org.webjars.npm/codemirror/pom.properties\\E"
+      },
+      {
         "pattern": "META-INF/resources/webjars/codemirror/.*"
       },
       {

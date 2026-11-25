@@ -172,6 +172,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- Running `sapl-node test` from the executable JAR generates the HTML coverage report with its syntax-highlighting assets.
+
 - SAPLTest reevaluates changed known inputs while newly requested attributes are still pending, releasing dependencies that become unnecessary.
 
 - SAPL Node preserves exact decimal values in individual subscription arguments such as `--resource`. Policies comparing high-precision input now give the same decision as when the subscription is read from a JSON file.

@@ -18,16 +18,9 @@
 package io.sapl.test.coverage.report.html;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
+import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.Map;
+import java.util.Properties;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -51,20 +44,14 @@ class WebDependencyFactory {
     private static final String TARGET_JS       = TARGET_BASE + "lib/js";
     private static final String TARGET_JS_ADDON = TARGET_JS + "/addon/mode/";
 
-    private static final String WEBJAR_BASE       = "META-INF/resources/webjars/";
-    private static final String WEBJAR_CODEMIRROR = "codemirror";
-
-    private static final String ERROR_FAILED_DISCOVER_VERSION        = "Failed to discover version for WebJar: %s";
-    private static final String ERROR_NO_VERSION_DIRECTORY_FOUND     = "No version directory found";
-    private static final String ERROR_NO_VERSION_DIRECTORY_IN_WEBJAR = "No version directory found in WebJar";
-    private static final String ERROR_WEBJAR_NOT_FOUND               = "WebJar not found on classpath: %s";
-
-    private static final Map<String, String> WEBJAR_VERSIONS = new HashMap<>();
+    private static final String CODEMIRROR_METADATA = "/META-INF/maven/org.webjars.npm/codemirror/pom.properties";
+    private static final String CODEMIRROR_BASE     = "META-INF/resources/webjars/codemirror/%s/";
+    private static final String ERROR_VERSION       = "Cannot read CodeMirror WebJar version";
 
     private static final List<WebDependency> WEB_DEPENDENCIES;
 
     static {
-        val codemirrorBase = webjarPath(WEBJAR_CODEMIRROR);
+        val codemirrorBase = codeMirrorPath();
 
         WEB_DEPENDENCIES = List.of(
                 // JavaScript
@@ -90,64 +77,20 @@ class WebDependencyFactory {
         return WEB_DEPENDENCIES;
     }
 
-    private static String webjarPath(String artifactName) {
-        val version = WEBJAR_VERSIONS.computeIfAbsent(artifactName, WebDependencyFactory::discoverWebjarVersion);
-        return WEBJAR_BASE + artifactName + "/" + version + "/";
-    }
-
-    private static String discoverWebjarVersion(String artifactName) {
-        val basePath = WEBJAR_BASE + artifactName + "/";
-        val resource = WebDependencyFactory.class.getClassLoader().getResource(basePath);
-
-        if (resource == null) {
-            throw new IllegalStateException(ERROR_WEBJAR_NOT_FOUND.formatted(artifactName));
-        }
-
-        try {
-            val protocol = resource.getProtocol();
-            if ("jar".equals(protocol)) {
-                return discoverVersionFromJar(resource.toURI().toString(), basePath);
-            } else if ("resource".equals(protocol)) {
-                return discoverVersionFromNativeImage(basePath);
-            } else {
-                return discoverVersionFromFileSystem(Path.of(resource.toURI()));
+    private static String codeMirrorPath() {
+        try (val metadata = WebDependencyFactory.class.getResourceAsStream(CODEMIRROR_METADATA)) {
+            if (metadata == null) {
+                throw new IllegalStateException(ERROR_VERSION);
             }
-        } catch (URISyntaxException | IOException e) {
-            throw new IllegalStateException(ERROR_FAILED_DISCOVER_VERSION.formatted(artifactName), e);
-        }
-    }
-
-    private static String discoverVersionFromJar(String jarUri, String basePath) throws IOException {
-        val parts   = jarUri.split("!");
-        val jarPath = parts[0];
-        try (FileSystem fileSystem = FileSystems.newFileSystem(URI.create(jarPath), Collections.emptyMap())) {
-            val path = fileSystem.getPath(basePath);
-            try (val entries = Files.list(path)) {
-                return entries.filter(Files::isDirectory).map(p -> p.getFileName().toString()).findFirst()
-                        .orElseThrow(() -> new IllegalStateException(ERROR_NO_VERSION_DIRECTORY_IN_WEBJAR));
+            val properties = new Properties();
+            properties.load(metadata);
+            val version = properties.getProperty("version");
+            if (version == null) {
+                throw new IllegalStateException(ERROR_VERSION);
             }
-        }
-    }
-
-    private static String discoverVersionFromNativeImage(String basePath) throws IOException {
-        val        uri = URI.create("resource:/");
-        FileSystem fileSystem;
-        try {
-            fileSystem = FileSystems.getFileSystem(uri);
-        } catch (java.nio.file.FileSystemNotFoundException e) {
-            fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap());
-        }
-        val path = fileSystem.getPath(basePath);
-        try (val entries = Files.list(path)) {
-            return entries.filter(Files::isDirectory).map(p -> p.getFileName().toString()).findFirst()
-                    .orElseThrow(() -> new IllegalStateException(ERROR_NO_VERSION_DIRECTORY_IN_WEBJAR));
-        }
-    }
-
-    private static String discoverVersionFromFileSystem(Path basePath) throws IOException {
-        try (val entries = Files.list(basePath)) {
-            return entries.filter(Files::isDirectory).map(p -> p.getFileName().toString()).findFirst()
-                    .orElseThrow(() -> new IllegalStateException(ERROR_NO_VERSION_DIRECTORY_FOUND));
+            return CODEMIRROR_BASE.formatted(version);
+        } catch (IOException e) {
+            throw new UncheckedIOException(ERROR_VERSION, e);
         }
     }
 
