@@ -190,7 +190,11 @@ Options follow a three-level priority chain:
 
 This allows operators to tune stream behavior globally without modifying policies, while individual policies can override when needed.
 
-For a single HTTP response, the HTTP finder allows 30 seconds for the headers and a further 30 seconds for the complete body. If either the broker's first-value timeout or the HTTP read deadline expires, the client stops that attempt. Increasing `initialTimeOutMs` above 30,000 does not extend the body deadline. An endpoint that consistently takes 40 seconds to finish its body produces a timeout on every poll. The body deadline applies to JSON and text responses. An open server-sent event stream can continue delivering later events.
+For a single JSON or text response, the HTTP finder allows 30 seconds for the headers and a further 30 seconds for the complete body. Receiving part of the body does not restart the clock. An open server-sent event stream can continue delivering later events.
+
+For example, suppose the headers arrive immediately and the body takes 40 seconds on every request. With `initialTimeOutMs: 60000`, the HTTP finder closes each read after 30 seconds and returns an error value. With `pollIntervalMs: 30000`, the next request starts about 60 seconds after the previous one started. This repeats while the attribute is subscribed.
+
+With the default `initialTimeOutMs: 3000`, the broker's first-value timeout expires first. On the initial subscription the broker publishes `undefined`, closes the attempt and applies the configured retries and backoff. If the retries are exhausted, it publishes an error value and waits for the poll interval.
 
 ### The Attribute Broker
 
