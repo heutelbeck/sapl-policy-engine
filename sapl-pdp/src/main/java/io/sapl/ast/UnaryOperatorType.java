@@ -23,5 +23,7 @@ package io.sapl.ast;
 public enum UnaryOperatorType {
     NOT,
     NEGATE,
-    PLUS
+    PLUS,
+    /** An even chain of negations still checks its operand at the innermost NOT. */
+    CHECK_BOOLEAN
 }

@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.compiler.expressions.BooleanGuard.BinaryResult;
+
 import io.sapl.api.model.*;
 import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
@@ -24,13 +26,13 @@ import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
-import io.sapl.compiler.operators.BooleanOperators;
 import io.sapl.compiler.operators.ComparisonOperators;
 import io.sapl.compiler.operators.HasOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,31 +44,34 @@ public class BinaryOperationCompiler {
     private static final String ERROR_BOOLEAN_ORDERING_OPERAND      = "Numeric comparisons require numbers, but this operand is %s.";
     private static final String ERROR_UNIMPLEMENTED_BINARY_OPERATOR = "Unimplemented binary operator: %s";
 
-    static final Map<BinaryOperatorType, BinaryOperation> BINARY_OPERATIONS = Map.ofEntries(
+    private static final Map<BinaryOperatorType, BinaryOperation> BINARY_OPERATIONS = Map.ofEntries(
             // Arithmetic
             Map.entry(ADD, ArithmeticOperators::add), Map.entry(SUB, ArithmeticOperators::subtract),
             Map.entry(MUL, ArithmeticOperators::multiply), Map.entry(DIV, ArithmeticOperators::divide),
             Map.entry(MOD, ArithmeticOperators::modulo),
             // Numeric comparison
-            Map.entry(LT, ArithmeticOperators::lessThan), Map.entry(LE, ArithmeticOperators::lessThanOrEqual),
-            Map.entry(GT, ArithmeticOperators::greaterThan), Map.entry(GE, ArithmeticOperators::greaterThanOrEqual),
+            predicate(LT, ArithmeticOperators::lessThan), predicate(LE, ArithmeticOperators::lessThanOrEqual),
+            predicate(GT, ArithmeticOperators::greaterThan), predicate(GE, ArithmeticOperators::greaterThanOrEqual),
             // Equality
-            Map.entry(EQ, (a, b, location) -> ComparisonOperators.equals(a, b)),
-            Map.entry(NE, (a, b, location) -> ComparisonOperators.notEquals(a, b)),
+            predicate(EQ, (a, b, location) -> ComparisonOperators.equals(a, b)),
+            predicate(NE, (a, b, location) -> ComparisonOperators.notEquals(a, b)),
             // Membership
-            Map.entry(IN, ComparisonOperators::isContainedIn), Map.entry(ANY_IN, ComparisonOperators::anyIn),
-            Map.entry(ALL_IN, ComparisonOperators::allIn),
+            predicate(IN, ComparisonOperators::isContainedIn), predicate(ANY_IN, ComparisonOperators::anyIn),
+            predicate(ALL_IN, ComparisonOperators::allIn),
             // Key membership (has operator)
-            Map.entry(HAS_ONE, HasOperators::hasOne), Map.entry(HAS_ANY, HasOperators::hasAny),
-            Map.entry(HAS_ALL, HasOperators::hasAll),
-            // XOR (the only non-short-circuit boolean operator)
-            Map.entry(XOR, BooleanOperators::xor));
+            predicate(HAS_ONE, HasOperators::hasOne), predicate(HAS_ANY, HasOperators::hasAny),
+            predicate(HAS_ALL, HasOperators::hasAll));
+
+    private static Map.Entry<BinaryOperatorType, BinaryOperation> predicate(BinaryOperatorType type,
+            BooleanGuard.Predicate operation) {
+        return Map.entry(type, operation);
+    }
 
     /**
      * The commutative operators whose operands are compiled in canonical order.
      * The operator {@code +} is not among them, as it concatenates texts.
      */
-    private static final Set<BinaryOperatorType> CANONICALLY_ORDERED = EnumSet.of(EQ, NE, MUL, XOR);
+    private static final Set<BinaryOperatorType> CANONICALLY_ORDERED = EnumSet.of(EQ, NE, MUL);
 
     private static final Set<BinaryOperatorType> NUMERIC_COMPARISONS = EnumSet.of(LT, LE, GT, GE);
 
@@ -158,6 +163,10 @@ public class BinaryOperationCompiler {
 
     private CompiledExpression tryCompileSpecialCase(BinaryOperator binaryOperation, CompilationContext ctx) {
         val operatorType = binaryOperation.op();
+        if (operatorType == XOR) {
+            return NaryOperatorCompiler.compileXor(List.of(binaryOperation.left(), binaryOperation.right()), ctx,
+                    binaryOperation.location());
+        }
         if (operatorType == REGEX) {
             return RegexCompiler.compile(binaryOperation, ctx);
         }
@@ -211,7 +220,7 @@ public class BinaryOperationCompiler {
             PureOperator rp,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
+            boolean isRelativeExpression) implements PureOperator, BinaryResult {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val lv = lp.evaluate(ctx);
@@ -238,7 +247,7 @@ public class BinaryOperationCompiler {
             PureOperator rp,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
+            boolean isRelativeExpression) implements PureOperator, BinaryResult {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val rv = rp.evaluate(ctx);
@@ -261,7 +270,7 @@ public class BinaryOperationCompiler {
             Value rv,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
+            boolean isRelativeExpression) implements PureOperator, BinaryResult {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val lv = lp.evaluate(ctx);
@@ -288,7 +297,7 @@ public class BinaryOperationCompiler {
             BinaryOperation op,
             CompiledExpression left,
             CompiledExpression right,
-            SourceLocation location) implements StreamOperator {
+            SourceLocation location) implements StreamOperator, BinaryResult {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             return op.evalEager(left, right, location, ctx);

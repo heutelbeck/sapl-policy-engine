@@ -151,7 +151,7 @@ class CanonicalOperandOrder {
         return sorted;
     }
 
-    private static int compareOperands(CompiledExpression operand, CompiledExpression other) {
+    static int compareOperands(CompiledExpression operand, CompiledExpression other) {
         val first     = asOperand(operand);
         val second    = asOperand(other);
         val byStratum = Integer.compare(stratum(first), stratum(second));
@@ -372,9 +372,10 @@ class CanonicalOperandOrder {
 
     private static String unaryKind(UnaryOperatorType type) {
         return switch (type) {
-        case NOT    -> "unary:!";
-        case NEGATE -> "unary:-";
-        case PLUS   -> "unary:+";
+        case NOT           -> "unary:!";
+        case CHECK_BOOLEAN -> "unary:!!";
+        case NEGATE        -> "unary:-";
+        case PLUS          -> "unary:+";
         };
     }
 

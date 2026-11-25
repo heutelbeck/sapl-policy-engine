@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.document;
 
+import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
@@ -43,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 
+import static io.sapl.ast.UnaryOperatorType.CHECK_BOOLEAN;
+import static io.sapl.ast.UnaryOperatorType.NOT;
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
@@ -304,7 +307,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
                 ? new SchemaCondition(currentSchemas, schemaBlockLocation)
                 : null;
 
-        return new PolicySet(policySetImports, metadata, target, match, variables, policies, fromContext(ctx));
+        val targetLocation = ctx.target == null ? null : fromContext(ctx.target);
+        return new PolicySet(policySetImports, metadata, target, targetLocation, match, variables, policies,
+                fromContext(ctx));
     }
 
     /**
@@ -566,21 +571,33 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitNotExpression(NotExpressionContext ctx) {
-        val operand  = expr(ctx.unaryExpression());
-        val location = fromContext(ctx);
-        return switch (operand) {
-        case
+        val operand = expr(ctx.unaryExpression());
+        if (operand instanceof BinaryOperator(var op, var left, var right, var location)) {
+            val negated = NEGATION_MAP.get(op);
+            if (negated != null) {
+                return new BinaryOperator(negated, left, right, location);
+            }
+        }
+        if (operand instanceof UnaryOperator(var op, var inner, var location)) {
+            if (op == NOT) {
+                return hasBooleanResult(inner) ? inner : new UnaryOperator(CHECK_BOOLEAN, inner, location);
+            }
+            if (op == CHECK_BOOLEAN) {
+                return new UnaryOperator(NOT, inner, location);
+            }
+        }
+        return new UnaryOperator(NOT, operand, fromContext(ctx));
+    }
 
-                BinaryOperator(var op, var l, var r, var ignored) when NEGATION_MAP.containsKey(op) ->
-            new BinaryOperator(NEGATION_MAP.get(op), l, r, location);
-        case
-
-                UnaryOperator(var op, var inner, var ignored) when op == UnaryOperatorType.NOT   ->
-            inner;
-        default                                                                                  ->
-            new UnaryOperator(UnaryOperatorType.NOT, operand, location);
-        };
-
+    private static boolean hasBooleanResult(Expression operand) {
+        if (operand instanceof BinaryOperator(var op, var left, var right, var location)) {
+            return switch (op) {
+            case ANY_IN, ALL_IN, HAS_ONE, HAS_ANY, HAS_ALL -> true;
+            default                                        -> op.isLogical() || op.isEquality() || op.isComparison();
+            };
+        }
+        return operand instanceof Literal(BooleanValue ignored, var location) || operand instanceof Conjunction
+                || operand instanceof Disjunction || operand instanceof ExclusiveDisjunction;
     }
 
     @Override

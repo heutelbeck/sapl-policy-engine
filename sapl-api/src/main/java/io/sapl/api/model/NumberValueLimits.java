@@ -23,6 +23,10 @@ import java.math.RoundingMode;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import static java.lang.Math.abs;
+import static java.lang.Math.clamp;
+import static java.lang.Math.min;
+
 /** Decimal precision, scale and input-length limits used by SAPL. */
 @UtilityClass
 public class NumberValueLimits {
@@ -39,7 +43,9 @@ public class NumberValueLimits {
     /** Maximum length of a wire number, including sign, decimal point and exponent. */
     public static final int MAX_WIRE_NUMBER_LENGTH = MAX_PRECISION + 10;
 
-    private static final String ERROR_NUMBER_OUT_OF_BOUNDS = "Number exceeds the allowed scale.";
+    private static final String ERROR_NOT_A_NUMBER        = "The text is not a decimal number.";
+    private static final String ERROR_NUMBER_OUT_OF_RANGE = "The number is out of range.";
+    private static final String ERROR_NUMBER_TOO_LONG     = "The number is too long. At most %s characters are allowed.";
 
     /**
      * Fits a decimal into the arithmetic domain exactly, retaining its original
@@ -52,18 +58,24 @@ public class NumberValueLimits {
     public static BigDecimal fitExact(BigDecimal value) {
         val scale     = value.scale();
         val precision = value.precision();
-        if (Math.abs((long) scale) <= MAX_SCALE && precision <= MAX_PRECISION) {
+        if (abs((long) scale) <= MAX_SCALE && precision <= MAX_PRECISION) {
             return value;
         }
         if (value.signum() == 0) {
             return BigDecimal.ZERO;
         }
         // Each additional scale position adds one coefficient digit.
-        val targetScale = Math.min(Math.clamp(scale, -MAX_SCALE, MAX_SCALE), (long) scale + MAX_PRECISION - precision);
+        val targetScale = min(clamp(scale, -MAX_SCALE, MAX_SCALE), (long) scale + MAX_PRECISION - precision);
         if (targetScale < -MAX_SCALE || scale - targetScale >= precision) {
-            throw new ArithmeticException(ERROR_NUMBER_OUT_OF_BOUNDS);
+            throw new ArithmeticException(ERROR_NUMBER_OUT_OF_RANGE);
         }
-        return value.setScale((int) targetScale, RoundingMode.UNNECESSARY);
+        try {
+            return value.setScale((int) targetScale, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException inexact) {
+            val outOfRange = new ArithmeticException(ERROR_NUMBER_OUT_OF_RANGE);
+            outOfRange.initCause(inexact);
+            throw outOfRange;
+        }
     }
 
     /**
@@ -74,30 +86,33 @@ public class NumberValueLimits {
      * @return the admitted number, or an error if it cannot be represented
      */
     public static Value boundedNumber(BigDecimal value) {
-        if (Math.abs((long) value.scale()) <= MAX_SCALE) {
+        if (abs((long) value.scale()) <= MAX_SCALE) {
             return Value.of(value);
         }
         try {
             return Value.of(fitExact(value));
         } catch (ArithmeticException ignored) {
-            return Value.error(ERROR_NUMBER_OUT_OF_BOUNDS);
+            return Value.error(ERROR_NUMBER_OUT_OF_RANGE);
         }
     }
 
     /**
-     * Parses a bounded wire token and admits only exact decimal quantities.
+     * Parses a bounded ASCII wire token and admits only exact decimal quantities.
      *
      * @param literal the raw numeric token
      * @return the admitted number, or an error if malformed or out of bounds
      */
     public static Value parseBoundedNumber(String literal) {
         if (literal.length() > MAX_WIRE_NUMBER_LENGTH) {
-            return Value.error(ERROR_NUMBER_OUT_OF_BOUNDS);
+            return Value.error(ERROR_NUMBER_TOO_LONG.formatted(MAX_WIRE_NUMBER_LENGTH));
+        }
+        if (!isDecimalNumber(literal)) {
+            return Value.error(ERROR_NOT_A_NUMBER);
         }
         try {
             return Value.of(fitExact(new BigDecimal(literal)));
-        } catch (ArithmeticException | NumberFormatException ignored) {
-            return Value.error(ERROR_NUMBER_OUT_OF_BOUNDS);
+        } catch (ArithmeticException | NumberFormatException outOfRange) {
+            return Value.error(ERROR_NUMBER_OUT_OF_RANGE);
         }
     }
 
@@ -118,5 +133,46 @@ public class NumberValueLimits {
             return value;
         }
         return value.stripTrailingZeros();
+    }
+
+    private static boolean isDecimalNumber(String literal) {
+        var position = 0;
+        if (!literal.isEmpty() && (literal.charAt(0) == '+' || literal.charAt(0) == '-')) {
+            position++;
+        }
+        val integerStart = position;
+        position = decimalDigitsEnd(literal, position);
+        var hasDigits = position > integerStart;
+        if (position < literal.length() && literal.charAt(position) == '.') {
+            position++;
+            val fractionStart = position;
+            position  = decimalDigitsEnd(literal, position);
+            hasDigits = hasDigits || position > fractionStart;
+        }
+        if (!hasDigits) {
+            return false;
+        }
+        if (position == literal.length()) {
+            return true;
+        }
+        val marker = literal.charAt(position);
+        if (marker != 'e' && marker != 'E') {
+            return false;
+        }
+        position++;
+        if (position < literal.length() && (literal.charAt(position) == '+' || literal.charAt(position) == '-')) {
+            position++;
+        }
+        val exponentStart = position;
+        position = decimalDigitsEnd(literal, position);
+        return position > exponentStart && position == literal.length();
+    }
+
+    private static int decimalDigitsEnd(String literal, int start) {
+        var end = start;
+        while (end < literal.length() && literal.charAt(end) >= '0' && literal.charAt(end) <= '9') {
+            end++;
+        }
+        return end;
     }
 }

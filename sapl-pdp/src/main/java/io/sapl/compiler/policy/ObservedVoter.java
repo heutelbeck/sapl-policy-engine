@@ -94,17 +94,19 @@ public final class ObservedVoter implements CoverageVoter {
     /**
      * @param voter ordinary voter including the effective target
      * @param set source set with its optional schema and written target
-     * @param schema compiled schema validation
+     * @param schema compiled schema validation, or null if the target contains no schema operand
      * @param applicability compiled effective target consumed by ordinary evaluation
      * @param members compiled member policies in declaration order
      * @return coverage of the same evaluation
      */
-    public static CoverageVoter policySet(Voter voter, PolicySet set, CompiledExpression schema,
+    public static CoverageVoter policySet(Voter voter, PolicySet set, @Nullable CompiledExpression schema,
             CompiledExpression applicability, List<? extends CompiledDocument> members) {
-        val schemaSite = set.match() != null && set.match().schemas().stream().anyMatch(SchemaStatement::enforced)
-                ? set.match().location()
+        val match      = set.match();
+        val target     = set.targetLocation();
+        val schemaSite = match != null && match.schemas().stream().anyMatch(SchemaStatement::enforced)
+                ? match.location()
                 : null;
-        val targetSite = set.target() != null ? set.target().location() : schemaSite;
+        val targetSite = target != null ? target : schemaSite;
         return new ObservedVoter(voter, new SetBody(set.metadata(), set.declarationLocation(), targetSite, schemaSite,
                 schema, applicability, set.algorithm().votingMode() != VotingMode.FIRST, layouts(members)));
     }
@@ -209,18 +211,18 @@ public final class ObservedVoter implements CoverageVoter {
             if (vote == null) {
                 return;
             }
-            val pending = new ArrayDeque<Vote>();
-            pending.push(vote);
-            while (!pending.isEmpty()) {
-                val next = pending.pop();
+            val votes = new ArrayDeque<Vote>();
+            votes.push(vote);
+            while (!votes.isEmpty()) {
+                val next = votes.pop();
                 reached.add(next.voter());
-                pending.addAll(next.contributingVotes());
+                votes.addAll(next.contributingVotes());
             }
         }
 
         @Nullable
-        Value observed(CompiledExpression expression) {
-            if (directUses.getOrDefault(expression, 0) == 1) {
+        Value observed(@Nullable CompiledExpression expression) {
+            if (expression != null && directUses.getOrDefault(expression, 0) == 1) {
                 return direct.get(expression);
             }
             return null;
@@ -307,8 +309,9 @@ public final class ObservedVoter implements CoverageVoter {
             for (val read : reads) {
                 val occurrences = sites.get(read.operand());
                 val index       = offsets.merge(read.operand(), 1, Integer::sum) - 1;
-                if (read.value() != null && occurrences != null && index < occurrences.size()) {
-                    hits.add(hit(occurrences.get(index), read.value()));
+                val value       = read.value();
+                if (value != null && occurrences != null && index < occurrences.size()) {
+                    hits.add(hit(occurrences.get(index), value));
                 }
             }
         }
@@ -324,7 +327,7 @@ public final class ObservedVoter implements CoverageVoter {
             SourceLocation declaration,
             @Nullable SourceLocation targetSite,
             @Nullable SourceLocation schemaSite,
-            CompiledExpression schema,
+            @Nullable CompiledExpression schema,
             CompiledExpression applicability,
             boolean includeFolded,
             List<Document> children) implements Document {

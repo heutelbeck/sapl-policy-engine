@@ -210,7 +210,7 @@ public class ValueJsonMarshaller {
 
     private static String formatError(ErrorValue error) {
         val result = new StringBuilder("ERROR[");
-        result.append("message=").append(error.message() == null ? "null" : quoteString(error.message()));
+        result.append("message=").append(quoteString(error.message()));
         if (error.location() != null) {
             result.append(", at=").append(error.location());
         }

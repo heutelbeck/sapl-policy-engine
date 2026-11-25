@@ -31,7 +31,7 @@ import lombok.val;
 public record ValueRepresentation(Value value) {
     @Override
     public boolean equals(Object other) {
-        return other instanceof ValueRepresentation candidate && same(value, candidate.value);
+        return other instanceof ValueRepresentation(var candidate) && same(value, candidate);
     }
 
     @Override
@@ -54,20 +54,24 @@ public record ValueRepresentation(Value value) {
             return sameEntries(a, b);
         }
         if (left instanceof ArrayValue a && right instanceof ArrayValue b) {
-            if (a.size() != b.size()) {
-                return false;
-            }
-            for (int i = 0; i < a.size(); i++) {
-                if (!same(a.get(i), b.get(i))) {
-                    return false;
-                }
-            }
-            return true;
+            return sameElements(a, b);
         }
         if (left instanceof NumberValue a && right instanceof NumberValue b) {
             return a.value().scale() == b.value().scale() && a.equals(b);
         }
         return !(left instanceof ErrorValue) && left.equals(right);
+    }
+
+    private static boolean sameElements(ArrayValue left, ArrayValue right) {
+        if (left.size() != right.size()) {
+            return false;
+        }
+        for (int i = 0; i < left.size(); i++) {
+            if (!same(left.get(i), right.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean sameEntries(ObjectValue left, ObjectValue right) {

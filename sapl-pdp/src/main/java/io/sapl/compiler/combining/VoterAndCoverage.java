@@ -20,7 +20,6 @@ package io.sapl.compiler.combining;
 import java.util.List;
 
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.Value;
 import io.sapl.ast.PolicySet;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.CompiledDocument;
@@ -31,6 +30,8 @@ import io.sapl.compiler.policyset.PolicySetUtil;
 
 import lombok.val;
 
+import static io.sapl.compiler.policy.SchemaValidatorCompiler.schemaOperand;
+
 /**
  * Compiler output bundle for a policy set: the production {@link Voter}
  * paired with the snapshot-driven {@link CoverageVoter} that emits the
@@ -40,7 +41,7 @@ public record VoterAndCoverage(Voter voter, CoverageVoter coverageVoter) {
     static VoterAndCoverage forSet(Voter voter, PolicySet set, CompiledExpression applicability, VoterMetadata metadata,
             List<? extends CompiledDocument> members) {
         val complete = PolicySetUtil.compileApplicabilityAndVoter(applicability, voter, metadata);
-        val schema   = set.target() == null ? applicability : Value.TRUE;
+        val schema   = set.target() == null ? applicability : schemaOperand(applicability);
         return new VoterAndCoverage(voter, ObservedVoter.policySet(complete, set, schema, applicability, members));
     }
 }

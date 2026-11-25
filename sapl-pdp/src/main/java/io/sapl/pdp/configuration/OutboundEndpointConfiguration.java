@@ -44,12 +44,18 @@ class OutboundEndpointConfiguration {
     private static final String      ERROR_PREFIXES    = "Each HTTP service requires a nonempty allowedBaseUrls array.";
     private static final String      ERROR_TLS         = "A trustProfile requires TLS on every destination of its endpoint.";
     private static final String      ERROR_URI         = "An outbound endpoint requires a valid URL with a fixed host.";
+    private static final String      DEFAULT           = "default";
+    private static final String      HTTPS             = "https";
+    private static final String      PASSWORD          = "password";
+    private static final String      PUBLIC_KEY_SERVER = "publicKeyServer";
+    private static final String      TOKEN             = "token";
+    private static final String      TRACCAR           = "traccar";
     private static final Set<String> TRUST_FIELDS      = Set.of("trustedCaPem", "includeDefaultTrustRoots",
             "trustProfile", "tlsTrustStore", "tlsTrustStorePassword");
-    private static final Set<String> CREDENTIAL_FIELDS = Set.of("username", "userName", "password", "token");
-    private static final Set<String> HTTP_SCHEMES      = Set.of("http", "https", "ws", "wss");
-    private static final Set<String> SECURE_SCHEMES    = Set.of("https", "wss");
-    private static final Set<String> WEB_SCHEMES       = Set.of("http", "https");
+    private static final Set<String> CREDENTIAL_FIELDS = Set.of("username", "userName", PASSWORD, TOKEN);
+    private static final Set<String> HTTP_SCHEMES      = Set.of("http", HTTPS, "ws", "wss");
+    private static final Set<String> SECURE_SCHEMES    = Set.of(HTTPS, "wss");
+    private static final Set<String> WEB_SCHEMES       = Set.of("http", HTTPS);
 
     static void validate(PdpData data) {
         val variables = data.variables();
@@ -58,12 +64,12 @@ class OutboundEndpointConfiguration {
         rejectFields(variables, Set.of("TRACCAR_CONFIG"), "variables");
         rejectFields(secrets, Set.of("tlsTrustProfiles"), "secrets");
         validateEndpoints(variables, "mqtt", "brokers");
-        validateEndpoints(variables, "traccar", "servers");
+        validateEndpoints(variables, TRACCAR, "servers");
         validateEndpoints(variables, "http", "services");
         if (variables.containsKey("jwt")) {
             val jwt = object(variables.get("jwt"), "variables.jwt");
-            if (jwt.containsKey("publicKeyServer")) {
-                val server   = object(jwt.get("publicKeyServer"), "variables.jwt.publicKeyServer");
+            if (jwt.containsKey(PUBLIC_KEY_SERVER)) {
+                val server   = object(jwt.get(PUBLIC_KEY_SERVER), "variables.jwt.publicKeyServer");
                 val selected = PemTrust.resolve(variables, server);
                 rejectFields(server, CREDENTIAL_FIELDS, "variables.jwt.publicKeyServer");
                 requireUrl(server.get("uri"), WEB_SCHEMES, selected != null, true);
@@ -71,8 +77,8 @@ class OutboundEndpointConfiguration {
         }
         validateNamedSecrets(secrets, "http");
         validateNamedSecrets(secrets, "mqtt");
-        validateNamedSecrets(secrets, "traccar");
-        if (secrets.get("jwt") instanceof ObjectValue jwt && jwt.get("publicKeyServer") instanceof ObjectValue server) {
+        validateNamedSecrets(secrets, TRACCAR);
+        if (secrets.get("jwt") instanceof ObjectValue jwt && jwt.get(PUBLIC_KEY_SERVER) instanceof ObjectValue server) {
             rejectFields(server, TRUST_FIELDS, "secrets.jwt.publicKeyServer");
         }
     }
@@ -85,24 +91,25 @@ class OutboundEndpointConfiguration {
         rejectFields(section, TRUST_FIELDS, pip);
         if ("mqtt".equals(pip)) {
             rejectFields(section, Set.of("defaultBrokerConfigName", "brokerConfig", "brokerAddress", "brokerPort",
-                    "clientId", "tls", "username", "password"), pip);
-        } else if ("traccar".equals(pip)) {
-            rejectFields(section, Set.of("defaultServerName", "baseUrl", "userName", "password", "token"), pip);
+                    "clientId", "tls", "username", PASSWORD), pip);
+        } else if (TRACCAR.equals(pip)) {
+            rejectFields(section, Set.of("defaultServerName", "baseUrl", "userName", PASSWORD, TOKEN), pip);
         }
-        if (!section.containsKey(collection) && !section.containsKey("default") && "http".equals(pip)) {
+        if (!section.containsKey(collection) && !section.containsKey(DEFAULT) && "http".equals(pip)) {
             return;
         }
         val entries = object(section.get(collection), "variables." + pip + "." + collection);
-        if (!"http".equals(pip) && section.containsKey("default")
-                && (!(section.get("default") instanceof TextValue(var name)) || name.isBlank()
+        if (!"http".equals(pip) && section.containsKey(DEFAULT)
+                && (!(section.get(DEFAULT) instanceof TextValue(var name)) || name.isBlank()
                         || !entries.containsKey(name))) {
             throw new IllegalArgumentException(ERROR_DEFAULT.formatted(collection));
         }
+        val entryName = collection + " entry";
         for (val item : entries.entrySet()) {
             if (item.getKey().isBlank()) {
-                throw new IllegalArgumentException(ERROR_OBJECT.formatted(collection + " entry"));
+                throw new IllegalArgumentException(ERROR_OBJECT.formatted(entryName));
             }
-            val endpoint = object(item.getValue(), collection + " entry");
+            val endpoint = object(item.getValue(), entryName);
             try {
                 validateEndpoint(variables, pip, collection, endpoint);
             } catch (IllegalArgumentException e) {
@@ -116,23 +123,23 @@ class OutboundEndpointConfiguration {
         rejectFields(endpoint, CREDENTIAL_FIELDS, collection);
         val trusted = PemTrust.resolve(variables, endpoint) != null;
         switch (pip) {
-        case "mqtt"    -> {
+        case "mqtt"  -> {
             rejectFields(endpoint, Set.of("name", "tlsTrustStore", "tlsTrustStorePassword"), collection);
             if (trusted && !(endpoint.get("tls") instanceof BooleanValue(var enabled) && enabled)) {
                 throw new IllegalArgumentException(ERROR_TLS);
             }
         }
-        case "traccar" -> {
+        case TRACCAR -> {
             rejectFields(endpoint, Set.of("name"), collection);
             val uri = requireUrl(endpoint.get("baseUrl"), WEB_SCHEMES, trusted, false);
             if (uri.getRawQuery() != null && Arrays.stream(uri.getRawQuery().split("&"))
                     .map(parameter -> URLDecoder.decode(parameter.split("=", 2)[0], StandardCharsets.UTF_8))
-                    .anyMatch("token"::equalsIgnoreCase)) {
+                    .anyMatch(TOKEN::equalsIgnoreCase)) {
                 throw new IllegalArgumentException(ERROR_FIELD.formatted(collection));
             }
         }
-        case "http"    -> validateService(endpoint, trusted);
-        default        -> throw new IllegalStateException(pip);
+        case "http"  -> validateService(endpoint, trusted);
+        default      -> throw new IllegalStateException(pip);
         }
     }
 
@@ -176,15 +183,17 @@ class OutboundEndpointConfiguration {
         if (!secrets.containsKey(pip)) {
             return;
         }
-        val entries = object(secrets.get(pip), "secrets." + pip);
+        val section   = "secrets." + pip;
+        val entries   = object(secrets.get(pip), section);
+        val entryName = section + " entry";
         for (val item : entries.entrySet()) {
             if (item.getKey().isBlank()) {
-                throw new IllegalArgumentException(ERROR_OBJECT.formatted("secrets." + pip + " entry"));
+                throw new IllegalArgumentException(ERROR_OBJECT.formatted(entryName));
             }
-            val entry = object(item.getValue(), "secrets." + pip + " entry");
-            rejectFields(entry, TRUST_FIELDS, "secrets." + pip);
+            val entry = object(item.getValue(), entryName);
+            rejectFields(entry, TRUST_FIELDS, section);
             if (!"http".equals(pip)) {
-                rejectFields(entry, Set.of("allowedBaseUrls"), "secrets." + pip);
+                rejectFields(entry, Set.of("allowedBaseUrls"), section);
             }
         }
     }

@@ -18,11 +18,13 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.*;
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -30,6 +32,7 @@ import java.util.Map;
 import static io.sapl.api.model.Value.of;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * Tests for N-ary operator compilation: XOR (^), Sum (+), Product (*).
@@ -46,6 +49,81 @@ class NaryOperatorCompilerTests {
 
     @Nested
     class XorTests {
+
+        @ParameterizedTest(name = "{0} fails at {1} without requesting attributes")
+        @CsvSource({ "2 ^ <room.a>, 2", "<room.a> ^ !!2, 2", "<room.a> ^ 2 ^ <room.b>, 2",
+                "subject ^ <room.a>, subject", "<room.a> ^ !!subject ^ <room.b>, subject" })
+        @DisplayName("A known non-boolean XOR operand fails before attributes are requested")
+        void whenAConstantOrPureOperandIsInvalidThenXorReportsItsSourceImmediately(String expression, String source) {
+            val round = evaluate(expression).withSubject(of(2)).step();
+            assertThat(round.dependencies()).isEmpty();
+            assertThat(round.result()).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertXorTypeError(error, source));
+        }
+
+        @ParameterizedTest(name = "{0} observes all streams while an operand is invalid")
+        @ValueSource(strings = { "<room.a> ^ <room.b>", "!!<room.b> ^ !!<room.a>", "<room.a> ^ <room.b> ^ false",
+                "<room.a> ^ <room.b> ^ <room.a>" })
+        @DisplayName("A stream operand's error wins over pending and recovers on the next value")
+        void whenOneStreamIsInvalidAndAnotherPendingThenXorKeepsEveryDependency(String expression) {
+            val driver = evaluate(expression);
+            val first  = driver.step();
+            assertThat(first.result()).isNull();
+            assertThat(first.dependencies().keySet()).extracting(key -> key.invocation().attributeName())
+                    .containsExactlyInAnyOrder("room.a", "room.b");
+            val invalid = driver.with("room.b", of(2)).step();
+            assertThat(invalid.dependencies()).isEqualTo(first.dependencies());
+            assertThat(invalid.result()).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertXorTypeError(error, "<room.b>"));
+            val original = Value.error("Sensor offline.");
+            assertThat(driver.with("room.b", original).step()).returns(original, ExpressionResult::result)
+                    .returns(first.dependencies(), ExpressionResult::dependencies);
+            assertThat(driver.with("room.b", Value.TRUE).step().result()).isNull();
+            assertThat(driver.with("room.a", Value.FALSE).step().result()).isEqualTo(Value.TRUE);
+        }
+
+        @ParameterizedTest(name = "{0} retains the upstream error")
+        @ValueSource(strings = { "<room.a> ^ <room.b>", "<room.b> ^ <room.a>", "<room.a> ^ <room.b> ^ <room.c>" })
+        @DisplayName("An upstream error keeps its origin when another stream has an invalid type")
+        void whenAStreamErrorAndAWrongTypeAreAvailableThenXorKeepsTheUpstreamError(String expression) {
+            val original = Value.error("Sensor offline.");
+            val driver   = evaluate(expression);
+            val pending  = driver.step();
+            val failed   = driver.with("room.a", of(2)).with("room.b", original).step();
+            assertThat(failed.dependencies()).isEqualTo(pending.dependencies());
+            assertThat(failed.result()).isSameAs(original);
+        }
+
+        @ParameterizedTest(name = "{0} reports all {1} fatal sibling diagnostics")
+        @CsvSource({ "2 ^ (true < 1), 1", "(false < 1) ^ 2 ^ (true < 1), 2" })
+        @DisplayName("A known type error still lets the compiler visit every XOR operand")
+        void whenASiblingFailsToCompileThenXorReportsItsDiagnostics(String expression, int failures) {
+            assertThatExceptionOfType(SaplCompilerException.class).isThrownBy(() -> compileExpression(expression))
+                    .satisfies(error -> assertThat(error.diagnostics()).hasSize(failures)
+                            .allSatisfy(diagnostic -> assertThat(diagnostic.getMessage())
+                                    .contains("Numeric comparisons require numbers")));
+        }
+
+        @ParameterizedTest(name = "{0} retains the original division error")
+        @ValueSource(strings = { "(1 / 0) ^ 2", "!!2 ^ (1 / 0)", "2 ^ <room.a> ^ (1 / 0)" })
+        @DisplayName("XOR propagates an existing constant error before checking other constant types")
+        void whenAConstantOperandHasFailedThenXorPreservesItsErrorAndLocation(String expression) {
+            val result = evaluate(expression).step();
+            assertThat(result.dependencies()).isEmpty();
+            assertThat(result.result()).isInstanceOfSatisfying(ErrorValue.class, error -> {
+                assertThat(error.message()).isEqualTo("Division by zero.");
+                assertThat(sourceText(error.location())).isEqualTo("1 / 0");
+            });
+        }
+
+        private static void assertXorTypeError(ErrorValue error, String source) {
+            assertThat(error.message()).isEqualTo("Logical operation requires boolean value, but found: 2.");
+            assertThat(sourceText(error.location())).isEqualTo(source);
+        }
+
+        private static String sourceText(SourceLocation location) {
+            return location.documentSource().substring(location.start(), location.end());
+        }
 
         @ParameterizedTest(name = "{0} = {1}")
         @CsvSource({ "true ^ true ^ true,   true", "true ^ true ^ false,  false", "true ^ false ^ true,  false",

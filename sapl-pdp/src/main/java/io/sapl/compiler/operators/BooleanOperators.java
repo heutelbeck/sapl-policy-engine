@@ -45,20 +45,30 @@ public class BooleanOperators {
     public static Value not(Value v, SourceLocation location) {
         if (v instanceof BooleanValue(boolean val))
             return val ? Value.FALSE : Value.TRUE;
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v);
+        return typeMismatch(v, location);
     }
 
     /**
      * Logical XOR (exclusive or).
      * <p>
-     * XOR is the only non-short-circuit boolean operator since both operands
-     * must always be evaluated to determine the result.
+     * Both operands must be boolean to compute a boolean result.
      */
     public static Value xor(Value a, Value b, SourceLocation location) {
         if (a instanceof BooleanValue(var va) && b instanceof BooleanValue(var vb)) {
             return va ^ vb ? Value.TRUE : Value.FALSE;
         }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof BooleanValue ? b : a);
+        return typeMismatch(a instanceof BooleanValue ? b : a, location);
+    }
+
+    /**
+     * Reports a non-boolean operand of a logical operation.
+     *
+     * @param operand the offending value
+     * @param location source of the logical operation
+     * @return the type error at that location
+     */
+    public static ErrorValue typeMismatch(Value operand, SourceLocation location) {
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, operand);
     }
 
 }

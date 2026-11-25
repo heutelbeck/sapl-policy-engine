@@ -161,22 +161,21 @@ public class CoverageExtractor {
     private static void recordTarget(Coverage.TargetHit target, @Nullable ConditionHit schema,
             PolicyCoverageData data) {
         switch (target) {
-        case TargetResult hit                -> {
-            recordTargetResult(hit.match(), data);
-            val location = hit.location();
+        case TargetResult(var match, var location) -> {
+            recordTargetResult(match, data);
             // With no authored for-clause the schema is the effective target itself.
             if (location != null && location.line() > 0 && (schema == null || !location.equals(schema.location()))) {
-                recordResult(data, -location.line(), location, hit.match(), false);
+                recordResult(data, -location.line(), location, match, false);
             }
         }
-        case Coverage.BlankTargetHit ignored -> {
+        case Coverage.BlankTargetHit ignored       -> {
             if (schema == null) {
                 data.recordTargetHit(true);
             } else {
                 recordTargetResult(schema.result(), data);
             }
         }
-        case Coverage.NoTargetHit ignored    -> { /* The target was not reached. */ }
+        case Coverage.NoTargetHit ignored          -> { /* The target was not reached. */ }
         }
     }
 
