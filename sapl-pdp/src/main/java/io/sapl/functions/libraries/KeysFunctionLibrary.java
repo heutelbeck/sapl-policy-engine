@@ -70,6 +70,8 @@ public class KeysFunctionLibrary {
             EC keys on P-256, P-384, and P-521 curves, and EdDSA keys using Ed25519. All key types support full
             bidirectional PEM and JWK conversion following RFC 7517 and RFC 7518.
 
+            PEM public key inputs on other EC curves are unsupported.
+
             Parse PEM-encoded keys and extract their properties with publicKeyFromPem, algorithmFromKey, sizeFromKey,
             and curveFromKey. Extract public keys from X.509 certificates using publicKeyFromCertificate. Convert
             between formats with jwkFromPublicKey (PEM to JWK) and publicKeyFromJwk (JWK to PEM).
@@ -263,6 +265,7 @@ public class KeysFunctionLibrary {
 
             Accepts RSA, EC (Elliptic Curve), and EdDSA public keys in PEM format.
             Returns a structured object with key type, algorithm, and format information.
+            EC public keys must use P-256, P-384, or P-521.
 
             **Examples:**
             ```sapl
@@ -358,7 +361,7 @@ public class KeysFunctionLibrary {
             ```curveFromKey(TEXT keyPem)```: Extracts the elliptic curve name from an EC public key.
 
             Returns the curve name for elliptic curve keys (e.g., "secp256r1", "secp384r1", "secp521r1").
-            Returns an error if the key is not an EC key.
+            Returns an error if the key is not an EC key or uses another curve.
 
             **Examples:**
             ```sapl

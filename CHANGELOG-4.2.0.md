@@ -24,6 +24,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- The `keys` functions taking a PEM public key accept only P-256, P-384, and P-521 EC curves. Other curves return an error instead of metadata with an unknown curve name.
+
 - GeoJSON legacy CRS numeric codes accept ASCII decimal digits only; non-ASCII digit spellings return an error.
 
 - `json.valToJson` writes whole numbers in the signed 64-bit range as plain integers, including inside arrays and objects. For example, `[5.0]` now serializes to `[5]`.

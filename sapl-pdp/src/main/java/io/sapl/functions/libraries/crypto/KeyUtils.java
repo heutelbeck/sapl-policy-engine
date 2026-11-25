@@ -41,11 +41,13 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
  * Utilities for working with cryptographic keys. Provides methods for parsing
  * public keys from PEM format and
  * extracting key voterMetadata.
+ * EC public keys must use P-256, P-384, or P-521. Other EC curves are unsupported.
  */
 @UtilityClass
 public class KeyUtils {
 
     private static final String ERROR_REQUIRED_CURVE_UNAVAILABLE = "Required EC curve %s could not be initialised from the crypto provider.";
+    private static final String ERROR_UNSUPPORTED_EC_CURVE       = "Only P-256, P-384, and P-521 EC curves are supported.";
     private static final String ERROR_UNSUPPORTED_KEY_TYPE       = "Unsupported key type or invalid key format. Tried algorithms: %s.";
 
     private static final String CURVE_ED448         = "Ed448";
@@ -95,20 +97,24 @@ public class KeyUtils {
      * @return the parsed PublicKey
      *
      * @throws CryptoException
-     * if parsing fails
+     * if PEM parsing fails or the EC curve is unsupported
+     * @throws NoSuchAlgorithmException
+     * if the requested key algorithm is unavailable
+     * @throws InvalidKeySpecException
+     * if the encoded key does not match the requested algorithm
      */
     public static PublicKey parsePublicKey(String pemKey, String keyAlgorithm)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
         val keyBytes   = PemUtils.decodePublicKeyPem(pemKey);
         val keySpec    = new X509EncodedKeySpec(keyBytes);
         val keyFactory = KeyFactory.getInstance(keyAlgorithm);
-        return keyFactory.generatePublic(keySpec);
+        return requireSupportedCurve(keyFactory.generatePublic(keySpec));
     }
 
     /**
      * Attempts to parse a public key by trying multiple algorithms in sequence.
-     * Tries RSA, EC, and EdDSA algorithms
-     * until one succeeds.
+     * Tries RSA, EC, and EdDSA algorithms until one succeeds.
+     * EC public keys must use P-256, P-384, or P-521.
      *
      * @param pemKey
      * the PEM-encoded public key string
@@ -116,7 +122,7 @@ public class KeyUtils {
      * @return the parsed PublicKey
      *
      * @throws CryptoException
-     * if all algorithms fail
+     * if all algorithms fail or the EC curve is unsupported
      */
     public static PublicKey parsePublicKeyWithAlgorithmDetection(String pemKey) {
         val keyBytes = PemUtils.decodePublicKeyPem(pemKey);
@@ -136,12 +142,12 @@ public class KeyUtils {
      * @return the decoded PublicKey
      *
      * @throws CryptoException
-     * if all algorithms fail
+     * if all algorithms fail or the EC curve is unsupported
      */
     public static PublicKey tryParseWithMultipleAlgorithms(X509EncodedKeySpec keySpec, String... algorithms) {
         for (val algorithm : algorithms) {
             try {
-                return KeyFactory.getInstance(algorithm).generatePublic(keySpec);
+                return requireSupportedCurve(KeyFactory.getInstance(algorithm).generatePublic(keySpec));
             } catch (NoSuchAlgorithmException | InvalidKeySpecException ignored) {
                 // Try next algorithm
             }
@@ -234,5 +240,12 @@ public class KeyUtils {
     private static boolean sameCurve(ECParameterSpec a, ECParameterSpec b) {
         return a.getOrder().equals(b.getOrder()) && a.getCofactor() == b.getCofactor()
                 && a.getCurve().equals(b.getCurve()) && a.getGenerator().equals(b.getGenerator());
+    }
+
+    private static PublicKey requireSupportedCurve(PublicKey key) {
+        if (key instanceof ECPublicKey ecKey && matchNistCurveName(ecKey) == null) {
+            throw new CryptoException(ERROR_UNSUPPORTED_EC_CURVE);
+        }
+        return key;
     }
 }
