@@ -172,9 +172,9 @@ public class DefaultFunctionBroker implements FunctionBroker {
      * Evaluates a function invocation by finding the best matching function
      * specification and applying it.
      * <p>
-     * The matching algorithm compares the invocation against all registered
-     * functions with the same name, selecting the
-     * best match based on parameter type compatibility.
+     * Overload selection uses the function name and argument count. An exact count
+     * takes precedence over a match that consumes additional variadic arguments.
+     * Equally good matches are ambiguous. The selected function checks argument types.
      * <p>
      * Successful calls can be reused in this configuration. Concurrent misses may
      * run the same pure function independently.

@@ -72,7 +72,7 @@ public class LibraryDocumentationExtractor {
                     ERROR_NOT_ANNOTATED_WITH_FUNCTION_LIBRARY.formatted(libraryClass.getName()));
         }
 
-        val name    = annotation.name().isEmpty() ? libraryClass.getSimpleName() : annotation.name();
+        val name    = annotation.name().isBlank() ? libraryClass.getSimpleName() : annotation.name();
         val entries = new ArrayList<EntryDocumentation>();
 
         for (Method method : libraryClass.getDeclaredMethods()) {
@@ -125,7 +125,7 @@ public class LibraryDocumentationExtractor {
     }
 
     private static EntryDocumentation extractFunctionEntry(Method method, Function annotation) {
-        val name       = annotation.name().isEmpty() ? method.getName() : annotation.name();
+        val name       = annotation.name().isBlank() ? method.getName() : annotation.name();
         val schema     = loadSchema(method, annotation.schema(), annotation.pathToSchema());
         val parameters = extractParameters(method.getParameters(), 0);
 

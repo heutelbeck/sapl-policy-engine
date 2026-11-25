@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
@@ -232,18 +233,13 @@ class LibraryDocumentationExtractorTests {
         assertThat(entry.codeTemplate("cultist")).isEqualTo("<cultist.moonPhase>");
     }
 
-    @Test
-    void whenExtractingLibraryWithDefaultNameThenClassNameIsUsed() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(DefaultNameLibrary.class);
+    @ParameterizedTest
+    @ValueSource(classes = { DefaultNameLibrary.class, BlankNameLibrary.class })
+    void whenFunctionNamesAreOmittedOrBlankThenDocumentationUsesTheCallableName(Class<?> library) {
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(library);
 
-        assertThat(documentation.name()).isEqualTo("DefaultNameLibrary");
-    }
-
-    @Test
-    void whenExtractingFunctionWithDefaultNameThenMethodNameIsUsed() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(DefaultNameLibrary.class);
-
-        assertThat(documentation.findEntry("defaultNameFunction")).isNotNull();
+        assertThat(documentation.entries()).extracting(entry -> documentation.name() + "." + entry.name())
+                .containsExactly(library.getSimpleName() + ".defaultNameFunction");
     }
 
     @Test
@@ -393,6 +389,14 @@ class LibraryDocumentationExtractorTests {
         @Function
         public static Value defaultNameFunction() {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    @FunctionLibrary(name = " ", description = "Library with unspecified names")
+    static class BlankNameLibrary {
+        @Function(name = " ")
+        public static Value defaultNameFunction() {
+            return Value.TRUE;
         }
     }
 
