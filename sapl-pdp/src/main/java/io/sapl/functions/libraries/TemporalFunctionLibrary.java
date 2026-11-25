@@ -83,9 +83,9 @@ public class TemporalFunctionLibrary {
             ```sapl
             policy "working_hours"
             permit
-              var currentTime = time.timeOf(environment.currentDateTime);
-              time.after(currentTime, "09:00:00");
-              time.before(currentTime, "17:00:00");
+              var date = time.dateOf(environment.currentDateTime);
+              time.after(environment.currentDateTime, date + "T09:00:00Z");
+              time.before(environment.currentDateTime, date + "T17:00:00Z");
             ```
 
             ```sapl
@@ -627,7 +627,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```dayOfYear(TEXT utcDateTime)```: Returns the day of the year (1-365) for the given date.
+            ```dayOfYear(TEXT utcDateTime)```: Returns the day of the year (1-366) for the given date.
 
             utcDateTime must be an ISO 8601 string at UTC.
 
