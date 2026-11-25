@@ -81,6 +81,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- Temporal functions and absolute time attributes accept historical ISO years from -9999 to 9999. Both `-0043` and `-000043` denote 44 BCE. Date and instant results use `-0043`.
 - Rust PDPs now verify Ed448-signed JWTs by default, matching Java PDPs.
 
 - `sapl.info()` returns the engine neutral keys `engine` and `engineVersion`, which every SAPL engine reports. The keys `jdkVersion`, `javaVersion` and `javaVendor` are deprecated and will be removed in the next release.
