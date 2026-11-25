@@ -222,11 +222,11 @@ public class TestCommand implements Callable<Integer> {
     }
 
     private static boolean validateThreshold(String name, float value, PrintWriter err) {
-        if (value < 0 || value > 100) {
-            err.println(ERROR_INVALID_THRESHOLD.formatted(name, value));
-            return false;
+        if (value >= 0 && value <= 100) {
+            return true;
         }
-        return true;
+        err.println(ERROR_INVALID_THRESHOLD.formatted(name, value));
+        return false;
     }
 
     private static List<Path> discoverFiles(Path directory, String extension) throws IOException {

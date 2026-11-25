@@ -28,6 +28,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import lombok.val;
 import picocli.CommandLine;
@@ -283,13 +285,14 @@ class TestCommandTests {
             assertThat(exitCode).isEqualTo(2);
         }
 
-        @Test
+        @ParameterizedTest
+        @ValueSource(strings = { "101", "NaN" })
         @DisplayName("invalid threshold returns exit code 1")
-        void whenInvalidThresholdThenExitCode1(@TempDir Path tempDir) {
+        void whenInvalidThresholdThenExitCode1(String threshold, @TempDir Path tempDir) {
             val out      = new StringWriter();
             val err      = new StringWriter();
             val cmd      = newCommand(out, err);
-            val exitCode = cmd.execute("--dir", tempDir.toString(), "--policy-hit-ratio", "101");
+            val exitCode = cmd.execute("--dir", tempDir.toString(), "--policy-hit-ratio", threshold);
 
             assertThat(exitCode).isEqualTo(1);
             assertThat(err.toString()).contains("must be between 0 and 100");
