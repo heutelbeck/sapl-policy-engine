@@ -23,6 +23,7 @@ import java.util.List;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SelectionRange;
 
 import lombok.experimental.UtilityClass;
@@ -41,8 +42,8 @@ public class SelectionRangeBuilder {
      *
      * @param root the parse tree root
      * @param position the cursor position (0-based line and character)
-     * @return the innermost selection range with parent chain, or null if position
-     * is outside the tree
+     * @return the innermost selection range with parent chain, with an empty range for a position outside the tree,
+     * or null if the tree or document line is missing
      */
     public static SelectionRange buildSelectionRange(ParseTree root, Position position) {
         if (!(root instanceof ParserRuleContext rootContext) || rootContext.getStart() == null) {
@@ -55,7 +56,7 @@ public class SelectionRangeBuilder {
         val chain = new ArrayList<ParserRuleContext>();
         collectEnclosingNodes(root, positions, positions.offsetOf(position), chain);
         if (chain.isEmpty()) {
-            return null;
+            return new SelectionRange(new Range(position, position), null);
         }
         SelectionRange current = null;
         // Outermost first: each node becomes the parent of the next-inner, so the

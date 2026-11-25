@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -70,6 +71,20 @@ class SAPLSelectionRangeProviderTests {
     @Nested
     @DisplayName("multiple positions")
     class MultiplePositions {
+
+        @Test
+        @DisplayName("keeps each caret at its index when the first is in a leading comment")
+        void whenFirstCaretInLeadingComment_thenBothSelectionRangesKeepTheirIndex() {
+            var document = new SAPLParsedDocument("test.sapl", "// header\npolicy \"p\" permit");
+            var comment  = new Position(0, 2);
+            var name     = new Position(1, 8);
+
+            var ranges = provider.provideSelectionRanges(document, List.of(comment, name));
+
+            assertThat(ranges).hasSize(2);
+            assertThat(ranges.getFirst().getRange()).isEqualTo(new Range(comment, comment));
+            assertThat(ranges.getLast().getRange().getStart().getLine()).isOne();
+        }
 
         @Test
         @DisplayName("returns one selection range per valid position")
