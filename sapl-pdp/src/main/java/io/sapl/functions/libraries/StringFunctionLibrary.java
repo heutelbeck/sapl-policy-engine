@@ -177,6 +177,10 @@ public class StringFunctionLibrary {
             Provides case-insensitive string comparison for authorization decisions where case
             variations should be treated as equivalent.
 
+            The comparison uses locale-independent, single-character case mappings. The Java engine uses
+            the Unicode version of the running JDK. The Rust engine uses the Unicode version bundled with its compiler.
+            For example, U+A7CB and U+0264 compare as different under Unicode 15.0 and as equal under Unicode 16.0.
+
             **Examples:**
             ```sapl
             policy "role_check"

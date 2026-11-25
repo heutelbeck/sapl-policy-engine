@@ -174,6 +174,9 @@ public class NumeralFunctionLibrary {
             Underscores are allowed as visual separators. Negative numbers can be represented
             with a sign prefix or as full 64-bit two's complement values.
 
+            Use ASCII characters for portable input. Java also recognizes digits such as Arabic-Indic one
+            (U+0661) when their value fits the base. Rust accepts ASCII and fullwidth digits.
+
             Parameters:
             - value: Hexadecimal string to parse
 
@@ -200,6 +203,9 @@ public class NumeralFunctionLibrary {
             are allowed as visual separators. Negative numbers can be represented with a sign
             prefix or as full 64-bit two's complement values.
 
+            Use ASCII characters for portable input. Java also recognizes digits such as Arabic-Indic one
+            (U+0661) when their value fits the base. Rust accepts ASCII and fullwidth digits.
+
             Parameters:
             - value: Binary string to parse
 
@@ -224,6 +230,9 @@ public class NumeralFunctionLibrary {
             or without the "0o" or "0O" prefix. Only digits 0-7 are valid. Underscores are
             allowed as visual separators. Negative numbers can be represented with a sign
             prefix or as full 64-bit two's complement values.
+
+            Use ASCII characters for portable input. Java also recognizes digits such as Arabic-Indic one
+            (U+0661) when their value fits the base. Rust accepts ASCII and fullwidth digits.
 
             Parameters:
             - value: Octal string to parse
@@ -555,6 +564,9 @@ public class NumeralFunctionLibrary {
             Underscores are allowed as visual separators. Sign prefixes are accepted. Empty
             strings and strings with only whitespace are considered invalid.
 
+            Use ASCII characters for portable input. Java also recognizes digits such as Arabic-Indic one
+            (U+0661) when their value fits the base. Rust accepts ASCII and fullwidth digits.
+
             Parameters:
             - value: String to validate
 
@@ -579,6 +591,9 @@ public class NumeralFunctionLibrary {
             are allowed as visual separators. Sign prefixes are accepted. Empty strings and
             strings with only whitespace are considered invalid.
 
+            Use ASCII characters for portable input. Java also recognizes digits such as Arabic-Indic one
+            (U+0661) when their value fits the base. Rust accepts ASCII and fullwidth digits.
+
             Parameters:
             - value: String to validate
 
@@ -602,6 +617,9 @@ public class NumeralFunctionLibrary {
             or without the "0o" or "0O" prefix. Only digits 0-7 are valid. Underscores are
             allowed as visual separators. Sign prefixes are accepted. Empty strings and
             strings with only whitespace are considered invalid.
+
+            Use ASCII characters for portable input. Java also recognizes digits such as Arabic-Indic one
+            (U+0661) when their value fits the base. Rust accepts ASCII and fullwidth digits.
 
             Parameters:
             - value: String to validate

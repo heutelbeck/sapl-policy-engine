@@ -152,6 +152,9 @@ public class UnitsFunctionLibrary {
             supporting both decimal and binary SI prefixes. The result is a numeric value representing
             the calculation of the input number multiplied by the appropriate unit multiplier.
 
+            Use ASCII digits for portable input. Java also accepts Arabic-Indic digits in the numeric part.
+            Rust accepts ASCII and fullwidth digits.
+
             **Supported Units:**
             - **Decimal SI units**: m (milli, 0.001), K (kilo, 1000), M (mega, 1,000,000),
               G (giga, 1 billion), T (tera, 1 trillion), P (peta), E (exa)
@@ -218,6 +221,9 @@ public class UnitsFunctionLibrary {
             This function interprets strings expressing data sizes in human-readable format and transforms
             them into exact byte values. It distinguishes between decimal units (based on powers of 1000)
             and binary units (based on powers of 1024), following standard computing conventions.
+
+            Use ASCII digits for portable input. Java also accepts Arabic-Indic digits in the numeric part.
+            Rust accepts ASCII and fullwidth digits.
 
             **Supported Units:**
             - **Decimal byte units**: KB/kb (1000 bytes), MB/mb (1,000,000 bytes),

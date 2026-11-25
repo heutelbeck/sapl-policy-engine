@@ -114,6 +114,9 @@ public class UuidFunctionLibrary {
             For version 1 UUIDs, the object also includes timestamp, clock sequence, and node values.
             Returns an error if the text is not a valid UUID string.
 
+            Use ASCII hexadecimal text for portable UUIDs. The Java engine also accepts Arabic-Indic
+            digits in the groups. The Rust engine accepts ASCII and fullwidth hexadecimal characters.
+
             **Attention:** The timestamp, clockSequence, and node fields are only present for version 1 UUIDs.
             Other UUID versions will only contain the leastSignificantBits, mostSignificantBits, version, and
             variant fields.

@@ -84,7 +84,7 @@ Remove before deployment! */
 SAPL is based on the **JavaScript Object Notation** or **JSON**, an [ECMA Standard](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) for the representation of structured data. Any value occurring within the SAPL language is a JSON data type, and any expression within a policy evaluates to a JSON data type. The types and their JSON notations are:
 
 - Primitive Types 
-  - **Number**: A signed decimal number, e.g., `-1.9`. There is no distinction between integer and floating-point numbers. In case an integer is expected (e.g., for a numeric index), the decimal number is rounded to an integer number.
+  - **Number**: A signed decimal number, e.g., `-1.9`. Number literals use ASCII digits `0` through `9` in the integer, fraction, and exponent. Other digits can appear in strings. For example, `"٣"` is a string, and an unquoted `٣` is a syntax error. There is no distinction between integer and floating-point numbers. In case an integer is expected (e.g., for a numeric index), the decimal number is rounded to an integer number.
   - **String**: A sequence of zero or more characters, written in double or single quotes, e.g., `"a string"` or `'a string'`.
   - **Boolean**: Either `true` or `false`.
   - **null**: Marks an empty value, `null`.
