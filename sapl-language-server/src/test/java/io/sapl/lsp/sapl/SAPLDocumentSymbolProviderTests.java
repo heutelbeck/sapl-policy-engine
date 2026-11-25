@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.stream.Stream;
 
+import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.SymbolKind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -40,6 +41,14 @@ class SAPLDocumentSymbolProviderTests {
     @Nested
     @DisplayName("single policy")
     class SinglePolicy {
+
+        @Test
+        @DisplayName("retains quotes for a blank outline label")
+        void whenNameIsBlankThenOutlineShowsTheQuotedName() {
+            var document = new SAPLParsedDocument("test.sapl", "policy \"  \" permit");
+            assertThat(provider.provideDocumentSymbols(document)).singleElement()
+                    .extracting(DocumentSymbol::getName).isEqualTo("\"  \"");
+        }
 
         @Test
         @DisplayName("emits policy symbol with correct name and kind")

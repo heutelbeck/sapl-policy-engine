@@ -19,6 +19,7 @@ package io.sapl.lsp.sapltest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.SymbolKind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +33,18 @@ class SAPLTestDocumentSymbolProviderTests {
     @Nested
     @DisplayName("requirement symbols")
     class RequirementSymbols {
+
+        @Test
+        @DisplayName("retains quotes for a blank outline label")
+        void whenNameIsBlankThenOutlineShowsTheQuotedName() {
+            var document = new SAPLTestParsedDocument("test.sapltest", """
+                    requirement "  " {
+                        scenario "read report" when "alice" attempts "read" on "report" expect permit;
+                    }
+                    """);
+            assertThat(provider.provideDocumentSymbols(document)).singleElement()
+                    .extracting(DocumentSymbol::getName).isEqualTo("\"  \"");
+        }
 
         @Test
         @DisplayName("emits requirement with scenarios as children")

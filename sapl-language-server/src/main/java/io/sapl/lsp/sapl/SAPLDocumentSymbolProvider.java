@@ -120,7 +120,8 @@ class SAPLDocumentSymbolProvider {
 
     private static String stripQuotes(String text) {
         if (text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
-            return text.substring(1, text.length() - 1);
+            val name = text.substring(1, text.length() - 1);
+            return name.isBlank() ? text : name;
         }
         return text;
     }
