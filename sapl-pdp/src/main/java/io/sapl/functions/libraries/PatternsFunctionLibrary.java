@@ -204,7 +204,7 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "domain_matching"
             permit
-              patterns.matchGlob("*.company.com", request.host, ["."]);
+              patterns.matchGlob("*.company.com", resource.host, ["."]);
             ```
 
             ```sapl
@@ -315,7 +315,7 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "check_before_use"
             permit
-              var pattern = request.filterPattern;
+              var pattern = resource.filterPattern;
               patterns.isValidRegex(pattern) && patterns.findMatches(pattern, resource.text) != [];
             ```
             """)
@@ -345,7 +345,7 @@ public class PatternsFunctionLibrary {
             policy "find_tags"
             permit
               var tags = patterns.findMatches("#[a-zA-Z0-9]+", resource.content);
-              array.difference(subject.allowedTags, tags) == [];
+              subject.allowedTags all in tags;
             ```
 
             ```sapl
@@ -499,7 +499,7 @@ public class PatternsFunctionLibrary {
             policy "split_whitespace"
             permit
               var tokens = patterns.split("\\\\s+", resource.input);
-              array.difference(subject.requiredTokens, tokens) == [];
+              subject.requiredTokens all in tokens;
             ```
 
             ```sapl
