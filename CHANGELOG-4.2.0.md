@@ -49,6 +49,9 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ### Function libraries and policy information points
 
+- The `time` attributes accept English weekday and month names with ASCII letters in either case. Replace Unicode lookalikes such as `ſunday` with `Sunday`.
+- `array.sum` and `array.multiply` now return an error when the exact final result exceeds the range of SAPL arithmetic. Intermediate results may exceed that range.
+
 - `x509.isExpired` becomes true strictly after `notAfter`. Before `notBefore` both certificate attributes return false. A certificate is valid at both endpoints.
 - The local time before, after and between attributes follow the displayed clock through daylight saving gaps and overlaps. Local ranges include their start and exclude their end.
 

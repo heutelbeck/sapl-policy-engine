@@ -57,6 +57,8 @@ public class TimePolicyInformationPoint {
             A forward clock change can skip a checkpoint and a backward change can cross it twice.
             For a 02:17 checkpoint in Europe/Berlin, the spring jump to 03:00 ends the before period.
             In autumn the clock returns to 02:00, and the before period lasts until the second 02:17.
+            Weekday and month names accept English ASCII letters in either case, for example Monday and APRIL.
+            A wrong argument type reports the finder name, the zero-based argument position and the expected type.
             Local time ranges include their start and exclude their end. Equal endpoints give an empty range.
             The pair 00:00 and 23:59:59.999999999 denotes the full day in either order.
             Absolute checkpoints for nowIsBefore, nowIsAfter and nowIsBetween use an ISO calendar date, a time
@@ -964,6 +966,11 @@ public class TimePolicyInformationPoint {
         return clock.instant().atZone(zone);
     }
 
+    private static String calendarName(String name) {
+        // Unicode uppercasing can turn a non-ASCII spelling into a valid enum name.
+        return name.chars().allMatch(character -> character < 128) ? name.toUpperCase(Locale.ROOT) : name;
+    }
+
     private static EnumSet<DayOfWeek> parseDaySet(ArrayValue days) {
         if (days.isEmpty()) {
             throw new IllegalArgumentException(ERROR_DAYS_ARRAY_EMPTY);
@@ -974,7 +981,7 @@ public class TimePolicyInformationPoint {
                 throw new IllegalArgumentException(String.format(ERROR_DAY_NAME_INVALID, day));
             }
             try {
-                daySet.add(DayOfWeek.valueOf(name.toUpperCase(Locale.ROOT)));
+                daySet.add(DayOfWeek.valueOf(calendarName(name)));
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format(ERROR_DAY_NAME_INVALID, name), e);
             }
@@ -985,13 +992,13 @@ public class TimePolicyInformationPoint {
     private static EnumSet<DayOfWeek> buildDayRange(TextValue startDay, TextValue endDay) {
         DayOfWeek start;
         try {
-            start = DayOfWeek.valueOf(startDay.value().toUpperCase(Locale.ROOT));
+            start = DayOfWeek.valueOf(calendarName(startDay.value()));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(ERROR_START_DAY_INVALID, startDay.value()), e);
         }
         DayOfWeek end;
         try {
-            end = DayOfWeek.valueOf(endDay.value().toUpperCase(Locale.ROOT));
+            end = DayOfWeek.valueOf(calendarName(endDay.value()));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(ERROR_END_DAY_INVALID, endDay.value()), e);
         }
@@ -1026,7 +1033,7 @@ public class TimePolicyInformationPoint {
             switch (month) {
             case TextValue(var name)     -> {
                 try {
-                    monthSet.add(Month.valueOf(name.toUpperCase(Locale.ROOT)));
+                    monthSet.add(Month.valueOf(calendarName(name)));
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException(String.format(ERROR_MONTH_NAME_INVALID, name), e);
                 }

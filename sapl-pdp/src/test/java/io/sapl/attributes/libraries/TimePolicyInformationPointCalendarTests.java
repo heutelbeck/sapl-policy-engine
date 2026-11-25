@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes.libraries;
 
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Poll;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.Cancellable;
@@ -130,6 +131,17 @@ class TimePolicyInformationPointCalendarTests {
             }
         } finally {
             Locale.setDefault(previous);
+        }
+    }
+
+    @ParameterizedTest(name = "{0} rejects {1}")
+    @CsvSource({ "weekday,\u017Funday", "start,\u017Funday", "end,\u017Funday", "month,apr\u0131l" })
+    @DisplayName("calendar names require ASCII letters")
+    void whenCalendarNameContainsNonAsciiLettersThenTheFinderEmitsAnError(String finder, String name) {
+        val pip = new TimePolicyInformationPoint(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), new QueuedScheduler());
+        try (val stream = namedCalendar(pip, finder, name)) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2))
+                    .awaitsNext(value -> assertThat(value).isInstanceOf(ErrorValue.class)).awaitsCompletion();
         }
     }
 

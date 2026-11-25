@@ -801,6 +801,7 @@ public class ArrayFunctionLibrary {
 
             Returns the sum of all numeric elements in the array. Returns 0 for an empty array.
             All elements must be numeric or an error is returned.
+            The calculation is exact. A final result outside the range of SAPL arithmetic yields an error.
 
             Parameters:
             - array: Array of numbers to sum
@@ -831,6 +832,7 @@ public class ArrayFunctionLibrary {
 
             Returns the product of all numeric elements in the array. Returns 1 for an empty
             array. All elements must be numeric or an error is returned.
+            The calculation is exact. A final result outside the range of SAPL arithmetic yields an error.
 
             Parameters:
             - array: Array of numbers to multiply
