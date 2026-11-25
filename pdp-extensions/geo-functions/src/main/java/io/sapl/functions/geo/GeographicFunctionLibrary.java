@@ -648,7 +648,7 @@ public class GeographicFunctionLibrary {
             policy "example"
             permit
                 var line = { "type": "LineString", "coordinates": [[0,0], [1,1], [1,0], [0,0]] };
-                geo.isSimple(line) == false;
+                geo.isSimple(line) == true;
             ```
 
             **Notes:**
