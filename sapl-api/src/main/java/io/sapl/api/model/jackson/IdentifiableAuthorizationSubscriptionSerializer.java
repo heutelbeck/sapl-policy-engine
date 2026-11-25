@@ -23,10 +23,8 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
- * Jackson serializer for IdentifiableAuthorizationSubscription.
- * <p>
- * Serializes to a JSON object with subscriptionId and the subscription fields
- * flattened.
+ * Writes an identified authorization subscription as a JSON object with a string
+ * {@code subscriptionId} and the nested {@code subscription} object.
  */
 public class IdentifiableAuthorizationSubscriptionSerializer
         extends StdSerializer<IdentifiableAuthorizationSubscription> {
