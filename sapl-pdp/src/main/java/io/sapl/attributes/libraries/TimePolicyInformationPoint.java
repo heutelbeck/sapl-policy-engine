@@ -61,8 +61,9 @@ public class TimePolicyInformationPoint {
             A wrong argument type reports the finder name, the zero-based argument position and the expected type.
             Local time ranges include their start and exclude their end. Equal endpoints give an empty range.
             The pair 00:00 and 23:59:59.999999999 denotes the full day in either order.
-            The running UTC clock and local calendar attributes support years 0000 through 9999,
-            including the complete final day.
+            The running clock supports UTC dates in years 0000 through 9999, including the complete final day.
+            Local calendar attributes apply that year range to local dates, even when the corresponding
+            UTC date is outside the range.
             Absolute checkpoints for nowIsBefore, nowIsAfter and nowIsBetween use an ISO calendar date, a time
             and Z or a numeric UTC offset. Examples are 2021-11-08T12:30Z and 20211108T123000+0100.
             24:00 denotes the end of the given day. A fraction of the last time component may have up to

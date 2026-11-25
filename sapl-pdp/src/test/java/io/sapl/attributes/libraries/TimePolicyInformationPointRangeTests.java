@@ -126,4 +126,29 @@ class TimePolicyInformationPointRangeTests {
         default            -> throw new IllegalArgumentException("Unknown test finder.");
         };
     }
+
+    @ParameterizedTest(name = "{0} from {1}")
+    @CsvSource({ "-18:00,+10000-01-01T16:59:59Z,+10000-01-01T17:00:00Z,23:00",
+            "America/Adak,+10000-01-01T08:59:59Z,+10000-01-01T09:00:00Z,23:00",
+            "+18:00,-0001-12-31T06:00:00Z,-0001-12-31T06:01:00Z,00:01" })
+    @DisplayName("local endpoints remain available across the adjacent UTC dates")
+    void whenUtcDateIsOutsideTheRangeThenAnInRangeLocalDateStillChanges(String zone, String start, String boundary,
+            String checkpoint) {
+        val at           = Instant.parse(start);
+        val after        = Instant.parse(boundary);
+        val clock        = new MutableClock(at);
+        val scheduler    = new TestTimeScheduler(at);
+        val pip          = new TimePolicyInformationPoint(clock, scheduler);
+        val text         = Value.of(checkpoint);
+        val selectedZone = Value.of(zone);
+        try (val stream = pip.localTimeIsAfter(text, selectedZone)) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.FALSE);
+            clock.setInstant(after);
+            scheduler.advanceTo(after);
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.TRUE);
+            try (val fresh = pip.localTimeIsAfter(text, selectedZone)) {
+                StreamAssertions.assertThat(fresh).withinTimeout(Duration.ofSeconds(2)).awaitsNext(Value.TRUE);
+            }
+        }
+    }
 }
