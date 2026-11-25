@@ -32,6 +32,22 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class YamlFunctionLibraryTests {
 
     @Test
+    void whenWritingNestedSettingsThenTheBlockTextPreservesTypesAndKeyOrder() {
+        val settings = ValueJsonMarshaller.json("{\"name\":\"North\",\"on\":[{\"code\":2.50},true],\"empty\":{}}");
+        val yaml     = """
+                name: "North"
+                "on":
+                  -
+                    code: 2.50
+                  - true
+                empty: {}
+                """;
+
+        assertThat(YamlFunctionLibrary.valToYaml(settings)).isEqualTo(Value.of(yaml));
+        assertThat(YamlFunctionLibrary.yamlToVal(Value.of(yaml))).isEqualTo(settings);
+    }
+
+    @Test
     void whenReadingCoreScalarsThenNumbersKeepAllDigitsAndKeysKeepTheirSpelling() {
         val yaml     = "True: [True, ~, 0o12, 0x1A, 9007199254740993.5, 'True']";
         val expected = ValueJsonMarshaller.json("{\"True\":[true,null,10,26,9007199254740993.5,\"True\"]}");

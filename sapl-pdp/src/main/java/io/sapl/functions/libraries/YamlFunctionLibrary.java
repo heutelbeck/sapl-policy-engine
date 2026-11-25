@@ -21,12 +21,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.val;
 import org.snakeyaml.engine.v2.exceptions.YamlEngineException;
-import tools.jackson.core.JacksonException;
-import tools.jackson.dataformat.yaml.YAMLFactory;
-import tools.jackson.dataformat.yaml.YAMLMapper;
 
 import java.io.IOException;
 
@@ -65,7 +60,7 @@ public class YamlFunctionLibrary {
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
-    private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to YAML: %s.";
+    private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to YAML: %s";
     private static final String ERROR_FAILED_TO_PARSE   = "Failed to parse YAML: %s.";
 
     private static final String SCHEMA_RETURNS_TEXT = """
@@ -73,10 +68,6 @@ public class YamlFunctionLibrary {
               "type": "string"
             }
             """;
-
-    private static final YAMLMapper YAML_MAPPER = YAMLMapper
-            .builder(YAMLFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
-            .build();
 
     /**
      * Converts a well-formed YAML document into a SAPL value.
@@ -124,7 +115,10 @@ public class YamlFunctionLibrary {
      * ErrorValue if conversion fails
      */
     @Function(docs = """
-            ```valToYaml(value)```: Converts a SAPL value into a YAML string representation.
+            ```valToYaml(value)```: Writes one YAML document in block style, with two spaces per level
+            and a final line break. Strings use JSON quotes and escapes. An ASCII identifier
+            used as a key stays plain unless it denotes a YAML boolean or null. Numbers use SAPL
+            wire notation. Empty arrays and objects are written as `[]` and `{}`.
 
             **Example:**
             ```sapl
@@ -137,12 +131,8 @@ public class YamlFunctionLibrary {
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value valToYaml(Value value) {
         try {
-            val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
-            val yamlString = TextOutputLimits.write(writer -> YAML_MAPPER.writeValue(writer, jsonNode));
-            return Value.of(yamlString);
-        } catch (TextOutputLimits.OutputLimitExceededException exception) {
-            return Value.error(exception.getMessage());
-        } catch (JacksonException | IllegalArgumentException | IOException exception) {
+            return Value.of(YamlValueWriter.write(value));
+        } catch (IllegalArgumentException | IOException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }
