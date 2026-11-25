@@ -239,6 +239,30 @@ class EncodingFunctionLibraryTests {
         assertThat(result.value()).isEqualTo(expected);
     }
 
+    @ParameterizedTest(name = "Base64 [{0}] has optional-padding validity {1} and required-padding validity {2}")
+    @CsvSource({ "'', true, true", "Zg==, true, true", "Zg, true, false", "Zm8=, true, true", "Zh==, false, false",
+            "Zh, false, false", "Zm9=, false, false", "Zg=, false, false" })
+    void whenCheckingBase64ThenBothAlphabetsEnforceCanonicalPadBits(String form, boolean optional, boolean required) {
+        val text = Value.of(form);
+        assertThat(EncodingFunctionLibrary.isValidBase64(text)).isEqualTo(Value.of(optional));
+        assertThat(EncodingFunctionLibrary.isValidBase64Url(text)).isEqualTo(Value.of(optional));
+        assertThat(EncodingFunctionLibrary.isValidBase64Strict(text)).isEqualTo(Value.of(required));
+        assertThat(EncodingFunctionLibrary.isValidBase64UrlStrict(text)).isEqualTo(Value.of(required));
+    }
+
+    @Test
+    void whenUnusedBase64BitsAreNonzeroThenAllDecodersGiveCanonicalFormatErrors() {
+        val text = Value.of("Zh==");
+        assertThat(EncodingFunctionLibrary.base64Decode(text))
+                .isEqualTo(Value.error("Expected canonical Base64 data with optional padding."));
+        assertThat(EncodingFunctionLibrary.base64DecodeStrict(text))
+                .isEqualTo(Value.error("Expected canonical Base64 data with required padding."));
+        assertThat(EncodingFunctionLibrary.base64UrlDecode(text))
+                .isEqualTo(Value.error("Expected canonical Base64 URL data with optional padding."));
+        assertThat(EncodingFunctionLibrary.base64UrlDecodeStrict(text))
+                .isEqualTo(Value.error("Expected canonical Base64 URL data with required padding."));
+    }
+
     /* Lenient vs Strict Comparison Tests */
 
     @ParameterizedTest(name = "{0}")

@@ -22,6 +22,7 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -52,9 +53,6 @@ import java.util.HexFormat;
  * <li>All decoded output is validated as proper UTF-8 to prevent injection of
  * invalid character sequences
  * <li>Error messages are sanitized to prevent information leakage
- * <li>Validation functions use early rejection to prevent CPU exhaustion
- * <li>Character comparisons use constant-time operations where appropriate to
- * prevent timing attacks
  * </ul>
  */
 @FunctionLibrary(name = EncodingFunctionLibrary.NAME, description = EncodingFunctionLibrary.DESCRIPTION, libraryDocumentation = EncodingFunctionLibrary.DOCUMENTATION)
@@ -78,8 +76,10 @@ public class EncodingFunctionLibrary {
 
             ## Lenient vs Strict Decoding
 
-            Lenient functions accept missing padding. Strict functions require RFC-compliant
-            format with proper `=` padding and length divisible by 4.
+            Both Base64 alphabets require zero unused pad bits and accept the empty string.
+            Lenient functions accept complete encodings with or without padding. Strict functions
+            require the padding produced by the encoder. For example, `Zg==` encodes `f`. The
+            lenient decoder also reads `Zg`. Both forms of the decoder reject `Zh==`.
 
             ```sapl
             policy "validate token format"
@@ -117,9 +117,6 @@ public class EncodingFunctionLibrary {
      */
     private static final int MAX_INPUT_LENGTH = 10_000_000; // 10MB
 
-    private static final String BASE64_ALPHABET     = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-    private static final String BASE64_URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=";
-
     private static final String RETURNS_TEXT = """
             {
                 "type": "string"
@@ -135,13 +132,10 @@ public class EncodingFunctionLibrary {
     private static final String EMPTY_STRING = "";
     private static final String UNDERSCORE   = "_";
 
-    private static final String ERROR_DECODED_INVALID_UTF8      = "Decoded data contains invalid UTF-8 sequences: %s";
-    private static final String ERROR_INPUT_EXCEEDS_MAX_LENGTH  = "Input length %d exceeds maximum allowed length of %d.";
-    private static final String ERROR_INVALID_BASE64            = "Invalid Base64 data: %s";
-    private static final String ERROR_INVALID_BASE64_STRICT     = "Invalid Base64 data: input must be properly padded and have length multiple of 4.";
-    private static final String ERROR_INVALID_BASE64_URL        = "Invalid Base64 URL data: %s";
-    private static final String ERROR_INVALID_BASE64_URL_STRICT = "Invalid Base64 URL data: input must be properly padded and have length multiple of 4.";
-    private static final String ERROR_INVALID_HEX               = "Invalid hexadecimal data: %s";
+    private static final String ERROR_DECODED_INVALID_UTF8     = "Decoded data contains invalid UTF-8 sequences: %s";
+    private static final String ERROR_INPUT_EXCEEDS_MAX_LENGTH = "Input length %d exceeds maximum allowed length of %d.";
+    private static final String ERROR_INVALID_BASE64           = "Expected canonical %s data with %s padding.";
+    private static final String ERROR_INVALID_HEX              = "Invalid hexadecimal data: %s";
 
     @Function(docs = """
             ```base64Encode(TEXT data)```: Encodes text data to Base64 standard format.
@@ -185,19 +179,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_TEXT)
     public static Value base64Decode(TextValue data) {
-        val input = data.value();
-        if (input.length() > MAX_INPUT_LENGTH) {
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
-        }
-        try {
-            val bytes   = Base64.getDecoder().decode(input);
-            val decoded = decodeUtf8(bytes);
-            return Value.of(decoded);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(ERROR_INVALID_BASE64.formatted(exception.getMessage()));
-        } catch (CharacterCodingException exception) {
-            return Value.error(ERROR_DECODED_INVALID_UTF8.formatted(exception.getMessage()));
-        }
+        return decodeBase64Text(data.value(), false, false);
     }
 
     @Function(docs = """
@@ -219,14 +201,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_TEXT)
     public static Value base64DecodeStrict(TextValue data) {
-        val input = data.value();
-        if (input.length() > MAX_INPUT_LENGTH) {
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
-        }
-        if (!isValidBase64Format(input, false)) {
-            return Value.error(ERROR_INVALID_BASE64_STRICT);
-        }
-        return base64Decode(data);
+        return decodeBase64Text(data.value(), false, true);
     }
 
     @Function(docs = """
@@ -246,18 +221,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidBase64(TextValue data) {
-        val input = data.value();
-
-        if (input.length() > MAX_INPUT_LENGTH) {
-            return Value.of(false);
-        }
-
-        try {
-            Base64.getDecoder().decode(input);
-            return Value.of(true);
-        } catch (IllegalArgumentException exception) {
-            return Value.of(false);
-        }
+        return validBase64(data.value(), false, false);
     }
 
     @Function(docs = """
@@ -278,7 +242,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidBase64Strict(TextValue data) {
-        return Value.of(isValidBase64Format(data.value(), false));
+        return validBase64(data.value(), false, true);
     }
 
     @Function(docs = """
@@ -323,19 +287,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_TEXT)
     public static Value base64UrlDecode(TextValue data) {
-        val input = data.value();
-        if (input.length() > MAX_INPUT_LENGTH) {
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
-        }
-        try {
-            val bytes   = Base64.getUrlDecoder().decode(input);
-            val decoded = decodeUtf8(bytes);
-            return Value.of(decoded);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(ERROR_INVALID_BASE64_URL.formatted(exception.getMessage()));
-        } catch (CharacterCodingException exception) {
-            return Value.error(ERROR_DECODED_INVALID_UTF8.formatted(exception.getMessage()));
-        }
+        return decodeBase64Text(data.value(), true, false);
     }
 
     @Function(docs = """
@@ -357,14 +309,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_TEXT)
     public static Value base64UrlDecodeStrict(TextValue data) {
-        val input = data.value();
-        if (input.length() > MAX_INPUT_LENGTH) {
-            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
-        }
-        if (!isValidBase64Format(input, true)) {
-            return Value.error(ERROR_INVALID_BASE64_URL_STRICT);
-        }
-        return base64UrlDecode(data);
+        return decodeBase64Text(data.value(), true, true);
     }
 
     @Function(docs = """
@@ -384,18 +329,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidBase64Url(TextValue data) {
-        val input = data.value();
-
-        if (input.length() > MAX_INPUT_LENGTH) {
-            return Value.of(false);
-        }
-
-        try {
-            Base64.getUrlDecoder().decode(input);
-            return Value.of(true);
-        } catch (IllegalArgumentException exception) {
-            return Value.of(false);
-        }
+        return validBase64(data.value(), true, false);
     }
 
     @Function(docs = """
@@ -416,7 +350,7 @@ public class EncodingFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidBase64UrlStrict(TextValue data) {
-        return Value.of(isValidBase64Format(data.value(), true));
+        return validBase64(data.value(), true, true);
     }
 
     @Function(docs = """
@@ -538,152 +472,36 @@ public class EncodingFunctionLibrary {
         return buffer.toString();
     }
 
-    /**
-     * Validates Base64 format with strict padding requirements.
-     * <p>
-     * Validates that the input satisfies all of the following requirements:
-     * <ul>
-     * <li>Non-null and non-empty
-     * <li>Length does not exceed maximum allowed length
-     * <li>Length is a multiple of 4
-     * <li>Contains only valid Base64 alphabet characters
-     * <li>Padding characters (=) appear only at the end, never in the middle
-     * <li>Can be successfully decoded by the appropriate decoder
-     * </ul>
-     * <p>
-     * This method enforces strict RFC-compliant Base64 validation that the standard
-     * JDK Base64.Decoder does not
-     * provide, as the JDK decoder is lenient and accepts unpadded input.
-     * <p>
-     * <strong>Performance:</strong> Uses early rejection optimizations to quickly
-     * reject obviously invalid input before
-     * performing expensive validation.
-     *
-     * @param input
-     * the Base64 string to validate
-     * @param urlSafe
-     * whether to validate using URL-safe alphabet (- and _ instead of + and /)
-     *
-     * @return true if the input is properly formatted with correct padding, false
-     * otherwise
-     */
-    private static boolean isValidBase64Format(String input, boolean urlSafe) {
-        if (!hasValidBasicFormat(input)) {
-            return false;
-        }
-
-        if (hasObviouslyInvalidCharacters(input)) {
-            return false;
-        }
-
-        val validAlphabet = urlSafe ? BASE64_URL_ALPHABET : BASE64_ALPHABET;
-        if (!hasValidCharactersAndPadding(input, validAlphabet)) {
-            return false;
-        }
-
-        return canBeDecoded(input, urlSafe);
-    }
-
-    /**
-     * Checks basic format requirements for Base64 input.
-     *
-     * @param input
-     * the string to validate
-     *
-     * @return true if input is non-null, non-empty, within length limits, and has
-     * length divisible by 4
-     */
-    private static boolean hasValidBasicFormat(String input) {
-        if (input == null || input.isEmpty()) {
-            return false;
-        }
-
+    private static Value decodeBase64Text(String input, boolean urlSafe, boolean paddingRequired) {
         if (input.length() > MAX_INPUT_LENGTH) {
-            return false;
+            return Value.error(ERROR_INPUT_EXCEEDS_MAX_LENGTH.formatted(input.length(), MAX_INPUT_LENGTH));
         }
-
-        return input.length() % 4 == 0;
-    }
-
-    /**
-     * Performs early rejection check for characters outside valid Base64 range.
-     * <p>
-     * Checks if any character falls outside the ASCII range that could possibly
-     * contain Base64 characters ('+' to 'z').
-     * This quick check avoids expensive validation for obviously invalid input.
-     *
-     * @param input
-     * the string to check
-     *
-     * @return true if input contains characters that cannot be valid Base64, false
-     * otherwise
-     */
-    private static boolean hasObviouslyInvalidCharacters(String input) {
-        for (var i = 0; i < input.length(); i++) {
-            val character = input.charAt(i);
-            if (character < '+' || character > 'z') {
-                return true;
-            }
+        val bytes = canonicalBase64Bytes(input, urlSafe, paddingRequired);
+        if (bytes == null) {
+            return Value.error(ERROR_INVALID_BASE64, urlSafe ? "Base64 URL" : "Base64",
+                    paddingRequired ? "required" : "optional");
         }
-        return false;
-    }
-
-    /**
-     * Validates that input contains only valid Base64 alphabet characters and
-     * padding appears only at the end.
-     * <p>
-     * Ensures all characters belong to the specified Base64 alphabet and that
-     * padding characters ('=') only appear at
-     * the end of the string, never in the middle.
-     *
-     * @param input
-     * the string to validate
-     * @param validAlphabet
-     * the Base64 alphabet to validate against
-     *
-     * @return true if all characters are valid and padding is correct, false
-     * otherwise
-     */
-    private static boolean hasValidCharactersAndPadding(String input, String validAlphabet) {
-        var paddingFound = false;
-
-        for (var i = 0; i < input.length(); i++) {
-            val character = input.charAt(i);
-
-            if (character == '=') {
-                paddingFound = true;
-            } else if (paddingFound) {
-                return false;
-            }
-
-            if (validAlphabet.indexOf(character) < 0) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Attempts to decode the input to verify it is valid Base64.
-     *
-     * @param input
-     * the Base64 string to decode
-     * @param urlSafe
-     * whether to use URL-safe Base64 decoder
-     *
-     * @return true if input can be successfully decoded, false otherwise
-     */
-    private static boolean canBeDecoded(String input, boolean urlSafe) {
         try {
-            if (urlSafe) {
-                Base64.getUrlDecoder().decode(input);
-            } else {
-                Base64.getDecoder().decode(input);
-            }
-            return true;
-        } catch (IllegalArgumentException exception) {
-            return false;
+            return Value.of(decodeUtf8(bytes));
+        } catch (CharacterCodingException e) {
+            return Value.error(ERROR_DECODED_INVALID_UTF8.formatted(e.getMessage()));
+        }
+    }
+
+    private static Value validBase64(String input, boolean urlSafe, boolean paddingRequired) {
+        return Value.of(
+                input.length() <= MAX_INPUT_LENGTH && canonicalBase64Bytes(input, urlSafe, paddingRequired) != null);
+    }
+
+    private static byte @Nullable [] canonicalBase64Bytes(String input, boolean urlSafe, boolean paddingRequired) {
+        val decoder = urlSafe ? Base64.getUrlDecoder() : Base64.getDecoder();
+        val encoder = urlSafe ? Base64.getUrlEncoder() : Base64.getEncoder();
+        try {
+            val bytes = decoder.decode(input);
+            val form  = paddingRequired || input.endsWith("=") ? encoder : encoder.withoutPadding();
+            return form.encodeToString(bytes).equals(input) ? bytes : null;
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 }
