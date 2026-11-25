@@ -92,8 +92,8 @@ public class YamlFunctionLibrary {
             policy "permit_resource_owner"
             permit
                var resourceConfig = "owner: alice\\nclassification: CONFIDENTIAL\\naccessLevel: 3";
-               var resource = yaml.yamlToVal(resourceConfig);
-               resource.owner == subject.name;
+               var parsedResource = yaml.yamlToVal(resourceConfig);
+               parsedResource.owner == subject.name;
             ```
             """)
     public static Value yamlToVal(TextValue yaml) {
