@@ -269,8 +269,9 @@ public class TemporalFunctionLibrary {
             ```timeBetween(TEXT timeA, TEXT timeB, TEXT chronoUnit)```: Calculates the time span between
             timeA and timeB in the specified chronoUnit.
 
-            Both time parameters must be ISO 8601 strings at UTC. Valid chronoUnits: NANOS, MICROS, MILLIS,
-            SECONDS, MINUTES, HOURS, HALF_DAYS, DAYS, WEEKS, MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA.
+            Each time argument accepts a SAPL timestamp with an explicit offset or a calendar date at midnight UTC.
+            Supported units are NANOS, MICROS, MILLIS, SECONDS, MINUTES, HOURS, HALF_DAYS, DAYS, WEEKS,
+            MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA and ERAS.
 
             Calendar units from WEEKS upward compare dates in UTC.
 
@@ -661,7 +662,7 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```validUTC(TEXT utcDateTime)```: Returns true if the value is a valid ISO 8601 UTC timestamp.
+            ```validUTC(TEXT utcDateTime)```: Returns true for a SAPL timestamp with an explicit offset or a calendar date at midnight UTC. Other values return false.
 
             **Example:**
 
