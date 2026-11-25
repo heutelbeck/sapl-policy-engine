@@ -93,7 +93,7 @@ public class PatternsFunctionLibrary {
             - `{cat,dog,bird}`: Alternatives
             - `\\`: Escape character for literal matching
 
-            Delimiters define segment boundaries. When not specified, `.` is used by default.
+            Delimiters define segment boundaries. Pass an empty array to use `.` as the delimiter.
 
             ## Regular Expressions
 
@@ -194,8 +194,7 @@ public class PatternsFunctionLibrary {
             - Domain names: `*.example.com` matches `api.example.com` but not `foo.api.example.com`
             - Hierarchical permissions: `user:*:read` matches `user:profile:read` within segments
 
-            **Default Delimiter**: When delimiters array is empty or not provided, `.` is used as the
-            delimiter.
+            **Default Delimiter**: Pass an empty array as the third argument to use `.` as the delimiter.
 
             **Examples**:
             ```sapl
