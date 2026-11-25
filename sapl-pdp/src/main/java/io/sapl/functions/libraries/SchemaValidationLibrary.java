@@ -154,8 +154,8 @@ public class SchemaValidationLibrary {
             external resource takes precedence.
 
             References can resolve within the current schema, to bundled meta-schemas or to supplied
-            resources. SAPL checks their targets at load time, including those in unused definitions. In draft 2019-09,
-            `$recursiveRef` must be `"#"`. Any other value is a schema error. Definitions
+            resources. SAPL checks ordinary `$ref` targets at load time, including those in unused definitions.
+            In draft 2019-09, `$recursiveRef` must be `"#"`. Any other value is a schema error. Definitions
             should use regular schema locations such as `$defs` or `definitions`. Reference
             targets in arbitrary annotation fields have no portable meaning. Neither engine
             fetches a resource for a schema. Host-relative references such as `//host/path`
