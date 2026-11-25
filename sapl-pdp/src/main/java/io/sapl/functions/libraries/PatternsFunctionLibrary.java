@@ -284,7 +284,7 @@ public class PatternsFunctionLibrary {
             ```sapl
             policy "safe_user_input"
             permit
-              var safeUsername = patterns.escapeGlob(request.username);
+              var safeUsername = patterns.escapeGlob(subject.username);
               var pattern = string.concat("/users/", safeUsername, "/*");
               patterns.matchGlob(pattern, resource.path, ["/"]);
             ```
@@ -293,7 +293,7 @@ public class PatternsFunctionLibrary {
             policy "literal_match"
             permit
               var escaped = patterns.escapeGlob(resource.tag);
-              escaped == "literal*text";
+              patterns.matchGlobWithoutDelimiters(escaped, "literal*text");
             ```
             """)
     public static Value escapeGlob(TextValue text) {
