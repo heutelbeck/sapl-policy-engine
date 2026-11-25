@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -117,7 +118,7 @@ public class BrokerEvalLoops {
      * <p>
      * An unexpected runtime exception in {@code evaluator}, {@code onResult} or
      * {@code nextDeps} ends evaluation and reaches {@code onTerminate}. A normal
-     * round with no logical dependencies calls {@code onTerminate} with null
+     * round with no remaining live or uncaptured head dependencies calls {@code onTerminate} with null
      * after {@code onResult} has handled its final result. The termination
      * handler must return normally. Later broker callbacks do not reevaluate
      * the policy after termination.
@@ -125,8 +126,8 @@ public class BrokerEvalLoops {
      * An exception from opening the broker subscription itself is outside this
      * callback guard and propagates to the caller without calling the handler.
      * <p>
-     * Termination does not close the handle. The helper retains the initial
-     * effective broker dependencies as an idle, non-empty return value until
+     * Termination does not close the handle. The helper retains the most recently requested
+     * broker dependencies as an idle, non-empty return value until
      * the caller closes it. This avoids closing a handle that may not yet have
      * returned from a synchronous open. Closing the handle alone does not call
      * {@code onTerminate}; nor does it join a callback already selected for
@@ -162,14 +163,14 @@ public class BrokerEvalLoops {
             Set<SubscriptionKey> initialDeps, Function<Map<SubscriptionKey, AttributeSnapshot>, R> evaluator,
             BiConsumer<R, Map<SubscriptionKey, AttributeSnapshot>> onResult, Function<R, Set<SubscriptionKey>> nextDeps,
             Consumer<@Nullable RuntimeException> onTerminate) {
-        val headCache         = new HeadCache();
-        val initialBrokerDeps = headCache.brokerDepsFor(initialDeps);
-        val terminated        = new AtomicBoolean(false);
-        return broker.open(subscriptionId, initialBrokerDeps, new AttributeSubscriptionObserver(brokerSnap -> {
+        val headCache  = new HeadCache();
+        val registered = new AtomicReference<>(initialDeps);
+        val terminated = new AtomicBoolean(false);
+        return broker.open(subscriptionId, initialDeps, new AttributeSubscriptionObserver(brokerSnap -> {
             if (terminated.get()) {
                 // A prior round already terminated the loop. Idle on the last dep set
                 // (broker requires non-empty) until the consumer closes the stream.
-                return initialBrokerDeps;
+                return registered.get();
             }
             try {
                 val full = headCache.merge(brokerSnap);
@@ -178,21 +179,20 @@ public class BrokerEvalLoops {
                 val newDeps = nextDeps.apply(r);
                 headCache.captureFrom(brokerSnap);
                 headCache.retainOnly(newDeps);
-                val brokerDeps = headCache.brokerDepsFor(newDeps);
+                val brokerDeps = headCache.unresolvedDependencies(newDeps);
                 if (brokerDeps.isEmpty()) {
-                    // The policy collapsed to a constant: no attribute deps remain. The
-                    // final decision was already emitted via onResult. Complete the stream
-                    // (clean teardown) rather than hand the broker an illegal empty set.
+                    // No further live input is needed. The owner drains the result and releases the handle.
                     terminated.set(true);
                     onTerminate.accept(null);
-                    return initialBrokerDeps;
+                    return registered.get();
                 }
+                registered.set(brokerDeps);
                 return brokerDeps;
             } catch (RuntimeException e) {
                 terminated.set(true);
                 log.error(ERROR_EVAL_CALLBACK_THREW, subscriptionId, e.getMessage(), e);
                 onTerminate.accept(e);
-                return initialBrokerDeps;
+                return registered.get();
             }
         }, failure -> {
             if (terminated.compareAndSet(false, true)) {

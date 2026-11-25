@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -66,9 +65,7 @@ import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
-import io.sapl.attributes.broker.AttributeSubscriptionObserver;
 import io.sapl.attributes.broker.BrokerEvalLoops;
-import io.sapl.attributes.broker.HeadCache;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.TracedVote;
@@ -238,6 +235,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     private record GroupRound(MultiAuthorizationDecision decisions, @Nullable IntFunction<TracedVote> traceFor) {}
+
+    private record GroupEvaluation(@Nullable GroupRound round, Set<SubscriptionKey> dependencies) {}
 
     /** One output owner compares complete rounds across configuration changes and dispatches outside engine locks. */
     private @Nullable MultiAuthorizationDecision observeGroupChanges(GroupSubscription group, GroupRound round,
@@ -781,55 +780,27 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     private Stream<GroupRound> multiVoteStream(GroupSubscription group, CompiledPdp pdp, String subscriptionId) {
-        val out         = new LatestSlotStream<GroupRound>();
-        val initialDeps = new HashSet<SubscriptionKey>();
-        val initial     = evaluateRound(group, pdp, subscriptionId, Map.of(), initialDeps);
-        if (initial != null) {
-            out.put(initial);
+        val out     = new LatestSlotStream<GroupRound>();
+        val initial = evaluateRound(group, pdp, subscriptionId, Map.of());
+        if (initial.round() != null) {
+            out.put(initial.round());
         }
-        if (initialDeps.isEmpty()) {
+        if (initial.dependencies().isEmpty()) {
             out.complete();
             return out;
         }
-        val headCache  = new HeadCache();
-        val terminated = new AtomicBoolean(false);
-        val firstDeps  = headCache.brokerDepsFor(initialDeps);
-        val handle     = attributeBroker.open(subscriptionId, firstDeps,
-                new AttributeSubscriptionObserver(brokerSnap -> {
-                                   if (terminated.get()) {
-                                       // A prior round failed and surfaced INDETERMINATE. Idle on the
-                                       // last dep set until the consumer closes the stream.
-                                       return firstDeps;
-                                   }
-                                   try {
-                                       val newDeps = new HashSet<SubscriptionKey>();
-                                       val multi = evaluateRound(group, pdp, subscriptionId, headCache.merge(brokerSnap),
-                                               newDeps);
-                                       if (multi != null) {
-                                           out.put(multi);
-                                       }
-                                       val effective = newDeps.isEmpty() ? initialDeps : newDeps;
-                                       headCache.captureFrom(brokerSnap);
-                                       headCache.retainOnly(effective);
-                                       return headCache.brokerDepsFor(effective);
-                                   } catch (RuntimeException e) {
-                                       // Engine invariant: the eval callback must never throw. The broker
-                                       // would swallow it and strand the subscriber on a stale decision,
-                                       // so surface a fail-closed INDETERMINATE and complete the stream.
-                                       terminated.set(true);
-                                       log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, e.getMessage(), e);
-                                       out.put(failedGroup(group, errorVote(pdp, ERROR_EVALUATOR_THREW)));
-                                       out.complete();
-                                       return firstDeps;
-                                   }
-                               },
-                        failure -> {
-                            if (terminated.compareAndSet(false, true)) {
-                                log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, failure.getMessage(), failure);
-                                out.put(failedGroup(group, errorVote(pdp, ERROR_EVALUATOR_THREW)));
-                                out.complete();
-                            }
-                        }));
+        val handle = BrokerEvalLoops.openWithHead(attributeBroker, subscriptionId, initial.dependencies(),
+                snapshot -> evaluateRound(group, pdp, subscriptionId, snapshot), (evaluation, snapshot) -> {
+                    if (evaluation.round() != null) {
+                        out.put(evaluation.round());
+                    }
+                }, GroupEvaluation::dependencies, failure -> {
+                    if (failure != null) {
+                        log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, failure.getMessage(), failure);
+                        out.put(failedGroup(group, errorVote(pdp, ERROR_EVALUATOR_THREW)));
+                    }
+                    out.complete();
+                });
         out.onClose(handle::close);
         return out;
     }
@@ -1031,10 +1002,12 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return evaluationContext(pdp, sub, subscriptionId, pdp.functionBroker());
     }
 
-    private @Nullable GroupRound evaluateRound(GroupSubscription group, CompiledPdp pdp, String subscriptionId,
-            Map<SubscriptionKey, AttributeSnapshot> snapshot, Set<SubscriptionKey> depsAccumulator) {
-        return evaluateGroup(group.items(), pdp, subscriptionId, snapshot, depsAccumulator, pdp.functionBroker(),
-                hasDecisionInterceptors() ? timestampSource : null);
+    private GroupEvaluation evaluateRound(GroupSubscription group, CompiledPdp pdp, String subscriptionId,
+            Map<SubscriptionKey, AttributeSnapshot> snapshot) {
+        val dependencies = new HashSet<SubscriptionKey>();
+        val round        = evaluateGroup(group.items(), pdp, subscriptionId, snapshot, dependencies,
+                pdp.functionBroker(), hasDecisionInterceptors() ? timestampSource : null);
+        return new GroupEvaluation(round, dependencies);
     }
 
     /**

@@ -58,8 +58,8 @@ import java.util.Set;
  * becomes the new first value, possibly from an existing warm invocation.</li>
  * <li>{@link #brokerDepsFor}: omit cached head keys when other broker
  * dependencies remain. If every remaining dependency is a cached head, keep
- * the original non-empty set to satisfy the broker contract. Redundant wakes
- * then reevaluate against the same frozen values.</li>
+ * the original non-empty set to satisfy the broker contract. The standard loop releases
+ * its subscription when no unresolved dependencies remain.</li>
  * </ol>
  * <p>
  * Callers must serialize access to this cache. The broker serializes callbacks
@@ -138,23 +138,26 @@ public final class HeadCache {
      * <p>
      * If filtering would leave the result empty (the policy depends
      * only on cached head values), the original set is returned
-     * instead. The broker's contract requires a non-empty dep set,
-     * and the evaluator still runs on redundant fires, using the cached head
-     * values instead of their newer broker values.
+     * instead. Callers that keep a broker subscription open must return a
+     * non-empty set. The standard evaluation loop releases the subscription
+     * once every dependency is served by a frozen head.
      *
      * @param evalDeps the evaluator's logical dep set
      * @return the broker dep set; {@code evalDeps} unchanged when
      * the cache is empty
      */
     public @NonNull Set<SubscriptionKey> brokerDepsFor(@NonNull Set<SubscriptionKey> evalDeps) {
+        val remaining = unresolvedDependencies(evalDeps);
+        return remaining.isEmpty() ? evalDeps : remaining;
+    }
+
+    /** The logical keys that still require a broker observation. */
+    Set<SubscriptionKey> unresolvedDependencies(Set<SubscriptionKey> evalDeps) {
         if (cache.isEmpty()) {
             return evalDeps;
         }
-        val result = new HashSet<>(evalDeps);
-        result.removeIf(k -> k.head() && cache.containsKey(k));
-        if (result.isEmpty()) {
-            return evalDeps;
-        }
-        return result;
+        val remaining = new HashSet<>(evalDeps);
+        remaining.removeAll(cache.keySet());
+        return remaining;
     }
 }

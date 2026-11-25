@@ -263,6 +263,21 @@ class BrokerEvalLoopsTests {
         }
 
         @Test
+        void whenTheOnlyHeadIsCapturedThenTheCompletedRoundIsTheLast() {
+            val head         = new SubscriptionKey(liveKey().invocation(), true);
+            val dependencies = Set.of(head);
+            val broker       = syncFiringBroker(head, 2);
+            val rounds       = new AtomicInteger();
+            val terminations = new AtomicInteger();
+            try (val handle = BrokerEvalLoops.openWithHead(broker, "head", dependencies, snapshot -> dependencies,
+                    (result, snapshot) -> rounds.incrementAndGet(), Function.identity(),
+                    cause -> terminations.incrementAndGet())) {
+                assertThat(rounds).hasValue(1);
+                assertThat(terminations).hasValue(1);
+            }
+        }
+
+        @Test
         @DisplayName("when the policy collapses to no dependencies the loop terminates once with a null cause")
         void whenNextDepsEmptyThenOnTerminateCalledWithNullCause() {
             val                                                             key           = liveKey();
