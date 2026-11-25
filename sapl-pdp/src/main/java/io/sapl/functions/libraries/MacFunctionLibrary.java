@@ -59,12 +59,12 @@ public class MacFunctionLibrary {
 
             ## When to Use
 
-            Verify webhook signatures from external services:
+            Verify a webhook that supplies its signature as hexadecimal text:
             ```sapl
-            policy "verify-github-webhook"
+            policy "verify-webhook"
             permit action == "process_webhook";
               var payload = resource.body;
-              var receivedSignature = resource.headers["X-Hub-Signature-256"];
+              var receivedSignature = resource.signatureHex;
               var secret = environment.webhookSecret;
               mac.isValidHmac(payload, receivedSignature, secret, "HmacSHA256");
             ```
@@ -101,7 +101,7 @@ public class MacFunctionLibrary {
 
             To bound memory and computation on untrusted input, the following limits apply:
 
-            - The message and the key are each capped at 10000000 characters (10 MB). This applies to the HMAC functions hmacSha256, hmacSha384, hmacSha512, and to isValidHmac, which computes an HMAC internally. A function returns an error when either the message or the key exceeds this length.
+            - The message and the key are each capped at 10,000,000 UTF-16 code units. This applies to the HMAC functions hmacSha256, hmacSha384, hmacSha512, and to isValidHmac, which computes an HMAC internally. A function returns an error when either the message or the key exceeds this length.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -130,9 +130,8 @@ public class MacFunctionLibrary {
     @Function(docs = """
             ```hmacSha256(TEXT message, TEXT key)```: Computes HMAC-SHA256 authentication code.
 
-            Generates a keyed-hash message authentication code using SHA-256. The key should
-            be provided as a hexadecimal or Base64 string. Returns the MAC as a lowercase
-            hexadecimal string.
+            Generates a keyed-hash message authentication code using SHA-256. The message and key are encoded
+            as UTF-8. Returns the MAC as a lowercase hexadecimal string.
 
             Commonly used for webhook signatures (GitHub, Stripe) and API authentication.
 
@@ -164,7 +163,7 @@ public class MacFunctionLibrary {
               var message = "hello world";
               var key = "secret";
               var mac = mac.hmacSha384(message, key);
-              mac == "0a0521b49a65e43c6991c456e5b37bcf44a3225a5e85e16b5e5a18821b41447de49d44ddcb38b3206c9c6952d5aab074";
+              mac == "2da3bb177b92aae98c3ab22727d7f60c905be1baff71fb4b00a6e410923e6558376590c1faf922ff51ec49be77409ac6";
             ```
             """, schema = RETURNS_TEXT)
     public static Value hmacSha384(TextValue message, TextValue key) {
@@ -185,7 +184,7 @@ public class MacFunctionLibrary {
               var message = "hello world";
               var key = "secret";
               var mac = mac.hmacSha512(message, key);
-              mac == "fef74d78b1e0d9180258835c7e855f0c9aa53d07d2a84088d62cef0218df0a3de20e69936a13b9ba0d36fb208aef0c6df6e00bf3a28f936f48faad8e6e8e2e39";
+              mac == "6d32239b01dd1750557211629313d95e4f4fcb8ee517e443990ac1afc7562bfd74ffa6118387efd9e168ff86d1da5cef4a55edc63cc4ba289c4c3a8b4f7bdfc2";
             ```
             """, schema = RETURNS_TEXT)
     public static Value hmacSha512(TextValue message, TextValue key) {
@@ -238,7 +237,7 @@ public class MacFunctionLibrary {
             policy "verify webhook signature"
             permit
               var payload = "webhook payload";
-              var signature = "expected_signature_from_header";
+              var signature = "6266dd07ba2c2586827cde0b05b5a6bb742bbb6fbe11c797d56631211a8a448a";
               var secret = "webhook_secret";
               mac.isValidHmac(payload, signature, secret, "HmacSHA256");
             ```
