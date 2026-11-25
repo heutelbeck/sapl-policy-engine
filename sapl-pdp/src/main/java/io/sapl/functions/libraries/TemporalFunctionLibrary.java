@@ -289,7 +289,7 @@ public class TemporalFunctionLibrary {
     }
 
     private static ChronoUnit parseChronoUnit(TextValue chronoUnit) {
-        val unitStr = chronoUnit.value().trim().toUpperCase();
+        val unitStr = chronoUnit.value().trim().toUpperCase(Locale.ROOT);
         if (unitStr.isBlank()) {
             throw new IllegalArgumentException(ERROR_CHRONO_UNIT_BLANK);
         }

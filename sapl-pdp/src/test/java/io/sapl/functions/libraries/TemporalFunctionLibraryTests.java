@@ -37,6 +37,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Locale;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -149,6 +152,20 @@ class TemporalFunctionLibraryTests {
         assertThat(TemporalFunctionLibrary.between(today, today, today)).isEqualTo(Value.TRUE);
         assertThat(TemporalFunctionLibrary.between(yesterday, yesterday, tomorrow)).isEqualTo(Value.TRUE);
         assertThat(TemporalFunctionLibrary.between(tomorrow, today, tomorrow)).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    @ResourceLock(Resources.LOCALE)
+    void whenTimeUnitIsLowercaseThenUsesSameUnitInTurkishLocale() {
+        val previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            val start = timeValOf("2021-11-08T13:00:00Z");
+            val end   = timeValOf("2021-11-08T15:00:00Z");
+            assertThat(TemporalFunctionLibrary.timeBetween(start, end, Value.of("minutes"))).isEqualTo(Value.of(120));
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 
     @Test
