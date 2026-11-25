@@ -60,6 +60,7 @@ public class DigestFunctionLibrary {
             | `sha384`    | 384-bit | Higher security, fast on 64-bit systems    |
             | `sha512`    | 512-bit | Maximum SHA-2 security                     |
             | `sha3_256`  | 256-bit | Alternative to SHA-2, different construction |
+            | `sha3_384`  | 384-bit | SHA-3 with a 384-bit output                 |
             | `sha3_512`  | 512-bit | Maximum SHA-3 security                     |
             | `md5`       | 128-bit | Legacy only, cryptographically broken     |
             | `sha1`      | 160-bit | Legacy only, cryptographically weak       |
@@ -71,8 +72,7 @@ public class DigestFunctionLibrary {
             ```sapl
             policy "verify document integrity"
             permit
-                action == "download"
-            where
+                action == "download";
                 digest.sha256(resource.content) == resource.expectedHash;
             ```
 
@@ -94,7 +94,7 @@ public class DigestFunctionLibrary {
 
             To bound memory and computation on untrusted input, the following limits apply:
 
-            - Input length is capped at 10000000 characters (10 MB). This applies to every hash function, sha256, sha384, sha512, sha3_256, sha3_384, sha3_512, md5, and sha1. A function returns an error when its input exceeds this length.
+            - Input length is capped at 10000000 UTF-16 code units before UTF-8 encoding. This applies to every hash function, sha256, sha384, sha512, sha3_256, sha3_384, sha3_512, md5, and sha1. A function returns an error when its input exceeds this length.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
