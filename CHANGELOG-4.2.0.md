@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- X.509 Subject Alternative Name output uses RFC 5952 canonical IPv6 text.
+
 - CSV writers reject the entire export when distinct field names in one row collide after formula escaping.
 
 - Decimal values in `pdp.json` variables retain their SAPL precision. For example, a supplied schema with `minimum: 1e-400` now rejects zero. Earlier Java releases could round that minimum to zero when loading the configuration.

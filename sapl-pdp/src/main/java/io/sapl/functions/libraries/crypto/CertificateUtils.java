@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.libraries.crypto;
 
+import inet.ipaddr.IPAddressString;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -35,6 +36,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.CERTIFICATE_TYP
  */
 @UtilityClass
 public class CertificateUtils {
+
+    private static final int SAN_TYPE_IP_ADDRESS = 7;
 
     /**
      * Parses an X.509 certificate from PEM or DER format.
@@ -91,16 +94,26 @@ public class CertificateUtils {
         return rawSans.stream().map(CertificateUtils::toSubjectAlternativeName).toList();
     }
 
-    private static SubjectAlternativeName toSubjectAlternativeName(List<?> rawSan) {
+    static SubjectAlternativeName toSubjectAlternativeName(List<?> rawSan) {
         val type     = (Integer) rawSan.getFirst();
         val rawValue = rawSan.get(1);
         val value    = switch (rawValue) {
-                     case String text -> text;
-                     case byte[] der  -> Base64.getEncoder().encodeToString(der);
-                     case null        -> "";
-                     default          -> rawValue.toString();
+                     case String text when type == SAN_TYPE_IP_ADDRESS -> canonicalIpAddress(text);
+                     case String text                                  -> text;
+                     case byte[] der                                   -> Base64.getEncoder().encodeToString(der);
+                     case null                                         -> "";
+                     default                                           -> rawValue.toString();
                      };
         return new SubjectAlternativeName(type, value);
+    }
+
+    private static String canonicalIpAddress(String text) {
+        // A mask belongs to a prefix record, not a plain IP address.
+        if (text.indexOf(':') < 0 || text.indexOf('/') >= 0) {
+            return text;
+        }
+        val address = new IPAddressString(text).getAddress();
+        return address == null ? text : address.toCanonicalString();
     }
 
     /**

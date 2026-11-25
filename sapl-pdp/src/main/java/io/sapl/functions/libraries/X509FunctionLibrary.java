@@ -80,6 +80,9 @@ public class X509FunctionLibrary {
             Functions for certificate-based access control in mutual TLS (mTLS) and PKI
             scenarios. All functions accept PEM or DER encoded certificates.
 
+            IP addresses in Subject Alternative Names use dotted decimal for IPv4 and
+            lowercase compressed RFC 5952 text for IPv6. IPv4-mapped addresses are represented as IPv4.
+
             ## Function Categories
 
             | Category       | Functions                                            |
