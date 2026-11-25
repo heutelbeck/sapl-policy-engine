@@ -30,8 +30,8 @@ import lombok.val;
 
 /**
  * An immutable semantic version with SemVer 2.0.0 precedence. A lowercase v
- * prefix is accepted. Whitespace is not trimmed. Numeric components and numeric
- * identifiers are limited to 9007199254740991. Build metadata has no precedence.
+ * prefix is accepted. Whitespace is not trimmed. Major, minor and patch are limited to
+ * 9007199254740991. Numeric suffix identifiers have no digit limit. Build metadata has no precedence.
  */
 public final class Version {
     private static final String  ERROR_INVALID_VERSION = "Invalid semantic version: '%s'.";
@@ -196,10 +196,8 @@ public final class Version {
         for (val identifier : identifiers) {
             if (identifier.isEmpty())
                 throw invalid(text);
-            if (numeric(identifier)) {
-                // Build identifiers may contain leading zeros under SemVer 2.0.0.
-                val digits = metadata ? identifier.replaceFirst("^0+(?!$)", "") : identifier;
-                number(digits);
+            if (!metadata && identifier.length() > 1 && identifier.charAt(0) == '0' && numeric(identifier)) {
+                throw invalid(text);
             }
         }
         return identifiers;
@@ -212,8 +210,8 @@ public final class Version {
     private static int compareIdentifier(String first, String second) {
         val firstNumeric  = numeric(first);
         val secondNumeric = numeric(second);
-        if (firstNumeric && secondNumeric)
-            return compare(parseLong(first), parseLong(second));
+        if (firstNumeric && secondNumeric && first.length() != second.length())
+            return Integer.compare(first.length(), second.length());
         if (firstNumeric != secondNumeric)
             return firstNumeric ? -1 : 1;
         return signum(first.compareTo(second));

@@ -121,6 +121,8 @@ class SemVerTests {
         return Stream.of(arguments("release", "1.2.3", "1.2.3", true, false),
                 arguments("initial development", "0.1.0", "0.1.0", false, false),
                 arguments("tagged prerelease", "v1.2.3-alpha.1", "1.2.3-alpha.1", false, true),
+                arguments("large numeric prerelease", "1.2.3-9007199254740992", "1.2.3-9007199254740992", false, true),
+                arguments("large numeric build", "1.2.3+0009007199254740992", "1.2.3+0009007199254740992", true, false),
                 arguments("maximum component", "9007199254740991.0.0", "9007199254740991.0.0", true, false),
                 arguments("build identifiers keep leading zeros", "1.2.3+00001", "1.2.3+00001", true, false));
     }
@@ -135,6 +137,10 @@ class SemVerTests {
     private static Stream<Arguments> precedence() {
         return Stream.of(arguments("prerelease before release", "1.0.0-rc.1", "1.0.0", -1),
                 arguments("numeric identifiers compare numerically", "1.0.0-beta.2", "1.0.0-beta.11", -1),
+                arguments("large numeric identifiers compare by length", "1.0.0-100000000000000000000",
+                        "1.0.0-99999999999999999999", 1),
+                arguments("large numeric identifiers compare by digits", "1.0.0-99999999999999999998",
+                        "1.0.0-99999999999999999999", -1),
                 arguments("mixed identifiers compare in ASCII order", "1.0.0-alpha10", "1.0.0-alpha9", -1),
                 arguments("build metadata has no precedence", "1.0.0+a", "1.0.0+b", 0),
                 arguments("comparison has a unit sign", "1.0.0-a1b2c3", "1.0.0-a1", 1));
@@ -142,6 +148,7 @@ class SemVerTests {
 
     private static Stream<Arguments> ranges() {
         return Stream.of(arguments("comparator conjunction", "1.5.0", ">=1.0.0 <2.0.0", true),
+                arguments("large prerelease comparator", "1.0.0", ">=1.0.0-9007199254740992", true),
                 arguments("zero major caret boundary", "1.0.0", "^0.x", false),
                 arguments("wildcard boundary", "2.0.0", "1.x", false),
                 arguments("tilde patch update", "1.2.9", "~1.2", true),

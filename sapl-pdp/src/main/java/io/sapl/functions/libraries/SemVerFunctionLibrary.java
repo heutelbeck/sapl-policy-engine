@@ -54,7 +54,7 @@ public class SemVerFunctionLibrary {
             - PRERELEASE: Optional pre-release identifier with dot-separated alphanumeric parts (e.g., `alpha`, `beta.1`, `rc.2`)
             - BUILDMETADATA: Optional build metadata with dot-separated alphanumeric parts (e.g., `build.123`, `sha.5114f85`)
 
-            Valid examples include `1.0.0`, `2.3.5-alpha`, and `1.0.0-beta.2+build.456`. Whitespace is not trimmed. Major, minor, patch and every numeric identifier are at most 9007199254740991. Numeric version components and numeric pre-release identifiers cannot have leading zeros. Build identifiers may have leading zeros. Identifiers contain only ASCII letters, digits and hyphens. There is no fixed version length limit.
+            Valid examples include `1.0.0`, `2.3.5-alpha`, and `1.0.0-beta.2+build.456`. Whitespace is not trimmed. Major, minor and patch are at most 9007199254740991. Numeric prerelease and build identifiers have no digit limit. Numeric version components and numeric pre-release identifiers cannot have leading zeros. Build identifiers may have leading zeros. Identifiers contain only ASCII letters, digits and hyphens. There is no fixed version length limit.
 
             The library accepts a lowercase `v` prefix for compatibility with Git tags (e.g., `v1.0.0`). However, uppercase `V` is not supported. While the strict SemVer 2.0.0 specification excludes any prefix, lowercase `v` is widely adopted in version control systems.
 
