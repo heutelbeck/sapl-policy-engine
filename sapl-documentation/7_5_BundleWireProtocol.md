@@ -271,6 +271,13 @@ variants (`secrets.json`, `ext-<name>-secrets.json`) exist for development setup
 only and require the consumer's explicit unencrypted-secrets opt-in. Sealing runs
 before signing, so the manifest signature covers the ciphertext.
 
+Every object in a secrets file must have unique field names, both in local policy
+sources and in bundles. Repeating a name within one object rejects the file and
+reports the filename and field name without its value. The same name may appear
+in different objects, including objects inside an array. This rule also applies
+to plaintext secrets and extension secrets. Ordinary extension configuration
+files keep their existing JSON rules.
+
 #### Required Extensions
 
 Extension files carry configuration for recipients such as a gateway. The

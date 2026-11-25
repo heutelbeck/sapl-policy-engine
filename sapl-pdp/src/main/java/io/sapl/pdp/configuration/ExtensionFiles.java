@@ -19,10 +19,16 @@ package io.sapl.pdp.configuration;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.ObjectReadContext;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.Set;
+import java.util.ArrayDeque;
+import java.util.HashSet;
 
 /**
  * Shared conventions for the supplementary files carried alongside a PDP configuration. Extensions are named JSON
@@ -40,6 +46,7 @@ import java.util.Set;
  * sealed.</li>
  * </ul>
  * An artifact never mixes cleartext and sealed secrets files: either every secrets file is sealed or none is.
+ * Field names within each object of a secrets file must be unique.
  */
 @UtilityClass
 public class ExtensionFiles {
@@ -74,8 +81,38 @@ public class ExtensionFiles {
      */
     public static final String SEALED_SECRETS_FILE = "secrets.sealed.json";
 
+    private static final String ERROR_DUPLICATE_SECRETS_FIELD  = "Secrets file '%s' contains duplicate field '%s'.";
     private static final String ERROR_EXTENSION_FILE_NOT_JSON  = "Extension file '%s' does not contain valid JSON.";
     private static final String ERROR_REQUIRED_WITHOUT_PAYLOAD = "Required extension '%1$s' has no configuration or secrets payload. Provide 'ext-%1$s.json', 'ext-%1$s-secrets.json' or 'ext-%1$s-secrets.sealed.json'.";
+
+    /**
+     * Refuses a repeated field name in one JSON object of a secrets file. Separate
+     * objects may use the same names. The caller still validates the JSON format.
+     *
+     * @param fileName the secrets filename
+     * @param content the original JSON text, before conversion to a Value
+     * @throws PDPConfigurationException if a field name is repeated
+     */
+    public static void rejectDuplicateSecretsFields(String fileName, String content) {
+        try (val parser = ValueJsonMarshaller.JSON_FACTORY.createParser(ObjectReadContext.empty(), content)) {
+            val names = new ArrayDeque<Set<String>>();
+            for (JsonToken token = parser.nextToken(); token != null; token = parser.nextToken()) {
+                switch (token) {
+                case START_OBJECT  -> names.push(new HashSet<>());
+                case END_OBJECT    -> names.pop();
+                case PROPERTY_NAME -> {
+                    val field = parser.currentName();
+                    if (!names.getFirst().add(field)) {
+                        throw new PDPConfigurationException(ERROR_DUPLICATE_SECRETS_FIELD.formatted(fileName, field));
+                    }
+                }
+                default            -> {}
+                }
+            }
+        } catch (JacksonException ignored) {
+            // The caller retains its existing JSON format diagnostics.
+        }
+    }
 
     /**
      * @param fileName

@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Secrets files reject duplicate field names within an object when loaded from local sources or bundles; the error names the file and field.
+
 - XML output requires an object under `root`, repeats array elements, rejects nested arrays and invalid element names, writes null as an empty element, and uses canonical number text.
 
 - X.509 Subject Alternative Name output uses RFC 5952 canonical IPv6 text.

@@ -469,10 +469,13 @@ public class BundleParser {
     }
 
     private Bundle toBundleContent(Map<String, String> content) {
-        val manifestJson           = content.remove(MANIFEST_FILENAME);
-        val pdpJson                = content.remove(PDP_JSON);
-        val plaintextSecrets       = content.remove(ExtensionFiles.SECRETS_FILE);
-        val sealedSecrets          = content.remove(ExtensionFiles.SEALED_SECRETS_FILE);
+        val manifestJson     = content.remove(MANIFEST_FILENAME);
+        val pdpJson          = content.remove(PDP_JSON);
+        val plaintextSecrets = content.remove(ExtensionFiles.SECRETS_FILE);
+        val sealedSecrets    = content.remove(ExtensionFiles.SEALED_SECRETS_FILE);
+        if (plaintextSecrets != null) {
+            ExtensionFiles.rejectDuplicateSecretsFields(ExtensionFiles.SECRETS_FILE, plaintextSecrets);
+        }
         val saplFiles              = new HashMap<String, String>();
         val extensions             = new HashMap<String, String>();
         val extensionSecrets       = new HashMap<String, String>();
@@ -486,6 +489,7 @@ public class BundleParser {
                 requireSealedContent(name, entry.getValue());
                 sealedExtensionSecrets.put(ExtensionFiles.sealedExtensionSecretsNameOf(name), entry.getValue());
             } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
+                ExtensionFiles.rejectDuplicateSecretsFields(name, entry.getValue());
                 extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name), entry.getValue());
             } else if (ExtensionFiles.isExtensionFile(name)) {
                 extensions.put(ExtensionFiles.extensionNameOf(name), entry.getValue());
@@ -512,6 +516,7 @@ public class BundleParser {
     }
 
     private static void requireSealedContent(String name, String content) {
+        ExtensionFiles.rejectDuplicateSecretsFields(name, content);
         if (!ValueSealer.hasSealedShape(Value.ofJson(content))) {
             throw new PDPConfigurationException(ERROR_SEALED_CONTENT_NOT_SEALED.formatted(name));
         }

@@ -251,12 +251,14 @@ public class PDPConfigurationLoader {
             } else if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
                 hasSealed = true;
                 rawFiles.put(name, raw);
+                ExtensionFiles.rejectDuplicateSecretsFields(name, raw);
                 val sealedValue = Value.ofJson(raw);
                 requireSealedContent(name, sealedValue);
                 extensionSecrets.put(ExtensionFiles.sealedExtensionSecretsNameOf(name), sealedValue);
             } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
                 hasPlaintext = true;
                 rawFiles.put(name, raw);
+                ExtensionFiles.rejectDuplicateSecretsFields(name, raw);
                 extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name),
                         ExtensionFiles.requireValidJson(name, Value.ofJson(raw)));
             } else if (ExtensionFiles.isExtensionFile(name)) {
@@ -274,6 +276,7 @@ public class PDPConfigurationLoader {
     }
 
     private static ObjectValue parseSecretsObject(String fileName, String content) {
+        ExtensionFiles.rejectDuplicateSecretsFields(fileName, content);
         if (Value.ofJson(content) instanceof ObjectValue secrets) {
             return secrets;
         }
