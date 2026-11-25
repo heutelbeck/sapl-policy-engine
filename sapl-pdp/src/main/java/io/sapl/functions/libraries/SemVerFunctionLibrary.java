@@ -205,6 +205,12 @@ public class SemVerFunctionLibrary {
             }
             """;
 
+    private static final String SCHEMA_RETURNS_TEXT_OR_NULL = """
+            {
+                "type": ["string", "null"]
+            }
+            """;
+
     /**
      * Parses a semantic version string into components.
      *
@@ -834,7 +840,7 @@ public class SemVerFunctionLibrary {
               var compatible = semver.maxSatisfying(resource.availableVersions, "^2.0.0");
               compatible != null;
             ```
-            """, schema = SCHEMA_RETURNS_TEXT)
+            """, schema = SCHEMA_RETURNS_TEXT_OR_NULL)
     public static Value maxSatisfying(ArrayValue versions, TextValue range) {
         return satisfying(versions, range.value(), true);
     }
@@ -863,7 +869,7 @@ public class SemVerFunctionLibrary {
               var minimum = semver.minSatisfying(resource.supportedVersions, ">=1.0.0");
               semver.isHigherOrEqual(subject.clientVersion, minimum);
             ```
-            """, schema = SCHEMA_RETURNS_TEXT)
+            """, schema = SCHEMA_RETURNS_TEXT_OR_NULL)
     public static Value minSatisfying(ArrayValue versions, TextValue range) {
         return satisfying(versions, range.value(), false);
     }

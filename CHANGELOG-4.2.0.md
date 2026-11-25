@@ -104,6 +104,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- The return schemas for `semver.minSatisfying` and `semver.maxSatisfying` include `null` when no version matches.
+
 - Temporal functions and absolute time attributes accept historical ISO years from -9999 to 9999. Both `-0043` and `-000043` denote 44 BCE. Date and instant results use `-0043`.
 - Rust PDPs now verify Ed448-signed JWTs by default, matching Java PDPs.
 
