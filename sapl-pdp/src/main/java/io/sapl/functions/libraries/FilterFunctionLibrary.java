@@ -54,7 +54,7 @@ public class FilterFunctionLibrary {
             ```sapl
             policy "mask credit card"
             permit
-                action == "view_payment"
+                action == "view_payment";
             transform
                 resource |- {
                     @.cardNumber : filter.blacken(4, 4)
