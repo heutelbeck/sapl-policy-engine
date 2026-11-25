@@ -87,7 +87,6 @@ public class StringFunctionLibrary {
             ```sapl
             policy "tenant resource"
             permit
-            where
                 var resourceKey = string.join([subject.tenant, resource.type, resource.id], ":");
                 resourceKey in subject.accessibleResources;
             ```
