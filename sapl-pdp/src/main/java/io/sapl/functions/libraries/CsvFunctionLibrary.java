@@ -72,8 +72,7 @@ public class CsvFunctionLibrary {
             permit action == "access_resource";
                 var allowlistCsv = resource.config.allowedUsers;
                 var allowlist = csv.csvToVal(allowlistCsv);
-                var usernames = allowlist.map(entry -> entry.username);
-                array.containsAny(usernames, [subject.username]);
+                allowlist[?(@.username == subject.username)] != [];
             ```
 
             Parse permission matrices that define which roles can perform which actions on
@@ -84,12 +83,10 @@ public class CsvFunctionLibrary {
             permit
                 var matrixCsv = environment.permissionMatrix;
                 var matrix = csv.csvToVal(matrixCsv);
-                var matchingEntry = matrix.filter(row ->
-                    row.role == subject.role &&
-                    row.action == action.name &&
-                    row.resourceType == resource.type
-                );
-                !array.isEmpty(matchingEntry);
+                var matches = matrix[?(@.role == subject.role &&
+                                      @.action == action.name &&
+                                      @.resourceType == resource.type)];
+                matches != [];
             ```
 
             Validate bulk operations by parsing uploaded CSV files and checking each row
@@ -100,10 +97,8 @@ public class CsvFunctionLibrary {
             permit action == "import_users";
                 var uploadedCsv = resource.fileContent;
                 var users = csv.csvToVal(uploadedCsv);
-                var invalidUsers = users.filter(user ->
-                    !subject.allowedDomains.contains(user.domain)
-                );
-                array.isEmpty(invalidUsers);
+                var invalidUsers = users[?(!(@.domain in subject.allowedDomains))];
+                invalidUsers == [];
             ```
 
             Generate audit logs as CSV for compliance reporting. Convert policy evaluation
@@ -120,7 +115,7 @@ public class CsvFunctionLibrary {
                         "user": subject.username,
                         "action": action.name,
                         "resource": resource.id,
-                        "timestamp": time.now()
+                        "timestamp": |<time.now>
                     }])
                 }
             ```
@@ -132,11 +127,8 @@ public class CsvFunctionLibrary {
             policy "hierarchical_access"
             permit action == "view_employee_data";
                 var orgStructure = csv.csvToVal(environment.organizationCsv);
-                var subordinates = orgStructure.filter(row ->
-                    row.managerId == subject.employeeId
-                );
-                var subordinateIds = subordinates.map(row -> row.employeeId);
-                array.containsAny(subordinateIds, [resource.employeeId]);
+                orgStructure[?(@.managerId == subject.employeeId &&
+                               @.employeeId == resource.employeeId)] != [];
             ```
 
             Parse configuration tables that map resource types to required permissions.
@@ -147,11 +139,9 @@ public class CsvFunctionLibrary {
             permit
                 var configCsv = environment.resourcePermissionConfig;
                 var config = csv.csvToVal(configCsv);
-                var resourceConfig = config.filter(row ->
-                    row.resourceType == resource.type
-                )[0];
-                var requiredPermissions = resourceConfig.permissions;
-                array.containsAll(subject.permissions, [requiredPermissions]);
+                var matches = config[?(@.resourceType == resource.type)];
+                matches != [];
+                matches[0].permissions in subject.permissions;
             ```
 
             ## Limits
@@ -206,8 +196,7 @@ public class CsvFunctionLibrary {
             permit
                 var csvText = "username,department\\nalice,engineering\\nbob,sales";
                 var users = csv.csvToVal(csvText);
-                var usernames = users.map(u -> u.username);
-                array.containsAny(usernames, [subject.username]);
+                users[?(@.username == subject.username)] != [];
             ```
             """, schema = """
             {
