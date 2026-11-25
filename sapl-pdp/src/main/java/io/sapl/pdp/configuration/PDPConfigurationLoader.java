@@ -49,6 +49,7 @@ import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -133,7 +134,7 @@ public class PDPConfigurationLoader {
     private static final JsonMapper MAPPER = createMapper();
 
     private static JsonMapper createMapper() {
-        return SaplJacksonModule.jsonMapperBuilder()
+        return SaplJacksonModule.jsonMapperBuilder().enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS)
                 .enable(JsonReadFeature.ALLOW_JAVA_COMMENTS, JsonReadFeature.ALLOW_YAML_COMMENTS).build();
     }
 

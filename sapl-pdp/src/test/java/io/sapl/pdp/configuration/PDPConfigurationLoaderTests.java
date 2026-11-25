@@ -511,6 +511,17 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
+    void whenLoadingDecimalVariablesThenSchemaBoundsRetainTheirExactValues() {
+        val schemas = """
+                [{"$id":"urn:example:amount","minimum":1e-400,"maximum":1.0000000000000001}]
+                """;
+        val config  = PDPConfigurationLoader.loadFromContent("{\"variables\":{\"schemas\":" + schemas + "}}", Map.of(),
+                "test-pdp", "/policies");
+
+        assertThat(config.data().variables()).containsEntry("schemas", Value.ofJson(schemas));
+    }
+
+    @Test
     void whenLoadingFromContentWithInvalidJsonThenThrowsException() {
         val emptyMap = Map.<String, String>of();
         assertThatThrownBy(

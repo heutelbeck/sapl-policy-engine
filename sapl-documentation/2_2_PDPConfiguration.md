@@ -20,6 +20,8 @@ For a detailed explanation of each algorithm and guidance on choosing one, see [
 
 Variables are optional key-value pairs available to all policies during evaluation. They are constant-folded into the constants stratum at compilation time (see [Evaluation Semantics](../2_11_EvaluationSemantics/#the-three-strata)), making them as cheap to evaluate as literal values.
 
+Decimal literals in `variables` retain their SAPL numeric value, including in supplied schemas. A configured `minimum` of `1e-400` therefore excludes zero.
+
 Common uses include:
 
 - **Feature flags and tenant identifiers**: Values that policies need but that do not belong in the authorization subscription.
