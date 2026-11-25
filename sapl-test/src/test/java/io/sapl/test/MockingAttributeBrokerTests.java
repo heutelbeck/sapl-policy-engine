@@ -161,6 +161,85 @@ class MockingAttributeBrokerTests {
                 .containsExactlyInAnyOrder(Value.of(0), Value.of(0));
     }
 
+    @Test
+    @DisplayName("a known input can retract a newly pending dependency")
+    void whenKnownInputChangesThenPendingDependencyCanBeRemoved() {
+        broker.mockEnvironmentAttribute("a", "desk.a", args(), Value.of(0));
+        broker.mockEnvironmentAttribute("b", "desk.b", args());
+        val first   = envKey("desk.a");
+        val pending = envKey("desk.b");
+        val values  = new ArrayList<Value>();
+        broker.open("reader", Set.of(first), current -> {
+            val value = current.get(first).value();
+            values.add(value);
+            return Value.of(0).equals(value) ? Set.of(first) : Set.of(first, pending);
+        });
+
+        broker.emit("a", Value.of(1));
+        broker.emit("a", Value.of(0));
+        assertThat(values).containsExactly(Value.of(0), Value.of(1), Value.of(0));
+
+        broker.emit("b", Value.of(1));
+        assertThat(values).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("new first arrivals wait for their group while captured inputs can advance")
+    void whenFirstArrivalsArePartialThenOnlyCapturedInputsAdvanceThePendingGroup() {
+        broker.mockEnvironmentAttribute("a", "desk.a", args(), Value.of(0));
+        broker.mockEnvironmentAttribute("b", "desk.b", args());
+        broker.mockEnvironmentAttribute("c", "desk.c", args());
+        val first     = envKey("desk.a");
+        val second    = envKey("desk.b");
+        val third     = envKey("desk.c");
+        val callbacks = new AtomicInteger();
+        broker.open("reader", Set.of(first), current -> {
+            callbacks.incrementAndGet();
+            return Value.of(0).equals(current.get(first).value()) ? Set.of(first) : Set.of(first, second, third);
+        });
+
+        broker.emit("a", Value.of(1));
+        broker.emit("b", Value.of(0));
+        assertThat(callbacks).hasValue(2);
+
+        broker.emit("a", Value.of(2));
+        broker.emit("b", Value.of(1));
+        assertThat(callbacks).hasValue(4);
+
+        broker.emit("c", Value.of(1));
+        assertThat(callbacks).hasValue(5);
+    }
+
+    @Test
+    @DisplayName("a removed input must be captured again before it can advance a new pending group")
+    void whenCapturedKeyIsRemovedThenItsNextLifetimeStartsUncaptured() {
+        broker.mockEnvironmentAttribute("a", "desk.a", args(), Value.of(0));
+        broker.mockEnvironmentAttribute("b", "desk.b", args());
+        broker.mockEnvironmentAttribute("c", "desk.c", args());
+        val first     = envKey("desk.a");
+        val second    = envKey("desk.b");
+        val third     = envKey("desk.c");
+        val callbacks = new AtomicInteger();
+        broker.open("reader", Set.of(first), current -> {
+            callbacks.incrementAndGet();
+            if (Value.of(0).equals(current.get(first).value())) {
+                return Set.of(first);
+            }
+            if (Value.of(1).equals(current.get(first).value())) {
+                return current.containsKey(second) ? Set.of(first) : Set.of(first, second);
+            }
+            return Set.of(first, second, third);
+        });
+        broker.emit("a", Value.of(1));
+        broker.emit("b", Value.of(1));
+        broker.emit("a", Value.of(2));
+        broker.emit("b", Value.of(2));
+        assertThat(callbacks).hasValue(4);
+
+        broker.emit("c", Value.of(1));
+        assertThat(callbacks).hasValue(5);
+    }
+
     @Nested
     @DisplayName("Mock registration validation")
     class MockRegistrationValidation {

@@ -64,6 +64,7 @@ import java.util.function.Function;
  * for registered-with-initial, mock current value for matched mocks)
  * cause the callback to fire once more so the consumer observes the
  * new mailbox state, provided the gate is open after the new bindings.
+ * Updates of inputs already captured by a reader can advance it while new inputs remain pending.
  * <p>
  * State mutations and reads are guarded by the broker's intrinsic lock.
  * Callbacks fire outside the lock so consumer-side close, evaluation,
@@ -402,7 +403,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
             if (!sub.gateOpen && sub.allDepsFulfilled()) {
                 sub.gateOpen = true;
                 toFire.add(sub);
-            } else if (sub.gateOpen) {
+            } else if (sub.gateOpen || sub.knownKeys.contains(key)) {
                 toFire.add(sub);
             }
         }
@@ -428,13 +429,24 @@ public final class MockingAttributeBroker implements AttributeBroker {
     private List<SubscriptionImpl> collectFireable(String mockId) {
         val toFire = new ArrayList<SubscriptionImpl>();
         for (val sub : subs.values()) {
-            if (sub.closed || sub.deps.stream().noneMatch(key -> mockId.equals(keyToMockId.get(key)))) {
+            if (sub.closed) {
+                continue;
+            }
+            boolean affected = false;
+            boolean known    = false;
+            for (val key : sub.deps) {
+                if (mockId.equals(keyToMockId.get(key))) {
+                    affected  = true;
+                    known    |= sub.knownKeys.contains(key);
+                }
+            }
+            if (!affected) {
                 continue;
             }
             if (!sub.gateOpen && sub.allDepsFulfilled()) {
                 sub.gateOpen = true;
                 toFire.add(sub);
-            } else if (sub.gateOpen) {
+            } else if (sub.gateOpen || known) {
                 toFire.add(sub);
             }
         }
@@ -523,6 +535,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
         final String                                                                  id;
         final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
         Set<SubscriptionKey>                                                          deps;
+        final Set<SubscriptionKey>                                                    knownKeys = new HashSet<>();
         boolean                                                                       gateOpen;
         boolean                                                                       closed;
 
@@ -573,7 +586,8 @@ public final class MockingAttributeBroker implements AttributeBroker {
                     return;
                 }
                 snapshot = currentSnapshot();
-                cb       = onUpdate;
+                knownKeys.addAll(snapshot.keySet());
+                cb = onUpdate;
             }
             val newDeps = cb.apply(snapshot);
             if (newDeps == null || newDeps.isEmpty()) {
@@ -584,6 +598,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
                 if (closed) {
                     return;
                 }
+                knownKeys.retainAll(newDeps);
                 if (newDeps.equals(deps)) {
                     refire = false;
                 } else {

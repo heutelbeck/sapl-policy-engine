@@ -21,6 +21,7 @@ import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.A
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 import static io.sapl.api.stream.Streams.just;
+import static io.sapl.test.Matchers.args;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -28,6 +29,9 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Duration;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,11 +43,13 @@ import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.api.stream.Stream;
+import io.sapl.api.stream.QueueStream;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.test.plain.PlainTestAdapter;
 import io.sapl.test.plain.SaplDocument;
@@ -62,6 +68,41 @@ class AttributeVerificationTests {
     private static final String TWO_STREAM_POLICY_PATH = "/attribute-verification-tests/two-stream-policy.sapl";
     private static final String POSITIVE_TESTS_PATH    = "/attribute-verification-tests/attribute-verification-positive.sapltest";
     private static final String NEGATIVE_TESTS_PATH    = "/attribute-verification-tests/attribute-verification-negative.sapltest";
+
+    @Test
+    @DisplayName("a changed known mock releases an unneeded pending finder before the script ends")
+    void whenKnownMockChangesThenPendingFinderIsReleasedBeforeTheScriptEnds() {
+        val pending         = new PendingFinder();
+        val closedBeforeEnd = new AtomicBoolean();
+        val result          = SaplTestFixture.createSingleTest().withCoverageFileWriteDisabled()
+                .withLowLatencyMode(false).withPolicy("policy \"p\" permit <desk.a> == 0 || <waiting.value> == 1;")
+                .withPolicyInformationPoint(pending).givenEnvironmentAttribute("a", "desk.a", args(), Value.of(0))
+                .whenDecide(AuthorizationSubscription.of("user", "read", "document")).expectPermit()
+                .thenEmit("a", Value.of(1)).thenEmit("a", Value.of(0)).expectPermit().thenEmit("a", Value.of(0))
+                .expectDecisionMatches(decision -> {
+                                        closedBeforeEnd.set(pending.closes.get() == 1);
+                                        return decision.decision() == Decision.PERMIT;
+                                    })
+                .verify(Duration.ofSeconds(1));
+
+        assertThat(result.passed()).isTrue();
+        assertThat(pending.opens).hasValue(1);
+        assertThat(closedBeforeEnd).isTrue();
+    }
+
+    @PolicyInformationPoint(name = "waiting")
+    public static class PendingFinder {
+        private final AtomicInteger opens  = new AtomicInteger();
+        private final AtomicInteger closes = new AtomicInteger();
+
+        @EnvironmentAttribute(docs = "A local source that has no initial observation.")
+        public Stream<Value> value() {
+            opens.incrementAndGet();
+            val source = new QueueStream<Value>();
+            source.onClose(closes::incrementAndGet);
+            return source;
+        }
+    }
 
     @Test
     void allPositiveAttributeVerificationTestsShouldPass() {

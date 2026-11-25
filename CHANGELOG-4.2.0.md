@@ -168,6 +168,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- SAPLTest reevaluates changed known inputs while newly requested attributes are still pending, releasing dependencies that become unnecessary.
+
 - SAPLTest mock publications notify only readers of the affected attribute keys, preserving repeated updates on live readers.
 
 - SAPLTest validates names and regex patterns in single-quoted strings in the same way as double-quoted strings.
