@@ -432,4 +432,41 @@ class CsvFunctionLibraryTests {
                 arguments("object", ObjectValue.builder().put("enabled", Value.of(true)).build()));
     }
 
+    @MethodSource("csvProfileRecords")
+    @DisplayName("CSV records preserve field text while skipping empty records")
+    @ParameterizedTest(name = "{0}")
+    void whenCsvRecordsAreReadThenOnlyEmptyRecordsAreSkipped(String name, String csv, String expectedJson) {
+        val expected = ValueJsonMarshaller.json(expectedJson);
+        assertThat(CsvFunctionLibrary.csvToVal(Value.of(csv))).as(name).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> csvProfileRecords() {
+        return Stream.of(
+                arguments("BOM and blank records", "\uFEFF\r\n\na\r\n1\r\n\r\n2\r\n", "[{\"a\":\"1\"},{\"a\":\"2\"}]"),
+                arguments("space after closing quote", "a\n\"x\" \n\"y\"\t\n", "[{\"a\":\"x\"},{\"a\":\"y\"}]"),
+                arguments("quoted empty", "a\n\"\"\n", "[{\"a\":\"\"}]"),
+                arguments("field spaces", "a\n first \n \nlast\n",
+                        "[{\"a\":\" first \"},{\"a\":\" \"},{\"a\":\"last\"}]"),
+                arguments("quoted line breaks", "a\r\n\"x\r\ny\"\r\n\r\nz", "[{\"a\":\"x\\r\\ny\"},{\"a\":\"z\"}]"),
+                arguments("Unicode and empty records", "a\n\u00e4\ud83d\ude42\n\nlast",
+                        "[{\"a\":\"\u00e4\ud83d\ude42\"},{\"a\":\"last\"}]"),
+                arguments("lone carriage return", "a\r1\r\r2", "[{\"a\":\"1\"},{\"a\":\"2\"}]"),
+                arguments("trailing blank", "a\n1\n\n", "[{\"a\":\"1\"}]"));
+    }
+
+    @ValueSource(strings = { "a,a\n1,2", "a,a\n", " a ,a\n1,2", "\"a\",a\n1,2", " \n1", ",\n1,2" })
+    @DisplayName("CSV headers must be distinct and nonempty after trimming")
+    @ParameterizedTest(name = "rejects header in {0}")
+    void whenCsvHeadersAreDuplicateOrEmptyThenReadingReturnsError(String csv) {
+        assertThat(CsvFunctionLibrary.csvToVal(Value.of(csv))).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    @DisplayName("CSV records end in CRLF while embedded line breaks remain unchanged")
+    void whenCsvIsWrittenThenRecordsEndInCrlf() {
+        val rows = ArrayValue.builder().add(ObjectValue.builder().put("note", Value.of("first\r\nsecond")).build())
+                .build();
+        assertThat(CsvFunctionLibrary.valToCsv(rows)).isEqualTo(Value.of("note\r\n\"first\r\nsecond\"\r\n"));
+    }
+
 }

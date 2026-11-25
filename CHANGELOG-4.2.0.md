@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- CSV readers skip empty records, remove a leading byte order mark and reject duplicate headers. Writers end every record with CRLF.
+
 - `geo.geoDistance` accepts ASCII case variants of the `CRS:84` alias. A Unicode lookalike such as `CRſ:84` now produces the same unknown-coordinate-system error as other unsupported codes.
 
 - `yaml.yamlToVal` rejects `!!null " "` as an invalid null value instead of returning null.
