@@ -545,6 +545,49 @@ class SAPLTestValidatorTests {
         assertThatCode(() -> validate(document)).doesNotThrowAnyException();
     }
 
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("duplicate names use decoded values for both string delimiters")
+    void whenNamesHaveDifferentQuotesThenDuplicatesAreReported(String description, String source) {
+        assertThat(validate(source)).hasSize(1);
+    }
+
+    static Stream<Arguments> whenNamesHaveDifferentQuotesThenDuplicatesAreReported() {
+        return Stream.of(arguments("requirement", """
+                requirement "shared" { scenario "first" when 1 attempts 2 on 3 expect permit; }
+                requirement 'shared' { scenario "second" when 1 attempts 2 on 3 expect permit; }
+                """), arguments("scenario", """
+                requirement "shared" {
+                    scenario "same" when 1 attempts 2 on 3 expect permit;
+                    scenario 'same' when 1 attempts 2 on 3 expect permit;
+                }
+                """), arguments("escaped scenario", """
+                requirement "shared" {
+                    scenario "a'b" when 1 attempts 2 on 3 expect permit;
+                    scenario 'a\\'b' when 1 attempts 2 on 3 expect permit;
+                }
+                """));
+    }
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("regex validation decodes either string delimiter")
+    void whenRegexHasEitherQuoteThenTheDecodedPatternIsValidated(String literal, int errorCount) {
+        var document = """
+                requirement "pattern" {
+                    scenario "check" when "aaa" attempts null on null
+                    expect decision with resource matching text with regex %s;
+                }
+                """.formatted(literal);
+
+        assertThat(validate(document)).hasSize(errorCount);
+    }
+
+    static Stream<Arguments> whenRegexHasEitherQuoteThenTheDecodedPatternIsValidated() {
+        return Stream.of(arguments("'*'", 1), arguments("\"*\"", 1), arguments("'a+'", 0), arguments("\"a+\"", 0),
+                arguments("'\\\\d+'", 0));
+    }
+
     private List<ValidationError> validate(String document) {
         var parseTree = parse(document);
         return validator.validate(parseTree);

@@ -38,7 +38,8 @@ import io.sapl.test.grammar.antlr.SAPLTestParser.StringWithLengthContext;
 import io.sapl.test.grammar.antlr.SAPLTestParserBaseListener;
 
 /**
- * Semantic validator for SAPLTest documents. Validates constraints that cannot
+ * Semantic validator for SAPLTest documents. Both string delimiters denote the same
+ * decoded names and regex patterns. Validates constraints that cannot
  * be expressed in the grammar alone.
  */
 public class SAPLTestValidator {
@@ -172,7 +173,8 @@ public class SAPLTestValidator {
     }
 
     private String unquote(String text) {
-        if (text != null && text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
+        if (text != null && text.length() >= 2
+                && ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'")))) {
             return unescape(text.substring(1, text.length() - 1));
         }
         return text;

@@ -168,6 +168,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- SAPLTest validates names and regex patterns in single-quoted strings in the same way as double-quoted strings.
+
 - SAPLTest case-insensitive text containment, prefix and suffix matchers no longer depend on the JVM default locale.
 
 - Shared text-format size errors report their limits using the same digits in every JVM locale.
