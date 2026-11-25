@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `geo.geoDistance` accepts ASCII case variants of the `CRS:84` alias. A Unicode lookalike such as `CRſ:84` now produces the same unknown-coordinate-system error as other unsupported codes.
+
 - `yaml.yamlToVal` rejects `!!null " "` as an invalid null value instead of returning null.
 
 - CSV output cells must be text, numbers, booleans or null, including cells overwritten by normalized keys. Arrays, objects, undefined and errors are rejected. Public CSV SDK calls return an error for unsupported cells instead of throwing an argument exception.

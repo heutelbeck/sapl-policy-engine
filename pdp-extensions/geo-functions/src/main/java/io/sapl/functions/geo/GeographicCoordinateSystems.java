@@ -29,12 +29,12 @@ import io.sapl.functions.geo.GeographicFunctionLibrary.GeometryProblem;
 @UtilityClass
 class GeographicCoordinateSystems {
     static DefaultEllipsoid ellipsoidOf(String code) {
-        if ("CRS:84".equalsIgnoreCase(code)) {
+        val ascii = code.chars().allMatch(character -> character < 128);
+        if (ascii && "CRS:84".equalsIgnoreCase(code)) {
             return ellipsoidOf("EPSG:4326");
         }
         val parts = code.toUpperCase(Locale.ROOT).split(":", -1);
-        if (!code.chars().allMatch(character -> character < 128) || parts.length != 2 || !"EPSG".equals(parts[0])
-                || !parts[1].matches("[0-9]+")) {
+        if (!ascii || parts.length != 2 || !"EPSG".equals(parts[0]) || !parts[1].matches("[0-9]+")) {
             throw new GeometryProblem(ERROR_UNSUPPORTED_CRS.formatted(code));
         }
         final int number;

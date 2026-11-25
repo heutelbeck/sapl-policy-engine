@@ -25,6 +25,7 @@ import lombok.SneakyThrows;
 import lombok.val;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.referencing.CRS;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -456,6 +457,16 @@ class GeographicFunctionLibraryTests {
         val actualDistance = geoDistance(st, de, (TextValue) crs);
         assertThat(actualDistance).isInstanceOf(NumberValue.class);
         assertThat(((NumberValue) actualDistance).value().doubleValue()).isGreaterThan(0.1);
+    }
+
+    @Test
+    @DisplayName("The CRS:84 alias accepts ASCII case variants and rejects the long s")
+    void whenCrsAliasUsesALongSThenGeoDistanceRejectsIt() {
+        val alias = Value.of("CRſ:84");
+        assertThat(geoDistance(POINT_1_2, POINT_10_12, alias))
+                .isEqualTo(Value.error(ERROR_UNSUPPORTED_CRS.formatted(alias.value())));
+        assertThat(geoDistance(POINT_1_2, POINT_10_12, Value.of("crs:84")))
+                .isEqualTo(geoDistance(POINT_1_2, POINT_10_12, Value.of(WGS84)));
     }
 
     @Test

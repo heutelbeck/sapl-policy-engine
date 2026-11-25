@@ -78,6 +78,8 @@ public class GeographicFunctionLibrary {
             5. **Collection Operations:** Combine, subset, and test membership of geometries within collections.
             6. **Unit Conversions:** Convert measurements between units such as miles, yards, and degrees into meters.
             7. **Format Conversions:** Parse and convert geographic data between KML, GML, WKT, and GeoJSON formats.
+               KML and GML accept spaces, tabs and line breaks between coordinate tuples. In a GML `coordinates` element,
+               the `ts` attribute can declare a different separator, including a nonbreaking space.
 
             ## GeoJSON Format
             GeoJSON is a widely used format for encoding geographic data structures. It supports:
@@ -1097,7 +1099,7 @@ public class GeographicFunctionLibrary {
 
             - `thisGeometry`: A geometry object in GeoJSON format.
             - `thatGeometry`: Another geometry object in GeoJSON format.
-            - `coordinateReferenceSystem`: A coordinate system, such as WGS84, i.e. `"EPSG:4326"`.
+            - `coordinateReferenceSystem`: A supported geographic EPSG code or the WGS84 alias `CRS:84`. ASCII letter case is ignored.
               Also see: (https://epsg.io).
 
             **Output:**
