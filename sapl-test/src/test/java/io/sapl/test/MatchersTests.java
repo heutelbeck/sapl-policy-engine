@@ -451,7 +451,7 @@ class MatchersTests {
     @ResourceLock(Resources.LOCALE)
     @ParameterizedTest(name = "{0} with {1}: contains={2}, starts={3}, ends={4}")
     @DisplayName("Case-insensitive text matchers are independent of the default locale")
-    void whenCaseInsensitiveTextMatchersRun_thenDefaultLocaleDoesNotChangeTheirResults(String actual, String query,
+    void whenCaseInsensitiveTextMatchersRunThenDefaultLocaleDoesNotChangeTheirResults(String actual, String query,
             boolean contains, boolean starts, boolean ends) {
         val previous = Locale.getDefault();
         try {
