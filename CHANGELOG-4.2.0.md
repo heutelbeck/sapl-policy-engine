@@ -20,6 +20,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - `yaml.yamlToVal` reads YAML 1.2 core scalars and exact decimals, resolves aliases to their values, and rejects unsupported tags. Empty YAML values now produce SAPL null.
 
+- Schemas loaded through an active dynamic reference now check unused ordinary references before returning a validation result.
+
 - Use `graph.reachablePaths` for shortest paths. The deprecated `graph.reachable_paths` alias remains available. Path-limit errors now identify the maximum number of path steps.
 
 - Graph closures now list reachable nodes in graph key order, followed by neighbor-only nodes in first-mention order. This changes closure arrays, the key order of closure sets, and the order of projected attributes.

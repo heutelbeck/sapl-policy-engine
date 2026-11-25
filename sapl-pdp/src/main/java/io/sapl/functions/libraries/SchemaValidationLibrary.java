@@ -420,7 +420,7 @@ public class SchemaValidationLibrary {
 
         try {
             val registry  = JsonSchemaPreparation.registry(externalSchemas);
-            val validator = JsonSchemaPreparation.prepare(registry, jsonSchema);
+            val validator = JsonSchemaPreparation.prepareValidation(registry, jsonSchema);
             if (validationSubject instanceof UndefinedValue) {
                 return createValidationResult(false, List.of());
             }

@@ -23,6 +23,7 @@ import com.networknt.schema.dialect.Dialect;
 import com.networknt.schema.keyword.PatternValidator;
 import io.sapl.api.model.*;
 import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.JsonSchemaPreparation;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -666,6 +668,67 @@ class SchemaValidationLibraryTests {
         assertThat(isCompliantWithExternalSchemas(subject, schema, resources)).isEqualTo(Value.of(valid));
         assertThat(validateWithExternalSchemas(subject, schema, resources)).isInstanceOfSatisfying(ObjectValue.class,
                 report -> assertThat(report.get("valid")).isEqualTo(Value.of(valid)));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "$ref", "$dynamicRef" })
+    @DisplayName("a loaded supplied resource cannot hide an unresolved ordinary reference in an unused definition")
+    void whenALoadedResourceHasAnUnusedOrdinaryReferenceThenValidationReportsAnError(String keyword) {
+        val schema    = ObjectValue.builder().put("$schema", Value.of("https://json-schema.org/draft/2020-12/schema"))
+                .put(keyword, Value.of("urn:example:active")).build();
+        val resources = json("""
+                [{"$id":"urn:example:active","type":"string",
+                  "$defs":{"unused":{"$ref":"urn:example:missing"}}}]
+                """);
+        val subject   = Value.of("text");
+        val results   = List.of(isCompliantWithExternalSchemas(subject, schema, resources),
+                validateWithExternalSchemas(subject, schema, resources));
+        assertThat(results).allSatisfy(value -> assertThat(value).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("urn:example:missing")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("dynamicResourceCapabilities")
+    @DisplayName("prepared validation distinguishes local and ignored references from possible external activation")
+    void whenSchemaIsPreparedThenDynamicResourceChecksFollowItsCapabilities(String description, String source,
+            String external, String subject, boolean dynamicResources, boolean valid) {
+        val registry = JsonSchemaPreparation.registry(json(external));
+        val prepared = JsonSchemaPreparation.prepareValidation(registry, (ObjectValue) json(source));
+        assertThat(prepared.dynamicResources()).isEqualTo(dynamicResources);
+        assertThat(prepared.validate(ValueJsonMarshaller.toJsonNode(json(subject))).isEmpty()).isEqualTo(valid);
+    }
+
+    static Stream<Arguments> dynamicResourceCapabilities() {
+        val provided = """
+                [{"$id":"urn:example:active","type":"string"}]
+                """;
+        return Stream.of(arguments("ordinary schema", """
+                {"type":"string"}
+                """, "[]", "\"text\"", false, true), arguments("local dynamic anchor", """
+                {"$dynamicRef":"#kind","$defs":{"code":{"$dynamicAnchor":"kind","type":"string"}}}
+                """, "[]", "\"text\"", false, true), arguments("legacy annotation", """
+                {"$schema":"http://json-schema.org/draft-04/schema#","$dynamicRef":"urn:example:absent"}
+                """, "[]", "\"text\"", false, true), arguments("dynamic target behind ordinary reference", """
+                {"$ref":"urn:example:outer"}
+                """, """
+                [{"$id":"urn:example:outer","$dynamicRef":"urn:example:active"},
+                 {"$id":"urn:example:active","type":"string"}]
+                """, "\"text\"", true, true), arguments("local fragment reaches an ordinary then dynamic reference", """
+                {"$dynamicRef":"#/$defs/start","$defs":{"start":{"$ref":"urn:example:outer"}}}
+                """, """
+                [{"$id":"urn:example:outer","$dynamicRef":"urn:example:active"},
+                 {"$id":"urn:example:active","type":"string"}]
+                """, "\"text\"", true, true), arguments("nested dynamic reference", """
+                {"properties":{"child":{"$dynamicRef":"urn:example:active"}}}
+                """, provided, """
+                {"child":12}
+                """, true, false), arguments("explicit modern subschema in a legacy resource", """
+                {"$schema":"http://json-schema.org/draft-04/schema#",
+                 "properties":{"child":{"$schema":"https://json-schema.org/draft/2020-12/schema",
+                   "$dynamicRef":"urn:example:active"}}}
+                """, provided, """
+                {"child":12}
+                """, true, false));
     }
 
 }

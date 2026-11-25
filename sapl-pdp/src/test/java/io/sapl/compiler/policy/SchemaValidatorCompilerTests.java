@@ -23,6 +23,7 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedElementValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
 import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.JsonSchemaPreparation.PreparedValidation;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaException;
 import lombok.val;
@@ -742,8 +743,8 @@ class SchemaValidatorCompilerTests {
             val throwingSchema = mock(Schema.class);
             when(throwingSchema.validate(any(JsonNode.class)))
                     .thenThrow(new SchemaException(new IllegalStateException("boom")));
-            val validator = new PrecompiledSchemaValidator(SubscriptionElement.SUBJECT, STRING_SCHEMA, throwingSchema,
-                    LinearRegex.DEFAULT_MAX_TEXT_BYTES, TEST_LOCATION);
+            val validator = new PrecompiledSchemaValidator(SubscriptionElement.SUBJECT, STRING_SCHEMA,
+                    new PreparedValidation(throwingSchema, false), LinearRegex.DEFAULT_MAX_TEXT_BYTES, TEST_LOCATION);
             val ctx       = subscriptionContext("""
                     { "subject": "anything", "action": "read", "resource": "data" }
                     """);
@@ -781,4 +782,25 @@ class SchemaValidatorCompilerTests {
                     .containsExactly(4479095267155628887L, 4479095267155628887L);
         }
     }
+
+    @Test
+    @DisplayName("an unresolved ordinary reference in a dynamically loaded resource remains an error on reuse")
+    void whenADynamicallyLoadedResourceHasAnUnusedReferenceThenEveryEvaluationReportsAnError() {
+        val schema    = json("""
+                {"$schema":"https://json-schema.org/draft/2020-12/schema","$dynamicRef":"urn:example:active"}
+                """);
+        val resources = json("""
+                [{"$id":"urn:example:active","type":"string",
+                  "$defs":{"unused":{"$ref":"urn:example:missing"}}}]
+                """);
+        val context   = compilationContext((ObjectValue) obj("schemas", resources));
+        val validator = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, schema)), context);
+        val request   = subscriptionContext("""
+                {"subject":"text","action":"read","resource":"data"}
+                """);
+        val results   = List.of(evaluate(validator, request), evaluate(validator, request));
+        assertThat(results).allSatisfy(value -> assertThat(value).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).contains("urn:example:missing")));
+    }
+
 }
