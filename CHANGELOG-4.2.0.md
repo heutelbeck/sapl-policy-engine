@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Graph closures now list reachable nodes in graph key order, followed by neighbor-only nodes in first-mention order. This changes closure arrays, the key order of closure sets, and the order of projected attributes.
+
 - String lengths, search and substring indices, padding, and `standard.length` on text count Unicode code points. Supplementary characters count once and are not split. Explicit text size limits still count UTF-16 code units.
 - Indeterminate `unique`, `unanimous`, and `unanimous strict` policy sets retain applicable effects across constant, subscription, and streaming evaluation. An enclosing priority voter can now classify a previously missed effect as critical.
 - Java record patterns for `EvaluationContext`, `BranchHit`, the AST record `PolicySet`, and the `Coverage` records `PolicyCoverage`, `PolicySetCoverage`, `BodyCoverage` and `ConditionHit` must include their new components. The previous constructors remain available.

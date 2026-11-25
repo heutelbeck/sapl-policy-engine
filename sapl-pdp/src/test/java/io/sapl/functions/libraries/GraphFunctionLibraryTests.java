@@ -40,6 +40,37 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class GraphFunctionLibraryTests {
 
     @Test
+    void whenClosureIncludesReferencedNodesThenRowsFollowGraphKeysAndFirstReferences() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {"reader":["guest","archive","auditor"], "auditor":["reader"],
+                 "archive":["external","guest"], "unused":[]}
+                """);
+        val rows  = (ObjectValue) GraphFunctionLibrary.transitiveClosure(graph);
+        val sets  = (ObjectValue) GraphFunctionLibrary.transitiveClosureSet(graph);
+
+        assertThat((ArrayValue) rows.get("reader")).containsExactly(Value.of("reader"), Value.of("auditor"),
+                Value.of("archive"), Value.of("guest"), Value.of("external"));
+        assertThat(rows.get("auditor")).isEqualTo(rows.get("reader"));
+        assertThat(((ObjectValue) sets.get("reader")).keySet()).containsExactly("reader", "auditor", "archive", "guest",
+                "external");
+    }
+
+    @Test
+    void whenProjectionFlattensAttributesThenItPreservesGraphAndAttributeOrder() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {"reader":{"links":["guest","archive","auditor"],"attributes":{"role":["read","read"]}},
+                 "auditor":{"links":["reader"],"attributes":{"role":"audit"}},
+                 "archive":{"links":["external"],"attributes":{"role":"archive"}}}
+                """);
+        val rows  = (ObjectValue) GraphFunctionLibrary.transitiveClosureProjection(graph, Value.of("links"),
+                Value.of("role"));
+
+        assertThat(rows.keySet()).containsExactly("reader", "auditor", "archive", "guest", "external");
+        assertThat((ArrayValue) rows.get("reader")).containsExactly(Value.of("read"), Value.of("read"),
+                Value.of("audit"), Value.of("archive"));
+    }
+
+    @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.load(new GraphFunctionLibrary())).doesNotThrowAnyException();
