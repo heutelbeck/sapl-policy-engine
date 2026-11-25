@@ -92,6 +92,8 @@ public class GeographicFunctionLibrary {
             - **GeometryCollection:** Groups multiple geometries into a single structure.
 
             Inputs must be geometries, not Feature or FeatureCollection objects. Each position has at least two numbers.
+            All members, including extra data, must be JSON values without embedded errors or undefined.
+            Legacy `crs` numeric codes use ASCII decimal digits.
             Results are RFC 7946 geometries without a `crs` member. Empty coordinate arrays represent empty geometries.
             Distances require nonempty geometries. Geodesic distances use longitude and latitude in degrees.
 
@@ -1813,6 +1815,13 @@ public class GeographicFunctionLibrary {
             throw new GeometryProblem(ERROR_GEOMETRY_INPUT_TOO_LARGE.formatted(MAX_GEO_INPUT_BYTES));
         }
         requireGeometryPositions(geoJson);
+        if (geoJson.get("crs") instanceof ObjectValue crs && crs.get("properties") instanceof ObjectValue properties
+                && properties.get("name") instanceof TextValue(String name)) {
+            val parts = name.split(":", 3);
+            if (parts.length > 1 && parts[1].chars().anyMatch(character -> character > 0x7F)) {
+                throw new GeometryProblem(ERROR_INVALID_GEOJSON);
+            }
+        }
         val geometry = GEOJSON_READER.read(json);
         requireComplexityWithinBounds(geometry);
         return geometry;
