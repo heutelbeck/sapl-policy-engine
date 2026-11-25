@@ -62,8 +62,7 @@ public class UnitsFunctionLibrary {
             ```sapl
             policy "enforce upload limit"
             permit
-                action == "upload"
-            where
+                action == "upload";
                 units.parseBytes(resource.size) <= units.parseBytes(subject.quota);
             ```
 
@@ -77,7 +76,6 @@ public class UnitsFunctionLibrary {
             ```sapl
             policy "bandwidth check"
             permit
-            where
                 var limit = units.parse(environment.rateLimit);
                 var usage = units.parse(subject.currentUsage);
                 usage < limit;
@@ -186,7 +184,7 @@ public class UnitsFunctionLibrary {
 
               // Scientific notation support
               var scientificKilo = units.parse("1e-3K");      // Returns 1
-              var largeMega = units.parse("2.5e6M");          // Returns 2500000000000000
+              var largeMega = units.parse("2.5e6M");          // Returns 2500000000000
 
               // Decimal values
               var fractional = units.parse("3.14M");          // Returns 3140000
