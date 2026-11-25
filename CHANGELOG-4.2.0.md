@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- JSON readers require a string `subscriptionId` on identified authorization decisions. Clients that send numeric IDs must quote them.
+
 - `yaml.valToYaml` writes block YAML with two-space indentation, JSON-quoted strings, and SAPL wire numbers. Documents omit the leading marker and retain long strings on one line.
 
 - `yaml.yamlToVal` reads YAML 1.2 core scalars and exact decimals, resolves aliases to their values, and rejects unsupported tags. Empty YAML values now produce SAPL null.

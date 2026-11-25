@@ -40,6 +40,8 @@ public class IdentifiableAuthorizationDecisionDeserializer extends StdDeserializ
     private static final String ERROR_EXPECTED_START_OBJECT   = "Expected START_OBJECT for IdentifiableAuthorizationDecision.";
     private static final String ERROR_MISSING_REQUIRED_FIELDS = "IdentifiableAuthorizationDecision requires subscriptionId and decision fields.";
 
+    private static final String ERROR_EXPECTED_STRING_ID = "IdentifiableAuthorizationDecision requires a string subscriptionId.";
+
     private final AuthorizationDecisionDeserializer decisionDeserializer = new AuthorizationDecisionDeserializer();
 
     @Override
@@ -56,7 +58,13 @@ public class IdentifiableAuthorizationDecisionDeserializer extends StdDeserializ
             parser.nextToken();
 
             switch (fieldName) {
-            case "subscriptionId" -> subscriptionId = parser.getString();
+            case "subscriptionId" -> {
+                if (parser.currentToken() != JsonToken.VALUE_STRING) {
+                    return context.reportInputMismatch(IdentifiableAuthorizationDecision.class,
+                            ERROR_EXPECTED_STRING_ID);
+                }
+                subscriptionId = parser.getString();
+            }
             case "decision"       -> decision = decisionDeserializer.deserialize(parser, context);
             default               -> parser.skipChildren();
             }

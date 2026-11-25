@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
@@ -363,6 +364,14 @@ class SaplJacksonModuleTests {
 
         assertThat(restored.subscriptionId()).isEqualTo(original.subscriptionId());
         assertThat(restored.decision()).isEqualTo(original.decision());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "1", "true", "null", "[]", "{}" })
+    void whenDecisionSubscriptionIdIsNotTextThenDeserializationFails(String id) {
+        val payload = "{\"subscriptionId\":" + id + ",\"decision\":{\"decision\":\"PERMIT\"}}";
+        assertThatThrownBy(() -> mapper.readValue(payload, IdentifiableAuthorizationDecision.class))
+                .isInstanceOf(JacksonException.class);
     }
 
     @Test
