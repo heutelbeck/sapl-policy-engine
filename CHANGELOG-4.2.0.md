@@ -16,6 +16,9 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `toml.tomlToVal` preserves signed 64-bit integer endpoints and rejects integers outside that range.
+- `toml.valToToml` requires an object, rejects null values, and writes an empty object as an empty document.
+
 - JSON readers require a string `subscriptionId` on identified authorization decisions. Clients that send numeric IDs must quote them.
 
 - `yaml.valToYaml` writes block YAML with two-space indentation, JSON-quoted strings, and SAPL wire numbers. Documents omit the leading marker and retain long strings on one line.

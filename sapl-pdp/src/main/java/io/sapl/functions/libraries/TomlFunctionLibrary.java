@@ -24,10 +24,14 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.util.JsonGeneratorDelegate;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.dataformat.toml.TomlFactory;
 import tools.jackson.dataformat.toml.TomlMapper;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 /**
  * Function library providing TOML marshalling and unmarshalling operations.
@@ -57,8 +61,11 @@ public class TomlFunctionLibrary {
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
-    private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to TOML: %s.";
-    private static final String ERROR_FAILED_TO_PARSE   = "Failed to parse TOML: %s.";
+    private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to TOML: %s";
+    private static final String ERROR_FAILED_TO_PARSE   = "Failed to parse TOML: %s";
+    private static final String ERROR_TABLE_REQUIRED    = "TOML documents are tables. The value must be an object.";
+    private static final String ERROR_NULL              = "TOML has no null.";
+    private static final String ERROR_INTEGER_RANGE     = "TOML integers must fit in a signed 64-bit value.";
 
     private static final String SCHEMA_RETURNS_TEXT = """
             {
@@ -68,7 +75,7 @@ public class TomlFunctionLibrary {
 
     private static final TomlMapper TOML_MAPPER = TomlMapper
             .builder(TomlFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
-            .build();
+            .enable(DeserializationFeature.USE_LONG_FOR_INTS).build();
 
     /**
      * Converts a well-formed TOML document into a SAPL value.
@@ -80,7 +87,7 @@ public class TomlFunctionLibrary {
      */
     @Function(docs = """
             ```tomlToVal(TEXT toml)```: Converts a well-formed TOML document into a SAPL value
-            representing the content of the TOML document.
+            representing the content of the TOML document. Integers must fit in a signed 64-bit value.
 
             Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
             depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.
@@ -102,12 +109,13 @@ public class TomlFunctionLibrary {
             val jsonNode = TOML_MAPPER.readTree(toml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);
         } catch (JacksonException exception) {
-            return Value.error(ERROR_FAILED_TO_PARSE, exception.getMessage());
+            return Value.error(ERROR_FAILED_TO_PARSE, sentence(exception.getOriginalMessage()));
         }
     }
 
     /**
-     * Converts a SAPL value into a TOML string representation.
+     * Converts a SAPL object to a TOML table. The empty object produces an empty document. TOML has no null value.
+     * Integer tokens must fit in a signed 64-bit value.
      *
      * @param value
      * the value to convert to TOML
@@ -116,7 +124,7 @@ public class TomlFunctionLibrary {
      * ErrorValue if conversion fails
      */
     @Function(docs = """
-            ```valToToml(value)```: Converts a SAPL value into a TOML string representation.
+            ```valToToml(value)```: Converts a SAPL object to a TOML table. The empty object produces an empty document. TOML has no null value. Integer tokens must fit in a signed 64-bit value.
 
             **Example:**
             ```sapl
@@ -129,13 +137,46 @@ public class TomlFunctionLibrary {
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value valToToml(Value value) {
         try {
-            val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
-            val tomlString = TextOutputLimits.write(writer -> TOML_MAPPER.writeValue(writer, jsonNode));
-            return Value.of(tomlString);
-        } catch (TextOutputLimits.OutputLimitExceededException exception) {
-            return Value.error(exception.getMessage());
-        } catch (JacksonException | IllegalArgumentException | IOException exception) {
-            return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
+            val jsonNode = ValueJsonMarshaller.toJsonNode(value);
+            if (!jsonNode.isObject()) {
+                return Value.error(ERROR_FAILED_TO_CONVERT, ERROR_TABLE_REQUIRED);
+            }
+            if (jsonNode.isEmpty()) {
+                return Value.EMPTY_TEXT;
+            }
+            return Value.of(TextOutputLimits.write(writer -> {
+                try (val generator = new TomlValueGenerator(TOML_MAPPER.createGenerator(writer))) {
+                    TOML_MAPPER.writeTree(generator, jsonNode);
+                }
+            }));
+        } catch (JacksonException exception) {
+            return Value.error(ERROR_FAILED_TO_CONVERT, sentence(exception.getOriginalMessage()));
+        } catch (IllegalArgumentException | IOException exception) {
+            return Value.error(ERROR_FAILED_TO_CONVERT, sentence(exception.getMessage()));
         }
+    }
+
+    /** Validates each emitted token while keeping the TOML generator's native table and string layout. */
+    private static final class TomlValueGenerator extends JsonGeneratorDelegate {
+        TomlValueGenerator(JsonGenerator output) {
+            super(output);
+        }
+
+        @Override
+        public JsonGenerator writeNumber(BigDecimal number) {
+            if (number.scale() == 0 && number.unscaledValue().bitLength() >= Long.SIZE) {
+                throw new IllegalArgumentException(ERROR_INTEGER_RANGE);
+            }
+            return super.writeNumber(number);
+        }
+
+        @Override
+        public JsonGenerator writeNull() {
+            throw new IllegalArgumentException(ERROR_NULL);
+        }
+    }
+
+    private static String sentence(String reason) {
+        return reason.endsWith(".") ? reason : reason + ".";
     }
 }

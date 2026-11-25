@@ -38,6 +38,37 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
+    void whenReadingLargeIntegersThenBothSignedEndpointsAreExact() {
+        val numbers = TomlFunctionLibrary.tomlToVal(Value.of("area = [9223372036854775807, -9223372036854775808]"));
+
+        assertThat(numbers)
+                .isEqualTo(ValueJsonMarshaller.json("{\"area\":[9223372036854775807,-9223372036854775808]}"));
+        assertThat(TomlFunctionLibrary.tomlToVal(Value.of("area = [9223372036854775808]")))
+                .isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void whenWritingSettingsThenTheDocumentIsATableAndNullIsRefused() {
+        assertThat(TomlFunctionLibrary.valToToml(Value.EMPTY_OBJECT)).isEqualTo(Value.of(""));
+        assertThat(TomlFunctionLibrary.valToToml(Value.of(7))).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).isEqualTo(
+                        "Failed to convert value to TOML: TOML documents are tables. The value must be an object."));
+        val settings = ValueJsonMarshaller.json("{\"districts\":[\"North\",null]}");
+        assertThat(TomlFunctionLibrary.valToToml(settings)).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).isEqualTo("Failed to convert value to TOML: TOML has no null."));
+    }
+
+    @Test
+    void whenIntegerWireTokenExceedsTomlRangeThenWritingFailsButExponentFormRemainsValid() {
+        val larger = ValueJsonMarshaller.json("{\"code\":18446744073709551615}");
+        assertThat(TomlFunctionLibrary.valToToml(larger)).isInstanceOfSatisfying(ErrorValue.class,
+                error -> assertThat(error.message()).isEqualTo(
+                        "Failed to convert value to TOML: TOML integers must fit in a signed 64-bit value."));
+        assertThat(TomlFunctionLibrary.valToToml(ValueJsonMarshaller.json("{\"code\":1e20}")))
+                .isEqualTo(Value.of("code = 1E+20\n"));
+    }
+
+    @Test
     void whenSimpleKeyValuePairsThenParsesCorrectly() {
         val toml   = """
                 cultist = "Wilbur Whateley"
