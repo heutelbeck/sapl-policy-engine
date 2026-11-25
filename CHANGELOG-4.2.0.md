@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Use `graph.reachablePaths` for shortest paths. The deprecated `graph.reachable_paths` alias remains available. Path-limit errors now identify the maximum number of path steps.
+
 - Graph closures now list reachable nodes in graph key order, followed by neighbor-only nodes in first-mention order. This changes closure arrays, the key order of closure sets, and the order of projected attributes.
 
 - String lengths, search and substring indices, padding, and `standard.length` on text count Unicode code points. Supplementary characters count once and are not split. Explicit text size limits still count UTF-16 code units.

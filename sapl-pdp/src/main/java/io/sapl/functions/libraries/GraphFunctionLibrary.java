@@ -93,6 +93,7 @@ public class GraphFunctionLibrary {
             """;
 
     private static final String ERROR_CLOSURE_TOO_LARGE    = "Transitive closure exceeds the maximum of %d entries.";
+    private static final String ERROR_PATHS_TOO_LARGE      = "The paths exceed the maximum of %d steps.";
     private static final String ERROR_PROJECTION_TOO_LARGE = "Transitive closure projection exceeds the maximum of %d projected values.";
 
     private static final int MAX_CLOSURE_ENTRIES            = 1_000_000;
@@ -274,8 +275,8 @@ public class GraphFunctionLibrary {
      *
      * @return array of shortest paths from roots to all reachable nodes
      */
-    @Function(name = "reachable_paths", docs = """
-            ```graph.reachable_paths(OBJECT graph, STRING|ARRAY initial)```: Single-source shortest
+    @Function(name = "reachablePaths", docs = """
+            ```graph.reachablePaths(OBJECT graph, STRING|ARRAY initial)```: Single-source shortest
             paths via BFS. O(V + E). Returns array of paths (each an array of node IDs). The total
             emitted path steps are capped at 1000000 and an error value is returned above that, since
             paths can grow to O(V^2) on a large or runtime-supplied graph.
@@ -307,7 +308,7 @@ public class GraphFunctionLibrary {
             // Cap total path steps, they can grow O(V^2) on untrusted graphs.
             emittedSteps += steps.size();
             if (emittedSteps > MAX_CLOSURE_ENTRIES) {
-                return Value.error(ERROR_CLOSURE_TOO_LARGE.formatted(MAX_CLOSURE_ENTRIES));
+                return Value.error(ERROR_PATHS_TOO_LARGE, MAX_CLOSURE_ENTRIES);
             }
             val pathBuilder = ArrayValue.builder();
             for (val step : steps.reversed()) {
@@ -316,6 +317,20 @@ public class GraphFunctionLibrary {
             pathsBuilder.add(pathBuilder.build());
         }
         return pathsBuilder.build();
+    }
+
+    /**
+     * Compatibility alias for the shortest paths function.
+     *
+     * @param graph the adjacency-list graph
+     * @param initial the starting node or array of starting nodes
+     * @return the reachable paths in breadth-first order
+     * @deprecated use {@link #reachablePaths(ObjectValue, Value)}
+     */
+    @Deprecated
+    @Function(name = "reachable_paths", docs = "Deprecated alias for `graph.reachablePaths`. Returns the same shortest paths.")
+    public static Value legacyReachablePaths(ObjectValue graph, Value initial) {
+        return reachablePaths(graph, initial);
     }
 
     /**
@@ -472,9 +487,9 @@ public class GraphFunctionLibrary {
             sourcesByTarget.add(new HashSet<>());
         }
         for (val entry : adjacency.entrySet()) {
-            int source = componentByNode.get(entry.getKey());
+            final int source = componentByNode.get(entry.getKey());
             for (val neighbor : entry.getValue()) {
-                int target = componentByNode.get(neighbor);
+                final int target = componentByNode.get(neighbor);
                 if (source != target) {
                     sourcesByTarget.get(target).add(source);
                 }

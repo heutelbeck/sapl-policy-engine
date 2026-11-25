@@ -665,6 +665,6 @@ class GraphFunctionLibraryTests {
         val result = GraphFunctionLibrary.reachablePaths(builder.build(), Value.of("n0"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");
+        assertThat(((ErrorValue) result).message()).isEqualTo("The paths exceed the maximum of 1000000 steps.");
     }
 }
