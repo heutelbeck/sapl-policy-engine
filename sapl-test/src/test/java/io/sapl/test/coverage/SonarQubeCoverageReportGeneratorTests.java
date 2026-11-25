@@ -78,6 +78,30 @@ class SonarQubeCoverageReportGeneratorTests {
         assertThat(xml).contains("coveredBranches=\"2\"");
     }
 
+    @ParameterizedTest(name = "second file {0}, source hash {1}")
+    @CsvSource({ "a/read.sapl, 11, 1", "b/read.sapl, 11, 2", "b/read.sapl, 22, 2" })
+    @DisplayName("keeps distinct file paths and combines repeated tests of the same file")
+    void whenSourcesShareANameThenFilePathsRemainDistinct(String secondPath, int secondHash, int fileCount)
+            throws IOException {
+        val first  = """
+                {"testIdentifier":"first","policies":[{"documentName":"read","sourceHash":11,"filePath":"a/read.sapl","branches":[{"statementId":0,"line":3,"trueHits":1,"falseHits":0}]}]}
+                """;
+        val second = """
+                {"testIdentifier":"second","policies":[{"documentName":"read","sourceHash":%d,"filePath":"%s","branches":[{"statementId":0,"line":3,"trueHits":0,"falseHits":1}]}]}"""
+                .formatted(secondHash, secondPath);
+        writeCoverageNdjson(first + second);
+
+        val xml = new SonarQubeCoverageReportGenerator(tempDir).generate();
+
+        assertThat(countOccurrences(xml, "<file path=")).isEqualTo(fileCount);
+        if (fileCount == 1) {
+            assertThat(xml).contains("coveredBranches=\"2\"");
+        } else {
+            assertThat(xml).contains("a/read.sapl", secondPath);
+            assertThat(countOccurrences(xml, "coveredBranches=\"1\"")).isEqualTo(2);
+        }
+    }
+
     @Test
     @DisplayName("skips policies without file path")
     void whenPolicyHasNoFilePath_thenSkipsIt() throws IOException {
