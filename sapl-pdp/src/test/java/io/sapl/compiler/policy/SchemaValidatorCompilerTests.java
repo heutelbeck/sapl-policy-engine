@@ -654,6 +654,26 @@ class SchemaValidatorCompilerTests {
                     .containsExactly(Value.TRUE, Value.FALSE);
         }
 
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#schemaLoadingErrors")
+        @DisplayName("schema loading errors refuse an enforced declaration before evaluating a subscription")
+        void whenSchemaCannotLoadThenEnforcedDeclarationIsRefused(String description, String source, String external) {
+            val schemas = List.of(enforcedSchema(SubscriptionElement.SUBJECT, json(source)));
+            val ctx     = compilationContext((ObjectValue) obj("schemas", json(external)));
+            assertThatThrownBy(() -> compileValidator(schemas, ctx)).isInstanceOf(SaplCompilerException.class);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#schemaLoadingControls")
+        @DisplayName("enforced schemas use the root dialect unless the resource declares its own")
+        void whenSchemaLoadsThenEnforcedGuardUsesItsDialect(String description, String source, String external,
+                String input, boolean valid) {
+            val ctx       = compilationContext((ObjectValue) obj("schemas", json(external)));
+            val validator = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, json(source))), ctx);
+            val request   = subscriptionContext(subscriptionWithSubject(input));
+            assertThat(evaluate(validator, request)).isEqualTo(Value.of(valid));
+        }
+
         private static String subscriptionWithSubject(String subject) {
             return """
                     {"subject": %s, "action": "read", "resource": "data"}

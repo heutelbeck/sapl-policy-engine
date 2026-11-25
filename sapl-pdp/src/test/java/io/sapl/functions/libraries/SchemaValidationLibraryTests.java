@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -274,25 +275,14 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
-    @DisplayName("the three references the library documents as differences of the engines are answered as documented, and nothing is loaded")
-    void whenReferenceIsOneTheEnginesAnswerDifferentlyThenThisEngineAnswersAsDocumented() {
-        val subject      = Value.of("text");
-        val networkPath  = isCompliant(subject, (ObjectValue) json("""
-                {"$ref": "//127.0.0.1:9/schema"}
-                """));
-        val recursiveRef = isCompliant(subject, (ObjectValue) json(
-                """
-                        {"$schema": "https://json-schema.org/draft/2019-09/schema", "$recursiveRef": "http://127.0.0.1:9/schema"}
-                        """));
-        val unused       = isCompliant(subject, (ObjectValue) json("""
-                {"$defs": {"unused": {"$ref": "http://127.0.0.1:9/schema"}}}
-                """));
-
-        assertThat(networkPath).isInstanceOfSatisfying(ErrorValue.class,
+    @DisplayName("a host-relative reference is refused without loading its resource")
+    void whenReferenceHasHostRelativeFormThenSchemaLoadingFails() {
+        val schema = (ObjectValue) json("""
+                {"$ref":"//127.0.0.1:9/schema"}
+                """);
+        assertThat(isCompliant(Value.of("text"), schema)).isInstanceOfSatisfying(ErrorValue.class,
                 error -> assertThat(error.message()).isEqualTo(SCHEMA_VALIDATION_FAILED
                         .formatted(UNRESOLVABLE_REFERENCE.formatted("mem://inline//127.0.0.1:9/schema"))));
-        assertThat(recursiveRef).isInstanceOf(ErrorValue.class);
-        assertThat(unused).isEqualTo(Value.TRUE);
     }
 
     @ParameterizedTest(name = "when a schema names a foreign schema by {0} then every function returns an error")
@@ -646,6 +636,36 @@ class SchemaValidationLibraryTests {
 
     private static Value exactNumber(String number) {
         return Value.of(new BigDecimal(number));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#schemaLoadingErrors")
+    @DisplayName("invalid recursive references and unresolved unused definitions fail during schema loading")
+    void whenSchemaLoadingFailsThenEveryFunctionReturnsError(String description, String source, String external) {
+        val schema    = (ObjectValue) json(source);
+        val resources = json(external);
+        val subject   = Value.of("text");
+        val results   = new ArrayList<Value>();
+        results.add(isCompliantWithExternalSchemas(subject, schema, resources));
+        results.add(validateWithExternalSchemas(subject, schema, resources));
+        if (Value.EMPTY_ARRAY.equals(resources)) {
+            results.add(isCompliant(subject, schema));
+            results.add(validate(subject, schema));
+        }
+        assertThat(results).allSatisfy(value -> assertThat(value).isInstanceOf(ErrorValue.class));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#schemaLoadingControls")
+    @DisplayName("schema locations and inherited or explicit dialects retain their validation meaning")
+    void whenSchemaLoadsThenItsDialectDeterminesValidation(String description, String source, String external,
+            String input, boolean valid) {
+        val schema    = (ObjectValue) json(source);
+        val resources = json(external);
+        val subject   = json(input);
+        assertThat(isCompliantWithExternalSchemas(subject, schema, resources)).isEqualTo(Value.of(valid));
+        assertThat(validateWithExternalSchemas(subject, schema, resources)).isInstanceOfSatisfying(ObjectValue.class,
+                report -> assertThat(report.get("valid")).isEqualTo(Value.of(valid)));
     }
 
 }

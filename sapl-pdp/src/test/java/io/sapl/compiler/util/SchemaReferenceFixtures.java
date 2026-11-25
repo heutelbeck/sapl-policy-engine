@@ -97,4 +97,118 @@ public class SchemaReferenceFixtures {
                         {"$ref": "https://json-schema.org/draft/2020-12/schema"}
                         """, "{\"type\": \"string\"}", "{\"type\": 5}"));
     }
+
+    /** @return a description, a schema and its supplied resources that must fail while loading */
+    public static Stream<Arguments> schemaLoadingErrors() {
+        return Stream.of(
+                arguments("provided recursive URL", """
+                        {"$ref":"urn:example:recursive"}
+                        """,
+                        """
+                                [{"$id":"urn:example:recursive","$schema":"https://json-schema.org/draft/2019-09/schema","$recursiveRef":"https://example.invalid/unknown"}]
+                                """),
+                arguments("recursive URL",
+                        """
+                                {"$schema":"https://json-schema.org/draft/2019-09/schema","$recursiveRef":"https://example.invalid/unknown"}
+                                """,
+                        """
+                                []
+                                """),
+                arguments("recursive local fragment",
+                        """
+                                {"$schema":"https://json-schema.org/draft/2019-09/schema","$recursiveRef":"#/$defs/code","$defs":{"code":{}}}
+                                """,
+                        """
+                                []
+                                """),
+                arguments("unused definition", """
+                        {"$defs":{"unused":{"$ref":"https://example.invalid/unknown"}}}
+                        """, """
+                        []
+                        """), arguments("nested unused definition", """
+                        {"$defs":{"unused":{"$defs":{"nested":{"$ref":"https://example.invalid/unknown"}}}}}
+                        """, """
+                        []
+                        """), arguments("unused property definition", """
+                        {"properties":{"absent":{"$defs":{"unused":{"$ref":"https://example.invalid/unknown"}}}}}
+                        """, """
+                        []
+                        """),
+                arguments("draft4 definition",
+                        """
+                                {"$schema":"http://json-schema.org/draft-04/schema#","definitions":{"unused":{"$ref":"https://example.invalid/unknown"}}}
+                                """,
+                        """
+                                []
+                                """),
+                arguments("missing local definition", """
+                        {"$defs":{"unused":{"$ref":"#/$defs/missing"}}}
+                        """, """
+                        []
+                        """), arguments("unused file reference", """
+                        {"$defs":{"unused":{"$ref":"file:///etc/passwd"}}}
+                        """, """
+                        []
+                        """), arguments("provided unused reference", """
+                        {"$ref":"urn:example:provided"}
+                        """, """
+                        [{"$id":"urn:example:provided","$defs":{"unused":{"$ref":"https://example.invalid/unknown"}}}]
+                        """), arguments("draft4 inherited numeric bound", """
+                        {"$schema":"http://json-schema.org/draft-04/schema#","$ref":"urn:example:bound"}
+                        """, """
+                        [{"$id":"urn:example:bound","exclusiveMinimum":5}]
+                        """));
+    }
+
+    /** @return a description, a schema, resources, a subject and its expected validity */
+    public static Stream<Arguments> schemaLoadingControls() {
+        return Stream.of(
+                arguments("recursive anchor accepted",
+                        """
+                                {"$schema":"https://json-schema.org/draft/2019-09/schema","$recursiveAnchor":true,"properties":{"next":{"$recursiveRef":"#"}}}
+                                """,
+                        """
+                                []
+                                """, "{}", true),
+                arguments("recursive keyword is annotation in2020", """
+                        {"$recursiveRef":"https://example.invalid/unknown"}
+                        """, """
+                        []
+                        """, "{}", true), arguments("default annotation with identifier", """
+                        {"default":{"$id":"urn:example:annotation","$ref":"https://example.invalid/unknown"}}
+                        """, "[]", "{}", true), arguments("unknown annotation", """
+                        {"x-note":{"$ref":"https://example.invalid/unknown"}}
+                        """, """
+                        []
+                        """, "{}", true),
+
+                arguments("unused local reference", """
+                        {"$defs":{"unused":{"$ref":"#/$defs/code"},"code":{"type":"string"}}}
+                        """, """
+                        []
+                        """, "7", true), arguments("inherited draft4 bound", """
+                        {"$schema":"http://json-schema.org/draft-04/schema#","$ref":"urn:example:bound"}
+                        """, """
+                        [{"$id":"urn:example:bound","minimum":5,"exclusiveMinimum":true}]
+                        """, "5", false), arguments("inherited draft4 accepted value", """
+                        {"$schema":"http://json-schema.org/draft-04/schema#","$ref":"urn:example:bound"}
+                        """, """
+                        [{"$id":"urn:example:bound","minimum":5,"exclusiveMinimum":true}]
+                        """, "6", true),
+                arguments("external explicit2020 wins", """
+                        {"$schema":"http://json-schema.org/draft-04/schema#","$ref":"urn:example:bound"}
+                        """,
+                        """
+                                [{"$id":"urn:example:bound","$schema":"https://json-schema.org/draft/2020-12/schema","exclusiveMinimum":5}]
+                                """,
+                        "5", false),
+                arguments("external explicit4 wins", """
+                        {"$ref":"urn:example:bound"}
+                        """,
+                        """
+                                [{"$id":"urn:example:bound","$schema":"http://json-schema.org/draft-04/schema#","minimum":5,"exclusiveMinimum":true}]
+                                """,
+                        "5", false));
+    }
+
 }

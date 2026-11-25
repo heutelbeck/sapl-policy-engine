@@ -95,12 +95,14 @@ public class JsonSchemaPreparation {
      *
      * @param registry registry used to resolve dialects and references
      * @param source the schema to apply to SAPL values
-     * @return the initialized validator
+     * @return the initialized validator, with undeclared external dialects inherited from the root
      * @throws SchemaException if the schema or a resolved reference is invalid
      */
     public static Schema prepare(SchemaRegistry registry, ObjectValue source) {
-        val root = registry.getSchema(INLINE, toJsonNode(source));
-        root.initializeValidators();
+        val scoped    = source.get("$schema") instanceof TextValue(String dialect)
+                ? SchemaRegistry.builder(registry).defaultDialectId(dialect).build()
+                : registry;
+        val root      = scoped.getSchema(INLINE, toJsonNode(source));
         val resources = resolvedSchemas(root);
         // Embedded resources with different dialects are validated separately (JSON Schema Core 9.3.3).
         val embedded = new IdentityHashMap<JsonNode, JsonNode>();
@@ -148,21 +150,32 @@ public class JsonSchemaPreparation {
     }
 
     private static Set<Schema> resolvedSchemas(Schema root) {
-        val pending  = new ArrayDeque<Schema>();
-        val schemas  = new LinkedHashSet<Schema>();
-        val contexts = new HashSet<SchemaContext>();
+        val pending     = new ArrayDeque<Schema>();
+        val schemas     = new LinkedHashSet<Schema>();
+        val contexts    = new HashSet<SchemaContext>();
+        val initialized = new HashSet<Schema>();
+        root.initializeValidators();
+        initialized.add(root);
         pending.add(root);
         while (!pending.isEmpty()) {
-            val schema = pending.remove();
-            schemas.add(schema);
-            val context = schema.getSchemaContext();
-            if (contexts.add(context)) {
-                pending.addAll(context.getSchemaResources().values());
-                pending.addAll(context.getSchemaReferences().values());
-                if (Specification.getDialect(context.getDialect().getId()) == null) {
-                    val localMetaSchema = metaSchema(context);
-                    localMetaSchema.initializeValidators();
-                    pending.add(localMetaSchema);
+            while (!pending.isEmpty()) {
+                val schema = pending.remove();
+                if (schemas.add(schema)) {
+                    val context = schema.getSchemaContext();
+                    if (contexts.add(context) && Specification.getDialect(context.getDialect().getId()) == null) {
+                        pending.add(metaSchema(context));
+                    }
+                }
+            }
+            // Initializing unused definitions may register further referenced resources.
+            for (val context : contexts) {
+                context.getSchemaResources().values().stream().filter(schema -> !schemas.contains(schema))
+                        .forEach(pending::add);
+                for (val reference : context.getSchemaReferences().values()) {
+                    if (initialized.add(reference)) {
+                        reference.initializeValidators();
+                        pending.add(reference);
+                    }
                 }
             }
         }

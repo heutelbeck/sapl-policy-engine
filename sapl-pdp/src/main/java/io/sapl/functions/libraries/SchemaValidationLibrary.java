@@ -37,8 +37,8 @@ public class SchemaValidationLibrary {
     public static final String DOCUMENTATION = """
             # JSON Schema Validation
 
-            Validate data structures against JSON Schema 2020-12 specifications. Two
-            modes: simple boolean checks and detailed validation results with errors.
+            Validate data structures against JSON Schema. The default dialect is 2020-12.
+            Two modes: simple boolean checks and detailed validation results with errors.
 
             ## Function Selection
 
@@ -151,13 +151,18 @@ public class SchemaValidationLibrary {
             engine refuses the schema: its schema validator checks the keys of these two
             drafts as ECMA-262 expressions, and ECMA-262 cannot state these assertions.
 
-            The engines also differ for three references, and neither fetches or reads
-            anything for a reference. A reference of the form `//host/path` is refused by
-            both, and the errors name it differently. A `$recursiveRef` that names a URL
-            in a schema of draft 2019-09 is refused by the Java engine and ignored by the
-            Rust engine. A reference under `$defs` that nothing uses and that names
-            neither a built-in meta-schema nor a provided schema is refused by the Rust
-            engine and ignored by the Java engine.
+            Drafts 4, 6, 7, 2019-09 and 2020-12 are supported. The default is 2020-12.
+            A schema selects its dialect with `$schema`. A provided external schema without
+            `$schema` inherits the root schema's dialect. An explicit declaration in the
+            external resource takes precedence.
+
+            References are checked while loading, including unused definitions. They may
+            name only bundled meta-schemas or provided resources. In draft 2019-09,
+            `$recursiveRef` must be `"#"`. Any other value is a schema error. Definitions
+            should use regular schema locations such as `$defs` or `definitions`. Reference
+            targets in arbitrary annotation fields have no portable meaning. Neither engine
+            fetches a resource for a schema. Host-relative references such as `//host/path`
+            are refused, though the error's URI text can differ between engines.
             """;
 
     // JSON result field names
