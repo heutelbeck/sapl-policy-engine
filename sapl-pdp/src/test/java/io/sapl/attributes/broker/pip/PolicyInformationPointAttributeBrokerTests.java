@@ -773,6 +773,43 @@ class PolicyInformationPointAttributeBrokerTests {
     class OpenCloseLifecycle {
 
         @Test
+        @DisplayName("closing the broker retires every registered PIP and its finders")
+        void whenBrokerClosesThenAllRegistrationsAreRetired() {
+            val first  = broker.load(new StaticPip());
+            val second = broker.load(new ConstantPip());
+
+            broker.close();
+
+            assertThat(broker.catalog()).isEmpty();
+            assertThat(broker.documentation()).isEmpty();
+            assertThat(broker.resolve(envInvocation("static.greeting"))).isEmpty();
+            assertThat(first.isLoaded()).isFalse();
+            assertThat(second.isLoaded()).isFalse();
+            assertThatCode(first::unload).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("a new PIP cannot be loaded after the broker closes")
+        void whenLoadingAfterBrokerCloseThenRegistrationIsRejected() {
+            val candidate = new StaticPip();
+            broker.close();
+
+            assertThatThrownBy(() -> broker.load(candidate)).isInstanceOf(PipLoadException.class)
+                    .hasMessageContaining("closed");
+        }
+
+        @Test
+        @DisplayName("a PIP cannot be replaced after the broker closes")
+        void whenSwappingAfterBrokerCloseThenReplacementIsRejected() {
+            val previous  = broker.load(new StaticPip());
+            val candidate = new StaticPip();
+            broker.close();
+
+            assertThatThrownBy(() -> broker.swap(previous, candidate)).isInstanceOf(PipLoadException.class)
+                    .hasMessageContaining("closed");
+        }
+
+        @Test
         @DisplayName("blank subscriptionId throws")
         void whenBlankIdThenIllegalArgument() {
             val deps = Set.of(envKey("static.greeting"));

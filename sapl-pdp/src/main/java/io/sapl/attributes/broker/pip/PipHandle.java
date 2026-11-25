@@ -35,9 +35,8 @@ public interface PipHandle extends AutoCloseable {
     String pipName();
 
     /**
-     * @return {@code true} until {@link #unload()} or a successful
-     * {@link PolicyInformationPointAttributeBroker#swap(PipHandle, Object)} marks
-     * this handle inactive
+     * @return {@code true} while this PIP is registered. Unloading it,
+     * replacing it or closing the broker marks the handle inactive.
      */
     boolean isLoaded();
 

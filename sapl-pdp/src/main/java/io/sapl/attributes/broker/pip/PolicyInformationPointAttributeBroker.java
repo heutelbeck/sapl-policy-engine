@@ -156,6 +156,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     private static final String ERROR_ANNOTATION_MISSING      = "PIP class %s is not annotated with @PolicyInformationPoint.";
     private static final String ERROR_BROKER_CLOSED           = "Cannot open a subscription: the attribute broker is closed.";
+    private static final String ERROR_CATALOG_CLOSED          = "Cannot register a PIP: the attribute broker is closed.";
     private static final String ERROR_CATALOG_INVARIANT       = "Catalog invariant violated. Multiple exact matches for '{}'. Falling back to UNDEFINED or repository. The collision rule should have prevented this. Indicates an engine bug.";
     private static final String ERROR_DEPS_EMPTY              = "initialDependencies must not be empty";
     private static final String ERROR_GRACE_DURATION_NEGATIVE = "gracePeriodDuration must not be negative";
@@ -201,7 +202,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private final @Nullable AttributeRepository fallback;
     private final InstantSource                 timestampSource;
 
-    // Set in close(). Guards open() and teardown scheduling.
     private volatile boolean closed = false;
 
     /** No grace period, no fallback. */
@@ -295,7 +295,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * @return a handle the caller may use to unload or swap this PIP
      *
      * @throws PipLoadException
-     * if the class is not annotated, if any annotated method has an invalid
+     * if the broker is closed, if the class is not annotated, if any annotated method has an invalid
      * name or signature, or if two finder declarations can match the same
      * name, receiver and argument shape with equal priority
      */
@@ -311,6 +311,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         lock.lock();
 
         try {
+            requireOpenCatalog();
             checkCollisions(namespace, newSpecs, null);
             handle = new PipHandleImpl(namespace, documentation);
             handleSpecs.put(handle, List.copyOf(newSpecs));
@@ -447,6 +448,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         lock.lock();
 
         try {
+            requireOpenCatalog();
             val oldSpecs = handleSpecs.get(existingHandle);
             if (oldSpecs == null || !existingHandle.loaded.get()) {
                 throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(existingHandle.pipName()));
@@ -615,6 +617,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         return subscription;
     }
 
+    /**
+     * Retires every PIP handle, releases active finders and permanently closes registration and subscription admission.
+     */
     @Override
     public void close() {
         Collection<ActiveInvocation> activeToClose;
@@ -622,7 +627,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         lock.lock();
 
         try {
-            closed        = true;
+            closed = true;
+            handleSpecs.keySet().forEach(handle -> handle.loaded.set(false));
+            handleSpecs.clear();
             activeToClose = new ArrayList<>(allActive());
             // Seal subscriptions under the activation lock before releasing any sources.
             for (val subscription : List.copyOf(consumerSubscriptions.values())) {
@@ -656,6 +663,12 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             release(active);
         }
         teardownScheduler.shutdownNow();
+    }
+
+    private void requireOpenCatalog() {
+        if (closed) {
+            throw new PipLoadException(ERROR_CATALOG_CLOSED);
+        }
     }
 
     private static String readNamespace(Object instance) {
