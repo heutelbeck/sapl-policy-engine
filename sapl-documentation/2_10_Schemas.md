@@ -38,7 +38,7 @@ For an enforced schema statement, supply additional schemas in the PDP configura
 
 The following rules apply when authoring portable schemas:
 
-- Put reusable subschemas in a location defined by the dialect, such as `$defs` in Draft 2020-12, and reference them with a JSON Pointer such as `#/$defs/address`. A reference into an arbitrary JSON field such as `#/elsewhere` has implementation-dependent behavior.
+- Put reusable subschemas in a location defined by the dialect, such as `definitions` in Drafts 4, 6 and 7 or `$defs` in Draft 2020-12, and reference them with a JSON Pointer such as `#/$defs/address`. A reference into an arbitrary JSON field such as `#/elsewhere` has implementation-dependent behavior. Draft 4 also treats `$defs` as an unknown keyword. If it contains an unresolved reference, one engine can accept the schema and the other can reject it.
 - SAPL checks ordinary `$ref` targets when it prepares the schema, including targets named in unused definitions. Supply each referenced schema or remove the unused definition.
 - A supplied schema inherits the main schema's dialect unless it declares its own `$schema`. For example, a Draft 4 main schema passes Draft 4 to its supplied schemas. A supplied schema that declares Draft 2020-12 uses its own dialect.
 - In Draft 2019-09, use `"$recursiveRef": "#"` for dynamic recursion. Using a URL as the value of `$recursiveRef` produces a schema error. Use an ordinary `$ref` to name a supplied schema by its URI.
