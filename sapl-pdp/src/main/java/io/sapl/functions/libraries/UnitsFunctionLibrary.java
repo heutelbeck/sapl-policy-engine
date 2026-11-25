@@ -19,6 +19,7 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.val;
@@ -155,6 +156,8 @@ public class UnitsFunctionLibrary {
             Use ASCII digits for portable input. Java also accepts Arabic-Indic digits in the numeric part.
             Rust accepts ASCII and fullwidth digits.
 
+            The final value must fit the SAPL arithmetic range exactly after unit conversion. For example, `1e-1003K` yields `1e-1000`, while `1e-1001` returns an error.
+
             **Supported Units:**
             - **Decimal SI units**: m (milli, 0.001), K (kilo, 1000), M (mega, 1,000,000),
               G (giga, 1 billion), T (tera, 1 trillion), P (peta), E (exa)
@@ -224,6 +227,8 @@ public class UnitsFunctionLibrary {
 
             Use ASCII digits for portable input. Java also accepts Arabic-Indic digits in the numeric part.
             Rust accepts ASCII and fullwidth digits.
+
+            The final value must fit the SAPL arithmetic range exactly after unit conversion. For example, `1e-1003K` yields `1e-1000`, while `1e-1001` returns an error.
 
             **Supported Units:**
             - **Decimal byte units**: KB/kb (1000 bytes), MB/mb (1,000,000 bytes),
@@ -322,7 +327,7 @@ public class UnitsFunctionLibrary {
         val normalizedUnit = isByteContext ? normalizeByteUnit(unitPart) : normalizeUnit(unitPart);
 
         if (normalizedUnit.isEmpty() && !isByteContext) {
-            return Value.of(numericValue);
+            return NumberValueLimits.boundedNumber(numericValue);
         }
 
         val multiplier = MULTIPLIERS.get(normalizedUnit);
@@ -333,7 +338,7 @@ public class UnitsFunctionLibrary {
         }
 
         val result = numericValue.multiply(multiplier);
-        return Value.of(result);
+        return NumberValueLimits.boundedNumber(result);
     }
 
     /**

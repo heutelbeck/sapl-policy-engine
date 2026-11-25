@@ -32,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -64,6 +65,21 @@ class UnitsFunctionLibraryTests {
     }
 
     private static final TextValue VERY_LONG_NUMBER = Value.of("1".repeat(10000) + "X");
+
+    @Test
+    void whenTheConvertedQuantityIsOutsideTheArithmeticRangeThenItIsAnError() {
+        assertThat(UnitsFunctionLibrary.parse(Value.of("1e-1001"))).isInstanceOf(ErrorValue.class);
+        assertThat(UnitsFunctionLibrary.parse(Value.of("1e-998m"))).isInstanceOf(ErrorValue.class);
+        assertThat(UnitsFunctionLibrary.parseBytes(Value.of("1e-1001B"))).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void whenTheUnitConversionFitsExactlyThenItKeepsTheExactResult() {
+        val expected = Value.of(new BigDecimal("1e-1000"));
+        assertThat(UnitsFunctionLibrary.parse(Value.of("10e-1001"))).isEqualTo(expected);
+        assertThat(UnitsFunctionLibrary.parse(Value.of("1e-1003K"))).isEqualTo(expected);
+        assertThat(UnitsFunctionLibrary.parseBytes(Value.of("1e-1003KB"))).isEqualTo(expected);
+    }
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("parseValidCases")
