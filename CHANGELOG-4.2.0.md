@@ -18,6 +18,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - Decimal values in `pdp.json` variables retain their SAPL precision. For example, a supplied schema with `minimum: 1e-400` now rejects zero. Earlier Java releases could round that minimum to zero when loading the configuration.
 
+- Integer-only compiler options now reject fractional values that previously rounded to an integer when reading `pdp.json`. For example, `maxExpressionDepth: 64.0000000000000001` fails configuration loading. `64.0` remains valid.
+
 - CSV errors omit backend locations and duplicate final periods.
 
 - The portable Draft 2020-12 schema profile requires every active `$dynamicRef` in a loaded schema to resolve during preparation, including references to local anchors and pointers in unused definitions.
