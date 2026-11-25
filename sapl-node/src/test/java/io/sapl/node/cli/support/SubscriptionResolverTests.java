@@ -74,6 +74,13 @@ class SubscriptionResolverTests {
         }
 
         @Test
+        void whenNamedResourceContainsAPreciseDecimalThenTheSubscriptionRetainsItsValue() {
+            val input        = inputWithNamed("\"alice\"", "\"read\"", "{\"amount\":9007199254740993.125}");
+            val subscription = SubscriptionResolver.resolve(input, MAPPER);
+            assertThat(MAPPER.writeValueAsString(subscription.resource())).isEqualTo("{\"amount\":9007199254740993.125}");
+        }
+
+        @Test
         @DisplayName("invalid JSON value throws IllegalArgumentException")
         void whenInvalidJsonValueThenThrowsIllegalArgument() {
             val input = inputWithNamed("not-valid-json", "\"read\"", "\"doc\"");

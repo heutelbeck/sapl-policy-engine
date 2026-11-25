@@ -24,6 +24,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -94,7 +95,7 @@ public class SubscriptionResolver {
 
     private static JsonNode parseJson(JsonMapper mapper, String value) {
         try {
-            return mapper.readTree(value);
+            return mapper.reader().with(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).readTree(value);
         } catch (JacksonException e) {
             throw new IllegalArgumentException(ERROR_INVALID_JSON_VALUE.formatted(value), e);
         }
