@@ -28,7 +28,7 @@ import java.io.Writer;
 final class TextOutputLimits {
 
     static final int    MAX_OUTPUT_CHARS       = 10_000_000;
-    static final String ERROR_OUTPUT_TOO_LARGE = "Output exceeds the maximum length of %d characters.";
+    static final String ERROR_OUTPUT_TOO_LARGE = "Output exceeds the maximum length of %s characters.";
 
     private TextOutputLimits() {
     }

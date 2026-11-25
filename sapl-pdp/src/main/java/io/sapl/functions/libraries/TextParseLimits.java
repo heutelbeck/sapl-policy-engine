@@ -32,7 +32,7 @@ import tools.jackson.core.StreamReadConstraints;
 final class TextParseLimits {
 
     static final int    MAX_INPUT_CHARS       = 1024 * 1024;
-    static final String ERROR_INPUT_TOO_LARGE = "Input exceeds the maximum length of %d characters.";
+    static final String ERROR_INPUT_TOO_LARGE = "Input exceeds the maximum length of %s characters.";
 
     static final StreamReadConstraints STREAM_READ_CONSTRAINTS = StreamReadConstraints.builder().maxNestingDepth(500)
             .maxNumberLength(1000).maxStringLength(MAX_INPUT_CHARS).build();
