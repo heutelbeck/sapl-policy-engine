@@ -470,6 +470,11 @@ public class PDPConfigurationLoader {
             }
 
             val compilerOptions = parseValueSection(node, FIELD_COMPILER_OPTIONS);
+            try {
+                CompilationContext.validateCompilerOptions(compilerOptions);
+            } catch (IllegalArgumentException invalid) {
+                throw new PDPConfigurationException(invalid.getMessage(), invalid);
+            }
 
             val variables = parseValueSection(node, "variables");
 

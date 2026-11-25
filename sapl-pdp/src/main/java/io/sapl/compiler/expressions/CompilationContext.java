@@ -133,9 +133,19 @@ public class CompilationContext {
      * @throws IllegalArgumentException if maxExpressionDepth is invalid
      */
     public void setCompilerOptions(ObjectValue options) {
+        validateCompilerOptions(options);
+        compilerOptions = options;
+    }
+
+    /**
+     * Validates the compiler options before a configuration can be retained or compiled.
+     *
+     * @param options the configured options
+     * @throws IllegalArgumentException if an expression depth or regular expression limit is invalid
+     */
+    public static void validateCompilerOptions(ObjectValue options) {
         expressionDepthOption(options);
         regexLimitsOption(options);
-        compilerOptions = options;
     }
 
     /**

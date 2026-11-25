@@ -60,6 +60,16 @@ class PDPConfigurationLoaderTests {
     Path tempDir;
 
     @Test
+    void whenLoadingInvalidExpressionDepthThenTheConfigurationIsRejected() {
+        val pdpJson   = """
+                {"compilerOptions":{"maxExpressionDepth":0}}
+                """;
+        val documents = Map.of("p.sapl", "policy \"p\" permit");
+        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromContent(pdpJson, documents, "books", "local"))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("maxExpressionDepth");
+    }
+
+    @Test
     void whenLoadingFromDirectoryWithoutPdpJsonThenUsesDefaults() {
         val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
 

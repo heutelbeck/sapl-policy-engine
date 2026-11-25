@@ -127,6 +127,8 @@ The Java configuration exposes these names through `PDPConfiguration.requiredExt
 
 #### Compiler Options
 
+An invalid expression depth or regular expression limit rejects the configuration during loading. If the PDP already serves a valid configuration, it keeps that configuration and recompiles it when plugins change.
+
 The `compilerOptions` object and all its fields are optional. Omitted fields use the defaults listed below:
 
 * <span id="indexing"></span>`indexing`: policy index strategy: `AUTO` (heuristic selection), `NAIVE` (linear scan), `CANONICAL` (count-and-eliminate algorithm), or `SMTDD` (semantic multi-terminal BDD that groups equality conditions and `=~` conditions on the same expression). Default: `AUTO`. In AUTO mode, the PDP selects NAIVE for small policy sets and attempts SMTDD for larger ones, falling back to CANONICAL if the diagram exceeds the node limit.

@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Invalid compiler limits reject a configuration during loading. After a plugin change the PDP recompiles the last configuration with valid options.
+
 - Semantic versions accept numeric prerelease and build identifiers of any length. The limit of 9007199254740991 applies to major, minor and patch.
 
 - `toml.tomlToVal` preserves signed 64-bit integer endpoints and rejects integers outside that range.

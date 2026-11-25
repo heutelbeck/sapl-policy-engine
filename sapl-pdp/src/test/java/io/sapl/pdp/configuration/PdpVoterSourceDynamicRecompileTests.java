@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.DecisionInterceptor;
@@ -106,6 +107,23 @@ class PdpVoterSourceDynamicRecompileTests {
                 return List.of();
             }
         };
+    }
+
+    @Test
+    void whenAPluginChangesAfterRejectedCompilerOptionsThenThePreviousConfigurationIsRecompiled() {
+        val plugins = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        val invalid = new PDPConfiguration(PDP_ID, "invalid-depth", CombiningAlgorithm.DEFAULT,
+                ObjectValue.builder().put("maxExpressionDepth", Value.of(0)).build(), List.of("policy \"p\" deny"),
+                EMPTY);
+        try (val source = new PdpVoterSource(plugins, CLOCK)) {
+            source.loadConfiguration(policyConfig(CONFIG_A));
+            source.loadConfiguration(invalid);
+            plugins.publish(pluginsOf(brokerWithStandard()));
+            assertThat(source.getPdpStatus(PDP_ID)).hasValueSatisfying(status -> {
+                assertThat(status.state()).isEqualTo(PdpState.LOADED);
+                assertThat(status.configurationId()).isEqualTo(CONFIG_A);
+            });
+        }
     }
 
     @Test

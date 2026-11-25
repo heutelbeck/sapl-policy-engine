@@ -106,7 +106,7 @@ public class PdpVoterSource implements AutoCloseable {
     private volatile boolean               closed         = false;
 
     /**
-     * Per-pdpId most recently submitted source configuration. A plugins snapshot
+     * Per-pdpId most recently admitted source configuration. A plugins snapshot
      * recompiles this retained config for the affected pdpId. The served voter
      * remains the last successfully-compiled one until a recompile succeeds.
      * Removed when the configuration source emits a
@@ -258,6 +258,7 @@ public class PdpVoterSource implements AutoCloseable {
             return;
         }
         try {
+            CompilationContext.validateCompilerOptions(pdpConfiguration.compilerOptions());
             OutboundEndpointConfiguration.validate(pdpConfiguration.data());
         } catch (IllegalArgumentException e) {
             reportConfigurationErrorLocked(pdpId,
