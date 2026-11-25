@@ -23,6 +23,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
+import org.snakeyaml.engine.v2.exceptions.YamlEngineException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.dataformat.yaml.YAMLFactory;
 import tools.jackson.dataformat.yaml.YAMLMapper;
@@ -46,12 +47,19 @@ public class YamlFunctionLibrary {
             evaluation, or serialize authorization decisions into YAML format for integration with
             infrastructure-as-code and configuration management systems.
 
+            Reading uses YAML 1.2 core scalars, including octal and hexadecimal integers and exact
+            decimal numbers. Quoted scalars stay text unless explicitly tagged. The reader accepts
+            the standard string, integer, float, boolean, null, sequence, and mapping tags.
+            Aliases resolve to their anchored values. A `<<` key stays an ordinary object key.
+            In a flow collection, write an explicitly tagged empty string as `[!!str ""]`.
+
             ## Limits
 
             To bound memory and computation on untrusted input, the following limits apply:
 
             - The input is limited to 1 MB.
             - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+            - At most 50 aliases may refer to collections in one document. Recursive values are rejected.
             - Serialization output is limited to 10000000 characters.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
@@ -79,8 +87,9 @@ public class YamlFunctionLibrary {
      * @return the parsed YAML content as a Value, or an ErrorValue if parsing fails
      */
     @Function(docs = """
-            ```yamlToVal(TEXT yaml)```: Converts a well-formed YAML document into a SAPL value
-            representing the content of the YAML document.
+            ```yamlToVal(TEXT yaml)```: Reads one YAML document using the YAML 1.2 core scalar types.
+            Decimals keep their exact digits. Each scalar key keeps its written text after its
+            tag is validated. Aliases use the value of the referenced anchor.
 
             Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
             depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.
@@ -99,9 +108,8 @@ public class YamlFunctionLibrary {
             return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
         }
         try {
-            val jsonNode = YAML_MAPPER.readTree(yaml.value());
-            return ValueJsonMarshaller.fromJsonNode(jsonNode);
-        } catch (JacksonException exception) {
+            return YamlValueReader.read(yaml.value());
+        } catch (YamlEngineException | NumberFormatException exception) {
             return Value.error(ERROR_FAILED_TO_PARSE, exception.getMessage());
         }
     }

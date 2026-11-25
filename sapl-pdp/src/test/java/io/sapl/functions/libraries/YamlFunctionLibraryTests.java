@@ -32,6 +32,23 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class YamlFunctionLibraryTests {
 
     @Test
+    void whenReadingCoreScalarsThenNumbersKeepAllDigitsAndKeysKeepTheirSpelling() {
+        val yaml     = "True: [True, ~, 0o12, 0x1A, 9007199254740993.5, 'True']";
+        val expected = ValueJsonMarshaller.json("{\"True\":[true,null,10,26,9007199254740993.5,\"True\"]}");
+
+        assertThat(YamlFunctionLibrary.yamlToVal(Value.of(yaml))).isEqualTo(expected);
+    }
+
+    @Test
+    void whenReadingAnAliasThenItHasTheAnchoredValueAndMergeRemainsAnOrdinaryKey() {
+        val yaml     = "first: &defaults {city: Bern}\nsecond: {<<: *defaults}";
+        val expected = ValueJsonMarshaller
+                .json("{\"first\":{\"city\":\"Bern\"},\"second\":{\"<<\":{\"city\":\"Bern\"}}}");
+
+        assertThat(YamlFunctionLibrary.yamlToVal(Value.of(yaml))).isEqualTo(expected);
+    }
+
+    @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.load(new YamlFunctionLibrary())).doesNotThrowAnyException();
