@@ -338,21 +338,21 @@ public class PatternsFunctionLibrary {
             policy "extract_emails"
             permit
               var emails = patterns.findMatches("[a-z0-9._%+-]+@[a-z0-9.-]+\\\\.[a-z]{2,}", resource.text);
-              array.size(emails) > 0;
+              standard.length(emails) > 0;
             ```
 
             ```sapl
             policy "find_tags"
             permit
               var tags = patterns.findMatches("#[a-zA-Z0-9]+", resource.content);
-              array.containsAll(tags, subject.allowedTags);
+              array.difference(subject.allowedTags, tags) == [];
             ```
 
             ```sapl
             policy "extract_numbers"
             permit
               var numbers = patterns.findMatches("\\\\d+", resource.input);
-              array.size(numbers) <= 10;
+              standard.length(numbers) <= 10;
             ```
             """)
     public static Value findMatches(TextValue pattern, TextValue value) {
@@ -370,14 +370,14 @@ public class PatternsFunctionLibrary {
             policy "first_ten_matches"
             permit
               var matches = patterns.findMatchesLimited("\\\\b\\\\w+\\\\b", resource.text, 10);
-              array.size(matches) == 10;
+              standard.length(matches) == 10;
             ```
 
             ```sapl
             policy "limited_extraction"
             permit
               var urls = patterns.findMatchesLimited("https://[^\\\\s]+", resource.document, 5);
-              array.size(urls) <= 5;
+              standard.length(urls) <= 5;
             ```
             """)
     public static Value findMatchesLimited(TextValue pattern, TextValue value, NumberValue limit) {
@@ -400,7 +400,7 @@ public class PatternsFunctionLibrary {
             policy "parse_permissions"
             permit
               var matches = patterns.findAllSubmatch("(\\\\w+):(\\\\w+):(\\\\w+)", subject.permissions);
-              array.size(matches) > 0;
+              standard.length(matches) > 0;
             ```
 
             ```sapl
@@ -426,7 +426,7 @@ public class PatternsFunctionLibrary {
             policy "limited_parsing"
             permit
               var matches = patterns.findAllSubmatchLimited("(\\\\d{4})-(\\\\d{2})-(\\\\d{2})", resource.dates, 3);
-              array.size(matches) <= 3;
+              standard.length(matches) <= 3;
             ```
             """)
     public static Value findAllSubmatchLimited(TextValue pattern, TextValue value, NumberValue limit) {
@@ -492,21 +492,21 @@ public class PatternsFunctionLibrary {
             policy "parse_csv"
             permit
               var fields = patterns.split(",", resource.csvLine);
-              array.size(fields) == 5;
+              standard.length(fields) == 5;
             ```
 
             ```sapl
             policy "split_whitespace"
             permit
               var tokens = patterns.split("\\\\s+", resource.input);
-              array.containsAll(tokens, subject.requiredTokens);
+              array.difference(subject.requiredTokens, tokens) == [];
             ```
 
             ```sapl
             policy "split_delimiters"
             permit
               var parts = patterns.split("[;,|]", resource.delimitedData);
-              array.size(parts) > 0;
+              standard.length(parts) > 0;
             ```
             """)
     public static Value split(TextValue pattern, TextValue value) {
