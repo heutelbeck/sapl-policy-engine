@@ -35,6 +35,8 @@ import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.jts.operation.distance.DistanceOp;
+import org.locationtech.jts.operation.relateng.RelateNG;
+import org.locationtech.jts.operation.relateng.RelatePredicate;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.io.StringReader;
@@ -404,7 +406,8 @@ public class GeographicFunctionLibrary {
             - Does not apply if one geometry fully contains the other.
             """)
     public static Value crosses(ObjectValue thisGeometry, ObjectValue thatGeometry) {
-        return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::crosses);
+        return testGeometryBiPredicate(thisGeometry, thatGeometry,
+                (first, second) -> RelateNG.relate(first, second, RelatePredicate.crosses()));
     }
 
     @Function(docs = """

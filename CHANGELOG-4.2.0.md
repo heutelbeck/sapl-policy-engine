@@ -134,6 +134,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Policy evaluation fixes
 
+- `geo.crosses` evaluates a line inside a GeoJSON geometry collection when testing whether two geometries cross.
+
 - XOR now reports a known non-boolean operand even while another operand is pending. A constant or subscription element of the wrong type can report the error before any attributes are requested.
 - Double negation now checks that its operand is boolean. For example, with a numeric subject, `obligation !!subject` makes the policy indeterminate. A boolean obligation keeps its original value.
 - Coverage observes the same compiled voter as an ordinary decision, with the same attribute requests and votes for either value of `lowLatencyMode`. A pending `decideOnceWithCoverage` request follows a replacement PDP configuration.

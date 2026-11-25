@@ -33,6 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import static io.sapl.functions.geo.GeographicFunctionLibrary.ERROR_INVALID_GEOJSON;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.area;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.crosses;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -44,6 +45,23 @@ class GeoJsonGeometryTests {
 
     private static ObjectValue geometry(String document) {
         return (ObjectValue) MAPPER.readValue(document, Value.class);
+    }
+
+    @Test
+    @DisplayName("A line can cross a line in a geometry collection")
+    void whenALineCrossesACollectionMemberThenTheCrossingIsSymmetric() {
+        val collection = geometry("""
+                {"type":"GeometryCollection","geometries":[{"type":"LineString","coordinates":[[0,0],[10,10]]}]}
+                """);
+        val crossing   = geometry("""
+                {"type":"LineString","coordinates":[[0,10],[10,0]]}
+                """);
+        val disjoint   = geometry("""
+                {"type":"LineString","coordinates":[[30,10],[40,10]]}
+                """);
+        assertThat(crosses(collection, crossing)).isEqualTo(Value.TRUE);
+        assertThat(crosses(crossing, collection)).isEqualTo(Value.TRUE);
+        assertThat(crosses(collection, disjoint)).isEqualTo(Value.FALSE);
     }
 
     static Stream<Arguments> missingCoordinateArrays() {
