@@ -21,6 +21,7 @@ import com.heutelbeck.rustregex4j.IsMatch;
 import com.heutelbeck.rustregex4j.Regex;
 import io.sapl.api.SaplVersion;
 import io.sapl.attributes.http.BlockingWebClient;
+import io.sapl.attributes.http.HttpUris;
 import io.sapl.attributes.tls.PemTrust;
 import io.sapl.compiler.util.LinearRegex;
 import lombok.experimental.StandardException;
@@ -32,7 +33,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.Serial;
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
@@ -192,7 +192,7 @@ public class JWTKeyProvider {
         val template = uri.asString();
         // An encoded placeholder parses in paths and queries, but must never select the authority.
         try {
-            val fixed = URI.create(template.replace("{kid}", "%7Bkid%7D"));
+            val fixed = HttpUris.create(template.replace("{kid}", "%7Bkid%7D"));
             if (fixed.getHost() == null || fixed.getRawAuthority().contains("%7Bkid%7D")
                     || !("http".equalsIgnoreCase(fixed.getScheme())
                             || HTTPS_SCHEME.equalsIgnoreCase(fixed.getScheme()))) {
@@ -259,7 +259,7 @@ public class JWTKeyProvider {
 
     private Optional<Key> fetchPublicKey(String kid, String resolvedUri, String publicKeyRequestMethod,
             boolean allowInsecureHttp) {
-        val destination = URI.create(resolvedUri);
+        val destination = HttpUris.create(resolvedUri);
         val secure      = HTTPS_SCHEME.equalsIgnoreCase(destination.getScheme());
         if (!secure && (!allowInsecureHttp || trust != null)) {
             log.warn(WARN_JWT_KEY_SERVER_INSECURE_SCHEME, resolvedUri, kid);

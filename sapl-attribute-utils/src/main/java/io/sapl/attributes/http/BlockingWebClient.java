@@ -488,7 +488,7 @@ public class BlockingWebClient {
 
     private static URI createUri(String uri) {
         try {
-            return URI.create(uri);
+            return HttpUris.create(uri);
         } catch (IllegalArgumentException e) {
             // The query string and any userinfo can carry secrets (e.g. the Traccar
             // token). Never let them reach the ErrorValue, report, or logs.

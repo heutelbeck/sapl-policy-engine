@@ -23,6 +23,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.attributes.http.HttpUris;
 import io.sapl.attributes.tls.PemTrust;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -172,7 +173,7 @@ class OutboundEndpointConfiguration {
 
     private static @Nullable URI parseUri(String url) {
         try {
-            return URI.create(url);
+            return HttpUris.create(url);
         } catch (IllegalArgumentException e) {
             // A URI syntax exception includes its input, which may contain credentials.
             return null;

@@ -28,6 +28,7 @@ import io.sapl.api.stream.Streams;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.http.BlockingWebClient;
+import io.sapl.attributes.http.HttpUris;
 import io.sapl.attributes.tls.PemTrust;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -35,7 +36,6 @@ import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -845,9 +845,9 @@ public class HttpPolicyInformationPoint {
         final URI allowed;
         final URI request;
         try {
-            allowed = new URI(allowedPrefix);
-            request = new URI(requestUrl);
-        } catch (URISyntaxException e) {
+            allowed = HttpUris.create(allowedPrefix);
+            request = HttpUris.create(requestUrl);
+        } catch (IllegalArgumentException e) {
             return false;
         }
         if (!sameOrigin(allowed, request)) {
