@@ -36,8 +36,6 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
@@ -118,24 +116,6 @@ class SaplMqttClientTests {
         assertThat(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice"), null))
                 .isEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice"), null))
                 .isNotEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("bob", "pw-bob"), null));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "tlsTrustStore", "tlsTrustStorePassword" })
-    @DisplayName("removed trust store options fail before contacting a broker")
-    void whenFileTrustOptionPresentThenError(String option) {
-        val broker    = ObjectValue.builder().put(option, Value.of("unused")).build();
-        val config    = ObjectValue.builder().put("brokers", ObjectValue.builder().put("default", broker).build())
-                .build();
-        val variables = ObjectValue.builder().put("mqtt", config).build();
-        val context   = new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
-        try (val client = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
-                val stream = client.buildSaplMqttMessageStream(Value.of("readings"), context)) {
-            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2))
-                    .awaitsNext(value -> assertThat(value).isInstanceOfSatisfying(ErrorValue.class,
-                            error -> assertThat(error.message()).contains("file-based TLS trust")));
-            assertThat(client.cache()).isEmpty();
-        }
     }
 
     private static ObjectValue mqttSecrets(String username, String password) {
@@ -346,7 +326,9 @@ class SaplMqttClientTests {
                     {
                       "brokers": { "default": {
                         "brokerAddress": "localhost",
-                        "brokerPort": 1
+                        "brokerPort": 1,
+                        "tlsTrustStore": {"label": "east"},
+                        "tlsTrustStorePassword": 42
                       } }
                     }
                     """, CREDENTIAL_SECRETS);

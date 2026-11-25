@@ -129,7 +129,6 @@ public class SaplMqttClient implements Closeable {
     private static final Duration DISCONNECT_TIMEOUT  = Duration.ofSeconds(5L);
 
     private static final String ERROR_BINARY_PAYLOAD_UNSUPPORTED       = "MQTT binary payloads are not supported. Publish UTF-8 text, JSON, or encode binary data before publishing.";
-    private static final String ERROR_FILE_TRUST                       = "MQTT file-based TLS trust settings are unsupported.";
     private static final String ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED = "A policy may only select an mqtt broker by name or use the default. Supplying an inline broker configuration object is not permitted.";
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT    = "Refusing to send MQTT broker credentials over a plaintext connection. Enable tls, or explicitly accept the risk with allowInsecureTransport.";
     private static final String ERROR_INVALID_QOS                      = "Invalid MQTT QoS: must be 0, 1, or 2.";
@@ -505,9 +504,6 @@ public class SaplMqttClient implements Closeable {
                 .addDisconnectedListener(disconnectedListener);
 
         val tlsEnabled = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS, DEFAULT_TLS);
-        if (brokerConfig.has("tlsTrustStore") || brokerConfig.has("tlsTrustStorePassword")) {
-            throw new IllegalArgumentException(ERROR_FILE_TRUST);
-        }
         if (trust != null) {
             if (!brokerConfig.path(ENVIRONMENT_TLS).isBoolean() || !tlsEnabled) {
                 throw new IllegalArgumentException(ERROR_TLS_REQUIRED);

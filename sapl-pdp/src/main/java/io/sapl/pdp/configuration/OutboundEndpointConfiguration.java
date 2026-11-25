@@ -51,7 +51,7 @@ class OutboundEndpointConfiguration {
     private static final String      TOKEN             = "token";
     private static final String      TRACCAR           = "traccar";
     private static final Set<String> TRUST_FIELDS      = Set.of("trustedCaPem", "includeDefaultTrustRoots",
-            "trustProfile", "tlsTrustStore", "tlsTrustStorePassword");
+            "trustProfile");
     private static final Set<String> CREDENTIAL_FIELDS = Set.of("username", "userName", PASSWORD, TOKEN);
     private static final Set<String> HTTP_SCHEMES      = Set.of("http", HTTPS, "ws", "wss");
     private static final Set<String> SECURE_SCHEMES    = Set.of(HTTPS, "wss");
@@ -124,7 +124,7 @@ class OutboundEndpointConfiguration {
         val trusted = PemTrust.resolve(variables, endpoint) != null;
         switch (pip) {
         case "mqtt"  -> {
-            rejectFields(endpoint, Set.of("name", "tlsTrustStore", "tlsTrustStorePassword"), collection);
+            rejectFields(endpoint, Set.of("name"), collection);
             if (trusted && !(endpoint.get("tls") instanceof BooleanValue(var enabled) && enabled)) {
                 throw new IllegalArgumentException(ERROR_TLS);
             }

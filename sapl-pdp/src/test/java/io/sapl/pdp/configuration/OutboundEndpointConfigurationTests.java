@@ -19,15 +19,18 @@ package io.sapl.pdp.configuration;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.StaticPluginsSource;
 import io.sapl.util.SaplTesting;
 import lombok.val;
 import okhttp3.tls.HeldCertificate;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -38,6 +41,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
+import static io.sapl.api.pdp.AuthorizationSubscription.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -138,6 +142,25 @@ class OutboundEndpointConfigurationTests {
             source.loadConfiguration(configuration("valid", new PdpData(variables.build(), secrets)));
             assertThat(source.getPdpStatus("test"))
                     .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.LOADED));
+        }
+    }
+
+    @Test
+    @DisplayName("a policy can read application metadata from a named MQTT broker")
+    void whenBrokerContainsApplicationMetadataThenPolicyCanReadIt() {
+        val variables = (ObjectValue) json("""
+                {"mqtt":{"brokers":{"east":{"tlsTrustStore":{"label":"archive"},"tlsTrustStorePassword":42}}}}
+                """);
+        val policy    = """
+                policy "archive access" permit
+                mqtt.brokers.east.tlsTrustStore.label == resource;
+                mqtt.brokers.east.tlsTrustStorePassword == 42;
+                """;
+        try (val components = PolicyDecisionPointBuilder.withoutDefaults().build()) {
+            components.pdpVoterSource().loadConfiguration(new PDPConfiguration("test", "site",
+                    CombiningAlgorithm.DEFAULT, List.of(policy), new PdpData(variables, Value.EMPTY_OBJECT)));
+            assertThat(components.pdp().decideOnce(of("alice", "read", "archive"), "test"))
+                    .isEqualTo(AuthorizationDecision.PERMIT);
         }
     }
 
