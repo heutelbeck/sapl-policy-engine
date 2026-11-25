@@ -24,9 +24,12 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.util.JsonGeneratorDelegate;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 /**
  * Function library providing JSON marshalling and unmarshalling operations.
@@ -161,6 +164,9 @@ public class JsonFunctionLibrary {
             ```valToJson(value)```: Converts a SAPL value into a JSON string representation.
             Returns an error if serialization fails.
 
+            Whole numbers in the signed 64-bit range are written as plain integers.
+            For example, the array read from `[5.0]` is written as `[5]`.
+
             **Example:**
             ```sapl
             policy "log-decision-context"
@@ -174,13 +180,30 @@ public class JsonFunctionLibrary {
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value valToJson(Value value) {
         try {
-            val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
-            val jsonString = TextOutputLimits.write(writer -> JSON_MAPPER.writeValue(writer, jsonNode));
-            return Value.of(jsonString);
+            val jsonNode = ValueJsonMarshaller.toJsonNode(value);
+            return Value.of(TextOutputLimits.write(writer -> {
+                try (val generator = new JsonNumberGenerator(JSON_MAPPER.createGenerator(writer))) {
+                    JSON_MAPPER.writeTree(generator, jsonNode);
+                }
+            }));
         } catch (TextOutputLimits.OutputLimitExceededException exception) {
             return Value.error(exception.getMessage());
         } catch (JacksonException | IllegalArgumentException | IOException exception) {
             return Value.error(ERROR_FAILED_TO_SERIALIZE, exception.getMessage());
+        }
+    }
+
+    private static final class JsonNumberGenerator extends JsonGeneratorDelegate {
+        JsonNumberGenerator(JsonGenerator output) {
+            super(output);
+        }
+
+        @Override
+        public JsonGenerator writeNumber(BigDecimal number) {
+            val integer = number.longValue();
+            // The comparison detects both truncation of a fraction and overflow of a long.
+            return number.compareTo(BigDecimal.valueOf(integer)) == 0 ? super.writeNumber(integer)
+                    : super.writeNumber(number);
         }
     }
 }

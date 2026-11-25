@@ -18,6 +18,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `json.valToJson` writes whole numbers in the signed 64-bit range as plain integers, including inside arrays and objects. For example, `[5.0]` now serializes to `[5]`.
+
 - WebSocket attribute first-value timeouts include the opening handshake; closing the subscription cancels a pending opening.
 
 - HTTP server-sent event fields remove only the optional single ASCII space after `data:`; other leading characters remain JSON input.

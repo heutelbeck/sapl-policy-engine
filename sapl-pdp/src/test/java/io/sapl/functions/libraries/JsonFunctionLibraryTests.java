@@ -155,6 +155,21 @@ class JsonFunctionLibraryTests {
         assertThat((ArrayValue) result).isEmpty();
     }
 
+    @ParameterizedTest
+    @MethodSource("jsonNumberSpellings")
+    void whenWritingNumbersThenOnlyWholeSignedLongsUseIntegerSpelling(String input, String expected) {
+        val value = JsonFunctionLibrary.jsonToVal(Value.of(input));
+        assertThat(JsonFunctionLibrary.valToJson(value)).isEqualTo(Value.of(expected));
+    }
+
+    static Stream<Arguments> jsonNumberSpellings() {
+        return Stream.of(arguments("[5.0]", "[5]"), arguments("{\"n\":[-0.00,1E+3,1.2500]}", "{\"n\":[0,1000,1.2500]}"),
+                arguments("-9223372036854775808.0", "-9223372036854775808"),
+                arguments("9223372036854775807.0", "9223372036854775807"),
+                arguments("-9223372036854775809.0", "-9223372036854775809.0"),
+                arguments("9223372036854775808.0", "9223372036854775808.0"), arguments("1E+20", "1E+20"));
+    }
+
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "{invalid}", "[unclosed", "{\"key\": }", "not json at all" })
     void whenInvalidJsonThenReturnsError(String invalidJson) {
