@@ -300,7 +300,8 @@ public class PDPConfigurationLoader {
      * </p>
      *
      * @param pdpJsonContent
-     * the content of pdp.json (required, must contain algorithm)
+     * the non-blank content of pdp.json. An omitted or null algorithm uses
+     * {@link CombiningAlgorithm#DEFAULT}.
      * @param saplDocuments
      * map of filename to SAPL document content
      * @param pdpId
@@ -329,7 +330,8 @@ public class PDPConfigurationLoader {
      * </p>
      *
      * @param pdpJsonContent
-     * the content of pdp.json (required, must contain algorithm)
+     * the non-blank content of pdp.json. An omitted or null algorithm uses
+     * {@link CombiningAlgorithm#DEFAULT}.
      * @param saplDocuments
      * map of filename to SAPL document content
      * @param supplementFiles
