@@ -83,7 +83,7 @@ public class TemporalFunctionLibrary {
             ```sapl
             policy "working_hours"
             permit
-              var date = time.dateOf(environment.currentDateTime);
+              var date = time.dateOf(time.toZone(environment.currentDateTime, "UTC"));
               time.after(environment.currentDateTime, date + "T09:00:00Z");
               time.before(environment.currentDateTime, date + "T17:00:00Z");
             ```
