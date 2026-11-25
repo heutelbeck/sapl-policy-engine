@@ -132,34 +132,23 @@ public class VariablesProposalsGenerator {
      */
     private static List<String> createPolicyBodyInScopeVariableProposals(SaplContext sapl, int cursorOffset,
             LSPConfiguration config) {
-        var proposals    = new ArrayList<String>();
-        var policyBodies = collectPolicyBodies(sapl);
-
-        for (var policyBody : policyBodies) {
-            proposals.addAll(extractProposalsFromPolicyBody(policyBody, sapl, cursorOffset, config));
-        }
-        return proposals;
+        var body = policyBodyAt(sapl, cursorOffset);
+        return body == null ? List.of() : extractProposalsFromPolicyBody(body, sapl, cursorOffset, config);
     }
 
-    private static List<PolicyBodyContext> collectPolicyBodies(SaplContext sapl) {
-        var policyBodies  = new ArrayList<PolicyBodyContext>();
-        var policyElement = sapl.policyElement();
-        if (policyElement == null) {
-            return policyBodies;
+    static PolicyBodyContext policyBodyAt(SaplContext sapl, int cursorOffset) {
+        var element = sapl.policyElement();
+        if (element instanceof PolicyOnlyElementContext single) {
+            return single.policy().policyBody();
         }
-        if (policyElement instanceof PolicyOnlyElementContext policyOnlyElement) {
-            var policy = policyOnlyElement.policy();
-            if (policy.policyBody() != null) {
-                policyBodies.add(policy.policyBody());
-            }
-        } else if (policyElement instanceof PolicySetElementContext policySetElement) {
-            for (var policy : policySetElement.policySet().policy()) {
-                if (policy.policyBody() != null) {
-                    policyBodies.add(policy.policyBody());
+        if (element instanceof PolicySetElementContext set) {
+            for (var policy : set.policySet().policy().reversed()) {
+                if (TreeNavigationUtil.offsetOf(policy) <= cursorOffset) {
+                    return policy.policyBody();
                 }
             }
         }
-        return policyBodies;
+        return null;
     }
 
     private static List<String> extractProposalsFromPolicyBody(PolicyBodyContext policyBody, SaplContext sapl,

@@ -136,7 +136,8 @@ class ExpressionSchemaResolver {
             // Identifier may be a subscription element or value definition
             var identifierCtx = identifierBasic.basicIdentifier();
             var identifier    = getIdentifierText(identifierCtx.saplId());
-            baseSchemas = inferPotentialSchemasFromIdentifier(identifier, sapl, cursorOffset, config, visited);
+            baseSchemas = inferPotentialSchemasFromIdentifier(identifier, sapl, cursorOffset,
+                    TreeNavigationUtil.offsetOf(identifierCtx), config, visited);
             steps       = identifierCtx.step();
         }
         default                                                 -> {
@@ -154,7 +155,7 @@ class ExpressionSchemaResolver {
      *
      * @param valueDefinition the value definition
      * @param sapl the root SAPL parse tree
-     * @param cursorOffset cursor offset for scope filtering
+     * @param cursorOffset the position of the completion request
      * @param config the LSP configuration
      * @return list of potential schemas
      */
@@ -414,15 +415,15 @@ class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, SaplContext sapl, int cursorOffset,
-            LSPConfiguration config, Set<ValueDefinitionContext> visited) {
+            int referenceOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         if (VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, sapl, config);
         }
 
         var schemas = new ArrayList<>(lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier, sapl,
                 cursorOffset, config, visited));
-        schemas.addAll(
-                lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, sapl, cursorOffset, config, visited));
+        schemas.addAll(lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, sapl, cursorOffset,
+                referenceOffset, config, visited));
         return schemas;
     }
 
@@ -444,36 +445,10 @@ class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicyBody(String identifier, SaplContext sapl,
-            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
-        var schemas      = new ArrayList<JsonNode>();
-        var policyBodies = collectPolicyBodies(sapl);
-
-        for (var policyBody : policyBodies) {
-            schemas.addAll(
-                    findMatchingValueDefinitionsInBody(identifier, policyBody, sapl, cursorOffset, config, visited));
-        }
-        return schemas;
-    }
-
-    private List<PolicyBodyContext> collectPolicyBodies(SaplContext sapl) {
-        var policyBodies  = new ArrayList<PolicyBodyContext>();
-        var policyElement = sapl.policyElement();
-        if (policyElement == null) {
-            return policyBodies;
-        }
-        if (policyElement instanceof io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext policyOnlyElement) {
-            var policy = policyOnlyElement.policy();
-            if (policy.policyBody() != null) {
-                policyBodies.add(policy.policyBody());
-            }
-        } else if (policyElement instanceof io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext policySetElement) {
-            for (var policy : policySetElement.policySet().policy()) {
-                if (policy.policyBody() != null) {
-                    policyBodies.add(policy.policyBody());
-                }
-            }
-        }
-        return policyBodies;
+            int cursorOffset, int referenceOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
+        var body = VariablesProposalsGenerator.policyBodyAt(sapl, referenceOffset);
+        return body == null ? List.of()
+                : findMatchingValueDefinitionsInBody(identifier, body, sapl, cursorOffset, config, visited);
     }
 
     private List<JsonNode> findMatchingValueDefinitionsInBody(String identifier, PolicyBodyContext policyBody,

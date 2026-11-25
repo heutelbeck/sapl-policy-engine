@@ -119,6 +119,22 @@ class VariablesProposalsGeneratorTests {
     }
 
     @Test
+    void whenCompletingInsidePolicySetThenOnlyTheSetAndCurrentPolicySupplyBindings() {
+        var source    = """
+                set "access" first or deny
+                var shared = subject;
+                policy "first" deny var record = {} schema {"properties":{"before":{}}}; var previous = 1; false;
+                policy "second" permit var record = {} schema {"properties":{"here":{}}}; var alias = record;
+                true; var later = 2;
+                """;
+        var proposals = VariablesProposalsGenerator.variableProposalsForContext(parse(source), source.indexOf("true;"),
+                LSPConfiguration.minimal(), false);
+
+        assertThat(proposals).contains("shared", "record.here", "alias.here").doesNotContain("previous",
+                "record.before", "alias.before", "later");
+    }
+
+    @Test
     void whenPolicyBodyHasValueDefinitions_thenInScopeVariablesIncluded() {
         var sapl = parse(POLICY_WITH_BODY);
         // Position after both variable definitions
