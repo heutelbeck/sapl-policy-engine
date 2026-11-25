@@ -61,6 +61,13 @@ public class XmlFunctionLibrary {
             Text is escaped as XML requires, and numbers use the ordinary SAPL number text.
             Scalar types and array cardinality are not preserved by XML roundtrips.
 
+            The reader recognizes XML Schema Instance names by namespace URI, regardless of prefix.
+            A `nil` marker in the first non-namespace attribute is omitted; `true` makes the element null.
+            Schema Instance `type` attributes and elements use the key `xsi:type`.
+
+            The current Java XML provider rejects some valid XML 1.0 names, such as U+3400, when reading
+            and writing. These names are not portable between the engines.
+
             ## Limits
 
             To bound memory and computation on untrusted input, the following limits apply:
