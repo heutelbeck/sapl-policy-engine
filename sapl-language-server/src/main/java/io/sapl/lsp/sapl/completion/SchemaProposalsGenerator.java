@@ -20,10 +20,14 @@ package io.sapl.lsp.sapl.completion;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.grammar.antlr.SAPLLexer;
+import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
 import io.sapl.lsp.configuration.LSPConfiguration;
 import io.sapl.lsp.sapl.evaluation.ExpressionEvaluator;
 import lombok.experimental.UtilityClass;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.misc.IntervalSet;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -44,6 +48,9 @@ import java.util.Set;
  */
 @UtilityClass
 public class SchemaProposalsGenerator {
+
+    private static final IntervalSet PROPERTY_NAME_TOKENS = SAPLParser._ATN
+            .nextTokens(SAPLParser._ATN.ruleToStartState[SAPLParser.RULE_saplId]);
 
     private static final String DEFAULT_ID   = "https://sapl.io/schemas";
     private static final String ANCHOR       = "$anchor";
@@ -326,12 +333,16 @@ public class SchemaProposalsGenerator {
     }
 
     private static String escaped(String text) {
+        var lexer = new SAPLLexer(CharStreams.fromString(text));
+        lexer.removeErrorListeners();
+        var token = lexer.nextToken();
+        if (token.getType() != SAPLLexer.BACKTICK_ID && PROPERTY_NAME_TOKENS.contains(token.getType())
+                && text.equals(token.getText())) {
+            return text;
+        }
         var escaped = text.replace("\\", "\\\\").replace("\t", "\\t").replace("\b", "\\b").replace("\n", "\\n")
                 .replace("\r", "\\r").replace("\f", "\\f").replace("\"", "\\\"").replace("'", "\\'");
-        if (escaped.contains(" ")) {
-            return "'" + escaped + "'";
-        }
-        return escaped;
+        return "'" + escaped + "'";
     }
 
 }

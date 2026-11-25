@@ -506,10 +506,12 @@ class SchemaProposalsGeneratorTests {
                             "properties": {
                                 "a\\"b": { "type": "integer" },
                                 "c\\\\d": { "type": "integer" },
-                                "e\\tf": { "type": "integer" }
+                                "e\\tf": { "type": "integer" },
+                                "first-name": {}, "permit": {}, "first": {}, "9lives": {}, "`city`": {}, "": {}
                             }
                         }
-                        """, new String[] { ".a\\\"b", ".c\\\\d", ".e\\tf" }),
+                        """, new String[] { ".'a\\\"b'", ".'c\\\\d'", ".'e\\tf'", ".'first-name'", ".'permit'", ".first",
+                                ".'9lives'", ".'`city`'", ".''" }),
                 arguments("simpleRecursiveSchema", List.of(), """
                          {
                             "$id": "https://example.com/person.schema.json",
