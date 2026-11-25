@@ -43,6 +43,14 @@ class PermissionsFunctionLibraryTests {
         assertThatCode(() -> functionBroker.load(new PermissionsFunctionLibrary())).doesNotThrowAnyException();
     }
 
+    @Test
+    void whenPermissionValueIsAWholeDecimalThenItsBitsMatchTheMasks() {
+        val permissions = new NumberValue(new BigDecimal("6.00"));
+        val masks       = ArrayValue.builder().add(Value.of(4)).add(Value.of(2)).build();
+
+        assertThat(PermissionsFunctionLibrary.hasAll(permissions, masks)).isEqualTo(Value.TRUE);
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasAllTestCases")
     void whenHasAllThenReturnsCorrectResult(long value, long[] masks, boolean expected) {

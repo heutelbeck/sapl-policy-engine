@@ -51,6 +51,7 @@ public class PermissionsFunctionLibrary {
             Permission values and masks are integers in the 64-bit range. A value with a
             fractional part or outside that range yields an error rather than being silently
             truncated, so an invalid permission input is never treated as a different value.
+            A whole number such as 6.00 has the same permission bits as 6.
 
             ## Function Categories
 
@@ -72,8 +73,7 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "require editor permissions"
             permit
-                action == "edit"
-            where
+                action == "edit";
                 var CREATE = permissions.bit(0);
                 var READ   = permissions.bit(1);
                 var UPDATE = permissions.bit(2);
@@ -91,15 +91,14 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "owner can write"
             permit
-                action == "write"
-            where
+                action == "write";
                 subject.uid == resource.ownerUid;
                 var ownerPerms = permissions.unixOwner(resource.mode);
                 permissions.unixCanWrite(ownerPerms);
             ```
 
             Example: `resource.mode = 420` (octal 644, rw-r--r--). `unixOwner(420)`
-            extracts bits 6-8, returning 6 (rw-). `unixCanWrite(6)` checks bit 2,
+            extracts bits 6-8, returning 6 (rw-). `unixCanWrite(6)` checks the write mask (value 2),
             returning true.
 
             ## Permission Delegation
@@ -109,8 +108,7 @@ public class PermissionsFunctionLibrary {
             ```sapl
             policy "delegate only owned permissions"
             permit
-                action == "delegate"
-            where
+                action.type == "delegate";
                 permissions.isSubsetOf(action.permissionsToGrant, subject.permissions);
             ```
 
@@ -1009,14 +1007,10 @@ public class PermissionsFunctionLibrary {
      */
     private static Long toLongSafe(NumberValue number) {
         val value = number.value();
-        if (value.scale() > 0) {
+        if (!isIntegral(value)) {
             return null;
         }
-        if (value.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
-                || value.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) {
-            return null;
-        }
-        return value.longValue();
+        return integralToLongInRange(value);
     }
 
     // Accepts integral values with non-zero scale (2.00), rejects

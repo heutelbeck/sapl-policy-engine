@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Scalar permission values accept signed 64-bit whole numbers written with decimal places, such as `6.00`.
+
 - Bitwise functions accept signed 64-bit whole numbers written with decimal places, including `2.0` as an operand or bit position.
 
 - Head-only attribute reads release their finder after the first observation. The frozen decision stays current. Later finder events no longer produce traces for this policy.
