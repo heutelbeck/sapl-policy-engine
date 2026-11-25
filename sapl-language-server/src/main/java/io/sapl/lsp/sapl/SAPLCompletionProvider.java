@@ -526,22 +526,18 @@ public class SAPLCompletionProvider {
         return deepestMatch;
     }
 
-    /**
-     * Checks if IMPORT token exists in token history on the same line before
-     * position.
-     * This helps detect when we're inside an import statement path.
-     */
+    /** Whether the cursor is still in the imports that precede the schemas and policies. */
     private boolean hasImportTokenInHistory(List<Token> tokens, ProtocolPositions positions, int cursor) {
         var foundImport = false;
-
-        for (var token : tokens) {
-            val isPastCursor        = positions.startOf(token) >= cursor;
-            var isStructuralKeyword = isStructuralKeyword(token.getType());
-
-            if (token.getType() == Token.EOF || isPastCursor || isStructuralKeyword) {
+        for (val token : tokens) {
+            val type = token.getType();
+            if (type == Token.EOF || positions.startOf(token) >= cursor) {
                 break;
             }
-            if (token.getType() == SAPLLexer.IMPORT) {
+            if (isStructuralKeyword(type)) {
+                return false;
+            }
+            if (type == SAPLLexer.IMPORT) {
                 foundImport = true;
             }
         }
@@ -549,8 +545,8 @@ public class SAPLCompletionProvider {
     }
 
     private boolean isStructuralKeyword(int tokenType) {
-        return tokenType == SAPLLexer.SET || tokenType == SAPLLexer.POLICY || tokenType == SAPLLexer.PERMIT
-                || tokenType == SAPLLexer.DENY;
+        return tokenType == SAPLLexer.SCHEMA || tokenType == SAPLLexer.SET || tokenType == SAPLLexer.POLICY
+                || tokenType == SAPLLexer.PERMIT || tokenType == SAPLLexer.DENY || tokenType == SAPLLexer.SUSPEND;
     }
 
     /**

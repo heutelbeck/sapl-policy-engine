@@ -77,6 +77,17 @@ class SAPLCompletionProviderTests {
         assertThat(labels).contains("obligation", "advice", "transform");
     }
 
+    @Test
+    @DisplayName("offers schema properties inside a policy after an import")
+    void whenCompletingSubjectAfterAnImport_thenOffersItsSchemaProperties() {
+        var labels = labelsAtEnd("""
+                import time.dayOfWeek
+                subject schema {"properties":{"role":{}}}
+                policy "p" permit subject.ro""");
+
+        assertThat(labels).contains("subject.role").doesNotContain("array");
+    }
+
     private static Set<String> labelsAtEnd(String content) {
         var parsedDocument = new SAPLParsedDocument("test://test.sapl", content);
         var position       = positionAtEnd(content);
