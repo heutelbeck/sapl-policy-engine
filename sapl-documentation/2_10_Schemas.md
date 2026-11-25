@@ -39,9 +39,9 @@ For an enforced schema statement, supply additional schemas in the PDP configura
 The following rules apply when authoring portable schemas:
 
 - Put reusable subschemas in a location defined by the dialect, such as `$defs` in Draft 2020-12, and reference them with a JSON Pointer such as `#/$defs/address`. A reference into an arbitrary JSON field such as `#/elsewhere` has implementation-dependent behavior.
-- Supply the target of every `$ref`, including those in unused definitions. An unresolved reference is a schema error. Rust reports it during preparation. Java can currently leave an unused definition unchecked.
-- A supplied schema inherits the main schema's dialect unless it declares its own `$schema`. For consistent behavior across current engines, set `$schema` explicitly on supplied schemas. With a Draft 4 main schema, Rust inherits Draft 4 and Java can apply its own default.
-- In Draft 2019-09, use `"$recursiveRef": "#"` for dynamic recursion. A URL as the value of `$recursiveRef` is outside the SAPL profile. Java reports a schema error for this form. Rust can currently ignore the keyword and return a successful validation.
+- SAPL checks ordinary `$ref` targets when it prepares the schema, including targets named in unused definitions. Supply each referenced schema or remove the unused definition.
+- A supplied schema inherits the main schema's dialect unless it declares its own `$schema`. For example, a Draft 4 main schema passes Draft 4 to its supplied schemas. A supplied schema that declares Draft 2020-12 uses its own dialect.
+- In Draft 2019-09, use `"$recursiveRef": "#"` for dynamic recursion. Using a URL as the value of `$recursiveRef` produces a schema error. Use an ordinary `$ref` to name a supplied schema by its URI.
 
 Both engines reject an unresolved reference such as `//example.invalid/denied`. The URI printed in the error message can differ between engines.
 

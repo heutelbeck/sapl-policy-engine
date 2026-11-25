@@ -64,7 +64,8 @@ public class TimePolicyInformationPoint {
             Absolute checkpoints for nowIsBefore, nowIsAfter and nowIsBetween use an ISO calendar date, a time
             and Z or a numeric UTC offset. Examples are 2021-11-08T12:30Z and 20211108T123000+0100.
             24:00 denotes the end of the given day. A fraction of the last time component may have up to
-            nine digits. The year has four digits and the offset ranges from -18:00 to +18:00.
+            nine digits. Written years range from -9999 to 9999. Both -0043 and -000043 denote 44 BCE.
+            The offset ranges from -18:00 to +18:00.
             The after predicate is always true for 00:00 and always false for 23:59:59.999999999.""";
     private static final String ERROR_CLOCK_RETURNED_NULL = "Clock returned null. The time PIP is misconfigured: a Clock bean must be supplied that always returns a valid Instant.";
     private static final String ERROR_DAY_NAME_INVALID    = "Invalid day of week name: '%s'. Expected one of MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.";

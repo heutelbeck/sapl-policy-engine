@@ -49,6 +49,9 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ### Function libraries and policy information points
 
+- An unresolved ordinary `$ref` now invalidates a schema during preparation, including a reference inside an unused definition. Supply its target or remove the definition.
+- A supplied schema without `$schema` now inherits the main schema's draft. Declare `$schema` on a supplied schema that requires its own draft.
+- Absolute checkpoints in `time.nowIsBefore`, `time.nowIsAfter` and `time.nowIsBetween` accept written years from -9999 to 9999 and require a digit after any decimal separator. Write `12:30:00Z` for an exact second.
 - The `time` attributes accept English weekday and month names with ASCII letters in either case. Replace Unicode lookalikes such as `ſunday` with `Sunday`.
 - `array.sum` and `array.multiply` now return an error when the exact final result exceeds the range of SAPL arithmetic. Intermediate results may exceed that range.
 
