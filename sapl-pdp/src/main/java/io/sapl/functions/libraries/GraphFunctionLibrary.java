@@ -328,7 +328,7 @@ public class GraphFunctionLibrary {
      * @deprecated use {@link #reachablePaths(ObjectValue, Value)}
      */
     @Deprecated
-    @Function(name = "reachable_paths", docs = "Deprecated alias for `graph.reachablePaths`. Returns the same shortest paths.")
+    @Function(name = "reachable_paths", docs = "Deprecated alias for `graph.reachablePaths`. Returns the same shortest paths.", schema = SCHEMA_RETURNS_ARRAY)
     public static Value legacyReachablePaths(ObjectValue graph, Value initial) {
         return reachablePaths(graph, initial);
     }
