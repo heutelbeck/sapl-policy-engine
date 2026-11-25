@@ -129,6 +129,10 @@ public class StringFunctionLibrary {
             Useful for normalizing identifiers, roles, or resource names to enable case-insensitive
             comparisons in authorization policies.
 
+            The conversion uses the Unicode version of the running JDK in Java and of the Rust compiler in Rust.
+            Case mappings added in later Unicode versions can therefore produce different results.
+            For example, U+1C89 stays unchanged under Unicode 15.0 and becomes U+1C8A under Unicode 16.0.
+
             **Examples:**
             ```sapl
             policy "normalize_role"
@@ -152,6 +156,10 @@ public class StringFunctionLibrary {
 
             Useful for normalizing identifiers or ensuring consistent comparison format in
             authorization policies.
+
+            The conversion uses the Unicode version of the running JDK in Java and of the Rust compiler in Rust.
+            Case mappings added in later Unicode versions can therefore produce different results.
+            For example, U+0264 stays unchanged under Unicode 15.0 and becomes U+A7CB under Unicode 16.0.
 
             **Examples:**
             ```sapl
