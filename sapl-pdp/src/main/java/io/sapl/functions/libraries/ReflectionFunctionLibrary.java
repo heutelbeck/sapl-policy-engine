@@ -45,20 +45,18 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "safe metadata access"
             permit
-                action == "read"
-            where
+                action == "read";
                 reflect.isObject(resource.metadata);
                 reflect.isArray(resource.metadata.tags);
             ```
 
             ## Handling Optional Values
 
-            Distinguish between missing, null, and error states:
+            Require a defined department before comparing its value:
 
             ```sapl
             policy "require defined department"
             permit
-            where
                 reflect.isDefined(subject.department);
                 subject.department == "engineering";
             ```
@@ -70,7 +68,6 @@ public class ReflectionFunctionLibrary {
             ```sapl
             policy "type-aware validation"
             permit
-            where
                 var id = resource.id;
                 reflect.isText(id) | reflect.isNumber(id);
             ```
@@ -177,7 +174,7 @@ public class ReflectionFunctionLibrary {
      */
     @Function(docs = """
             ```reflect.isNumber(ANY value)```: Returns ```true``` if the value is a number, ```false``` otherwise.
-            All numbers are stored as arbitrary-precision decimals internally.
+            This includes whole numbers and decimal fractions.
 
             **Example:**
             ```sapl
@@ -344,17 +341,10 @@ public class ReflectionFunctionLibrary {
      */
     @Function(docs = """
             ```reflect.isError(ANY value)```: Returns ```true``` if the value represents an error, ```false``` otherwise.
-
-            **Example:**
-            ```sapl
-            policy "handle_computation_errors"
-            permit
-              var result = resource.computedValue;
-              !reflect.isError(result);          // deny if computation failed
-              reflect.isError(10 / 0);           // true (division by zero)
-              reflect.isError(100);              // false
-              reflect.isError(undefined);        // false
-            ```
+            A host can pass an SAPL error value directly to this function and receive true.
+            In a policy, arguments are evaluated before the call. In `reflect.isError(10 / 0)`,
+            division by zero propagates to the decision. Both `reflect.isError(undefined)`
+            and `reflect.isError(100)` return false.
             """, schema = SCHEMA_BOOLEAN)
     public static Value isError(Value value) {
         return Value.of(value instanceof ErrorValue);
