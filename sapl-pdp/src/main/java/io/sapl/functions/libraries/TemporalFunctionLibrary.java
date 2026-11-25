@@ -73,6 +73,8 @@ public class TemporalFunctionLibrary {
 
             UTC (Coordinated Universal Time) is timezone zero. Central European Time has a +01:00 offset.
             Functions work with UTC timestamps and support timezone conversions.
+            Local date-times and blank zone arguments use UTC.
+            Calendar units from WEEKS upward compare dates in UTC.
             Zone arguments accept region IDs such as Europe/Berlin, UTC and fixed offsets such as +02:00.
             Short aliases from ZoneId.SHORT_IDS, such as EST and PST, are refused.
 
@@ -258,7 +260,7 @@ public class TemporalFunctionLibrary {
             Both time parameters must be ISO 8601 strings at UTC. Valid chronoUnits: NANOS, MICROS, MILLIS,
             SECONDS, MINUTES, HOURS, HALF_DAYS, DAYS, WEEKS, MONTHS, YEARS, DECADES, CENTURIES, MILLENNIA.
 
-            Month duration is estimated as one twelfth of 365.2425 days. Year duration is 365.2425 days.
+            Calendar units from WEEKS upward compare dates in UTC.
 
             **Example:**
 
@@ -290,8 +292,8 @@ public class TemporalFunctionLibrary {
         try {
             return unit.between(instantFrom, instantTo);
         } catch (UnsupportedTemporalTypeException e) {
-            val dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
-            val dateTo   = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
+            val dateFrom = LocalDate.ofInstant(instantFrom, ZoneOffset.UTC);
+            val dateTo   = LocalDate.ofInstant(instantTo, ZoneOffset.UTC);
             return unit.between(dateFrom, dateTo);
         }
     }
@@ -897,17 +899,16 @@ public class TemporalFunctionLibrary {
 
     @Function(docs = """
             ```localIso(TEXT localDateTime)```: Parses an ISO 8601 date-time string without timezone offset using
-            the PDP's system default timezone.
+            UTC.
 
             **Example:**
 
-            With system default timezone Europe/Berlin, the expression
-            ```time.localIso("2021-11-08T13:00:00")``` returns ```"2021-11-08T12:00:00Z"```.""")
+            The expression ```time.localIso("2021-11-08T13:00:00")``` returns ```"2021-11-08T13:00:00Z"```.""")
     public static Value localIso(TextValue localDateTime) {
         try {
             return Value.of(localDateTimeToInstant(
-                    parseLocalDateTime(localDateTime.value(), DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                    ZoneId.systemDefault()).toString());
+                    parseLocalDateTime(localDateTime.value(), DateTimeFormatter.ISO_LOCAL_DATE_TIME), ZoneOffset.UTC)
+                    .toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_LOCAL_DATETIME.formatted(localDateTime), e);
         }
@@ -915,16 +916,15 @@ public class TemporalFunctionLibrary {
 
     @Function(docs = """
             ```localDin(TEXT dinDateTime)```: Parses a DIN date-time string without timezone offset using
-            the PDP's system default timezone. Returns an ISO 8601 string.
+            UTC. Returns an ISO 8601 string.
 
             **Example:**
 
-            With system default timezone Europe/Berlin, the expression
-            ```time.localDin("08.11.2021 13:00:00")``` returns ```"2021-11-08T12:00:00Z"```.""")
+            The expression ```time.localDin("08.11.2021 13:00:00")``` returns ```"2021-11-08T13:00:00Z"```.""")
     public static Value localDin(TextValue dinDateTime) {
         try {
             return Value.of(localDateTimeToInstant(parseLocalDateTime(dinDateTime.value(), DIN_DATE_TIME_FORMATTER),
-                    ZoneId.systemDefault()).toString());
+                    ZoneOffset.UTC).toString());
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_DIN_DATETIME.formatted(dinDateTime), e);
         }
@@ -952,7 +952,7 @@ public class TemporalFunctionLibrary {
             ```dateTimeAtZone(TEXT localDateTime, TEXT zoneId)```: Parses an ISO 8601 date-time string and
             returns the matching ISO 8601 instant at UTC for the provided timezone.
 
-            If zoneId is empty or blank, uses system default timezone.
+            If zoneId is empty or blank, uses UTC.
             See [timezone database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for valid zoneId values.
 
             **Example:**
@@ -1340,13 +1340,13 @@ public class TemporalFunctionLibrary {
     }
 
     /**
-     * Parses zone parameter to a ZoneId. Returns system default if parameter is
+     * Parses zone parameter to a ZoneId. Returns UTC if parameter is
      * blank.
      */
     private static ZoneId zoneIdOf(TextValue zone) {
         val zoneIdStr = zone.value().trim();
         if (zoneIdStr.isBlank())
-            return ZoneId.systemDefault();
+            return ZoneOffset.UTC;
 
         if (ZoneId.SHORT_IDS.containsKey(zoneIdStr)) {
             throw new IllegalArgumentException(ERROR_INVALID_ZONE_ID.formatted(zoneIdStr));

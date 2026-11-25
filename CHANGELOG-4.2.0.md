@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Time functions use UTC for local date-times, blank zone arguments and calendar-unit `timeBetween` calculations, independently of the JVM default zone.
+
 - Explicit time-library zone arguments refuse `ZoneId.SHORT_IDS` aliases such as `EST` and `PST`. Use region IDs, UTC or fixed offsets.
 
 - Quantity unit suffixes use locale-independent casing. For example, `2Kİ` and `2KİB` now report an unknown unit under a Turkish JVM locale as well.

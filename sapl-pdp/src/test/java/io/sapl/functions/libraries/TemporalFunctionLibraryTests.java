@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
@@ -30,15 +31,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.Month;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.util.List;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -371,12 +370,10 @@ class TemporalFunctionLibraryTests {
 
     @Test
     void whenLocalConversionThenConvertsToUtc() {
-        val ldt = LocalDateTime.of(2021, Month.NOVEMBER, 8, 13, 0, 0);
-        val zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
         assertThat(TemporalFunctionLibrary.localIso(Value.of("2021-11-08T13:00:00")))
-                .isEqualTo(Value.of(zdt.toInstant().toString()));
+                .isEqualTo(Value.of("2021-11-08T13:00:00Z"));
         assertThat(TemporalFunctionLibrary.localDin(Value.of("08.11.2021 13:00:00")))
-                .isEqualTo(Value.of(zdt.toInstant().toString()));
+                .isEqualTo(Value.of("2021-11-08T13:00:00Z"));
     }
 
     @Test
@@ -400,12 +397,24 @@ class TemporalFunctionLibraryTests {
     }
 
     @Test
-    void whenZoneIdIsEmptyThenUsesSystemDefault() {
-        val defaultZoneId = ZoneId.of("Australia/Sydney");
+    void whenDefaultZoneDiffersThenFunctionsUseUtc() {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new TemporalFunctionLibrary());
+        val configuredZone = ZoneId.of("Asia/Tokyo");
+        val calls          = List.of(new FunctionInvocation("time.localIso", List.of(Value.of("2021-11-08T13:12:35"))),
+                new FunctionInvocation("time.localDin", List.of(Value.of("08.11.2021 13:12:35"))),
+                new FunctionInvocation("time.dateTimeAtZone", List.of(Value.of("2021-11-08T13:12:35"), Value.of(""))),
+                new FunctionInvocation("time.timeInZone",
+                        List.of(Value.of("13:12:35"), Value.of("2021-11-08"), Value.of(""))),
+                new FunctionInvocation("time.toZone", List.of(Value.of("2021-11-08T13:12:35Z"), Value.of(""))),
+                new FunctionInvocation("time.timeBetween", List.of(Value.of("2021-01-01T23:30:00Z"),
+                        Value.of("2021-01-08T00:30:00Z"), Value.of("WEEKS"))));
         try (MockedStatic<ZoneId> zoneIdMock = Mockito.mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
-            zoneIdMock.when(ZoneId::systemDefault).thenReturn(defaultZoneId);
-            assertThat(TemporalFunctionLibrary.dateTimeAtZone(Value.of("2021-11-08T13:12:35"), Value.of("")))
-                    .isEqualTo(Value.of("2021-11-08T02:12:35Z"));
+            zoneIdMock.when(ZoneId::systemDefault).thenReturn(configuredZone);
+            assertThat(calls.stream().map(broker::evaluateFunction).toList()).containsExactly(
+                    Value.of("2021-11-08T13:12:35Z"), Value.of("2021-11-08T13:12:35Z"),
+                    Value.of("2021-11-08T13:12:35Z"), Value.of("13:12:35"), Value.of("2021-11-08T13:12:35Z"),
+                    Value.of(1L));
         }
     }
 

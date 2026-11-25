@@ -25,6 +25,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.functions.FunctionInvocation;
@@ -103,6 +104,39 @@ class HistoricalTemporalFunctionLibraryTests {
                 new FunctionInvocation("time.toZone", List.of(Value.of("1880-01-01T13:00:00Z"), Value.of(alias))))) {
             assertThat(broker.evaluateFunction(invocation)).as("%s", invocation).isInstanceOf(ErrorValue.class);
         }
+    }
+
+    @ParameterizedTest(name = "blank zone: [{0}]")
+    @ValueSource(strings = { "", " ", "\t\r\n" })
+    @DisplayName("blank zone arguments select UTC in every public time-library entry")
+    void whenZoneIsBlankThenTheBrokerUsesUtc(String zone) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new TemporalFunctionLibrary());
+        for (val invocation : List.of(
+                new FunctionInvocation("time.dateTimeAtZone", List.of(Value.of("2021-11-08T13:12:35"), Value.of(zone))),
+                new FunctionInvocation("time.toZone", List.of(Value.of("2021-11-08T13:12:35Z"), Value.of(zone))))) {
+            assertThat(broker.evaluateFunction(invocation)).as("%s", invocation)
+                    .isEqualTo(Value.of("2021-11-08T13:12:35Z"));
+        }
+        assertThat(broker.evaluateFunction(new FunctionInvocation("time.timeInZone",
+                List.of(Value.of("13:12:35"), Value.of("2021-11-08"), Value.of(zone)))))
+                .isEqualTo(Value.of("13:12:35"));
+    }
+
+    @ParameterizedTest(name = "{0} to {1}, {2}: {3}")
+    @CsvSource(delimiter = '|', value = { "2021-01-01T23:30:00Z|2021-01-08T00:30:00Z|WEEKS|1",
+            "2021-01-01T23:30:00Z|2021-02-01T00:30:00Z|MONTHS|1", "2021-02-01T00:30:00Z|2021-01-01T23:30:00Z|MONTHS|-1",
+            "2021-01-01T23:30:00Z|2022-01-01T00:30:00Z|YEARS|1", "2001-01-01T23:30:00Z|2011-01-01T00:30:00Z|DECADES|1",
+            "1901-01-01T23:30:00Z|2001-01-01T00:30:00Z|CENTURIES|1",
+            "1001-01-01T23:30:00Z|2001-01-01T00:30:00Z|MILLENNIA|1", "0000-12-31T23:30:00Z|0001-01-01T00:30:00Z|ERAS|1",
+            "2021-01-01T23:30:00Z|2021-01-08T00:30:00Z|DAYS|6", "2021-01-01T23:30:00Z|2021-01-08T00:30:00Z|HOURS|145" })
+    @DisplayName("calendar units use UTC dates while physical units retain the instant timeline")
+    void whenCalendarUnitCrossesUtcDatesThenTheBrokerUsesUtc(String from, String to, String unit, long expected) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new TemporalFunctionLibrary());
+        val invocation = new FunctionInvocation("time.timeBetween",
+                List.of(Value.of(from), Value.of(to), Value.of(unit)));
+        assertThat(broker.evaluateFunction(invocation)).isEqualTo(Value.of(expected));
     }
 
 }
