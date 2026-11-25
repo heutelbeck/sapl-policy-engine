@@ -126,17 +126,20 @@ public class PatternsFunctionLibrary {
 
             To bound memory and computation on untrusted input, the following limits apply:
 
-            - The pattern or template argument may be at most 1000 characters. This applies to glob patterns,
-              regular expressions, and templates.
+            - The pattern or template argument may be at most 1000 UTF-16 code units. This applies to glob
+              patterns, regular expressions, and templates.
+            - The regular expression passed to the compiler may be at most 1024 UTF-8 bytes, including
+              expressions translated from globs and templates.
             - The input value being matched, searched, replaced, or split may be at most 64 KiB long in UTF-8.
             - Match-returning functions return at most 10000 matches. This caps `findMatches`, `findMatchesLimited`,
               `findAllSubmatch`, and `findAllSubmatchLimited`, and it caps the number of segments produced by `split`.
               A larger explicit limit is reduced to 10000.
-            - Glob patterns may nest alternative groups at most 50 levels deep, and a single glob pattern may contain
-              at most 30 alternative groups.
-            - A regular expression may compile to at most 256 KiB and nest at most 64 levels deep. Each repetition
-              counts with its number of copies, so `(?:a{1000}){1000}` and `\\w{1,32}` exceed the default size limit. Use an
-              ASCII class such as `[A-Za-z0-9_]{1,64}` for a bounded repetition, or `\\w+` without a bound.
+            - Glob patterns may nest alternative groups at most 50 levels deep. Each converted level may contain
+              at most 30 outer alternative groups.
+            - A regular expression may compile to at most 256 KiB and nest at most 64 levels deep. Bounded
+              repetitions can expand the compiled program. Its size depends on the target platform, so a
+              pattern can fit on one platform and exceed the budget on another. Use an ASCII class such as
+              `[A-Za-z0-9_]{1,64}` for a bounded repetition, or `\\w+` without a bound.
             - The replacement of `replaceAll` and its result may be at most 64 KiB long in UTF-8, like every text
               a regular expression is matched against.
 
