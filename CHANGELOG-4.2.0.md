@@ -20,6 +20,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - HTTP server-sent event fields remove only the optional single ASCII space after `data:`; other leading characters remain JSON input.
 
+- The HTTP PIP closes single JSON and text responses whose bodies take more than 30 seconds to arrive after the headers. It emits a timeout error for that attempt.
+
 - `json.jsonToVal` accepts exactly one leading U+FEFF byte order mark and checks the existing input length limit before removing it.
 
 - `filter.blacken` counts visible prefix and suffix characters and its automatic replacement count in Unicode code points, preserving supplementary characters.

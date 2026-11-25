@@ -192,8 +192,15 @@ public class HttpPolicyInformationPoint {
 
             ## Timeouts
 
-            Connection timeout is 10 seconds, read timeout is 30 seconds. Unresponsive
-            endpoints result in an error value.
+            The standard PDP uses a five-second TCP connect timeout. The HTTP finder allows
+            30 seconds to receive the response headers. For a single JSON or text response,
+            the complete body must arrive within a further 30 seconds. Receiving partial data
+            does not restart this deadline. On timeout the finder closes the response and
+            returns an error. While the attribute remains subscribed, the broker can poll again
+            after its configured poll interval.
+
+            The broker's time to the first attribute value can end a request earlier. An open
+            server-sent event stream can receive events beyond the single-response body deadline.
 
             ## Configure TLS trust
 

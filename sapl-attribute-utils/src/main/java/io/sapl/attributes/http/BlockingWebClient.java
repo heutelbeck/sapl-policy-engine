@@ -54,6 +54,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -103,6 +106,7 @@ public class BlockingWebClient {
     private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE       = "%s must be a number in HTTP requestSpecification, but was: %s.";
     private static final String ERROR_HTTP_RESPONSE_STATUS                  = "HTTP %d";
+    private static final String ERROR_HTTP_RESPONSE_TIMEOUT                 = "Timed out reading the HTTP response body.";
     private static final String ERROR_MALFORMED_URI                         = "Malformed request URI: %s";
     private static final String ERROR_MAX_RESPONSE_BYTES_NOT_POSITIVE       = "maxResponseBytes must be a positive number, but was: %d.";
     private static final String ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
@@ -256,13 +260,9 @@ public class BlockingWebClient {
                         return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
                     }
                 }
-                final byte[] bytes;
-                try (val in = response.body()) {
-                    // Read one byte past the limit to detect an oversized body without buffering
-                    // more than the cap. Clamp before +1 so the sentinel can never overflow.
-                    val limit = (int) Math.min(maxBytes, Integer.MAX_VALUE - 1L) + 1;
-                    bytes = in.readNBytes(limit);
-                }
+                // Read one byte past the limit to detect an oversized body.
+                val limit = (int) Math.min(maxBytes, Integer.MAX_VALUE - 1L) + 1;
+                val bytes = readBody(response.body(), limit, READ_TIMEOUT);
                 if (bytes.length > maxBytes) {
                     return Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes));
                 }
@@ -271,6 +271,13 @@ public class BlockingWebClient {
                     return body.isBlank() ? Value.UNDEFINED : ValueJsonMarshaller.fromJsonNode(mapper.readTree(body));
                 }
                 return Value.of(body);
+            } catch (TimeoutException e) {
+                return Value.error(ERROR_HTTP_RESPONSE_TIMEOUT);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof Error fatal) {
+                    throw fatal;
+                }
+                return Value.error(messageOf(e.getCause()));
             } catch (JacksonException | IOException e) {
                 return Value.error(messageOf(e));
             } catch (InterruptedException e) {
@@ -278,6 +285,20 @@ public class BlockingWebClient {
                 return Value.error(messageOf(e));
             }
         };
+    }
+
+    /** The JDK request timer ends at the headers. Bound the complete read and release the body on cancellation. */
+    static byte[] readBody(InputStream body, int limit, Duration timeout)
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
+        try (body) {
+            val read = new FutureTask<>(() -> body.readNBytes(limit));
+            Thread.startVirtualThread(read);
+            try {
+                return read.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+            } finally {
+                read.cancel(true);
+            }
+        }
     }
 
     private Stream<Value> openServerSentEventStream(HttpRequest request, long maxBytes) {
