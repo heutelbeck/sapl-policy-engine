@@ -47,6 +47,7 @@ public class YamlFunctionLibrary {
             the standard string, integer, float, boolean, null, sequence, and mapping tags.
             Aliases resolve to their anchored values. A `<<` key stays an ordinary object key.
             In a flow collection, write an explicitly tagged empty string as `[!!str ""]`.
+            Rust also reads `[!!str]` as a list containing an empty string. The Java YAML parser rejects this spelling.
 
             ## Limits
 
