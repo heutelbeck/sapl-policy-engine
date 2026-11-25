@@ -20,7 +20,9 @@ package io.sapl.lsp.sapl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 import org.eclipse.lsp4j.CompletionItem;
@@ -28,11 +30,47 @@ import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
+import io.sapl.lsp.configuration.LSPConfiguration;
+import io.sapl.api.documentation.DocumentationBundle;
+import io.sapl.api.documentation.LibraryDocumentation;
+import io.sapl.api.documentation.LibraryType;
+import io.sapl.api.documentation.EntryDocumentation;
+import io.sapl.api.documentation.EntryType;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("SAPLCompletionProvider")
 class SAPLCompletionProviderTests {
+
+    @MethodSource("finderCursors")
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("Finder completions distinguish environment and receiver access")
+    void whenCompletingFinderThenOnlyItsReceiverKindIsOffered(String marked, String expected) {
+        var library  = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, "office", "", "",
+                List.of(new EntryDocumentation(EntryType.ENVIRONMENT_ATTRIBUTE, "environment", "", null, List.of()),
+                        new EntryDocumentation(EntryType.ATTRIBUTE, "receiver", "", null, List.of())));
+        var config   = new LSPConfiguration("audit", new DocumentationBundle(List.of(library)), Map.of(),
+                LSPConfiguration.minimal().functionBroker());
+        var manager  = new ConfigurationManager(ignored -> config);
+        var offset   = marked.indexOf('§');
+        var text     = marked.replace("§", "");
+        var document = new SAPLParsedDocument("file:///audit/policy.sapl", text);
+
+        var items = completionProvider.provideCompletions(document, new Position(0, offset), manager);
+
+        assertThat(items).extracting(CompletionItem::getLabel).containsExactly(expected);
+    }
+
+    static Stream<Arguments> finderCursors() {
+        return Stream.of("<", "|<", "subject.<", "subject.|<")
+                .flatMap(opening -> Stream.of("§", "off§ice", "office.§", "office.re§ceiver")
+                        .map(name -> arguments("policy \"p\" permit " + opening + name + ">;",
+                                opening.startsWith("subject") ? "<office.receiver>" : "<office.environment>")));
+    }
 
     private static SAPLCompletionProvider completionProvider;
     private static ConfigurationManager   configManager;

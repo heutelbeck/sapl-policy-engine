@@ -41,6 +41,8 @@ import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser.BasicEnvironmentAttributeContext;
 import io.sapl.grammar.antlr.SAPLParser.BasicEnvironmentHeadAttributeContext;
 import io.sapl.grammar.antlr.SAPLParser.BasicFunctionContext;
+import io.sapl.grammar.antlr.SAPLParser.AttributeFinderDotStepContext;
+import io.sapl.grammar.antlr.SAPLParser.HeadAttributeFinderDotStepContext;
 import io.sapl.grammar.antlr.SAPLParser.CombiningAlgorithmContext;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
 import io.sapl.grammar.antlr.SAPLParser.ImportStatementContext;
@@ -369,12 +371,18 @@ public class SAPLCompletionProvider {
 
         // Check for attribute context (cursor on < or |<)
         if (isAttributeTrigger(tokenType)) {
+            if (ctx.previousToken() != null && ctx.previousToken().getType() == SAPLLexer.DOT) {
+                return CompletionContext.ATTRIBUTE;
+            }
             return CompletionContext.ENVIRONMENT_ATTRIBUTE;
         }
 
         // Typing after attribute trigger (e.g., <t or |<t)
         var previousToken = ctx.previousToken();
         if (previousToken != null && isAttributeTrigger(previousToken.getType())) {
+            if (ctx.twoTokensBack() != null && ctx.twoTokensBack().getType() == SAPLLexer.DOT) {
+                return CompletionContext.ATTRIBUTE;
+            }
             return CompletionContext.ENVIRONMENT_ATTRIBUTE;
         }
 
@@ -555,6 +563,10 @@ public class SAPLCompletionProvider {
     private CompletionContext analyzeParseTreeContext(ParseTree node, ProtocolPositions positions, int cursor) {
         var current = node;
         while (current != null) {
+            if (current instanceof AttributeFinderDotStepContext
+                    || current instanceof HeadAttributeFinderDotStepContext) {
+                return CompletionContext.ATTRIBUTE;
+            }
             // Environment attribute context
             if (current instanceof BasicEnvironmentAttributeContext
                     || current instanceof BasicEnvironmentHeadAttributeContext) {
