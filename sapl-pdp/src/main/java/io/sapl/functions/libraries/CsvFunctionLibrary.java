@@ -172,8 +172,9 @@ public class CsvFunctionLibrary {
     private static final String ERROR_ARRAY_MUST_CONTAIN_OBJECTS = "CSV array must contain objects.";
     private static final String ERROR_CELL_MUST_BE_SCALAR        = "CSV fields must be texts, numbers, booleans or null.";
     private static final String ERROR_DUPLICATE_HEADER           = "Duplicate CSV header.";
-    private static final String ERROR_FAILED_TO_GENERATE_CSV     = "Failed to generate CSV: %s.";
-    private static final String ERROR_FAILED_TO_PARSE_CSV        = "Failed to parse CSV: %s.";
+    private static final String ERROR_FAILED_TO_GENERATE_CSV     = "Failed to generate CSV: %s";
+    private static final String ERROR_FAILED_TO_PARSE_CSV        = "Failed to parse CSV: %s";
+    private static final String ERROR_NO_COLUMNS                 = "CSV output requires at least one column.";
 
     /**
      * Parses a CSV document with headers into a SAPL array of objects.
@@ -249,7 +250,7 @@ public class CsvFunctionLibrary {
             }
             return resultBuilder.build();
         } catch (JacksonException exception) {
-            return Value.error(ERROR_FAILED_TO_PARSE_CSV, exception.getMessage());
+            return Value.error(ERROR_FAILED_TO_PARSE_CSV, sentence(exception.getOriginalMessage()));
         }
     }
 
@@ -319,15 +320,24 @@ public class CsvFunctionLibrary {
             for (val key : ((ObjectValue) sanitized.getFirst()).keySet()) {
                 schemaBuilder.addColumn(key);
             }
-            val schema    = schemaBuilder.build().withHeader().withLineSeparator("\r\n");
+            val schema = schemaBuilder.build().withHeader().withLineSeparator("\r\n");
+            if (schema.size() == 0) {
+                return Value.error(ERROR_FAILED_TO_GENERATE_CSV, ERROR_NO_COLUMNS);
+            }
             val arrayNode = convertToJacksonArrayNode(sanitized);
             val csvText   = TextOutputLimits.write(writer -> CSV_MAPPER.writer(schema).writeValue(writer, arrayNode));
             return Value.of(csvText);
         } catch (TextOutputLimits.OutputLimitExceededException exception) {
             return Value.error(exception.getMessage());
-        } catch (IllegalArgumentException | JacksonException | IOException exception) {
-            return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
+        } catch (JacksonException exception) {
+            return Value.error(ERROR_FAILED_TO_GENERATE_CSV, sentence(exception.getOriginalMessage()));
+        } catch (IllegalArgumentException | IOException exception) {
+            return Value.error(ERROR_FAILED_TO_GENERATE_CSV, sentence(exception.getMessage()));
         }
+    }
+
+    private static String sentence(String reason) {
+        return reason.endsWith(".") ? reason : reason + ".";
     }
 
     private static boolean isEmptyRecord(String text, long start, long end) {

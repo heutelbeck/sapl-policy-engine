@@ -469,4 +469,32 @@ class CsvFunctionLibraryTests {
         assertThat(CsvFunctionLibrary.valToCsv(rows)).isEqualTo(Value.of("note\r\n\"first\r\nsecond\"\r\n"));
     }
 
+    @MethodSource("csvGenerationFailures")
+    @DisplayName("CSV generation errors contain a single sentence without a backend location")
+    @ParameterizedTest(name = "{0}")
+    void whenCsvGenerationFailsThenReasonHasOnePeriodAndNoLocation(String name, ArrayValue rows, String message) {
+        assertThat(CsvFunctionLibrary.valToCsv(rows)).as(name).isEqualTo(Value.error(message));
+    }
+
+    private static Stream<Arguments> csvGenerationFailures() {
+        return Stream.of(
+                arguments("non-scalar cell",
+                        ArrayValue.builder()
+                                .add(ObjectValue.builder().put("note", ArrayValue.builder().build()).build()).build(),
+                        "Failed to generate CSV: CSV fields must be texts, numbers, booleans or null."),
+                arguments("no columns", ArrayValue.builder().add(ObjectValue.builder().build()).build(),
+                        "Failed to generate CSV: CSV output requires at least one column."),
+                arguments("unknown column",
+                        ArrayValue.builder().add(ObjectValue.builder().put("a", Value.of(1)).build())
+                                .add(ObjectValue.builder().put("b", Value.of(2)).build()).build(),
+                        "Failed to generate CSV: Unrecognized column 'b': known columns: [\"a\"]."));
+    }
+
+    @Test
+    @DisplayName("CSV parse errors preserve the reason without a source suffix")
+    void whenCsvParsingFailsThenReasonHasNoParserLocation() {
+        assertThat(CsvFunctionLibrary.csvToVal(Value.of("a\n\"unclosed")))
+                .isEqualTo(Value.error("Failed to parse CSV: Missing closing quote for value."));
+    }
+
 }
