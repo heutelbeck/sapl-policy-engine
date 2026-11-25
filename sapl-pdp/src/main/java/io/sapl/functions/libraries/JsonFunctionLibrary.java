@@ -96,7 +96,7 @@ public class JsonFunctionLibrary {
             To bound memory and computation on untrusted input, the following limits apply:
 
             - The input is limited to 1 MB.
-            - Parsing is bounded to a maximum nesting depth of 500. Numbers allow 1000 coefficient digits and up to 1010 characters including sign, decimal point, and exponent.
+            - Arrays and objects can nest at most 499 levels, including empty containers. Numbers allow 1000 coefficient digits and up to 1010 characters including sign, decimal point, and exponent.
             - Serialization output is limited to 10000000 characters.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
@@ -124,8 +124,8 @@ public class JsonFunctionLibrary {
             ```jsonToVal(TEXT json)```: Converts a well-formed JSON document into a SAPL value
             representing the content of the JSON document. Returns an error if the JSON is malformed.
 
-            Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
-            depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.
+            Input longer than 1 MB (1048576 characters) is rejected with an error. Arrays and
+            objects can nest at most 499 levels, including empty containers.
 
             **Example:**
             ```sapl

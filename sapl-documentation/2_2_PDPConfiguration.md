@@ -121,6 +121,8 @@ A rejected update leaves the last working configuration active with status `STAL
 
 Each listed name must have configuration in `ext-<name>.json`, secrets in `ext-<name>-secrets.json` (sealed: `ext-<name>-secrets.sealed.json`) or both. For the example above, provide `ext-upstreams.json` or the matching secrets file alongside `pdp.json`. The same declaration applies to policy directories and bundles. Extension secrets follow the sealing rules described in [Secrets](#secrets).
 
+In a public extension configuration file such as `ext-upstreams.json`, arrays and objects can nest at most 499 levels. An outer array or object counts as level one. Empty containers count, including those in a field that a later entry with the same key replaces.
+
 A recipient may ignore unsupported extensions that are not listed. It rejects the whole configuration if a required extension is unsupported or cannot be prepared. A rejected update leaves the last working configuration active with status `STALE`. Without a working configuration, the status is `ERROR`. The declaration in `pdp.json` is covered by the bundle signature.
 
 The Java configuration exposes these names through `PDPConfiguration.requiredExtensions()`. JSON serialization of the complete configuration uses the same `requiredExtensions` field. `BundleBuilder.withRequiredExtension(name)` adds a name to the declaration in `pdp.json` and retains names already declared there.
