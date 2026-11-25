@@ -31,6 +31,20 @@ class SAPLTestParsedDocumentTests {
     private static final String TEST_URI = "file:///test.sapltest";
 
     @Test
+    @DisplayName("a leading byte order mark preserves the original position of the requirement")
+    void whenDocumentStartsWithByteOrderMarkThenRequirementKeepsItsColumn() {
+        var content = "\uFEFF" + """
+                requirement "r" {
+                    scenario "read" when "alice" attempts "read" on "report" expect permit;
+                }
+                """;
+        var document = new SAPLTestParsedDocument(TEST_URI, content);
+
+        assertThat(document.getParseErrors()).isEmpty();
+        assertThat(document.getSaplTestParseTree().getStart().getCharPositionInLine()).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("valid document parses without errors")
     void whenParseValidDocument_thenNoErrors() {
         var content = """

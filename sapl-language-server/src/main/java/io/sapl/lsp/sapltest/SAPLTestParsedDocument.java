@@ -66,6 +66,9 @@ public final class SAPLTestParsedDocument implements ParsedDocument {
         val toParse = ParsedDocumentGuards.exceedsMaxLength(content) ? "" : content;
 
         val lexer = new SAPLTestLexer(CharStreams.fromString(toParse));
+        if (toParse.startsWith("\uFEFF")) {
+            lexer.getInterpreter().consume(lexer.getInputStream());
+        }
         lexer.removeErrorListeners();
         lexer.addErrorListener(new ErrorCollector(errors));
 
