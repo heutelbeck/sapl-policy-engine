@@ -26,10 +26,14 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -38,6 +42,20 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("UnitsFunctionLibrary")
 class UnitsFunctionLibraryTests {
+
+    @Test
+    @ResourceLock(Resources.LOCALE)
+    void whenTurkishIsTheDefaultLocaleThenOnlyStandardBinarySuffixesAreRecognized() {
+        val previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            val quantity = UnitsFunctionLibrary.parse(Value.of("2Kİ"));
+            val bytes    = UnitsFunctionLibrary.parseBytes(Value.of("2KİB"));
+            assertThat(List.of(quantity, bytes)).hasOnlyElementsOfType(ErrorValue.class);
+        } finally {
+            Locale.setDefault(previous);
+        }
+    }
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {

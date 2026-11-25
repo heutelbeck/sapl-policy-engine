@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Quantity unit suffixes use locale-independent casing. For example, `2Kİ` and `2KİB` now report an unknown unit under a Turkish JVM locale as well.
+
 - Scalar permission values accept signed 64-bit whole numbers written with decimal places, such as `6.00`.
 
 - Bitwise functions accept signed 64-bit whole numbers written with decimal places, including `2.0` as an operand or bit position.
