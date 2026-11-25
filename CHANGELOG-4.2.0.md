@@ -16,6 +16,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Bitwise functions accept signed 64-bit whole numbers written with decimal places, including `2.0` as an operand or bit position.
+
 - Head-only attribute reads release their finder after the first observation. The frozen decision stays current. Later finder events no longer produce traces for this policy.
 
 - Invalid compiler limits reject a configuration during loading. After a plugin change the PDP recompiles the last configuration with valid options.

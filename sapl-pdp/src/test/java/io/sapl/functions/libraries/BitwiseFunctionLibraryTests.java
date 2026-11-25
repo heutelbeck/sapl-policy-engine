@@ -29,6 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -38,6 +39,14 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("BitwiseFunctionLibrary")
 class BitwiseFunctionLibraryTests {
+    @Test
+    void whenPermissionMaskAndPositionAreWholeDecimalsThenSetBitIsFound() {
+        val mask     = new NumberValue(new BigDecimal("4.00"));
+        val position = new NumberValue(new BigDecimal("2.0"));
+
+        assertThat(BitwiseFunctionLibrary.testBit(mask, position)).isEqualTo(Value.TRUE);
+    }
+
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();

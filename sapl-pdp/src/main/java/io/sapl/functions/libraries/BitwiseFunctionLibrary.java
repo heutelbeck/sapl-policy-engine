@@ -51,6 +51,7 @@ public class BitwiseFunctionLibrary {
             for negative numbers. Bit positions are numbered from right to left, starting at 0
             for the least significant bit and ending at 63 for the most significant bit (sign bit).
             Shift and rotate operations accept position values from 0 to 63 inclusive.
+            Whole numbers such as 2 and 2.0 are interchangeable for operands and positions.
 
             A single 64-bit integer represents up to 64 distinct permissions or feature flags.
             Each bit position corresponds to one permission. Operations execute in constant time
@@ -162,7 +163,7 @@ public class BitwiseFunctionLibrary {
      */
     private static Long toLongSafe(NumberValue number) {
         val value = number.value();
-        if (value.scale() > 0) {
+        if (value.stripTrailingZeros().scale() > 0) {
             return null;
         }
         if (value.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
