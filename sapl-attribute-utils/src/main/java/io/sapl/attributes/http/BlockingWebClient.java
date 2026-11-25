@@ -51,7 +51,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -63,7 +63,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Synchronous HTTP and WebSocket transport for SAPL Policy
+ * HTTP and WebSocket transport for SAPL Policy
  * Information Points. Built on {@link HttpClient} and
  * {@link WebSocket} from {@code java.net.http}; no Reactor or
  * Spring dependency.
@@ -218,6 +218,8 @@ public class BlockingWebClient {
      * Connects to a WebSocket endpoint and emits each incoming text
      * frame as a {@link Value}. Closing the returned stream sends a
      * normal-closure to the server.
+     * Opening is asynchronous, so the broker's first-value timeout includes
+     * the handshake. Closing during opening cancels the pending handshake.
      */
     public Stream<Value> consumeWebSocket(ObjectValue requestSettings) {
         try {
@@ -441,27 +443,40 @@ public class BlockingWebClient {
             val builder     = httpClient.newWebSocketBuilder();
             applyWebSocketHeaders(builder, headers);
 
-            val listener = new WebSocketListener(accumulator, emit, complete, mapper, maxBytes);
-            val wsRef    = new AtomicReference<WebSocket>();
-            try {
-                CompletableFuture<WebSocket> future = builder.buildAsync(uri, listener).toCompletableFuture();
-                val                          ws     = future.get();
-                wsRef.set(ws);
-                if (body != null) {
-                    ws.sendText(body.asString(), true);
+            val closed      = new AtomicBoolean(false);
+            val wsRef       = new AtomicReference<WebSocket>();
+            val initialText = body == null ? null : body.asString();
+            val listener    = new WebSocketListener(accumulator, emit, complete, mapper, maxBytes, closed, wsRef);
+            val future      = builder.buildAsync(uri, listener);
+            future.whenComplete((ws, failure) -> {
+                if (failure != null) {
+                    if (!closed.get()) {
+                        val cause = failure instanceof CompletionException && failure.getCause() != null
+                                ? failure.getCause()
+                                : failure;
+                        emit.accept(Value.error(messageOf(cause)));
+                    }
+                    complete.run();
+                } else {
+                    wsRef.set(ws);
+                    if (closed.get()) {
+                        ws.abort();
+                    } else if (initialText != null) {
+                        ws.sendText(initialText, true);
+                    }
                 }
-            } catch (ExecutionException e) {
-                emit.accept(Value.error(messageOf(e.getCause() != null ? e.getCause() : e)));
-                complete.run();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                complete.run();
-            }
+            });
 
             return () -> {
-                val ws = wsRef.get();
-                if (ws != null && !ws.isOutputClosed()) {
-                    ws.sendClose(WebSocket.NORMAL_CLOSURE, "client-close");
+                closed.set(true);
+                val openingCancelled = future.cancel(true);
+                val ws               = wsRef.get();
+                if (ws != null) {
+                    if (openingCancelled) {
+                        ws.abort();
+                    } else if (!ws.isOutputClosed()) {
+                        ws.sendClose(WebSocket.NORMAL_CLOSURE, "client-close");
+                    }
                 }
             };
         });
@@ -687,16 +702,23 @@ public class BlockingWebClient {
      */
     @RequiredArgsConstructor
     private static final class WebSocketListener implements WebSocket.Listener {
-        private final StringBuilder   accumulator;
-        private final Consumer<Value> emit;
-        private final Runnable        complete;
-        private final JsonMapper      mapper;
-        private final long            maxBytes;
-        private long                  accumulatedBytes;
+        private final StringBuilder              accumulator;
+        private final Consumer<Value>            emit;
+        private final Runnable                   complete;
+        private final JsonMapper                 mapper;
+        private final long                       maxBytes;
+        private final AtomicBoolean              closed;
+        private final AtomicReference<WebSocket> socket;
+        private long                             accumulatedBytes;
 
         @Override
         public void onOpen(WebSocket webSocket) {
-            webSocket.request(1L);
+            socket.set(webSocket);
+            if (closed.get()) {
+                webSocket.abort();
+            } else {
+                webSocket.request(1L);
+            }
         }
 
         @Override
