@@ -31,6 +31,7 @@ import io.sapl.api.pdp.configuration.PdpData;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.UNIQUE;
+import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
@@ -39,6 +40,7 @@ import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.functions.libraries.*;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PDPComponents;
@@ -59,6 +61,8 @@ import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.val;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.Token;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -123,7 +127,6 @@ public class SaplTestFixture {
     public static final List<Object> DEFAULT_FUNCTION_LIBRARIES = List.of(new StandardFunctionLibrary(),
             new TemporalFunctionLibrary(), new FilterFunctionLibrary(), new ArrayFunctionLibrary(),
             new StringFunctionLibrary(), new GraphFunctionLibrary());
-
 
     private static final String ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST          = "withBundle not allowed in single test mode.";
     private static final String ERROR_BUNDLE_RESOURCE_NOT_FOUND                  = "Bundle resource not found: %s";
@@ -954,41 +957,20 @@ public class SaplTestFixture {
     }
 
     private String extractPolicyName(String policySource) {
-        // Scan lines for the policy/set declaration, since imports and schemas may
-        // precede it.
-        for (val line : policySource.split("\n", -1)) {
-            val trimmedLine = line.trim();
-            var startIndex  = -1;
-            if (trimmedLine.startsWith("policy") && isKeywordBoundary(trimmedLine, 6)) {
-                startIndex = 6;
-            } else if (trimmedLine.startsWith("set") && isKeywordBoundary(trimmedLine, 3)) {
-                startIndex = 3;
-            }
-            if (startIndex < 0) {
+        val lexer = new SAPLLexer(CharStreams.fromString(policySource));
+        lexer.removeErrorListeners();
+        var previous = Token.INVALID_TYPE;
+        for (var token = lexer.nextToken(); token.getType() != Token.EOF; token = lexer.nextToken()) {
+            if (token.getChannel() != Token.DEFAULT_CHANNEL) {
                 continue;
             }
-            val name = extractQuotedName(trimmedLine, startIndex);
-            if (name != null) {
-                return name;
+            val type = token.getType();
+            if ((previous == SAPLLexer.POLICY || previous == SAPLLexer.SET) && type == SAPLLexer.STRING) {
+                return unquoteString(token.getText());
             }
+            previous = type;
         }
         return null;
-    }
-
-    private boolean isKeywordBoundary(String line, int keywordLength) {
-        return line.length() == keywordLength || !Character.isJavaIdentifierPart(line.charAt(keywordLength));
-    }
-
-    private String extractQuotedName(String declarationLine, int fromIndex) {
-        val quoteStart = declarationLine.indexOf('"', fromIndex);
-        if (quoteStart < 0) {
-            return null;
-        }
-        val quoteEnd = declarationLine.indexOf('"', quoteStart + 1);
-        if (quoteEnd < 0) {
-            return null;
-        }
-        return declarationLine.substring(quoteStart + 1, quoteEnd);
     }
 
     private void validatePolicyAddition() {

@@ -481,4 +481,33 @@ class FixtureCoverageIntegrationTests {
         val lines   = content.trim().split(System.lineSeparator());
         return MAPPER.readTree(lines[0]);
     }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("namedDocumentShapes")
+    @DisplayName("coverage keeps the supplied file and source for every legal declaration shape")
+    void whenDeclarationUsesLegalWhitespaceOrQuotesThenCoverageKeepsSourceAndFile(String shape, String source,
+            String expectedName) throws IOException {
+        SaplTestFixture.createSingleTest().withPolicy(source, "policies/read.sapl").withTestIdentifier("document-name")
+                .withCoverageOutput(tempDir).whenDecide(AuthorizationSubscription.of("alice", "read", "report"))
+                .expectPermit().verify();
+
+        val record = readFirstCoverageRecord(listCoverageFiles(tempDir).getFirst());
+        val policy = record.path("policies").get(0);
+        assertThat(List.of(policy.path("documentName").asString(), policy.path("filePath").asString(),
+                policy.path("sourceHash").asInt()))
+                .containsExactly(expectedName, "policies/read.sapl", source.hashCode());
+        assertThat(new SonarQubeCoverageReportGenerator(tempDir).generate())
+                .contains("<file path=\"policies/read.sapl\">");
+    }
+
+    static Stream<Arguments> namedDocumentShapes() {
+        return Stream.of(arguments("plain", "policy \"read\" permit", "read"),
+                arguments("name on next line", "policy\n \"read\" permit", "read"),
+                arguments("comment between keyword and name", "policy /* note */\n \"read\" permit", "read"),
+                arguments("single quotes", "policy 'read' permit", "read"),
+                arguments("escaped quote", "policy \"read\\\"only\" permit", "read\"only"),
+                arguments("declaration in comment", "/* policy \"ignored\" */\npolicy \"read\" permit", "read"),
+                arguments("set name on next line", "set\n \"group\" first or abstain\npolicy \"read\" permit",
+                        "group"));
+    }
 }
