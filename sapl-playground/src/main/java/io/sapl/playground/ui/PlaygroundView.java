@@ -2183,23 +2183,17 @@ public final class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /*
-     * Selects the appropriate tab after loading state. Prefers the previously
-     * selected policy tab, falls back to first
-     * policy tab.
+     * A missing policy index identifies the variables tab. If fewer policies were
+     * restored than the link contained, use the first available policy tab.
      */
     private void selectAppropriateTab(List<Tab> createdTabs, Integer selectedPolicyIndex) {
-        if (createdTabs.isEmpty()) {
-            return;
+        var selected = variablesTab;
+        if (selectedPolicyIndex != null && !createdTabs.isEmpty()) {
+            selected = selectedPolicyIndex >= 0 && selectedPolicyIndex < createdTabs.size()
+                    ? createdTabs.get(selectedPolicyIndex)
+                    : createdTabs.getFirst();
         }
-
-        Tab tabToSelect;
-        if (selectedPolicyIndex != null && selectedPolicyIndex >= 0 && selectedPolicyIndex < createdTabs.size()) {
-            tabToSelect = createdTabs.get(selectedPolicyIndex);
-        } else {
-            tabToSelect = createdTabs.getFirst();
-        }
-
-        leftTabSheet.setSelectedTab(tabToSelect);
+        leftTabSheet.setSelectedTab(selected);
     }
 
     /*

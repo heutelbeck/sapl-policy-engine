@@ -211,6 +211,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Other changes
 
+- Opening a playground permalink shared from the Variables tab restores that tab.
+
 - Running `sapl-node test` from the executable JAR generates the HTML coverage report with its syntax-highlighting assets.
 
 - SAPLTest reevaluates changed known inputs while newly requested attributes are still pending, releasing dependencies that become unnecessary.
