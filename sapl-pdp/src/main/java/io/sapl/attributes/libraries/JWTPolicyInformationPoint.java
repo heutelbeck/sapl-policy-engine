@@ -96,7 +96,7 @@ public class JWTPolicyInformationPoint {
             ```
 
             The attribute returns an object with:
-            * `header`: Decoded JWT header (algorithm, key ID, etc.)
+            * `header`: Decoded JWT header, retaining explicitly supplied fields including `b64: true`
             * `payload`: Decoded JWT payload with exact JSON numbers. Whole-second `nbf`, `exp`, and `iat`
               claims from 1970 through 9999 are displayed as ISO-8601 UTC text. Fractional and out-of-range
               claims remain numbers. This display conversion does not change signature verification or
@@ -117,6 +117,9 @@ public class JWTPolicyInformationPoint {
             * A remote key server that provides public keys on demand
 
             **Time-based Validation**
+
+            The `sub` claim is optional. If present it must be text. A null or other non-text
+            subject yields `MALFORMED`.
 
             Tokens are validated against time claims:
             * `nbf` (not before): Token becomes valid at this timestamp
@@ -260,8 +263,10 @@ public class JWTPolicyInformationPoint {
             For a CA rollover, deploy the old and new CA certificates together as consecutive PEM blocks in the profile. After the service switches certificates, remove the retired CA and deploy the configuration again.
             """;
 
+    private static final String ERROR_CLAIMS_TYPE              = "The JWT payload from %s does not contain a claims object.";
     private static final String ERROR_JWT_CONFIG_MISSING       = "The key 'jwt' with the configuration of public key server and key whitelist is missing from variables. All JWT tokens will be treated as if the signatures could not be validated.";
     private static final String ERROR_KEY_PROVIDER_CONFIG_FAIL = "Key provider rejected the key-server configuration: {}";
+    private static final String ERROR_SUBJECT_TYPE             = "The supplied JWT subject has type %s, expected text.";
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
@@ -463,10 +468,12 @@ public class JWTPolicyInformationPoint {
     private record ParsedToken(Value header, Value payload) {}
 
     private ParsedToken extractParsedToken(SignedJWT signedJwt) {
-        val payload     = displayPayload(signedJwt.getPayload().toString());
-        val headerValue = ValueJsonMarshaller
-                .fromJsonNode(MAPPER.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
-        return new ParsedToken(headerValue, payload);
+        val payload = displayPayload(signedJwt.getPayload().toString());
+        return new ParsedToken(displayHeader(signedJwt.getHeader()), payload);
+    }
+
+    static Value displayHeader(JWSHeader header) {
+        return ValueJsonMarshaller.json(header.toBase64URL().decodeToString());
     }
 
     static Value displayPayload(String json) {
@@ -496,7 +503,7 @@ public class JWTPolicyInformationPoint {
     private Stream<Value> validityStateStream(SignedJWT signedJwt, AttributeAccessContext ctx) {
         JWTClaimsSet claims;
         try {
-            claims = signedJwt.getJWTClaimsSet();
+            claims = readClaims(signedJwt.getPayload());
         } catch (ParseException e) {
             return Streams.just(stateValue(ValidityState.MALFORMED));
         }
@@ -517,6 +524,19 @@ public class JWTPolicyInformationPoint {
         val clockSkewSeconds        = resolveClockSkewSeconds(ctx);
         val maxTokenLifetimeSeconds = resolveMaxTokenLifetimeSeconds(ctx);
         return validateTime(claims, clockSkewSeconds, maxTokenLifetimeSeconds);
+    }
+
+    static JWTClaimsSet readClaims(Payload payload) throws ParseException {
+        val claims = payload.toJSONObject();
+        if (claims == null) {
+            throw new ParseException(ERROR_CLAIMS_TYPE.formatted(payload.getOrigin()), 0);
+        }
+        val subject = claims.getOrDefault("sub", "");
+        if (!(subject instanceof String)) {
+            val type = subject == null ? "null" : subject.getClass().getSimpleName();
+            throw new ParseException(ERROR_SUBJECT_TYPE.formatted(type), 0);
+        }
+        return JWTClaimsSet.parse(claims);
     }
 
     private static Value stateValue(ValidityState state) {

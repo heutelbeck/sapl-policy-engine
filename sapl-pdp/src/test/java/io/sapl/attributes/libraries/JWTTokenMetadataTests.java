@@ -17,13 +17,18 @@
  */
 package io.sapl.attributes.libraries;
 
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.util.Base64URL;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.text.ParseException;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +44,38 @@ class JWTTokenMetadataTests {
         val result = JWTPolicyInformationPoint.displayPayload(input);
 
         assertThat(result).isEqualTo(ValueJsonMarshaller.json(expected));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "{\"alg\":\"RS256\",\"kid\":\"public-example\",\"typ\":\"JWT\"}",
+            "{\"alg\":\"RS256\",\"b64\":true,\"kid\":\"public-example\",\"typ\":\"JWT\"}" })
+    @DisplayName("keeps explicitly supplied header fields without adding absent defaults")
+    void whenHeaderIsDisplayedThenExplicitDefaultsArePreserved(String json) throws ParseException {
+        val header = JWSHeader.parse(Base64URL.encode(json));
+
+        assertThat(JWTPolicyInformationPoint.displayHeader(header)).isEqualTo(ValueJsonMarshaller.json(json));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("subjectClaims")
+    @DisplayName("requires a supplied subject to be text without changing other claim types")
+    void whenSubjectIsPresentThenItMustBeText(String description, String json, boolean accepted) {
+        boolean actual;
+        try {
+            JWTPolicyInformationPoint.readClaims(new Payload(json));
+            actual = true;
+        } catch (ParseException ignored) {
+            actual = false;
+        }
+        assertThat(actual).isEqualTo(accepted);
+    }
+
+    private static Stream<Arguments> subjectClaims() {
+        return Stream.of(arguments("absent", "{}", true), arguments("text", "{\"sub\":\"office-user\"}", true),
+                arguments("empty text", "{\"sub\":\"\"}", true), arguments("null", "{\"sub\":null}", false),
+                arguments("number", "{\"sub\":7}", false), arguments("boolean", "{\"sub\":true}", false),
+                arguments("array", "{\"sub\":[\"office-user\"]}", false), arguments("object", "{\"sub\":{}}", false),
+                arguments("issuer control", "{\"iss\":7}", false), arguments("null issuer", "{\"iss\":null}", true));
     }
 
     private static Stream<Arguments> payloads() {
