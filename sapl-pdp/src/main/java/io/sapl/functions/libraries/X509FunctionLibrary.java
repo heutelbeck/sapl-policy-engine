@@ -261,8 +261,9 @@ public class X509FunctionLibrary {
             ```extractCommonName(TEXT certPem)```: Extracts the Common Name from the subject.
 
             Returns just the CN field from the certificate subject, which typically contains
-            the hostname or entity name. This is simpler than parsing the full DN when only
-            the CN is needed.
+            the hostname or entity name. If several relative names contain a CN, the most
+            specific one is returned, last in encoding order. This is simpler than parsing
+            the full DN when only the CN is needed.
 
             Example: Verify service identity in mTLS
             ```sapl
@@ -692,7 +693,7 @@ public class X509FunctionLibrary {
     private static String extractCnFromDn(String dn) {
         try {
             val ldapName = new LdapName(dn);
-            for (var rdn : ldapName.getRdns()) {
+            for (var rdn : ldapName.getRdns().reversed()) {
                 val commonName = rdn.toAttributes().get("CN");
                 if (commonName != null) {
                     return commonName.get().toString();

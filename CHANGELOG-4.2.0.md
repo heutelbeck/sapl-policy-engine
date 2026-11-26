@@ -36,6 +36,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `x509.extractCommonName` returns the CN of the most specific relative name when a subject contains several common names.
+
 - `keys.jwkFromPublicKey` retains leading zero bytes in EC coordinates to write the full RFC 7518 field width.
 
 - The `keys` functions taking a PEM public key accept only P-256, P-384, and P-521 EC curves. Other curves return an error instead of metadata with an unknown curve name.
