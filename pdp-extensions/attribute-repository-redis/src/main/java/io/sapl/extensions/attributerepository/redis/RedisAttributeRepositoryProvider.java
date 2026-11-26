@@ -22,6 +22,7 @@ import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.extensions.attributerepository.AttributeRepositoryProvider;
 import lombok.val;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import io.lettuce.core.RedisClient;
@@ -70,11 +71,12 @@ public class RedisAttributeRepositoryProvider implements AttributeRepositoryProv
         val port     = Objects.requireNonNull(numberValue(config, PORT_FIELD),
                 () -> ERROR_MISSING_OR_INVALID_NUMBER.formatted(PORT_FIELD, pdpId));
         val password = stringValue(config, PASSWORD_FIELD);
+
         // Redis' own default DB index is 0, so an absent field is a valid choice here,
         // unlike a missing port.
         val db = Objects.requireNonNullElse(numberValue(config, DATABASE_FIELD), 0);
 
-        val builder = RedisURI.Builder.redis(host, port).withDatabase(db);
+        val builder = RedisURI.Builder.redis(host, port).withDatabase(db).withTimeout(Duration.ofSeconds(5));
         if (password != null && !password.isBlank()) {
             builder.withPassword(password.toCharArray());
         }

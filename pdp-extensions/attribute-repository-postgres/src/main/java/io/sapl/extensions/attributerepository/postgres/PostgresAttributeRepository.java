@@ -44,6 +44,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import reactor.core.Disposable;
@@ -146,6 +148,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
     private final String                                upsertSql;
     private final String                                deleteSql;
     private Map<RepositoryKey, ViewEntry>               lastView                 = Map.of();
+    private final Set<RepositoryKey>                    knownKeys                = ConcurrentHashMap.newKeySet();
 
     private record DBEntry(String name, String entity, String arguments, String value, OffsetDateTime expiresAt) {}
 
@@ -301,6 +304,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
 
 			internalRepository.publish(changes);
 			lastView = newView;
+			knownKeys.addAll(newView.keySet());
 		} finally {
 			reloadLock.unlock();
 		}
@@ -397,7 +401,7 @@ public final class PostgresAttributeRepository implements AttributeRepository {
             var changes   = new ArrayList<AttributeAssignment>();
             var errorView = new HashMap<RepositoryKey, ViewEntry>();
 
-            for (var key : lastView.keySet()) {
+            for (var key : knownKeys) {
                 changes.add(new AttributeAssignment.BoundValue(key, error, null));
                 errorView.put(key, new ViewEntry(error, null));
             }

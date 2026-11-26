@@ -37,6 +37,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +91,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private final AtomicBoolean                                 closed             = new AtomicBoolean(false);
     private final AtomicBoolean                                 reloadQueued       = new AtomicBoolean(false);
     private static final Duration                               RELOAD_RETRY_DELAY = Duration.ofSeconds(1);
+    private final Set<RepositoryKey>                            knownKeys          = ConcurrentHashMap.newKeySet();
 
     private final String pdpId;
     private final String pdpKeyPrefix;
@@ -238,6 +240,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
             internalRepository.publish(changes);
             lastView = newView;
+            knownKeys.addAll(newView.keySet());
         } finally {
             reloadLock.unlock();
         }
@@ -297,7 +300,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
             var changes   = new ArrayList<AttributeAssignment>();
             var errorView = new HashMap<RepositoryKey, ViewEntry>();
 
-            for (var key : lastView.keySet()) {
+            for (var key : knownKeys) {
                 changes.add(new AttributeAssignment.BoundValue(key, error, null));
                 errorView.put(key, new ViewEntry(error, null));
             }

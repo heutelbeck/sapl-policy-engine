@@ -53,6 +53,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -101,6 +103,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private final String                      collection;
     private final String                      pdpId;
     private Map<RepositoryKey, ViewEntry>     lastView   = Map.of();
+    private final Set<RepositoryKey>          knownKeys  = ConcurrentHashMap.newKeySet();
 
     // Used to mark cached attributes as unavailable while disconnected
     private final AtomicBoolean               disconnected             = new AtomicBoolean(false);
@@ -266,6 +269,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
             internalRepository.publish(changes);
             lastView = newView;
+            knownKeys.addAll(newView.keySet());
         } finally {
             reloadLock.unlock();
         }
@@ -343,7 +347,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
             var changes   = new ArrayList<AttributeAssignment>();
             var errorView = new HashMap<RepositoryKey, ViewEntry>();
 
-            for (var key : lastView.keySet()) {
+            for (var key : knownKeys) {
                 changes.add(new AttributeAssignment.BoundValue(key, error, null));
                 errorView.put(key, new ViewEntry(error, null));
             }
