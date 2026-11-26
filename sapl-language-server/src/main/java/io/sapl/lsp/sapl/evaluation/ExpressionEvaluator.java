@@ -80,6 +80,9 @@ public class ExpressionEvaluator {
             }
 
             if (compiledExpression instanceof PureOperator pureOperator) {
+                if (pureOperator.isDependingOnSubscription()) {
+                    return Optional.empty();
+                }
                 var evaluationContext = createEvaluationContext(config);
                 compiledExpression = pureOperator.evaluate(evaluationContext);
             }

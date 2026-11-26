@@ -1,5 +1,6 @@
 # SAPL 5.0.0
 
+- LSP schema proposals exclude expressions that require authorization subscription values.
 - The language server accepts a replacement documentation catalog via `--catalog` or its embedded API, independently of local standard schema functions.
 - HTTP remote PDP streams require their first decision within the configured timeout, even when keep-alive comments arrive.
 - SAPLTest array matchers assign distinct elements correctly when predicates overlap, independently of element order.

@@ -44,6 +44,17 @@ import lombok.val;
 @DisplayName("ExpressionEvaluator")
 class ExpressionEvaluatorTests {
 
+    @Test
+    @DisplayName("request-dependent schemas cannot be inferred from a synthetic subscription")
+    void whenSchemaDependsOnTheSubscriptionThenNoRequestValueIsInvented() {
+        val document = """
+                subject schema {"subject":{"properties":{"wrong":{}}},"alice":{"properties":{"right":{}}}}[(subject)]
+                policy "p" permit
+                """;
+
+        assertThat(schemaOf(document)).isEmpty();
+    }
+
     @Nested
     @DisplayName("isolation between documents")
     class DocumentIsolationTests {
