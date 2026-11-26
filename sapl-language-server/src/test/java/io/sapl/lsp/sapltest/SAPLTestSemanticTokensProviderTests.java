@@ -29,11 +29,32 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import lombok.val;
 
 @DisplayName("SAPLTestSemanticTokensProvider")
 class SAPLTestSemanticTokensProviderTests {
 
     private final SAPLTestSemanticTokensProvider provider = new SAPLTestSemanticTokensProvider();
+
+    @ParameterizedTest(name = "low-latency-mode {0}")
+    @ValueSource(booleans = { true, false })
+    @DisplayName("The low-latency option and its boolean value are keywords")
+    void whenLowLatencyModeIsConfiguredThenOptionAndBooleanAreKeywords(boolean enabled) {
+        val flag    = Boolean.toString(enabled);
+        val content = """
+                requirement "office" {
+                    given - low-latency-mode ${enabled}
+                    scenario "read" when null attempts null on null expect permit;
+                }
+                """.replace("${enabled}", flag);
+
+        assertThat(decodedTokens(content))
+                .filteredOn(token -> "low-latency-mode".equals(token.text()) || flag.equals(token.text()))
+                .extracting(DecodedToken::tokenType)
+                .containsExactly(SAPLTestSemanticTokenTypes.KEYWORD, SAPLTestSemanticTokenTypes.KEYWORD);
+    }
 
     static Stream<Arguments> macroTokenCases() {
         return Stream.of(arguments("permit decision",
