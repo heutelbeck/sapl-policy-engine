@@ -4,6 +4,8 @@
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
+- MQTT keeps a shared connection open when its first reader closes during connection establishment and another reader remains.
+
 - Geo KML and GML conversion accepts one optional leading U+FEFF in decoded text.
 
 - LSP outlines show named policies independently while their containing set has no name.

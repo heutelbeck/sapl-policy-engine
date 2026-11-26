@@ -84,6 +84,8 @@ import static io.sapl.extensions.mqtt.util.SubscriptionUtility.topicFilters;
  * incoming publish messages as a {@link Stream}{@code <Value>}.
  * Connections are reference-counted per broker configuration so that
  * multiple PIP invocations against the same broker share one client.
+ * Closing the reader that started a connection leaves it available to the
+ * other active readers.
  * Reconnect on disconnect is delegated to HiveMQ's built-in
  * automatic-reconnect (default settings).
  */
@@ -261,9 +263,8 @@ public class SaplMqttClient implements Closeable {
             Consumer<Value> emit, Runnable complete, Runnable onFailure) {
         try {
             establishConnection(ctx, owner);
-            if (owner && ctx.closed.get()) {
-                // teardown already evicted the shared client, so the owner must disconnect what
-                // it just re-established
+            if (owner && ctx.closed.get() && !ctx.cached.hasBrokerSubscribers()) {
+                // Only an unowned connection must be released after a late successful connect.
                 disconnectQuietly(ctx.cached, ctx.client);
                 return;
             }

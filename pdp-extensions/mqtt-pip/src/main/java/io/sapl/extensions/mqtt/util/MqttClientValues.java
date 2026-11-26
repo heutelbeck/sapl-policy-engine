@@ -100,6 +100,15 @@ public final class MqttClientValues {
     }
 
     /**
+     * Whether an active reader still owns this shared client.
+     *
+     * @return true while at least one broker subscriber remains
+     */
+    public boolean hasBrokerSubscribers() {
+        return brokerSubscribers.get() > 0;
+    }
+
+    /**
      * Adds 1 to the existing topic count. If there was no entry for the
      * referenced topic before, sets the count to 1.
      */
