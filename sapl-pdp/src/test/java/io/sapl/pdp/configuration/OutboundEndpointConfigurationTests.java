@@ -43,6 +43,7 @@ import java.util.stream.Stream;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.pdp.AuthorizationSubscription.of;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("Outbound endpoints are validated before PDP activation")
@@ -50,6 +51,16 @@ class OutboundEndpointConfigurationTests {
     private static final ObjectValue PROFILE  = ObjectValue.builder().put("trustedCaPem",
             Value.of(new HeldCertificate.Builder().certificateAuthority(1).build().certificatePem())).build();
     private static final ObjectValue PROFILES = ObjectValue.builder().put("fleet", PROFILE).build();
+
+    @ParameterizedTest(name = "Traccar query parameter {0} is application metadata")
+    @ValueSource(strings = { "region", "büro" })
+    void whenATraccarEndpointContainsAnApplicationParameterThenItRemainsAvailable(String name) {
+        val variables = (ObjectValue) json("""
+                {"traccar":{"servers":{"fleet":{"baseUrl":"https://example.test/?%s=west"}}}}
+                """.formatted(name));
+        assertThatNoException()
+                .isThrownBy(() -> OutboundEndpointConfiguration.validate(new PdpData(variables, Value.EMPTY_OBJECT)));
+    }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidConfigurations")
@@ -111,13 +122,13 @@ class OutboundEndpointConfigurationTests {
                         """), arguments("inline endpoint credentials", """
                         {"mqtt":{"brokers":{"b":{"username":"private-test-credential"}}}}
                         """, "{}"), arguments("token query on Traccar endpoint", """
-                        {"traccar":{"servers":{"s":{"baseUrl":"https://example.test/?token=private-test-credential"}}}}
+                        {"traccar":{"servers":{"s":{"baseUrl":"https://example.test/?ToKeN=private-test-credential"}}}}
                         """, "{}"), arguments("secret trust", "{}", """
                         {"http":{"s":{"trustedCaPem":"secret"}}}
                         """),
                 arguments("HTTP service scope with query",
                         """
-                                {"http":{"services":{"s":{"allowedBaseUrls":["https://example.test/?token=private-test-credential"]}}}}
+                                {"http":{"services":{"s":{"allowedBaseUrls":["https://example.test/?ToKeN=private-test-credential"]}}}}
                                 """,
                         "{}"));
     }

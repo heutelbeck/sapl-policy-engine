@@ -35,6 +35,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 @UtilityClass
 class OutboundEndpointConfiguration {
@@ -57,6 +59,9 @@ class OutboundEndpointConfiguration {
     private static final Set<String> HTTP_SCHEMES      = Set.of("http", HTTPS, "ws", "wss");
     private static final Set<String> SECURE_SCHEMES    = Set.of(HTTPS, "wss");
     private static final Set<String> WEB_SCHEMES       = Set.of("http", HTTPS);
+
+    private static final Predicate<String> IS_TOKEN_PARAMETER = Pattern.compile(TOKEN, Pattern.CASE_INSENSITIVE)
+            .asMatchPredicate();
 
     static void validate(PdpData data) {
         val variables = data.variables();
@@ -135,7 +140,7 @@ class OutboundEndpointConfiguration {
             val uri = requireUrl(endpoint.get("baseUrl"), WEB_SCHEMES, trusted, false);
             if (uri.getRawQuery() != null && Arrays.stream(uri.getRawQuery().split("&"))
                     .map(parameter -> URLDecoder.decode(parameter.split("=", 2)[0], StandardCharsets.UTF_8))
-                    .anyMatch(TOKEN::equalsIgnoreCase)) {
+                    .anyMatch(IS_TOKEN_PARAMETER)) {
                 throw new IllegalArgumentException(ERROR_FIELD.formatted(collection));
             }
         }
