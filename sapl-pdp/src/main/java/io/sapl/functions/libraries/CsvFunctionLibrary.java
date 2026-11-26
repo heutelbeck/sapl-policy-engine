@@ -26,6 +26,7 @@ import tools.jackson.databind.MappingIterator;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.dataformat.csv.CsvFactory;
 import tools.jackson.dataformat.csv.CsvMapper;
+import tools.jackson.dataformat.csv.CsvWriteFeature;
 import tools.jackson.dataformat.csv.CsvSchema;
 
 import java.io.IOException;
@@ -157,6 +158,8 @@ public class CsvFunctionLibrary {
 
     private static final CsvMapper CSV_MAPPER = CsvMapper
             .builder(CsvFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
+            .enable(CsvWriteFeature.STRICT_CHECK_FOR_QUOTING,
+                    CsvWriteFeature.QUOTE_STRINGS_WITH_LEADING_TRAILING_WHITESPACE)
             .build();
 
     private static final String ERROR_ARRAY_ELEMENT_NOT_OBJECT   = "CSV array element at index %d is not an object.";
@@ -260,6 +263,8 @@ public class CsvFunctionLibrary {
             keys for consistent output. Returns an empty string for empty arrays. Cells must be text,
             numbers, booleans or null. If two distinct field names in any object become the same
             header after formula escaping, the entire export is rejected. Records end in CRLF.
+            Fields are quoted when they contain commas, double quotes or line breaks, or start or end
+            with an ASCII space or control character. Double quotes inside quoted fields are doubled.
             Whole numbers in the signed 64-bit range are written as plain integers, for example `100.00` as `100`.
 
             To prevent CSV formula injection, a cell whose text begins with =, +, -, @, a tab,

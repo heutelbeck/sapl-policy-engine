@@ -116,6 +116,7 @@
 		<jsqlparser.version>5.4</jsqlparser.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
 		<springboot.version>4.1.2</springboot.version>
+		<jackson-bom.version>3.3.0</jackson-bom.version>
 		<commons-io.version>2.22.0</commons-io.version>
 		<commons-compress.version>1.28.0</commons-compress.version>
 		<classgraph.version>5.0.1</classgraph.version>
@@ -294,6 +295,14 @@
 				<artifactId>reactor-netty-http</artifactId>
 				<version>${reactor-netty.version}</version>
 			</dependency>
+            <!-- Keep the Jackson 3 data formats and their core APIs on one release. -->
+            <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>

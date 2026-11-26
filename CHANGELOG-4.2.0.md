@@ -3,6 +3,8 @@
 - HTTP WebSocket attributes JSON-encode configured non-text bodies, including null, and preserve an absent body.
 - SAPLTest validation accepts zero expected decision counts, text lengths and invocation counts.
 
+- The shared Jackson 3 family is aligned on 3.3.0. TOML reads lowercase UTC suffixes and XML recognizes null markers in any attribute position.
+
 - SAPLTest rejects ambiguous explicitly named document references and reports the matching paths.
 
 - SAPLTest fixtures retain loaded compiler options while keeping the test index and subscription mode.
@@ -66,6 +68,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - The SAPLTest CLI compares coverage thresholds before formatting the percentage for display. A threshold of 33.3333334% fails when one of three conditions is fully covered.
 
 - JWT subjects must be text when supplied. Null and other non-text subjects yield `MALFORMED`.
+
+- CSV output uses minimal quoting, including quotes around leading or trailing ASCII space and control characters.
 
 - `yaml.valToYaml` and `csv.valToCsv` write whole signed 64-bit numbers as plain integers. For example, `100.00` becomes `100`.
 

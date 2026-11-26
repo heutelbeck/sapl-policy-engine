@@ -17,10 +17,14 @@
  */
 package io.sapl.functions.libraries;
 
+import java.util.List;
+
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +37,18 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 @DisplayName("XmlFunctionLibrary")
 class XmlFunctionLibraryTests {
+
+    @ParameterizedTest(name = "attributes {0}")
+    @ValueSource(strings = { "s:nil=\"true\" note=\"desk\"", "note=\"desk\" s:nil=\"true\"" })
+    @DisplayName("XML null markers apply in any attribute position")
+    void whenReadingANilElementThenItsAttributePositionDoesNotChangeTheValue(String attributes) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new XmlFunctionLibrary());
+        val xml = "<root xmlns:s=\"http://www.w3.org/2001/XMLSchema-instance\"><room " + attributes + "/></root>";
+
+        assertThat(broker.evaluateFunction(new FunctionInvocation("xml.xmlToVal", List.of(Value.of(xml)))))
+                .isEqualTo(ValueJsonMarshaller.json("{\"room\":null}"));
+    }
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {

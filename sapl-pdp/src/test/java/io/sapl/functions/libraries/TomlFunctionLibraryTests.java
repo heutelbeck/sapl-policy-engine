@@ -17,7 +17,10 @@
  */
 package io.sapl.functions.libraries;
 
+import java.util.List;
+
 import io.sapl.api.model.*;
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +33,18 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 @DisplayName("TomlFunctionLibrary")
 class TomlFunctionLibraryTests {
+
+    @ParameterizedTest(name = "UTC spelling {0}")
+    @ValueSource(strings = { "1979-05-27T07:32:00Z", "1979-05-27T07:32:00z" })
+    @DisplayName("UTC timestamps accept an upper or lowercase Z suffix")
+    void whenReadingUtcThenUpperAndLowercaseSuffixHaveTheSameValue(String timestamp) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new TomlFunctionLibrary());
+
+        assertThat(broker
+                .evaluateFunction(new FunctionInvocation("toml.tomlToVal", List.of(Value.of("t = " + timestamp)))))
+                .isEqualTo(ValueJsonMarshaller.json("{\"t\":\"1979-05-27T07:32:00Z\"}"));
+    }
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {

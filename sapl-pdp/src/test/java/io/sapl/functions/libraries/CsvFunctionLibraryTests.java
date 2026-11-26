@@ -17,7 +17,10 @@
  */
 package io.sapl.functions.libraries;
 
+import java.util.List;
+
 import io.sapl.api.model.*;
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +38,29 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("CsvFunctionLibrary")
 class CsvFunctionLibraryTests {
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("minimalQuotingCases")
+    @DisplayName("quotes ordinary CSV fields only for delimiters, quotes, line breaks and boundary whitespace")
+    void whenWritingOrdinaryFieldsThenUsesMinimalQuotingWithBoundaryWhitespace(String description, String text,
+            String field) {
+        val broker = new DefaultFunctionBroker();
+        broker.load(new CsvFunctionLibrary());
+        val data = ArrayValue.builder().add(ObjectValue.builder().put("value", Value.of(text)).build()).build();
+
+        assertThat(broker.evaluateFunction(new FunctionInvocation("csv.valToCsv", List.of(data))))
+                .isEqualTo(Value.of("value\r\n" + field + "\r\n"));
+    }
+
+    static Stream<Arguments> minimalQuotingCases() {
+        return Stream.of(arguments("ordinary", "Köln", "Köln"), arguments("internal space", "Mira López", "Mira López"),
+                arguments("apostrophe", "Joanna's desk", "Joanna's desk"),
+                arguments("backslash", "office\\desk", "office\\desk"),
+                arguments("leading space", " first", "\" first\""), arguments("trailing space", "last ", "\"last \""),
+                arguments("trailing tab", "last\t", "\"last\t\""), arguments("comma", "Mira,Jo", "\"Mira,Jo\""),
+                arguments("quote", "Mira \"Jo\"", "\"Mira \"\"Jo\"\"\""),
+                arguments("line break", "first\nlast", "\"first\nlast\""), arguments("empty", "", ""));
+    }
 
     @Test
     @DisplayName("whole numeric cells use plain integers and fractional cells retain their scale")
@@ -508,7 +534,7 @@ class CsvFunctionLibraryTests {
     void whenEachRowHasDistinctEscapedHeadersThenRepeatedColumnsStayValid(String firstKey, String secondKey) {
         val rows = ArrayValue.builder().add(ObjectValue.builder().put(firstKey, Value.of(1)).build())
                 .add(ObjectValue.builder().put(secondKey, Value.of(2)).build()).build();
-        assertThat(CsvFunctionLibrary.valToCsv(rows)).isEqualTo(Value.of("\"'-x\"\r\n1\r\n2\r\n"));
+        assertThat(CsvFunctionLibrary.valToCsv(rows)).isEqualTo(Value.of("'-x\r\n1\r\n2\r\n"));
     }
 
     private static Stream<Arguments> repeatedCsvHeaders() {

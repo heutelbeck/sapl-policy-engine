@@ -63,8 +63,7 @@ public class XmlFunctionLibrary {
 
             The reader recognizes XML Schema Instance names by namespace URI, regardless of prefix.
             A `nil` marker is omitted and the value `true` makes the element null.
-            Rust recognizes this marker in any attribute position. For portable XML, place it before
-            all other non-namespace attributes. The bundled Java XML reader only recognizes it there.
+            The marker is recognized in any attribute position.
             Schema Instance `type` attributes and elements use the key `xsi:type`.
 
             The current Java XML provider rejects some valid XML 1.0 names, such as U+3400, when reading
