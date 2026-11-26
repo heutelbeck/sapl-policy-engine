@@ -37,6 +37,7 @@ import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.jts.operation.relateng.RelateNG;
 import org.locationtech.jts.operation.relateng.RelatePredicate;
+import org.locationtech.jts.operation.relateng.TopologyPredicate;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.io.StringReader;
@@ -96,6 +97,8 @@ public class GeographicFunctionLibrary {
             All members, including extra data, must be JSON values without embedded errors or undefined.
             Legacy `crs` numeric codes use ASCII decimal digits.
             Results are RFC 7946 geometries without a `crs` member. Empty coordinate arrays represent empty geometries.
+            Topological predicates compare the represented point sets: empty collection members contribute no points.
+            Structural equality and collection membership retain their separate contracts.
             Distances require nonempty geometries. Geodesic distances use longitude and latitude in degrees.
 
             ## Numerical Tolerances
@@ -377,7 +380,7 @@ public class GeographicFunctionLibrary {
             - Use this function to determine adjacency without overlap.
             """)
     public static Value touches(ObjectValue thisGeometry, ObjectValue thatGeometry) {
-        return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::touches);
+        return testTopologicalPredicate(thisGeometry, thatGeometry, RelatePredicate.touches());
     }
 
     @Function(docs = """
@@ -442,8 +445,7 @@ public class GeographicFunctionLibrary {
             - Useful for containment checks where the geometry must be fully enclosed.
             """)
     public static Value within(ObjectValue thisGeometry, ObjectValue thatGeometry) {
-        return testGeometryBiPredicate(thisGeometry, thatGeometry,
-                (thiz, that) -> thiz.within(that instanceof GeometryCollection ? that.union() : that));
+        return testTopologicalPredicate(thisGeometry, thatGeometry, RelatePredicate.within());
     }
 
     @Function(docs = """
@@ -475,8 +477,7 @@ public class GeographicFunctionLibrary {
             - Suitable for verifying if a geometry encompasses another geometry entirely.
             """)
     public static Value contains(ObjectValue thisGeometry, ObjectValue thatGeometry) {
-        return testGeometryBiPredicate(thisGeometry, thatGeometry, (thiz,
-                that) -> (thiz instanceof GeometryCollection) ? thiz.union().contains(that) : thiz.contains(that));
+        return testTopologicalPredicate(thisGeometry, thatGeometry, RelatePredicate.contains());
     }
 
     @Function(docs = """
@@ -508,7 +509,7 @@ public class GeographicFunctionLibrary {
             - Use this function to check partial overlap without full containment.
             """)
     public static Value overlaps(ObjectValue thisGeometry, ObjectValue thatGeometry) {
-        return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::overlaps);
+        return testTopologicalPredicate(thisGeometry, thatGeometry, RelatePredicate.overlaps());
     }
 
     @Function(docs = """
@@ -617,6 +618,19 @@ public class GeographicFunctionLibrary {
             NumberValue distance) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
                 (thiz, that) -> geodesicDistance(thiz, that) <= distance.value().doubleValue());
+    }
+
+    private static Value testTopologicalPredicate(ObjectValue thisGeometry, ObjectValue thatGeometry,
+            TopologyPredicate predicate) {
+        return testGeometryBiPredicate(thisGeometry, thatGeometry,
+                (first, second) -> RelateNG.relate(unionIfCollection(first), unionIfCollection(second), predicate));
+    }
+
+    private static Geometry unionIfCollection(Geometry geometry) {
+        if (geometry instanceof GeometryCollection) {
+            return geometry.union();
+        }
+        return geometry;
     }
 
     private static Value testGeometryBiPredicate(ObjectValue thisGeometry, ObjectValue thatGeometry,
