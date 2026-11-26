@@ -15,7 +15,7 @@ cd sapl-policy-engine
 mvn install -DskipTests
 ```
 
-The executable JAR is at `sapl-node/target/sapl-node-4.2.0-SNAPSHOT.jar`.
+The executable JAR is at `sapl-node/target/sapl-node-5.0.0-SNAPSHOT.jar`.
 
 ## Quick Start
 
@@ -140,7 +140,7 @@ Signature:
 
 Manifest:
   Configuration ID: bundle@a1b2c3d4e5f60718
-  Attribution: "sapl-node/4.2.0"
+  Attribution: "sapl-node/5.0.0"
 
 Configuration (pdp.json):
   {
@@ -506,7 +506,7 @@ spec:
     spec:
       containers:
         - name: sapl
-          image: ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+          image: ghcr.io/heutelbeck/sapl-node:5.0.0-SNAPSHOT
           ports:
             - containerPort: 8080
           livenessProbe:
@@ -612,7 +612,7 @@ The manifest carries the bundle's configuration id and attribution. When signed,
 }
 ```
 
-Since SAPL 4.2.0, pdp.json must not contain a `configurationId` field; a pdp.json still carrying one is rejected with a migration message. The configuration id lives in the bundle manifest (set at build time or content-derived as `bundle@<hash16>`) and is derived from content for directory (`dir:<dirName>@<hash16>`) and resource (`res:<name>@<hash16>`) sources. It appears in health endpoints and decision logs, enabling operators to correlate decisions with the exact publication that produced them.
+Since SAPL 5.0.0, pdp.json must not contain a `configurationId` field; a pdp.json still carrying one is rejected with a migration message. The configuration id lives in the bundle manifest (set at build time or content-derived as `bundle@<hash16>`) and is derived from content for directory (`dir:<dirName>@<hash16>`) and resource (`res:<name>@<hash16>`) sources. It appears in health endpoints and decision logs, enabling operators to correlate decisions with the exact publication that produced them.
 
 Voting modes: `PRIORITY_DENY`, `PRIORITY_PERMIT`, `UNANIMOUS`, `UNANIMOUS_STRICT`, `UNIQUE`.
 
@@ -695,9 +695,9 @@ Benchmark scripts are in `sapl-node/benchmarks/`. See `benchmarks/README.md` for
 
 ```shell
 cd sapl-node/benchmarks
-./run-sapl4.sh "java -jar ../target/sapl-node-4.2.0-SNAPSHOT.jar" /tmp/bench-jvm
+./run-sapl4.sh "java -jar ../target/sapl-node-5.0.0-SNAPSHOT.jar" /tmp/bench-jvm
 ./run-sapl4.sh ../target/sapl /tmp/bench-native quick
-./run-all.sh "java -jar ../target/sapl-node-4.2.0-SNAPSHOT.jar" /tmp/bench-full standard
+./run-all.sh "java -jar ../target/sapl-node-5.0.0-SNAPSHOT.jar" /tmp/bench-full standard
 ```
 
 Each scenario produces a results subdirectory with JSON (JMH-compatible), Markdown, and CSV files.

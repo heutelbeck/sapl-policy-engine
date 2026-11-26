@@ -53,7 +53,7 @@ class PDPConfigurationTests {
     }
 
     @NullSource
-    @ValueSource(strings = { ">=4.2.0", ">=4.2.0-0" })
+    @ValueSource(strings = { ">=5.0.0", ">=5.0.0-0" })
     @ParameterizedTest(name = "Extension updates preserve engine requirement {0}")
     @DisplayName("Changing extension data preserves the engine version requirement")
     void whenExtensionDataChangesThenEngineRequirementIsPreserved(String requirement) {
@@ -75,9 +75,9 @@ class PDPConfigurationTests {
         @NullSource
         @ParameterizedTest(name = "Accept engine requirement {0}")
         @DisplayName("Valid ranges and an undeclared requirement are preserved exactly")
-        @ValueSource(strings = { "4.2.0", "^4.2.0", "~4.2.0", ">=4.2.0 <5.0.0", "4.x", "4.2.0 - 4.3.0",
-                ">=4.2.0 || <3.0.0", "*", ">=4.2.0-0", ">= 4.2.0 < 5.0.0", ">=99.0.0", "  >=4.2.0  ", ">=4.2.0 ||",
-                "|| >=4.2.0", ">=4.2.0 || || <5.0.0", "^0.x", "^0.0.x", ">=9007199254740991.0.0" })
+        @ValueSource(strings = { "5.0.0", "^5.0.0", "~5.0.0", ">=5.0.0 <6.0.0", "5.x", "5.0.0 - 5.1.0",
+                ">=5.0.0 || <3.0.0", "*", ">=5.0.0-0", ">= 5.0.0 < 6.0.0", ">=99.0.0", "  >=5.0.0  ", ">=5.0.0 ||",
+                "|| >=5.0.0", ">=5.0.0 || || <6.0.0", "^0.x", "^0.0.x", ">=9007199254740991.0.0" })
         void whenEngineRequirementIsValidOrAbsentThenConstructionPreservesIt(String requirement) {
             val configuration = configurationWithEngineRequirement(requirement);
 
@@ -86,8 +86,8 @@ class PDPConfigurationTests {
 
         @ParameterizedTest(name = "Reject engine requirement {0}")
         @DisplayName("Invalid ranges are rejected when constructing a configuration")
-        @ValueSource(strings = { "", " ", "\t", ">=", "not-a-range", "4.2.0 garbage", "^4.2.0 garbage",
-                "~4.2.0 garbage", "5.0.01", ">=04.2.0", "[4.0,5.0)", "latest", "=>4.2.0", ">=9007199254740992.0.0" })
+        @ValueSource(strings = { "", " ", "\t", ">=", "not-a-range", "5.0.0 garbage", "^5.0.0 garbage",
+                "~5.0.0 garbage", "5.0.01", ">=05.0.0", "[4.0,5.0)", "latest", "=>5.0.0", ">=9007199254740992.0.0" })
         void whenEngineRequirementIsInvalidThenConstructionRejectsIt(String requirement) {
             assertThatThrownBy(() -> configurationWithEngineRequirement(requirement))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("requiredEngineVersion");

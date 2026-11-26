@@ -51,7 +51,7 @@ class BundleEngineVersionTests {
     private MockedStatic<PDPConfigurationLoader> configurationLoader;
 
     @NullSource
-    @ValueSource(strings = { ">=4.2.0", ">=4.2.0-0" })
+    @ValueSource(strings = { ">=5.0.0", ">=5.0.0-0" })
     @ParameterizedTest(name = "Preserve engine requirement {0} while adding bundle provenance")
     @DisplayName("Adding bundle provenance retains the loaded configuration's engine requirement")
     void whenBundleProvenanceIsAddedThenEngineRequirementIsPreserved(String requirement) {

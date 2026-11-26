@@ -168,7 +168,7 @@ class BundleManifestTests {
                     .replaceFirst("\"" + field + "Removed\"[^,}]*(,)?", "");
 
             assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
-                    .hasMessageContaining("Rebuild the bundle with SAPL 4.2.0 or later");
+                    .hasMessageContaining("Rebuild the bundle with SAPL 5.0.0 or later");
         }
 
         @ParameterizedTest(name = "invalid configurationId \"{0}\" is rejected at build")

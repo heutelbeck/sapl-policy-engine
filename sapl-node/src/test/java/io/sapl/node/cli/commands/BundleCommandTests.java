@@ -353,7 +353,7 @@ class BundleCommandTests {
             Files.createDirectories(inputDir);
             Files.writeString(inputDir.resolve("test.sapl"), TEST_POLICY);
             Files.writeString(inputDir.resolve("pdp.json"), """
-                    { "requiredEngineVersion": ">=4.2.0-0", "expectedPdpRuntime": ["rust", "java"] }""");
+                    { "requiredEngineVersion": ">=5.0.0-0", "expectedPdpRuntime": ["rust", "java"] }""");
             val bundleFile = tempDir.resolve("requirements-inspect.saplbundle");
             cmd.execute("bundle", "create", "-i", inputDir.toString(), "-o", bundleFile.toString());
             val plainBundle = createTestBundle();
@@ -366,7 +366,7 @@ class BundleCommandTests {
             assertThat(exitCode).isZero();
             assertThat(stated).contains("""
                     Requirements:
-                      Engine version: >=4.2.0-0
+                      Engine version: >=5.0.0-0
                       PDP runtime: java, rust
                     """);
             assertThat(out.toString()).contains("""
@@ -1291,7 +1291,7 @@ class BundleCommandTests {
         }
 
         @Test
-        @DisplayName("unpack tolerates a legacy pre-4.2 manifest and notes the missing configuration id")
+        @DisplayName("unpack tolerates a legacy pre-5.0 manifest and notes the missing configuration id")
         void whenUnpackLegacyManifestThenSucceedsWithLegacyNote() throws Exception {
             val bundleFile = createLegacyBundle();
             val outDir     = tempDir.resolve("unpack-legacy");
@@ -1299,20 +1299,20 @@ class BundleCommandTests {
             val exitCode = cmd.execute("bundle", "unpack", "-b", bundleFile.toString(), "-o", outDir.toString());
 
             assertThat(exitCode).isZero();
-            assertThat(out.toString()).contains("Configuration ID: (none recorded, manifest predates SAPL 4.2.0)");
+            assertThat(out.toString()).contains("Configuration ID: (none recorded, manifest predates SAPL 5.0.0)");
             assertThat(outDir.resolve("test.sapl")).exists();
         }
 
         @Test
-        @DisplayName("inspect degrades on a legacy pre-4.2 manifest instead of aborting")
+        @DisplayName("inspect degrades on a legacy pre-5.0 manifest instead of aborting")
         void whenInspectLegacyManifestThenDegradesInsteadOfAborting() throws Exception {
             val bundleFile = createLegacyBundle();
 
             val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
 
             assertThat(exitCode).isZero();
-            assertThat(out.toString()).contains("Status: UNKNOWN (manifest predates SAPL 4.2.0 or is malformed)")
-                    .contains("Configuration ID: (none recorded, manifest predates SAPL 4.2.0)");
+            assertThat(out.toString()).contains("Status: UNKNOWN (manifest predates SAPL 5.0.0 or is malformed)")
+                    .contains("Configuration ID: (none recorded, manifest predates SAPL 5.0.0)");
         }
 
         private Path createLegacyBundle() throws IOException {

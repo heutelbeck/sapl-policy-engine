@@ -13,8 +13,8 @@ cd sapl-language-server && mvn install -DskipTests
 ```
 
 This produces two artifacts:
-- `target/sapl-language-server-4.2.0-SNAPSHOT.jar` - Library JAR for Maven dependencies
-- `target/sapl-language-server-4.2.0-SNAPSHOT-standalone.jar` - Executable JAR with all dependencies
+- `target/sapl-language-server-5.0.0-SNAPSHOT.jar` - Library JAR for Maven dependencies
+- `target/sapl-language-server-5.0.0-SNAPSHOT-standalone.jar` - Executable JAR with all dependencies
 
 ### Native Image
 
@@ -38,7 +38,7 @@ The reflection metadata covers all model classes in the resolved LSP4J dependenc
 Use the GraalVM tracing agent to capture additional metadata:
 
 ```shell
-java -agentlib:native-image-agent=config-output-dir=native-config -jar target/sapl-language-server-4.2.0-SNAPSHOT-standalone.jar
+java -agentlib:native-image-agent=config-output-dir=native-config -jar target/sapl-language-server-5.0.0-SNAPSHOT-standalone.jar
 ```
 
 Merge additional entries into `src/main/resources/META-INF/native-image/io.sapl/sapl-language-server/`; preserve registrations for unobserved client capabilities.
@@ -58,7 +58,7 @@ These checks send both minimal failing capability payloads and Neovim 0.12's ful
 Most LSP clients use stdio for communication:
 
 ```shell
-java -jar sapl-language-server-4.2.0-SNAPSHOT-standalone.jar
+java -jar sapl-language-server-5.0.0-SNAPSHOT-standalone.jar
 ```
 
 ### Socket Mode
@@ -66,13 +66,13 @@ java -jar sapl-language-server-4.2.0-SNAPSHOT-standalone.jar
 For debugging or testing, use socket mode:
 
 ```shell
-java -jar sapl-language-server-4.2.0-SNAPSHOT-standalone.jar --socket --port=5007
+java -jar sapl-language-server-5.0.0-SNAPSHOT-standalone.jar --socket --port=5007
 ```
 
 ### Debug Logging
 
 ```shell
-java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-4.2.0-SNAPSHOT-standalone.jar
+java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-5.0.0-SNAPSHOT-standalone.jar
 ```
 
 ## Embedding in Applications

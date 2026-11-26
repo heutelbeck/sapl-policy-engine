@@ -40,7 +40,7 @@ import tools.jackson.databind.ser.std.StdSerializer;
  * {
  *   "pdpId": "production",
  *   "configurationId": "v1.0",
- *   "requiredEngineVersion": ">=4.2.0",
+ *   "requiredEngineVersion": ">=5.0.0",
  *   "combiningAlgorithm": {
  *     "votingMode": "PRIORITY_DENY",
  *     "defaultDecision": "ABSTAIN",

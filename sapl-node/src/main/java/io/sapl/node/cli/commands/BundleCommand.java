@@ -1146,7 +1146,7 @@ public class BundleCommand {
                 out.printf("  Key ID: %s%n", manifest.signature().keyId());
                 out.printf("  Created: %s%n", manifest.created());
             } else if (reading.unreadable()) {
-                out.printf("  Status: UNKNOWN (manifest predates SAPL 4.2.0 or is malformed)%n");
+                out.printf("  Status: UNKNOWN (manifest predates SAPL 5.0.0 or is malformed)%n");
             } else {
                 out.printf("  Status: UNSIGNED%n");
             }
@@ -1199,7 +1199,7 @@ public class BundleCommand {
         private boolean printIntegrity(PrintWriter out, Map<String, String> contents, @Nullable BundleManifest manifest,
                 boolean manifestUnreadable) {
             val signed         = manifest != null && manifest.signature() != null;
-            val unsignedReason = manifestUnreadable ? "manifest predates SAPL 4.2.0 or is malformed"
+            val unsignedReason = manifestUnreadable ? "manifest predates SAPL 5.0.0 or is malformed"
                     : "bundle is not signed";
             if (keyFile == null) {
                 val reason = signed ? "no key provided" : unsignedReason;
@@ -1444,14 +1444,14 @@ public class BundleCommand {
         return RecipientKeys.requireMatchingPublicPart(OctetKeyPair.parse(Files.readString(keyFile)));
     }
 
-    // Lenient manifest read for display only: legacy pre-4.2 manifests carry no
+    // Lenient manifest read for display only: legacy pre-5.0 manifests carry no
     // configurationId and must still be unpackable and inspectable for migration.
     private static String manifestConfigurationId(String manifestJson) {
         if (Value.ofJson(manifestJson) instanceof ObjectValue manifest
                 && manifest.get("configurationId") instanceof TextValue(var configurationId)) {
             return configurationId;
         }
-        return "(none recorded, manifest predates SAPL 4.2.0)";
+        return "(none recorded, manifest predates SAPL 5.0.0)";
     }
 
     private static String sealDocument(String jsonContent, OctetKeyPair recipientPublicKey) {

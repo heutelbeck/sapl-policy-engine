@@ -49,8 +49,8 @@ class SaplBuildInfoTests {
 
     @ParameterizedTest(name = "Engine {0} requires {1}")
     @DisplayName("Generated requirements include prereleases of the installed base version and ignore build metadata")
-    @CsvSource(delimiter = '|', value = { "4.2.0 | >=4.2.0", "4.2.0-SNAPSHOT | >=4.2.0-0", "4.3.0-SNAPSHOT | >=4.3.0-0",
-            "4.2.0-rc.1 | >=4.2.0-0", "4.2.0+build.7 | >=4.2.0", "4.2.0-SNAPSHOT+build.7 | >=4.2.0-0",
+    @CsvSource(delimiter = '|', value = { "5.0.0 | >=5.0.0", "5.0.0-SNAPSHOT | >=5.0.0-0", "5.1.0-SNAPSHOT | >=5.1.0-0",
+            "5.0.0-rc.1 | >=5.0.0-0", "5.0.0+build.7 | >=5.0.0", "5.0.0-SNAPSHOT+build.7 | >=5.0.0-0",
             "0.2.0 | >=0.2.0" })
     void whenBuildVersionIsKnownThenMinimumRequirementMatchesItsReleaseKind(String engineVersion, String expected) {
         assertThat(minimumVersionRequirement(engineVersion)).isEqualTo(expected).satisfies(
@@ -60,7 +60,7 @@ class SaplBuildInfoTests {
 
     @NullAndEmptySource
     @ParameterizedTest(name = "Invalid build version: {0}")
-    @ValueSource(strings = { " ", "unknown", "${project.version}", "4.02.0", "broken" })
+    @ValueSource(strings = { " ", "unknown", "${project.version}", "5.00.0", "broken" })
     @DisplayName("Missing or invalid build versions cannot silently disable generated engine requirements")
     void whenBuildVersionIsInvalidThenMinimumRequirementFailsClearly(String engineVersion) {
         assertThatThrownBy(() -> minimumVersionRequirement(engineVersion)).isInstanceOf(IllegalStateException.class)
@@ -68,11 +68,11 @@ class SaplBuildInfoTests {
     }
 
     @ParameterizedTest(name = "Installed engine: {0}")
-    @ValueSource(strings = { "4.2.0", "4.2.0-SNAPSHOT" })
+    @ValueSource(strings = { "5.0.0", "5.0.0-SNAPSHOT" })
     @DisplayName("Generated minimum requirements retain the explicit opt in for later prerelease versions")
     void whenLaterPrereleaseIsComparedThenCurrentDefaultDoesNotAcceptIt(String engineVersion) {
         assertThat(
-                VersionRange.parse(minimumVersionRequirement(engineVersion)).contains(Version.parse("4.3.0-SNAPSHOT")))
+                VersionRange.parse(minimumVersionRequirement(engineVersion)).contains(Version.parse("5.1.0-SNAPSHOT")))
                 .isFalse();
     }
 

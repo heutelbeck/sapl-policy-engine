@@ -49,7 +49,7 @@ class ConfigurationIdsEngineVersionTests {
         assertThat(actual).isEqualTo(HASH_WITHOUT_ENGINE_REQUIREMENT);
     }
 
-    @ValueSource(strings = { ">=4.2.0", "^4.2.0", ">=4.2.0-0", "*" })
+    @ValueSource(strings = { ">=5.0.0", "^5.0.0", ">=5.0.0-0", "*" })
     @ParameterizedTest(name = "Declaring requirement {0} changes the hash")
     @DisplayName("Declaring an engine requirement changes the configuration identity")
     void whenEngineRequirementIsDeclaredThenHashDiffersFromUndeclared(String requirement) {
@@ -59,11 +59,11 @@ class ConfigurationIdsEngineVersionTests {
         assertThat(declared).isNotEqualTo(undeclared);
     }
 
-    @ValueSource(strings = { "^4.2.0", ">=4.2.0-0", "  >=4.2.0  " })
+    @ValueSource(strings = { "^5.0.0", ">=5.0.0-0", "  >=5.0.0  " })
     @ParameterizedTest(name = "Changing the declaration to {0} changes the hash")
     @DisplayName("Different engine requirement declarations have different configuration identities")
     void whenEngineRequirementDeclarationChangesThenHashChanges(String replacement) {
-        val original = hash(configuration(">=4.2.0"));
+        val original = hash(configuration(">=5.0.0"));
         val changed  = hash(configuration(replacement));
 
         assertThat(changed).isNotEqualTo(original);

@@ -62,7 +62,7 @@ record Bundle(
         Map<String, String> sealedExtensionSecrets,
         BundleManifest manifest) {
     private static final String ERROR_AUDIENCE_WITHOUT_SEALED_CONTENT = "Bundle manifest names an audience.sealingRecipient but the bundle carries no sealed content. The audience block is required exactly when sealed content is present.";
-    private static final String ERROR_MANIFEST_REQUIRED = "Bundle has no .sapl-manifest.json. Since SAPL 4.2.0 the manifest carries the required configurationId. Rebuild the bundle with BundleBuilder or 'sapl bundle create'.";
+    private static final String ERROR_MANIFEST_REQUIRED = "Bundle has no .sapl-manifest.json. Since SAPL 5.0.0 the manifest carries the required configurationId. Rebuild the bundle with BundleBuilder or 'sapl bundle create'.";
     private static final String ERROR_SEALED_CONTENT_REQUIRES_AUDIENCE = "Bundle carries sealed content but its manifest names no audience.sealingRecipient. Rebuild the bundle so the manifest records the sealing recipient key id.";
     private static final String ERROR_SEALED_RECIPIENT_MISMATCH = "Sealed bundle file '%s' contains a recipient that does not match the manifest audience.";
     private static final String ERROR_SEALED_RECIPIENT_UNREADABLE = "Sealed bundle file '%s' contains a malformed recipient header.";

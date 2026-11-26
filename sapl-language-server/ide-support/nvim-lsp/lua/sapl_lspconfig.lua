@@ -23,7 +23,7 @@ vim.lsp.config('sapl', {
   -- Native binary (no Java required):
   cmd = { vim.fn.expand('~/.local/bin/sapl-language-server') },
   -- Standalone JAR (requires Java 21+):
-  -- cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.2.0-SNAPSHOT-standalone.jar' },
+  -- cmd = { 'java', '-jar', '/path/to/sapl-language-server-5.0.0-SNAPSHOT-standalone.jar' },
 
   filetypes = { 'sapl', 'sapltest' },
   root_markers = { 'pdp.json', '.git' },

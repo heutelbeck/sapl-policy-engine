@@ -1,4 +1,4 @@
-# SAPL 4.2.0
+# SAPL 5.0.0
 
 - HTTP WebSocket attributes JSON-encode configured non-text bodies, including null, and preserve an absent body.
 - SAPLTest validation accepts zero expected decision counts, text lengths and invocation counts.
@@ -179,7 +179,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - The expression compiler rejects `<`, `<=`, `>` and `>=` when an operand folds to a boolean. The diagnostic points to that operand. Operand types that depend on the request are checked during evaluation.
 - SAPL number-to-text conversion is exact and independent of decimal scale. `standard.toString(1.50)` now yields `"1.5"` and `"n=" + 1.50` yields `"n=1.5"`. Nonzero magnitudes below `1e-6` or at least `1e21` use scientific notation.
 - Bundle manifests require a JSON string for `configurationId`. Producers with numeric internal IDs must emit, for example, `"configurationId": "42"`.
-- The `secrets` of an authorization subscription are an object on the RSocket wire (protobuf field 5 is now `ObjectValue`). RSocket clients and SDKs of 4.1.x cannot talk to a 4.2 node. Upgrade clients and node together.
+- The `secrets` of an authorization subscription are an object on the RSocket wire (protobuf field 5 is now `ObjectValue`). RSocket clients and SDKs of 4.1.x cannot talk to a 5.0 node. Upgrade clients and node together.
 - A user secret or API key in the SAPL Node configuration that is not an Argon2 hash refuses the start. A `{argon2id}` prefix is no longer accepted. Regenerate such entries with `sapl generate basic` or `sapl generate apikey`.
 - An unknown key under `io.sapl.node` refuses the start, so a misspelt key no longer goes unnoticed.
 - An OAuth2 issuer must use https, and so must the key address its discovery document names. Plain http needs `io.sapl.node.oauth.allow-insecure-issuer=true` and logs a warning at start.

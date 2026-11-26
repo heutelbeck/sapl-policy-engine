@@ -174,13 +174,13 @@ Spring Boot automatically loads `config/application.yml` on startup. The `config
 Download the package for your distribution from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases).
 
 ```shell
-sudo dpkg -i sapl_4.2.0-SNAPSHOT_amd64.deb
+sudo dpkg -i sapl_5.0.0-SNAPSHOT_amd64.deb
 ```
 
 Or for RPM-based distributions:
 
 ```shell
-sudo rpm -i sapl-4.2.0-SNAPSHOT.x86_64.rpm
+sudo rpm -i sapl-5.0.0-SNAPSHOT.x86_64.rpm
 ```
 
 #### What the Package Installs
@@ -277,7 +277,7 @@ The systemd unit runs with strict security restrictions: `NoNewPrivileges`, `Pro
 
 For container deployments, the server runs inside Docker while you use the local `sapl` binary for CLI operations like bundle creation and credential generation.
 
-The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT`). The examples below use the current development tag `4.2.0-SNAPSHOT`. This is the original JVM image. It is the best default for sustained throughput, low tail latency, and deployments that load extension jars at runtime.
+The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:5.0.0-SNAPSHOT`). The examples below use the current development tag `5.0.0-SNAPSHOT`. This is the original JVM image. It is the best default for sustained throughput, low tail latency, and deployments that load extension jars at runtime.
 
 SAPL Node also publishes minimal native images. The `ghcr.io/heutelbeck/sapl-node:<version>-min` tag is a multi architecture manifest for amd64 and arm64. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-amd64` to pin x86_64 deployments. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-arm64` to pin ARM64 deployments.
 
@@ -296,7 +296,7 @@ sapl bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem
 Run the container, mounting the bundles directory, the public key, and a certificate with its key as PEM files. Authentication is configured as described in [Security](../7_6_Security/), here with an API key user:
 
 ```shell
-docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -v ./tls:/pdp/tls:ro -e SERVER_ADDRESS=0.0.0.0 -e SERVER_PORT=8443 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub -e IO_SAPL_NODE_TLS_CERTIFICATECHAIN=/pdp/tls/server.pem -e IO_SAPL_NODE_TLS_PRIVATEKEY=/pdp/tls/server.key -e IO_SAPL_NODE_ALLOWAPIKEYAUTH=true -e IO_SAPL_NODE_USERS_0_ID=my-client -e IO_SAPL_NODE_USERS_0_APIKEYID=<api-key-id> -e IO_SAPL_NODE_USERS_0_APIKEY='<argon2-hash>' ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -v ./tls:/pdp/tls:ro -e SERVER_ADDRESS=0.0.0.0 -e SERVER_PORT=8443 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub -e IO_SAPL_NODE_TLS_CERTIFICATECHAIN=/pdp/tls/server.pem -e IO_SAPL_NODE_TLS_PRIVATEKEY=/pdp/tls/server.key -e IO_SAPL_NODE_ALLOWAPIKEYAUTH=true -e IO_SAPL_NODE_USERS_0_ID=my-client -e IO_SAPL_NODE_USERS_0_APIKEYID=<api-key-id> -e IO_SAPL_NODE_USERS_0_APIKEY='<argon2-hash>' ghcr.io/heutelbeck/sapl-node:5.0.0-SNAPSHOT
 ```
 
 For development or evaluation, the two environment variables `IO_SAPL_NODE_ALLOWNOTLS=true` and `IO_SAPL_NODE_ALLOWNOAUTH=true` allow plaintext and anonymous access explicitly. The node logs a warning for each at every start.
@@ -304,13 +304,13 @@ For development or evaluation, the two environment variables `IO_SAPL_NODE_ALLOW
 For development or evaluation without signing, disable signature verification:
 
 ```shell
-docker run -p 8080:8080 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_NODE_ALLOWNOTLS=true -e IO_SAPL_NODE_ALLOWNOAUTH=true -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -p 8080:8080 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_NODE_ALLOWNOTLS=true -e IO_SAPL_NODE_ALLOWNOAUTH=true -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:5.0.0-SNAPSHOT
 ```
 
 To use raw `.sapl` files instead of bundles (for learning or demos), override the policy source type:
 
 ```shell
-docker run -p 8080:8080 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_NODE_ALLOWNOTLS=true -e IO_SAPL_NODE_ALLOWNOAUTH=true -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -p 8080:8080 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_NODE_ALLOWNOTLS=true -e IO_SAPL_NODE_ALLOWNOAUTH=true -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:5.0.0-SNAPSHOT
 ```
 
 The `SERVER_ADDRESS=0.0.0.0` override is required so Docker's port mapping can reach the server. The default `127.0.0.1` only accepts connections from within the container.
@@ -320,7 +320,7 @@ Environment variables follow Spring Boot's naming convention: dots become unders
 You can also mount a full `application.yml` instead of using individual environment variables:
 
 ```shell
-docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 ghcr.io/heutelbeck/sapl-node:5.0.0-SNAPSHOT
 ```
 
 ### CLI Reference
