@@ -77,7 +77,7 @@ public class HttpPolicyInformationPoint {
             | `path` | text | `""` | Path appended to the base URL. |
             | `urlParameters` | object | `{}` | Key-value pairs for HTTP query parameters. |
             | `headers` | object | `{}` | Key-value pairs for HTTP request headers. |
-            | `body` | any | (none) | The request body. |
+            | `body` | any | (none) | Text bodies are sent unchanged; other body values are JSON-encoded, including `null`. Omit the field to send no body. |
             | `accept` | text | `"application/json"` | Accepted response media type. |
             | `contentType` | text | `"application/json"` | Media type of the request body. |
             | `maxResponseBytes` | number | `1048576` | Maximum response body, SSE event, or WebSocket message size in bytes. An oversized payload fails closed to an error value. |

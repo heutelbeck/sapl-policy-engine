@@ -1,5 +1,7 @@
 # SAPL 4.2.0
 
+- HTTP WebSocket attributes JSON-encode configured non-text bodies, including null, and preserve an absent body.
+
 - SAPLTest rejects ambiguous explicitly named document references and reports the matching paths.
 
 - SAPLTest fixtures retain loaded compiler options while keeping the test index and subscription mode.

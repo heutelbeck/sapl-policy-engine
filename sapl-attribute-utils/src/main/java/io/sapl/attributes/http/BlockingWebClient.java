@@ -445,7 +445,7 @@ public class BlockingWebClient {
 
             val closed      = new AtomicBoolean(false);
             val wsRef       = new AtomicReference<WebSocket>();
-            val initialText = body == null ? null : body.asString();
+            val initialText = body == null ? null : bodyText(body);
             val listener    = new WebSocketListener(accumulator, emit, complete, mapper, maxBytes, closed, wsRef);
             val future      = builder.buildAsync(uri, listener);
             future.whenComplete((ws, failure) -> {
@@ -585,10 +585,11 @@ public class BlockingWebClient {
         if (body == null) {
             return BodyPublishers.noBody();
         }
-        if (body.isString()) {
-            return BodyPublishers.ofString(body.asString());
-        }
-        return BodyPublishers.ofString(body.toString());
+        return BodyPublishers.ofString(bodyText(body));
+    }
+
+    private static String bodyText(JsonNode body) {
+        return body.isString() ? body.asString() : body.toString();
     }
 
     private HttpRequest.Builder applyHttpHeaders(HttpRequest.Builder builder, JsonNode headers) {
