@@ -80,6 +80,30 @@ class RemoteHttpFirstDecisionTests {
                 .expectNext(AuthorizationDecision.INDETERMINATE).thenCancel().verify(Duration.ofSeconds(2));
     }
 
+    @ParameterizedTest(name = "keepalive before decision: {0}")
+    @ValueSource(booleans = { false, true })
+    @DisplayName("A short inactivity budget starts after the first decision")
+    void whenInactivityIsShorterThenTheFirstDecisionKeepsItsOwnBudget(boolean comment) {
+        StepVerifier.withVirtualTime(() -> {
+            val pdp = client(() -> first(comment, 500));
+            pdp.setInactivityTimeoutMillis(100);
+            return pdp.decide(INPUT);
+        }).expectSubscription().expectNoEvent(Duration.ofMillis(499)).thenAwait(Duration.ofMillis(1))
+                .expectNext(AuthorizationDecision.PERMIT).thenCancel().verify(Duration.ofSeconds(2));
+    }
+
+    @ParameterizedTest(name = "keepalive before decision: {0}")
+    @ValueSource(booleans = { false, true })
+    @DisplayName("Initial heartbeats do not shorten or extend the first-decision deadline")
+    void whenOnlyHeartbeatsArriveThenTheFirstDecisionDeadlineApplies(boolean comment) {
+        StepVerifier.withVirtualTime(() -> {
+            val pdp = client(() -> first(comment, 1500));
+            pdp.setInactivityTimeoutMillis(100);
+            return pdp.decide(INPUT);
+        }).expectSubscription().expectNoEvent(Duration.ofMillis(999)).thenAwait(Duration.ofMillis(1))
+                .expectNext(AuthorizationDecision.INDETERMINATE).thenCancel().verify(Duration.ofSeconds(2));
+    }
+
     @Test
     @DisplayName("Heartbeats keep a quiet stream alive after its first decision")
     void whenFirstDecisionWasDeliveredThenHeartbeatsKeepTheStreamAlive() {

@@ -3,7 +3,7 @@
 - Geo touches, within, contains and overlaps ignore empty collection members when determining the represented point set.
 - LSP schema proposals exclude expressions that require authorization subscription values.
 - The language server accepts a replacement documentation catalog via `--catalog` or its embedded API, independently of local standard schema functions.
-- HTTP remote PDP streams require their first decision within the configured timeout, even when keep-alive comments arrive.
+- HTTP remote PDP streams use the configured first-decision deadline before starting inactivity monitoring, even when keep-alive comments arrive.
 - SAPLTest array matchers assign distinct elements correctly when predicates overlap, independently of element order.
 - SAPLTest completion offers the current grammar keywords and removes obsolete configuration and timing words.
 - Updated Vaadin to 25.3.6 to fix SVG icon handling in [CVE-2026-136173](https://vaadin.com/security/cve-2026-136173).

@@ -61,6 +61,7 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -86,7 +87,8 @@ import java.util.function.UnaryOperator;
  *
  * The configured timeout includes connecting and waiting for the first decision
  * of each subscription attempt. Keep-alive comments do not satisfy this deadline.
- * After the first decision, comments continue to reset the inactivity timeout.
+ * Inactivity monitoring starts with the first decision. Later comments reset its
+ * timeout.
  * <p>
  *
  * @see RemotePolicyDecisionPoint#builder()
@@ -299,13 +301,18 @@ public final class RemoteHttpReactivePolicyDecisionPoint implements ReactivePoli
 
     private <T> Flux<T> streamSse(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
             Object authzSubscription) {
-        // Liveness runs before mapNotNull drops keep-alive frames, so total silence
-        // past inactivityTimeoutMillis fails closed and reconnects, while keep-alives
-        // keep a quiet stream alive.
+        val firstDecisionReceived = new AtomicBoolean();
+        // Initial heartbeats remain under the first-decision deadline.
         return client.post().uri(path).accept(MediaType.TEXT_EVENT_STREAM).contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(authzSubscription).retrieve().bodyToFlux(type)
-                .timeout(Mono.never(), ignored -> Mono.delay(Duration.ofMillis(inactivityTimeoutMillis)))
-                .mapNotNull(ServerSentEvent::data)
+                .bodyValue(authzSubscription).retrieve().bodyToFlux(type).timeout(Mono.never(), event -> {
+                    if (event.data() != null) {
+                        firstDecisionReceived.set(true);
+                    }
+                    if (firstDecisionReceived.get()) {
+                        return Mono.delay(Duration.ofMillis(inactivityTimeoutMillis));
+                    }
+                    return Mono.never();
+                }).mapNotNull(ServerSentEvent::data)
                 .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), ignored -> Mono.never());
     }
 
