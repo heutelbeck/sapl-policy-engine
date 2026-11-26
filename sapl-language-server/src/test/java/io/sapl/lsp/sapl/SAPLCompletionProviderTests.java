@@ -20,6 +20,7 @@ package io.sapl.lsp.sapl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -37,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.sapl.lsp.configuration.ConfigurationManager;
 import io.sapl.lsp.core.ProtocolPositions;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.api.model.Value;
 import io.sapl.lsp.configuration.LSPConfiguration;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
@@ -122,6 +124,49 @@ class SAPLCompletionProviderTests {
                         "policy \"p\" permit subject == true;"),
                 arguments("policy \"p\" permit var $value=true; $v\u00a7alue;", "$value",
                         "policy \"p\" permit var $value=true; $value;"));
+    }
+
+    @MethodSource("configuredPropertyKeys")
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("Configured property completion reads the original object key")
+    void whenSelectingConfiguredPropertyThenItsPathReadsOriginalKey(String key, String suffix) {
+        var original   = Value
+                .ofObject(Map.of("properties", Value.ofObject(Map.of("originalValue", Value.EMPTY_OBJECT))));
+        var nested     = Value.ofObject(Map.of("name",
+                Value.ofObject(Map.of("properties", Value.ofObject(Map.of("nestedValue", Value.EMPTY_OBJECT))))));
+        var department = new LinkedHashMap<String, Value>();
+        department.put("office", nested);
+        department.put(key, original);
+        var desk      = Value.ofObject(Map.of("department", Value.ofObject(department)));
+        var config    = new LSPConfiguration("ordinary", new DocumentationBundle(List.of()), Map.of("desk", desk),
+                new DefaultFunctionBroker());
+        var manager   = new ConfigurationManager(ignored -> config);
+        var text      = "policy \"p\" permit desk.department. == true;";
+        var positions = ProtocolPositions.of(text);
+        var document  = new SAPLParsedDocument("file:///ordinary/path.sapl", text);
+        var path      = "desk.department." + suffix;
+
+        var items = completionProvider.provideCompletions(document, positions.positionOf(text.indexOf(" ==")), manager);
+        assertThat(items).extracting(CompletionItem::getLabel).contains(path);
+        var edit   = items.stream().filter(item -> path.equals(item.getLabel())).findFirst().orElseThrow().getTextEdit()
+                .getLeft();
+        var edited = text.substring(0, positions.offsetOf(edit.getRange().getStart())) + edit.getNewText()
+                + text.substring(positions.offsetOf(edit.getRange().getEnd()));
+        assertThat(edited).isEqualTo("policy \"p\" permit " + path + " == true;");
+
+        var selected         = "resource schema " + path + "\npolicy \"p\" permit resource.";
+        var selectedDocument = new SAPLParsedDocument("file:///ordinary/selected.sapl", selected);
+        var values           = completionProvider.provideCompletions(selectedDocument, positionAtEnd(selected),
+                manager);
+        assertThat(values).extracting(CompletionItem::getLabel).containsExactly("resource.originalValue");
+    }
+
+    static Stream<Arguments> configuredPropertyKeys() {
+        return Stream.of(arguments("office_name", "office_name"), arguments("office", "office"),
+                arguments("$office", "$office"), arguments("office name", "'office name'"),
+                arguments("office-name", "'office-name'"), arguments("office.name", "'office.name'"),
+                arguments("O'Reilly", "'O\\'Reilly'"), arguments("Office \"West\"", "'Office \\\"West\\\"'"),
+                arguments("office\\name", "'office\\\\name'"), arguments("B\u00fcro", "'B\u00fcro'"));
     }
 
     private static SAPLCompletionProvider completionProvider;

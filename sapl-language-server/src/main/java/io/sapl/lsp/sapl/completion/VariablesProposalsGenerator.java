@@ -229,8 +229,9 @@ public class VariablesProposalsGenerator {
     private static List<String> generatePathProposalsForObjectValue(ObjectValue objectValue) {
         var proposals = new ArrayList<String>();
         objectValue.forEach((key, value) -> {
-            proposals.add(key);
-            generatePathProposalsForValue(value).forEach(suffix -> proposals.add(key + "." + suffix));
+            var name = SchemaProposalsGenerator.escaped(key);
+            proposals.add(name);
+            generatePathProposalsForValue(value).forEach(suffix -> proposals.add(name + "." + suffix));
         });
         return proposals;
     }

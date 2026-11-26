@@ -332,7 +332,7 @@ public class SchemaProposalsGenerator {
         addProposals(baseSchema, prefix, items, definitions, proposals, recursionDepth + 1);
     }
 
-    private static String escaped(String text) {
+    static String escaped(String text) {
         var lexer = new SAPLLexer(CharStreams.fromString(text));
         lexer.removeErrorListeners();
         var token = lexer.nextToken();
