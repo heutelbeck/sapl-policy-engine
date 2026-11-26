@@ -49,8 +49,8 @@ A threshold of `0` disables the check. Any value from `1` to `100` enforces that
 | Code | Meaning                                                   |
 |------|-----------------------------------------------------------|
 | `0`  | All tests passed and quality gate met (if configured)     |
-| `1`  | Error during test execution (I/O, parse errors)           |
-| `2`  | One or more tests failed                                  |
+| `1`  | The command could not load or run the test suite          |
+| `2`  | One or more tests failed or reported an error, including a SAPLTest syntax error |
 | `3`  | Tests passed but coverage is below the required threshold |
 
 #### Reports
