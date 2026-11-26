@@ -27,6 +27,7 @@ import lombok.val;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -145,7 +146,10 @@ public class DiagnosticReports {
         if (problems > 100 || notices > 1 || notices > 0 && problems != 100) {
             return false;
         }
-        for (val block : stated.split(BETWEEN_PROBLEMS)) {
+        // Reserve exact regions before class-only runs consume their possible matches.
+        val blocks = new ArrayList<>(List.of(stated.split(BETWEEN_PROBLEMS)));
+        blocks.sort(Comparator.comparing(block -> RUN_OF_PROBLEMS.matcher(block).matches()));
+        for (val block : blocks) {
             val run = RUN_OF_PROBLEMS.matcher(block);
             if (run.matches()) {
                 val count      = Integer.parseInt(run.group("count"));
