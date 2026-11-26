@@ -4,6 +4,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - Geo KML and GML conversion accepts one optional leading U+FEFF in decoded text.
 
+- LSP outlines show named policies independently while their containing set has no name.
+
 - LSP variable completions replace the remaining identifier at the cursor without duplicating its suffix.
 
 - LSP completions quote configured object keys to insert valid SAPL property paths.

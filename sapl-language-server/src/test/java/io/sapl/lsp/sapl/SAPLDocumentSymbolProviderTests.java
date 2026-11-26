@@ -19,7 +19,9 @@ package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.eclipse.lsp4j.DocumentSymbol;
@@ -46,8 +48,8 @@ class SAPLDocumentSymbolProviderTests {
         @DisplayName("retains quotes for a blank outline label")
         void whenNameIsBlankThenOutlineShowsTheQuotedName() {
             var document = new SAPLParsedDocument("test.sapl", "policy \"  \" permit");
-            assertThat(provider.provideDocumentSymbols(document)).singleElement()
-                    .extracting(DocumentSymbol::getName).isEqualTo("\"  \"");
+            assertThat(provider.provideDocumentSymbols(document)).singleElement().extracting(DocumentSymbol::getName)
+                    .isEqualTo("\"  \"");
         }
 
         @Test
@@ -137,6 +139,38 @@ class SAPLDocumentSymbolProviderTests {
             });
         }
 
+    }
+
+    static Stream<Arguments> outlineSources() {
+        return Stream.of(arguments("LF", "\n", ""), arguments("CRLF", "\r\n", ""), arguments("CR", "\r", ""),
+                arguments("BOM", "\n", "\uFEFF"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("outlineSources")
+    @DisplayName("shows named policies independently when their set has no name")
+    void whenSetHasNoNameThenItsNamedPoliciesAreIndependentEntries(String description, String lineEnd, String prefix) {
+        val content = prefix + String.join(lineEnd, "// outline", "set", "first or deny",
+                "policy \"a\uD83D\uDE42\" permit", "var x=1;", "policy \"b\" deny", "var y=2;");
+        val symbols = provider.provideDocumentSymbols(new SAPLParsedDocument("test.sapl", content));
+        assertThat(symbols).extracting(DocumentSymbol::getName).containsExactly("a\uD83D\uDE42", "b");
+        for (int i = 0; i < symbols.size(); i++) {
+            val symbol = symbols.get(i);
+            val name   = List.of("a\uD83D\uDE42", "b").get(i);
+            val local  = List.of("x", "y").get(i);
+            val effect = List.of("permit", "deny").get(i);
+            assertThat(symbol)
+                    .extracting(DocumentSymbol::getKind,
+                            value -> ProtocolText.textOf(content, value.getSelectionRange()),
+                            value -> ProtocolText.textOf(content, value.getRange()))
+                    .containsExactly(SymbolKind.Function, "\"" + name + "\"",
+                            "policy \"" + name + "\" " + effect + lineEnd + "var " + local + "=" + (i + 1) + ";");
+            assertThat(symbol.getChildren()).singleElement()
+                    .extracting(DocumentSymbol::getName,
+                            value -> ProtocolText.textOf(content, value.getSelectionRange()),
+                            value -> ProtocolText.textOf(content, value.getRange()))
+                    .containsExactly(local, local, "var " + local + "=" + (i + 1));
+        }
     }
 
     @Nested

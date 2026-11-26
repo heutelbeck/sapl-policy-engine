@@ -38,7 +38,7 @@ import lombok.val;
 /**
  * Provides document symbols for SAPL documents.
  * Emits policy sets, policies, and variable definitions as symbols
- * for the editor outline view.
+ * for the editor outline view. Named policies in an unnamed set remain top-level entries.
  */
 class SAPLDocumentSymbolProvider {
 
@@ -53,7 +53,16 @@ class SAPLDocumentSymbolProvider {
         }
         val symbols = new ArrayList<DocumentSymbol>();
         if (policyElement instanceof PolicySetElementContext policySetElement) {
-            addIfNotNull(symbols, buildPolicySetSymbol(policySetElement.policySet()));
+            val policySet = policySetElement.policySet();
+            if (policySet.saplName != null && policySet.saplName.getTokenIndex() >= 0) {
+                addIfNotNull(symbols, buildPolicySetSymbol(policySet));
+            } else {
+                for (val policy : policySet.policy()) {
+                    if (policy.saplName != null && policy.saplName.getTokenIndex() >= 0) {
+                        addIfNotNull(symbols, buildPolicySymbol(policy));
+                    }
+                }
+            }
         } else if (policyElement instanceof PolicyOnlyElementContext policyOnlyElement) {
             addIfNotNull(symbols, buildPolicySymbol(policyOnlyElement.policy()));
         }
