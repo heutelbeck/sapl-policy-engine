@@ -845,7 +845,8 @@ public class GeographicFunctionLibrary {
 
             **Output:**
 
-            - Returns a Polygon geometry representing the convex hull. Hull vertices keep their input heights. The hull is computed in the XY plane.
+            - Returns the convex hull computed in the XY plane. Hull vertices keep their input heights.
+              Polygon exteriors are counterclockwise. The ring start and the direction of line results are unspecified.
 
             **Example:**
 
@@ -862,7 +863,7 @@ public class GeographicFunctionLibrary {
             - Useful for simplifying geometries or bounding datasets.
             """)
     public static Value convexHull(ObjectValue geometry) {
-        return applyUnaryTransformation(geometry, Geometry::convexHull);
+        return applyUnaryTransformation(geometry, shape -> shape.convexHull().reverse());
     }
 
     private static Value applyUnaryTransformation(ObjectValue thisGeometry, UnaryOperator<Geometry> transformation) {
@@ -1715,6 +1716,7 @@ public class GeographicFunctionLibrary {
 
             - Useful for converting WKT geometries into GeoJSON for processing.
             - The WKT input is bounded by size and nesting depth before parsing.
+            - Portable MULTIPOINT forms are `MULTIPOINT EMPTY` and `MULTIPOINT ((1 2),(3 4))`, with every point parenthesized.
             - For portable 3D WKT, write the dimension tag separately, as in `POINT Z (1 2 3)` and
               `LINEARRING Z (0 0 1, 1 0 2, 0 1 3, 0 0 1)`. Java also reads `POINT (1 2 3)` and `LINEARRINGZ`.
             """)

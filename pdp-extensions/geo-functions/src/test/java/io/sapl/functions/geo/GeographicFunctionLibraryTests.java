@@ -32,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 
@@ -42,6 +43,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -272,7 +274,29 @@ class GeographicFunctionLibraryTests {
     void convexHullTest() {
         val expectedGeometry = POLYGON_3;
         val actualGeometry   = convexHull(LINE_2);
-        assertThat(actualGeometry).isEqualTo(expectedGeometry);
+        assertThat(geoJsonToGeometry((ObjectValue) actualGeometry).equalsTopo(geoJsonToGeometry(expectedGeometry)))
+                .isTrue();
+    }
+
+    static Stream<Arguments> counterclockwiseHullInputs() {
+        return Stream.of(arguments("2D", json("""
+                {"type":"MultiPoint","coordinates":[[0,0],[0,10],[10,10],[10,0],[5,5]]}
+                """)), arguments("3D", json("""
+                {"type":"MultiPoint","coordinates":[[0,0,3],[0,10,4],[10,10,5],[10,0,6],[5,5,8]]}
+                """)));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("counterclockwiseHullInputs")
+    @DisplayName("Polygon hull exteriors run counterclockwise and retain their input heights")
+    void whenConvexHullIsPolygonThenExteriorIsCounterclockwiseAndHeightsArePreserved(String description,
+            ObjectValue input) {
+        val polygon = (Polygon) geoJsonToGeometry((ObjectValue) convexHull(input));
+        val corners = polygon.getExteriorRing().getCoordinates();
+        val source  = geoJsonToGeometry(input).getCoordinates();
+        val heights = Arrays.stream(corners).allMatch(corner -> Arrays.stream(source).anyMatch(corner::equals3D));
+        assertThat(tuple(polygon.getGeometryType(), Orientation.isCCW(corners), heights, polygon.getArea()))
+                .isEqualTo(tuple("Polygon", true, true, 100.0));
     }
 
     @Test

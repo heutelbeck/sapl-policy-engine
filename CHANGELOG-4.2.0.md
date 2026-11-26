@@ -48,6 +48,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `geo.convexHull` returns polygon exteriors counterclockwise while preserving input heights; ring starts and line directions remain unspecified.
+
 - `keys.jwkFromPublicKey` and `keys.publicKeyFromJwk` support Ed448 public keys between PEM and JWK.
 
 - `signature` RSA verification requires 2048 to 16384 bits and an odd public exponent from 3 to 8589934591. Signature text also accepts URL-safe Base64 with optional padding.
