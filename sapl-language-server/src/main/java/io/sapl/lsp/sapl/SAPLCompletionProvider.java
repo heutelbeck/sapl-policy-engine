@@ -734,7 +734,7 @@ public class SAPLCompletionProvider {
         var end   = cursor;
         while (end < content.length()) {
             val ch = content.charAt(end);
-            if (Character.isLetterOrDigit(ch) || ch == '_') {
+            if (ch == '_' || ch == '$' || Character.isLetterOrDigit(ch)) {
                 end++;
             } else {
                 break;
@@ -751,7 +751,7 @@ public class SAPLCompletionProvider {
         var start = offset;
         while (start > 0) {
             val ch = content.charAt(start - 1);
-            if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.') {
+            if (ch == '_' || ch == '$' || ch == '.' || Character.isLetterOrDigit(ch)) {
                 start--;
             } else {
                 break;

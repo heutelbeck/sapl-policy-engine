@@ -77,7 +77,7 @@ class SAPLCompletionProviderTests {
     @MethodSource("variableWordCursors")
     @ParameterizedTest(name = "{0}")
     @DisplayName("Variable completion replaces its remaining word and preserves adjacent tokens")
-    void whenCompletingInsideVariableThenEditReplacesRemainingWord(String marked, String expected) {
+    void whenCompletingInsideVariableThenEditReplacesRemainingWord(String marked, String name, String expected) {
         var config    = new LSPConfiguration("ordinary", new DocumentationBundle(List.of()), Map.of(),
                 new DefaultFunctionBroker());
         var manager   = new ConfigurationManager(ignored -> config);
@@ -87,8 +87,8 @@ class SAPLCompletionProviderTests {
         var document  = new SAPLParsedDocument("file:///ordinary/policy.sapl", text);
 
         var items  = completionProvider.provideCompletions(document, positions.positionOf(offset), manager);
-        var edit   = items.stream().filter(item -> "subject".equals(item.getLabel())).findFirst().orElseThrow()
-                .getTextEdit().getLeft();
+        var edit   = items.stream().filter(item -> name.equals(item.getLabel())).findFirst().orElseThrow().getTextEdit()
+                .getLeft();
         var edited = text.substring(0, positions.offsetOf(edit.getRange().getStart())) + edit.getNewText()
                 + text.substring(positions.offsetOf(edit.getRange().getEnd()));
 
@@ -97,20 +97,31 @@ class SAPLCompletionProviderTests {
 
     static Stream<Arguments> variableWordCursors() {
         return Stream.of(
-                arguments("policy \"p\" permit sub\u00a7ject == true;", "policy \"p\" permit subject == true;"),
-                arguments("policy \"p\" permit sub\u00a7stitute == true;", "policy \"p\" permit subject == true;"),
-                arguments("policy \"p\" permit subject\u00a7 == true;", "policy \"p\" permit subject == true;"),
-                arguments("policy \"p\" permit sub\u00a7 == true;", "policy \"p\" permit subject == true;"),
-                arguments("policy \"p\" permit \u00a7subject == true;", "policy \"p\" permit subject == true;"),
-                arguments("policy \"p\" permit \u00a7 true;", "policy \"p\" permit subject true;"),
-                arguments("policy \"p\" permit sub\u00a7 next;", "policy \"p\" permit subject next;"),
-                arguments("policy \"p\" permit sub\u00a7.name == true;", "policy \"p\" permit subject.name == true;"),
-                arguments("policy \"p\" permit sub\u00a7+1;", "policy \"p\" permit subject+1;"),
-                arguments("policy \"p\" permit sub\u00a7_old == true;", "policy \"p\" permit subject == true;"),
-                arguments("policy \"p\" permit sub\u00a72 == true;", "policy \"p\" permit subject == true;"),
-                arguments("\uFEFFpolicy \"\uD83D\uDE42\" permit sub\u00a7ject == true;",
+                arguments("policy \"p\" permit sub\u00a7ject == true;", "subject",
+                        "policy \"p\" permit subject == true;"),
+                arguments("policy \"p\" permit sub\u00a7stitute == true;", "subject",
+                        "policy \"p\" permit subject == true;"),
+                arguments("policy \"p\" permit subject\u00a7 == true;", "subject",
+                        "policy \"p\" permit subject == true;"),
+                arguments("policy \"p\" permit sub\u00a7 == true;", "subject", "policy \"p\" permit subject == true;"),
+                arguments("policy \"p\" permit \u00a7subject == true;", "subject",
+                        "policy \"p\" permit subject == true;"),
+                arguments("policy \"p\" permit \u00a7 true;", "subject", "policy \"p\" permit subject true;"),
+                arguments("policy \"p\" permit sub\u00a7 next;", "subject", "policy \"p\" permit subject next;"),
+                arguments("policy \"p\" permit sub\u00a7.name == true;", "subject",
+                        "policy \"p\" permit subject.name == true;"),
+                arguments("policy \"p\" permit sub\u00a7+1;", "subject", "policy \"p\" permit subject+1;"),
+                arguments("policy \"p\" permit sub\u00a7_old == true;", "subject",
+                        "policy \"p\" permit subject == true;"),
+                arguments("policy \"p\" permit sub\u00a72 == true;", "subject", "policy \"p\" permit subject == true;"),
+                arguments("\uFEFFpolicy \"\uD83D\uDE42\" permit sub\u00a7ject == true;", "subject",
                         "\uFEFFpolicy \"\uD83D\uDE42\" permit subject == true;"),
-                arguments("policy \"p\" permit\r\nsub\u00a7ject == true;", "policy \"p\" permit\r\nsubject == true;"));
+                arguments("policy \"p\" permit\r\nsub\u00a7ject == true;", "subject",
+                        "policy \"p\" permit\r\nsubject == true;"),
+                arguments("policy \"p\" permit sub\u00a7$rest == true;", "subject",
+                        "policy \"p\" permit subject == true;"),
+                arguments("policy \"p\" permit var $value=true; $v\u00a7alue;", "$value",
+                        "policy \"p\" permit var $value=true; $value;"));
     }
 
     private static SAPLCompletionProvider completionProvider;
