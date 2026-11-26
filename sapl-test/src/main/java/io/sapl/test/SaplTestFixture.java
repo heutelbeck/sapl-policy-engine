@@ -329,7 +329,8 @@ public class SaplTestFixture {
      * Loads a complete PDP configuration from a directory.
      * <p>
      * Loads all .sapl files and pdp.json (if present) from the directory.
-     * The combining algorithm and variables are taken from pdp.json.
+     * The combining algorithm, variables and compiler options are taken from
+     * pdp.json. Indexing and subscription mode still follow the fixture settings.
      * Policy file paths are retained for coverage reports.
      *
      * @param directoryPath the path to the directory containing policies and
@@ -349,7 +350,8 @@ public class SaplTestFixture {
      * Loads a complete PDP configuration from classpath resources.
      * <p>
      * Loads all .sapl files and pdp.json (if present) from the resource path.
-     * The combining algorithm and variables are taken from pdp.json.
+     * The combining algorithm, variables and compiler options are taken from
+     * pdp.json. Indexing and subscription mode still follow the fixture settings.
      *
      * @param resourcePath the classpath resource path
      * @return this fixture for chaining
@@ -364,8 +366,8 @@ public class SaplTestFixture {
     }
 
     /**
-     * Loads PDP configuration (combining algorithm, variables) from a pdp.json
-     * file.
+     * Loads PDP configuration (combining algorithm, variables and compiler options)
+     * from a pdp.json file. Indexing and subscription mode follow the fixture settings.
      * <p>
      * This only loads the configuration metadata, not policies. Use withPolicy*
      * methods
@@ -857,13 +859,17 @@ public class SaplTestFixture {
     }
 
     private PDPComponents buildPdpComponents(PolicyDecisionPointBuilder pdpBuilder, List<String> effectivePolicies) {
-        var effectiveAlgorithm = resolveAlgorithm();
-        var effectiveVariables = resolveVariables();
-        var effectiveSecrets   = resolveSecrets();
-        var pdpData            = new PdpData(toObjectValue(effectiveVariables), toObjectValue(effectiveSecrets));
-        var compilerOptions    = ObjectValue.builder().put(CompilationContext.OPTION_INDEXING, Value.of("NAIVE"))
+        var effectiveAlgorithm     = resolveAlgorithm();
+        var effectiveVariables     = resolveVariables();
+        var effectiveSecrets       = resolveSecrets();
+        var pdpData                = new PdpData(toObjectValue(effectiveVariables), toObjectValue(effectiveSecrets));
+        val compilerOptionsBuilder = ObjectValue.builder();
+        if (loadedConfiguration != null && loadedConfiguration.compilerOptions() != null) {
+            loadedConfiguration.compilerOptions().forEach(compilerOptionsBuilder::put);
+        }
+        val compilerOptions = compilerOptionsBuilder.put(CompilationContext.OPTION_INDEXING, Value.of("NAIVE"))
                 .put(CompilationContext.OPTION_LOW_LATENCY_MODE, Value.of(lowLatencyMode)).build();
-        var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
+        var configuration   = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
                 effectiveAlgorithm, compilerOptions, effectivePolicies, pdpData);
 
         // Secrets of a test are written in cleartext in its definition.

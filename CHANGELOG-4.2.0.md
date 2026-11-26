@@ -1,5 +1,7 @@
 # SAPL 4.2.0
 
+- SAPLTest fixtures retain loaded compiler options while keeping the test index and subscription mode.
+
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
 - Geo KML and GML conversion accepts one optional leading U+FEFF in decoded text.
