@@ -28,6 +28,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `keys.jwkFromPublicKey` retains leading zero bytes in EC coordinates to write the full RFC 7518 field width.
+
 - The `keys` functions taking a PEM public key accept only P-256, P-384, and P-521 EC curves. Other curves return an error instead of metadata with an unknown curve name.
 
 - GeoJSON legacy CRS numeric codes accept ASCII decimal digits only; non-ASCII digit spellings return an error.

@@ -25,6 +25,7 @@ import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import lombok.val;
+import org.bouncycastle.util.BigIntegers;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 
@@ -391,6 +392,8 @@ public class KeysFunctionLibrary {
             Converts RSA, EC, or EdDSA public keys to JSON Web Key (JWK) format as defined
             in RFC 7517. The JWK includes the key type (kty), algorithm parameters, and
             key material.
+            EC coordinates retain their full field width, including leading zero bytes:
+            32 bytes for P-256, 48 for P-384 and 66 for P-521.
 
             Supported key types: RSA (all sizes), EC (P-256, P-384, P-521), EdDSA (Ed25519).
 
@@ -495,11 +498,13 @@ public class KeysFunctionLibrary {
      * Converts an EC public key to JWK format.
      */
     private static JsonNode convertEcPublicKeyToJwk(ECPublicKey ecKey) {
-        val jwk = JSON.objectNode();
+        val jwk     = JSON.objectNode();
+        val width   = (ecKey.getParams().getCurve().getField().getFieldSize() + 7) / 8;
+        val encoder = Base64.getUrlEncoder().withoutPadding();
         jwk.put("kty", JWK_KEY_TYPE_EC);
         jwk.put("crv", KeyUtils.getJwkCurveName(ecKey));
-        jwk.put("x", base64UrlEncode(ecKey.getW().getAffineX()));
-        jwk.put("y", base64UrlEncode(ecKey.getW().getAffineY()));
+        jwk.put("x", encoder.encodeToString(BigIntegers.asUnsignedByteArray(width, ecKey.getW().getAffineX())));
+        jwk.put("y", encoder.encodeToString(BigIntegers.asUnsignedByteArray(width, ecKey.getW().getAffineY())));
         return jwk;
     }
 
