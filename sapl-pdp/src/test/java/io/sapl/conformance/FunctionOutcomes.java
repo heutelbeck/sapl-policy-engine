@@ -156,7 +156,7 @@ public class FunctionOutcomes {
         if (stated.startsWith(VALUE_WITHIN) && outcome.startsWith(VALUE_WITHIN)) {
             return isWithinTolerance(stated, outcome);
         }
-        if (stated.startsWith(VALUE) && outcome.startsWith(VALUE) && !outcome.contains(UNREPRESENTABLE)) {
+        if (stated.startsWith(VALUE) && outcome.startsWith(VALUE) && !outcome.startsWith(VALUE + UNREPRESENTABLE)) {
             return valueOf(stated.substring(VALUE.length())).equals(valueOf(outcome.substring(VALUE.length())));
         }
         return stated.equals(outcome);
