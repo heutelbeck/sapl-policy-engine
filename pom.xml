@@ -100,7 +100,7 @@
 		<antlr.version>4.13.2</antlr.version>
 		<okhttp.version>5.4.0</okhttp.version>
 		<scalar.version>0.6.49</scalar.version>
-		<vaadin.version>25.2.1</vaadin.version>
+		<vaadin.version>25.3.6</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.46</lombok.version>
 		<jupiter.version>6.1.1</jupiter.version>

@@ -1,5 +1,6 @@
 # SAPL 4.1.6 (unreleased)
 
+- Updated Vaadin to 25.3.6 to fix SVG icon handling in [CVE-2026-136173](https://vaadin.com/security/cve-2026-136173).
 - Priority-based combining preserves a conflict between different resource transformations on the winning effect, regardless of vote order. A higher-priority effect can still win.
 - The canonical policy index retains independent matches when a shared clause belongs to a formula that needs reevaluation after a predicate error.
 - Policy set targets and enforced schemas can use set variables. Variables declared by the last child policy stay local to that policy.
