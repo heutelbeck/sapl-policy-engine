@@ -602,18 +602,13 @@ public class SaplTestFixture {
     }
 
     /**
-     * Sets the compiler's low-latency mode for this fixture's PDP.
+     * Sets the {@code lowLatencyMode} compatibility option for this fixture's PDP.
      * <p>
-     * Default is {@code true}, matching the production PDP default. The
-     * coverage voter compiles to {@code Eager} (full body walk per round,
-     * gathers complete dependency set in one pass) when {@code true} and
-     * to {@code Lazy} (source-order short-circuit on first FALSE/error)
-     * when {@code false}. Tests that assert source-order short-circuit
-     * semantics on attribute subscriptions must opt out by passing
-     * {@code false}; the default mirrors what production users observe.
+     * With either value, coverage follows the same evaluation and requests the same
+     * attributes as an ordinary decision. The policy's lazy and eager operators
+     * determine when an attribute is requested.
      *
-     * @param lowLatencyMode {@code true} for Eager (default,
-     * production parity), {@code false} for Lazy
+     * @param lowLatencyMode the option value, {@code true} by default
      * @return this fixture for chaining
      */
     public SaplTestFixture withLowLatencyMode(boolean lowLatencyMode) {
