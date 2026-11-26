@@ -22,6 +22,7 @@ import io.sapl.compiler.util.RegexRefusedException;
 import io.sapl.compiler.util.RegexSearchFailedException;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
+import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
@@ -691,6 +692,30 @@ class MatchersTests {
         assertThat(arrayContainingAll(eq(Value.of(1)), eq(Value.of(3))).matches(arr)).isTrue();
         assertThat(arrayContainingAll(eq(Value.of(1)), eq(Value.of(1))).matches(arr)).isFalse(); // Only one "1"
         assertThat(arrayContainingAll(eq(Value.of(1)), eq(Value.of(5))).matches(arr)).isFalse();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("overlappingArrayMatchers")
+    void whenArrayMatchersOverlapThenDistinctElementsCanBeReassigned(String description, Value value,
+            List<ArgumentMatcher> matchers, boolean expected) {
+        assertThat(arrayContainingAll(matchers.toArray(ArgumentMatcher[]::new)).matches(value)).as(description)
+                .isEqualTo(expected);
+    }
+
+    static Stream<Arguments> overlappingArrayMatchers() {
+        val numbers    = List.of(anyNumber(), numberEqualTo(1));
+        val texts      = List.of(textStartingWith("a"), textEndingWith("b"));
+        val chain      = List.of(textStartingWith("a"), textEndingWith("c"), eq(Value.of("ab")));
+        val duplicates = List.of(numberEqualTo(1), numberEqualTo(1));
+        return Stream.of(arguments("general number first", Value.ofJson("[1,2]"), numbers, true),
+                arguments("number values swapped", Value.ofJson("[2,1]"), numbers, true),
+                arguments("not enough numbers", Value.ofJson("[1]"), numbers, false),
+                arguments("overlapping text predicates", Value.ofJson("[\"ab\",\"a\"]"), texts, true),
+                arguments("text values swapped", Value.ofJson("[\"a\",\"ab\"]"), texts, true),
+                arguments("missing text match", Value.ofJson("[\"ac\",\"a\"]"), texts, false),
+                arguments("three predicates need reassignment", Value.ofJson("[\"ab\",\"ac\",\"bc\"]"), chain, true),
+                arguments("distinct equal values", Value.ofJson("[1,1]"), duplicates, true),
+                arguments("equal value cannot be reused", Value.ofJson("[1]"), duplicates, false));
     }
 
     @Test

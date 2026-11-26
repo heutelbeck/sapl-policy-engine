@@ -95,6 +95,10 @@ Array matchers verify JSON array contents within `where` clauses:
 expect decision is permit, with resource matching array where [text "a", text "b", number 42];
 ```
 
+Array predicates match distinct elements in any order. Predicates may overlap: `array where
+[number, number 1]` matches `[1, 2]` as well as `[2, 1]`, but does not match `[1]`.
+
+
 Each element position specifies a type matcher. The array must match the specified elements in order.
 
 ### Decision Matchers

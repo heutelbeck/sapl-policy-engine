@@ -30,6 +30,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
@@ -562,26 +563,54 @@ public class Matchers {
      * @param elementMatchers the matchers for elements
      */
     public static ArgumentMatcher arrayContainingAll(@NonNull ArgumentMatcher... elementMatchers) {
-        return matching(v -> {
-            if (!(v instanceof ArrayValue arr)) {
-                return false;
-            }
-            var remaining = new ArrayList<>(arr);
-            for (var matcher : elementMatchers) {
-                boolean found = false;
-                for (int i = 0; i < remaining.size(); i++) {
-                    if (matcher.matches(remaining.get(i))) {
-                        remaining.remove(i);
-                        found = true;
+        return matching(v -> v instanceof ArrayValue arr && distinctArrayMembers(arr, elementMatchers));
+    }
+
+    private static boolean distinctArrayMembers(ArrayValue values, ArgumentMatcher[] matchers) {
+        if (matchers.length > values.size()) {
+            return false;
+        }
+        val owners = new int[values.size()];
+        Arrays.fill(owners, -1);
+        val pending         = new ArrayDeque<Integer>();
+        val visited         = new boolean[values.size()];
+        val previousMatcher = new int[matchers.length];
+        val previousMember  = new int[matchers.length];
+        for (int next = 0; next < matchers.length; next++) {
+            pending.clear();
+            pending.add(next);
+            Arrays.fill(visited, false);
+            Arrays.fill(previousMatcher, -1);
+            int current = -1;
+            int free    = -1;
+            while (!pending.isEmpty() && free < 0) {
+                current = pending.removeFirst();
+                for (int member = 0; member < values.size(); member++) {
+                    if (visited[member] || !matchers[current].matches(values.get(member))) {
+                        continue;
+                    }
+                    visited[member] = true;
+                    if (owners[member] < 0) {
+                        free = member;
                         break;
                     }
-                }
-                if (!found) {
-                    return false;
+                    val owner = owners[member];
+                    previousMatcher[owner] = current;
+                    previousMember[owner]  = member;
+                    pending.add(owner);
                 }
             }
-            return true;
-        });
+            if (free < 0) {
+                return false;
+            }
+            // Reassign along the alternating path so a broader predicate can move aside.
+            do {
+                owners[free] = current;
+                free         = previousMember[current];
+                current      = previousMatcher[current];
+            } while (current >= 0);
+        }
+        return true;
     }
 
     /**
