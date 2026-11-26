@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.nimbusds.jose.JOSEException;
@@ -39,6 +40,9 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
 
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -59,6 +63,21 @@ import lombok.val;
 
 @DisplayName("PolicyDecisionPointBuilder")
 class PolicyDecisionPointBuilderTests {
+
+    @CsvSource({ "-1, 2", "0, 3", "10, 2" })
+    @ParameterizedTest(name = "cache size {0} invokes the function {1} times")
+    @DisplayName("the configured broker cache can be disabled")
+    void whenBuildingAFunctionBrokerThenZeroDisablesCaching(int capacity, int expectedCalls) {
+        val library = new DirectoryLibrary();
+        val broker  = PolicyDecisionPointBuilder.buildFunctionBroker(capacity, false, List.of(library))
+                .forConfiguration();
+        val lookup  = broker.bindFunction("directory.lookup", 1);
+        for (val name : List.of("Alice", "Bob", "Alice")) {
+            val value = Value.of(name);
+            assertThat(lookup.evaluate(new FunctionInvocation("directory.lookup", List.of(value)))).isEqualTo(value);
+        }
+        assertThat(library.calls).isEqualTo(expectedCalls);
+    }
 
     @Test
     @DisplayName("build fails fast with a clear error when the plugins source never delivers a bundle")
@@ -294,6 +313,17 @@ class PolicyDecisionPointBuilderTests {
                 """);
         Files.writeString(policyDir.resolve("secrets.json"), """
                 { "token": "PLAINTEXT" }""");
+    }
+
+    @FunctionLibrary(name = "directory", description = "Directory lookups")
+    public static class DirectoryLibrary {
+        private int calls;
+
+        @Function(docs = "Returns the supplied name.")
+        public Value lookup(Value name) {
+            calls++;
+            return name;
+        }
     }
 
     private static final class TrackingConfigurationSource implements PDPConfigurationSource {

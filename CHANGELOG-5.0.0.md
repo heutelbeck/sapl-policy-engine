@@ -78,6 +78,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Setting the Java PDP builder's function cache size to `0` now disables result caching, including through `io.sapl.pdp.embedded.function-cache-size`. Omit the setting or pass a negative size to the builder to use the default cache.
+
 - Regenerate Java object streams containing SAPL classes that use the shared serialization version identifier. SAPL 5.0 changes that identifier to 50000.
 
 - CSV reading ignores spaces or tabs outside quoted fields as a documented extension to RFC 4180.

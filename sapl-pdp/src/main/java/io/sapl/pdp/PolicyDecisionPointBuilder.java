@@ -372,7 +372,8 @@ public class PolicyDecisionPointBuilder {
      * at least 1 KiB against a budget of {@code size} KiB. Errors and oversized calls bypass
      * the cache. The default is 10,000 entries.
      *
-     * @param size maximum cache entries
+     * @param size maximum cache entries, zero to disable caching, or a negative
+     * value to use the default
      * @return this builder
      */
     public PolicyDecisionPointBuilder withFunctionCacheSize(int size) {
@@ -1005,8 +1006,8 @@ public class PolicyDecisionPointBuilder {
      * Boot auto-configuration) so the construction logic stays in a single
      * place.
      *
-     * @param functionCacheSize maximum function result cache entries. Values
-     * less than or equal to zero use the broker's default.
+     * @param functionCacheSize maximum function result cache entries, zero to
+     * disable caching, or a negative value to use the broker's default
      * @param includeDefaultFunctionLibraries whether to load the SAPL
      * default libraries
      * @param additionalFunctionLibraries additional library instances to load
@@ -1014,8 +1015,8 @@ public class PolicyDecisionPointBuilder {
      */
     public static FunctionBroker buildFunctionBroker(int functionCacheSize, boolean includeDefaultFunctionLibraries,
             List<?> additionalFunctionLibraries) {
-        val functionBroker = functionCacheSize > 0 ? new DefaultFunctionBroker(functionCacheSize)
-                : new DefaultFunctionBroker();
+        val functionBroker = functionCacheSize < 0 ? new DefaultFunctionBroker()
+                : new DefaultFunctionBroker(functionCacheSize);
 
         if (includeDefaultFunctionLibraries) {
             for (val lib : DefaultLibraries.defaults()) {
