@@ -57,7 +57,9 @@ public class CsvFunctionLibrary {
             CSV parsing treats the first row as column headers. Each subsequent row becomes an
             object with properties named after the headers. All values are parsed as strings.
             Empty records are skipped, an initial byte order mark is removed, and duplicate headers
-            are rejected. Field spaces are preserved. Output records end in CRLF.
+            are rejected. Field spaces are preserved. As an extension to [RFC 4180 section 2](https://www.rfc-editor.org/rfc/rfc4180#section-2),
+            spaces or tabs before an opening quote and after its closing quote are ignored.
+            Spaces inside quoted fields and in unquoted fields remain data. Output records end in CRLF.
             Type conversion must be done explicitly in policies. CSV generation takes an array
             of objects and uses the first object's keys as column headers. Empty arrays produce
             empty CSV output. Cells must be text, numbers, booleans or null. Arrays, objects,
@@ -185,6 +187,9 @@ public class CsvFunctionLibrary {
             treated as column headers, and each subsequent row becomes an object with properties
             named after those headers. All values are parsed as strings. Empty records are skipped,
             an initial byte order mark is removed, and duplicate headers are rejected.
+            As an extension to [RFC 4180 section 2](https://www.rfc-editor.org/rfc/rfc4180#section-2),
+            space or tab padding outside quoted fields is ignored. Quoted contents and unquoted
+            field spaces are preserved.
 
             Input longer than 1 MB (1048576 characters) is rejected with an error, so a hostile
             attribute value cannot exhaust the evaluation thread.
