@@ -47,6 +47,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Functions for making access control decisions based on X.509 certificate
@@ -446,7 +447,7 @@ public class X509FunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value hasDnsName(TextValue certificatePem, TextValue dnsName) {
         return withCertificate(certificatePem.value(), certificate -> {
-            val targetDnsName = dnsName.value().toLowerCase();
+            val targetDnsName = dnsName.value().toLowerCase(Locale.ROOT);
 
             try {
                 val subjectAltNames = CertificateUtils.extractSubjectAlternativeNames(certificate);
@@ -717,8 +718,8 @@ public class X509FunctionLibrary {
      * @return true if the names match
      */
     private static boolean matchesDnsName(String certificateDnsName, String targetDnsName) {
-        val certName = certificateDnsName.toLowerCase();
-        val target   = targetDnsName.toLowerCase();
+        val certName = certificateDnsName.toLowerCase(Locale.ROOT);
+        val target   = targetDnsName.toLowerCase(Locale.ROOT);
 
         if (certName.equals(target)) {
             return true;

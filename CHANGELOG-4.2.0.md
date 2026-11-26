@@ -180,6 +180,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Policy evaluation fixes
 
+- DNS name matching in `x509.hasDnsName` no longer depends on the JVM default locale.
+
 - `geo.crosses` evaluates a line inside a GeoJSON geometry collection when testing whether two geometries cross.
 
 - XOR now reports a known non-boolean operand even while another operand is pending. A constant or subscription element of the wrong type can report the error before any attributes are requested.
