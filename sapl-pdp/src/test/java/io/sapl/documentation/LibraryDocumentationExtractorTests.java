@@ -87,15 +87,14 @@ class LibraryDocumentationExtractorTests {
 
     @Test
     void whenExtractingFunctionLibraryThenFunctionEntriesAreExtracted() {
-        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(FilterFunctionLibrary.class);
+        val documentation = LibraryDocumentationExtractor.extractFunctionLibrary(TestFunctionLibrary.class);
 
         assertThat(documentation.entries()).isNotEmpty();
 
-        val blackenEntry = documentation.findEntry("blacken");
-        assertThat(blackenEntry).isNotNull();
-        assertThat(blackenEntry.type()).isEqualTo(EntryType.FUNCTION);
-        assertThat(blackenEntry.documentation())
-                .isEqualTo("Blacken text by replacing characters with a replacement string");
+        val textEntry = documentation.findEntry("textFunction");
+        assertThat(textEntry).isNotNull();
+        assertThat(textEntry.type()).isEqualTo(EntryType.FUNCTION);
+        assertThat(textEntry.documentation()).isEqualTo("Text parameter function");
     }
 
     @Test
@@ -126,7 +125,9 @@ class LibraryDocumentationExtractorTests {
     static Stream<Arguments> parameterTypeDerivationCases() {
         return Stream.of(arguments("textFunction", "Text"), arguments("numberFunction", "Number"),
                 arguments("boolFunction", "Bool"), arguments("arrayFunction", "Array"),
-                arguments("objectFunction", "Object"), arguments("genericFunction", "Value"));
+                arguments("objectFunction", "Object"), arguments("genericFunction", "Value"),
+                arguments("nullFunction", "Null"), arguments("undefinedFunction", "Undefined"),
+                arguments("errorFunction", "Error"));
     }
 
     @Test
@@ -163,7 +164,9 @@ class LibraryDocumentationExtractorTests {
     }
 
     static Stream<Arguments> varArgsCases() {
-        return Stream.of(arguments("typedVarArgs", "Text"), arguments("genericVarArgs", "Value"));
+        return Stream.of(arguments("typedVarArgs", "Text"), arguments("genericVarArgs", "Value"),
+                arguments("nullVarArgs", "Null"), arguments("undefinedVarArgs", "Undefined"),
+                arguments("errorVarArgs", "Error"));
     }
 
     @Test
@@ -291,6 +294,36 @@ class LibraryDocumentationExtractorTests {
         @Function(docs = "Generic parameter function")
         public static Value genericFunction(Value offering) {
             throw new UnsupportedOperationException();
+        }
+
+        @Function
+        public static NullValue nullFunction(NullValue value) {
+            return value;
+        }
+
+        @Function
+        public static UndefinedValue undefinedFunction(UndefinedValue value) {
+            return value;
+        }
+
+        @Function
+        public static ErrorValue errorFunction(ErrorValue value) {
+            return value;
+        }
+
+        @Function
+        public static NumberValue nullVarArgs(NullValue... values) {
+            return Value.of(values.length);
+        }
+
+        @Function
+        public static NumberValue undefinedVarArgs(UndefinedValue... values) {
+            return Value.of(values.length);
+        }
+
+        @Function
+        public static NumberValue errorVarArgs(ErrorValue... values) {
+            return Value.of(values.length);
         }
 
         @Function(docs = "Mixed parameter function")

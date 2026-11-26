@@ -2,6 +2,8 @@
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
+- SDK library documentation names Null, Undefined and Error parameters, including typed varargs.
+
 - LSP formatting preserves comments inside policy expressions, between imports and at the end of documents.
 
 - SAPLTest formatting preserves matchers, call-count verification, scheduling options and comments, keeping valid test scripts executable.

@@ -52,7 +52,8 @@ public class LibraryDocumentationExtractor {
     private static final String                ERROR_NOT_ANNOTATED_WITH_POLICY_INFORMATION_POINT = "Class %s is not annotated with @PolicyInformationPoint";
     private static final Map<Class<?>, String> TYPE_NAMES                                        = Map.of(
             TextValue.class, "Text", NumberValue.class, "Number", BooleanValue.class, "Bool", ArrayValue.class, "Array",
-            ObjectValue.class, "Object", Value.class, VALUE);
+            ObjectValue.class, "Object", NullValue.class, "Null", UndefinedValue.class, "Undefined", ErrorValue.class,
+            "Error", Value.class, VALUE);
 
     /**
      * Extracts documentation from a function library class.
