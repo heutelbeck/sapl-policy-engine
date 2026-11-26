@@ -6,6 +6,8 @@ The full architecture and worked examples are in [`sapl-documentation/6_3_Spring
 
 ## Release hardening
 
+- The JWT PIP preserves exact JSON numbers in its decoded payload display, including fractional time claims that previously rounded to whole seconds.
+
 - Multi-subscription correlation IDs must be non-blank, and JSON multi-subscription input reports blank or duplicate IDs as clean databind errors.
 - Strict `Value` JSON serialization rejects nested `undefined` values instead of writing invalid JSON tokens.
 - Blocking multi-subscription streams keep only the latest pending decision per ID while lagging consumers catch up.

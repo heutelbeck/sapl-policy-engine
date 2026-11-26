@@ -41,9 +41,8 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.JsonNodeFactory;
-import tools.jackson.databind.node.ObjectNode;
 
+import java.math.BigDecimal;
 import java.security.Key;
 import java.security.PublicKey;
 import java.text.ParseException;
@@ -97,7 +96,10 @@ public class JWTPolicyInformationPoint {
 
             The attribute returns an object with:
             * `header`: Decoded JWT header (algorithm, key ID, etc.)
-            * `payload`: Decoded JWT payload with time claims converted to ISO-8601
+            * `payload`: Decoded JWT payload with exact JSON numbers. Whole-second `nbf`, `exp`, and `iat`
+              claims from 1970 through 9999 are displayed as ISO-8601 UTC text. Fractional and out-of-range
+              claims remain numbers. This display conversion does not change signature verification or
+              time-claim validation.
             * `valid`: Boolean indicating current validity
             * `validity`: Detailed validity state string
 
@@ -260,8 +262,7 @@ public class JWTPolicyInformationPoint {
     private static final String ERROR_JWT_CONFIG_MISSING       = "The key 'jwt' with the configuration of public key server and key whitelist is missing from variables. All JWT tokens will be treated as if the signatures could not be validated.";
     private static final String ERROR_KEY_PROVIDER_CONFIG_FAIL = "Key provider rejected the key-server configuration: {}";
 
-    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
-    private static final JsonMapper      MAPPER = JsonMapper.builder().build();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private static final JWSVerifierFactory VERIFIER_FACTORY = new DefaultJWSVerifierFactory();
 
@@ -461,33 +462,28 @@ public class JWTPolicyInformationPoint {
     private record ParsedToken(Value header, Value payload) {}
 
     private ParsedToken extractParsedToken(SignedJWT signedJwt) {
-        val payload = MAPPER.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
-
-        ifPresentReplaceEpochFieldWithIsoTime(payload, "nbf");
-        ifPresentReplaceEpochFieldWithIsoTime(payload, "exp");
-        ifPresentReplaceEpochFieldWithIsoTime(payload, "iat");
-
-        val headerValue  = ValueJsonMarshaller
+        val payload     = ValueJsonMarshaller.json(signedJwt.getPayload().toString());
+        val headerValue = ValueJsonMarshaller
                 .fromJsonNode(MAPPER.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
-        val payloadValue = ValueJsonMarshaller.fromJsonNode(payload);
-        return new ParsedToken(headerValue, payloadValue);
+        if (!(payload instanceof ObjectValue object)) {
+            return new ParsedToken(headerValue, Value.NULL);
+        }
+
+        val builder = ObjectValue.builder().putAll(object);
+        ifPresentReplaceEpochFieldWithIsoTime(object, builder, "nbf");
+        ifPresentReplaceEpochFieldWithIsoTime(object, builder, "exp");
+        ifPresentReplaceEpochFieldWithIsoTime(object, builder, "iat");
+        return new ParsedToken(headerValue, builder.build());
     }
 
-    private void ifPresentReplaceEpochFieldWithIsoTime(JsonNode payload, String key) {
-        // canConvertToLong guards asLong(), which throws on a numeric value outside
-        // 64-bit long range (e.g. a hostile out-of-range or non-finite exp/nbf/iat).
-        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()
-                && payload.get(key).canConvertToLong())) {
+    private void ifPresentReplaceEpochFieldWithIsoTime(ObjectValue payload, ObjectValue.Builder builder, String key) {
+        if (!(payload.get(key) instanceof NumberValue(var number)) || number.signum() < 0
+                || number.compareTo(BigDecimal.valueOf(MAX_REASONABLE_EPOCH_SECONDS)) > 0
+                || number.stripTrailingZeros().scale() > 0) {
             return;
         }
 
-        val epochSeconds = payload.get(key).asLong();
-        if (epochSeconds < 0 || epochSeconds > MAX_REASONABLE_EPOCH_SECONDS) {
-            return;
-        }
-
-        val isoString = Instant.ofEpochSecond(epochSeconds).toString();
-        ((ObjectNode) payload).set(key, JSON.stringNode(isoString));
+        builder.put(key, Value.of(Instant.ofEpochSecond(number.longValue()).toString()));
     }
 
     private Stream<Value> validityStateStream(SignedJWT signedJwt, AttributeAccessContext ctx) {
