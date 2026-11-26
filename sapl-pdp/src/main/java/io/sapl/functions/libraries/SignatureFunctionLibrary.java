@@ -62,8 +62,8 @@ import static org.bouncycastle.math.ec.rfc8032.Ed25519.verify;
  * Signature Format Requirements:
  * <ul>
  * <li>Hexadecimal: lowercase or uppercase, no delimiters</li>
- * <li>Base64: standard or URL-safe encoding accepted</li>
- * <li>Whitespace is automatically stripped</li>
+ * <li>Base64: standard alphabet</li>
+ * <li>Whitespace is stripped from the ends</li>
  * </ul>
  * <p>
  * Thread Safety: All verification functions are thread-safe and can be called
@@ -100,8 +100,7 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "verify api signature"
             permit
-                action == "api:call"
-            where
+                action.name == "api:call";
                 var payload = action.requestBody;
                 var sig = action.headers.signature;
                 var pubKey = subject.registeredPublicKey;
@@ -120,8 +119,7 @@ public class SignatureFunctionLibrary {
             ```sapl
             policy "verify document"
             permit
-                action == "view"
-            where
+                action == "view";
                 signature.isValidRsaSha256(
                     resource.content,
                     resource.signature,
