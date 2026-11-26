@@ -65,6 +65,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- Regenerate Java object streams containing SAPL classes that use the shared serialization version identifier. SAPL 5.0 changes that identifier to 50000.
+
 - CSV reading ignores spaces or tabs outside quoted fields as a documented extension to RFC 4180.
 
 - The SAPLTest CLI compares coverage thresholds before formatting the percentage for display. A threshold of 33.3333334% fails when one of three conditions is fully covered.

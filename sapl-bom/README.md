@@ -2,10 +2,13 @@
 
 A Maven bill of materials POM makes authoring applications using SAPL easier.
 When the BOM is imported in `dependencyManagement`, SAPL dependency versions can be omitted from individual dependency declarations.
+The BOM also aligns the Jackson modules used by SAPL. When importing it alongside the Spring Boot BOM, import the SAPL BOM first so Maven selects compatible Jackson versions.
 Using a BOM does not directly introduce runtime dependencies.
 All modules can also be used without the BOM, but then each SAPL dependency must declare a matching version explicitly.
 
-## Stable Release
+## Adding the BOM
+
+Set `sapl.version` to the SAPL version used by your application.
 
 ```xml
 <dependencyManagement>
@@ -13,7 +16,7 @@ All modules can also be used without the BOM, but then each SAPL dependency must
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>5.0.0-SNAPSHOT</version>
+            <version>${sapl.version}</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
