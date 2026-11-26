@@ -287,6 +287,31 @@ class TestCommandTests {
         }
 
         @ParameterizedTest
+        @CsvSource({ "33,0", "33.333333,0", "33.3333334,3", "34,3" })
+        @DisplayName("the condition threshold uses the fraction before display rounding")
+        void whenOneOfThreeConditionsIsCoveredThenTheThresholdUsesTheFullRatio(String threshold, int expectedExit,
+                @TempDir Path tempDir) throws Exception {
+            Files.writeString(tempDir.resolve("rule.sapl"), """
+                    policy "rule" permit
+                    subject == "alice";
+                    action == "read";
+                    """);
+            Files.writeString(tempDir.resolve("rule.sapltest"), """
+                    requirement "checkout" {
+                        given - document "rule"
+                        scenario "yes" when "alice" attempts "read" on null expect permit;
+                        scenario "no" when "bob" attempts "read" on null expect not-applicable;
+                    }
+                    """);
+            val out  = new StringWriter();
+            val err  = new StringWriter();
+            val exit = newCommand(out, err).execute("--dir", tempDir.toString(), "--output",
+                    tempDir.resolve("coverage").toString(), "--no-html", "--condition-hit-ratio", threshold);
+
+            assertThat(exit).as("stdout: %s, stderr: %s", out, err).isEqualTo(expectedExit);
+        }
+
+        @ParameterizedTest
         @ValueSource(strings = { "101", "NaN" })
         @DisplayName("invalid threshold returns exit code 1")
         void whenInvalidThresholdThenExitCode1(String threshold, @TempDir Path tempDir) {

@@ -145,16 +145,16 @@ public class TestCommand implements Callable<Integer> {
     boolean sonar;
 
     @Option(names = "--policy-set-hit-ratio", defaultValue = "0", description = "Required policy set hit ratio, 0-100 (0 = disabled)")
-    float policySetHitRatio;
+    double policySetHitRatio;
 
     @Option(names = "--policy-hit-ratio", defaultValue = "0", description = "Required policy hit ratio, 0-100 (0 = disabled)")
-    float policyHitRatio;
+    double policyHitRatio;
 
     @Option(names = "--condition-hit-ratio", defaultValue = "0", description = "Required condition hit ratio, 0-100 (0 = disabled)")
-    float conditionHitRatio;
+    double conditionHitRatio;
 
     @Option(names = "--branch-coverage-ratio", defaultValue = "0", description = "Required branch coverage ratio, 0-100 (0 = disabled)")
-    float branchCoverageRatio;
+    double branchCoverageRatio;
 
     @Override
     public Integer call() {
@@ -220,7 +220,7 @@ public class TestCommand implements Callable<Integer> {
         return policySetOk && policyOk && conditionOk && branchOk;
     }
 
-    private static boolean validateThreshold(String name, float value, PrintWriter err) {
+    private static boolean validateThreshold(String name, double value, PrintWriter err) {
         if (value >= 0 && value <= 100) {
             return true;
         }
@@ -421,10 +421,11 @@ public class TestCommand implements Callable<Integer> {
             out.println(styled(color, ANSI_BOLD, "Coverage:"));
         }
 
-        val policySetOk = checkThreshold("Policy Set Hit Ratio", coverage.getPolicySetHitRatio(), policySetHitRatio,
-                color, out);
-        val policyOk    = checkThreshold("Policy Hit Ratio", coverage.getPolicyHitRatio(), policyHitRatio, color, out);
-        val conditionOk = checkThreshold("Condition Hit Ratio", coverage.getConditionHitRatio(), conditionHitRatio,
+        val policySetOk = checkThreshold("Policy Set Hit Ratio", coverage.getPolicySetHitPercentage(),
+                policySetHitRatio, color, out);
+        val policyOk    = checkThreshold("Policy Hit Ratio", coverage.getPolicyHitPercentage(), policyHitRatio, color,
+                out);
+        val conditionOk = checkThreshold("Condition Hit Ratio", coverage.getConditionHitPercentage(), conditionHitRatio,
                 color, out);
         val branchOk    = checkThreshold("Branch Coverage", coverage.getOverallBranchCoverage(), branchCoverageRatio,
                 color, out);

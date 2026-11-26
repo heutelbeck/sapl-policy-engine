@@ -22,6 +22,8 @@ Tests verify that policies behave correctly for specific scenarios, but they do 
 
 The `sapl test` command collects coverage data, generates reports, and optionally enforces minimum thresholds. When a threshold is not met, the command exits with code `3`. This makes `sapl test` a quality gate for policy code in any CI pipeline.
 
+The CLI compares coverage before rounding it for display. For example, one fully covered condition out of three passes a threshold of 33% and fails a threshold of 33.3333334%.
+
 Run tests with coverage thresholds:
 
 ```bash

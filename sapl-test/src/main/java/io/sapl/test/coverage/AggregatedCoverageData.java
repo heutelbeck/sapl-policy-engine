@@ -168,11 +168,20 @@ public class AggregatedCoverageData {
      * @return ratio (0.0 to 100.0), or 100.0 if no policy sets
      */
     public float getPolicySetHitRatio() {
+        return (float) getPolicySetHitPercentage();
+    }
+
+    /**
+     * Returns the percentage of matched policy sets for quality-gate comparisons.
+     *
+     * @return percentage, or 100.0 for an empty population
+     */
+    public double getPolicySetHitPercentage() {
         val total = getPolicySetCount();
         if (total == 0) {
-            return 100.0f;
+            return 100.0;
         }
-        return (getMatchedPolicySetCount() * 100.0f) / total;
+        return (getMatchedPolicySetCount() * 100.0) / total;
     }
 
     /**
@@ -181,11 +190,20 @@ public class AggregatedCoverageData {
      * @return ratio (0.0 to 100.0), or 100.0 if no policies
      */
     public float getPolicyHitRatio() {
+        return (float) getPolicyHitPercentage();
+    }
+
+    /**
+     * Returns the percentage of activated policies for quality-gate comparisons.
+     *
+     * @return percentage, or 100.0 for an empty population
+     */
+    public double getPolicyHitPercentage() {
         val total = getStandalonePolicyCount();
         if (total == 0) {
-            return 100.0f;
+            return 100.0;
         }
-        return (getMatchedStandalonePolicyCount() * 100.0f) / total;
+        return (getMatchedStandalonePolicyCount() * 100.0) / total;
     }
 
     /**
@@ -198,6 +216,15 @@ public class AggregatedCoverageData {
      * @return ratio (0.0 to 100.0), or 100.0 if no conditions
      */
     public float getConditionHitRatio() {
+        return (float) getConditionHitPercentage();
+    }
+
+    /**
+     * Returns the percentage of fully covered conditions for quality-gate comparisons.
+     *
+     * @return percentage, or 100.0 for an empty population
+     */
+    public double getConditionHitPercentage() {
         var totalConditions   = 0;
         var coveredConditions = 0;
         for (val coverage : policyCoverageByName.values()) {
@@ -209,9 +236,9 @@ public class AggregatedCoverageData {
             }
         }
         if (totalConditions == 0) {
-            return 100.0f;
+            return 100.0;
         }
-        return (coveredConditions * 100.0f) / totalConditions;
+        return (coveredConditions * 100.0) / totalConditions;
     }
 
     /**

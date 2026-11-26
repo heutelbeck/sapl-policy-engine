@@ -60,6 +60,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- The SAPLTest CLI compares coverage thresholds before formatting the percentage for display. A threshold of 33.3333334% fails when one of three conditions is fully covered.
+
 - JWT subjects must be text when supplied. Null and other non-text subjects yield `MALFORMED`.
 
 - `yaml.valToYaml` and `csv.valToCsv` write whole signed 64-bit numbers as plain integers. For example, `100.00` becomes `100`.
