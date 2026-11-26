@@ -38,6 +38,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `signature` RSA verification requires 2048 to 16384 bits and an odd public exponent from 3 to 8589934591; signature text also accepts URL-safe Base64 with optional padding.
+
 - `x509.extractCommonName` returns the CN of the most specific relative name when a subject contains several common names.
 
 - `keys.jwkFromPublicKey` retains leading zero bytes in EC coordinates to write the full RFC 7518 field width.

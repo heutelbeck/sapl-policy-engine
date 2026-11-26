@@ -27,6 +27,7 @@ import lombok.val;
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -34,6 +35,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.HexFormat;
 
@@ -62,7 +64,7 @@ import static org.bouncycastle.math.ec.rfc8032.Ed25519.verify;
  * Signature Format Requirements:
  * <ul>
  * <li>Hexadecimal: lowercase or uppercase, no delimiters</li>
- * <li>Base64: standard alphabet</li>
+ * <li>Base64: standard or URL-safe alphabet, with optional padding</li>
  * <li>Whitespace is stripped from the ends</li>
  * </ul>
  * <p>
@@ -82,6 +84,8 @@ public class SignatureFunctionLibrary {
 
             Verify digital signatures using public key cryptography. All functions take
             a message, signature, and PEM-encoded public key, returning true if valid.
+            Signature text accepts hexadecimal, standard Base64, or URL-safe Base64, with optional padding.
+            Whitespace is stripped from the ends.
 
             ## Algorithm Selection
 
@@ -136,6 +140,7 @@ public class SignatureFunctionLibrary {
             To bound memory and computation on untrusted input, the following limits apply:
 
             - The PEM-encoded public key is limited to 256 KB (262144 characters).
+            - RSA verification requires a modulus of 2048 to 16384 bits and an odd public exponent from 3 to 8589934591.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
@@ -148,6 +153,10 @@ public class SignatureFunctionLibrary {
 
     private static final int NO_CURVE_CHECK = 0;
 
+    private static final int        MIN_RSA_VERIFICATION_BITS = 2048;
+    private static final int        MAX_RSA_VERIFICATION_BITS = 16384;
+    private static final BigInteger MAX_RSA_PUBLIC_EXPONENT   = BigInteger.valueOf((1L << 33) - 1);
+
     private static final String ERROR_ALGORITHM_NOT_SUPPORTED  = "Signature algorithm not supported: ";
     private static final String ERROR_CURVE_MISMATCH           = "Public key is not on the expected elliptic curve. Expected %s but the key uses %s.";
     private static final String ERROR_ED25519_PUBLIC_KEY       = "Invalid Ed25519 public key. Expected a canonical point of prime order.";
@@ -156,6 +165,7 @@ public class SignatureFunctionLibrary {
     private static final String ERROR_FAILED_TO_VERIFY         = "Failed to verify signature: ";
     private static final String ERROR_INVALID_PUBLIC_KEY       = "Invalid public key: ";
     private static final String ERROR_NOT_EC_KEY               = "Public key is not an elliptic curve key.";
+    private static final String ERROR_RSA_KEY_PARAMETERS       = "RSA verification requires a 2048 to 16384 bit modulus and an odd exponent from 3 to 8589934591.";
     private static final String ERROR_SIGNATURE_FORMAT_INVALID = "Signature must be in hexadecimal or Base64 format. Hex parsing failed: %s. Base64 parsing failed: %s";
     private static final String ERROR_VERIFICATION_FAILED      = "Signature verification failed: ";
 
@@ -163,14 +173,14 @@ public class SignatureFunctionLibrary {
             ```isValidRsaSha256(TEXT message, TEXT signature, TEXT publicKeyPem)```: Validates an RSA signature using SHA-256.
 
             Checks whether the signature was created using the private key corresponding to the
-            public key. Signature must be in hexadecimal or Base64 format.
+            public key. Signature must be in hexadecimal, standard Base64, or URL-safe Base64 format. Base64 padding is optional.
 
             Use for API authentication, document signing, and general RSA signature validation
             where SHA-256 hash strength is sufficient.
 
             **Parameters:**
             - message: The original message that was signed
-            - signature: The signature in hexadecimal or Base64 format
+            - signature: The signature in hexadecimal, standard Base64, or URL-safe Base64 format
             - publicKeyPem: The RSA public key in PEM format
 
             **Examples:**
@@ -196,7 +206,7 @@ public class SignatureFunctionLibrary {
 
             **Parameters:**
             - message: The original message that was signed
-            - signature: The signature in hexadecimal or Base64 format
+            - signature: The signature in hexadecimal, standard Base64, or URL-safe Base64 format
             - publicKeyPem: The RSA public key in PEM format
 
             **Examples:**
@@ -219,7 +229,7 @@ public class SignatureFunctionLibrary {
 
             **Parameters:**
             - message: The original message that was signed
-            - signature: The signature in hexadecimal or Base64 format
+            - signature: The signature in hexadecimal, standard Base64, or URL-safe Base64 format
             - publicKeyPem: The RSA public key in PEM format
 
             **Examples:**
@@ -243,7 +253,7 @@ public class SignatureFunctionLibrary {
 
             **Parameters:**
             - message: The original message that was signed
-            - signature: The signature in hexadecimal or Base64 format
+            - signature: The signature in hexadecimal, standard Base64, or URL-safe Base64 format
             - publicKeyPem: The EC public key in PEM format
 
             **Examples:**
@@ -266,7 +276,7 @@ public class SignatureFunctionLibrary {
 
             **Parameters:**
             - message: The original message that was signed
-            - signature: The signature in hexadecimal or Base64 format
+            - signature: The signature in hexadecimal, standard Base64, or URL-safe Base64 format
             - publicKeyPem: The EC public key in PEM format
 
             **Examples:**
@@ -289,7 +299,7 @@ public class SignatureFunctionLibrary {
 
             **Parameters:**
             - message: The original message that was signed
-            - signature: The signature in hexadecimal or Base64 format
+            - signature: The signature in hexadecimal, standard Base64, or URL-safe Base64 format
             - publicKeyPem: The EC public key in PEM format
 
             **Examples:**
@@ -317,7 +327,7 @@ public class SignatureFunctionLibrary {
 
             **Parameters:**
             - message: The original message that was signed
-            - signature: The signature in hexadecimal or Base64 format
+            - signature: The signature in hexadecimal, standard Base64, or URL-safe Base64 format
             - publicKeyPem: The Ed25519 public key in PEM format
 
             **Examples:**
@@ -346,7 +356,7 @@ public class SignatureFunctionLibrary {
         try {
             return HexFormat.of().parseHex(text);
         } catch (IllegalArgumentException hexParsingFailed) {
-            return Base64.getDecoder().decode(text);
+            return parseSignatureBase64(text);
         }
     }
 
@@ -410,7 +420,11 @@ public class SignatureFunctionLibrary {
                 }
             }
             val signatureBytes = parseSignature(signatureString);
-            val messageBytes   = message.getBytes(StandardCharsets.UTF_8);
+            if (publicKey instanceof RSAPublicKey rsaKey
+                    && !allowsRsaVerification(rsaKey.getModulus().bitLength(), rsaKey.getPublicExponent())) {
+                return Value.error(ERROR_RSA_KEY_PARAMETERS);
+            }
+            val messageBytes = message.getBytes(StandardCharsets.UTF_8);
 
             val signature = Signature.getInstance(signatureAlgorithm);
             signature.initVerify(publicKey);
@@ -429,6 +443,12 @@ public class SignatureFunctionLibrary {
         } catch (Exception exception) {
             return Value.error(ERROR_FAILED_TO_VERIFY + exception.getMessage());
         }
+    }
+
+    static boolean allowsRsaVerification(int modulusBits, BigInteger exponent) {
+        return modulusBits >= MIN_RSA_VERIFICATION_BITS && modulusBits <= MAX_RSA_VERIFICATION_BITS
+                && exponent.compareTo(BigInteger.valueOf(3)) >= 0 && exponent.testBit(0)
+                && exponent.compareTo(MAX_RSA_PUBLIC_EXPONENT) <= 0;
     }
 
     /**
@@ -492,11 +512,18 @@ public class SignatureFunctionLibrary {
             return HexFormat.of().parseHex(cleanedSignature);
         } catch (IllegalArgumentException hexParsingFailed) {
             try {
-                return Base64.getDecoder().decode(cleanedSignature);
+                return parseSignatureBase64(cleanedSignature);
             } catch (IllegalArgumentException base64ParsingFailed) {
                 throw new CryptoException(ERROR_SIGNATURE_FORMAT_INVALID.formatted(hexParsingFailed.getMessage(),
                         base64ParsingFailed.getMessage()), base64ParsingFailed);
             }
         }
+    }
+
+    private static byte[] parseSignatureBase64(String text) {
+        if (text.indexOf('-') >= 0 || text.indexOf('_') >= 0) {
+            return Base64.getUrlDecoder().decode(text);
+        }
+        return Base64.getDecoder().decode(text);
     }
 }
