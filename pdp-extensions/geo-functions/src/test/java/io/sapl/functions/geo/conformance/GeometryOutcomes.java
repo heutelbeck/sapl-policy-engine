@@ -24,7 +24,9 @@ import io.sapl.conformance.FunctionOutcomes;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.locationtech.jts.algorithm.distance.DiscreteHausdorffDistance;
+import org.locationtech.jts.geom.Dimension;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 
@@ -33,6 +35,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static io.sapl.conformance.ConformanceCorpus.withPlaceholdersReplaced;
+import static java.lang.Math.max;
 
 /**
  * The outcomes of the cases of the geographic library in the function corpus.
@@ -40,8 +43,9 @@ import static io.sapl.conformance.ConformanceCorpus.withPlaceholdersReplaced;
  * geometry in GeoJSON, and it agrees with a returned geometry that is
  * topologically equal: the same set of points, whatever its vertices and
  * their order. A case stated as {@code geometry within <tolerance>: } agrees
- * with a returned geometry of the same dimension whose vertices each lie
- * within the tolerance of the stated geometry, and the other way round. Every
+ * with a returned geometry of the same nonempty point-set dimension whose vertices each lie
+ * within the tolerance of the stated geometry, and the other way round. Empty collection
+ * members contribute no dimension. Every
  * other outcome is that of {@link FunctionOutcomes}.
  */
 @UtilityClass
@@ -153,7 +157,19 @@ class GeometryOutcomes {
         if (expected.isEmpty() || returned.isEmpty()) {
             return expected.isEmpty() && returned.isEmpty();
         }
-        return expected.getDimension() == returned.getDimension()
+        return pointSetDimension(expected) == pointSetDimension(returned)
                 && DiscreteHausdorffDistance.distance(expected, returned) <= tolerance;
     }
+
+    private static int pointSetDimension(Geometry geometry) {
+        if (geometry instanceof GeometryCollection collection) {
+            var dimension = Dimension.FALSE;
+            for (int member = 0; member < collection.getNumGeometries(); member++) {
+                dimension = max(dimension, pointSetDimension(collection.getGeometryN(member)));
+            }
+            return dimension;
+        }
+        return geometry.isEmpty() ? Dimension.FALSE : geometry.getDimension();
+    }
+
 }
