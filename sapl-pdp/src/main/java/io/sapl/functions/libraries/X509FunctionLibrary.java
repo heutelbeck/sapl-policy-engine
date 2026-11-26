@@ -81,6 +81,10 @@ public class X509FunctionLibrary {
             Functions for certificate-based access control in mutual TLS (mTLS) and PKI
             scenarios. All functions accept PEM or DER encoded certificates.
 
+            The Rust DER parser rejects certificates with a validity start or end before
+            `1970-01-01T00:00:00Z`. Java does not impose this 1970 limit. Other time
+            functions have their own date ranges.
+
             IP addresses in Subject Alternative Names use dotted decimal for IPv4 and
             lowercase compressed RFC 5952 text for IPv6. IPv4-mapped addresses are represented as IPv4.
 
@@ -264,6 +268,7 @@ public class X509FunctionLibrary {
             the hostname or entity name. If several relative names contain a CN, the most
             specific one is returned, last in encoding order. This is simpler than parsing
             the full DN when only the CN is needed.
+            If that relative name contains more than one CN, any one of them may be returned.
 
             Example: Verify service identity in mTLS
             ```sapl
@@ -308,6 +313,7 @@ public class X509FunctionLibrary {
 
             Returns the date in ISO 8601 format. Use this to implement time-based access
             restrictions or maintenance windows.
+            The Rust certificate reader rejects validity dates before 1970; see the library documentation.
 
             Example: Enforce staged certificate rollout
             ```sapl
