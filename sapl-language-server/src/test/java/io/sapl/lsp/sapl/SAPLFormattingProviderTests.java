@@ -18,16 +18,22 @@
 package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.Arguments;
+
+import io.sapl.grammar.antlr.SAPLLexer;
 
 import lombok.val;
 
@@ -253,6 +259,58 @@ class SAPLFormattingProviderTests {
             assertThat(edits).singleElement().extracting(edit -> ProtocolText.textOf(content, edit.getRange()))
                     .isEqualTo(content);
         }
+    }
+
+    @Nested
+    @DisplayName("comment preservation")
+    class CommentPreservation {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("io.sapl.lsp.sapl.SAPLFormattingProviderTests#commentedPolicies")
+        @DisplayName("keeps every comment through repeated formatting")
+        void whenCommentsAreFormattedThenTheirContentsArePreserved(String name, String source) {
+            val document = new SAPLParsedDocument("comments.sapl", source);
+            val expected = commentTexts(document);
+
+            assertThat(document.isSyntaxValid()).isTrue();
+            assertThat(provider.provideFormatting(document)).singleElement().satisfies(edit -> {
+                val formatted = new SAPLParsedDocument("comments.sapl", edit.getNewText());
+                assertThat(formatted.isSyntaxValid()).isTrue();
+                assertThat(commentTexts(formatted)).containsExactlyElementsOf(expected);
+                assertThat(provider.provideFormatting(formatted)).singleElement().extracting(next -> next.getNewText())
+                        .isEqualTo(edit.getNewText());
+            });
+        }
+    }
+
+    static Stream<Arguments> commentedPolicies() {
+        return Stream.of(arguments("inline block", "policy \"inside\" permit subject[0] /* approved catalog */ == 0;"),
+                arguments("trailing line", "policy \"read\" permit true;\n// Retain legacy requests\n"),
+                arguments("inline line", "policy \"line\" permit subject == // requested action\n \"read\";"),
+                arguments("interleaved imports", """
+                        // Document header
+                        import filter.replace
+                        // Mask data
+                        import filter.blacken
+                        policy "imports" permit true;
+                        """), arguments("member policies", """
+                        set "members" first or abstain
+                        policy "first" permit true;
+                        // Other effect
+                        policy "second" deny false;
+                        /* Final note */
+                        """),
+                arguments("policy header", "policy /* named rule */ \"header\" /* effect */ permit true;"),
+                arguments("set header",
+                        "set /* named set */ \"header\" first /* order */ or abstain policy \"p\" permit"),
+                arguments("adjacent blocks", "policy \"notes\" permit true /* first *//* second */;"),
+                arguments("comment-like string", "policy \"text\" permit resource == \"/* data */ // text\";"));
+    }
+
+    private static List<String> commentTexts(SAPLParsedDocument document) {
+        return document.getTokens().stream()
+                .filter(token -> token.getType() == SAPLLexer.ML_COMMENT || token.getType() == SAPLLexer.SL_COMMENT)
+                .map(token -> token.getText()).sorted().toList();
     }
 
 }

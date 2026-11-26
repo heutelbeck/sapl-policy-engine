@@ -2,6 +2,8 @@
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
+- LSP formatting preserves comments inside policy expressions, between imports and at the end of documents.
+
 - LSP completion snippets preserve dollar signs in private function parameter names.
 
 - LSP attribute completions offer receiver finders after an entity and environment finders without one.

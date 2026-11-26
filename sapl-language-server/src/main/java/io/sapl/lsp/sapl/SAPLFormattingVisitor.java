@@ -21,9 +21,8 @@ import static io.sapl.lsp.core.FormattingConstants.INDENT;
 import static io.sapl.lsp.core.FormattingConstants.LINE_WIDTH;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -90,7 +89,7 @@ import lombok.val;
 class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
 
     private final CommonTokenStream tokenStream;
-    private final Set<Token>        emittedComments = new HashSet<>();
+    private int                     nextCommentIndex;
 
     SAPLFormattingVisitor(CommonTokenStream tokenStream) {
         this.tokenStream = tokenStream;
@@ -102,10 +101,16 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
 
         val imports = ctx.importStatement();
         if (!imports.isEmpty()) {
-            appendComments(sb, imports.getFirst().getStart(), "");
-            val sortedImports = imports.stream().map(this::visitImportStatement).sorted().collect(Collectors.toList());
+            appendComments(sb, imports.getFirst().getStart().getTokenIndex(), "");
+            val sortedImports = imports.stream().map(statement -> {
+                val text      = visitImportStatement(statement);
+                val commented = new StringBuilder();
+                appendComments(commented, statement.getStop().getTokenIndex() + 1, "");
+                commented.append(text);
+                return Map.entry(text, commented.toString());
+            }).sorted(Map.Entry.comparingByKey()).toList();
             for (val imp : sortedImports) {
-                sb.append(imp).append('\n');
+                sb.append(imp.getValue()).append('\n');
             }
             sb.append('\n');
         }
@@ -113,20 +118,20 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         val schemas = ctx.schemaStatement();
         if (!schemas.isEmpty()) {
             for (val schema : schemas) {
-                appendComments(sb, schema.getStart(), "");
+                appendComments(sb, schema.getStop().getTokenIndex() + 1, "");
                 sb.append(visitSchemaStatement(schema)).append('\n');
             }
             sb.append('\n');
         }
 
-        appendComments(sb, ctx.policyElement().getStart(), "");
+        appendComments(sb, ctx.policyElement().getStart().getTokenIndex(), "");
         sb.append(visit(ctx.policyElement()));
 
-        val result = sb.toString();
-        if (!result.endsWith("\n")) {
-            return result + "\n";
+        if (sb.charAt(sb.length() - 1) != '\n') {
+            sb.append('\n');
         }
-        return result;
+        appendComments(sb, ctx.EOF().getSymbol().getTokenIndex(), "");
+        return sb.toString();
     }
 
     @Override
@@ -161,17 +166,20 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
     @Override
     public String visitPolicySet(PolicySetContext ctx) {
         val sb = new StringBuilder();
+        appendComments(sb, ctx.combiningAlgorithm().getStop().getTokenIndex() + 1, "");
         sb.append("set ").append(ctx.saplName.getText()).append('\n');
         sb.append(visitCombiningAlgorithm(ctx.combiningAlgorithm()));
 
         if (ctx.target != null) {
-            sb.append('\n').append("for ").append(visit(ctx.target));
+            sb.append('\n');
+            appendComments(sb, ctx.target.getStop().getTokenIndex() + 1, "");
+            sb.append("for ").append(visit(ctx.target));
         }
 
         val varDefs = ctx.valueDefinition();
         for (val varDef : varDefs) {
             sb.append('\n');
-            appendComments(sb, varDef.getStart(), INDENT);
+            appendComments(sb, varDef.getStop().getTokenIndex() + 1, INDENT);
             appendIndented(sb, visitValueDefinition(varDef), INDENT);
             sb.append(';');
         }
@@ -523,7 +531,7 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
     private String formatPolicy(PolicyContext ctx) {
         val sb = new StringBuilder();
 
-        appendComments(sb, ctx.getStart(), "");
+        appendComments(sb, ctx.effect().getStop().getTokenIndex() + 1, "");
 
         sb.append("policy ").append(ctx.saplName.getText()).append('\n');
         sb.append(ctx.effect().getText());
@@ -535,21 +543,21 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
 
         for (val obligation : ctx.obligations) {
             sb.append('\n');
-            appendComments(sb, obligation.getStart(), INDENT);
+            appendComments(sb, obligation.getStop().getTokenIndex() + 1, INDENT);
             sb.append("obligation").append('\n');
             appendIndented(sb, visit(obligation), INDENT);
         }
 
         for (val advice : ctx.adviceExpressions) {
             sb.append('\n');
-            appendComments(sb, advice.getStart(), INDENT);
+            appendComments(sb, advice.getStop().getTokenIndex() + 1, INDENT);
             sb.append("advice").append('\n');
             appendIndented(sb, visit(advice), INDENT);
         }
 
         if (ctx.transformation != null) {
             sb.append('\n');
-            appendComments(sb, ctx.transformation.getStart(), INDENT);
+            appendComments(sb, ctx.transformation.getStop().getTokenIndex() + 1, INDENT);
             sb.append("transform").append('\n');
             appendIndented(sb, visit(ctx.transformation), INDENT);
         }
@@ -564,7 +572,7 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
             if (i > 0) {
                 sb.append('\n');
             }
-            appendComments(sb, statements.get(i).getStart(), INDENT);
+            appendComments(sb, statements.get(i).getStop().getTokenIndex() + 1, INDENT);
             appendIndented(sb, visit(statements.get(i)), INDENT);
             sb.append(';');
         }
@@ -798,8 +806,8 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         return sb.toString();
     }
 
-    private void appendComments(StringBuilder sb, Token token, String indent) {
-        val comments = getCommentsBeforeToken(token);
+    private void appendComments(StringBuilder sb, int tokenIndex, String indent) {
+        val comments = getCommentsBeforeToken(tokenIndex);
         if (comments.isEmpty()) {
             return;
         }
@@ -822,25 +830,16 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         }
     }
 
-    private String getCommentsBeforeToken(Token token) {
-        val hidden = tokenStream.getHiddenTokensToLeft(token.getTokenIndex());
-        if (hidden == null) {
-            return "";
-        }
+    private String getCommentsBeforeToken(int tokenIndex) {
         val sb = new StringBuilder();
-        for (val hiddenToken : hidden) {
-            if (emittedComments.contains(hiddenToken)) {
-                continue;
-            }
-            val type = hiddenToken.getType();
-            if (type == SAPLLexer.ML_COMMENT || type == SAPLLexer.SL_COMMENT) {
-                emittedComments.add(hiddenToken);
-                if (type == SAPLLexer.ML_COMMENT) {
-                    sb.append(formatMultiLineComment(hiddenToken.getText()));
-                } else {
-                    sb.append(hiddenToken.getText().strip());
-                    sb.append('\n');
-                }
+        // Consume comments once in source order, including gaps inside expressions.
+        while (nextCommentIndex < tokenIndex) {
+            val token = tokenStream.get(nextCommentIndex++);
+            val type  = token.getType();
+            if (type == SAPLLexer.ML_COMMENT) {
+                sb.append(formatMultiLineComment(token.getText())).append('\n');
+            } else if (type == SAPLLexer.SL_COMMENT) {
+                sb.append(token.getText().strip()).append('\n');
             }
         }
         return sb.toString();
