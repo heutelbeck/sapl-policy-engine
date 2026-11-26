@@ -84,6 +84,11 @@ import java.util.function.UnaryOperator;
  * reconnection. Log severity escalates from WARN to ERROR after
  * {@value #RETRY_ESCALATION_THRESHOLD} consecutive failures.
  *
+ * The configured timeout includes connecting and waiting for the first decision
+ * of each subscription attempt. Keep-alive comments do not satisfy this deadline.
+ * After the first decision, comments continue to reset the inactivity timeout.
+ * <p>
+ *
  * @see RemotePolicyDecisionPoint#builder()
  */
 @Slf4j
@@ -175,7 +180,7 @@ public final class RemoteHttpReactivePolicyDecisionPoint implements ReactivePoli
                 .defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
     }
 
-    private RemoteHttpReactivePolicyDecisionPoint(WebClient client) {
+    RemoteHttpReactivePolicyDecisionPoint(WebClient client) {
         this.client = client;
     }
 
@@ -299,9 +304,9 @@ public final class RemoteHttpReactivePolicyDecisionPoint implements ReactivePoli
         // keep a quiet stream alive.
         return client.post().uri(path).accept(MediaType.TEXT_EVENT_STREAM).contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(authzSubscription).retrieve().bodyToFlux(type)
-                .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)),
-                        ignored -> Mono.delay(Duration.ofMillis(inactivityTimeoutMillis)))
-                .mapNotNull(ServerSentEvent::data);
+                .timeout(Mono.never(), ignored -> Mono.delay(Duration.ofMillis(inactivityTimeoutMillis)))
+                .mapNotNull(ServerSentEvent::data)
+                .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), ignored -> Mono.never());
     }
 
     private Retry createRetrySpec(AtomicLong consecutiveFailures) {
