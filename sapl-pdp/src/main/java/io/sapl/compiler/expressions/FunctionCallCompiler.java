@@ -59,14 +59,7 @@ public class FunctionCallCompiler {
 
     public static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
             CompilationContext ctx) {
-        val compiled = compile(functionName, arguments, location,
-                argument -> ExpressionCompiler.compile(argument, ctx));
-        if (compiled instanceof PureFunction pure && pure.isDependingOnSubscription()
-                && pure.arguments().stream().allMatch(
-                        argument -> argument instanceof Value || argument instanceof ExpressionCompiler.IdentifierOp)) {
-            return ctx.reuseFunction(pure);
-        }
-        return compiled;
+        return compile(functionName, arguments, location, argument -> ExpressionCompiler.compile(argument, ctx));
     }
 
     static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
@@ -131,20 +124,25 @@ public class FunctionCallCompiler {
      * dispatch is unreachable by construction and folds to an
      * {@link ErrorValue} defensively.
      */
-    record PureFunction(
-            String functionName,
-            List<CompiledExpression> arguments,
-            SourceLocation location,
-            Function<EvaluationContext, Value> evaluator) implements PureOperator {
+    record PureFunction(String functionName, List<CompiledExpression> arguments, SourceLocation location)
+            implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(PureFunction.class);
-
-        PureFunction(String functionName, List<CompiledExpression> arguments, SourceLocation location) {
-            this(functionName, arguments, location, context -> evaluateArguments(functionName, arguments, context));
-        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return evaluator.apply(ctx);
+            val argValues = new ArrayList<Value>(arguments.size());
+            for (val arg : arguments) {
+                val value = switch (arg) {
+                case Value v                -> v;
+                case PureOperator p         -> p.evaluate(ctx);
+                case StreamOperator ignored -> Value.error(ERROR_PURE_FUNCTION_RECEIVED_STREAM_OPERATOR);
+                };
+                if (value instanceof ErrorValue) {
+                    return value;
+                }
+                argValues.add(value);
+            }
+            return ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
         }
 
         @Override
@@ -175,24 +173,6 @@ public class FunctionCallCompiler {
             }
             return hash;
         }
-
-        private static Value evaluateArguments(String functionName, List<CompiledExpression> arguments,
-                EvaluationContext ctx) {
-            val argValues = new ArrayList<Value>(arguments.size());
-            for (val arg : arguments) {
-                val value = switch (arg) {
-                case Value v                -> v;
-                case PureOperator p         -> p.evaluate(ctx);
-                case StreamOperator ignored -> Value.error(ERROR_PURE_FUNCTION_RECEIVED_STREAM_OPERATOR);
-                };
-                if (value instanceof ErrorValue) {
-                    return value;
-                }
-                argValues.add(value);
-            }
-            return ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
-        }
-
     }
 
     /**

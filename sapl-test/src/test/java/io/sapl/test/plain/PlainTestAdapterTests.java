@@ -44,6 +44,55 @@ class PlainTestAdapterTests {
             "policy \"permit-all\" permit");
     private static final PlainTestAdapter ADAPTER           = new PlainTestAdapter();
 
+    @ParameterizedTest(name = "{0}, low latency {1}")
+    @MethodSource("verifiedFunctionOccurrences")
+    @DisplayName("verify observes the broker calls actually reached in each scenario")
+    void whenPureCallsAreReachedThenFixtureVerifiesEveryActualInvocation(String description, boolean lowLatency,
+            String policy, int expectedCalls) {
+        val test          = """
+                requirement "desk" {
+                    given
+                        - document "read"
+                        - low-latency-mode %s
+                        - function time.secondOf(any) maps to 24
+                    scenario "first"
+                        when "2026-01-15T10:00:24Z" attempts "enter" on "office"
+                        expect permit
+                        verify - function time.secondOf(any) is called %s times;
+                    scenario "second"
+                        when "2026-01-15T10:00:25Z" attempts "enter" on "office"
+                        expect permit
+                        verify - function time.secondOf(any) is called %s times;
+                }
+                """.formatted(lowLatency, expectedCalls, expectedCalls);
+        val configuration = TestConfiguration.builder().withSaplDocument(SaplDocument.of("read", policy))
+                .withSaplTestDocument(SaplTestDocument.of("desk", test)).build();
+
+        val result = ADAPTER.execute(configuration);
+
+        assertThat(result.scenarioResults()).hasSize(2).allSatisfy(
+                scenario -> assertThat(scenario.status()).as(scenario.failureMessage()).isEqualTo(TestStatus.PASSED));
+    }
+
+    private static Stream<Arguments> verifiedFunctionOccurrences() {
+        return Stream.of(false, true)
+                .flatMap(lowLatency -> Stream.of(
+                        arguments("repeated call", lowLatency,
+                                "policy \"read\" permit time.secondOf(subject)==24 && time.secondOf(subject)>0;", 2),
+                        arguments("short-circuited call", lowLatency,
+                                "policy \"read\" permit time.secondOf(subject)==24 || time.secondOf(subject)>0;", 1),
+                        arguments("separate conditions", lowLatency,
+                                "policy \"read\" permit time.secondOf(subject)==24; time.secondOf(subject)>0;", 2),
+                        arguments("separate set members", lowLatency, """
+                                set "read" unanimous or deny errors propagate
+                                policy "first" permit time.secondOf(subject)==24;
+                                policy "second" permit time.secondOf(subject)>0;
+                                """, 2), arguments("set target and member", lowLatency, """
+                                set "read" first or deny errors propagate for time.secondOf(subject)==24
+                                policy "first" permit time.secondOf(subject)>0;
+                                """, 2)));
+    }
+
     @Test
     @DisplayName("execute returns empty results when no test documents")
     void whenNoTestDocumentsThenReturnsEmptyResults() {

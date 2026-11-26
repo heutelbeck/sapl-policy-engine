@@ -56,6 +56,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.functions.libraries.ObjectFunctionLibrary;
+import io.sapl.functions.libraries.StandardFunctionLibrary;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 
 import lombok.val;
@@ -68,6 +69,91 @@ class DefaultFunctionBrokerTests {
     @BeforeEach
     void setUp() {
         broker = new DefaultFunctionBroker();
+    }
+
+    @ParameterizedTest(name = "{1}, broker cache {0}")
+    @MethodSource("reachedFunctionOccurrences")
+    @DisplayName("evaluation forwards each reached call while the broker owns result reuse")
+    void whenFunctionOccurrencesAreReachedThenBrokerCallsAndBodiesRemainDistinct(int cacheSize, String description,
+            List<String> policies, List<Value> subjects, Decision expectedDecision, int callsPerDecision,
+            int cachedBodies, int uncachedBodies) {
+        val countingBroker = new InvocationCountingBroker(cacheSize);
+        countingBroker.load(new StandardFunctionLibrary());
+        val configuration = new PDPConfiguration("default", "occurrences", CombiningAlgorithm.DEFAULT, policies,
+                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+        val decisions     = new ArrayList<Decision>();
+        try (val app = PolicyDecisionPointBuilder.withDefaults().withFunctionBroker(countingBroker)
+                .withConfiguration(configuration).build()) {
+            for (val subject : subjects) {
+                val request = AuthorizationSubscription.of(subject, "read", "desk");
+                decisions.add(app.pdp().decideOnce(request).decision());
+            }
+        }
+
+        assertThat(decisions).hasSize(subjects.size()).containsOnly(expectedDecision);
+        assertThat(countingBroker).satisfies(
+                actual -> assertThat(actual.invocations).isEqualTo(callsPerDecision * subjects.size()),
+                actual -> assertThat(actual.bodies).isEqualTo(cacheSize == 0 ? uncachedBodies : cachedBodies));
+    }
+
+    private static Stream<Arguments> reachedFunctionOccurrences() {
+        val repeated = List.of(Value.of("reader"), Value.of("reader"));
+        val distinct = List.of(Value.of("reader"), Value.of("writer"));
+        val twice    = "policy \"read\" permit standard.length(subject)>0 && standard.length(subject)<100;";
+        return Stream.of(0, 10_000).flatMap(cacheSize -> Stream.of(
+                arguments(cacheSize, "repeated calls and evaluations", List.of(twice), repeated, Decision.PERMIT, 2, 1,
+                        4),
+                arguments(cacheSize, "different subscriptions", List.of(twice), distinct, Decision.PERMIT, 2, 2, 4),
+                arguments(cacheSize, "short-circuited disjunction",
+                        List.of("policy \"read\" permit standard.length(subject)>0 || standard.length(subject)<100;"),
+                        repeated, Decision.PERMIT, 1, 1, 2),
+                arguments(cacheSize, "short-circuited conjunction",
+                        List.of("policy \"read\" permit standard.length(subject)<0 && standard.length(subject)>0;"),
+                        repeated, Decision.DENY, 1, 1, 2),
+                arguments(cacheSize, "function error values", List.of(twice), List.of(Value.of(7), Value.of(7)),
+                        Decision.INDETERMINATE, 2, 4, 4),
+                arguments(cacheSize, "boolean use errors",
+                        List.of("policy \"read\" permit standard.length(subject); standard.length(subject);"), repeated,
+                        Decision.INDETERMINATE, 2, 1, 4),
+                arguments(cacheSize, "separate set members", List.of("""
+                        set "read" unanimous or deny errors propagate
+                        policy "first" permit standard.length(subject)>0;
+                        policy "second" permit standard.length(subject)<100;
+                        """), repeated, Decision.PERMIT, 2, 1, 4),
+                arguments(cacheSize, "set target and member", List.of("""
+                        set "read" first or deny errors propagate for standard.length(subject)>0
+                        policy "first" permit standard.length(subject)<100;
+                        """), repeated, Decision.PERMIT, 2, 1, 4),
+                arguments(cacheSize, "separate PDP documents",
+                        List.of("policy \"first\" permit standard.length(subject)>0;",
+                                "policy \"second\" permit standard.length(subject)<100;"),
+                        repeated, Decision.PERMIT, 2, 1, 4)));
+    }
+
+    private static final class InvocationCountingBroker extends DefaultFunctionBroker {
+        private int invocations;
+        private int bodies;
+
+        private InvocationCountingBroker(int capacity) {
+            super(capacity);
+        }
+
+        @Override
+        public Value evaluateFunction(FunctionInvocation invocation) {
+            invocations++;
+            return super.evaluateFunction(invocation);
+        }
+
+        @Override
+        void loadFunction(FunctionSpecification specification) {
+            val name = specification.functionName();
+            super.loadFunction(
+                    new FunctionSpecification(specification.namespace(), name.substring(name.lastIndexOf('.') + 1),
+                            specification.parameterTypes(), specification.varArgsParameterType(), invocation -> {
+                                bodies++;
+                                return specification.function().apply(invocation);
+                            }));
+        }
     }
 
     @Test

@@ -51,15 +51,14 @@ class StackOverflowGuard {
      * @param voter the root voter of a PDP configuration
      * @param metadata the identity of the PDP configuration, which the vote of
      * an overflow names
-     * @param functionReuse whether repeated pure calls share results for this round
      * @return the voter, which answers an overflow with an INDETERMINATE vote
      */
-    static Voter guarded(Voter voter, PdpVoterMetadata metadata, boolean functionReuse) {
+    static Voter guarded(Voter voter, PdpVoterMetadata metadata) {
         val overflowVote = overflowVote(metadata);
         return switch (voter) {
         case Vote vote          -> vote;
-        case PureVoter pure     -> new GuardedPureVoter(pure, overflowVote, functionReuse);
-        case StreamVoter stream -> new GuardedStreamVoter(stream, overflowVote, functionReuse);
+        case PureVoter pure     -> new GuardedPureVoter(pure, overflowVote);
+        case StreamVoter stream -> new GuardedStreamVoter(stream, overflowVote);
         };
     }
 
@@ -68,23 +67,15 @@ class StackOverflowGuard {
      * evaluate
      * @param metadata the identity of the PDP configuration, which the vote of
      * an overflow names
-     * @param functionReuse whether repeated pure calls share results for this round
      * @return the voter, which answers an overflow with an INDETERMINATE vote
      * and no coverage of documents
      */
-    static CoverageVoter guarded(CoverageVoter voter, PdpVoterMetadata metadata, boolean functionReuse) {
-        return new GuardedCoverageVoter(voter, overflowVote(metadata), metadata, functionReuse);
+    static CoverageVoter guarded(CoverageVoter voter, PdpVoterMetadata metadata) {
+        return new GuardedCoverageVoter(voter, overflowVote(metadata), metadata);
     }
 
     private static Vote overflowVote(PdpVoterMetadata metadata) {
         return Vote.error(new ErrorValue(ERROR_EVALUATION_TOO_DEEP), metadata);
-    }
-
-    private static EvaluationContext evaluationContext(EvaluationContext context, boolean functionReuse) {
-        if (functionReuse) {
-            return context.newFunctionEvaluation();
-        }
-        return context;
     }
 
     /**
@@ -92,19 +83,15 @@ class StackOverflowGuard {
      *
      * @param voter the guarded voter
      * @param overflowVote the vote of an overflow
-     * @param functionReuse whether repeated pure calls share results for this round
      * @param metadata the identity of the PDP configuration
      */
-    record GuardedCoverageVoter(
-            CoverageVoter voter,
-            Vote overflowVote,
-            PdpVoterMetadata metadata,
-            boolean functionReuse) implements CoverageVoter {
+    record GuardedCoverageVoter(CoverageVoter voter, Vote overflowVote, PdpVoterMetadata metadata)
+            implements CoverageVoter {
 
         @Override
         public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
             try {
-                return voter.evaluate(evaluationContext(ctx, functionReuse));
+                return voter.evaluate(ctx);
             } catch (StackOverflowError overflow) {
                 return new VoteResultWithCoverage(new VoteResult(overflowVote, Map.of()),
                         new Coverage.PdpCoverage(metadata, List.of()));
@@ -117,14 +104,13 @@ class StackOverflowGuard {
      *
      * @param voter the guarded voter
      * @param overflowVote the vote of an overflow
-     * @param functionReuse whether repeated pure calls share results for this round
      */
-    record GuardedPureVoter(PureVoter voter, Vote overflowVote, boolean functionReuse) implements PureVoter {
+    record GuardedPureVoter(PureVoter voter, Vote overflowVote) implements PureVoter {
 
         @Override
         public Vote vote(EvaluationContext ctx) {
             try {
-                return voter.vote(evaluationContext(ctx, functionReuse));
+                return voter.vote(ctx);
             } catch (StackOverflowError overflow) {
                 return overflowVote;
             }
@@ -138,14 +124,13 @@ class StackOverflowGuard {
      *
      * @param voter the guarded voter
      * @param overflowVote the vote of an overflow
-     * @param functionReuse whether repeated pure calls share results for this round
      */
-    record GuardedStreamVoter(StreamVoter voter, Vote overflowVote, boolean functionReuse) implements StreamVoter {
+    record GuardedStreamVoter(StreamVoter voter, Vote overflowVote) implements StreamVoter {
 
         @Override
         public VoteResult evaluate(EvaluationContext ctx) {
             try {
-                return voter.evaluate(evaluationContext(ctx, functionReuse));
+                return voter.evaluate(ctx);
             } catch (StackOverflowError overflow) {
                 return new VoteResult(overflowVote, Map.of());
             }

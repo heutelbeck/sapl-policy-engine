@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.policyset;
 
-import static io.sapl.compiler.document.Voters.withFunctionReuse;
-
 import io.sapl.api.model.ReservedIdentifiers;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySet;
@@ -75,9 +73,7 @@ public class PolicySetCompiler {
                                   case UNIQUE           -> UniqueVoteCompiler.compileVoter(compiledPolicies, metadata,
                                           defaultDecision, errorHandling, true, ctx);
                                   };
-        val applicabilityAndVoter = withFunctionReuse(
-                PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voter, metadata),
-                ctx.hasReusableFunctionCalls());
+        val applicabilityAndVoter = PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voter, metadata);
         val coverage              = ObservedVoter.policySet(applicabilityAndVoter, policySet, schemaValidator,
                 isApplicable, compiledPolicies);
         return new CompiledPolicySet(isApplicable, voter, applicabilityAndVoter, coverage, metadata);

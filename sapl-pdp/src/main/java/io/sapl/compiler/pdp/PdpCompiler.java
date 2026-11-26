@@ -141,9 +141,8 @@ public class PdpCompiler {
 
         val coverageVoter = ObservedVoter.pdp(voter, voterMetadata, compiledDocuments);
 
-        return new CompiledPdp(voterMetadata, guarded(voter, voterMetadata, ctx.hasReusableFunctionCalls()),
-                guarded(coverageVoter, voterMetadata, ctx.hasReusableFunctionCalls()), plugins,
-                ctx.getFunctionBroker());
+        return new CompiledPdp(voterMetadata, guarded(voter, voterMetadata), guarded(coverageVoter, voterMetadata),
+                plugins, ctx.getFunctionBroker());
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

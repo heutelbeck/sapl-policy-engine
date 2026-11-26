@@ -94,26 +94,19 @@ public class CompilationContext {
     @Setter(AccessLevel.NONE)
     private int remainingMembershipExpansion = MAX_MEMBERSHIP_EXPANSION;
 
-    private String                                    pdpId                    = "defaultPdp";
-    private String                                    configurationId          = "defaultConfiguration";
-    private Document                                  document;
-    private String                                    documentSource;
-    final FunctionBroker                              functionBroker;
-    final PdpData                                     data;
-    private Map<String, CompiledExpression>           documentVariablesInScope = new HashMap<>();
-    private Set<String>                               localVariableNames       = new HashSet<>();
-    private final Map<Value, Value>                   valueDedup               = new HashMap<>();
+    private String                                pdpId                    = "defaultPdp";
+    private String                                configurationId          = "defaultConfiguration";
+    private Document                              document;
+    private String                                documentSource;
+    final FunctionBroker                          functionBroker;
+    final PdpData                                 data;
+    private Map<String, CompiledExpression>       documentVariablesInScope = new HashMap<>();
+    private Set<String>                           localVariableNames       = new HashSet<>();
+    private final Map<Value, Value>               valueDedup               = new HashMap<>();
     @Getter(AccessLevel.NONE)
-    private final Map<ValueRepresentation, Value>     orderedVariants          = new HashMap<>();
-    private ObjectValue                               compilerOptions          = Value.EMPTY_OBJECT;
-    private Map<IndexPredicate, Value>                foldingCache             = new HashMap<>();
-    @ToString.Exclude
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final Map<IndexPredicate, SharedFunction> sharedFunctions          = new HashMap<>();
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private boolean                                   hasReusableFunctionCalls;
+    private final Map<ValueRepresentation, Value> orderedVariants          = new HashMap<>();
+    private ObjectValue                           compilerOptions          = Value.EMPTY_OBJECT;
+    private Map<IndexPredicate, Value>            foldingCache             = new HashMap<>();
 
     public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;
@@ -133,11 +126,6 @@ public class CompilationContext {
     public CompilationContext(FunctionBroker functionBroker) {
         this.functionBroker = functionBroker;
         this.data           = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
-    }
-
-    /** @return whether compiled calls share work within an evaluation round */
-    public boolean hasReusableFunctionCalls() {
-        return hasReusableFunctionCalls;
     }
 
     /**
@@ -532,30 +520,6 @@ public class CompilationContext {
                 "While compiling, a policy was detected trying to access the undefined environment variable {} this will always evaluate to 'undefined'",
                 variableName);
         return Value.UNDEFINED;
-    }
-
-    FunctionCallCompiler.PureFunction reuseFunction(FunctionCallCompiler.PureFunction call) {
-        val identity = new IndexPredicate(call.semanticHash(), call);
-        var shared   = sharedFunctions.get(identity);
-        if (shared == null) {
-            shared = new SharedFunction();
-            sharedFunctions.put(identity, shared);
-        } else {
-            shared.repeated          = true;
-            hasReusableFunctionCalls = true;
-        }
-        val definition = shared;
-        return new FunctionCallCompiler.PureFunction(call.functionName(), call.arguments(), call.location(),
-                context -> {
-                    if (definition.repeated) {
-                        return context.reuseFunction(definition, () -> call.evaluate(context));
-                    }
-                    return call.evaluate(context);
-                });
-    }
-
-    private static final class SharedFunction {
-        private boolean repeated;
     }
 
 }
