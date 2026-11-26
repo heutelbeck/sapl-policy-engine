@@ -1240,7 +1240,10 @@ public class SaplTestFixture {
         }
 
         /**
-         * Emits a value to a mocked attribute stream.
+         * Queues a value for a mocked attribute stream. Verification completes its
+         * available mock evaluations before the next action, including newly reached
+         * readers with a retained value. A required mock without a value may keep
+         * its group pending until a later emission.
          *
          * @param mockId the mock identifier from
          * givenAttribute/givenEnvironmentAttribute
