@@ -2,6 +2,8 @@
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
+- LSP variable completions replace the remaining identifier at the cursor without duplicating its suffix.
+
 - SAPLTest configurations loaded from directories retain policy file paths in coverage reports.
 
 - The test CLI preserves coverage and quality-gate results when separate test files reuse requirement and scenario display names.

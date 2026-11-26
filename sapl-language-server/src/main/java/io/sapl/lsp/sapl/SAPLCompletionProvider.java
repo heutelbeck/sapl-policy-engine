@@ -727,11 +727,20 @@ public class SAPLCompletionProvider {
      * Calculates the range for completion text edits.
      * The range starts at the beginning of the identifier being typed (including
      * dots for
-     * qualified names) and ends at the cursor position.
+     * qualified names) and ends after the remaining identifier characters.
      */
     private Range calculateCompletionRange(String content, ProtocolPositions positions, int cursor) {
         val start = startOfIdentifierBefore(content, cursor);
-        return new Range(positions.positionOf(start), positions.positionOf(cursor));
+        var end   = cursor;
+        while (end < content.length()) {
+            val ch = content.charAt(end);
+            if (Character.isLetterOrDigit(ch) || ch == '_') {
+                end++;
+            } else {
+                break;
+            }
+        }
+        return new Range(positions.positionOf(start), positions.positionOf(end));
     }
 
     /**
