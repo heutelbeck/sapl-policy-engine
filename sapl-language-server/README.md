@@ -61,6 +61,15 @@ Most LSP clients use stdio for communication:
 java -jar sapl-language-server-5.0.0-SNAPSHOT-standalone.jar
 ```
 
+Use `--catalog documentation.json` to replace the local standard documentation
+with a JSON `DocumentationBundle`. An explicit `{"libraries":[]}` offers no
+library or finder names; omitting the option uses the local standard catalog.
+An unreadable file or invalid catalog fails startup. The catalog supplies names,
+parameters, help and declared return schemas, without loading plugin implementations.
+Local standard functions can still compute known constant schemas, including
+`json.jsonToVal(...)`, even when omitted from the selected catalog. Request data,
+finders and unknown plugin implementations cannot supply a computed schema.
+
 ### Socket Mode
 
 For debugging or testing, use socket mode:
@@ -82,12 +91,8 @@ For embedding in applications (e.g., Vaadin editors):
 ```java
 import io.sapl.lsp.launcher.SAPLLanguageServerLauncher;
 
-// Create an embedded server
-var server = SAPLLanguageServerLauncher.createEmbeddedServer();
-
-// Configure with PDP documentation
-var configManager = server.getConfigurationManager();
-configManager.createConfiguration("my-config", documentationBundle, variables);
+// Select metadata for this server; omit the argument for local standard documentation.
+var server = SAPLLanguageServerLauncher.createEmbeddedServer(documentationBundle);
 
 // Connect to a client (implement your own transport)
 server.connect(languageClient);

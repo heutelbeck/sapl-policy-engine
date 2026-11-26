@@ -40,6 +40,8 @@ import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
+import io.sapl.lsp.configuration.LSPConfiguration;
+import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.lsp.core.GrammarRegistry;
 import io.sapl.lsp.core.document.DocumentManager;
 import io.sapl.lsp.sapl.SAPLGrammarSupport;
@@ -82,6 +84,17 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
      * SAPLTest grammars.
      */
     public SAPLLanguageServer() {
+        this(null);
+    }
+
+    /**
+     * Creates a server with replacement library and finder documentation.
+     * The bundle contains metadata only; schema expressions use local standard functions.
+     *
+     * @param documentation the host catalog, or null for the local standard catalog;
+     * an empty bundle offers no library or finder names
+     */
+    public SAPLLanguageServer(DocumentationBundle documentation) {
         this.grammarRegistry = new GrammarRegistry();
 
         // Register SAPL grammar support
@@ -97,7 +110,7 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
                 saplGrammar.getFileExtensions(), saplTestGrammar.getFileExtensions());
 
         this.documentManager      = new DocumentManager(grammarRegistry);
-        this.configurationManager = new ConfigurationManager();
+        this.configurationManager = configurationManager(documentation);
 
         // Services must be created in constructor for LSP4J method discovery.
         // They use a reference to this server to get the client lazily.
@@ -243,6 +256,15 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
      */
     public GrammarRegistry getGrammarRegistry() {
         return grammarRegistry;
+    }
+
+    private static ConfigurationManager configurationManager(DocumentationBundle documentation) {
+        if (documentation == null) {
+            return new ConfigurationManager();
+        }
+        val standard = LSPConfiguration.minimal();
+        val selected = new LSPConfiguration("", documentation, standard.variables(), standard.functionBroker());
+        return new ConfigurationManager(ignored -> selected);
     }
 
 }

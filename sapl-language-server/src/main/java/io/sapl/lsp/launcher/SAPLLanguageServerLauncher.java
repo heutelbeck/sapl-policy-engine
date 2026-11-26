@@ -19,6 +19,8 @@ package io.sapl.lsp.launcher;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -32,6 +34,8 @@ import org.eclipse.lsp4j.launch.LSPLauncher;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import io.sapl.lsp.server.SAPLLanguageServer;
+import io.sapl.api.documentation.DocumentationBundle;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -42,30 +46,46 @@ import lombok.val;
 @Slf4j
 public class SAPLLanguageServerLauncher {
 
-    private static final int DEFAULT_PORT = 5007;
+    private static final String ERROR_CATALOG      = "The catalog must be a JSON object with a libraries array.";
+    private static final String ERROR_CATALOG_PATH = "The --catalog option requires a file path.";
+    private static final int    DEFAULT_PORT       = 5007;
 
     /**
      * Main entry point for the SAPL Language Server.
      *
      * @param args command line arguments. Use --socket to start in socket mode,
-     * or --port=XXXX to specify a custom port.
+     * or --port=XXXX to specify a custom port. --catalog file selects replacement
+     * library and finder documentation without loading plugin implementations.
      */
     public static void main(String[] args) throws Exception {
-        var useSocket = false;
-        var port      = DEFAULT_PORT;
+        var                 useSocket     = false;
+        var                 port          = DEFAULT_PORT;
+        DocumentationBundle documentation = null;
 
-        for (var arg : args) {
+        for (var index = 0; index < args.length; index++) {
+            val arg = args[index];
             if ("--socket".equals(arg)) {
                 useSocket = true;
             } else if (arg.startsWith("--port=")) {
                 port = Integer.parseInt(arg.substring("--port=".length()));
+            } else if ("--catalog".equals(arg)) {
+                if (++index == args.length) {
+                    throw new IllegalArgumentException(ERROR_CATALOG_PATH);
+                }
+                val mapper = JsonMapper.builder().build();
+                val source = Files.readString(Path.of(args[index]));
+                val tree   = mapper.readTree(source);
+                if (!tree.isObject() || !tree.path("libraries").isArray()) {
+                    throw new IllegalArgumentException(ERROR_CATALOG);
+                }
+                documentation = mapper.treeToValue(tree, DocumentationBundle.class);
             }
         }
 
         if (useSocket) {
-            startSocketServer(port);
+            startSocketServer(port, documentation);
         } else {
-            startStdioServer();
+            startServer(System.in, System.out, documentation);
         }
     }
 
@@ -86,6 +106,10 @@ public class SAPLLanguageServerLauncher {
      * @param port the port to listen on
      */
     public static void startSocketServer(int port) throws Exception {
+        startSocketServer(port, null);
+    }
+
+    private static void startSocketServer(int port, DocumentationBundle documentation) throws Exception {
         log.info("Starting SAPL Language Server on port {}", port);
         val executor = Executors.newCachedThreadPool();
         try (var serverSocket = new ServerSocket(port, 50, InetAddress.getLoopbackAddress())) {
@@ -93,7 +117,7 @@ public class SAPLLanguageServerLauncher {
             while (true) {
                 val socket = serverSocket.accept();
                 log.info("Client connected from {}", socket.getRemoteSocketAddress());
-                handleConnection(executor, socket);
+                handleConnection(executor, socket, documentation);
             }
         } finally {
             executor.shutdownNow();
@@ -110,9 +134,14 @@ public class SAPLLanguageServerLauncher {
      * @return the future tracking completion of the connection handler
      */
     static Future<Void> handleConnection(ExecutorService executor, Socket socket) {
+        return handleConnection(executor, socket, null);
+    }
+
+    private static Future<Void> handleConnection(ExecutorService executor, Socket socket,
+            DocumentationBundle documentation) {
         return executor.submit(() -> {
             try (socket) {
-                startServer(socket.getInputStream(), socket.getOutputStream());
+                startServer(socket.getInputStream(), socket.getOutputStream(), documentation);
             } catch (InterruptedException e) {
                 log.debug("Language server interrupted");
                 Thread.currentThread().interrupt();
@@ -131,7 +160,21 @@ public class SAPLLanguageServerLauncher {
      */
     public static void startServer(InputStream input, OutputStream output)
             throws ExecutionException, InterruptedException {
-        var server   = new SAPLLanguageServer();
+        startServer(input, output, null);
+    }
+
+    /**
+     * Starts a server with host-selected documentation and local standard schema functions.
+     *
+     * @param input the client messages
+     * @param output the server replies
+     * @param documentation the host catalog, or null for the local standard catalog
+     * @throws ExecutionException if the protocol listener fails
+     * @throws InterruptedException if the listener is interrupted
+     */
+    public static void startServer(InputStream input, OutputStream output, DocumentationBundle documentation)
+            throws ExecutionException, InterruptedException {
+        var server   = createEmbeddedServer(documentation);
         var launcher = createLauncher(server, input, output);
 
         var client = launcher.getRemoteProxy();
@@ -162,6 +205,18 @@ public class SAPLLanguageServerLauncher {
      */
     public static SAPLLanguageServer createEmbeddedServer() {
         return new SAPLLanguageServer();
+    }
+
+    /**
+     * Creates an embedded server with a replacement documentation bundle.
+     * No plugin implementation is loaded from this metadata.
+     *
+     * @param documentation the host catalog, or null for the local standard catalog;
+     * an empty bundle offers no library or finder names
+     * @return a new server with an independent catalog selection
+     */
+    public static SAPLLanguageServer createEmbeddedServer(DocumentationBundle documentation) {
+        return new SAPLLanguageServer(documentation);
     }
 
 }
