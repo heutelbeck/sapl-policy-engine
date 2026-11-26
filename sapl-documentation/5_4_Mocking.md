@@ -30,6 +30,8 @@ given
 - function time.dayOfWeek(any) maps to "FRIDAY"
 ```
 
+A function mock also declares the function name and argument count for that scenario. For example, `function office.hours(any) maps to true` lets a policy call `office.hours(subject)` in a test without installing an office plugin. The argument matcher runs when the policy reaches the call. A call with two arguments needs its own matching signature. A `verify` assertion counts reached calls and does not declare a function.
+
 **Multiple parameters with mixed matchers:**
 
 ```sapltest

@@ -154,6 +154,10 @@ library.a_function(subject.name, (environment.day_of_week + 1))
 
 Each function is available under its fully qualified name. The fully qualified name consists of two parts: the library name (e.g., `filter`), followed by a period `.` and the function name (e.g., `filter.blacken`). Which function libraries are available depends on the configuration of the PDP.
 
+The compiler selects the function implementation using its qualified name and the number of supplied arguments. For example, `office.hours(subject)` requires the active PDP to provide exactly one best match for `office.hours` with one argument. An unknown function, an unsupported argument count, or equally good overloads cause a compiler error at the call. This also applies to filter functions and calls in a branch that a request could skip.
+
+The values of the arguments are checked when the selected function is invoked. For `time.secondOf(subject)`, the caller can supply a timestamp or a value of the wrong type. The call has a valid signature in both cases. A wrong type produces an evaluation error. A function with constant arguments can already be evaluated during compilation.
+
 [Imports](../2_9_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import filter.blacken` makes `blacken` available). An aliased import provides an alternative name (e.g., `import filter.blacken as redact` makes it available as `redact`).
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
