@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
+import static io.sapl.util.SaplTesting.FUNCTION_BROKER;
 import static io.sapl.util.SaplTesting.compileExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -83,8 +84,8 @@ class StableSemanticHashTests {
                 arguments("array", new PureArray(List.of(Value.of(1), stream), TEST_LOCATION), -2389104228586902381L),
                 arguments("object", new PureObject(new String[] { "a" }, List.of(stream), TEST_LOCATION),
                         -2472522856254264337L),
-                arguments("function call", new PureFunction("standard.length", List.of(stream), TEST_LOCATION),
-                        -1938677148961586654L));
+                arguments("function call", new PureFunction("standard.length", List.of(stream), TEST_LOCATION,
+                        FUNCTION_BROKER.bindFunction("standard.length", 1)), -1938677148961586654L));
     }
 
     @ParameterizedTest(name = "{0}")

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.functions.BoundFunction;
 import io.sapl.api.model.*;
 import io.sapl.ast.Expression;
 import io.sapl.ast.FunctionCall;
@@ -54,21 +55,23 @@ public class FunctionCallCompiler {
     private static final String ERROR_PURE_FUNCTION_RECEIVED_STREAM_OPERATOR = "PureFunction cannot contain StreamOperator. Indicates an implementation bug.";
 
     public static CompiledExpression compile(FunctionCall call, CompilationContext ctx) {
-        return compile(call.name().full(), call.arguments(), call.location(), ctx);
+        return compile(call.name().full(), call.arguments(), call.location(), ctx,
+                argument -> ExpressionCompiler.compile(argument, ctx));
     }
 
     public static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
             CompilationContext ctx) {
-        return compile(functionName, arguments, location, argument -> ExpressionCompiler.compile(argument, ctx));
+        return compile(functionName, arguments, location, ctx, argument -> ExpressionCompiler.compile(argument, ctx));
     }
 
     static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
-            Function<Expression, CompiledExpression> compileArgument) {
+            CompilationContext ctx, Function<Expression, CompiledExpression> compileArgument) {
         if (arguments.isEmpty()) {
-            return new NoArgsFunction(validateFunctionName(functionName, location), location);
+            val binding = bindFunction(functionName, 0, location, ctx);
+            return new NoArgsFunction(functionName, location, binding);
         }
 
-        val     inputs    = CompilationChildren.pair(() -> validateFunctionName(functionName, location),
+        val     inputs    = CompilationChildren.pair(() -> bindFunction(functionName, arguments.size(), location, ctx),
                 () -> CompilationChildren.map(arguments, compileArgument));
         val     compiled  = inputs.second();
         boolean hasStream = false;
@@ -82,29 +85,36 @@ public class FunctionCallCompiler {
         }
 
         if (hasStream) {
-            return new StreamFunction(inputs.first(), compiled, location);
+            return new StreamFunction(functionName, compiled, location, inputs.first());
         }
-        return new PureFunction(inputs.first(), compiled, location);
+        return new PureFunction(functionName, compiled, location, inputs.first());
     }
 
-    private static String validateFunctionName(String functionName, SourceLocation location) {
+    private static BoundFunction bindFunction(String functionName, int argumentCount, SourceLocation location,
+            CompilationContext ctx) {
         try {
             requireValidName(functionName);
-            return functionName;
         } catch (IllegalArgumentException e) {
             throw new SaplCompilerException(ERROR_INVALID_FUNCTION_NAME.formatted(functionName), e, location);
+        }
+        try {
+            val binding = ctx.getFunctionBroker().bindFunction(functionName, argumentCount);
+            // Expression identity excludes this derived callback, including host call objects.
+            return binding::evaluate;
+        } catch (IllegalArgumentException failure) {
+            throw new SaplCompilerException(failure.getMessage(), failure, location);
         }
     }
 
     /**
      * Function with no arguments - simplest case.
      */
-    record NoArgsFunction(String functionName, SourceLocation location) implements PureOperator {
+    record NoArgsFunction(String functionName, SourceLocation location, BoundFunction binding) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(NoArgsFunction.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, List.of()));
+            return binding.evaluate(new FunctionInvocation(functionName, List.of()));
         }
 
         @Override
@@ -124,8 +134,11 @@ public class FunctionCallCompiler {
      * dispatch is unreachable by construction and folds to an
      * {@link ErrorValue} defensively.
      */
-    record PureFunction(String functionName, List<CompiledExpression> arguments, SourceLocation location)
-            implements PureOperator {
+    record PureFunction(
+            String functionName,
+            List<CompiledExpression> arguments,
+            SourceLocation location,
+            BoundFunction binding) implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(PureFunction.class);
 
         @Override
@@ -142,7 +155,7 @@ public class FunctionCallCompiler {
                 }
                 argValues.add(value);
             }
-            return ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
+            return binding.evaluate(new FunctionInvocation(functionName, argValues));
         }
 
         @Override
@@ -181,11 +194,14 @@ public class FunctionCallCompiler {
      * subscriptions, and invokes the function broker once all arguments
      * resolve.
      */
-    record StreamFunction(String functionName, List<CompiledExpression> arguments, SourceLocation location)
-            implements StreamOperator {
+    record StreamFunction(
+            String functionName,
+            List<CompiledExpression> arguments,
+            SourceLocation location,
+            BoundFunction binding) implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return functionLookup(functionName, arguments, ctx);
+            return functionLookup(functionName, arguments, binding, ctx);
         }
 
         /**
@@ -197,7 +213,7 @@ public class FunctionCallCompiler {
          * error &gt; null &gt; function result.
          */
         private static ExpressionResult functionLookup(String functionName,
-                List<? extends CompiledExpression> arguments, EvaluationContext ctx) {
+                List<? extends CompiledExpression> arguments, BoundFunction binding, EvaluationContext ctx) {
             val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size());
             boolean seenNull   = false;
             Value   firstError = null;
@@ -222,7 +238,7 @@ public class FunctionCallCompiler {
             if (seenNull) {
                 return new ExpressionResult(null, deps);
             }
-            val result = ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
+            val result = binding.evaluate(new FunctionInvocation(functionName, argValues));
             return new ExpressionResult(result, deps);
         }
     }

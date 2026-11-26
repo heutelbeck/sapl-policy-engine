@@ -19,6 +19,8 @@ package io.sapl.util;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.functions.BoundFunction;
+import io.sapl.api.functions.NoMatchingFunctionException;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -235,6 +237,14 @@ public class SaplTesting {
             }
 
             @Override
+            public BoundFunction bindFunction(String functionName, int argumentCount) {
+                if (!expectedName.equals(functionName)) {
+                    throw new NoMatchingFunctionException("Unknown function: " + functionName);
+                }
+                return this::evaluateFunction;
+            }
+
+            @Override
             public Value evaluateFunction(FunctionInvocation invocation) {
                 if (invocation.functionName().equals(expectedName))
                     return fn.apply(invocation.arguments());
@@ -253,6 +263,14 @@ public class SaplTesting {
             @Override
             public void load(Object libraryInstance) {
                 /* no-op for test broker */
+            }
+
+            @Override
+            public BoundFunction bindFunction(String functionName, int argumentCount) {
+                if (!functions.containsKey(functionName)) {
+                    throw new NoMatchingFunctionException("Unknown function: " + functionName);
+                }
+                return this::evaluateFunction;
             }
 
             @Override
@@ -278,6 +296,11 @@ public class SaplTesting {
             }
 
             @Override
+            public BoundFunction bindFunction(String functionName, int argumentCount) {
+                return this::evaluateFunction;
+            }
+
+            @Override
             public Value evaluateFunction(FunctionInvocation invocation) {
                 capture[0] = invocation;
                 return returnValue;
@@ -296,6 +319,11 @@ public class SaplTesting {
             @Override
             public void load(Object libraryInstance) {
                 /* no-op for test broker */
+            }
+
+            @Override
+            public BoundFunction bindFunction(String functionName, int argumentCount) {
+                return this::evaluateFunction;
             }
 
             @Override

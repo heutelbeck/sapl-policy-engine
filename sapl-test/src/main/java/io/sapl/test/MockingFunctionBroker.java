@@ -17,13 +17,19 @@
  */
 package io.sapl.test;
 
+import static io.sapl.api.shared.NameValidator.requireValidName;
+
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.functions.BoundFunction;
 import io.sapl.api.functions.FunctionInvocation;
+import io.sapl.api.functions.NoMatchingFunctionException;
 import io.sapl.api.model.Value;
 import io.sapl.test.verification.FunctionInvocationRecord;
 import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import lombok.NonNull;
+import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -52,7 +58,10 @@ import java.util.function.Supplier;
 public final class MockingFunctionBroker implements FunctionBroker {
 
     private static final String ERROR_ARGUMENTS_MUST_USE_ARGS     = "Arguments must be created via args().";
+    private static final String ERROR_DELEGATE_MISSING            = "MockingFunctionBroker has no delegate. Configure libraries on the delegate.";
+    private static final String ERROR_FUNCTION_NOT_DECLARED       = "No function or mock is declared for '%s' with %d arguments.";
     private static final String ERROR_NO_MOCK_MATCHED_NO_DELEGATE = "No mock matched function '%s' and no delegate broker configured.";
+    private static final String ERROR_NO_MOCK_OR_BOUND_FUNCTION   = "No mock matched function '%s' and no matching delegate function is bound.";
     private static final String ERROR_NO_RETURN_VALUES            = "At least one return value must be specified.";
     private static final String ERROR_NULL_RETURN_VALUE           = "Return value at index %d must not be null.";
     private static final String ERROR_VERIFICATION_FAILED         = "Function verification failed for '%s'.%n";
@@ -95,8 +104,36 @@ public final class MockingFunctionBroker implements FunctionBroker {
 
     @Override
     public Value evaluateFunction(FunctionInvocation invocation) {
+        return evaluateFunction(invocation, null);
+    }
+
+    @Override
+    public BoundFunction bindFunction(String functionName, int argumentCount) {
+        requireValidName(functionName);
+        val           declared = mocks.getOrDefault(functionName, List.of()).stream()
+                .anyMatch(mock -> mock.argumentMatchers().size() == argumentCount);
+        BoundFunction fallback = invocation -> Value.error(ERROR_NO_MOCK_OR_BOUND_FUNCTION, functionName);
+        if (delegate != null) {
+            try {
+                fallback = delegate.bindFunction(functionName, argumentCount);
+            } catch (NoMatchingFunctionException missing) {
+                if (!declared) {
+                    throw missing;
+                }
+            }
+        } else if (!declared) {
+            throw new NoMatchingFunctionException(ERROR_FUNCTION_NOT_DECLARED.formatted(functionName, argumentCount));
+        }
+        val boundDelegate = fallback;
+        return invocation -> evaluateFunction(invocation, boundDelegate);
+    }
+
+    private Value evaluateFunction(FunctionInvocation invocation, @Nullable BoundFunction boundDelegate) {
         recordInvocation(invocation);
         return findMostSpecificMatch(invocation).map(FunctionMock::getReturnValue).orElseGet(() -> {
+            if (boundDelegate != null) {
+                return boundDelegate.evaluate(invocation);
+            }
             if (delegate == null) {
                 return Value.error(ERROR_NO_MOCK_MATCHED_NO_DELEGATE, invocation.functionName());
             }
@@ -113,8 +150,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
     @Override
     public void load(Object libraryInstance) {
         if (delegate == null) {
-            throw new IllegalStateException(
-                    "MockingFunctionBroker has no delegate. Configure libraries on the delegate.");
+            throw new IllegalStateException(ERROR_DELEGATE_MISSING);
         }
         delegate.load(libraryInstance);
     }

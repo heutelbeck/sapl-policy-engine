@@ -32,13 +32,10 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.provider.Arguments;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 import java.util.stream.Stream;
@@ -46,16 +43,15 @@ import java.util.stream.Stream;
 import static io.sapl.util.SaplTesting.parseExpression;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.FUNCTION_BROKER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("Expanded expression depth")
-@ExtendWith(MockitoExtension.class)
 class ExpressionDepthTests {
-    @Mock
-    private FunctionBroker functionBroker;
+    private final FunctionBroker functionBroker = FUNCTION_BROKER;
 
     @Test
     @DisplayName("A flat chain beyond the default is refused before compilation")

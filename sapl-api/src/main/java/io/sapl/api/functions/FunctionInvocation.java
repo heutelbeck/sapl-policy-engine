@@ -43,14 +43,6 @@ public record FunctionInvocation(String functionName, List<Value> arguments) {
             return Match.NO_MATCH;
         }
 
-        if (arguments.size() == spec.numberOfArguments()) {
-            return Match.EXACT_MATCH;
-        }
-
-        if (spec.hasVariableNumberOfArguments() && arguments.size() >= spec.numberOfArguments()) {
-            return Match.VARARGS_MATCH;
-        }
-
-        return Match.NO_MATCH;
+        return spec.matchesArgumentCount(arguments.size());
     }
 }

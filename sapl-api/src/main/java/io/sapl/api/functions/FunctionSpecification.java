@@ -18,6 +18,7 @@
 package io.sapl.api.functions;
 
 import io.sapl.api.model.Value;
+import io.sapl.api.shared.Match;
 import lombok.NonNull;
 
 import java.util.List;
@@ -42,6 +43,22 @@ public record FunctionSpecification(
 
     public boolean hasVariableNumberOfArguments() {
         return varArgsParameterType != null;
+    }
+
+    /**
+     * Compares an invocation's argument count with this signature.
+     *
+     * @param argumentCount the supplied argument count
+     * @return exact, variadic, or no match without inspecting argument values
+     */
+    public Match matchesArgumentCount(int argumentCount) {
+        if (argumentCount == numberOfArguments()) {
+            return Match.EXACT_MATCH;
+        }
+        if (hasVariableNumberOfArguments() && argumentCount >= numberOfArguments()) {
+            return Match.VARARGS_MATCH;
+        }
+        return Match.NO_MATCH;
     }
 
     public boolean collidesWith(FunctionSpecification otherSpec) {

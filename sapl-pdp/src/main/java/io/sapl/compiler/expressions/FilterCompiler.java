@@ -54,16 +54,16 @@ public class FilterCompiler {
         if (sf.each()) {
             return compileSimpleForEach(sf, ctx, compileArgument);
         } else {
-            return compileTrueSimple(sf, compileArgument);
+            return compileTrueSimple(sf, ctx, compileArgument);
         }
     }
 
-    private static CompiledExpression compileTrueSimple(SimpleFilter sf,
+    private static CompiledExpression compileTrueSimple(SimpleFilter sf, CompilationContext ctx,
             Function<Expression, CompiledExpression> compileArgument) {
         val arguments = new ArrayList<Expression>();
         arguments.add(sf.base());
         arguments.addAll(sf.arguments());
-        return FunctionCallCompiler.compile(sf.name().full(), arguments, sf.location(), compileArgument);
+        return FunctionCallCompiler.compile(sf.name().full(), arguments, sf.location(), ctx, compileArgument);
     }
 
     private static CompiledExpression compileSimpleForEach(SimpleFilter sf, CompilationContext ctx,
@@ -73,7 +73,7 @@ public class FilterCompiler {
         val location = sf.location();
         arguments.addAll(sf.arguments());
         val inputs = CompilationChildren.pair(() -> ExpressionCompiler.compile(sf.base(), ctx),
-                () -> FunctionCallCompiler.compile(sf.name().full(), arguments, location, compileArgument));
+                () -> FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx, compileArgument));
         val base   = inputs.first();
         val filter = inputs.second();
         if (base instanceof ErrorValue || base instanceof UndefinedValue) {

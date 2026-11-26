@@ -30,8 +30,11 @@ import java.util.function.Consumer;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.functions.BoundFunction;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -77,6 +80,35 @@ class PdpVoterSourceDynamicRecompileTests {
                 List.of("this is not valid sapl"), EMPTY);
     }
 
+    @ParameterizedTest(name = "plugins change {0}")
+    @ValueSource(booleans = { false, true })
+    @DisplayName("failed function binding keeps last-good configuration only while its plugins remain live")
+    void whenFunctionBindingFailsThenConfigurationAndPluginChangesKeepTheirExistingFailureRules(boolean pluginChange) {
+        val plugins       = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        val configuration = new PDPConfiguration(PDP_ID, CONFIG_A, CombiningAlgorithm.DEFAULT,
+                List.of("policy \"p\" permit standard.length(subject) > 0;"), EMPTY);
+        try (val source = new PdpVoterSource(plugins, CLOCK)) {
+            source.loadConfiguration(configuration);
+            val previous = source.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+            if (pluginChange) {
+                plugins.publish(pluginsOf(new DefaultFunctionBroker()));
+                assertThat(source.getPdpStatus(PDP_ID))
+                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.ERROR));
+                assertThat(source.getCurrentConfiguration(PDP_ID))
+                        .hasValueSatisfying(current -> assertThat(current).isNotSameAs(previous));
+            } else {
+                val unavailable = new PDPConfiguration(PDP_ID, "missing-function", CombiningAlgorithm.DEFAULT,
+                        List.of("policy \"p\" permit missing.call(subject);"), EMPTY);
+                source.loadConfiguration(unavailable);
+                assertThat(source.getPdpStatus(PDP_ID))
+                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.STALE));
+                assertThat(source.getCurrentConfiguration(PDP_ID))
+                        .hasValueSatisfying(current -> assertThat(current).isSameAs(previous));
+            }
+        }
+    }
+
     /**
      * A policy whose compilation constant-folds a function call, so the compiler
      * invokes the plugins' function broker at compile time.
@@ -95,6 +127,11 @@ class PdpVoterSourceDynamicRecompileTests {
             @Override
             public void load(Object libraryInstance) {
                 // no-op
+            }
+
+            @Override
+            public BoundFunction bindFunction(String functionName, int argumentCount) {
+                return this::evaluateFunction;
             }
 
             @Override

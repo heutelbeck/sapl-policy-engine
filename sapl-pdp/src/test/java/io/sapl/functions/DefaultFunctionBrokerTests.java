@@ -40,8 +40,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.api.functions.Function;
+import io.sapl.api.functions.BoundFunction;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionSpecification;
@@ -69,6 +71,43 @@ class DefaultFunctionBrokerTests {
     @BeforeEach
     void setUp() {
         broker = new DefaultFunctionBroker();
+    }
+
+    @ParameterizedTest(name = "cache capacity {0}")
+    @ValueSource(ints = { 0, 10_000 })
+    @DisplayName("separately bound and direct calls share the existing specification cache")
+    void whenCallsAreBoundSeparatelyThenTheyUseTheSameSpecificationCache(int capacity) {
+        val calls  = new AtomicInteger();
+        val target = new DefaultFunctionBroker(capacity);
+        target.loadFunction(new FunctionSpecification("office", "echo", List.of(Value.class), null, invocation -> {
+            calls.incrementAndGet();
+            return invocation.arguments().getFirst();
+        }));
+        val first      = target.bindFunction("office.echo", 1);
+        val second     = target.bindFunction("office.echo", 1);
+        val invocation = new FunctionInvocation("office.echo", List.of(Value.of("reader")));
+
+        assertThat(calls).hasValue(0);
+        assertThat(first.evaluate(invocation)).isEqualTo(Value.of("reader"));
+        assertThat(second.evaluate(invocation)).isEqualTo(Value.of("reader"));
+        assertThat(target.evaluateFunction(invocation)).isEqualTo(Value.of("reader"));
+        assertThat(calls).hasValue(capacity == 0 ? 3 : 1);
+    }
+
+    @Test
+    @DisplayName("later library registrations do not retarget an already compiled call")
+    void whenAMoreSpecificOverloadIsLoadedThenOnlyNewBindingsSelectIt() {
+        broker.loadFunction(new FunctionSpecification("office", "select", List.of(), Value.class,
+                invocation -> Value.of("original")));
+        val original = broker.bindFunction("office.select", 1);
+        broker.loadFunction(new FunctionSpecification("office", "select", List.of(Value.class), null,
+                invocation -> Value.of("new")));
+        val replacement = broker.bindFunction("office.select", 1);
+        val invocation  = new FunctionInvocation("office.select", List.of(Value.of("reader")));
+
+        assertThat(original.evaluate(invocation)).isEqualTo(Value.of("original"));
+        assertThat(replacement.evaluate(invocation)).isEqualTo(Value.of("new"));
+        assertThat(broker.evaluateFunction(invocation)).isEqualTo(Value.of("new"));
     }
 
     @ParameterizedTest(name = "{1}, broker cache {0}")
@@ -142,6 +181,15 @@ class DefaultFunctionBrokerTests {
         public Value evaluateFunction(FunctionInvocation invocation) {
             invocations++;
             return super.evaluateFunction(invocation);
+        }
+
+        @Override
+        public BoundFunction bindFunction(String functionName, int argumentCount) {
+            val bound = super.bindFunction(functionName, argumentCount);
+            return invocation -> {
+                invocations++;
+                return bound.evaluate(invocation);
+            };
         }
 
         @Override

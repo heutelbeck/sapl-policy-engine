@@ -17,6 +17,8 @@
  */
 package io.sapl.functions;
 
+import static io.sapl.api.shared.NameValidator.requireValidName;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,9 +27,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.functions.BoundFunction;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionSpecification;
+import io.sapl.api.functions.NoMatchingFunctionException;
 import io.sapl.api.model.Value;
 import io.sapl.api.shared.Match;
 
@@ -58,6 +62,8 @@ import lombok.val;
 public class DefaultFunctionBroker implements FunctionBroker {
 
     private static final String ERROR_AMBIGUOUS_FUNCTION_MATCH       = "Ambiguous function match for %s. Multiple registered functions match this invocation equally well.";
+    private static final String ERROR_ARGUMENT_COUNT_NEGATIVE        = "Function argument count must not be negative.";
+    private static final String ERROR_FUNCTION_BINDING_DESCRIPTION   = "%s with %d arguments";
     private static final String ERROR_FUNCTION_COLLISION             = "Function collision error for '%s'. A function with the same signature already exists.";
     private static final String ERROR_INVOCATION_NULL                = "Function invocation must not be null.";
     private static final String ERROR_LIBRARY_INSTANCE_NULL          = "Library instance must not be null.";
@@ -90,8 +96,9 @@ public class DefaultFunctionBroker implements FunctionBroker {
     }
 
     /**
-     * Opens a result cache for one configuration. Subclasses retain their own dispatch and may
-     * override this method to scope their caches.
+     * Opens a result cache for one configuration. Subclasses retain their own dispatch:
+     * this implementation returns {@code this} for them. A stateful subclass must
+     * override this method to provide configuration-owned result state.
      */
     @Override
     public FunctionBroker forConfiguration() {
@@ -104,6 +111,17 @@ public class DefaultFunctionBroker implements FunctionBroker {
     @Override
     public void registerConstant(Value value) {
         functionCache.registerConstant(value);
+    }
+
+    @Override
+    public BoundFunction bindFunction(String functionName, int argumentCount) {
+        requireValidName(functionName);
+        if (argumentCount < 0) {
+            throw new IllegalArgumentException(ERROR_ARGUMENT_COUNT_NEGATIVE);
+        }
+        val description = ERROR_FUNCTION_BINDING_DESCRIPTION.formatted(functionName, argumentCount);
+        val function    = resolveFunction(functionName, argumentCount, description);
+        return invocation -> functionCache.evaluate(function, invocation);
     }
 
     /**
@@ -193,15 +211,24 @@ public class DefaultFunctionBroker implements FunctionBroker {
         if (invocation == null) {
             throw new IllegalArgumentException(ERROR_INVOCATION_NULL);
         }
-        val specs = functionIndex.get(invocation.functionName());
+        final FunctionSpecification function;
+        try {
+            function = resolveFunction(invocation.functionName(), invocation.argumentCount(), invocation);
+        } catch (IllegalArgumentException error) {
+            return Value.error(error.getMessage());
+        }
+        return functionCache.evaluate(function, invocation);
+    }
 
+    private FunctionSpecification resolveFunction(String functionName, int argumentCount, Object description) {
+        val specs = functionIndex.get(functionName);
         if (specs != null) {
             FunctionSpecification bestMatch = null;
             var                   match     = Match.NO_MATCH;
             var                   ambiguous = false;
 
             for (val spec : specs) {
-                val newMatch = invocation.matches(spec);
+                val newMatch = spec.matchesArgumentCount(argumentCount);
                 if (newMatch.isBetterThan(match)) {
                     match     = newMatch;
                     bestMatch = spec;
@@ -212,15 +239,15 @@ public class DefaultFunctionBroker implements FunctionBroker {
             }
 
             if (ambiguous) {
-                return Value.error(ERROR_AMBIGUOUS_FUNCTION_MATCH, invocation);
+                throw new IllegalArgumentException(ERROR_AMBIGUOUS_FUNCTION_MATCH.formatted(description));
             }
 
             if (bestMatch != null) {
-                return functionCache.evaluate(bestMatch, invocation);
+                return bestMatch;
             }
         }
 
-        return Value.error(ERROR_NO_MATCHING_FUNCTION_FOUND, invocation);
+        throw new NoMatchingFunctionException(ERROR_NO_MATCHING_FUNCTION_FOUND.formatted(description));
     }
 
 }

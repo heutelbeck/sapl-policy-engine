@@ -1,7 +1,7 @@
 # SAPL 5.0.0
 
+- Breaking: `FunctionBroker` implementations must implement `bindFunction(name, argumentCount)` and return a broker-owned `BoundFunction`. Missing names, unavailable arities and ambiguous overloads fail policy compilation at the call. Custom hosts must declare their callable signatures; decorators and `DefaultFunctionBroker` subclasses that override `evaluateFunction` must also decorate `bindFunction`. Explicit SAPLTest function mocks declare their name and arity; verification alone does not.
 - HTTP remote PDP subscriptions emit INDETERMINATE and reconnect when a data event contains no valid decision, including JSON null; keep-alive comments and valid INDETERMINATE decisions preserve the connection.
-
 - Decision commands reject empty arguments for named JSON fields. Use `'""'` to pass an empty JSON string from a shell.
 - Geo touches, within, contains and overlaps ignore empty collection members when determining the represented point set.
 - LSP schema proposals exclude expressions that require authorization subscription values.
