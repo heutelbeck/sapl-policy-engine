@@ -1,4 +1,4 @@
-# SAPL 4.1.6 (unreleased)
+# SAPL 4.1.6
 
 - Updated Vaadin to 25.3.6 to fix SVG icon handling in [CVE-2026-136173](https://vaadin.com/security/cve-2026-136173).
 - Priority-based combining preserves a conflict between different resource transformations on the winning effect, regardless of vote order. A higher-priority effect can still win.
