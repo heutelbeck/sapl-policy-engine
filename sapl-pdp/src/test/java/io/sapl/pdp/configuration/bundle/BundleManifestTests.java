@@ -50,6 +50,49 @@ class BundleManifestTests {
     }
 
     @Nested
+    @DisplayName("serialized attribution size")
+    class AttributionSize {
+
+        @ParameterizedTest(name = "compact attribution of {0} bytes")
+        @ValueSource(ints = { 7, 16384, 16385 })
+        void whenAttributionReachesSerializedLimitThenBuilderAndReaderEnforceIt(int size) {
+            val text    = "x".repeat(size - 2);
+            val json    = validManifestJson().replace("\"test-suite\"", "\"" + text + "\"");
+            val builder = BundleBuilder.create().withConfigurationId("office").withPdpJson("{}").withAttribution(text);
+
+            if (size > BundleManifest.MAX_ATTRIBUTION_BYTES) {
+                assertThatThrownBy(builder::buildWithManifest).isInstanceOf(BundleSignatureException.class)
+                        .hasMessageContaining("maximum serialized size");
+                assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
+                        .hasMessageContaining("maximum serialized size");
+            } else {
+                val built  = builder.buildWithManifest();
+                val policy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+                val parsed = BundleParser.parse(built.bytes(), "office", policy);
+
+                assertThat(built.manifest().attribution().asString()).isEqualTo(text);
+                assertThat(BundleManifest.fromJson(json).attribution().asString()).isEqualTo(text);
+                assertThat(parsed.configurationId()).isEqualTo("office");
+            }
+        }
+
+        @Test
+        @DisplayName("decodes ordinary attribution escapes without changing the value")
+        void whenAttributionHasEscapesThenBuilderAndReaderKeepItsValue() {
+            val attributionJson = """
+                    {"publisher":"K\\u00f6ln","details":{"line":"one\\ntwo"}}
+                    """;
+            val built           = BundleBuilder.create().withConfigurationId("office").withPdpJson("{}")
+                    .withAttributionJson(attributionJson).buildWithManifest();
+            val restored        = BundleManifest.fromJson(built.manifest().toJson());
+
+            assertThat(restored.attribution()).isEqualTo(built.manifest().attribution());
+            assertThat(restored.attribution().get("publisher").asString()).isEqualTo("K\u00f6ln");
+            assertThat(restored.attribution().get("details").get("line").asString()).isEqualTo("one\ntwo");
+        }
+    }
+
+    @Nested
     @DisplayName("minting")
     class Minting {
 

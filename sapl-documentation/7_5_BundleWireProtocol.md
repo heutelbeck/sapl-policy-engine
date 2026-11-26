@@ -346,10 +346,10 @@ a migration message on new engines).
 | `files` | Yes | SHA-256 hash per bundle file (the manifest itself excluded). |
 | `signature` | If signed | Ed25519 signature over the canonical manifest bytes. |
 
-For the attribution size limit, JSON string tokens are measured after decoding
-escapes and serializing as compact UTF-8 JSON, including necessary quotes and
-escapes. This applies to object keys and nested string values. Size measurement
-is separate from signature canonicalization.
+The attribution size limit is a coarse bound on its compact UTF-8 JSON
+representation, including quotes and escapes. It does not normalize equivalent
+JSON spellings for size comparison, so equivalent values can have different
+measured sizes. Size measurement is separate from signature canonicalization.
 
 ### Bundle Validity
 
