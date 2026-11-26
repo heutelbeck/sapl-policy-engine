@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser;
@@ -219,37 +220,19 @@ class SAPLTestValidatorTests {
                 .formatted(regex);
     }
 
-    @Test
-    @DisplayName("string length of zero produces error")
-    void whenStringLengthZero_thenError() {
+    @ParameterizedTest(name = "length {0}")
+    @ValueSource(ints = { 0, 10 })
+    @DisplayName("a text matcher accepts a nonnegative length")
+    void whenTextLengthIsNonnegativeThenNoDiagnosticIsReported(int length) {
         var document = """
-                requirement "String Length" {
-                    scenario "zero length"
-                        when subject "hastur" attempts action "speak" on resource "name"
-                        expect decision is permit, with obligation matching object where { "text" is text with length 0 };
+                requirement "String length" {
+                    scenario "text resource"
+                        when null attempts null on null
+                        expect decision with resource matching text with length %d;
                 }
-                """;
+                """.formatted(length);
 
-        var errors = validate(document);
-
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_STRING_WITH_LENGTH));
-    }
-
-    @Test
-    @DisplayName("positive string length produces no error")
-    void whenStringLengthPositive_thenNoError() {
-        var document = """
-                requirement "String Length" {
-                    scenario "positive length"
-                        when subject "hastur" attempts action "speak" on resource "name"
-                        expect decision is permit, with obligation matching object where { "text" is text with length 10 };
-                }
-                """;
-
-        var errors = validate(document);
-
-        assertThat(errors).isEmpty();
+        assertThat(validate(document)).isEmpty();
     }
 
     @Test

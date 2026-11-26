@@ -55,6 +55,7 @@ String matchers provide detailed text matching within `matching text ...` or in 
 | `text equal to "val" with compressed whitespace`   | Equals after normalizing whitespace |
 | `text with regex "^[A-Z]+$"`                       | Matches regular expression          |
 | `text with length 8`                               | Exact string length                 |
+| `text with length 0`                               | Matches exactly the empty text      |
 | `text containing stream "a", "b", "c" in order`   | Contains substrings in order        |
 
 The pattern of `text with regex` uses the [syntax](../2_7_Expressions/#regular-expressions) of policies and must match the whole text. The text limit of policies does not apply to the texts of a test. An invalid pattern is marked as an error in the editor and fails the test. In the Java fixture API, `Matchers.textMatching` throws an `io.sapl.compiler.util.RegexRefusedException` for it.
