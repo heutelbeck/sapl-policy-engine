@@ -62,7 +62,9 @@ public class XmlFunctionLibrary {
             Scalar types and array cardinality are not preserved by XML roundtrips.
 
             The reader recognizes XML Schema Instance names by namespace URI, regardless of prefix.
-            A `nil` marker in the first non-namespace attribute is omitted; `true` makes the element null.
+            A `nil` marker is omitted and the value `true` makes the element null.
+            Rust recognizes this marker in any attribute position. For portable XML, place it before
+            all other non-namespace attributes. The bundled Java XML reader only recognizes it there.
             Schema Instance `type` attributes and elements use the key `xsi:type`.
 
             The current Java XML provider rejects some valid XML 1.0 names, such as U+3400, when reading
