@@ -91,6 +91,16 @@ class BundleCommandTests {
         cmd.setErr(new PrintWriter(err));
     }
 
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "-V", "--version" })
+    @DisplayName("bundle subcommands reject the central version option")
+    void whenVersionRequestedForBundleSubcommandThenReportsUnknownOption(String option) {
+        val status = cmd.execute("bundle", "inspect", "-b", "policies.saplbundle", option);
+
+        assertThat(status).isEqualTo(CommandLine.ExitCode.USAGE);
+        assertThat(err.toString()).contains(option);
+    }
+
     @Nested
     @DisplayName("bundle create")
     class CreateTests {

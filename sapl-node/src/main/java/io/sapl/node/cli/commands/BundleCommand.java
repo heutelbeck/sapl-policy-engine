@@ -78,6 +78,7 @@ import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.ScopeType;
 import picocli.CommandLine.Spec;
 
 /**
@@ -88,7 +89,6 @@ import picocli.CommandLine.Spec;
 // @formatter:off
 @Command(
     name = "bundle",
-    mixinStandardHelpOptions = true,
     header = "Manage policy bundles for deployment.",
     description = { """
         Bundles package SAPL policies, PDP configuration, secrets, and
@@ -154,10 +154,13 @@ public class BundleCommand {
     private static final String ERROR_VERIFYING_BUNDLE           = "Error verifying bundle: %s.";
     private static final String HINT_USE_FORCE                   = "Use --force to overwrite.";
 
+    @Option(names = { "-h", "--help" }, usageHelp = true, scope = ScopeType.INHERIT,
+            description = "Show this help message and exit.")
+    private boolean help;
+
     // @formatter:off
     @Command(
         name = "create",
-        mixinStandardHelpOptions = true,
         header = "Create a policy bundle from a directory.",
         description = { """
             Packages all .sapl policy files and pdp.json from the input
@@ -354,7 +357,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "unpack",
-        mixinStandardHelpOptions = true,
         header = "Unpack a policy bundle into a directory.",
         description = { """
             Extracts every file from a .saplbundle into the output directory:
@@ -530,7 +532,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "seal",
-        mixinStandardHelpOptions = true,
         header = "Seal a policy directory's secrets to a recipient.",
         description = { """
             Seals every plaintext secrets file in the directory to the given
@@ -607,7 +608,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "unseal",
-        mixinStandardHelpOptions = true,
         header = "Unseal a policy directory's secrets with the recipient key.",
         description = { """
             Unseals every sealed secrets file in the directory with the given
@@ -686,7 +686,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "reseal",
-        mixinStandardHelpOptions = true,
         header = "Reseal a policy directory's secrets from one recipient to another.",
         description = { """
             Rekeys every sealed secrets file in the directory from a source
@@ -809,7 +808,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "sign",
-        mixinStandardHelpOptions = true,
         header = "Sign a policy bundle with an Ed25519 private key.",
         description = { """
             Creates a manifest containing SHA-256 hashes of all files in
@@ -946,7 +944,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "verify",
-        mixinStandardHelpOptions = true,
         header = "Verify a signed policy bundle against an Ed25519 public key.",
         description = { """
             Validates the bundle's Ed25519 signature and checks SHA-256
@@ -1022,7 +1019,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "inspect",
-        mixinStandardHelpOptions = true,
         header = "Show bundle contents and metadata.",
         description = { """
             Displays the signature status, the manifest metadata
@@ -1299,7 +1295,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "keygen",
-        mixinStandardHelpOptions = true,
         header = "Generate an Ed25519 keypair for bundle signing.",
         description = { """
             Creates a PKCS#8 PEM-encoded private key (<prefix>.pem) and
@@ -1372,7 +1367,6 @@ public class BundleCommand {
     // @formatter:off
     @Command(
         name = "keygen-secrets",
-        mixinStandardHelpOptions = true,
         header = "Generate an X25519 keypair for sealing bundle secrets.",
         description = { """
             Generates an X25519 recipient keypair as JWK files: <prefix>.jwk
