@@ -1,5 +1,7 @@
 # SAPL 5.0.0
 
+- HTTP remote PDP subscriptions emit INDETERMINATE and reconnect when a data event contains no valid decision, including JSON null; keep-alive comments and valid INDETERMINATE decisions preserve the connection.
+
 - Decision commands reject empty arguments for named JSON fields. Use `'""'` to pass an empty JSON string from a shell.
 - Geo touches, within, contains and overlaps ignore empty collection members when determining the represented point set.
 - LSP schema proposals exclude expressions that require authorization subscription values.

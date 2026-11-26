@@ -18,6 +18,7 @@
 package io.sapl.pdp.remote;
 
 import java.io.Serial;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import io.sapl.api.SaplVersion;
@@ -33,6 +34,10 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.ResolvableType;
+import org.springframework.core.codec.DecodingException;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -47,6 +52,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.HttpProtocol;
@@ -89,6 +95,9 @@ import java.util.function.UnaryOperator;
  * of each subscription attempt. Keep-alive comments do not satisfy this deadline.
  * Inactivity monitoring starts with the first decision. Later comments reset its
  * timeout.
+ * An HTTP data event without a valid decision, including JSON {@code null},
+ * returns INDETERMINATE and reconnects the subscription. Keep-alive comments
+ * carry no decision, and valid INDETERMINATE decisions keep their connection.
  * <p>
  *
  * @see RemotePolicyDecisionPoint#builder()
@@ -105,6 +114,7 @@ public final class RemoteHttpReactivePolicyDecisionPoint implements ReactivePoli
     private static final String ERROR_AUTH_FAILED                   = "PDP authentication failed (HTTP {}). Check credentials configuration.";
     private static final String ERROR_HTTP_STATUS                   = "PDP returned HTTP {} ({})";
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Refusing to send remote PDP credentials over a plaintext http connection. Use an https baseUrl, or explicitly accept the risk with allowInsecureTransport().";
+    private static final String ERROR_INVALID_DECISION_DATA         = "The HTTP data event contains no authorization decision.";
     private static final String ERROR_STREAM_FAILED                 = "PDP streaming communication error: {}";
     private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT  = "Sending remote PDP credentials over a plaintext http connection because allowInsecureTransport() is set. A network attacker can capture the credential. Do not use in production.";
     static final int            RETRY_ESCALATION_THRESHOLD          = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
@@ -195,7 +205,17 @@ public final class RemoteHttpReactivePolicyDecisionPoint implements ReactivePoli
         val mapper = SaplJacksonModule.jsonMapperBuilder().build();
         return ExchangeStrategies.builder().codecs(configurer -> {
             configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
-            configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
+            configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper) {
+                @Override
+                public @Nullable Object decode(@NonNull DataBuffer dataBuffer, @NonNull ResolvableType targetType,
+                        @Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+                    val decoded = super.decode(dataBuffer, targetType, mimeType, hints);
+                    if (decoded == null && MediaType.TEXT_EVENT_STREAM.isCompatibleWith(mimeType)) {
+                        throw new DecodingException(ERROR_INVALID_DECISION_DATA);
+                    }
+                    return decoded;
+                }
+            });
         }).build();
     }
 

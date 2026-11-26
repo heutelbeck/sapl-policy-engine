@@ -43,6 +43,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import reactor.core.publisher.Flux;
+import java.util.stream.Stream;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -56,6 +62,7 @@ import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("HTTP remote PDP")
@@ -208,6 +215,82 @@ class RemoteHttpReactivePolicyDecisionPointTests {
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
+    }
+
+    @Timeout(10)
+    @MethodSource("invalidDataEvents")
+    @ParameterizedTest(name = "{0}: {1}")
+    @DisplayName("Invalid data fails closed and reconnects before reading another decision")
+    void whenInvalidDataArrivesThenIndeterminateAndReconnect(String route, String label, String data) {
+        pdp.setFirstBackoffMillis(1);
+        pdp.setMaxBackOffMillis(1);
+        val permit = eventDecision(route, AuthorizationDecision.PERMIT);
+        val deny   = eventDecision(route, AuthorizationDecision.DENY);
+        val later  = eventDecision(route, AuthorizationDecision.NOT_APPLICABLE);
+        prepareEvents("data: " + MAPPER.writeValueAsString(permit) + "\n\ndata: " + data + "\n\ndata: "
+                + MAPPER.writeValueAsString(deny) + "\n\n");
+        prepareEvents("data: " + MAPPER.writeValueAsString(later) + "\n\n");
+        val indeterminate = switch (route) {
+        case "single"       -> AuthorizationDecision.INDETERMINATE;
+        case "identifiable" -> IdentifiableAuthorizationDecision.INDETERMINATE;
+        case "bundled"      -> MultiAuthorizationDecision.indeterminate();
+        default             -> throw new IllegalArgumentException(route);
+        };
+
+        StepVerifier.create(decisionStream(route)).expectNext(permit, indeterminate, later).thenCancel()
+                .verify(Duration.ofSeconds(5));
+        assertThat(server.getRequestCount()).as(label).isEqualTo(2);
+    }
+
+    private static Stream<Arguments> invalidDataEvents() {
+        return Stream.of(arguments("single", "ordinary non-decision text", "not a decision"),
+                arguments("single", "JSON null", "null"), arguments("single", "empty data", ""),
+                arguments("identifiable", "JSON null", "null"), arguments("bundled", "JSON null", "null"));
+    }
+
+    @Timeout(10)
+    @ValueSource(strings = { "comment", "indeterminate" })
+    @ParameterizedTest(name = "valid stream event: {0}")
+    @DisplayName("Comments are ignored and a valid INDETERMINATE remains on the healthy connection")
+    void whenCommentOrValidIndeterminateArrivesThenDenyUsesTheSameConnection(String event) {
+        val first   = "comment".equals(event) ? AuthorizationDecision.PERMIT : AuthorizationDecision.INDETERMINATE;
+        val comment = "comment".equals(event) ? ": keep-alive\n\n" : "";
+        prepareEvents("data: " + MAPPER.writeValueAsString(first) + "\n\n" + comment + "data: "
+                + MAPPER.writeValueAsString(AuthorizationDecision.DENY) + "\n\n");
+
+        StepVerifier.create(pdp.decide(AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE)))
+                .expectNext(first, AuthorizationDecision.DENY).thenCancel().verify(Duration.ofSeconds(5));
+        assertThat(server.getRequestCount()).isEqualTo(1);
+    }
+
+    private Flux<Object> decisionStream(String route) {
+        val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
+        return switch (route) {
+        case "single"       -> pdp.decide(AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE)).cast(Object.class);
+        case "identifiable" -> pdp.decide(subscription).cast(Object.class);
+        case "bundled"      -> pdp.decideAll(subscription).cast(Object.class);
+        default             -> throw new IllegalArgumentException(route);
+        };
+    }
+
+    private static Object eventDecision(String route, AuthorizationDecision decision) {
+        return switch (route) {
+        case "single"       -> decision;
+        case "identifiable" -> new IdentifiableAuthorizationDecision(ID, decision);
+        case "bundled"      -> {
+            val decisions = new MultiAuthorizationDecision();
+            decisions.setDecision(ID, decision);
+            yield decisions;
+        }
+        default             -> throw new IllegalArgumentException(route);
+        };
+    }
+
+    private void prepareEvents(String events) {
+        server.enqueue(new MockResponse()
+                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE + "; charset=UTF-8")
+                .setResponseCode(HttpStatus.OK.value()).setBody(events));
     }
 
     private void prepareDecisions(Object[] decisions) throws JacksonException {
