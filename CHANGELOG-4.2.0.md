@@ -1,5 +1,7 @@
 # SAPL 4.2.0
 
+- SAPLTest rejects ambiguous explicitly named document references and reports the matching paths.
+
 - SAPLTest fixtures retain loaded compiler options while keeping the test index and subscription mode.
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.

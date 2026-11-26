@@ -70,6 +70,7 @@ public class ScenarioInterpreter {
     private static final String ERROR_DEFAULT_MOCK_ATTRIBUTE               = "Mock attribute error";
     private static final String ERROR_DEFAULT_MOCK_EMIT                    = "Mock emit error";
     private static final String ERROR_DEFAULT_MOCK_FUNCTION                = "Mock function error";
+    private static final String ERROR_DOCUMENT_AMBIGUOUS                   = "Document name '%s' is ambiguous. Matching paths: %s.";
     private static final String ERROR_DOCUMENT_NOT_FOUND                   = "Document not found: '%s'. Available documents: %s.";
     private static final String ERROR_UNKNOWN_AMOUNT_TYPE                  = "Unknown amount type: %s.";
     private static final String ERROR_UNKNOWN_DECISION_MATCHER             = "Unknown decision matcher type: %s.";
@@ -329,10 +330,16 @@ public class ScenarioInterpreter {
      * Finds a document by name from the configuration.
      */
     private SaplDocument findDocumentByName(String name) {
-        return config.saplDocuments().stream().filter(d -> d.name().equals(name)).findFirst().orElseThrow(() -> {
+        val documents = config.saplDocuments().stream().filter(d -> d.name().equals(name)).toList();
+        if (documents.isEmpty()) {
             val available = config.saplDocuments().stream().map(SaplDocument::name).toList();
-            return new IllegalArgumentException(ERROR_DOCUMENT_NOT_FOUND.formatted(name, available));
-        });
+            throw new IllegalArgumentException(ERROR_DOCUMENT_NOT_FOUND.formatted(name, available));
+        }
+        if (documents.size() > 1) {
+            val paths = documents.stream().map(d -> d.filePath() != null ? d.filePath() : d.id()).toList();
+            throw new IllegalArgumentException(ERROR_DOCUMENT_AMBIGUOUS.formatted(name, paths));
+        }
+        return documents.getFirst();
     }
 
     /**
