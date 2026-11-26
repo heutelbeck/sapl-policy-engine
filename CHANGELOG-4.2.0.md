@@ -50,6 +50,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- SAPLTest runners reject duplicate requirement names within a file and duplicate scenario names within a requirement before executing the document.
+
 - `geo.convexHull` returns polygon exteriors counterclockwise while preserving input heights; ring starts and line directions remain unspecified.
 
 - `keys.jwkFromPublicKey` and `keys.publicKeyFromJwk` support Ed448 public keys between PEM and JWK.

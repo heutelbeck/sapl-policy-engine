@@ -23,7 +23,9 @@ import io.sapl.compiler.util.TrojanSourceUtil;
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
+import io.sapl.test.grammar.antlr.validation.SAPLTestValidator;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
@@ -50,6 +52,24 @@ public class SaplTestParser {
      */
     public static SaplTestContext parse(String testDefinition) {
         return parse(new ByteArrayInputStream(testDefinition.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    /**
+     * Parses a test document and checks that each scenario can be identified
+     * unambiguously before execution.
+     *
+     * @param testDefinition the test definition source code
+     * @return the parsed document
+     * @throws SaplTestException if parsing fails or a name is duplicated
+     * @throws SaplCompilerException if the input contains disallowed source characters
+     */
+    public static SaplTestContext parseForExecution(String testDefinition) {
+        val document = parse(testDefinition);
+        val errors   = new SAPLTestValidator().validateNames(document);
+        if (!errors.isEmpty()) {
+            throw new SaplTestException(ERROR_PARSING_ERRORS.formatted(errors));
+        }
+        return document;
     }
 
     /**

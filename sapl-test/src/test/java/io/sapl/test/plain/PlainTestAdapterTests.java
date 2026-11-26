@@ -67,6 +67,25 @@ class PlainTestAdapterTests {
         assertThat(results.scenarioResults().getFirst().status()).isEqualTo(TestStatus.ERROR);
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("duplicateNames")
+    @DisplayName("a document with duplicate names fails before any scenario runs")
+    void whenDocumentRepeatsANameThenReportsOneDocumentError(String kind, String document) {
+        val results = executeWithPermitAllPolicy(document);
+
+        assertThat(results.scenarioResults()).singleElement().satisfies(result -> {
+            assertThat(result.status()).isEqualTo(TestStatus.ERROR);
+            assertThat(result.failureMessage()).contains(kind);
+        });
+    }
+
+    private static Stream<Arguments> duplicateNames() {
+        val scenario    = "scenario 'read' when null attempts null on null expect permit; ";
+        val requirement = "requirement 'access' { %s }";
+        return Stream.of(arguments("Requirement", requirement.formatted(scenario).repeat(2)),
+                arguments("Scenario", requirement.formatted(scenario.repeat(2))));
+    }
+
     @Test
     @DisplayName("execute isolates a runtime failure in one document as an error result")
     void whenTestDocumentTriggersRuntimeExceptionThenCreatesErrorResultInsteadOfThrowing() {

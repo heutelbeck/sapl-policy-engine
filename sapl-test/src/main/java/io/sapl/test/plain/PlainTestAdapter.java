@@ -141,7 +141,7 @@ public class PlainTestAdapter {
         var results = new ArrayList<ScenarioResult>();
 
         try {
-            var parseTree = SaplTestParser.parse(testDoc.sourceCode());
+            var parseTree = SaplTestParser.parseForExecution(testDoc.sourceCode());
             results.addAll(executeParseTree(testDoc, parseTree, config));
         } catch (RuntimeException e) {
             // Parse error - create error result for the whole document so that a

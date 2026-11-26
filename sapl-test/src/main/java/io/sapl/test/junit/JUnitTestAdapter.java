@@ -179,7 +179,7 @@ public class JUnitTestAdapter {
 
         try {
             var content      = Files.readString(filePath);
-            var saplTest     = SaplTestParser.parse(content);
+            var saplTest     = SaplTestParser.parseForExecution(content);
             var testDocument = new SaplTestDocument(relativePath, relativePath, content);
             var tests        = buildDynamicTests(saplTest, testDocument);
             return DynamicContainer.dynamicContainer(relativePath, uri, tests);

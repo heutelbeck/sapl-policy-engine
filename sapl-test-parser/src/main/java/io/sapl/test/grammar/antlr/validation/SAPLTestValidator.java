@@ -32,7 +32,6 @@ import io.sapl.test.grammar.antlr.SAPLTestParser.CountedAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.MultipleAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
-import io.sapl.test.grammar.antlr.SAPLTestParser.ScenarioContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.StringMatchesRegexContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.StringWithLengthContext;
 import io.sapl.test.grammar.antlr.SAPLTestParserBaseListener;
@@ -61,14 +60,25 @@ public class SAPLTestValidator {
             return List.of();
         }
 
-        var errors = new ArrayList<ValidationError>();
-
-        validateUniqueRequirementNames(saplTest, errors::add);
-
+        var errors = validateNames(saplTest);
         for (var requirement : saplTest.requirement()) {
-            validateRequirement(requirement, errors::add);
+            walkRequirementForValueValidations(requirement, errors::add);
         }
+        return errors;
+    }
 
+    /**
+     * Checks the names the runners use to identify requirements and scenarios.
+     *
+     * @param saplTest the parsed document
+     * @return duplicate names with their source positions
+     */
+    public List<ValidationError> validateNames(SaplTestContext saplTest) {
+        var errors = new ArrayList<ValidationError>();
+        validateUniqueRequirementNames(saplTest, errors::add);
+        for (var requirement : saplTest.requirement()) {
+            validateUniqueScenarioNames(requirement, errors::add);
+        }
         return errors;
     }
 
@@ -83,16 +93,6 @@ public class SAPLTestValidator {
                 errorConsumer.accept(ValidationError.fromToken(MSG_DUPLICATE_REQUIREMENT_NAME, requirement.name));
             }
         }
-    }
-
-    private void validateRequirement(RequirementContext requirement, Consumer<ValidationError> errorConsumer) {
-        validateUniqueScenarioNames(requirement, errorConsumer);
-
-        for (var scenario : requirement.scenario()) {
-            validateScenario(scenario, errorConsumer);
-        }
-
-        walkRequirementForValueValidations(requirement, errorConsumer);
     }
 
     private void walkRequirementForValueValidations(RequirementContext requirement,
@@ -126,10 +126,6 @@ public class SAPLTestValidator {
                 errorConsumer.accept(ValidationError.fromToken(MSG_DUPLICATE_SCENARIO_NAME, scenario.name));
             }
         }
-    }
-
-    private void validateScenario(ScenarioContext scenario, Consumer<ValidationError> errorConsumer) {
-        // Currently no scenario-level validation beyond uniqueness
     }
 
     private void validateMultipleAmount(MultipleAmountContext context, Consumer<ValidationError> errorConsumer) {
