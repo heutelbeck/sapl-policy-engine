@@ -25,10 +25,14 @@ import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import lombok.val;
+import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.util.BigIntegers;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -52,7 +56,7 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
  * <li>RSA - Full bidirectional JWK conversion support</li>
  * <li>EC (Elliptic Curve) - Full bidirectional JWK conversion support (P-256,
  * P-384, P-521)</li>
- * <li>EdDSA (Ed25519) - Full bidirectional JWK conversion support</li>
+ * <li>EdDSA (Ed25519, Ed448) - Full bidirectional JWK conversion support</li>
  * </ul>
  * <p>
  * JWK conversion follows RFC 7517 (JSON Web Key) and RFC 7518 (JSON Web
@@ -68,7 +72,7 @@ public class KeysFunctionLibrary {
             # Keys Function Library
 
             Inspect public keys in PEM format and convert them to and from JWK. RSA keys from 512 to 16384 bits,
-            EC keys on P-256, P-384 and P-521, and Ed25519 keys support both formats. Ed448 keys can be inspected in PEM.
+            EC keys on P-256, P-384 and P-521, Ed25519 keys and Ed448 keys support both formats.
 
             PEM public key inputs on other EC curves are unsupported.
 
@@ -160,14 +164,14 @@ public class KeysFunctionLibrary {
             ## RFC Compliance
 
             JWK conversions follow RFC 7517 (JSON Web Key format), RFC 7518 (JSON Web Algorithms for RSA and EC),
-            and RFC 8037 (CFRG Elliptic Curve for EdDSA/Ed25519). This ensures interoperability with OAuth providers,
+            and RFC 8037 (CFRG Elliptic Curves for Ed25519 and Ed448). This ensures interoperability with OAuth providers,
             JWT libraries, and OIDC systems.
 
             ## Notes
 
             - PEM format must include `-----BEGIN PUBLIC KEY-----` headers
             - JWK fields use base64url encoding (no padding)
-            - All conversions preserve key functionality (verified via signature operations)
+            - Conversions preserve public key parameters
             - Certificate extraction returns the embedded public key in PEM format
 
             ## Limits
@@ -199,9 +203,10 @@ public class KeysFunctionLibrary {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    private static final int ED25519_RAW_KEY_SIZE     = 32;
-    private static final int ED25519_X509_HEADER_SIZE = 12;
-    private static final int ED25519_X509_TOTAL_SIZE  = 44;
+    private static final String CURVE_ED448 = "Ed448";
+
+    private static final int ED25519_RAW_KEY_SIZE = 32;
+    private static final int ED448_RAW_KEY_SIZE   = 57;
 
     private static final String ERROR_EC_JWK_MISSING_CURVE            = "EC JWK missing required 'crv' (curve) field.";
     private static final String ERROR_EC_JWK_MISSING_X                = "EC JWK missing required 'x' field.";
@@ -214,8 +219,7 @@ public class KeysFunctionLibrary {
     private static final String ERROR_FAILED_TO_EXTRACT_KEY_SIZE      = "Failed to extract key size: ";
     private static final String ERROR_FAILED_TO_PARSE_PUBLIC_KEY      = "Failed to parse public key: ";
     private static final String ERROR_INVALID_BASE64URL               = "Invalid Base64 URL encoding: ";
-    private static final String ERROR_INVALID_ED25519_KEY_LENGTH      = "Invalid Ed25519 key length: expected %d bytes, got %d.";
-    private static final String ERROR_INVALID_ED25519_X509_SIZE       = "Invalid Ed25519 X.509 encoding: expected %d bytes, got %d.";
+    private static final String ERROR_INVALID_EDDSA_KEY_LENGTH        = "Invalid %s key length: expected %d bytes, got %d.";
     private static final String ERROR_JWK_MISSING_KTY                 = "JWK missing required 'kty' field.";
     private static final String ERROR_KEY_NOT_EC                      = "Key is not an EC key.";
     private static final String ERROR_OKP_JWK_MISSING_CURVE           = "OKP JWK missing required 'crv' (curve) field.";
@@ -225,7 +229,7 @@ public class KeysFunctionLibrary {
     private static final String ERROR_UNSUPPORTED_EC_CURVE            = "Unsupported EC curve: ";
     private static final String ERROR_UNSUPPORTED_JWK_KEY_TYPE        = "Unsupported JWK key type: ";
     private static final String ERROR_UNSUPPORTED_KEY_TYPE_FOR_JWK    = "Unsupported key type for JWK conversion: ";
-    private static final String ERROR_UNSUPPORTED_OKP_CURVE           = "Unsupported OKP curve: %s (only Ed25519 supported)";
+    private static final String ERROR_UNSUPPORTED_OKP_CURVE           = "Unsupported OKP curve: %s (only Ed25519 and Ed448 supported).";
 
     @Function(docs = """
             ```publicKeyFromPem(TEXT keyPem)```: Parses a PEM-encoded public key.
@@ -361,7 +365,7 @@ public class KeysFunctionLibrary {
             EC coordinates retain their full field width, including leading zero bytes:
             32 bytes for P-256, 48 for P-384 and 66 for P-521.
 
-            Supported key types: RSA (512 to 16384 bits), EC (P-256, P-384, P-521), EdDSA (Ed25519).
+            Supported key types: RSA (512 to 16384 bits), EC (P-256, P-384, P-521), EdDSA (Ed25519 and Ed448).
 
             **Examples:**
             ```sapl
@@ -388,7 +392,7 @@ public class KeysFunctionLibrary {
             Converts a JSON Web Key (JWK) object back to PEM format. Supports RSA, EC,
             and EdDSA keys. Returns the public key in standard PEM encoding.
 
-            Supported JWK types: RSA (kty: "RSA"), EC (kty: "EC"), OKP (kty: "OKP" with Ed25519).
+            Supported JWK types: RSA (kty: "RSA"), EC (kty: "EC"), OKP (kty: "OKP" with Ed25519 or Ed448).
 
             **Examples:**
             ```sapl
@@ -406,7 +410,8 @@ public class KeysFunctionLibrary {
             return Value.of(keyPem);
         } catch (CryptoException exception) {
             return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage());
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidParameterSpecException exception) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidParameterSpecException
+                | IOException exception) {
             return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage() + ".");
         }
     }
@@ -466,17 +471,13 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Converts an EdEC (Ed25519) public key to JWK format. Extracts the raw 32-byte
-     * public key from the X.509 encoded
-     * structure.
+     * Converts an Ed25519 or Ed448 public key to JWK format.
      */
     private static JsonNode convertEdEcPublicKeyToJwk(EdECPublicKey edEcKey) {
         val jwk = JSON.objectNode();
         jwk.put("kty", JWK_KEY_TYPE_OKP);
-        jwk.put("crv", CURVE_ED25519);
+        jwk.put("crv", edEcKey.getParams().getName());
 
-        // Extract raw Ed25519 key (32 bytes) from X.509 structure
-        // X.509 format: 30 2a 30 05 06 03 2b 65 70 03 21 00 [32 bytes]
         val encoded = edEcKey.getEncoded();
         val rawKey  = extractRawEdEcPublicKey(encoded);
         jwk.put("x", Base64.getUrlEncoder().withoutPadding().encodeToString(rawKey));
@@ -485,25 +486,17 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Extracts the raw Ed25519 public key bytes from X.509 encoded format. The
-     * X.509 structure for Ed25519 ends with
-     * the 32-byte raw public key.
+     * Extracts the raw public key bit string from its X.509 encoding.
      */
     private static byte[] extractRawEdEcPublicKey(byte[] x509Encoded) {
-        // Ed25519 X.509 format: fixed header followed by 32-byte key
-        // Total length is 44 bytes, raw key is the last 32 bytes
-        if (x509Encoded.length != ED25519_X509_TOTAL_SIZE) {
-            throw new CryptoException(
-                    ERROR_INVALID_ED25519_X509_SIZE.formatted(ED25519_X509_TOTAL_SIZE, x509Encoded.length));
-        }
-        return Arrays.copyOfRange(x509Encoded, ED25519_X509_HEADER_SIZE, ED25519_X509_TOTAL_SIZE);
+        return SubjectPublicKeyInfo.getInstance(x509Encoded).getPublicKeyData().getOctets();
     }
 
     /**
      * Converts a JWK to PublicKey following RFC 7517 and RFC 7518.
      */
     private static PublicKey convertJwkToPublicKey(JsonNode jwkNode)
-            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException {
+            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException, IOException {
         val keyTypeNode = jwkNode.get("kty");
         if (keyTypeNode == null || !keyTypeNode.isString()) {
             throw new CryptoException(ERROR_JWK_MISSING_KTY);
@@ -590,10 +583,10 @@ public class KeysFunctionLibrary {
     }
 
     /**
-     * Converts an OKP (EdDSA) JWK to PublicKey.
+     * Converts an Ed25519 or Ed448 JWK to a public key.
      */
     private static PublicKey convertOkpJwkToPublicKey(JsonNode jwkNode)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
+            throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
         val curveNode = jwkNode.get("crv");
         val xNode     = jwkNode.get("x");
 
@@ -605,35 +598,30 @@ public class KeysFunctionLibrary {
         }
 
         val curveName = curveNode.asString();
-        if (!CURVE_ED25519.equals(curveName)) {
+        if (!CURVE_ED25519.equals(curveName) && !CURVE_ED448.equals(curveName)) {
             throw new CryptoException(ERROR_UNSUPPORTED_OKP_CURVE.formatted(curveName));
         }
 
         val rawKeyBytes = base64UrlDecode(xNode.asString());
 
-        // Reconstruct X.509 structure for Ed25519: 30 2a 30 05 06 03 2b 65 70 03 21 00
-        // [32 bytes]
-        val x509Encoded = reconstructEdEcX509Encoding(rawKeyBytes);
+        val x509Encoded = reconstructEdEcX509Encoding(rawKeyBytes, curveName);
 
         val keySpec    = new X509EncodedKeySpec(x509Encoded);
-        val keyFactory = KeyFactory.getInstance(ALGORITHM_ED25519);
+        val keyFactory = KeyFactory.getInstance(ALGORITHM_EDDSA);
         return keyFactory.generatePublic(keySpec);
     }
 
     /**
-     * Reconstructs X.509 encoding for Ed25519 public key from raw bytes.
+     * Encodes raw public key bytes for a supported Edwards curve as X.509.
      */
-    private static byte[] reconstructEdEcX509Encoding(byte[] rawKey) {
-        if (rawKey.length != ED25519_RAW_KEY_SIZE) {
-            throw new CryptoException(ERROR_INVALID_ED25519_KEY_LENGTH.formatted(ED25519_RAW_KEY_SIZE, rawKey.length));
+    private static byte[] reconstructEdEcX509Encoding(byte[] rawKey, String curveName) throws IOException {
+        val ed448        = CURVE_ED448.equals(curveName);
+        val expectedSize = ed448 ? ED448_RAW_KEY_SIZE : ED25519_RAW_KEY_SIZE;
+        if (rawKey.length != expectedSize) {
+            throw new CryptoException(ERROR_INVALID_EDDSA_KEY_LENGTH.formatted(curveName, expectedSize, rawKey.length));
         }
-
-        // X.509 header for Ed25519: 30 2a 30 05 06 03 2b 65 70 03 21 00
-        val header = new byte[] { 0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00 };
-        val result = new byte[ED25519_X509_TOTAL_SIZE];
-        System.arraycopy(header, 0, result, 0, ED25519_X509_HEADER_SIZE);
-        System.arraycopy(rawKey, 0, result, ED25519_X509_HEADER_SIZE, ED25519_RAW_KEY_SIZE);
-        return result;
+        val identifier = ed448 ? EdECObjectIdentifiers.id_Ed448 : EdECObjectIdentifiers.id_Ed25519;
+        return new SubjectPublicKeyInfo(new AlgorithmIdentifier(identifier), rawKey).getEncoded();
     }
 
     /**
