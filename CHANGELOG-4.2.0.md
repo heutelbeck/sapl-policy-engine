@@ -1,6 +1,7 @@
 # SAPL 4.2.0
 
 - HTTP WebSocket attributes JSON-encode configured non-text bodies, including null, and preserve an absent body.
+- SAPLTest validation accepts zero expected decision counts, text lengths and invocation counts.
 
 - SAPLTest rejects ambiguous explicitly named document references and reports the matching paths.
 

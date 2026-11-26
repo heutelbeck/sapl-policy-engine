@@ -251,8 +251,8 @@ class SAPLTestValidatorTests {
                     scenario "chaos scenario"
                         when subject "cultist" attempts action "summon" on resource "void"
                         expect
-                            - permit 0 times
-                            - deny 0 times;
+                            - permit 2147483648 times
+                            - deny 2147483648 times;
                 }
                 """;
 
@@ -322,22 +322,22 @@ class SAPLTestValidatorTests {
         assertThat(errors).isEmpty();
     }
 
-    @Test
-    @DisplayName("zero repetition count in expect block produces error")
-    void whenZeroRepetitionInExpectBlock_thenError() {
+    @ValueSource(ints = { 0, 1, 2 })
+    @ParameterizedTest(name = "repetitions {0}")
+    @DisplayName("nonnegative decision repetition counts are valid")
+    void whenDecisionRepetitionCountIsNonnegativeThenNoDiagnosticIsReported(int count) {
         var document = """
                 requirement "Expect Amount" {
-                    scenario "invalid expect count"
+                    scenario "decision count"
                         when "subject" attempts "action" on "resource"
                         expect
-                            - permit 0 times;
+                            - permit %d times;
                 }
-                """;
+                """.formatted(count);
 
         var errors = validate(document);
 
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_MULTIPLE_AMOUNT));
+        assertThat(errors).isEmpty();
     }
 
     @Test

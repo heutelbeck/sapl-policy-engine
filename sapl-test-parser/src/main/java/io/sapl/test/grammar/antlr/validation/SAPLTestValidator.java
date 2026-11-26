@@ -40,10 +40,11 @@ import io.sapl.test.grammar.antlr.SAPLTestParserBaseListener;
  * Semantic validator for SAPLTest documents. Both string delimiters denote the same
  * decoded names and regex patterns. Validates constraints that cannot
  * be expressed in the grammar alone.
+ * Expected decision counts and text lengths may be zero.
  */
 public class SAPLTestValidator {
 
-    public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Repetition amount needs to be a natural number larger than 0.";
+    public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Repetition amount must be a nonnegative 32-bit integer.";
     public static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The regular expression '%s' is invalid: %s.";
     public static final String MSG_INVALID_STRING_WITH_LENGTH              = "String length must be a nonnegative integer.";
     public static final String MSG_DUPLICATE_REQUIREMENT_NAME              = "Requirement name must be unique.";
@@ -129,15 +130,13 @@ public class SAPLTestValidator {
     }
 
     private void validateMultipleAmount(MultipleAmountContext context, Consumer<ValidationError> errorConsumer) {
-        // Verification counts allow zero (never invoked) and one. Only stream
-        // repetition requires at least one decision, so the bound only applies
-        // outside a verification amount.
+        // Verification counts have their own verification path.
         if (context.getParent() instanceof CountedAmountContext || context.amount == null) {
             return;
         }
         try {
             var amount = new BigDecimal(context.amount.getText()).intValueExact();
-            if (amount < 1) {
+            if (amount < 0) {
                 errorConsumer.accept(ValidationError.fromToken(MSG_INVALID_MULTIPLE_AMOUNT, context.amount));
             }
         } catch (ArithmeticException | NumberFormatException e) {
