@@ -334,7 +334,8 @@ public class X509FunctionLibrary {
             policy "certificate expiring soon"
             permit
               var notAfter = x509.extractNotAfter(request.clientCertificate);
-              notAfter < time.plusDays(time.now(), 30);
+              var now = <time.now>;
+              time.before(notAfter, time.plusDays(now, 30));
             advice
               "certificate-renewal-warning"
             ```
