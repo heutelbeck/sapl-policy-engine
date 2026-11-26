@@ -899,6 +899,7 @@ public class GeographicFunctionLibrary {
             **Notes:**
 
             - Merges overlapping areas of geometries.
+            - Unchanged input positions keep their height; heights at newly computed positions may differ between engines.
             - Accepts single geometries and multi geometries. GeometryCollection inputs are refused when combined with nonempty geometries.
             """)
     public static Value union(ObjectValue... geometries) {
@@ -943,6 +944,7 @@ public class GeographicFunctionLibrary {
 
             - Computes the overlap between geometries.
             - Useful for finding shared areas.
+            - Unchanged input positions keep their height; heights at newly computed positions may differ between engines.
             """)
     public static Value intersection(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::intersection);
