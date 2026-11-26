@@ -845,6 +845,8 @@ public class TraccarPolicyInformationPoint {
 
         val requestSettings = JSON.objectNode();
         requestSettings.set(BlockingWebClient.BASE_URL, toJsonNode(baseUrl));
+        val apiPath = baseUrl instanceof TextValue(var url) && url.endsWith("/") ? path.substring(1) : path;
+        requestSettings.set(BlockingWebClient.PATH, JSON.stringNode(apiPath));
         requestSettings.set(BlockingWebClient.ACCEPT_MEDIATYPE, JSON.stringNode(MEDIATYPE_JSON));
 
         val effectiveQueryParams = JSON.objectNode();
@@ -854,7 +856,6 @@ public class TraccarPolicyInformationPoint {
 
         if (traccarSecrets.get(SECRETS_TOKEN) instanceof TextValue(var token)) {
             effectiveQueryParams.set(SECRETS_TOKEN, JSON.stringNode(token));
-            requestSettings.set(BlockingWebClient.PATH, JSON.stringNode(path));
         } else if (traccarSecrets.containsKey(SECRETS_USERNAME)) {
             val authHeaderOrError = createBasicAuthHeader(traccarSecrets);
             if (authHeaderOrError instanceof ErrorValue) {
@@ -863,7 +864,6 @@ public class TraccarPolicyInformationPoint {
             val headers = JSON.objectNode();
             headers.set(HEADER_AUTHORIZATION, toJsonNode(authHeaderOrError));
             requestSettings.set(BlockingWebClient.HEADERS, headers);
-            requestSettings.set(BlockingWebClient.PATH, JSON.stringNode(path));
         } else {
             return Value.error(ERROR_TRACCAR_CREDENTIALS_MISSING);
         }

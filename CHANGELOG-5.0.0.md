@@ -25,6 +25,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - MQTT releases a topic acknowledged after its reader closes, so the shared client does not retain an unused broker subscription.
 
 - Geo KML and GML conversion accepts one optional leading U+FEFF in decoded text.
+- Traccar accepts a base URL with a trailing slash and sends requests to the configured API path.
 
 - LSP outlines show named policies independently while their containing set has no name.
 

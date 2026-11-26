@@ -28,6 +28,8 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -55,6 +57,20 @@ class TraccarPathEncodingTests {
 
     private static ObjectValue secretsWithToken(String token) {
         return ObjectValue.builder().put("token", Value.of(token)).build();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "https://fleet.example/fleet", "https://fleet.example/fleet/" })
+    @DisplayName("a directory base URL reaches the same Traccar route with an optional trailing slash")
+    void whenBaseUrlHasAnOptionalTrailingSlashThenServerRouteIsTheSame(String baseUrl) {
+        when(mockWebClient.httpRequest(any(), any())).thenAnswer(invocation -> Streams.just(json("{}")));
+        val pip    = new TraccarPolicyInformationPoint(mockWebClient);
+        val config = ObjectValue.builder().put("baseUrl", Value.of(baseUrl)).build();
+        try (val stream = pip.server(context(config, secretsWithToken("fleet")))) {
+            StreamAssertions.assertThat(stream).awaitsNext(value -> assertThat(value).isInstanceOf(ObjectValue.class));
+        }
+        verify(mockWebClient).httpRequest(any(), argThat(
+                settings -> "https://fleet.example/fleet/api/server".equals(BlockingWebClient.requestUrl(settings))));
     }
 
     @Test
