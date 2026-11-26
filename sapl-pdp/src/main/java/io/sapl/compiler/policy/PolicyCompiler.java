@@ -17,6 +17,8 @@
  */
 package io.sapl.compiler.policy;
 
+import static io.sapl.compiler.document.Voters.withFunctionReuse;
+
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.*;
@@ -78,8 +80,9 @@ public class PolicyCompiler {
         val constraintsVoter      = compileConstraintsVoter(policy, metadata, ctx);
         val voter                 = wrapWithStreamingBody(constraintsVoter, streamingSection, metadata,
                 policy.location());
-        val applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, streamingSection, voter,
-                constraintsVoter, metadata);
+        val applicabilityAndVoter = withFunctionReuse(
+                compileApplicabilityAndVoter(isApplicable, streamingSection, voter, constraintsVoter, metadata),
+                ctx.hasReusableFunctionCalls());
         val coverageVoter         = ObservedVoter.policy(applicabilityAndVoter, policy, conditions, isApplicable,
                 streamingSection);
         return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverageVoter, metadata);

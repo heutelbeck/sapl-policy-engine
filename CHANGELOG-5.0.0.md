@@ -72,6 +72,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- SAPLTest `verify` counts one actual broker call per round for repeated pure function calls with the same literal and authorization-subscription arguments. Tests that counted both source occurrences should expect one call.
+
 - Regenerate Java object streams containing SAPL classes that use the shared serialization version identifier. SAPL 5.0 changes that identifier to 50000.
 
 - CSV reading ignores spaces or tabs outside quoted fields as a documented extension to RFC 4180.

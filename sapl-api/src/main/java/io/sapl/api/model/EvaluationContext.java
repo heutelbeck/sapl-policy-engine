@@ -18,6 +18,7 @@
 package io.sapl.api.model;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -37,7 +38,34 @@ public record EvaluationContext(
         @NonNull Value relativeValue,
         @NonNull Value relativeLocation,
         @NonNull Map<SubscriptionKey, AttributeSnapshot> snapshot,
-        @Nullable EvaluationObserver observer) {
+        @Nullable EvaluationObserver observer,
+        @Nullable FunctionEvaluationCache functionEvaluationCache) {
+
+    /**
+     * Creates an entry context with no retained function results.
+     *
+     * @param pdpId PDP identifier
+     * @param configurationId configuration identifier
+     * @param subscriptionId subscription identifier
+     * @param authorizationSubscription inputs of the authorization request
+     * @param functionBroker registered functions
+     * @param relativeValue current relative value
+     * @param relativeLocation current relative location
+     * @param snapshot attribute values available to this round
+     * @param observer observer for reached operands, or null
+     */
+    public EvaluationContext(String pdpId,
+            String configurationId,
+            String subscriptionId,
+            AuthorizationSubscription authorizationSubscription,
+            FunctionBroker functionBroker,
+            Value relativeValue,
+            Value relativeLocation,
+            Map<SubscriptionKey, AttributeSnapshot> snapshot,
+            @Nullable EvaluationObserver observer) {
+        this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, relativeValue,
+                relativeLocation, snapshot, observer, null);
+    }
 
     /** Receives the result of a reached operand within one evaluation round. */
     @FunctionalInterface
@@ -86,7 +114,33 @@ public record EvaluationContext(
      */
     public EvaluationContext withObserver(EvaluationObserver listener) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                relativeValue, relativeLocation, snapshot, listener);
+                relativeValue, relativeLocation, snapshot, listener, functionEvaluationCache);
+    }
+
+    /** @return a fresh round with no retained function results from a previous evaluation */
+    public EvaluationContext newFunctionEvaluation() {
+        return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
+                relativeValue, relativeLocation, snapshot, observer, new FunctionEvaluationCache());
+    }
+
+    /** @return the current round, opening one if this is an unbound entry context */
+    public EvaluationContext withFunctionEvaluation() {
+        if (functionEvaluationCache == null) {
+            return newFunctionEvaluation();
+        }
+        return this;
+    }
+
+    /**
+     * @param identity compiled identity of a repeated pure call
+     * @param evaluate the evaluation at this occurrence
+     * @return its value, reusing only successful results in the current round
+     */
+    public Value reuseFunction(Object identity, Supplier<Value> evaluate) {
+        if (functionEvaluationCache == null) {
+            return evaluate.get();
+        }
+        return functionEvaluationCache.evaluate(identity, evaluate);
     }
 
     /**
@@ -171,12 +225,12 @@ public record EvaluationContext(
 
     public EvaluationContext withRelativeValue(Value relativeValue, Value relativeLocation) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                relativeValue, relativeLocation, snapshot, observer);
+                relativeValue, relativeLocation, snapshot, observer, functionEvaluationCache);
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                relativeValue, Value.UNDEFINED, snapshot, observer);
+                relativeValue, Value.UNDEFINED, snapshot, observer, functionEvaluationCache);
     }
 
     /**

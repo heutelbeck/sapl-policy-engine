@@ -41,6 +41,22 @@ import java.util.function.Function;
 public class Voters {
 
     /**
+     * @param voter the compiled document voter
+     * @param enabled whether its compilation contains repeated simple pure calls
+     * @return the same voter shape, opening a call frame at an unbound evaluation entry
+     */
+    public static Voter withFunctionReuse(Voter voter, boolean enabled) {
+        if (!enabled) {
+            return voter;
+        }
+        return switch (voter) {
+        case Vote vote          -> vote;
+        case PureVoter pure     -> (PureVoter) context -> pure.vote(context.withFunctionEvaluation());
+        case StreamVoter stream -> (StreamVoter) context -> stream.evaluate(context.withFunctionEvaluation());
+        };
+    }
+
+    /**
      * Bridges the callback-driven {@link AttributeBroker} to a synchronous
      * single-vote pickup. Subscribes to {@code initialDependencies},
      * runs {@code evaluator} on each fulfilled snapshot, and returns the

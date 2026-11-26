@@ -37,6 +37,33 @@ verify
     - function expensive.compute(any) is called 0 times;
 ```
 
+### Repeated Pure Function Calls
+
+SAPLTest counts calls that reach the function broker. Within one evaluation round, repeated pure calls can share a successful result when their arguments are the same literals or the same subscription variables, such as `subject`.
+
+Both comparisons below use the result of one `time.secondOf(subject)` call.
+
+```sapl
+policy "read" permit
+    time.secondOf(subject) == 24 && time.secondOf(subject) > 0;
+```
+
+The scenario reaches both comparisons and verifies one call.
+
+```sapltest
+requirement "seconds" {
+    scenario "read at second 24"
+        given
+            - document "read"
+            - function time.secondOf(any) maps to 24
+        when "2026-01-15T10:00:24Z" attempts "enter" on "office"
+        expect permit
+        verify - function time.secondOf(any) is called once;
+}
+```
+
+Coverage records each comparison that evaluation reaches. A short-circuited branch contributes zero calls. When another round reaches the same function, the broker receives a new call and may serve it from its own cache.
+
 ### Attribute Call Verification
 
 **Environment attributes:**
