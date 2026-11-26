@@ -31,6 +31,7 @@ import io.sapl.node.cli.commands.GenerateCredentialsCommand;
 import io.sapl.node.cli.commands.LoadtestCommand;
 import io.sapl.node.cli.commands.ServerCommand;
 import io.sapl.node.cli.commands.TestCommand;
+import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,14 +116,15 @@ public class SaplNodeCli implements Callable<Integer> {
     }
 
     /**
-     * Applies the parsed verbosity flags to the Logback root and io.sapl loggers
-     * before any subcommand runs. No-op when neither flag was supplied.
+     * Configures CLI logging so requested decision reports are visible at normal
+     * verbosity. Explicit verbosity flags apply to reports and other diagnostics.
      */
     public void applyVerbosityToLogging() {
+        val ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
+        ctx.getLogger(ReportingDecisionInterceptor.class).setLevel(verbosity == null ? Level.INFO : null);
         if (verbosity == null) {
             return;
         }
-        val ctx        = (LoggerContext) LoggerFactory.getILoggerFactory();
         val rootLogger = ctx.getLogger(Logger.ROOT_LOGGER_NAME);
         val saplLogger = ctx.getLogger("io.sapl");
         if (verbosity.quiet) {

@@ -22,13 +22,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.core.ConsoleAppender;
+import io.sapl.node.cli.SaplNodeCli;
+import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import lombok.val;
+import picocli.CommandLine;
 
 class CliLoggingTests {
 
@@ -49,6 +54,18 @@ class CliLoggingTests {
         assertThat(root.getLevel()).isEqualTo(Level.ERROR);
         assertThat(root.iteratorForAppenders()).toIterable().hasSize(1).first().isInstanceOfSatisfying(
                 ConsoleAppender.class, appender -> assertThat(appender.getTarget()).isEqualTo("System.err"));
+    }
+
+    @ParameterizedTest(name = "{0} enables reports: {1}")
+    @CsvSource({ "'', true", "--quiet, false", "--verbose, true" })
+    @DisplayName("Requested decision reports are visible at normal and verbose CLI output levels")
+    void whenVerbosityIsSelectedThenItControlsDecisionReportOutput(String option, boolean expected) {
+        SaplNodeApplication.configureCliLogging();
+        val cli = new SaplNodeCli();
+        new CommandLine(cli).parseArgs(option.isEmpty() ? new String[0] : new String[] { option });
+        cli.applyVerbosityToLogging();
+
+        assertThat(LoggerFactory.getLogger(ReportingDecisionInterceptor.class).isInfoEnabled()).isEqualTo(expected);
     }
 
 }
