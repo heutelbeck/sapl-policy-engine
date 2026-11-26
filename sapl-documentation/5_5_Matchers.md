@@ -58,6 +58,15 @@ String matchers provide detailed text matching within `matching text ...` or in 
 | `text with length 0`                               | Matches exactly the empty text      |
 | `text containing stream "a", "b", "c" in order`   | Contains substrings in order        |
 
+Case-insensitive equality uses locale-independent, single-character mappings, as
+`string.equalsIgnoreCase` does. It does not expand `ß` to `SS`. Case-insensitive
+`starting with`, `ending with` and `containing` lowercase both complete texts
+before comparing their literal contents. The Java engine uses the Unicode tables
+of its running JDK, and the Rust engine uses those of its compiler. Contextual
+lowercasing can differ too: `Α1Σ` becomes `α1σ` natively and `α1ς` on JDK 21.
+For this input, `ending with "σ" case-insensitive` matches natively and does not
+match on JDK 21. `equal to "α1σ" case-insensitive` matches in both engines.
+
 The pattern of `text with regex` uses the [syntax](../2_7_Expressions/#regular-expressions) of policies and must match the whole text. The text limit of policies does not apply to the texts of a test. An invalid pattern is marked as an error in the editor and fails the test. In the Java fixture API, `Matchers.textMatching` throws an `io.sapl.compiler.util.RegexRefusedException` for it.
 
 ### Object Matchers

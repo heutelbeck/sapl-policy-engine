@@ -717,6 +717,15 @@ allows for an exact match with a string or using a matcher
 * checks if the string has a specific length
   > with length [Number]
 
+Case-insensitive equality uses locale-independent, single-character mappings, as
+`string.equalsIgnoreCase` does. It does not expand `ß` to `SS`. Case-insensitive
+`starting with`, `ending with` and `containing` lowercase both complete texts
+before comparing their literal contents. The Java engine uses the Unicode tables
+of its running JDK, and the Rust engine uses those of its compiler. Contextual
+lowercasing can differ too: `Α1Σ` becomes `α1σ` natively and `α1ς` on JDK 21.
+For this input, `ending with "σ" case-insensitive` matches natively and does not
+match on JDK 21. `equal to "α1σ" case-insensitive` matches in both engines.
+
 #### JsonArrayMatcher
 
 * a set of matchers where each matcher is applied to an array element in order

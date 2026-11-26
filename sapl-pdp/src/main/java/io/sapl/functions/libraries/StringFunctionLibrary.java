@@ -132,6 +132,9 @@ public class StringFunctionLibrary {
             Case mappings added in later Unicode versions can therefore produce different results.
             For example, U+1C89 stays unchanged under Unicode 15.0 and becomes U+1C8A under Unicode 16.0.
 
+            Contextual lowercasing can differ too. Rust converts `Α1Σ` to `α1σ`,
+            while Java on JDK 21 converts it to `α1ς`.
+
             **Examples:**
             ```sapl
             policy "normalize_role"
