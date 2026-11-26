@@ -30,6 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
+import lombok.val;
 
 @DisplayName("SAPLTestCompletionProvider")
 class SAPLTestCompletionProviderTests {
@@ -67,6 +68,32 @@ class SAPLTestCompletionProviderTests {
 
         assertThat(labels).isNotEmpty().doesNotContain("deny-overrides", "permit-overrides", "first-applicable",
                 "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
+    }
+
+    @Test
+    @DisplayName("given item completions use the current test grammar")
+    void whenCompletingGivenItemsThenOnlyCurrentKeywordsAreOffered() {
+        val content  = """
+                requirement "Office" {
+                    given
+                        - document "office"
+                    scenario "Read"
+                        when "alice" attempts "read" on "report"
+                        expect permit;
+                }
+                """;
+        val document = new SAPLTestParsedDocument("file:///example.sapltest", content);
+        val position = new Position(2, 18);
+        val labels   = extractLabels(completionProvider.provideCompletions(document, position, configManager));
+
+        assertThat(document.hasErrors()).isFalse();
+        assertThat(new SAPLTestParsedDocument("file:///control.sapltest", content.replace("document", "configuration"))
+                .hasErrors()).isFalse();
+        assertThat(new SAPLTestParsedDocument("file:///obsolete.sapltest", content.replace("document", "policy"))
+                .hasErrors()).isTrue();
+        assertThat(labels).contains("document", "documents", "low-latency-mode", "configuration", "verify", "never")
+                .doesNotContain("policy", "policies", "pdp", "combining-algorithm", "virtual-time", "timing", "pip",
+                        "static-pip", "function-library", "static-function-library", "no-event", "for", "wait");
     }
 
     private static Set<String> labels() {

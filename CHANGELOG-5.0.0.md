@@ -1,5 +1,6 @@
 # SAPL 5.0.0
 
+- SAPLTest completion offers the current grammar keywords and removes obsolete configuration and timing words.
 - Updated Vaadin to 25.3.6 to fix SVG icon handling in [CVE-2026-136173](https://vaadin.com/security/cve-2026-136173).
 - HTTP WebSocket attributes JSON-encode configured non-text bodies, including null, and preserve an absent body.
 - SAPLTest validation accepts zero expected decision counts, text lengths and invocation counts.

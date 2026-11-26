@@ -34,17 +34,15 @@ import io.sapl.lsp.core.ParsedDocument;
 public class SAPLTestCompletionProvider {
 
     private static final List<String> STRUCTURE_KEYWORDS = List.of("requirement", "scenario", "given", "when", "then",
-            "expect");
+            "expect", "verify");
     private static final List<String> DECISION_KEYWORDS  = List.of("permit", "deny", "suspend", "indeterminate",
             "not-applicable", "decision");
     private static final List<String> MOCK_KEYWORDS      = List.of("function", "attribute", "maps", "to", "emits",
-            "stream", "virtual-time", "error", "once", "times", "is", "called", "timing", "of");
-    private static final List<String> IMPORT_KEYWORDS    = List.of("pip", "static-pip", "function-library",
-            "static-function-library");
-    private static final List<String> PDP_KEYWORDS       = List.of("pdp", "variables", "secrets", "combining-algorithm",
-            "configuration", "pdp-configuration", "policy", "set", "policies");
+            "stream", "error", "once", "times", "never", "is", "called", "of");
+    private static final List<String> PDP_KEYWORDS       = List.of("variables", "secrets", "configuration",
+            "pdp-configuration", "document", "documents", "low-latency-mode");
     private static final List<String> ALGORITHM_KEYWORDS = List.of("first", "priority deny", "priority permit",
-            "priority suspend", "unanimous", "unanimous strict", "unique");
+            "priority suspend", "unanimous", "unanimous strict", "unique", "or", "errors", "propagate", "abstain");
     private static final List<String> AUTH_KEYWORDS      = List.of("subject", "action", "resource", "environment",
             "attempts", "on", "in");
     private static final List<String> MATCHER_KEYWORDS   = List.of("matching", "any", "equals", "containing", "key",
@@ -53,8 +51,7 @@ public class SAPLTestCompletionProvider {
             "object");
     private static final List<String> STRING_KEYWORDS    = List.of("blank", "empty", "null-or-empty", "null-or-blank",
             "equal", "compressed", "whitespace", "case-insensitive", "regex", "starting", "ending", "length", "order");
-    private static final List<String> EXPECT_KEYWORDS    = List.of("no-event", "for", "wait", "obligation", "advice",
-            "obligations");
+    private static final List<String> EXPECT_KEYWORDS    = List.of("next", "obligation", "advice", "obligations");
     private static final List<String> LITERAL_KEYWORDS   = List.of("true", "false", "undefined");
 
     /**
@@ -77,9 +74,6 @@ public class SAPLTestCompletionProvider {
 
         // Add mock keywords
         MOCK_KEYWORDS.forEach(kw -> completions.add(createKeywordCompletion(kw, "Mock definition keyword")));
-
-        // Add import keywords
-        IMPORT_KEYWORDS.forEach(kw -> completions.add(createKeywordCompletion(kw, "Import type")));
 
         // Add PDP keywords
         PDP_KEYWORDS.forEach(kw -> completions.add(createKeywordCompletion(kw, "PDP configuration keyword")));
