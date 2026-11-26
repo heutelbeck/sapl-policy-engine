@@ -200,10 +200,9 @@ public class TestCommand implements Callable<Integer> {
         }
 
         cleanStaleCoverageData(err);
-        writeCoverage(results, err);
+        val coverage = writeAndAggregateCoverage(results, err);
         printSummary(results, out, err);
 
-        val coverage = aggregateCoverage(results);
         generateReports(coverage, err);
 
         if (results.errors() > 0 || !results.allPassed()) {
@@ -288,15 +287,22 @@ public class TestCommand implements Callable<Integer> {
         }
     }
 
-    private void writeCoverage(PlainTestResults results, PrintWriter err) {
-        val writer = new CoverageWriter(output);
-        for (val entry : results.coverageByScenarioName().entrySet()) {
+    private AggregatedCoverageData writeAndAggregateCoverage(PlainTestResults results, PrintWriter err) {
+        val writer     = new CoverageWriter(output);
+        val aggregated = new AggregatedCoverageData();
+        for (val scenario : results.scenarioResults()) {
+            val coverage = scenario.coverage();
+            if (coverage == null) {
+                continue;
+            }
+            aggregated.merge(coverage);
             try {
-                writer.write(entry.getValue());
+                writer.write(coverage);
             } catch (IOException e) {
                 err.println(WARN_COVERAGE_WRITE_FAILED.formatted(e.getMessage()));
             }
         }
+        return aggregated;
     }
 
     private void printSummary(PlainTestResults results, PrintWriter out, PrintWriter err) {
@@ -378,14 +384,6 @@ public class TestCommand implements Callable<Integer> {
         if (sonar) {
             generateSonarReport(err);
         }
-    }
-
-    private AggregatedCoverageData aggregateCoverage(PlainTestResults results) {
-        val aggregated = new AggregatedCoverageData();
-        for (val coverageRecord : results.coverageByScenarioName().values()) {
-            aggregated.merge(coverageRecord);
-        }
-        return aggregated;
     }
 
     private void generateHtmlReport(AggregatedCoverageData coverage, PrintWriter err) {

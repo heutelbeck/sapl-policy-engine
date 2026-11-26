@@ -4,6 +4,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - SAPLTest configurations loaded from directories retain policy file paths in coverage reports.
 
+- The test CLI preserves coverage and quality-gate results when separate test files reuse requirement and scenario display names.
+
 - LSP schema completion resolves local references within explicitly supplied schema documents.
 
 - MQTT JSON message payloads preserve decimal precision in SAPL values.

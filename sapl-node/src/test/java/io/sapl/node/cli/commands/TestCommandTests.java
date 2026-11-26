@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import lombok.val;
 import picocli.CommandLine;
@@ -321,6 +322,50 @@ class TestCommandTests {
             assertThat(tempDir.resolve("coverage/sonar/sonar-generic-coverage.xml")).exists();
         }
 
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({ "shared labels,read,50,0,false", "distinct labels,read-two,50,0,false", "strict gate,read,100,3,false",
+            "unwritable output,read,50,0,true" })
+    @DisplayName("every executed test file contributes its own coverage")
+    void whenScenarioLabelsRepeatAcrossFilesThenCoverageIsPreserved(String description, String negativeScenario,
+            String threshold, int expectedExit, boolean writeFailure, @TempDir Path tempDir) throws Exception {
+        Files.writeString(tempDir.resolve("rule.sapl"), """
+                policy "rule" permit
+                subject == "alice";
+                """);
+        Files.writeString(tempDir.resolve("positive.sapltest"), """
+                requirement "checkout" {
+                    given - document "rule"
+                    scenario "read" when "alice" attempts null on null expect permit;
+                }
+                """);
+        Files.writeString(tempDir.resolve("negative.sapltest"), """
+                requirement "checkout" {
+                    given - document "rule"
+                    scenario "%s" when "bob" attempts null on null expect not-applicable;
+                }
+                """.formatted(negativeScenario));
+        val output = tempDir.resolve("coverage");
+        if (writeFailure) {
+            Files.writeString(output, "ordinary output-path conflict");
+        }
+        val out = new StringWriter();
+        val err = new StringWriter();
+        val cmd = newCommand(out, err);
+
+        val exit = cmd.execute("--dir", tempDir.toString(), "--output", output.toString(), "--no-html", "--no-sonar",
+                "--condition-hit-ratio", threshold);
+
+        assertThat(exit).as("stdout: %s, stderr: %s", out, err).isEqualTo(expectedExit);
+        assertThat(out.toString()).contains("2 passed");
+        if (writeFailure) {
+            assertThat(err.toString()).contains("coverage");
+        } else {
+            try (val records = Files.lines(output.resolve("coverage.ndjson"))) {
+                assertThat(records.count()).isEqualTo(2);
+            }
+        }
     }
 
 }

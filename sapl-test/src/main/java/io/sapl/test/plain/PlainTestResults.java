@@ -30,9 +30,10 @@ import java.util.Map;
  * @param failed number of failed scenarios
  * @param errors number of scenarios with errors
  * @param scenarioResults per-scenario results
- * @param coverageByScenarioName coverage data keyed by scenario full name
- * (requirement &gt; scenario), one entry per scenario, not aggregated per
- * document
+ * @param coverageByScenarioName coverage data keyed by the scenario display
+ * name (requirement &gt; scenario), without the test document ID. Repeated full
+ * names retain the last available coverage record. Use {@link #scenarioResults()}
+ * for coverage of every executed scenario.
  */
 public record PlainTestResults(
         int total,
