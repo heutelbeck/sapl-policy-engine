@@ -510,4 +510,36 @@ class FixtureCoverageIntegrationTests {
                 arguments("set name on next line", "set\n \"group\" first or abstain\npolicy \"read\" permit",
                         "group"));
     }
+
+    @ParameterizedTest(name = "configuration={0}, explicit path={1}")
+    @CsvSource({ "false,false", "true,false", "true,true" })
+    @DisplayName("loaded configuration coverage retains policy paths in nested fixture directories")
+    void whenConfigurationHasPolicySourcesThenCoverageKeepsTheirFilePaths(boolean configuration, boolean explicitPath)
+            throws IOException {
+        val directory  = Files.createDirectories(tempDir.resolve("fixtures/nested/config"));
+        val source     = """
+                policy "desk"
+                permit subject == "visitor";
+                """;
+        val policyFile = Files.writeString(directory.resolve("rule.sapl"), source);
+        val fixture    = SaplTestFixture.createIntegrationTest().withCoverageFileWriteDisabled();
+        if (configuration) {
+            fixture.withConfigurationFromDirectory(directory.toString());
+        } else {
+            fixture.withCombiningAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).withPolicy(source,
+                    policyFile.toString());
+        }
+        if (explicitPath) {
+            fixture.withPolicyFilePath("desk", "custom/desk.sapl");
+        }
+
+        val result = fixture.whenDecide(AuthorizationSubscription.of("visitor", "read", "desk")).expectPermit()
+                .verify();
+
+        assertThat(result.passed()).isTrue();
+        assertThat(result.coverage().getPolicyCoverageList()).singleElement()
+                .extracting(PolicyCoverageData::getFilePath)
+                .isEqualTo(explicitPath ? "custom/desk.sapl" : policyFile.toString());
+    }
+
 }

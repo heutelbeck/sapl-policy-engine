@@ -47,6 +47,7 @@ import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.DirectoryProvenance;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.pdp.interceptors.VoteReport;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
@@ -329,6 +330,7 @@ public class SaplTestFixture {
      * <p>
      * Loads all .sapl files and pdp.json (if present) from the directory.
      * The combining algorithm and variables are taken from pdp.json.
+     * Policy file paths are retained for coverage reports.
      *
      * @param directoryPath the path to the directory containing policies and
      * pdp.json
@@ -885,6 +887,15 @@ public class SaplTestFixture {
         val effectiveTestId     = testIdentifier != null ? testIdentifier : generateTestIdentifier();
         var coverageAccumulator = new CoverageAccumulator(effectiveTestId);
         coverageAccumulator.registerPolicySources(buildPolicySourceMap(effectivePolicies));
+        if (loadedConfiguration != null && loadedConfiguration.provenance() instanceof DirectoryProvenance provenance) {
+            val root = Path.of(provenance.rootPath());
+            for (val document : provenance.documentFiles().entrySet()) {
+                val name = extractPolicyName(document.getKey());
+                if (name != null) {
+                    coverageAccumulator.registerPolicyFilePath(name, root.resolve(document.getValue()).toString());
+                }
+            }
+        }
         coverageAccumulator.registerPolicyFilePaths(policyFilePaths);
 
         val outputPath     = coverageOutputPath != null ? coverageOutputPath : Path.of("target", "sapl-coverage");

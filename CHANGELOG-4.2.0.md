@@ -2,6 +2,8 @@
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
+- SAPLTest configurations loaded from directories retain policy file paths in coverage reports.
+
 - LSP schema completion resolves local references within explicitly supplied schema documents.
 
 - MQTT JSON message payloads preserve decimal precision in SAPL values.
