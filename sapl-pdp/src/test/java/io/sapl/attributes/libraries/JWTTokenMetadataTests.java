@@ -17,43 +17,26 @@
  */
 package io.sapl.attributes.libraries;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.Payload;
-import com.nimbusds.jwt.SignedJWT;
-import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 @DisplayName("JWT payload display")
 class JWTTokenMetadataTests {
-
-    @Mock
-    private SignedJWT signedJwt;
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("payloads")
     @DisplayName("decoded payload numbers remain exact and whole time claims are displayed as UTC")
-    void whenPayloadIsDisplayedThenNumbersArePreserved(String description, String input, String expected)
-            throws ReflectiveOperationException {
-        val result = displayedPayload(input);
+    void whenPayloadIsDisplayedThenNumbersArePreserved(String description, String input, String expected) {
+        val result = JWTPolicyInformationPoint.displayPayload(input);
 
         assertThat(result).isEqualTo(ValueJsonMarshaller.json(expected));
     }
@@ -78,18 +61,9 @@ class JWTTokenMetadataTests {
                 arguments("large numeric time", "{\"exp\":1234567890123456789012}", "{\"exp\":1234567890123456789012}"),
                 arguments("null time", "{\"iat\":null}", "{\"iat\":null}"),
                 arguments("text time", "{\"exp\":\"later\"}", "{\"exp\":\"later\"}"),
-                arguments("missing time", "{\"roles\":[\"staff\"]}", "{\"roles\":[\"staff\"]}"));
+                arguments("missing time", "{\"roles\":[\"staff\"]}", "{\"roles\":[\"staff\"]}"),
+                arguments("array payload", "[]", "{}"), arguments("text payload", "\"staff\"", "null"),
+                arguments("null payload", "null", "null"), arguments("incomplete object", "{\"name\":}", "null"));
     }
 
-    private Value displayedPayload(String input) throws ReflectiveOperationException {
-        when(signedJwt.getHeader()).thenReturn(new JWSHeader(JWSAlgorithm.RS256));
-        when(signedJwt.getPayload()).thenReturn(new Payload(input));
-        val pip     = new JWTPolicyInformationPoint(null, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), null);
-        val extract = JWTPolicyInformationPoint.class.getDeclaredMethod("extractParsedToken", SignedJWT.class);
-        extract.setAccessible(true);
-        val parsed  = extract.invoke(pip, signedJwt);
-        val payload = parsed.getClass().getDeclaredMethod("payload");
-        payload.setAccessible(true);
-        return (Value) payload.invoke(parsed);
-    }
 }

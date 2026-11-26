@@ -21,6 +21,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.proc.JWSVerifierFactory;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -462,21 +463,27 @@ public class JWTPolicyInformationPoint {
     private record ParsedToken(Value header, Value payload) {}
 
     private ParsedToken extractParsedToken(SignedJWT signedJwt) {
-        val payload     = ValueJsonMarshaller.json(signedJwt.getPayload().toString());
+        val payload     = displayPayload(signedJwt.getPayload().toString());
         val headerValue = ValueJsonMarshaller
                 .fromJsonNode(MAPPER.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
-        if (!(payload instanceof ObjectValue object)) {
-            return new ParsedToken(headerValue, Value.NULL);
+        return new ParsedToken(headerValue, payload);
+    }
+
+    static Value displayPayload(String json) {
+        if (!(ValueJsonMarshaller.json(json) instanceof ObjectValue object)) {
+            return ValueJsonMarshaller
+                    .fromJsonNode(MAPPER.convertValue(new Payload(json).toJSONObject(), JsonNode.class));
         }
 
         val builder = ObjectValue.builder().putAll(object);
         ifPresentReplaceEpochFieldWithIsoTime(object, builder, "nbf");
         ifPresentReplaceEpochFieldWithIsoTime(object, builder, "exp");
         ifPresentReplaceEpochFieldWithIsoTime(object, builder, "iat");
-        return new ParsedToken(headerValue, builder.build());
+        return builder.build();
     }
 
-    private void ifPresentReplaceEpochFieldWithIsoTime(ObjectValue payload, ObjectValue.Builder builder, String key) {
+    private static void ifPresentReplaceEpochFieldWithIsoTime(ObjectValue payload, ObjectValue.Builder builder,
+            String key) {
         if (!(payload.get(key) instanceof NumberValue(var number)) || number.signum() < 0
                 || number.compareTo(BigDecimal.valueOf(MAX_REASONABLE_EPOCH_SECONDS)) > 0
                 || number.stripTrailingZeros().scale() > 0) {

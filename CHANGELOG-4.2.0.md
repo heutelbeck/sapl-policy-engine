@@ -32,6 +32,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - SAPLTest coverage gates and HTML aggregation distinguish identical policy sources at different file paths.
 
+- The JWT PIP preserves exact JSON numbers in its decoded payload display, including fractional time claims that previously rounded to whole seconds.
+
 ## Security
 
 - A JSON schema could make the engine read resources of the Java class path. A schema naming `classpath:` or `resource:` URIs, or paths below `https://json-schema.org/` other than the meta-schemas, in `$schema` or `$ref` was loaded from the class path, and a missing resource was logged at ERROR with the name the schema gave. Schemas reach the engine in schema statements, in the `jsonschema` function library, whose schemas may come from an authorization subscription, and in the field validation obligations of the Vaadin integration. A schema may now name only the meta-schemas of the drafts 4, 6, 7, 2019-09 and 2020-12 that ship with the validator, and the schemas of the `schemas` variable or of the `externalSchemas` argument by their `$id`. Any other reference, whatever its scheme (`http`, `https`, `file`, `jar`, `classpath` or another), makes the schema invalid: an enforced schema statement refuses the policy at compile time, the library functions return an error, and a Vaadin field validation obligation naming such a schema fails when it is handled. Schemas were never fetched over the network nor read from files. The same fix is in 4.1.4.
