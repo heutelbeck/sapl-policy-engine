@@ -976,6 +976,7 @@ public class GeographicFunctionLibrary {
 
             - Computes the geometric difference by subtracting overlapping areas.
             - Useful for isolating non-intersecting regions.
+            - Unchanged input positions keep their height; heights at newly computed positions may differ between engines.
             """)
     public static Value difference(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::difference);
@@ -1007,6 +1008,7 @@ public class GeographicFunctionLibrary {
 
             - Computes areas that are exclusive to each input geometry.
             - Useful for highlighting non-overlapping regions.
+            - Unchanged input positions keep their height; heights at newly computed positions may differ between engines.
             """)
     public static Value symDifference(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::symDifference);
