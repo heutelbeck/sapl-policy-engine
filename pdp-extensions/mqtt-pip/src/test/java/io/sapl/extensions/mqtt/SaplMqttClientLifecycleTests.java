@@ -30,6 +30,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,6 +55,7 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 import com.hivemq.client.mqtt.mqtt5.message.unsubscribe.Mqtt5UnsubscribeBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.unsubscribe.unsuback.Mqtt5UnsubAck;
 
@@ -159,6 +161,97 @@ class SaplMqttClientLifecycleTests {
                         .isEqualTo(new Observations(1, 0, Value.of("later"), Poll.done(), 0, 1));
             } finally {
                 connection.complete(acknowledgement);
+            }
+        }
+    }
+
+    private record TopicRelease(
+            int liveClients,
+            int disconnectsWhileSecondReaderLives,
+            List<String> releasedWhileSecondReaderLives,
+            Value secondValue,
+            Poll<Value> closedFirstReader,
+            int finalClients,
+            int finalDisconnects,
+            List<String> finalReleasedTopics) {}
+
+    @ValueSource(booleans = { true, false })
+    @ParameterizedTest(name = "first reader closes before subscribe acknowledgement: {0}")
+    @DisplayName("Closing a reader releases its topic even when the subscribe acknowledgement is pending")
+    void whenFirstReaderClosesAroundSubscribeThenOnlyItsTopicIsReleased(boolean closeBeforeAcknowledgement)
+            throws Exception {
+        val pendingSubscription = new CompletableFuture<Mqtt5SubAck>();
+        val firstSubscribing    = new CountDownLatch(1);
+        val subscribing         = new CountDownLatch(2);
+        val workers             = ConcurrentHashMap.<Thread>newKeySet();
+        val callbacks           = new CopyOnWriteArrayList<Consumer<Mqtt5Publish>>();
+        val releasedTopics      = new CopyOnWriteArrayList<String>();
+        val subscribeCalls      = new AtomicInteger();
+        val disconnects         = new AtomicInteger();
+        when(builder.buildAsync()).thenReturn(async);
+        when(async.connect()).thenReturn(CompletableFuture.completedFuture(acknowledgement));
+        when(async.subscribeWith()).thenReturn(subscription);
+        doAnswer(call -> {
+            callbacks.add(call.getArgument(0));
+            return callbackBuilder;
+        }).when(subscription).callback(any());
+        when(callbackBuilder.send()).thenAnswer(call -> {
+            workers.add(Thread.currentThread());
+            subscribing.countDown();
+            if (subscribeCalls.getAndIncrement() == 0) {
+                firstSubscribing.countDown();
+                return pendingSubscription;
+            }
+            return CompletableFuture.completedFuture(null);
+        });
+        when(async.unsubscribeWith()).thenReturn(unsubscribeStart);
+        when(unsubscribeStart.addTopicFilter(any(MqttTopicFilter.class))).thenAnswer(call -> {
+            releasedTopics.add(call.getArgument(0).toString());
+            return unsubscribe;
+        });
+        when(unsubscribe.send()).thenReturn(CompletableFuture.completedFuture(null));
+        when(async.disconnect()).thenAnswer(call -> {
+            disconnects.incrementAndGet();
+            return CompletableFuture.completedFuture(null);
+        });
+        val variables = (ObjectValue) json("""
+                {"mqtt":{"defaultResponseTimeout":0,"brokers":{"default":{"brokerAddress":"in-memory.invalid"}}}}
+                """);
+        val context   = new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+        val clock     = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC);
+        try (val factory = mockStatic(Mqtt5Client.class);
+                val client = new SaplMqttClient(clock, (at, action) -> Cancellable.NOOP)) {
+            factory.when(Mqtt5Client::builder).thenReturn(builder);
+            val pip = new MqttPolicyInformationPoint(client);
+            try (val first = pip.messages(Value.of("room/status"), context)) {
+                await(firstSubscribing);
+                try (val second = pip.messages(Value.of("room/other"), context)) {
+                    if (closeBeforeAcknowledgement) {
+                        first.close();
+                    }
+                    pendingSubscription.complete(null);
+                    await(subscribing);
+                    join(workers);
+                    if (!closeBeforeAcknowledgement) {
+                        first.close();
+                    }
+                    val liveClients       = client.cache().size();
+                    val activeDisconnects = disconnects.get();
+                    val released          = List.copyOf(releasedTopics);
+                    val publish           = Mqtt5Publish.builder().topic("room/other")
+                            .payload("ready".getBytes(StandardCharsets.UTF_8)).build();
+                    callbacks.get(1).accept(publish);
+                    val secondValue = second.awaitNext(Duration.ofSeconds(1));
+                    val closedFirst = first.tryNext();
+                    second.close();
+                    assertThat(new TopicRelease(liveClients, activeDisconnects, released, secondValue, closedFirst,
+                            client.cache().size(), disconnects.get(), List.copyOf(releasedTopics)))
+                            .isEqualTo(new TopicRelease(1, 0, List.of("room/status"), Value.of("ready"), Poll.done(), 0,
+                                    1, List.of("room/status", "room/other")));
+                }
+            } finally {
+                pendingSubscription.complete(null);
+                join(workers);
             }
         }
     }

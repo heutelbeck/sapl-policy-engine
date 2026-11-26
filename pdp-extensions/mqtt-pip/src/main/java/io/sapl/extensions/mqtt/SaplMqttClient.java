@@ -287,6 +287,10 @@ public class SaplMqttClient implements Closeable {
                 // exactly the filters this subscriber actually subscribed, never
                 // the ones a partial failure left unsubscribed.
                 ctx.subscribedFilters.add(filter);
+                if (ctx.closed.get()) {
+                    releaseTopic(ctx, filter);
+                    return;
+                }
             }
         } catch (InterruptedException e) {
             // Interrupt is a shutdown signal, not a broker error. Tear down and
@@ -348,9 +352,15 @@ public class SaplMqttClient implements Closeable {
             // on the broker as one critical section guarded by the same lock the
             // subscribe path uses, so the count and the broker subscription state
             // change atomically per topic.
-            ctx.cached.unsubscribeTopicAtomically(filter.toString(), () -> unsubscribeQuietly(ctx.client, filter));
+            releaseTopic(ctx, filter);
         }
         evictBrokerSubscriber(brokerKey);
+    }
+
+    private static void releaseTopic(SubscriptionContext ctx, MqttTopicFilter filter) {
+        if (ctx.subscribedFilters.remove(filter)) {
+            ctx.cached.unsubscribeTopicAtomically(filter.toString(), () -> unsubscribeQuietly(ctx.client, filter));
+        }
     }
 
     private static void cancelSubscriptionResources(SubscriptionContext ctx, Cancellable timerCancel,

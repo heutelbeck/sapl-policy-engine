@@ -22,6 +22,7 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - JWT metadata retains explicitly supplied header fields such as `b64: true`.
 
 - MQTT keeps a shared connection open when its first reader closes during connection establishment and another reader remains.
+- MQTT releases a topic acknowledged after its reader closes, so the shared client does not retain an unused broker subscription.
 
 - Geo KML and GML conversion accepts one optional leading U+FEFF in decoded text.
 

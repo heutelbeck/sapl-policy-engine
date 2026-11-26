@@ -435,8 +435,10 @@ class SaplMqttClientTests {
 
         private SubscriptionContext context(MqttClientValues client, List<MqttTopicFilter> requested,
                 Set<MqttTopicFilter> subscribed) {
+            val owned = ConcurrentHashMap.<MqttTopicFilter>newKeySet();
+            owned.addAll(subscribed);
             return new SubscriptionContext(client, client.getMqttAsyncClient(), requested, MqttQos.AT_MOST_ONCE,
-                    new AtomicBoolean(false), 1024, subscribed);
+                    new AtomicBoolean(false), 1024, owned);
         }
 
         private JsonNode key() {
