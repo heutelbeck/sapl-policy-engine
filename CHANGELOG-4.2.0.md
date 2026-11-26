@@ -38,7 +38,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
-- `signature` RSA verification requires 2048 to 16384 bits and an odd public exponent from 3 to 8589934591; signature text also accepts URL-safe Base64 with optional padding.
+- `signature` RSA verification requires 2048 to 16384 bits and an odd public exponent from 3 to 8589934591. Signature text also accepts URL-safe Base64 with optional padding.
+- `x509.hasDnsName` requires a nonempty wildcard label and rejects names with a trailing dot. `x509.matchesFingerprint` accepts colon-separated hexadecimal bytes.
 
 - `x509.extractCommonName` returns the CN of the most specific relative name when a subject contains several common names.
 

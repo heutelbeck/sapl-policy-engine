@@ -371,6 +371,7 @@ public class X509FunctionLibrary {
             Computes the certificate fingerprint using the specified algorithm and compares it
             to the expected value. This implements certificate pinning to ensure the exact
             certificate is being used, preventing man-in-the-middle attacks.
+            Expected fingerprints accept hexadecimal digits in either case, with optional colon separators between bytes.
 
             Example: Pin production service certificates
             ```sapl
@@ -390,7 +391,8 @@ public class X509FunctionLibrary {
             if (fingerprintResult instanceof ErrorValue) {
                 return fingerprintResult;
             }
-            val matches = ((TextValue) fingerprintResult).value().equalsIgnoreCase(expectedFingerprint.value());
+            val matches = ((TextValue) fingerprintResult).value()
+                    .equalsIgnoreCase(expectedFingerprint.value().replace(":", ""));
             return Value.of(matches);
         }, "Failed to match fingerprint");
     }
@@ -437,6 +439,7 @@ public class X509FunctionLibrary {
             Common Name is deliberately not consulted, since RFC 9525 deprecates CN-based hostname
             matching. This is simpler than extracting SANs and checking manually, and handles
             wildcard certificates correctly.
+            Wildcards replace exactly one nonempty leftmost label. Names with a trailing dot do not match.
 
             Example: Verify certificate is valid for accessed domain
             ```sapl
@@ -721,30 +724,32 @@ public class X509FunctionLibrary {
         val certName = certificateDnsName.toLowerCase(Locale.ROOT);
         val target   = targetDnsName.toLowerCase(Locale.ROOT);
 
+        if (certName.endsWith(".") || target.endsWith(".")) {
+            return false;
+        }
         if (certName.equals(target)) {
             return true;
         }
 
-        if (certName.startsWith("*.")) {
-            val certBaseDomain = certName.substring(2);
-            // RFC 9525: the wildcard occupies only the leftmost label and may not
-            // contain an embedded or partial wildcard.
-            if (certBaseDomain.contains("*")) {
-                return false;
-            }
-            // RFC 9525: reject wildcards spanning a public suffix or TLD. A safe
-            // wildcard base has at least two labels (e.g. *.example.com), never one
-            // (e.g. *.com).
-            if (certBaseDomain.split("\\.").length < 2) {
-                return false;
-            }
-            // RFC 9525: the wildcard substitutes exactly one leftmost label, so the
-            // target must have exactly one more label than the wildcard base.
-            val targetParts = target.split("\\.", 2);
-            return targetParts.length == 2 && targetParts[1].equals(certBaseDomain);
+        if (!certName.startsWith("*.")) {
+            return false;
         }
-
-        return false;
+        val certBaseDomain = certName.substring(2);
+        // RFC 9525: the wildcard occupies only the leftmost label and may not
+        // contain an embedded or partial wildcard.
+        if (certBaseDomain.contains("*")) {
+            return false;
+        }
+        // RFC 9525: reject wildcards spanning a public suffix or TLD. A safe
+        // wildcard base has at least two labels (e.g. *.example.com), never one
+        // (e.g. *.com).
+        if (certBaseDomain.split("\\.").length < 2) {
+            return false;
+        }
+        // RFC 9525: the wildcard substitutes exactly one leftmost label, so the
+        // target must have exactly one more label than the wildcard base.
+        val targetParts = target.split("\\.", 2);
+        return targetParts.length == 2 && !targetParts[0].isEmpty() && targetParts[1].equals(certBaseDomain);
     }
 
     /**
