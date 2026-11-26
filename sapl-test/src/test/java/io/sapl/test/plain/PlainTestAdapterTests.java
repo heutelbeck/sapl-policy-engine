@@ -204,7 +204,7 @@ class PlainTestAdapterTests {
     void whenFunctionLibraryRegisteredThenScenarioCanUseFunction() {
         val policy   = SaplDocument.of("registered-function", """
                 policy "registered-function"
-                permit registered.allow();
+                permit registered.allow() && units.parse("100") == 100;
                 """);
         val testCode = """
                 requirement "registered function library" {

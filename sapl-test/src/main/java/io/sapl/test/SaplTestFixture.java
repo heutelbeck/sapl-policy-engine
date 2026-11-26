@@ -40,8 +40,8 @@ import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.DefaultLibraries;
 import io.sapl.grammar.antlr.SAPLLexer;
-import io.sapl.functions.libraries.*;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
@@ -121,13 +121,9 @@ import java.util.Map;
 public class SaplTestFixture {
 
     /**
-     * Collection of default function libraries that ship with SAPL.
-     * <p>
-     * These are the most commonly used libraries for policy evaluation.
+     * The built-in function libraries of the embedded PDP.
      */
-    public static final List<Object> DEFAULT_FUNCTION_LIBRARIES = List.of(new StandardFunctionLibrary(),
-            new TemporalFunctionLibrary(), new FilterFunctionLibrary(), new ArrayFunctionLibrary(),
-            new StringFunctionLibrary(), new GraphFunctionLibrary());
+    public static final List<Object> DEFAULT_FUNCTION_LIBRARIES = DefaultLibraries.defaults();
 
     private static final String ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST          = "withBundle not allowed in single test mode.";
     private static final String ERROR_BUNDLE_RESOURCE_NOT_FOUND                  = "Bundle resource not found: %s";
@@ -168,6 +164,7 @@ public class SaplTestFixture {
 
     private final List<Object> functionLibraries       = new ArrayList<>();
     private final List<Object> policyInformationPoints = new ArrayList<>();
+    private boolean includeDefaultFunctionLibraries;
 
     @Getter
     private final MockingFunctionBroker mockingFunctionBroker = new MockingFunctionBroker();
@@ -631,21 +628,13 @@ public class SaplTestFixture {
     }
 
     /**
-     * Registers the default function libraries that ship with SAPL.
-     * <p>
-     * This is a convenience method that loads the most commonly used function
-     * libraries:
-     * <ul>
-     * <li>{@link StandardFunctionLibrary} - standard utility functions</li>
-     * <li>{@link TemporalFunctionLibrary} - date/time functions</li>
-     * <li>{@link FilterFunctionLibrary} - filter and blacken functions</li>
-     * <li>{@link ArrayFunctionLibrary} - array manipulation functions</li>
-     * </ul>
+     * Includes the PDP's built-in function libraries alongside explicitly registered
+     * libraries. A fixture with no explicit libraries already uses the built-ins.
      *
      * @return this fixture for chaining
      */
     public SaplTestFixture withDefaultFunctionLibraries() {
-        functionLibraries.addAll(DEFAULT_FUNCTION_LIBRARIES);
+        includeDefaultFunctionLibraries = true;
         return this;
     }
 
@@ -833,6 +822,13 @@ public class SaplTestFixture {
         var defaultBroker = new DefaultFunctionBroker();
         for (var library : functionLibraries) {
             defaultBroker.load(library);
+        }
+        if (includeDefaultFunctionLibraries || functionLibraries.isEmpty()) {
+            for (val library : DEFAULT_FUNCTION_LIBRARIES) {
+                if (!defaultBroker.getRegisteredLibraries().contains(library.getClass())) {
+                    defaultBroker.load(library);
+                }
+            }
         }
         return defaultBroker;
     }

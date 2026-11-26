@@ -16,6 +16,7 @@
 - SAPLTest rejects ambiguous explicitly named document references and reports the matching paths.
 
 - SAPLTest fixtures retain loaded compiler options while keeping the test index and subscription mode.
+- SAPLTest scenarios can use all built-in PDP function libraries, including JSON and units, without registering them separately.
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 

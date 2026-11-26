@@ -19,6 +19,7 @@ package io.sapl.test;
 
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.Value;
+import lombok.val;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
@@ -325,6 +326,18 @@ class SaplTestFixtureTests {
         var fixture = SaplTestFixture.createSingleTest().withDefaultFunctionLibraries().withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    @DisplayName("a fixture can evaluate a policy using the PDP's built-in JSON and units libraries")
+    void whenPolicyUsesDefaultLibrariesThenTheFixtureCanEvaluateIt() {
+        val policy = """
+                policy "unit price" permit
+                    units.parse(json.jsonToVal(subject).price) == 100;
+                """;
+        val request = AuthorizationSubscription.of("{\"price\":\"100\"}", "read", "invoice");
+        SaplTestFixture.createSingleTest().withPolicy(policy).whenDecide(request).expectPermit()
+                .verify(Duration.ofSeconds(1));
     }
 
     @Test

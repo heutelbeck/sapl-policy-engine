@@ -104,13 +104,12 @@ Streaming tests emit new values to attribute mocks between expectations, just li
 
 ### Registering Libraries and PIPs
 
-When your policies use custom function libraries or PIPs, register them with the fixture. Function libraries are registered by class (the fixture instantiates them). PIPs are registered as instances, which allows injecting dependencies like service clients.
+A fixture with no explicitly registered function libraries uses the built-in libraries of the embedded PDP. SAPLTest scenarios also include these built-ins when the host supplies additional libraries. With the Java fixture API, pass library instances to select specific libraries and call `withDefaultFunctionLibraries()` to include the built-ins alongside them. Pass PIP instances to supply dependencies such as service clients.
 
 ```java
-// Static function library
-.withFunctionLibrary(TemporalFunctionLibrary.class)
+// A custom library alongside the built-ins
+.withFunctionLibrary(new OfficeFunctionLibrary())
 
-// All default function libraries
 .withDefaultFunctionLibraries()
 
 // PIP instance
