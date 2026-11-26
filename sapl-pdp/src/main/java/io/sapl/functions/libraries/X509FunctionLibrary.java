@@ -123,8 +123,7 @@ public class X509FunctionLibrary {
             ```sapl
             policy "pin payment gateway cert"
             permit
-                action == "payment"
-            where
+                action == "payment";
                 x509.matchesFingerprint(
                     resource.serverCertificate,
                     "a4b2c8d1e5f6789012345678901234567890abcdef1234567890abcdef123456",
@@ -227,7 +226,7 @@ public class X509FunctionLibrary {
             Example: Restrict access to specific department
             ```sapl
             policy "allow hr department only"
-            permit action == "read" && resource.type == "personnel-records"
+            permit action == "read" && resource.type == "personnel-records";
               var subjectDn = x509.extractSubjectDn(request.clientCertificate);
               subjectDn =~ "OU=Human Resources,O=Acme Corp";
             ```
@@ -355,7 +354,7 @@ public class X509FunctionLibrary {
             Example: Certificate pinning for critical services
             ```sapl
             policy "pin database certificate"
-            permit action == "query" && resource.type == "production-db"
+            permit action == "query" && resource.type == "production-db";
               var fingerprint = x509.extractFingerprint(request.clientCertificate, "SHA-256");
               x509.matchesFingerprint(request.clientCertificate, resource.expectedFingerprint, "SHA-256");
             ```
@@ -375,7 +374,7 @@ public class X509FunctionLibrary {
             Example: Pin production service certificates
             ```sapl
             policy "verify pinned certificate"
-            permit action == "connect" && resource.type == "payment-gateway"
+            permit action == "connect" && resource.type == "payment-gateway";
               x509.matchesFingerprint(
                 request.clientCertificate,
                 "a1b2c3d4e5f6...",
@@ -565,7 +564,7 @@ public class X509FunctionLibrary {
             Example: Check validity during maintenance window
             ```sapl
             policy "maintenance window access"
-            permit action == "admin" && resource.type == "production"
+            permit action == "admin" && resource.type == "production";
               var maintenanceStart = "2025-06-15T02:00:00Z";
               x509.isValidAt(request.adminCertificate, maintenanceStart);
             ```
