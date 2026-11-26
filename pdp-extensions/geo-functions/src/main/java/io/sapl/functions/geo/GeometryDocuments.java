@@ -62,7 +62,9 @@ class GeometryDocuments {
         factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         val builder = factory.newDocumentBuilder();
         builder.setErrorHandler(new DefaultHandler());
-        val root   = builder.parse(new InputSource(new StringReader(text))).getDocumentElement();
+        val root   = builder
+                .parse(new InputSource(new StringReader(text.startsWith("\uFEFF") ? text.substring(1) : text)))
+                .getDocumentElement();
         val result = new ArrayList<Geometry>();
         collect(root, configuration, kml, result, 0);
         return result;

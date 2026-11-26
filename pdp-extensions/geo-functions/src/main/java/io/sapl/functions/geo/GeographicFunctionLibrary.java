@@ -80,6 +80,7 @@ public class GeographicFunctionLibrary {
             5. **Collection Operations:** Combine, subset, and test membership of geometries within collections.
             6. **Unit Conversions:** Convert measurements between units such as miles, yards, and degrees into meters.
             7. **Format Conversions:** Parse and convert geographic data between KML, GML, WKT, and GeoJSON formats.
+               KML and GML text may start with one U+FEFF byte order mark.
                KML and GML accept spaces, tabs and line breaks between coordinate tuples. In a GML `coordinates` element,
                the `ts` attribute can declare a different separator, including a nonbreaking space.
 

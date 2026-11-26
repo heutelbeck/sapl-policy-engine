@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import lombok.val;
 
@@ -74,4 +75,30 @@ class GeometryDocumentsTests {
                 {"type":"LineString","coordinates":[[1,2],[3,4]]}
                 """));
     }
+
+    static Stream<Arguments> leadingMarkers() {
+        return Arrays.stream(XmlFormat.values())
+                .flatMap(format -> Stream.of(arguments(format, "plain", "", true),
+                        arguments(format, "one leading mark", "\uFEFF", true),
+                        arguments(format, "two leading marks", "\uFEFF\uFEFF", false)));
+    }
+
+    @ParameterizedTest(name = "{0}, {1}")
+    @MethodSource("leadingMarkers")
+    @DisplayName("Decoded geographic XML text accepts exactly one optional leading byte order mark")
+    void whenGeographicMarkupStartsWithByteOrderMarkThenExactlyOneIsAllowed(XmlFormat format, String description,
+            String prefix, boolean accepted) {
+        val namespace = format == XmlFormat.KML ? "http://www.opengis.net/kml/2.2" : "http://www.opengis.net/gml";
+        val document  = "<Point xmlns=\"%s\"><coordinates>1,2</coordinates></Point>".formatted(namespace);
+        val input     = Value.of(prefix + document);
+        val result    = switch (format) {
+                      case KML  -> GeographicFunctionLibrary.kmlToGeoJSON(input);
+                      case GML2 -> GeographicFunctionLibrary.gml2ToGeoJSON(input);
+                      case GML3 -> GeographicFunctionLibrary.gml3ToGeoJSON(input);
+                      };
+        val actual    = accepted ? result : Value.of(result instanceof ErrorValue);
+        val expected  = accepted ? json("{\"type\":\"Point\",\"coordinates\":[1,2]}") : Value.TRUE;
+        assertThat(actual).isEqualTo(expected);
+    }
+
 }
