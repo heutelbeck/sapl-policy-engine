@@ -26,6 +26,7 @@ import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
 import io.sapl.lsp.configuration.LSPConfiguration;
 import io.sapl.lsp.sapl.evaluation.ExpressionEvaluator;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.misc.IntervalSet;
 import tools.jackson.databind.JsonNode;
@@ -43,7 +44,8 @@ import java.util.Map;
 /**
  * Generates code completion proposals from JSON Schema definitions.
  * Supports JSON Schema features including $ref, allOf/anyOf/oneOf,
- * properties, items, prefixItems, and external schema references.
+ * properties, items, prefixItems, and explicitly supplied schema references.
+ * Local references within a supplied schema keep that document as their root.
  */
 @UtilityClass
 public class SchemaProposalsGenerator {
@@ -138,26 +140,27 @@ public class SchemaProposalsGenerator {
         definitions.put(idIfPresentOrDefaultId(schema), schema);
     }
 
-    private JsonNode lookupReferencedSchema(JsonNode baseSchema, JsonNode referenceNode,
+    private record ResolvedSchema(JsonNode document, JsonNode schema) {}
+
+    private ResolvedSchema lookupReferencedSchema(JsonNode baseSchema, JsonNode referenceNode,
             Map<String, JsonNode> definitions) {
         if (!referenceNode.isString()) {
             return null;
         }
-        var reference = referenceNode.asString();
+        val reference = referenceNode.asString();
         try {
-            var ref = URI.create(reference);
+            val ref      = URI.create(reference);
+            var document = baseSchema;
+            var fragment = reference;
             if (ref.isAbsolute()) {
-                var schema = definitions.get(withoutFragment(ref).toString());
-                if (schema == null) {
-                    return null;
-                }
-                var fragment = ref.getFragment();
-                if (fragment == null) {
-                    return schema;
-                }
-                return lookupFragmentReference(schema, fragment);
+                document = definitions.get(withoutFragment(ref).toString());
+                fragment = ref.getFragment();
             }
-            return lookupFragmentReference(baseSchema, reference);
+            if (document == null) {
+                return null;
+            }
+            val target = fragment == null ? document : lookupFragmentReference(document, fragment);
+            return target == null ? null : new ResolvedSchema(document, target);
         } catch (URISyntaxException | IllegalArgumentException e) {
             return null;
         }
@@ -258,11 +261,11 @@ public class SchemaProposalsGenerator {
         }
 
         if (schema.has(REF)) {
-            // Increment depth on the $ref edge so a self-referential $ref that never
-            // passes through properties/items still advances toward MAX_DEPTH instead
-            // of recursing forever (StackOverflowError on a cyclic schema).
-            addProposals(baseSchema, prefix, lookupReferencedSchema(baseSchema, schema.get(REF), definitions),
-                    definitions, proposals, recursionDepth + 1);
+            val resolved = lookupReferencedSchema(baseSchema, schema.get(REF), definitions);
+            if (resolved != null) {
+                addProposals(resolved.document(), prefix, resolved.schema(), definitions, proposals,
+                        recursionDepth + 1);
+            }
             return;
         }
 

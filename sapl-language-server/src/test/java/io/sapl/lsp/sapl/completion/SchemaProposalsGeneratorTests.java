@@ -716,7 +716,40 @@ class SchemaProposalsGeneratorTests {
                                 }
                             }
                         }
-                        """, new String[] { ".firstName", ".age", ".parent" }));
+                        """, new String[] { ".firstName", ".age", ".parent" }),
+                arguments("when_suppliedSchemasShareAFragmentName_then_eachKeepsItsOwnRoot", List.of("""
+                        {
+                            "$id": "urn:audit:left",
+                            "$defs": {
+                                "redirect": { "$ref": "#/$defs/item" },
+                                "item": { "properties": { "leftField": {} } }
+                            }
+                        }
+                        """, """
+                        {
+                            "$id": "urn:audit:right",
+                            "$defs": {
+                                "redirect": { "$ref": "#/$defs/item" },
+                                "item": { "properties": { "rightField": {} } }
+                            }
+                        }
+                        """), """
+                        {
+                            "$defs": { "item": { "properties": { "wrongRoot": {} } } },
+                            "properties": {
+                                "left": { "$ref": "urn:audit:left#/$defs/redirect" },
+                                "right": { "$ref": "urn:audit:right#/$defs/redirect" }
+                            }
+                        }
+                        """, new String[] { ".left", ".left.leftField", ".right", ".right.rightField" }),
+                arguments("when_suppliedRootUsesLocalPointer_then_followItsDocument", List.of("""
+                        {
+                            "$id": "urn:audit:chain", "$ref": "#/$defs/item",
+                            "$defs": { "item": { "properties": { "city": {} } } }
+                        }
+                        """), """
+                        { "$ref": "urn:audit:chain" }
+                        """, new String[] { ".city" }));
     }
 
     private static String[] recursiveSchemaExpectedProposals() {
