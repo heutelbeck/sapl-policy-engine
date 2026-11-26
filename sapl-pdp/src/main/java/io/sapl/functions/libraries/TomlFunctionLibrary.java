@@ -88,6 +88,8 @@ public class TomlFunctionLibrary {
     @Function(docs = """
             ```tomlToVal(TEXT toml)```: Converts a well-formed TOML document into a SAPL value
             representing the content of the TOML document. Integers must fit in a signed 64-bit value.
+            Date-time values become text. A UTC suffix written as `z` or `Z` is returned as `Z`.
+            Numeric offsets and fractional digits are preserved.
 
             Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
             depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.
