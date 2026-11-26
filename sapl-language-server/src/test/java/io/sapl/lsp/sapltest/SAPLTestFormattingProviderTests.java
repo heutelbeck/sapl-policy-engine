@@ -22,10 +22,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import io.sapl.test.grammar.antlr.SAPLTestLexer;
 
 @DisplayName("SAPLTest formatting provider")
 class SAPLTestFormattingProviderTests {
@@ -126,6 +131,104 @@ class SAPLTestFormattingProviderTests {
             });
         }
 
+    }
+
+    @Nested
+    @DisplayName("script preservation")
+    class ScriptPreservation {
+
+        @Test
+        @DisplayName("matcher keywords remain separate and values retain their spelling")
+        void whenFormattingMatchersThenScriptRemainsValid() {
+            var source = """
+                    requirement "matchers" {
+                        given
+                            - function demo.echo(matching text containing "when - { value } // text") maps to "ok"
+                        scenario "values"
+                            when "when - { value } // text" attempts "read" on "report"
+                            expect decision is permit, with resource equals {"a":"x", "b":[1,-2,3.50]};
+                    }
+                    """;
+
+            assertThat(formatStable(source)).contains("matching text containing", "is permit", "with resource equals",
+                    "\"when - { value } // text\"", "3.50");
+        }
+
+        @ParameterizedTest(name = "verification: {0}")
+        @ValueSource(strings = { "called once", "called 2 times", "never called" })
+        @DisplayName("function and attribute call counts retain their grammar")
+        void whenFormattingVerificationThenScriptRemainsValid(String amount) {
+            for (var reference : List.of("function demo.echo(any)", "attribute <demo.counter>")) {
+                var source = """
+                        requirement "verification" {
+                            scenario "count"
+                                when "Alice" attempts "read" on "report"
+                                expect permit
+                                verify
+                                    - %s is %s;
+                        }
+                        """.formatted(reference, amount);
+
+                assertThat(formatStable(source)).contains(reference + " is " + amount);
+            }
+        }
+
+        @ParameterizedTest(name = "low-latency-mode {0}")
+        @ValueSource(booleans = { true, false })
+        @DisplayName("the scheduling option remains a single given item")
+        void whenFormattingSchedulingOptionThenScriptRemainsValid(boolean enabled) {
+            var source = """
+                    requirement "scheduling" {
+                        given
+                            - low-latency-mode %s
+                        scenario "normal"
+                            when "Alice" attempts "read" on "report"
+                            expect permit;
+                    }
+                    """.formatted(enabled);
+
+            assertThat(formatStable(source)).contains("- low-latency-mode " + enabled);
+        }
+
+        @Test
+        @DisplayName("comments inside values and after the last requirement are retained")
+        void whenFormattingCommentsThenAuthorTextIsRetained() {
+            var source    = """
+                    /* heading */
+                    requirement "comments" {
+                        given
+                            - documents "first", /* selection */ "second"
+                        scenario "values"
+                            when {"name": /* field */ "Alice", "tags": ["north" /* last item */]}
+                                attempts "read" on "report"
+                            expect permit; // scenario note
+                    } // final note
+                    """;
+            var before    = new SAPLTestParsedDocument("test.sapltest", source);
+            var formatted = formatStable(source);
+            var after     = new SAPLTestParsedDocument("test.sapltest", formatted);
+
+            assertThat(comments(after)).containsExactlyElementsOf(comments(before));
+        }
+    }
+
+    private String formatStable(String source) {
+        var original = new SAPLTestParsedDocument("test.sapltest", source);
+        assertThat(original.getParseErrors()).isEmpty();
+        var first = provider.provideFormatting(original);
+        assertThat(first).hasSize(1);
+        var formatted = first.getFirst().getNewText();
+        var reparsed  = new SAPLTestParsedDocument("test.sapltest", formatted);
+        assertThat(reparsed.getParseErrors()).isEmpty();
+        assertThat(provider.provideFormatting(reparsed)).hasSize(1).first()
+                .satisfies(edit -> assertThat(edit.getNewText()).isEqualTo(formatted));
+        return formatted;
+    }
+
+    private List<String> comments(SAPLTestParsedDocument document) {
+        return document.getTokens().stream().filter(
+                token -> token.getType() == SAPLTestLexer.ML_COMMENT || token.getType() == SAPLTestLexer.SL_COMMENT)
+                .map(token -> token.getText().strip()).toList();
     }
 
     @Nested

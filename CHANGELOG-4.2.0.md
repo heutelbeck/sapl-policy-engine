@@ -4,6 +4,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 - LSP formatting preserves comments inside policy expressions, between imports and at the end of documents.
 
+- SAPLTest formatting preserves matchers, call-count verification, scheduling options and comments, keeping valid test scripts executable.
+
 - LSP completion snippets preserve dollar signs in private function parameter names.
 
 - LSP attribute completions offer receiver finders after an entity and environment finders without one.

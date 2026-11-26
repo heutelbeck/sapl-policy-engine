@@ -21,14 +21,10 @@ import static io.sapl.lsp.core.FormattingConstants.INDENT;
 import static io.sapl.lsp.core.FormattingConstants.LINE_WIDTH;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
@@ -54,6 +50,7 @@ import io.sapl.test.grammar.antlr.SAPLTestParser.FunctionParametersContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.FunctionVerificationContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.GivenContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.GivenItemContext;
+import io.sapl.test.grammar.antlr.SAPLTestParser.LowLatencyModeGivenItemContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.MatcherExpectationContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.MockGivenItemContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.MultipleDocumentsContext;
@@ -87,7 +84,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     private static final String WHEN      = "when ";
 
     private final CommonTokenStream tokenStream;
-    private final Set<Token>        emittedComments = new HashSet<>();
+    private int                     nextCommentIndex;
 
     SAPLTestFormattingVisitor(CommonTokenStream tokenStream) {
         this.tokenStream = tokenStream;
@@ -104,6 +101,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             appendComments(sb, requirements.get(i).getStart(), "");
             sb.append(visitRequirement(requirements.get(i)));
         }
+        appendComments(sb, ctx.EOF().getSymbol(), "");
         val result = sb.toString();
         if (!result.endsWith("\n")) {
             return result + "\n";
@@ -114,7 +112,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     @Override
     public String visitRequirement(RequirementContext ctx) {
         val sb = new StringBuilder();
-        sb.append("requirement ").append(ctx.name.getText()).append(" {\n");
+        sb.append("requirement ").append(tokenText(ctx.name)).append(" {\n");
         sb.append('\n');
 
         if (ctx.given() != null) {
@@ -131,6 +129,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         }
 
         sb.append('\n');
+        appendComments(sb, ctx.RBRACE().getSymbol(), INDENT);
         sb.append("}\n");
         return sb.toString();
     }
@@ -156,12 +155,12 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     @Override
     public String visitFunctionName(FunctionNameContext ctx) {
-        return ctx.parts.stream().map(ParseTree::getText).collect(Collectors.joining("."));
+        return ctx.parts.stream().map(this::visit).collect(Collectors.joining("."));
     }
 
     @Override
     public String visitAttributeName(AttributeNameContext ctx) {
-        return ctx.parts.stream().map(ParseTree::getText).collect(Collectors.joining("."));
+        return ctx.parts.stream().map(this::visit).collect(Collectors.joining("."));
     }
 
     @Override
@@ -175,7 +174,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
                 sb.append(visit(ctx.matchers.get(i)));
             }
         }
-        sb.append(')');
+        sb.append(getCommentsBeforeToken(ctx.RPAREN().getSymbol())).append(')');
         return sb.toString();
     }
 
@@ -190,7 +189,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
                 sb.append(visit(ctx.matchers.get(i)));
             }
         }
-        sb.append(')');
+        sb.append(getCommentsBeforeToken(ctx.RPAREN().getSymbol())).append(')');
         return sb.toString();
     }
 
@@ -253,7 +252,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     @Override
     public String visitPair(PairContext ctx) {
-        return ctx.key.getText() + ": " + visit(ctx.pairValue);
+        return tokenText(ctx.key) + ": " + visit(ctx.pairValue);
     }
 
     @Override
@@ -264,14 +263,14 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     @Override
     public String visitErrorValue(ErrorValueContext ctx) {
         if (ctx.message != null) {
-            return "error(" + ctx.message.getText() + ")";
+            return "error(" + tokenText(ctx.message) + ")";
         }
         return "error";
     }
 
     @Override
     public String visitTerminal(TerminalNode node) {
-        return node.getText();
+        return tokenText(node.getSymbol());
     }
 
     @Override
@@ -287,7 +286,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         if (nextResult == null || nextResult.isEmpty()) {
             return aggregate;
         }
-        return aggregate + nextResult;
+        return aggregate + " " + nextResult;
     }
 
     private String formatScenario(ScenarioContext ctx) {
@@ -295,7 +294,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
         appendComments(sb, ctx.getStart(), INDENT);
 
-        sb.append(INDENT).append("scenario ").append(ctx.name.getText()).append('\n');
+        sb.append(INDENT).append("scenario ").append(tokenText(ctx.name)).append('\n');
 
         if (ctx.given() != null) {
             sb.append(formatGiven(ctx.given(), INDENT2));
@@ -341,17 +340,20 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         if (ctx instanceof PdpConfigurationGivenItemContext pdpCtx) {
             return "pdp-configuration " + pdpCtx.pdpConfigurationSpecification().path.getText();
         }
+        if (ctx instanceof LowLatencyModeGivenItemContext latencyCtx) {
+            return visit(latencyCtx.lowLatencyModeSpecification());
+        }
         return ctx.getText();
     }
 
     @Override
     public String visitSingleDocument(SingleDocumentContext ctx) {
-        return "document " + ctx.identifier.getText();
+        return "document " + tokenText(ctx.identifier);
     }
 
     @Override
     public String visitMultipleDocuments(MultipleDocumentsContext ctx) {
-        val docs = ctx.identifiers.stream().map(Token::getText).collect(Collectors.joining(", "));
+        val docs = ctx.identifiers.stream().map(this::tokenText).collect(Collectors.joining(", "));
         return "documents " + docs;
     }
 
@@ -369,7 +371,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     @Override
     public String visitAttributeMock(AttributeMockContext ctx) {
         val sb = new StringBuilder(ATTRIBUTE);
-        sb.append(ctx.mockId.getText()).append(' ');
+        sb.append(tokenText(ctx.mockId)).append(' ');
         sb.append(visit(ctx.attributeReference()));
         if (ctx.initialValue != null) {
             sb.append(" emits ").append(visit(ctx.initialValue));
@@ -534,7 +536,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
     @Override
     public String visitAttributeEmitStep(AttributeEmitStepContext ctx) {
-        return ATTRIBUTE + ctx.mockId.getText() + " emits " + visit(ctx.emittedValue);
+        return ATTRIBUTE + tokenText(ctx.mockId) + " emits " + visit(ctx.emittedValue);
     }
 
     private String formatVerifyBlock(VerifyBlockContext ctx) {
@@ -559,7 +561,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
         if (ctx.functionParameters() != null) {
             sb.append(visitFunctionParameters(ctx.functionParameters()));
         }
-        sb.append(" is called ").append(visit(ctx.timesCalled));
+        sb.append(" is ").append(visit(ctx.timesCalled));
         return sb.toString();
     }
 
@@ -567,14 +569,14 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     public String visitAttributeVerification(AttributeVerificationContext ctx) {
         val sb = new StringBuilder(ATTRIBUTE);
         sb.append(visit(ctx.attributeReference()));
-        sb.append(" is called ").append(visit(ctx.timesCalled));
+        sb.append(" is ").append(visit(ctx.timesCalled));
         return sb.toString();
     }
 
     String formatObjectValue(ObjectValueContext ctx, int indentLevel) {
         val pairs = ctx.pair();
         if (pairs.isEmpty()) {
-            return "{}";
+            return "{" + getCommentsBeforeToken(ctx.RBRACE().getSymbol()) + "}";
         }
 
         val indent      = INDENT.repeat(indentLevel);
@@ -582,11 +584,12 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
 
         val formattedPairs = new ArrayList<String>();
         for (val pair : pairs) {
-            formattedPairs.add(pair.key.getText() + ": " + visit(pair.pairValue));
+            formattedPairs.add(tokenText(pair.key) + ": " + visit(pair.pairValue));
         }
 
+        val trailingComments = getCommentsBeforeToken(ctx.RBRACE().getSymbol());
         if (formattedPairs.size() == 1) {
-            return "{ " + formattedPairs.getFirst() + " }";
+            return "{ " + formattedPairs.getFirst() + " " + trailingComments + "}";
         }
 
         val sb = new StringBuilder("{\n");
@@ -597,13 +600,13 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             }
             sb.append('\n');
         }
-        sb.append(indent).append('}');
+        sb.append(trailingComments).append(indent).append('}');
         return sb.toString();
     }
 
     String formatArrayValue(ArrayValueContext ctx, int indentLevel) {
         if (ctx.items == null || ctx.items.isEmpty()) {
-            return "[]";
+            return "[" + getCommentsBeforeToken(ctx.RBRACKET().getSymbol()) + "]";
         }
 
         val indent      = INDENT.repeat(indentLevel);
@@ -614,7 +617,9 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             formattedItems.add(visit(item));
         }
 
-        val inline = "[" + String.join(", ", formattedItems) + "]";
+        val trailingComments = getCommentsBeforeToken(ctx.RBRACKET().getSymbol());
+        val inline           = "[" + String.join(", ", formattedItems)
+                + (trailingComments.isEmpty() ? "" : " " + trailingComments) + "]";
         if (inline.length() + indent.length() <= LINE_WIDTH) {
             return inline;
         }
@@ -627,7 +632,7 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             }
             sb.append('\n');
         }
-        sb.append(indent).append(']');
+        sb.append(trailingComments).append(indent).append(']');
         return sb.toString();
     }
 
@@ -644,18 +649,12 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
     }
 
     private String getCommentsBeforeToken(Token token) {
-        val hidden = tokenStream.getHiddenTokensToLeft(token.getTokenIndex());
-        if (hidden == null) {
-            return "";
-        }
         val sb = new StringBuilder();
-        for (val hiddenToken : hidden) {
-            if (emittedComments.contains(hiddenToken)) {
-                continue;
-            }
-            val type = hiddenToken.getType();
+        // Structured visitors may skip tokens between their explicit formatting anchors.
+        while (nextCommentIndex < token.getTokenIndex()) {
+            val hiddenToken = tokenStream.get(nextCommentIndex++);
+            val type        = hiddenToken.getType();
             if (type == SAPLTestLexer.ML_COMMENT || type == SAPLTestLexer.SL_COMMENT) {
-                emittedComments.add(hiddenToken);
                 if (type == SAPLTestLexer.ML_COMMENT) {
                     sb.append(formatMultiLineComment(hiddenToken.getText()));
                 } else {
@@ -665,6 +664,10 @@ class SAPLTestFormattingVisitor extends SAPLTestParserBaseVisitor<String> {
             }
         }
         return sb.toString();
+    }
+
+    private String tokenText(Token token) {
+        return getCommentsBeforeToken(token) + token.getText();
     }
 
     private String formatMultiLineComment(String text) {
