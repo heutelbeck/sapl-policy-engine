@@ -2,6 +2,8 @@
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 
+- MQTT JSON message payloads preserve decimal precision in SAPL values.
+
 - SDK library documentation names Null, Undefined and Error parameters, including typed varargs.
 
 - LSP formatting preserves comments inside policy expressions, between imports and at the end of documents.

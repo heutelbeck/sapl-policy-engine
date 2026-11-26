@@ -40,6 +40,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
@@ -80,6 +81,22 @@ class SaplMqttClientTests {
         val result = SaplMqttClient.decodePublish(publish, 1024);
 
         assertThat(result).isEqualTo(Value.of("hello"));
+    }
+
+    @Test
+    @DisplayName("JSON MQTT payloads preserve decimal precision for policy comparisons")
+    void whenJsonPayloadContainsPreciseDecimalThenValuePreservesIt() {
+        val payload  = """
+                {"celsius":22.000000000000000001}
+                """;
+        val publish  = Mqtt5Publish.builder().topic("office/temperature")
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8).contentType("application/json")
+                .payload(payload.getBytes(StandardCharsets.UTF_8)).build();
+        val expected = ObjectValue.builder().put("celsius", Value.of(new BigDecimal("22.000000000000000001"))).build();
+
+        val result = SaplMqttClient.decodePublish(publish, 1024);
+
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
