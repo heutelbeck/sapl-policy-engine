@@ -19,6 +19,7 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
@@ -200,10 +201,7 @@ public class JsonFunctionLibrary {
 
         @Override
         public JsonGenerator writeNumber(BigDecimal number) {
-            val integer = number.longValue();
-            // The comparison detects both truncation of a fraction and overflow of a long.
-            return number.compareTo(BigDecimal.valueOf(integer)) == 0 ? super.writeNumber(integer)
-                    : super.writeNumber(number);
+            return super.writeNumber(NumberValueLimits.textFormatNumber(number));
         }
     }
 }

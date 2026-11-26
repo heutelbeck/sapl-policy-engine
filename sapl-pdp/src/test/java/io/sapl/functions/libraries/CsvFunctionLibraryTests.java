@@ -37,6 +37,16 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class CsvFunctionLibraryTests {
 
     @Test
+    @DisplayName("whole numeric cells use plain integers and fractional cells retain their scale")
+    void whenWritingNumericCellsThenUsesPlainIntegersAndPreservesFractions() {
+        val data = (ArrayValue) ValueJsonMarshaller.json("""
+                [{"n":100.00},{"n":1e3},{"n":-2.0},{"n":2.50}]
+                """);
+
+        assertThat(CsvFunctionLibrary.valToCsv(data)).isEqualTo(Value.of("n\r\n100\r\n1000\r\n-2\r\n2.50\r\n"));
+    }
+
+    @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.load(new CsvFunctionLibrary())).doesNotThrowAnyException();

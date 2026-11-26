@@ -260,6 +260,7 @@ public class CsvFunctionLibrary {
             keys for consistent output. Returns an empty string for empty arrays. Cells must be text,
             numbers, booleans or null. If two distinct field names in any object become the same
             header after formula escaping, the entire export is rejected. Records end in CRLF.
+            Whole numbers in the signed 64-bit range are written as plain integers, for example `100.00` as `100`.
 
             To prevent CSV formula injection, a cell whose text begins with =, +, -, @, a tab,
             or a carriage return is prefixed with a single quote, so a spreadsheet that opens
@@ -375,7 +376,10 @@ public class CsvFunctionLibrary {
         if (cell instanceof TextValue(String text)) {
             return Value.of(escapeFormula(text));
         }
-        if (cell instanceof NullValue || cell instanceof NumberValue || cell instanceof BooleanValue) {
+        if (cell instanceof NumberValue number) {
+            return Value.of(NumberValueLimits.textFormatNumber(number.value()));
+        }
+        if (cell instanceof NullValue || cell instanceof BooleanValue) {
             return cell;
         }
         throw new IllegalArgumentException(ERROR_CELL_MUST_BE_SCALAR);

@@ -73,6 +73,19 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
+    @DisplayName("whole numeric values use plain integers and fractional values retain their scale")
+    void whenWritingNumbersThenUsesPlainIntegersAndPreservesFractions() {
+        val data = ValueJsonMarshaller.json("[100.00,1e3,-2.0,2.50]");
+
+        assertThat(YamlFunctionLibrary.valToYaml(data)).isEqualTo(Value.of("""
+                - 100
+                - 1000
+                - -2
+                - 2.50
+                """));
+    }
+
+    @Test
     void whenWritingNestedSettingsThenTheBlockTextPreservesTypesAndKeyOrder() {
         val settings = ValueJsonMarshaller.json("{\"name\":\"North\",\"on\":[{\"code\":2.50},true],\"empty\":{}}");
         val yaml     = """

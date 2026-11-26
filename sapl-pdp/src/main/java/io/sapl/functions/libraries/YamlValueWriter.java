@@ -97,7 +97,7 @@ final class YamlValueWriter {
             case TextValue(String text)     -> writeQuoted(output, text);
             case NullValue ignored          -> output.write("null");
             case BooleanValue(boolean flag) -> output.write(Boolean.toString(flag));
-            case NumberValue number         -> output.write(NumberValueLimits.wireNumber(number.value()).toString());
+            case NumberValue number         -> output.write(NumberValueLimits.textFormatNumber(number.value()).toString());
             case ArrayValue ignored         -> output.write("[]");
             case ObjectValue ignored        -> output.write("{}");
             }

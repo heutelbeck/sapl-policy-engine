@@ -58,6 +58,8 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 
 ## Breaking changes
 
+- `yaml.valToYaml` and `csv.valToCsv` write whole signed 64-bit numbers as plain integers. For example, `100.00` becomes `100`.
+
 - Use `sapl --version` to print the CLI version. The bundle commands no longer accept their unused version flag.
 
 - SAPLTest runners reject duplicate requirement names within a file and duplicate scenario names within a requirement before executing the document.

@@ -119,8 +119,9 @@ public class YamlFunctionLibrary {
     @Function(docs = """
             ```valToYaml(value)```: Writes one YAML document in block style, with two spaces per level
             and a final line break. Strings use JSON quotes and escapes. An ASCII identifier
-            used as a key stays plain unless it denotes a YAML boolean or null. Numbers use SAPL
-            wire notation. Empty arrays and objects are written as `[]` and `{}`.
+            used as a key stays plain unless it denotes a YAML boolean or null. Whole numbers in the signed
+            64-bit range are written as plain integers, for example `100.00` as `100`. Other numbers use
+            SAPL wire notation. Empty arrays and objects are written as `[]` and `{}`.
 
             **Example:**
             ```sapl

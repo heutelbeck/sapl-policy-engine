@@ -135,6 +135,18 @@ public class NumberValueLimits {
         return value.stripTrailingZeros();
     }
 
+    /**
+     * Spells whole signed 64-bit values as plain integers for JSON, YAML and CSV
+     * text output. Other numbers use their wire spelling.
+     *
+     * @param value the number to write
+     * @return a decimal with the output scale
+     */
+    public static BigDecimal textFormatNumber(BigDecimal value) {
+        val integer = BigDecimal.valueOf(value.longValue());
+        return value.compareTo(integer) == 0 ? integer : wireNumber(value);
+    }
+
     private static boolean isDecimalNumber(String literal) {
         var position = 0;
         if (!literal.isEmpty() && (literal.charAt(0) == '+' || literal.charAt(0) == '-')) {
