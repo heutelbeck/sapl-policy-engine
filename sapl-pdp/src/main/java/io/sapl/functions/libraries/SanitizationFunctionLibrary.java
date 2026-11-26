@@ -111,11 +111,11 @@ public class SanitizationFunctionLibrary {
 
             // Numeric IDs
             var userId = environment.userId;
-            userId =~ "^\\d{1,10}$";
+            userId =~ "^\\\\d{1,10}$";
 
             // Department codes
             var deptCode = environment.deptCode;
-            deptCode =~ "^DEPT-[A-Z]{2}-\\d{3}$";
+            deptCode =~ "^DEPT-[A-Z]{2}-\\\\d{3}$";
             ```
 
             Use this library when input is open-ended or when writing an allow-list would be impractical.
