@@ -67,9 +67,8 @@ public class KeysFunctionLibrary {
     public static final String DOCUMENTATION = """
             # Keys Function Library
 
-            Parse and convert cryptographic keys between PEM and JWK formats. Handles RSA keys at 2048 bits and above,
-            EC keys on P-256, P-384, and P-521 curves, and EdDSA keys using Ed25519. All key types support full
-            bidirectional PEM and JWK conversion following RFC 7517 and RFC 7518.
+            Inspect public keys in PEM format and convert them to and from JWK. RSA keys from 512 to 16384 bits,
+            EC keys on P-256, P-384 and P-521, and Ed25519 keys support both formats. Ed448 keys can be inspected in PEM.
 
             PEM public key inputs on other EC curves are unsupported.
 
@@ -77,26 +76,25 @@ public class KeysFunctionLibrary {
             and curveFromKey. Extract public keys from X.509 certificates using publicKeyFromCertificate. Convert
             between formats with jwkFromPublicKey (PEM to JWK) and publicKeyFromJwk (JWK to PEM).
 
-            ## OAuth/OIDC Token Validation
+            ## Reading a JSON Web Key Set
 
-            Fetch and use public keys from OAuth providers:
+            Inspect a public key supplied in a JWK Set:
 
             ```sapl
-            policy "validate access token"
+            policy "read a key from a JSON Web Key Set"
             permit action == "api.call";
-              // Assume JWKS already retrieved via HTTP PIP
-              var signingKey = keys.publicKeyFromJwk(resource.jwks.keys[0]);
-              jwt.verify(request.token, signingKey);
+              var key = keys.publicKeyFromJwk(resource.jwks.keys[0]);
+              keys.algorithmFromKey(key) == "RSA";
             ```
 
             ## Certificate-Based Access Control
 
-            Extract and validate keys from client certificates:
+            Read the algorithm and size of the public key in a client certificate:
 
             ```sapl
             policy "require strong client cert"
             permit action == "admin.access";
-              var publicKey = keys.publicKeyFromCertificate(request.clientCert);
+              var publicKey = keys.publicKeyFromCertificate(subject.clientCert);
               var algorithm = keys.algorithmFromKey(publicKey);
               var keySize = keys.sizeFromKey(publicKey);
 
@@ -116,12 +114,12 @@ public class KeysFunctionLibrary {
 
               // Allow only EC P-256 or Ed25519
               (algorithm == "EC" && keyInfo.curve == "secp256r1") ||
-              (algorithm == "EdDSA");
+              (algorithm == "EdDSA" && keyInfo.size == 256);
             ```
 
             ## Microservice Authentication
 
-            Publish service public keys as JWKs:
+            Check the public key in a service registration:
 
             ```sapl
             policy "register service"
@@ -129,7 +127,7 @@ public class KeysFunctionLibrary {
               var serviceKey = keys.publicKeyFromPem(subject.publicKey);
               var jwk = keys.jwkFromPublicKey(subject.publicKey);
 
-              // Store JWK for other services to use
+              // Check the JWK type and public key size
               jwk.kty == "RSA";
               serviceKey.size >= 2048;
             ```
@@ -148,30 +146,15 @@ public class KeysFunctionLibrary {
               size >= 2048;
             ```
 
-            ## Certificate Chain Validation
-
-            Extract and verify keys from certificate chains:
-
-            ```sapl
-            policy "validate cert chain"
-            permit
-              var leafKey = keys.publicKeyFromCertificate(request.cert);
-              var caKey = keys.publicKeyFromCertificate(trust.caCert);
-
-              keys.algorithmFromKey(leafKey) == keys.algorithmFromKey(caKey);
-              keys.sizeFromKey(leafKey) >= keys.sizeFromKey(caKey);
-            ```
-
             ## Error Handling
 
-            All functions return error values for invalid input:
+            Check that a public key was supplied before reading it:
 
             ```sapl
-            policy "safe key handling"
+            policy "read a supplied public key"
             permit
-              var keyResult = keys.publicKeyFromPem(untrustedInput);
-              keyResult.isDefined();  // Check before using
-              keyResult.algorithm == "RSA";
+              reflect.isDefined(subject.publicKey);
+              keys.algorithmFromKey(subject.publicKey) == "RSA";
             ```
 
             ## RFC Compliance
@@ -180,29 +163,12 @@ public class KeysFunctionLibrary {
             and RFC 8037 (CFRG Elliptic Curve for EdDSA/Ed25519). This ensures interoperability with OAuth providers,
             JWT libraries, and OIDC systems.
 
-            ## Integration
-
-            Works seamlessly with other SAPL libraries:
-
-            ```sapl
-            policy "complete auth flow"
-            permit
-              // Assume JWKS already retrieved via HTTP PIP
-              var key = keys.publicKeyFromJwk(resource.jwks.keys[0]);
-
-              // Verify JWT
-              jwt.verify(request.token, key);
-
-              // Additional validation
-              keys.sizeFromKey(key) >= 2048;
-            ```
-
             ## Notes
 
             - PEM format must include `-----BEGIN PUBLIC KEY-----` headers
             - JWK fields use base64url encoding (no padding)
             - All conversions preserve key functionality (verified via signature operations)
-            - Certificate extraction supports RSA and EC certificates
+            - Certificate extraction returns the embedded public key in PEM format
 
             ## Limits
 
@@ -272,7 +238,7 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "parse key"
             permit
-              var key = keys.publicKeyFromPem(publicKeyPem);
+              var key = keys.publicKeyFromPem(subject.publicKey);
               key.algorithm == "RSA";
               key.format == "X.509";
             ```
@@ -297,8 +263,8 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "extract key from cert"
             permit
-              var publicKey = keys.publicKeyFromCertificate(clientCert);
-              signature.verifyRsaSha256(message, sig, publicKey);
+              var publicKey = keys.publicKeyFromCertificate(subject.clientCert);
+              keys.algorithmFromKey(publicKey) == "RSA";
             ```
             """, schema = RETURNS_TEXT)
     public Value publicKeyFromCertificate(TextValue certPem) {
@@ -323,7 +289,7 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "check key type"
             permit
-              keys.algorithmFromKey(publicKey) == "RSA";
+              keys.algorithmFromKey(subject.publicKey) == "RSA";
             ```
             """, schema = RETURNS_TEXT)
     public Value algorithmFromKey(TextValue keyPem) {
@@ -345,7 +311,7 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "require strong keys"
             permit
-              keys.sizeFromKey(publicKey) >= 2048;
+              keys.sizeFromKey(subject.publicKey) >= 2048;
             ```
             """, schema = RETURNS_NUMBER)
     public Value sizeFromKey(TextValue keyPem) {
@@ -368,7 +334,7 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "require p256 curve"
             permit
-              keys.curveFromKey(publicKey) == "secp256r1";
+              keys.curveFromKey(subject.publicKey) == "secp256r1";
             ```
             """, schema = RETURNS_TEXT)
     public Value curveFromKey(TextValue keyPem) {
@@ -395,13 +361,13 @@ public class KeysFunctionLibrary {
             EC coordinates retain their full field width, including leading zero bytes:
             32 bytes for P-256, 48 for P-384 and 66 for P-521.
 
-            Supported key types: RSA (all sizes), EC (P-256, P-384, P-521), EdDSA (Ed25519).
+            Supported key types: RSA (512 to 16384 bits), EC (P-256, P-384, P-521), EdDSA (Ed25519).
 
             **Examples:**
             ```sapl
             policy "convert to jwk"
             permit
-              var jwk = keys.jwkFromPublicKey(publicKeyPem);
+              var jwk = keys.jwkFromPublicKey(subject.publicKey);
               jwk.kty == "RSA";
               jwk.n != null;
             ```
@@ -428,17 +394,8 @@ public class KeysFunctionLibrary {
             ```sapl
             policy "convert from jwk"
             permit
-              var publicKeyPem = keys.publicKeyFromJwk(jwkObject);
-              signature.verifyRsaSha256(message, sig, publicKeyPem);
-            ```
-
-            ```sapl
-            policy "validate oauth token"
-            permit action == "api.access";
-              // Assume JWKS already retrieved via HTTP PIP
-              var publicKey = keys.publicKeyFromJwk(resource.jwks.keys[0]);
-              var publicKey = keys.publicKeyFromJwk(jwk);
-              jwt.verify(request.token, publicKey);
+              var publicKey = keys.publicKeyFromJwk(resource.jwk);
+              signature.isValidRsaSha256(resource.message, resource.signature, publicKey);
             ```
             """, schema = RETURNS_TEXT)
     public Value publicKeyFromJwk(ObjectValue jwk) {
