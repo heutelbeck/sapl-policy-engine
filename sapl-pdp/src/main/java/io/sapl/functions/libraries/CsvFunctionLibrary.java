@@ -264,7 +264,7 @@ public class CsvFunctionLibrary {
             numbers, booleans or null. If two distinct field names in any object become the same
             header after formula escaping, the entire export is rejected. Records end in CRLF.
             Fields are quoted when they contain commas, double quotes or line breaks, or start or end
-            with an ASCII space or control character. Double quotes inside quoted fields are doubled.
+            with an ASCII space or C0 control character. Double quotes inside quoted fields are doubled.
             Whole numbers in the signed 64-bit range are written as plain integers, for example `100.00` as `100`.
 
             To prevent CSV formula injection, a cell whose text begins with =, +, -, @, a tab,
