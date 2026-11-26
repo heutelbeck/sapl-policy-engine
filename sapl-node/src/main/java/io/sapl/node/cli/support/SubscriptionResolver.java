@@ -95,7 +95,7 @@ public class SubscriptionResolver {
 
     private static JsonNode parseJson(JsonMapper mapper, String value) {
         try {
-            return mapper.reader().with(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).readTree(value);
+            return mapper.readerFor(JsonNode.class).with(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).readValue(value);
         } catch (JacksonException e) {
             throw new IllegalArgumentException(ERROR_INVALID_JSON_VALUE.formatted(value), e);
         }

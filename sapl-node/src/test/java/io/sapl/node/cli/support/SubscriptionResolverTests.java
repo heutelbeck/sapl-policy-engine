@@ -89,6 +89,14 @@ class SubscriptionResolverTests {
         }
 
         @Test
+        @DisplayName("an empty command-line argument has no JSON value")
+        void whenNamedValueIsEmptyThenInputIsRejected() {
+            val input = inputWithNamed("", "\"read\"", "\"doc\"");
+            assertThatThrownBy(() -> SubscriptionResolver.resolve(input, MAPPER))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
         @DisplayName("secrets that are not a JSON object throw IllegalArgumentException")
         void whenSecretsNotObjectThenThrowsIllegalArgument() {
             val input = inputWithNamed("\"alice\"", "\"read\"", "\"doc\"");

@@ -1,5 +1,6 @@
 # SAPL 5.0.0
 
+- Decision commands reject empty arguments for named JSON fields. Use `'""'` to pass an empty JSON string from a shell.
 - Geo touches, within, contains and overlaps ignore empty collection members when determining the represented point set.
 - LSP schema proposals exclude expressions that require authorization subscription values.
 - The language server accepts a replacement documentation catalog via `--catalog` or its embedded API, independently of local standard schema functions.
