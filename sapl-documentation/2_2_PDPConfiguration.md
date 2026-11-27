@@ -52,7 +52,7 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 
 ```json
 {
-  "requiredEngineVersion": ">=4.2.0 <5.0.0",
+  "requiredEngineVersion": ">=5.0.0 <6.0.0",
   "requiredExtensions": ["upstreams"],
   "algorithm": {
     "votingMode": "PRIORITY_DENY",
@@ -80,7 +80,7 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
 
 The `algorithm` object is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY`, `DENY`, `PROPAGATE`). The `variables` section is also optional. Secrets are not part of `pdp.json` (see [Secrets](#secrets) above). Unknown fields in `pdp.json` are rejected so misspelled requirements cannot be silently ignored.
 
-The configuration id identifying a publication is not part of `pdp.json`. Since SAPL 4.2.0, a `pdp.json` containing a `configurationId` field is rejected fail-closed with a migration message: the configurationId moved to the bundle manifest and is derived from content for directory and resource sources. For bundles, the id is recorded in the signed `.sapl-manifest.json` (explicit or content-derived `bundle@<hash16>`). For directory sources, it is derived on every load as `dir:<dirName>@<hash16>`. For classpath resources, it is derived as `res:<name>@<hash16>`. For embedded builder configurations, it is derived as `embedded@<hash16>`. Identical content always yields the identical id. The id appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact publication that produced them.
+The configuration id identifying a publication is not part of `pdp.json`. Since SAPL 5.0.0, a `pdp.json` containing a `configurationId` field is rejected fail-closed with a migration message: the configurationId moved to the bundle manifest and is derived from content for directory and resource sources. For bundles, the id is recorded in the signed `.sapl-manifest.json` (explicit or content-derived `bundle@<hash16>`). For directory sources, it is derived on every load as `dir:<dirName>@<hash16>`. For classpath resources, it is derived as `res:<name>@<hash16>`. For embedded builder configurations, it is derived as `embedded@<hash16>`. Identical content always yields the identical id. The id appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact publication that produced them.
 
 #### Required Engine Version
 
@@ -90,15 +90,15 @@ The engine version comes from the build metadata packaged with `sapl-pdp`, inclu
 
 Prerelease versions must be explicitly included for their major, minor and patch version. The range `*` accepts release versions but excludes prerelease versions and still requires a valid engine version.
 
-`SaplBuildInfo.minimumVersionRequirement()` generates a requirement accepted by the installed engine. A release such as `4.2.0` produces `>=4.2.0`, while `4.2.0-SNAPSHOT` produces `>=4.2.0-0`. Build metadata is omitted. The generated range excludes prereleases of later base versions such as `4.3.0-SNAPSHOT`. An unavailable or invalid build version causes an `IllegalStateException`. SAPL Server EE uses this method as the default for new configurations and imports without a requirement. Existing explicit requirements are preserved.
+`SaplBuildInfo.minimumVersionRequirement()` generates a requirement accepted by the installed engine. A release such as `5.0.0` produces `>=5.0.0`, while `5.0.0-SNAPSHOT` produces `>=5.0.0-0`. Build metadata is omitted. The generated range excludes prereleases of later base versions such as `5.1.0-SNAPSHOT`. An unavailable or invalid build version causes an `IllegalStateException`. SAPL Server EE uses this method as the default for new configurations and imports without a requirement. Existing explicit requirements are preserved.
 
 | Engine version | Requirement | Accepted |
 |:---------------|:------------|:---------|
-| `4.2.0` | `>=4.2.0 <5.0.0` | Yes |
-| `4.1.0` | `>=4.2.0 <5.0.0` | No |
-| `4.2.0-SNAPSHOT` | `>=4.2.0 <5.0.0` | No |
-| `4.2.0-SNAPSHOT` | `>=4.2.0-0 <5.0.0` | Yes |
-| `4.2.0-SNAPSHOT` | `4.2.0-SNAPSHOT` | Yes |
+| `5.0.0` | `>=5.0.0 <6.0.0` | Yes |
+| `4.1.0` | `>=5.0.0 <6.0.0` | No |
+| `5.0.0-SNAPSHOT` | `>=5.0.0 <6.0.0` | No |
+| `5.0.0-SNAPSHOT` | `>=5.0.0-0 <6.0.0` | Yes |
+| `5.0.0-SNAPSHOT` | `5.0.0-SNAPSHOT` | Yes |
 
 A rejected update leaves the last working configuration active with status `STALE`. Without a working configuration, the status is `ERROR`. Rejection happens before extension processing and compilation. Existing authorization subscriptions stay open and can adopt a later compatible configuration. A rejected configuration is not retained for later plugin updates.
 

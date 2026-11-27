@@ -233,34 +233,34 @@ class PdpVoterSourceEngineVersionTests {
         assertThat(engineVersionError(actual, requirement) == null).isEqualTo(compatible);
     }
 
-    @ValueSource(strings = { "unknown", "", "${project.version}", "4.2.01" })
+    @ValueSource(strings = { "unknown", "", "${project.version}", "5.0.01" })
     @DisplayName("An unavailable or malformed engine version reports the metadata problem")
     @ParameterizedTest(name = "Invalid engine build version {0} explains how to repair the metadata")
     void whenEngineVersionIsInvalidThenDiagnosticIdentifiesBuildMetadata(String actual) {
-        assertThat(engineVersionError(actual, ">=4.2.0")).contains(actual, ">=4.2.0", "requiredEngineVersion",
+        assertThat(engineVersionError(actual, ">=5.0.0")).contains(actual, ">=5.0.0", "requiredEngineVersion",
                 "not a valid semantic version", "build metadata");
     }
 
     @Test
     @DisplayName("An incompatible valid version reports the running version and the required range")
     void whenEngineVersionIsOutsideRangeThenDiagnosticExplainsCompatibilityFailure() {
-        assertThat(engineVersionError("4.1.0", ">=4.2.0"))
-                .contains("4.1.0", ">=4.2.0", "requiredEngineVersion", "does not satisfy")
+        assertThat(engineVersionError("4.1.0", ">=5.0.0"))
+                .contains("4.1.0", ">=5.0.0", "requiredEngineVersion", "does not satisfy")
                 .doesNotContain("not a valid semantic version");
     }
 
     static Stream<Arguments> versionRequirements() {
-        return Stream.of(arguments("4.2.0", null, true), arguments("unknown", null, true), arguments("", null, true),
-                arguments("4.2.0", "^4.0.0", true), arguments("4.2.0", ">=4.2.0 <5.0.0", true),
-                arguments("4.2.0", ">4.2.0", false), arguments("4.2.0", "<4.2.0", false),
-                arguments("4.2.0", ">=4.3.0 || ^5.0.0", false), arguments("4.2.0", "^3.0.0 || ^4.0.0", true),
-                arguments("4.2.0-SNAPSHOT", ">=4.2.0", false), arguments("4.2.0-SNAPSHOT", ">=4.1.0", false),
-                arguments("4.2.0-SNAPSHOT", ">=4.2.0-0 <5.0.0", true),
-                arguments("4.2.0-SNAPSHOT", "4.2.0-SNAPSHOT", true), arguments("4.2.0-RC1", ">=4.2.0-0", true),
-                arguments("4.2.0", "*", true), arguments("4.2.0-SNAPSHOT", "*", false),
-                arguments("4.2.0+build.42", "4.2.0", true), arguments("unknown", "*", false), arguments("", "*", false),
-                arguments("${project.version}", "*", false), arguments("4.2.01", "*", false),
-                arguments("4.2", "*", false), arguments("invalid", ">=4.2.0", false));
+        return Stream.of(arguments("5.0.0", null, true), arguments("unknown", null, true), arguments("", null, true),
+                arguments("5.0.0", "^5.0.0", true), arguments("5.0.0", ">=5.0.0 <6.0.0", true),
+                arguments("5.0.0", ">5.0.0", false), arguments("5.0.0", "<5.0.0", false),
+                arguments("5.0.0", ">=5.1.0 || ^6.0.0", false), arguments("5.0.0", "^3.0.0 || ^5.0.0", true),
+                arguments("5.0.0-SNAPSHOT", ">=5.0.0", false), arguments("5.0.0-SNAPSHOT", ">=4.1.0", false),
+                arguments("5.0.0-SNAPSHOT", ">=5.0.0-0 <6.0.0", true),
+                arguments("5.0.0-SNAPSHOT", "5.0.0-SNAPSHOT", true), arguments("5.0.0-RC1", ">=5.0.0-0", true),
+                arguments("5.0.0", "*", true), arguments("5.0.0-SNAPSHOT", "*", false),
+                arguments("5.0.0+build.42", "5.0.0", true), arguments("unknown", "*", false), arguments("", "*", false),
+                arguments("${project.version}", "*", false), arguments("5.0.01", "*", false),
+                arguments("5.0", "*", false), arguments("invalid", ">=5.0.0", false));
     }
 
     private static PdpVoterSource source() {

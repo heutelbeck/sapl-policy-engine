@@ -55,11 +55,11 @@ import tools.jackson.databind.node.JsonNodeFactory;
  *
  * <pre>{@code
  * {
- *   "version": "4.2.0",
+ *   "version": "5.0.0",
  *   "hashAlgorithm": "SHA-256",
  *   "created": "2024-01-15T10:30:00Z",
  *   "configurationId": "release-77",
- *   "attribution": "sapl-node/4.2.0",
+ *   "attribution": "sapl-node/5.0.0",
  *   "audience": {
  *     "sealingRecipient": "recipient-key-2024"
  *   },
@@ -128,7 +128,7 @@ public record BundleManifest(
     /** Filename for the manifest within the bundle. */
     public static final String MANIFEST_FILENAME = ".sapl-manifest.json";
 
-    private static final String MIGRATION_GUIDANCE = "The configurationId moved to the bundle manifest; rebuild the bundle with SAPL 4.2.0 or later.";
+    private static final String MIGRATION_GUIDANCE = "The configurationId moved to the bundle manifest; rebuild the bundle with SAPL 5.0.0 or later.";
 
     private static final String ERROR_ATTRIBUTION_MISSING = "Manifest is missing required field 'attribution'. "
             + MIGRATION_GUIDANCE;

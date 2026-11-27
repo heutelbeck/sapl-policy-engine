@@ -23,7 +23,7 @@ This walkthrough shows how the pieces fit together end to end.
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.2.0-SNAPSHOT</version>
+            <version>5.0.0-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

@@ -1,4 +1,4 @@
-# SAPL 4.2.0
+# SAPL 5.0.0
 
 This release adds bundle carried extensions, sealed secrets, signed realm indexes, and optional admission limits on the SAPL Node transports.
 

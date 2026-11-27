@@ -255,7 +255,7 @@ root-level files. Subdirectories and unknown file names are rejected.
 
 | File | Required | Purpose |
 |------|----------|---------|
-| `pdp.json` | Yes | PDP configuration: combining algorithm, variables, compiler options, engine version requirement and required extensions. Never contains secrets. Since SAPL 4.2.0 it must not contain a `configurationId` field. A bundle carrying one is rejected with a migration message. |
+| `pdp.json` | Yes | PDP configuration: combining algorithm, variables, compiler options, engine version requirement and required extensions. Never contains secrets. Since SAPL 5.0.0 it must not contain a `configurationId` field. A bundle carrying one is rejected with a migration message. |
 | `*.sapl` | Yes | SAPL policy documents. |
 | `secrets.sealed.json` | No | Sealed PDP-level secrets. Scalar leaves are `ENC[...]` tokens encrypted to an X25519 recipient key, structure and key names stay readable. |
 | `ext-<name>.json` | No | Cleartext extension data. Named JSON for consumers other than the PDP, for example gateway upstream configuration. |
@@ -301,11 +301,11 @@ a migration message on new engines).
 
 ```json
 {
-  "version": "4.2.0",
+  "version": "5.0.0",
   "hashAlgorithm": "SHA-256",
   "created": "2026-07-15T10:30:00Z",
   "configurationId": "release-77",
-  "attribution": "sapl-node/4.2.0",
+  "attribution": "sapl-node/5.0.0",
   "audience": {
     "sealingRecipient": "recipient-key-2026"
   },

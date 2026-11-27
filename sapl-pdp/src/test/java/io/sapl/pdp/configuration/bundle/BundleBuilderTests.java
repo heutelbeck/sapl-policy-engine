@@ -760,7 +760,7 @@ class BundleBuilderTests {
         @DisplayName("Builder additions retain the existing pdp.json requirements and settings")
         void whenBuilderAddsRequiredExtensionThenExistingDeclarationAndSettingsArePreserved() throws IOException {
             val builder = BundleBuilder.create().withRequiredExtension("audit").withPdpJson("""
-                    {"requiredExtensions":["upstreams"], "requiredEngineVersion":">=4.2.0-0",
+                    {"requiredExtensions":["upstreams"], "requiredEngineVersion":">=5.0.0-0",
                      "variables":{"tenant":"arkham"}}
                     """).withRequiredExtension("upstreams").withExtension("upstreams", "{}").withExtension("audit",
                     "{}");
@@ -769,7 +769,7 @@ class BundleBuilderTests {
             val document = JsonMapper.builder().build().readTree(entries.get("pdp.json"));
             assertThatObject(document).satisfies(configuration -> {
                 assertThat(configuration.path("requiredExtensions").toString()).isEqualTo("[\"audit\",\"upstreams\"]");
-                assertThat(configuration.path("requiredEngineVersion").asString()).isEqualTo(">=4.2.0-0");
+                assertThat(configuration.path("requiredEngineVersion").asString()).isEqualTo(">=5.0.0-0");
                 assertThat(configuration.path("variables").path("tenant").asString()).isEqualTo("arkham");
             });
         }

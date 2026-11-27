@@ -1184,7 +1184,7 @@ class BundleCommandTests {
             val exitCode = cmd.execute("bundle", "unpack", "-b", bundleFile.toString(), "-o", outDir.toString());
 
             assertThat(exitCode).isZero();
-            assertThat(out.toString()).contains("Configuration ID: (none recorded; manifest predates SAPL 4.2.0)");
+            assertThat(out.toString()).contains("Configuration ID: (none recorded; manifest predates SAPL 5.0.0)");
             assertThat(outDir.resolve("test.sapl")).exists();
         }
 
@@ -1196,8 +1196,8 @@ class BundleCommandTests {
             val exitCode = cmd.execute("bundle", "inspect", "-b", bundleFile.toString());
 
             assertThat(exitCode).isZero();
-            assertThat(out.toString()).contains("Status: UNKNOWN (manifest predates SAPL 4.2.0 or is malformed)")
-                    .contains("Configuration ID: (none recorded; manifest predates SAPL 4.2.0)");
+            assertThat(out.toString()).contains("Status: UNKNOWN (manifest predates SAPL 5.0.0 or is malformed)")
+                    .contains("Configuration ID: (none recorded; manifest predates SAPL 5.0.0)");
         }
 
         private Path createLegacyBundle() throws IOException {

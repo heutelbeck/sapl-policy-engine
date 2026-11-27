@@ -41,7 +41,7 @@ import lombok.val;
 class SecretsUnsealingEngineVersionTests {
 
     @NullSource
-    @ValueSource(strings = { ">=4.2.0", ">=4.2.0-0" })
+    @ValueSource(strings = { ">=5.0.0", ">=5.0.0-0" })
     @ParameterizedTest(name = "Preserve engine requirement {0} while processing secrets")
     @DisplayName("Creating a configuration with processed secrets retains the declared engine requirement")
     void whenSecretsAreProcessedThenEngineRequirementIsPreserved(String requirement) {
