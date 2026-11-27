@@ -90,6 +90,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
     private final ReentrantLock                                 reloadLock         = new ReentrantLock();
     private final AtomicBoolean                                 closed             = new AtomicBoolean(false);
     private final AtomicBoolean                                 reloadQueued       = new AtomicBoolean(false);
+    private final AtomicBoolean                                 disconnected       = new AtomicBoolean(false);
     private static final Duration                               RELOAD_RETRY_DELAY = Duration.ofSeconds(1);
     private final Set<RepositoryKey>                            knownKeys          = ConcurrentHashMap.newKeySet();
 
@@ -201,6 +202,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
         pubsub.addListener(new RedisConnectionStateListener() {
             @Override
             public void onRedisConnected(RedisChannelHandler<?, ?> connection, SocketAddress socketAddress) {
+                runOnWorker(() -> disconnected.set(false));
                 requestReload();
             }
 
@@ -294,6 +296,7 @@ public final class RedisAttributeRepository implements AttributeRepository {
     }
 
     private void markAsDisconnected() {
+        disconnected.set(true);
         reloadLock.lock();
         try {
             var error     = Value.error(ERROR_BACKEND_DISCONNECTED.formatted(pdpId));
@@ -395,7 +398,15 @@ public final class RedisAttributeRepository implements AttributeRepository {
 
     @Override
     public StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate) {
-        return internalRepository.observeState(pdpId, configurationId, onUpdate);
+        return internalRepository.observeState(pdpId, configurationId, state -> {
+            // While disconnected: every states becomes unavailable
+            if (disconnected.get()) {
+                onUpdate.accept(new RepositoryState(state.revision(), Map.of(),
+                        Value.error(ERROR_BACKEND_DISCONNECTED.formatted(this.pdpId))));
+            } else {
+                onUpdate.accept(state);
+            }
+        });
     }
 
     private static List<Value> jsonToValues(@Nullable String json) {

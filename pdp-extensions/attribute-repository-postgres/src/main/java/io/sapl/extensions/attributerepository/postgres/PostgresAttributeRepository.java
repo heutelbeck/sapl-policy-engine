@@ -379,10 +379,11 @@ public final class PostgresAttributeRepository implements AttributeRepository {
         while (!closed) {
             try {
                 establishConnection();
-                loadFromDB();
                 disconnected.set(false);
+                loadFromDB();
                 return;
             } catch (Exception e) {
+                disconnected.set(true);
                 log.debug(DEBUG_RECONNECT_FAILED, pdpId, e.getMessage());
                 try {
                     Thread.sleep(RECONNECT_RETRY_INTERVAL.toMillis());
@@ -462,7 +463,15 @@ public final class PostgresAttributeRepository implements AttributeRepository {
 
     @Override
     public StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate) {
-        return internalRepository.observeState(pdpId, configurationId, onUpdate);
+        return internalRepository.observeState(pdpId, configurationId, state -> {
+            // While disconnected: every states becomes unavailable
+            if (disconnected.get()) {
+                onUpdate.accept(new RepositoryState(state.revision(), Map.of(),
+                        Value.error(ERROR_BACKEND_DISCONNECTED.formatted(this.pdpId))));
+            } else {
+                onUpdate.accept(state);
+            }
+        });
     }
 
     private String notificationPayload() {

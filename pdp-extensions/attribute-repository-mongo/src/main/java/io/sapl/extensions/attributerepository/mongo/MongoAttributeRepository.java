@@ -176,11 +176,22 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
     // Reconnects with retry-backoff logic. Loads all attributes from the DB
     private void resyncFromMongoWithRetry() {
-        resyncSubscription.set(Mono.fromRunnable(this::loadFromDB)
+        resyncSubscription.set(Mono.fromRunnable(this::reloadAfterDisconnect)
                 .retryWhen(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(30))
                         .scheduler(Schedulers.boundedElastic()).filter(throwable -> !closed))
-                .doOnSuccess(v -> disconnected.set(false)).subscribeOn(Schedulers.boundedElastic())
+                .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(v -> {}, error -> log.error(ERROR_RESYNC_FAILED, pdpId, error.getMessage())));
+    }
+
+    // Disconnect handling to set the right state
+    private void reloadAfterDisconnect() {
+        disconnected.set(false);
+        try {
+            loadFromDB();
+        } catch (RuntimeException e) {
+            disconnected.set(true);
+            throw e;
+        }
     }
 
     // Open change stream when first subscription. Activates pre-images for deletes
@@ -392,7 +403,15 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
     @Override
     public StateRegistration observeState(String pdpId, String configurationId, Consumer<RepositoryState> onUpdate) {
-        return internalRepository.observeState(pdpId, configurationId, onUpdate);
+        return internalRepository.observeState(pdpId, configurationId, state -> {
+            // While disconnected: every states becomes unavailable
+            if (disconnected.get()) {
+                onUpdate.accept(new RepositoryState(state.revision(), Map.of(),
+                        Value.error(ERROR_BACKEND_DISCONNECTED.formatted(this.pdpId))));
+            } else {
+                onUpdate.accept(state);
+            }
+        });
     }
 
     private static String valuesToJsonArray(List<Value> values) {
