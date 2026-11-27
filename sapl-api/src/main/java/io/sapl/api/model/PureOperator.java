@@ -21,6 +21,8 @@ import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InaccessibleObjectException;
+import java.util.Objects;
+import java.util.Arrays;
 import java.util.List;
 
 public non-sealed interface PureOperator extends CompiledExpression {
@@ -113,10 +115,14 @@ public non-sealed interface PureOperator extends CompiledExpression {
         }
         return switch (mine) {
         case PureOperator minePure -> yours instanceof PureOperator yoursPure && minePure.semanticEquals(yoursPure);
+        case Value value           -> yours instanceof Value candidate && ValueRepresentation.same(value, candidate);
         case List<?> mineList      -> yours instanceof List<?> yoursList && semanticListEquals(mineList, yoursList);
-        case Value ignored         -> mine.equals(yours);
-        // A known leaf compares by value. Any other type is kept distinct (safe).
-        default -> isSemanticLeaf(mine) && mine.equals(yours);
+        case Object[] mineArray    -> yours instanceof Object[] yoursArray
+                && semanticListEquals(Arrays.asList(mineArray), Arrays.asList(yoursArray));
+        // A primitive array compares by content, a known leaf by value. Any other type
+        // is kept distinct (safe).
+        default ->
+            mine.getClass().isArray() ? Objects.deepEquals(mine, yours) : isSemanticLeaf(mine) && mine.equals(yours);
         };
     }
 

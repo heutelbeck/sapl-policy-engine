@@ -62,7 +62,7 @@ class PDPConfigurationEngineVersionTests {
             """;
 
     @NullSource
-    @ValueSource(strings = { ">=4.2.0", "^4.2.0", ">=4.2.0-0" })
+    @ValueSource(strings = { ">=4.2.0", "^4.2.0", ">=4.2.0-0", ">=4.2.0 ||" })
     @DisplayName("Reading configuration JSON preserves a declared requirement or its absence")
     @ParameterizedTest(name = "Read engine requirement {0}, with null representing a missing field")
     void whenReadingConfigurationThenOptionalEngineRequirementIsPreserved(String requirement) {
@@ -77,7 +77,7 @@ class PDPConfigurationEngineVersionTests {
     }
 
     @NullSource
-    @ValueSource(strings = { ">=4.2.0", "^4.2.0", ">=4.2.0-0" })
+    @ValueSource(strings = { ">=4.2.0", "^4.2.0", ">=4.2.0-0", ">=4.2.0 ||" })
     @DisplayName("Writing and reading a configuration preserves its optional engine requirement")
     @ParameterizedTest(name = "Round trip engine requirement {0}, with null representing no declaration")
     void whenConfigurationRoundTripsThenOptionalEngineRequirementIsPreserved(String requirement) {
@@ -115,7 +115,7 @@ class PDPConfigurationEngineVersionTests {
 
     @ParameterizedTest(name = "Reject malformed engine requirement {0} in JSON")
     @DisplayName("The record rejects malformed version ranges during deserialization")
-    @ValueSource(strings = { "", "not-a-range", "5.0.01", ">=4.2.0 garbage", ">=4.2.0 ||" })
+    @ValueSource(strings = { "", "not-a-range", "5.0.01", ">=4.2.0 garbage", ">=4.2.0 || garbage" })
     void whenEngineRequirementIsMalformedThenDeserializationRejectsIt(String requirement) {
         val document = (ObjectNode) MAPPER.readTree(CONFIGURATION_JSON);
         document.put("requiredEngineVersion", requirement);

@@ -146,6 +146,7 @@ public class PDPAutoConfiguration {
     private static final String ERROR_FAILED_TO_READ_PUBLIC_KEY        = "Failed to read public key from: ";
     private static final String ERROR_FAILED_TO_READ_SECRETS_KEY       = "Failed to read a secrets decryption key.";
     private static final String ERROR_INVALID_SECRETS_KEY_ENTRY        = "Secrets decryption key lists must not contain null or blank entries.";
+    private static final String WARN_ACCEPTING_UNENCRYPTED_SECRETS     = "SECURITY: Accepting unencrypted secrets. Configurations may carry secrets in cleartext. Use only in trusted or development environments.";
 
     @Bean
     @ConditionalOnMissingBean
@@ -272,12 +273,9 @@ public class PDPAutoConfiguration {
                 : new PdpVoterSource(pluginsSource, clock);
         val source              = sourceProvider.getIfAvailable();
         if (source != null) {
-            if (secretsConfiguration.hasKeys()) {
-                new SecretsUnsealingSource(source, secretsConfiguration.keyring(),
-                        secretsConfiguration.acceptUnencrypted()).subscribe(voterSource::handle);
-            } else {
-                source.subscribe(voterSource::handle);
-            }
+            // The sealing rule is enforced with or without recipient keys.
+            new SecretsUnsealingSource(source, secretsConfiguration.keyring(), secretsConfiguration.acceptUnencrypted())
+                    .subscribe(voterSource::handle);
         }
         return voterSource;
     }
@@ -395,6 +393,9 @@ public class PDPAutoConfiguration {
             val keyring = Keyring.of(keys);
             if (!keys.isEmpty()) {
                 log.info("Bundle secrets decryption ENABLED with {} X25519 recipient key(s).", keys.size());
+            }
+            if (secrets.isAcceptUnencrypted()) {
+                log.warn(WARN_ACCEPTING_UNENCRYPTED_SECRETS);
             }
             return new SecretsKeyringConfiguration(keyring, secrets.isAcceptUnencrypted());
         } catch (IOException | ParseException e) {

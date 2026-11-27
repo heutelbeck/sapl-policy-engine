@@ -124,11 +124,11 @@ class PDPConfigurationLoaderEngineVersionTests {
     }
 
     static Stream<Arguments> acceptedRequirements() {
-        return cases(null, ">=4.2.0", "^4.2.0", ">=4.2.0-0");
+        return cases(null, ">=4.2.0", "^4.2.0", ">=4.2.0-0", ">=4.2.0 ||");
     }
 
     static Stream<Arguments> invalidRanges() {
-        return cases("", "5.0.01", ">=4.2.0 garbage", ">=4.2.0 ||");
+        return cases("", "5.0.01", ">=4.2.0 garbage", ">=4.2.0 || garbage");
     }
 
     static Stream<Arguments> invalidJsonTypes() {

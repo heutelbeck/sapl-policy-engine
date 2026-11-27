@@ -34,6 +34,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.node.boot.SaplStartupConfigurationException;
+import io.sapl.node.boot.TransportTls;
+import io.sapl.node.testing.LogCapture;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.val;
@@ -60,6 +62,7 @@ class ProtobufRSocketServerLifecycleTests {
     private static final int    MAX_MULTI_SUBSCRIPTIONS  = 256;
     private static final int    SUB_CEILING_PAYLOAD      = 1024;
     private static final int    PROTOCOL_PAYLOAD_CEILING = 16_777_215;
+    private static final String PLAINTEXT                = "the command-line option --no-tls";
 
     @Mock
     private BlockingPolicyDecisionPoint blockingPdp;
@@ -78,7 +81,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("start does nothing and isRunning stays false when enabled is false")
         void whenDisabledThenStartIsNoOp() {
             val sut = new ProtobufRSocketServerLifecycle(false, BIND_ADDRESS, PORT, null, VALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             sut.start();
 
@@ -89,7 +92,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("isAutoStartup mirrors the enabled flag so Spring will not try to start a disabled lifecycle")
         void whenDisabledThenIsAutoStartupFalse() {
             val sut = new ProtobufRSocketServerLifecycle(false, BIND_ADDRESS, PORT, null, VALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             assertThat(sut.isAutoStartup()).isFalse();
         }
@@ -98,7 +101,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("a misconfigured maxInboundPayloadSize is ignored when disabled (no early validation)")
         void whenDisabledThenInvalidPayloadDoesNotThrow() {
             val sut = new ProtobufRSocketServerLifecycle(false, BIND_ADDRESS, PORT, null, INVALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             assertThatCode(sut::start).doesNotThrowAnyException();
         }
@@ -107,7 +110,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("start invoked twice on a disabled lifecycle still results in not-running, no exception")
         void whenDisabledAndStartCalledTwiceThenStillNotRunning() {
             val sut = new ProtobufRSocketServerLifecycle(false, BIND_ADDRESS, PORT, null, VALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             sut.start();
             sut.start();
@@ -124,7 +127,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("a non-positive maxInboundPayloadSize throws IllegalStateException so the misconfig is visible at startup")
         void whenEnabledAndPayloadSizeNonPositiveThenStartThrows() {
             val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, PORT, null, INVALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             assertThatThrownBy(sut::start).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("max-inbound-payload-size");
@@ -134,7 +137,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("a positive but sub-ceiling maxInboundPayloadSize is rejected at startup, as the message promises")
         void whenEnabledAndPayloadSizeBelowProtocolCeilingThenStartThrows() {
             val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, PORT, null, SUB_CEILING_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             assertThatThrownBy(sut::start).isInstanceOf(SaplStartupConfigurationException.class)
                     .hasMessageContaining("max-inbound-payload-size")
@@ -150,7 +153,7 @@ class ProtobufRSocketServerLifecycleTests {
                 freePort = probe.getLocalPort();
             }
             val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, freePort, null, PROTOCOL_PAYLOAD_CEILING,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             assertThatCode(sut::start).doesNotThrowAnyException();
             assertThat(sut.isRunning()).isTrue();
@@ -161,7 +164,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("isAutoStartup returns true when enabled, even with misconfigured maxInboundPayloadSize")
         void whenEnabledThenIsAutoStartupTrueRegardlessOfPayloadConfig() {
             val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, PORT, null, INVALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             assertThat(sut.isAutoStartup()).isTrue();
         }
@@ -177,7 +180,8 @@ class ProtobufRSocketServerLifecycleTests {
             try (val occupier = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) {
                 val occupiedPort = occupier.getLocalPort();
                 val sut          = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, occupiedPort, null,
-                        PROTOCOL_PAYLOAD_CEILING, MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                        PROTOCOL_PAYLOAD_CEILING, MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null,
+                        PLAINTEXT);
 
                 assertThatThrownBy(sut::start).isInstanceOf(SaplStartupConfigurationException.class)
                         .hasMessageContaining("RSocket").hasMessageContaining(String.valueOf(occupiedPort))
@@ -231,7 +235,7 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("stop on a never-started lifecycle is a no-op and does not NPE")
         void whenStopWithoutStartThenNoException() {
             val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, PORT, null, VALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             assertThatCode(sut::stop).doesNotThrowAnyException();
             assertThat(sut.isRunning()).isFalse();
@@ -241,11 +245,51 @@ class ProtobufRSocketServerLifecycleTests {
         @DisplayName("stop after a no-op disabled start is a no-op and leaves running false")
         void whenDisabledStartThenStopIsSafe() {
             val sut = new ProtobufRSocketServerLifecycle(false, BIND_ADDRESS, PORT, null, VALID_PAYLOAD,
-                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null);
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
 
             sut.start();
             assertThatCode(sut::stop).doesNotThrowAnyException();
             assertThat(sut.isRunning()).isFalse();
         }
     }
+
+    @Nested
+    @DisplayName("TLS required")
+    class TlsRequired {
+
+        @Test
+        @DisplayName("without TLS and without the plaintext opt-in the start is refused before binding, on loopback too")
+        void whenNoTlsAndNoOptInThenStartIsRefused() {
+            val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, PORT, null, PROTOCOL_PAYLOAD_CEILING,
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, null);
+
+            assertThatThrownBy(sut::start).isInstanceOf(SaplStartupConfigurationException.class)
+                    .hasMessage("SAPL Node refused to start. The RSocket API has no TLS.")
+                    .satisfies(e -> assertThat(((SaplStartupConfigurationException) e).getAction())
+                            .contains("sapl.pdp.rsocket.ssl.bundle").contains("--no-tls")
+                            .contains("io.sapl.node.allow-no-tls=true"));
+            assertThat(sut.isRunning()).isFalse();
+        }
+
+        @Test
+        @DisplayName("without TLS and with the plaintext opt-in the start warns and names the source")
+        void whenNoTlsAndOptInThenStartWarnsWithSource() throws IOException {
+            final int freePort;
+            try (val probe = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) {
+                freePort = probe.getLocalPort();
+            }
+            val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, freePort, null, PROTOCOL_PAYLOAD_CEILING,
+                    MAX_MULTI_SUBSCRIPTIONS, blockingPdp, pdp, authenticator, null, null, PLAINTEXT);
+
+            try (val log = LogCapture.of(TransportTls.class)) {
+                sut.start();
+
+                assertThat(log.lines()).containsExactly(
+                        "WARN Serving RSocket without TLS because of the command-line option --no-tls. Anyone on the network path can read and change credentials and authorization decisions. Use this only where TLS is terminated upstream, by a proxy or a service mesh, or in development.");
+            } finally {
+                sut.stop();
+            }
+        }
+    }
+
 }

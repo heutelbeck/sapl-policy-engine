@@ -30,6 +30,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 import io.sapl.api.SaplVersion;
 import lombok.Getter;
+import lombok.val;
 
 /**
  * A component that displays validation status with support for multiple errors.
@@ -63,7 +64,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
                 .set("font-family", "var(--aura-font-family)").set("font-size", "var(--aura-font-size-s)");
 
         // Summary row
-        var summaryRow = new HorizontalLayout();
+        val summaryRow = new HorizontalLayout();
         summaryRow.setWidthFull();
         summaryRow.setPadding(false);
         summaryRow.setSpacing(true);
@@ -74,8 +75,11 @@ public class ValidationStatusDisplay extends VerticalLayout {
         statusIcon.setSize("16px");
         statusIcon.setColor(COLOR_GREEN);
 
+        // The summary shows as much of a message as its width allows and ends
+        // with an ellipsis where it cuts. The details list the whole message.
         summaryText = new Span("OK");
-        summaryText.getStyle().set("flex-grow", "1");
+        summaryText.getStyle().set("flex-grow", "1").set("min-width", "0").set("overflow", "hidden")
+                .set("white-space", "nowrap").set("text-overflow", "ellipsis");
 
         expandIndicator = new Span("");
         expandIndicator.getStyle().set("color", "var(--vaadin-text-color-secondary)");
@@ -107,7 +111,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
 
         long errorCount   = 0;
         long warningCount = 0;
-        for (var issue : currentIssues) {
+        for (val issue : currentIssues) {
             if (IssueSeverity.ERROR == issue.getSeverity()) {
                 errorCount++;
             } else if (IssueSeverity.WARNING == issue.getSeverity()) {
@@ -147,7 +151,7 @@ public class ValidationStatusDisplay extends VerticalLayout {
         statusIcon.getElement().setAttribute("icon", "vaadin:close-circle");
         statusIcon.setColor(COLOR_RED);
 
-        var message = new StringBuilder();
+        val message = new StringBuilder();
         message.append(errorCount).append(" error").append(errorCount > 1 ? "s" : "");
         if (warningCount > 0) {
             message.append(", ").append(warningCount).append(" warning").append(warningCount > 1 ? "s" : "");
@@ -155,11 +159,11 @@ public class ValidationStatusDisplay extends VerticalLayout {
 
         // Add first error preview if single error
         if (errorCount == 1 && warningCount == 0) {
-            var firstError = currentIssues.stream().filter(i -> IssueSeverity.ERROR == i.getSeverity()).findFirst();
+            val firstError = currentIssues.stream().filter(i -> IssueSeverity.ERROR == i.getSeverity()).findFirst();
             firstError.ifPresent(issue -> {
-                var desc = issue.getDescription();
+                val desc = issue.getDescription();
                 if (desc != null && !desc.isBlank()) {
-                    message.append(": ").append(truncate(desc, 60));
+                    message.append(": ").append(desc);
                 }
             });
         }
@@ -171,16 +175,16 @@ public class ValidationStatusDisplay extends VerticalLayout {
         statusIcon.getElement().setAttribute("icon", "vaadin:warning");
         statusIcon.setColor(COLOR_ORANGE);
 
-        var message = new StringBuilder();
+        val message = new StringBuilder();
         message.append(warningCount).append(" warning").append(warningCount > 1 ? "s" : "");
 
         // Add first warning preview if single warning
         if (warningCount == 1) {
-            var firstWarning = currentIssues.stream().filter(i -> IssueSeverity.WARNING == i.getSeverity()).findFirst();
+            val firstWarning = currentIssues.stream().filter(i -> IssueSeverity.WARNING == i.getSeverity()).findFirst();
             firstWarning.ifPresent(issue -> {
-                var desc = issue.getDescription();
+                val desc = issue.getDescription();
                 if (desc != null && !desc.isBlank()) {
-                    message.append(": ").append(truncate(desc, 60));
+                    message.append(": ").append(desc);
                 }
             });
         }
@@ -195,26 +199,26 @@ public class ValidationStatusDisplay extends VerticalLayout {
             return;
         }
 
-        for (var issue : currentIssues) {
-            var issueDiv = new Div();
+        for (val issue : currentIssues) {
+            val issueDiv = new Div();
             issueDiv.getStyle().set(PADDING, "var(--vaadin-gap-xs) 0").set("border-bottom",
                     "1px solid var(--sapl-contrast-5pct)");
 
-            var icon = createIssueIcon(issue.getSeverity());
+            val icon = createIssueIcon(issue.getSeverity());
             icon.setSize("14px");
             icon.getStyle().set("margin-right", "var(--vaadin-gap-xs)");
 
-            var locationText = formatLocation(issue);
-            var descText     = issue.getDescription() != null ? issue.getDescription() : "Unknown issue";
+            val locationText = formatLocation(issue);
+            val descText     = issue.getDescription() != null ? issue.getDescription() : "Unknown issue";
 
-            var content = new HorizontalLayout();
+            val content = new HorizontalLayout();
             content.setPadding(false);
             content.setSpacing(false);
             content.setAlignItems(Alignment.START);
 
-            var textSpan = new Span();
+            val textSpan = new Span();
             if (!locationText.isEmpty()) {
-                var locationSpan = new Span(locationText);
+                val locationSpan = new Span(locationText);
                 locationSpan.getStyle().set("color", "var(--vaadin-text-color-secondary)").set("margin-right",
                         "var(--vaadin-gap-xs)");
                 textSpan.add(locationSpan);
@@ -256,23 +260,23 @@ public class ValidationStatusDisplay extends VerticalLayout {
 
     private Icon createIssueIcon(IssueSeverity severity) {
         if (severity == null) {
-            var icon = VaadinIcon.INFO_CIRCLE.create();
+            val icon = VaadinIcon.INFO_CIRCLE.create();
             icon.setColor("var(--aura-accent-color)");
             return icon;
         }
         return switch (severity) {
         case ERROR   -> {
-            var icon = VaadinIcon.CLOSE_CIRCLE.create();
+            val icon = VaadinIcon.CLOSE_CIRCLE.create();
             icon.setColor(COLOR_RED);
             yield icon;
         }
         case WARNING -> {
-            var icon = VaadinIcon.WARNING.create();
+            val icon = VaadinIcon.WARNING.create();
             icon.setColor(COLOR_ORANGE);
             yield icon;
         }
         default      -> {
-            var icon = VaadinIcon.INFO_CIRCLE.create();
+            val icon = VaadinIcon.INFO_CIRCLE.create();
             icon.setColor("var(--aura-accent-color)");
             yield icon;
         }
@@ -280,8 +284,8 @@ public class ValidationStatusDisplay extends VerticalLayout {
     }
 
     private String formatLocation(Issue issue) {
-        var line   = issue.getLine();
-        var column = issue.getColumn();
+        val line   = issue.getLine();
+        val column = issue.getColumn();
 
         if (line != null && column != null) {
             return "Line " + line + ":" + column;
@@ -289,15 +293,5 @@ public class ValidationStatusDisplay extends VerticalLayout {
             return "Line " + line;
         }
         return "";
-    }
-
-    private String truncate(String text, int maxLength) {
-        if (text == null) {
-            return "";
-        }
-        if (text.length() <= maxLength) {
-            return text;
-        }
-        return text.substring(0, maxLength - 3) + "...";
     }
 }

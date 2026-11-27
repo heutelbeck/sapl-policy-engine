@@ -135,7 +135,7 @@ class ContentFilteringProviderTests {
                 MAPPER);
 
         @Test
-        @DisplayName("Redacting a single record returns a new instance; the original record is unchanged")
+        @DisplayName("Redacting a single record returns a new instance, the original record is unchanged")
         void givenContentFilterOnRecordThenInputUnchanged() {
             val original = new WatchCitizen("Sam Vimes", "Watch", "Scoone Avenue", 50, "Cabal of the Iron Hand");
             val decision = permitWith("""
@@ -185,7 +185,7 @@ class ContentFilteringProviderTests {
         }
 
         @Test
-        @DisplayName("An obligation referring to a missing path fails; subsequent obligations still execute")
+        @DisplayName("An obligation referring to a missing path fails, subsequent obligations still execute")
         void givenOneFailingObligationThenFailureStateSet() {
             val decision = permitWith("""
                     [

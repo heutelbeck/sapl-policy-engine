@@ -95,6 +95,7 @@
 		<sapl.full.tests>false</sapl.full.tests>
 
 		<!-- Dependencies -->
+		<re2j.version>1.8</re2j.version>
 		<asm.version>9.11.1</asm.version>
 		<lsp4j.version>1.0.0</lsp4j.version>
 		<antlr.version>4.13.2</antlr.version>
@@ -103,7 +104,6 @@
 		<scalar.version>0.7.0</scalar.version>
 		<vaadin.version>25.3.5</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
-		<semver4j.version>6.0.0</semver4j.version>
 		<lombok.version>1.18.48</lombok.version>
 		<jupiter.version>6.1.3</jupiter.version>
 		<mockito.version>5.24.0</mockito.version>
@@ -117,6 +117,7 @@
 		<slf4j-test.version>3.0.3</slf4j-test.version>
 		<springboot.version>4.1.2</springboot.version>
 		<commons-io.version>2.22.0</commons-io.version>
+		<commons-compress.version>1.28.0</commons-compress.version>
 		<classgraph.version>5.0.1</classgraph.version>
 		<graphql-java.version>26.1</graphql-java.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
@@ -161,7 +162,14 @@
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
-		
+
+		<!-- Test dependencies use sun.misc.Unsafe, native libraries and reflective
+		     final field mutation, which newer JDKs report with a warning on each test
+		     JVM start. These options permit that. A JDK that does not know one of
+		     them yet, such as JDK 21, skips it because of IgnoreUnrecognizedVMOptions.
+		     The Maven JVM gets the same treatment in .mvn/jvm.config. -->
+		<jvm.access.argLine>-XX:+IgnoreUnrecognizedVMOptions --sun-misc-unsafe-memory-access=allow --enable-native-access=ALL-UNNAMED --enable-final-field-mutation=ALL-UNNAMED</jvm.access.argLine>
+
 		<!-- Path to project/module with the license file -->
 		<main.basedir>${project.basedir}</main.basedir>
 
@@ -327,6 +335,12 @@
 				<artifactId>json-schema-validator</artifactId>
 				<version>${json-schema-validator.version}</version>
 			</dependency>
+			<!-- Linear time regular expressions for patterns from policies. BSD-3-Clause. -->
+			<dependency>
+				<groupId>com.google.re2j</groupId>
+				<artifactId>re2j</artifactId>
+				<version>${re2j.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>com.github.jsqlparser</groupId>
 				<artifactId>jsqlparser</artifactId>
@@ -349,15 +363,16 @@
 				<version>${pf4j.version}</version>
 			</dependency>
 			<!-- Utility Libraries -->
-			<dependency>
-				<groupId>org.semver4j</groupId>
-				<artifactId>semver4j</artifactId>
-				<version>${semver4j.version}</version>
-			</dependency>
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
+            </dependency>
+            <!-- Reads the central directory of bundle archives from memory. Apache-2.0. -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons-compress.version}</version>
             </dependency>
 			<dependency>
 				<groupId>org.apache.commons</groupId>
@@ -519,7 +534,7 @@
                     <configuration>
                         <argLine>@{argLine}
                             -javaagent:${project.build.directory}/mockito-agent/mockito-core.jar -Xshare:off
-                            -XX:+EnableDynamicAgentLoading</argLine>
+                            -XX:+EnableDynamicAgentLoading ${jvm.access.argLine}</argLine>
                         <systemPropertyVariables>
                             <sapl.fullTests>${sapl.full.tests}</sapl.fullTests>
                         </systemPropertyVariables>
@@ -541,7 +556,7 @@
                     <configuration>
                         <argLine>@{argLine}
                             -javaagent:${project.build.directory}/mockito-agent/mockito-core.jar -Xshare:off
-                            -XX:+EnableDynamicAgentLoading</argLine>
+                            -XX:+EnableDynamicAgentLoading ${jvm.access.argLine}</argLine>
                     </configuration>
                 </plugin>
 				<plugin>
@@ -703,6 +718,7 @@
 								<exclude>**/*.sapl</exclude>
 								<exclude>**/*.vim</exclude>
 								<exclude>**/*.lua</exclude>
+								<exclude>**/*.zsh</exclude>
 								<exclude>**/types.d.ts</exclude>
 								<exclude>**/vite.config.ts</exclude>
 								<exclude>**/vite.generated.ts</exclude>
@@ -888,6 +904,16 @@
 								</plugin>
 							</plugins>
 						</configuration>
+						<executions>
+							<!-- The aggregator itself has no classes to analyze. Not inherited by the modules. -->
+							<execution>
+								<id>default-cli</id>
+								<inherited>false</inherited>
+								<configuration>
+									<skip>true</skip>
+								</configuration>
+							</execution>
+						</executions>
 					</plugin>
 				</plugins>
 			</build>

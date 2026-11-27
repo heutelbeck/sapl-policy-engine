@@ -20,10 +20,17 @@ package io.sapl.lsp.sapl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import java.util.stream.Stream;
+
 import org.eclipse.lsp4j.SymbolKind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import lombok.val;
 
 @DisplayName("SAPL document symbol provider")
 class SAPLDocumentSymbolProviderTests {
@@ -146,16 +153,20 @@ class SAPLDocumentSymbolProviderTests {
         }
 
         @Test
-        @DisplayName("full range end follows a policy whose last token spans multiple lines")
-        void whenPolicyEndsWithMultiLineStringThenFullRangeEndsAtTokenEnd() {
-            var document = new SAPLParsedDocument("test.sapl", "policy \"p\" permit transform \"line1\nline2\"");
+        @DisplayName("full range ends after the last token of a policy that spans several lines")
+        void whenPolicySpansLinesThenFullRangeEndsAfterLastToken() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    policy "p"
+                    permit
+                    transform "text"
+                    """);
 
             var symbols = provider.provideDocumentSymbols(document);
 
             assertThat(symbols).hasSize(1).first().satisfies(symbol -> {
                 var fullRange = symbol.getRange();
-                assertThat(fullRange.getEnd().getLine()).isEqualTo(1);
-                assertThat(fullRange.getEnd().getCharacter()).isEqualTo(6);
+                assertThat(fullRange.getEnd().getLine()).isEqualTo(2);
+                assertThat(fullRange.getEnd().getCharacter()).isEqualTo(16);
             });
         }
 
@@ -181,6 +192,32 @@ class SAPLDocumentSymbolProviderTests {
             assertThatCode(() -> provider.provideDocumentSymbols(document)).doesNotThrowAnyException();
         }
 
+    }
+
+    @Nested
+    @DisplayName("the ranges of the symbol of a variable")
+    class RangesOfAVariableSymbolTests {
+
+        static Stream<Arguments> documentsWithASecondVariable() {
+            val plainLine    = "    var first = 1; var second = 2;";
+            val afterTheFace = "    var first = \"" + ProtocolText.GRINNING_FACE + "\"; var second = 2;";
+            return ProtocolText.documentsWithEveryLineEndAndFaces(plainLine, afterTheFace);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("documentsWithASecondVariable")
+        @DisplayName("select its name and reveal its definition in the editor")
+        void whenVariableIsDefinedThenRangesOfItsSymbolSelectItsNameAndRevealItsDefinition(String description,
+                String content) {
+            val document = new SAPLParsedDocument("test.sapl", content);
+
+            val symbols = provider.provideDocumentSymbols(document);
+
+            assertThat(symbols).singleElement().extracting(policy -> policy.getChildren().get(1))
+                    .extracting(variable -> ProtocolText.textOf(content, variable.getSelectionRange()),
+                            variable -> ProtocolText.textOf(content, variable.getRange()))
+                    .containsExactly("second", "var second = 2");
+        }
     }
 
 }

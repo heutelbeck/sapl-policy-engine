@@ -19,6 +19,7 @@ package io.sapl.lsp.core;
 
 import java.util.List;
 
+import org.eclipse.lsp4j.CodeAction;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DocumentSymbol;
@@ -26,6 +27,7 @@ import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PrepareRenameResult;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SelectionRange;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensLegend;
@@ -169,5 +171,18 @@ public interface GrammarSupport {
      * @return workspace edit with all rename changes, or null if not renamable
      */
     WorkspaceEdit provideRename(ParsedDocument document, Position position, String newName);
+
+    /**
+     * Provides the quick fixes for the problems whose marked range touches a
+     * range of a document.
+     *
+     * @param document the parsed document
+     * @param range the range the client asks for, such as the cursor or a
+     * selection
+     * @return the code actions, none for a grammar that offers no quick fixes
+     */
+    default List<CodeAction> provideCodeActions(ParsedDocument document, Range range) {
+        return List.of();
+    }
 
 }

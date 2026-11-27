@@ -91,21 +91,21 @@ class FunctionSchemaExtensionIntegrationTests {
 
     static Stream<Arguments> schemaPropertiesOfferedTestCases() {
         return Stream.of(
-                arguments("Function call - all time properties", "policy \"test\" permit time.now().",
+                arguments("Function call: all time properties", "policy \"test\" permit time.now().",
                         List.of("year", "month", "day", "hour", "minute", "second")),
-                arguments("Function call typing - filtered by prefix", "policy \"test\" permit time.now().ye",
+                arguments("Function call typing: filtered by prefix", "policy \"test\" permit time.now().ye",
                         List.of("year")),
-                arguments("Attribute - user properties with nested", "policy \"test\" permit subject.<auth.user>.",
+                arguments("Attribute: user properties with nested", "policy \"test\" permit subject.<auth.user>.",
                         List.of("username", "roles", "roles[]", "department", "profile", "profile.firstName",
                                 "profile.lastName")),
-                arguments("Environment attribute - user properties", "policy \"test\" permit|<auth.currentUser>.",
+                arguments("Environment attribute: user properties", "policy \"test\" permit|<auth.currentUser>.",
                         List.of("username", "department")),
-                arguments("Imported function - short name", "import time.now policy \"test\" permit now().",
+                arguments("Imported function: short name", "import time.now policy \"test\" permit now().",
                         List.of("year", "month", "day")),
                 arguments("Imported function with alias",
                         "import time.now as currentTime policy \"test\" permit currentTime().",
                         List.of("year", "month", "day")),
-                arguments("Chained function calls - last function schema used",
+                arguments("Chained function calls: last function schema used",
                         "policy \"test\" permit standard.textOf(value).time.now().", List.of("year", "month", "day")));
     }
 
@@ -123,9 +123,9 @@ class FunctionSchemaExtensionIntegrationTests {
 
     static Stream<Arguments> noSchemaExtensionsTestCases() {
         return Stream.of(
-                arguments("Simple variable access - no function schema", "policy \"test\" permit subject.",
+                arguments("Simple variable access: no function schema", "policy \"test\" permit subject.",
                         List.of("year", "month", "day")),
-                arguments("Function without schema - no properties", "policy \"test\" permit standard.textOf(value).",
+                arguments("Function without schema: no properties", "policy \"test\" permit standard.textOf(value).",
                         List.of("year", "month", "day", "username")));
     }
 

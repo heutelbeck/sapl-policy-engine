@@ -91,7 +91,7 @@ public class IndexFactory {
             return build.get();
         } catch (IndexSizeLimitExceededException e) {
             log.warn(
-                    "The {} index exceeded its size limit ({}); falling back to the naive index. "
+                    "The {} index exceeded its size limit ({}). Falling back to the naive index. "
                             + "Simplify the policy applicability, raise the limit, or use AUTO indexing.",
                     name, e.getMessage());
             return NaivePolicyIndex.create(documents);
@@ -105,12 +105,13 @@ public class IndexFactory {
         try {
             return SmtddPolicyIndex.create(documents, ctx.maxIndexNodes());
         } catch (IndexSizeLimitExceededException e) {
-            log.info("SMTDD index exceeded its node limit ({}); falling back to the canonical index", e.getMessage());
+            log.info("SMTDD index exceeded its node limit ({}). Falling back to the canonical index.", e.getMessage());
         }
         try {
             return CanonicalPolicyIndex.create(documents, ctx.maxDnfClauses());
         } catch (IndexSizeLimitExceededException e) {
-            log.info("Canonical index exceeded its clause limit ({}); falling back to the naive index", e.getMessage());
+            log.info("Canonical index exceeded its clause limit ({}). Falling back to the naive index.",
+                    e.getMessage());
         }
         return NaivePolicyIndex.create(documents);
     }

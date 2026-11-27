@@ -55,9 +55,18 @@ class SaplFunctionLibraryTests {
         assertThat(result).isInstanceOf(ObjectValue.class);
 
         ObjectValue infoObject = (ObjectValue) result;
-        assertThat(infoObject).containsKey("saplVersion").containsKey("gitCommitId").containsKey("gitBranch")
-                .containsKey("gitBuildTime").containsKey("jdkVersion").containsKey("javaVersion")
-                .containsKey("javaVendor").containsKey("osName").containsKey("osVersion").containsKey("osArch");
+        assertThat(infoObject).containsKey("saplVersion").containsKey("engine").containsKey("engineVersion")
+                .containsKey("gitCommitId").containsKey("gitBranch").containsKey("gitBuildTime")
+                .containsKey("jdkVersion").containsKey("javaVersion").containsKey("javaVendor").containsKey("osName")
+                .containsKey("osVersion").containsKey("osArch");
+    }
+
+    @Test
+    void whenInfoThenEngineIsJavaWithItsRuntime() {
+        val infoObject = (ObjectValue) SaplFunctionLibrary.info();
+
+        assertThat(infoObject).containsEntry("engine", Value.of("java")).containsEntry("engineVersion",
+                Value.of(System.getProperty("java.version")));
     }
 
     @Test

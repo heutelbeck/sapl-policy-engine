@@ -40,6 +40,72 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @DisplayName("CidrFunctionLibrary")
 class CidrFunctionLibraryTests {
 
+    @DisplayName("Address grammar")
+    @ParameterizedTest(name = "Refused address: {0}")
+    @ValueSource(strings = { "1.2.3.4/24/0", "1.2.3.4/0/0", "::1/128/0", "1.2.3.4 /0", "::1\t/0", "::ffff:1.2.3.4 /0",
+            "", " ", "\t127.0.0.1", "127.0.0.1 ", "fe80::1%eth0", "fe80::1%", "1.2.3.4/255.255.255.0", "::1/ffff::",
+            "1", "1.2", "1.2.3", "010.0.0.1", "1.2.3.04", "0x7f.0.0.1", "0b1.0.0.1", "1.2.3.4/008", "::1/064",
+            "1.2.3.4/33", "::1/129", "1.2.3.4/", "1.2.3.4/+24", "1.2.3.4/-1", "1.2.3.4/24/1", "1.2.3.4/24.0",
+            "20010db8000000000000000000000001", "4)+k&C#VzJ4br>0wv%Yp", "1.2.3.0-10", "-1.2.3.4", "1.2.3.*", "1.2.3._",
+            "1.2.3.%", "*", "::ffff:010.0.0.1", "::ffff:1.2", "::ffff:0x1.2.3.4", "::ffff:0b1.2.3.4", "00000::1",
+            "2001:db8::1::2", "256.1.2.3", "[::1]", "::/0128", "1.2.3.4/000", "::ffff:1.2.3.004" })
+    void whenAddressUsesAnUnsupportedFormThenOperationsReturnAnError(String address) {
+        assertThat(CidrFunctionLibrary.getNetworkAddress(Value.of(address)))
+                .isEqualTo(Value.error("Invalid CIDR: %s.", address));
+    }
+
+    @DisplayName("RFC address text")
+    @ParameterizedTest(name = "Accepted address: {0}")
+    @ValueSource(strings = { "0.0.0.0", "255.255.255.255/32", "1.2.3.4/0", "::", "::/0", "::1/128", "1:2:3:4:5:6:7:8",
+            "0001:0002:0003:0004:0005:0006:0007:0008", "ABCD::Ef01", "1:2:3:4:5:6:192.0.2.1", "::192.0.2.1",
+            "::ffff:192.0.2.1" })
+    void whenAddressUsesTheSupportedGrammarThenItIsValid(String address) {
+        assertThat(CidrFunctionLibrary.isValid(Value.of(address))).isEqualTo(Value.TRUE);
+    }
+
+    @DisplayName("Usable hosts stay inside their block")
+    @ParameterizedTest(name = "{0} has {1} usable hosts from {2} to {3}")
+    @CsvSource(delimiterString = "|", textBlock = """
+            192.0.2.1           | 1 | 192.0.2.1 | 192.0.2.1
+            0.0.0.0/32          | 1 | 0.0.0.0 | 0.0.0.0
+            255.255.255.255/32  | 1 | 255.255.255.255 | 255.255.255.255
+            192.0.2.1/31        | 2 | 192.0.2.0 | 192.0.2.1
+            192.0.2.1/30        | 2 | 192.0.2.1 | 192.0.2.2
+            ::                   | 1 | :: | ::
+            ::1/128              | 1 | ::1 | ::1
+            ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | 1 | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+            2001:db8::1/127       | 2 | 2001:db8:: | 2001:db8::1
+            2001:db8::1/126       | 3 | 2001:db8::1 | 2001:db8::3
+            """)
+    void whenBlockHasUsableHostsThenCountAndEndpointsAgree(String cidr, String count, String first, String last) {
+        val address = Value.of(cidr);
+        assertThat(new Value[] { CidrFunctionLibrary.getUsableHostCount(address),
+                CidrFunctionLibrary.getFirstUsableAddress(address), CidrFunctionLibrary.getLastUsableAddress(address) })
+                .containsExactly(Value.of(count), Value.of(first), Value.of(last));
+    }
+
+    @DisplayName("IPv4 mapped addresses across families")
+    @ParameterizedTest(name = "{0} with {1}")
+    @CsvSource(delimiterString = "|", textBlock = """
+            ::/0               | 1.2.3.4            | true  | true
+            1.2.3.0/24         | ::/0               | false | true
+            ::ffff:0:0/96      | 1.2.3.4            | true  | true
+            1.2.3.0/24         | ::ffff:1.2.3.4     | true  | true
+            ::fffe:0:0/95      | 1.2.3.4            | true  | true
+            1.2.3.0/24         | ::fffe:0:0/95      | false | true
+            1.2.3.0/24         | 2001:db8::/32      | false | false
+            ::ffff:2.0.0.0/104 | 1.2.3.4            | false | false
+            """)
+    void whenFamiliesDifferThenOnlyMappedAddressesMeet(String first, String second, boolean contained,
+            boolean intersects) {
+        val firstValue  = Value.of(first);
+        val secondValue = Value.of(second);
+        assertThat(new Value[] { CidrFunctionLibrary.contains(firstValue, secondValue),
+                CidrFunctionLibrary.intersects(firstValue, secondValue),
+                CidrFunctionLibrary.intersects(secondValue, firstValue) })
+                .containsExactly(Value.of(contained), Value.of(intersects), Value.of(intersects));
+    }
+
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
@@ -264,7 +330,7 @@ class CidrFunctionLibraryTests {
             mergedCidrs.add(((TextValue) element).value());
         }
 
-        assertThat(mergedCidrs).containsExactlyInAnyOrder(expectedCidrs);
+        assertThat(mergedCidrs).containsExactly(expectedCidrs);
     }
 
     @Test
@@ -277,6 +343,12 @@ class CidrFunctionLibraryTests {
 
     static Stream<Arguments> mergeTestCases() {
         return Stream.of(
+                arguments(new String[] { "192.168.0.0/16", "10.0.0.0/8" },
+                        new String[] { "10.0.0.0/8", "192.168.0.0/16" }),
+                arguments(new String[] { "10.0.1.5", "10.0.0.0/24" }, new String[] { "10.0.0.0/24", "10.0.1.5/32" }),
+                arguments(new String[] { "255.255.255.255", "0.0.0.0/1" },
+                        new String[] { "0.0.0.0/1", "255.255.255.255/32" }),
+                arguments(new String[] { "2001:db8:1::/48", "::/64" }, new String[] { "::/64", "2001:db8:1::/48" }),
                 arguments(new String[] { "192.168.1.0/25", "192.168.1.128/25" }, new String[] { "192.168.1.0/24" }),
                 arguments(new String[] { "10.0.0.0/16", "10.0.1.0/24" }, new String[] { "10.0.0.0/16" }),
                 arguments(new String[] { "192.168.1.0/24", "192.168.1.0/24" }, new String[] { "192.168.1.0/24" }),
@@ -521,17 +593,118 @@ class CidrFunctionLibraryTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expected));
     }
 
+    @DisplayName("Public address classification follows the pinned special-purpose registries")
+    @ParameterizedTest(name = "{0} is public: {1}")
+    @CsvSource(delimiter = '|', textBlock = """
+            0.0.0.0/8             | false
+            0.0.0.0/32            | false
+            10.0.0.0/8            | false
+            100.64.0.0/10         | false
+            127.0.0.0/8           | false
+            169.254.0.0/16        | false
+            172.16.0.0/12         | false
+            192.0.0.0/24          | false
+            192.0.0.0/29          | false
+            192.0.0.8/32          | false
+            192.0.0.9/32          | true
+            192.0.0.10/32         | true
+            192.0.0.170/32        | false
+            192.0.0.171/32        | false
+            192.0.2.0/24          | false
+            192.31.196.0/24       | true
+            192.52.193.0/24       | true
+            192.88.99.0/24        | false
+            192.88.99.2/32        | false
+            192.168.0.0/16        | false
+            192.175.48.0/24       | true
+            198.18.0.0/15         | false
+            198.51.100.0/24       | false
+            203.0.113.0/24        | false
+            240.0.0.0/4           | false
+            255.255.255.255/32    | false
+            ::1/128               | false
+            ::/128                | false
+            ::ffff:0:0/96         | false
+            64:ff9b::/96          | true
+            64:ff9b:1::/48        | false
+            100::/64              | false
+            100:0:0:1::/64        | false
+            2001::/23             | false
+            2001::/32             | false
+            2001:1::1/128         | true
+            2001:1::2/128         | true
+            2001:1::3/128         | true
+            2001:2::/48           | false
+            2001:3::/32           | true
+            2001:4:112::/48       | true
+            2001:10::/28          | false
+            2001:20::/28          | true
+            2001:30::/28          | true
+            2001:db8::/32         | false
+            2002::/16             | false
+            2620:4f:8000::/48     | true
+            3fff::/20             | false
+            5f00::/16             | false
+            fc00::/7              | false
+            fe80::/10             | false
+            """)
+    void whenAddressIsInSpecialPurposeRegistriesThenPinnedReachabilityApplies(String address, boolean expected) {
+        assertThat(CidrFunctionLibrary.isPublicRoutable(Value.of(address))).isEqualTo(Value.of(expected));
+    }
+
+    @DisplayName("Every address in an aligned block must be public")
+    @ParameterizedTest(name = "{0} is public: {1}")
+    @CsvSource(delimiter = '|', textBlock = """
+            0.0.0.0               | false
+            8.8.8.8               | true
+            8.0.0.0/6             | false
+            192.0.0.8             | false
+            192.0.0.8/31          | false
+            192.0.0.9/31          | true
+            192.0.0.10/31         | false
+            192.0.0.11/31         | false
+            192.0.0.9/24          | true
+            192.0.1.0/24          | true
+            223.255.255.255       | true
+            224.0.0.0/4           | false
+            239.255.255.255       | false
+            0.0.0.0/0             | false
+            ::/0                  | false
+            ::ffff:8.8.8.8        | false
+            64:ff9b::808:808      | true
+            64:ff9b::/95          | false
+            64:ff9b::1/95         | true
+            2000::/3              | false
+            2001:1::/126          | false
+            2001:1::2/127         | true
+            2001:1::1/64          | true
+            2001:3::1             | true
+            2001:db0::/28         | false
+            2606:4700::/32        | true
+            3fff::1               | false
+            3fff:fff::1           | false
+            3fff:1000::           | true
+            4000::1               | false
+            ff02::1               | false
+            """)
+    void whenAddressIsPublicThenItsWholeAlignedBlockIsPublic(String address, boolean expected) {
+        assertThat(CidrFunctionLibrary.isPublicRoutable(Value.of(address))).isEqualTo(Value.of(expected));
+    }
+
     @ParameterizedTest(name = "anonymizeIp({0}, {1}) = {2}")
     @CsvSource(delimiterString = "|", textBlock = """
             # IPv4 Anonymization
-            192.168.1.123      | 24 | 192.168.1.0
-            10.20.30.40        | 16 | 10.20.0.0
-            172.16.25.50       | 12 | 172.16.0.0
-            8.8.8.8            | 8  | 8.0.0.0
+            192.168.1.123      | 24 | 192.168.1.0/24
+            10.20.30.40        | 16 | 10.20.0.0/16
+            172.16.25.50       | 12 | 172.16.0.0/12
+            8.8.8.8            | 8  | 8.0.0.0/8
             # IPv6 Anonymization (RFC 5952 canonical form)
-            2001:db8:abcd:1234:5678:90ab:cdef:1234 | 64 | 2001:db8:abcd:1234::
-            2001:db8::1        | 32 | 2001:db8::
-            fe80::1234:5678    | 10 | fe80::
+            2001:db8:abcd:1234:5678:90ab:cdef:1234 | 64 | 2001:db8:abcd:1234::/64
+            2001:db8::1        | 32 | 2001:db8::/32
+            fe80::1234:5678    | 10 | fe80::/10
+            10.0.0.0/8       | 12 | 10.0.0.0/8
+            10.1.2.3/8       | 24 | 10.0.0.0/8
+            2001:db8::/32    | 64 | 2001:db8::/32
             """)
     void anonymizeIpWhenValidInputsThenReturnsExpectedResult(String ipAddress, int prefixLength, String expected) {
         val result = CidrFunctionLibrary.anonymizeIp(Value.of(ipAddress), Value.of(prefixLength));
@@ -607,8 +780,8 @@ class CidrFunctionLibraryTests {
             192.168.1.0/24     | 254
             192.168.1.0/30     | 2
             10.0.0.0/8         | 16777214
-            192.168.1.0/31     | 0
-            192.168.1.0/32     | 0
+            192.168.1.0/31     | 2
+            192.168.1.0/32     | 1
             2001:db8::/64      | 18446744073709551615
             """)
     void getUsableHostCountWhenValidCidrThenReturnsExpectedCount(String cidr, String expected) {
@@ -696,10 +869,10 @@ class CidrFunctionLibraryTests {
             10.0.0.0/16        | 24 | true
             192.168.0.0/24     | 25 | true
             192.168.0.0/24     | 26 | true
-            # Invalid - Target Too Large
+            # Invalid: Target Too Large
             192.168.0.0/24     | 23 | false
             192.168.0.0/24     | 16 | false
-            # Invalid - Not On Boundary
+            # Invalid: Not On Boundary
             192.168.1.0/23     | 24 | false
             192.168.3.0/22     | 24 | false
             # IPv6

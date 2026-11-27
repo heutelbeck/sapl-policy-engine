@@ -21,12 +21,14 @@ import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.documentation.EntryDocumentation;
 import io.sapl.api.documentation.EntryType;
 import io.sapl.api.documentation.LibraryType;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
+import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,36 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("LibraryDocumentationExtractor")
 class LibraryDocumentationExtractorTests {
+
+    @Test
+    void whenTheHttpLibraryOffersBothReceiverFormsThenTheEnvironmentOverloadsKeepTheirDocumentation() {
+        val library = LibraryDocumentationExtractor.extractPolicyInformationPoint(HttpPolicyInformationPoint.class);
+        val names   = library.entries().stream().filter(entry -> entry.type() == EntryType.ENVIRONMENT_ATTRIBUTE)
+                .map(EntryDocumentation::name).toList();
+        assertThat(names).containsExactlyInAnyOrder("get", "post", "patch", "put", "delete", "websocket");
+        assertThat(library.entries()).allSatisfy(entry -> assertThat(entry.documentation()).isNotBlank());
+    }
+
+    @Test
+    void whenAProviderInheritsAReadableAttributeThenItsCatalogueReflectsThePublicMethods() {
+        val library = LibraryDocumentationExtractor.extractPolicyInformationPoint(SiteHours.class);
+        assertThat(library.entries()).extracting(EntryDocumentation::name).containsExactlyInAnyOrder("onDuty", "open");
+    }
+
+    @Test
+    void whenTwoReceiversShareAnInsertionTemplateThenTheHoverIncludesBothDescriptions() {
+        val library = LibraryDocumentationExtractor.extractPolicyInformationPoint(Badges.class);
+        assertThat(library.codeTemplateToDocumentation()).containsEntry("<badge.current>",
+                "Badge of the office.\n\nBadge of this person.");
+    }
+
+    @Test
+    void whenALegacyMethodDeclaresBothReceiversThenTheCatalogueDescribesTheServingEnvironmentShape() {
+        val entry = LibraryDocumentationExtractor.extractPolicyInformationPoint(Badges.class).findEntry("shift");
+        assertThat(entry).isNotNull();
+        assertThat(entry.type()).isEqualTo(EntryType.ENVIRONMENT_ATTRIBUTE);
+        assertThat(entry.documentation()).isEqualTo("Current shift.");
+    }
 
     @Test
     void whenExtractingFunctionLibraryThenLibraryMetadataIsExtracted() {
@@ -313,6 +345,45 @@ class LibraryDocumentationExtractorTests {
         public io.sapl.api.stream.Stream<TextValue> forbiddenName(Value entity, AttributeAccessContext ctx,
                 TextValue realm) {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    static class OfficeHours {
+        @EnvironmentAttribute
+        public static Value onDuty() {
+            return Value.TRUE;
+        }
+    }
+
+    @PolicyInformationPoint(name = "office")
+    static class SiteHours extends OfficeHours {
+        @EnvironmentAttribute
+        public static Value open() {
+            return Value.TRUE;
+        }
+
+        @EnvironmentAttribute
+        private static Value internal() {
+            return Value.FALSE;
+        }
+    }
+
+    @PolicyInformationPoint(name = "badge")
+    static class Badges {
+        @EnvironmentAttribute(name = "current", docs = "Badge of the office.")
+        public static Value siteBadge() {
+            return Value.TRUE;
+        }
+
+        @Attribute(name = "current", docs = "Badge of this person.")
+        public static Value personBadge(Value person) {
+            return person;
+        }
+
+        @Attribute(name = "shift")
+        @EnvironmentAttribute(name = "otherName", docs = "Current shift.")
+        public static Value shiftStatus() {
+            return Value.TRUE;
         }
     }
 

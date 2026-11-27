@@ -19,6 +19,8 @@ package io.sapl.pdp;
 
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.DecisionInterceptor;
@@ -44,6 +46,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -71,6 +74,15 @@ class ConfigurationIdProvenanceTests {
                 action == "read";
             """;
 
+    private static final String PERMIT_READ_POLICY_SET = """
+            set "archive"
+            first or abstain
+
+            policy "permit-read"
+            permit
+                action == "read";
+            """;
+
     private static final String PDP_JSON = """
             { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
             """;
@@ -78,7 +90,8 @@ class ConfigurationIdProvenanceTests {
     private static final AuthorizationSubscription SUBSCRIPTION = AuthorizationSubscription.of(Value.of("alice"),
             Value.of("read"), Value.of("archive"), Value.NULL);
 
-    private final List<VoteReport> reports = new CopyOnWriteArrayList<>();
+    private final List<VoteReport> reports     = new CopyOnWriteArrayList<>();
+    private final List<TracedVote> tracedVotes = new CopyOnWriteArrayList<>();
 
     @Test
     @DisplayName("bundle source: the report carries the manifest configuration id")
@@ -147,6 +160,19 @@ class ConfigurationIdProvenanceTests {
     }
 
     @Test
+    @DisplayName("every voter in the trace carries the PDP id and the configuration id of the deciding configuration")
+    void whenDecidingThenEveryVoterInTheTraceCarriesTheIds() throws Exception {
+        val builder = PolicyDecisionPointBuilder.withDefaults().withPolicy(PERMIT_READ_POLICY_SET);
+
+        val report = decideAndCaptureReport(builder);
+        val voters = votersIn(tracedVotes.getLast().vote().toTrace());
+
+        assertThat(voters).hasSize(3)
+                .allSatisfy(voter -> assertThat(voter).containsEntry("pdpId", Value.of(DEFAULT_PDP_ID))
+                        .containsEntry("configurationId", Value.of(report.configurationId())));
+    }
+
+    @Test
     @DisplayName("identical content from a directory and a bundle derives the same content id but different provenance")
     void whenSameContentLoadedFromDirectoryAndBundleThenContentIdMatchesButProvenanceDiffers(@TempDir Path policyDir)
             throws Exception {
@@ -172,6 +198,7 @@ class ConfigurationIdProvenanceTests {
     private VoteReport decideAndCaptureReport(PolicyDecisionPointBuilder builder) throws Exception {
         val capture = (DecisionInterceptor) (decision, timestamp, subscriptionId, authorizationSubscription) -> {
             if (decision instanceof TracedVote tracedVote) {
+                tracedVotes.add(tracedVote);
                 reports.add(ReportBuilderUtil.extractReport(tracedVote, subscriptionId, authorizationSubscription));
             }
         };
@@ -180,6 +207,17 @@ class ConfigurationIdProvenanceTests {
         }
         assertThat(reports).isNotEmpty();
         return reports.getLast();
+    }
+
+    private static List<ObjectValue> votersIn(ObjectValue voteTrace) {
+        val voters = new ArrayList<ObjectValue>();
+        voters.add((ObjectValue) voteTrace.get("voter"));
+        if (voteTrace.get("contributingVotes") instanceof ArrayValue contributingVotes) {
+            for (val contributingVote : contributingVotes) {
+                voters.addAll(votersIn((ObjectValue) contributingVote));
+            }
+        }
+        return voters;
     }
 
     private static Map<String, byte[]> utf8Contents(Map<String, String> textByName) {

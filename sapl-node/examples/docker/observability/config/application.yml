@@ -27,6 +27,8 @@ io.sapl:
     metrics-enabled: true
     print-text-report: true
   node:
+    # Plaintext for this local example. The node logs a warning at every start.
+    allow-no-tls: true
     allow-no-auth: true
     allow-basic-auth: false
     allow-api-key-auth: false
@@ -36,8 +38,6 @@ io.sapl:
 
 server:
   port: 8080
-  ssl:
-    enabled: false
 
 logging.level:
   "[io.sapl]": INFO

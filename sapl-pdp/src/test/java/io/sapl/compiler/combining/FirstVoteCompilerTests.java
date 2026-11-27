@@ -82,12 +82,12 @@ class FirstVoteCompilerTests {
     class EdgeCases {
 
         @Test
-        @DisplayName("empty policy set throws IllegalArgumentException with syntax errors")
+        @DisplayName("empty policy set throws IllegalArgumentException that names the problem")
         void emptyPolicySetThrows() {
             assertThatThrownBy(() -> compilePolicySet("""
                     set "empty"
                     first or abstain errors propagate
-                    """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Syntax errors");
+                    """)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Empty policy set.");
         }
 
         @Test
@@ -612,7 +612,7 @@ class FirstVoteCompilerTests {
     class StreamEvaluation {
 
         @Test
-        @DisplayName("streaming policies with constant permit fallback - first policy matches")
+        @DisplayName("streaming policies with constant permit fallback, first policy matches")
         void whenStreamingPoliciesWithConstantFallbackAndFirstMatches_thenFirstPolicyPermits()
                 throws InterruptedException {
             val compiled = compilePolicySet("""
@@ -647,7 +647,7 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("streaming policies with constant permit fallback - all streaming NOT_APPLICABLE falls through")
+        @DisplayName("streaming policies with constant permit fallback, all streaming NOT_APPLICABLE falls through")
         void whenStreamingPoliciesWithConstantFallbackAndAllNotApplicable_thenFallsThrough()
                 throws InterruptedException {
             val compiled = compilePolicySet("""
@@ -1370,7 +1370,7 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("NOT_APPLICABLE then SUSPEND - SUSPEND wins")
+        @DisplayName("NOT_APPLICABLE then SUSPEND: SUSPEND wins")
         void whenNotApplicableThenSuspendThenReturnsSuspend() {
             val compiled = compilePolicySet("""
                     set "test"
@@ -1393,7 +1393,7 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("multiple NOT_APPLICABLE then SUSPEND - all skipped, SUSPEND wins")
+        @DisplayName("multiple NOT_APPLICABLE then SUSPEND: all skipped, SUSPEND wins")
         void whenMultipleNotApplicableThenSuspendThenReturnsSuspend() {
             val compiled = compilePolicySet("""
                     set "test"
@@ -1423,7 +1423,7 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with obligation - constraint preserved")
+        @DisplayName("SUSPEND with obligation: constraint preserved")
         void whenSuspendWithObligationThenObligationPreserved() {
             val compiled = compilePolicySet("""
                     set "test"
@@ -1442,7 +1442,7 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with advice - constraint preserved")
+        @DisplayName("SUSPEND with advice: constraint preserved")
         void whenSuspendWithAdviceThenAdvicePreserved() {
             val compiled = compilePolicySet("""
                     set "test"
@@ -1461,7 +1461,7 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with transform - resource transformed")
+        @DisplayName("SUSPEND with transform: resource transformed")
         void whenSuspendWithTransformThenResourceTransformed() {
             val compiled = compilePolicySet("""
                     set "test"
@@ -1549,7 +1549,7 @@ class FirstVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("streaming policy emits SUSPEND - returns SUSPEND")
+        @DisplayName("streaming policy emits SUSPEND: returns SUSPEND")
         void whenStreamingPolicyEmitsSuspendThenReturnsSuspend() throws InterruptedException {
             val compiled = compilePolicySet("""
                     set "test"

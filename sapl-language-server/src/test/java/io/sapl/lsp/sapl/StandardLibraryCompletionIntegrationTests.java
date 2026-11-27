@@ -54,25 +54,25 @@ class StandardLibraryCompletionIntegrationTests {
     }
 
     static Stream<Arguments> standardFunctionLibraryTestCases() {
-        return Stream.of(arguments("standard library - length", "standard.length"),
-                arguments("standard library - toString", "standard.toString"),
-                arguments("standard library - onErrorMap", "standard.onErrorMap"),
-                arguments("string library - concat", "string.concat"),
-                arguments("string library - substring", "string.substring"),
-                arguments("string library - toUpperCase", "string.toUpperCase"),
-                arguments("string library - toLowerCase", "string.toLowerCase"),
-                arguments("string library - contains", "string.contains"),
-                arguments("array library - head", "array.head"), arguments("array library - last", "array.last"),
-                arguments("math library - max", "math.max"), arguments("math library - min", "math.min"),
-                arguments("filter library - blacken", "filter.blacken"),
-                arguments("filter library - remove", "filter.remove"),
-                arguments("filter library - replace", "filter.replace"),
-                arguments("time library - dayOfWeek", "time.dayOfWeek"),
-                arguments("time library - dateOf", "time.dateOf"), arguments("object library - keys", "object.keys"),
-                arguments("encoding library - base64Encode", "encoding.base64Encode"),
-                arguments("encoding library - base64Decode", "encoding.base64Decode"),
-                arguments("json library - jsonToVal", "json.jsonToVal"),
-                arguments("patterns library - isValidRegex", "patterns.isValidRegex"));
+        return Stream.of(arguments("standard library: length", "standard.length"),
+                arguments("standard library: toString", "standard.toString"),
+                arguments("standard library: onErrorMap", "standard.onErrorMap"),
+                arguments("string library: concat", "string.concat"),
+                arguments("string library: substring", "string.substring"),
+                arguments("string library: toUpperCase", "string.toUpperCase"),
+                arguments("string library: toLowerCase", "string.toLowerCase"),
+                arguments("string library: contains", "string.contains"),
+                arguments("array library: head", "array.head"), arguments("array library: last", "array.last"),
+                arguments("math library: max", "math.max"), arguments("math library: min", "math.min"),
+                arguments("filter library: blacken", "filter.blacken"),
+                arguments("filter library: remove", "filter.remove"),
+                arguments("filter library: replace", "filter.replace"),
+                arguments("time library: dayOfWeek", "time.dayOfWeek"),
+                arguments("time library: dateOf", "time.dateOf"), arguments("object library: keys", "object.keys"),
+                arguments("encoding library: base64Encode", "encoding.base64Encode"),
+                arguments("encoding library: base64Decode", "encoding.base64Decode"),
+                arguments("json library: jsonToVal", "json.jsonToVal"),
+                arguments("patterns library: isValidRegex", "patterns.isValidRegex"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -88,12 +88,12 @@ class StandardLibraryCompletionIntegrationTests {
     }
 
     static Stream<Arguments> pipAttributeTestCases() {
-        return Stream.of(arguments("time PIP - now", "<time.now>"),
-                arguments("time PIP - systemTimeZone", "<time.systemTimeZone>"),
-                arguments("time PIP - nowIsAfter", "<time.nowIsAfter>"),
-                arguments("time PIP - nowIsBefore", "<time.nowIsBefore>"),
-                arguments("time PIP - nowIsBetween", "<time.nowIsBetween>"),
-                arguments("time PIP - toggle", "<time.toggle>"));
+        return Stream.of(arguments("time PIP: now", "<time.now>"),
+                arguments("time PIP: systemTimeZone", "<time.systemTimeZone>"),
+                arguments("time PIP: nowIsAfter", "<time.nowIsAfter>"),
+                arguments("time PIP: nowIsBefore", "<time.nowIsBefore>"),
+                arguments("time PIP: nowIsBetween", "<time.nowIsBetween>"),
+                arguments("time PIP: toggle", "<time.toggle>"));
     }
 
     @ParameterizedTest(name = "{0}")

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.BitSet;
 import java.util.List;
 
 import static io.sapl.compiler.index.IndexTestFixtures.configurablePredicate;
@@ -40,6 +41,31 @@ class SemanticVariableOrderTests {
     @Nested
     @DisplayName("equality grouping")
     class EqualityGroupingTests {
+
+        @Test
+        @DisplayName("a shipping route in two service areas must satisfy both area restrictions")
+        void whenServiceAreasOverlapThenOnlyTheirIntersectionSelectsTheRoute() {
+            val city     = Value.of("city");
+            val harbor   = Value.of("harbor");
+            val rail     = Value.of("rail");
+            val district = stubOperand(100L);
+            val first    = new Atom(inPredicate(district, new ArrayValue(List.of(harbor, city))));
+            val second   = new Atom(inPredicate(district, new ArrayValue(List.of(city, rail))));
+            val routes   = List.<BooleanExpression>of(new And(first, second),
+                    new And(new Atom(eqPredicate(district, harbor)), new Atom(eqPredicate(district, rail))),
+                    new Atom(eqPredicate(district, harbor)), new Atom(eqPredicate(district, rail)));
+            val bucket   = new BitSet();
+            bucket.set(0, routes.size());
+
+            val order    = SemanticVariableOrder.analyze(extractPredicates(routes));
+            val branches = order.equalityGroups().getFirst().compact(bucket);
+
+            assertThat(branches.branchFormulas().get(city).stream().toArray()).containsExactly(0);
+            assertThat(branches.branchFormulas().get(harbor).stream().toArray()).containsExactly(2);
+            assertThat(branches.branchFormulas().get(rail).stream().toArray()).containsExactly(3);
+            assertThat(branches.defaultFormulas().isEmpty()).isTrue();
+            assertThat(branches.affectedFormulas()).isEqualTo(bucket);
+        }
 
         @Test
         @DisplayName("two EQ predicates on same operand produce one group")

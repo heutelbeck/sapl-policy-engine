@@ -19,6 +19,7 @@ package io.sapl.node.rsocket.pdp;
 
 import static io.sapl.node.MultiSubscriptionLimits.DEFAULT_MAX_MULTI_SUBSCRIPTION_COUNT;
 import static io.sapl.node.MultiSubscriptionLimits.requirePositiveMax;
+import static io.sapl.node.rsocket.pdp.UnsupportedSetupInterceptor.ERROR_UNSUPPORTED_DATA_MIME_TYPE;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -43,12 +44,12 @@ import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.exceptions.InvalidException;
 import io.rsocket.exceptions.RejectedSetupException;
+import io.rsocket.exceptions.UnsupportedSetupException;
 import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
-import io.sapl.api.proto.SaplProtobufCodec;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -59,6 +60,12 @@ import reactor.core.scheduler.Schedulers;
 /**
  * Direct RSocket acceptor using protobuf serialization for high-performance PDP
  * communication. Bypasses Spring Messaging layer to reduce overhead.
+ * <p>
+ * The data MIME type of the SETUP frame selects the encoding of all payloads
+ * of a connection, see {@link WireFormat}: protobuf, or the SAPL binary
+ * format. A connection with any other data MIME type is refused with
+ * {@code UNSUPPORTED_SETUP}, which needs the {@link UnsupportedSetupInterceptor}
+ * on the server.
  * <p>
  * Authentication is performed once per connection via the
  * {@link RSocketConnectionAuthenticator}. The authenticated PDP ID is stored on
@@ -76,7 +83,7 @@ import reactor.core.scheduler.Schedulers;
  * maximum throughput. Streaming operations use the reactive PDP methods
  * directly.
  * <p>
- * Bad input (unparseable protobuf, unknown route) is reported to the client
+ * Bad input (an unreadable payload, unknown route) is reported to the client
  * with the RSocket {@code INVALID} error code (0x204), which the spec defines
  * as "request invalid; client should not retry". Genuine policy
  * indeterminacy still surfaces as a normal {@code AuthorizationDecision}
@@ -106,8 +113,8 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final String ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED     = "Failed to parse multi-subscription: {}";
     private static final String ERROR_PARSE_SUBSCRIPTION_FAILED           = "Failed to parse subscription: {}";
     private static final String ERROR_UNKNOWN_ROUTE                       = "Unknown RSocket route: {}";
-    private static final String WARN_EXPIRY_SCHEDULE_REJECTED             = "Could not schedule connection expiry; disposing the connection now.";
-    private static final String WARN_MULTI_DECIDE_ALL_ONCE_NULL           = "decideAll for pdpId={} produced no value before stream completion; returning INDETERMINATE for the entire batch. This indicates a server-side defect.";
+    private static final String WARN_EXPIRY_SCHEDULE_REJECTED             = "Could not schedule connection expiry. Disposing the connection now.";
+    private static final String WARN_MULTI_DECIDE_ALL_ONCE_NULL           = "decideAll for pdpId={} produced no value before stream completion. Returning INDETERMINATE for the entire batch. This indicates a server-side defect.";
 
     // Static is intentional: virtual-thread-per-task holds no platform
     // threads or pooled resources when idle, so dispose() at shutdown
@@ -171,9 +178,14 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
+        val format = WireFormat.ofMimeType(setup.dataMimeType());
+        if (format == null) {
+            log.debug("RSocket setup names an unsupported data MIME type: {}", setup.dataMimeType());
+            return Mono.error(new UnsupportedSetupException(ERROR_UNSUPPORTED_DATA_MIME_TYPE));
+        }
         if (authenticator == null) {
             return Mono.just(new ProtobufRSocket(blockingPdp, pdp, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID,
-                    maxMultiSubscriptionCount));
+                    maxMultiSubscriptionCount, format));
         }
         // Offload setup authentication (Argon2 verification, JWT/JWKS decode) onto a
         // virtual thread so the blocking work never runs on the Netty event loop and
@@ -181,7 +193,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         // the decision path's subscribeOn below.
         return authenticator.authenticate(setup).subscribeOn(VIRTUAL_THREAD_SCHEDULER).<RSocket>map(result -> {
             scheduleConnectionExpiry(sendingSocket, result.expiresAt());
-            return new ProtobufRSocket(blockingPdp, pdp, result.pdpId(), maxMultiSubscriptionCount);
+            return new ProtobufRSocket(blockingPdp, pdp, result.pdpId(), maxMultiSubscriptionCount, format);
         }).onErrorMap(e -> {
             log.debug("RSocket setup authentication failed: {}", e.getMessage());
             return new RejectedSetupException(ERROR_AUTH_FAILED);
@@ -216,15 +228,18 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private final ReactivePolicyDecisionPoint pdp;
         private final String                      pdpId;
         private final int                         maxMultiSubscriptionCount;
+        private final WireFormat                  format;
 
         ProtobufRSocket(BlockingPolicyDecisionPoint blockingPdp,
                 ReactivePolicyDecisionPoint pdp,
                 String pdpId,
-                int maxMultiSubscriptionCount) {
+                int maxMultiSubscriptionCount,
+                WireFormat format) {
             this.blockingPdp               = blockingPdp;
             this.pdp                       = pdp;
             this.pdpId                     = pdpId;
             this.maxMultiSubscriptionCount = maxMultiSubscriptionCount;
+            this.format                    = format;
         }
 
         @Override
@@ -289,7 +304,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Flux<Payload> handleDecide(byte[] data) {
             final io.sapl.api.pdp.AuthorizationSubscription subscription;
             try {
-                subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
+                subscription = format.readSubscription(data);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
                 return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
@@ -328,10 +343,10 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             }).map(this::encodeMultiDecision);
         }
 
-        private static io.sapl.api.pdp.AuthorizationSubscription parseSubscriptionOrThrow(byte[] data)
+        private io.sapl.api.pdp.AuthorizationSubscription parseSubscriptionOrThrow(byte[] data)
                 throws InvalidException {
             try {
-                return SaplProtobufCodec.readAuthorizationSubscription(data);
+                return format.readSubscription(data);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
                 throw new InvalidException(ERROR_BAD_REQUEST, e);
@@ -341,7 +356,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private io.sapl.api.pdp.MultiAuthorizationSubscription parseMultiSubscriptionOrThrow(byte[] data)
                 throws InvalidException {
             try {
-                return SaplProtobufCodec.readMultiAuthorizationSubscription(data, maxMultiSubscriptionCount);
+                return format.readMultiSubscription(data, maxMultiSubscriptionCount);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
                 throw new InvalidException(ERROR_BAD_REQUEST, e);
@@ -369,7 +384,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
         private Payload encodeDecision(AuthorizationDecision decision) {
             try {
-                return DefaultPayload.create(SaplProtobufCodec.writeAuthorizationDecision(decision));
+                return DefaultPayload.create(format.write(decision));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_DECISION_FAILED, e.getMessage());
                 return encodeIndeterminateDecision();
@@ -378,7 +393,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
         private Payload encodeIdentifiableDecision(IdentifiableAuthorizationDecision decision) {
             try {
-                return DefaultPayload.create(SaplProtobufCodec.writeIdentifiableAuthorizationDecision(decision));
+                return DefaultPayload.create(format.write(decision));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_IDENTIFIABLE_DECISION_FAILED, e.getMessage());
                 return encodeIndeterminateDecision();
@@ -387,17 +402,16 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
         private Payload encodeMultiDecision(MultiAuthorizationDecision decision) {
             try {
-                return DefaultPayload.create(SaplProtobufCodec.writeMultiAuthorizationDecision(decision));
+                return DefaultPayload.create(format.write(decision));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_MULTI_DECISION_FAILED, e.getMessage());
                 return encodeIndeterminateDecision();
             }
         }
 
-        private static Payload encodeIndeterminateDecision() {
+        private Payload encodeIndeterminateDecision() {
             try {
-                return DefaultPayload
-                        .create(SaplProtobufCodec.writeAuthorizationDecision(AuthorizationDecision.INDETERMINATE));
+                return DefaultPayload.create(format.write(AuthorizationDecision.INDETERMINATE));
             } catch (IOException fallbackError) {
                 log.error(ERROR_ENCODE_DECISION_FAILED, fallbackError.getMessage());
                 return DefaultPayload.create(new byte[0]);

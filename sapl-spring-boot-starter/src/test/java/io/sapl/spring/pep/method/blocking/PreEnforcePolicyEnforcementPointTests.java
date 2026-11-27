@@ -174,7 +174,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("Permit allows escorting Drumknott home; the rite returns nothing")
+        @DisplayName("Permit allows escorting Drumknott home, the rite returns nothing")
         void whenPermitAndVoidThenEscortCompletes() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
@@ -231,7 +231,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("DENY with a substitute resource still denies; substitution cannot save a denial")
+        @DisplayName("DENY with a substitute resource still denies, substitution cannot save a denial")
         void whenDenyWithResourceThenStillAccessDenied() {
             val deny = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(CASE_FILE_REDACTED));
@@ -242,7 +242,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with a substitute resource still denies; the Watch cannot pause, so substitution cannot save a suspension")
+        @DisplayName("SUSPEND with a substitute resource still denies, the Watch cannot pause, so substitution cannot save a suspension")
         void whenSuspendWithResourceThenStillAccessDenied() {
             val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(CASE_FILE_REDACTED));
@@ -285,7 +285,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND raises AccessDeniedException; one-shot PEPs cannot suspend, so the warrant is refused outright")
+        @DisplayName("SUSPEND raises AccessDeniedException, one-shot PEPs cannot suspend, so the warrant is refused outright")
         void whenSuspendThenAccessDenied() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.SUSPEND);
 
@@ -419,7 +419,7 @@ class PreEnforcePolicyEnforcementPointTests {
     class PostInvocationObligationFailures {
 
         @Test
-        @DisplayName("OutputSignal Mapper failure: Carrot drops the evidence; access denied (post-invocation)")
+        @DisplayName("OutputSignal Mapper failure: Carrot drops the evidence, access denied (post-invocation)")
         void whenOutputMapperObligationFailsThenAccessDeniedPostInvocation() {
             when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.CARROT_DROPS_EVIDENCE_MAPPER));
@@ -429,7 +429,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("OutputSignal Consumer failure: Rincewind panics mid-observation; access denied")
+        @DisplayName("OutputSignal Consumer failure: Rincewind panics mid-observation, access denied")
         void whenOutputConsumerObligationFailsThenAccessDenied() {
             when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.RINCEWIND_PANICS_CONSUMER));
@@ -439,7 +439,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Advice handlers are noted but never bar action; a clerk's grumble is just a grumble")
+    @DisplayName("Advice handlers are noted but never bar action, a clerk's grumble is just a grumble")
     class AdviceHandlers {
 
         @Test
@@ -485,7 +485,7 @@ class PreEnforcePolicyEnforcementPointTests {
     class RapExceptions {
 
         @Test
-        @DisplayName("Provoking the Luggage throws; without an ErrorSignal Mapper the original exception escapes")
+        @DisplayName("Provoking the Luggage throws, without an ErrorSignal Mapper the original exception escapes")
         void whenRapThrowsAndNoErrorMapperThenOriginalExceptionPropagates() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
@@ -494,7 +494,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("Provoking the Luggage throws; an ErrorSignal Mapper rewrites the exception on the way out")
+        @DisplayName("Provoking the Luggage throws, an ErrorSignal Mapper rewrites the exception on the way out")
         void whenRapThrowsAndErrorMapperPresentThenMappedExceptionPropagates() {
             when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.DEATH_CLAIMS_EXCEPTION));

@@ -137,7 +137,7 @@ class MockingAttributeBrokerTests {
         }
 
         @Test
-        @DisplayName("hasMock returns true after registration; false otherwise")
+        @DisplayName("hasMock returns true after registration, false otherwise")
         void hasMockReflectsRegistration() {
             assertThat(broker.hasMock("mock1")).isFalse();
             broker.mockEnvironmentAttribute("mock1", "time.now", args());

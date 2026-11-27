@@ -24,18 +24,23 @@ import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
+import io.sapl.compiler.expressions.OperandStructure;
+import io.sapl.compiler.expressions.OperandStructure.StructuredOperator;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.compiler.util.BoundedRegex;
-import io.sapl.compiler.util.BoundedRegularExpressionFactory;
+import io.sapl.compiler.util.ConfinedSchemaLoader;
+import io.sapl.compiler.util.LinearRegularExpressionFactory;
+import io.sapl.compiler.util.SchemaErrors;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -62,11 +67,11 @@ import java.util.stream.Collectors;
 public class SchemaValidatorCompiler {
 
     private static final String ERROR_SCHEMA_EVALUATION_FAILED   = "Schema expression evaluation failed: %s";
-    private static final String ERROR_SCHEMA_INVALID_JSON_SCHEMA = "Invalid JSON Schema: %s";
+    private static final String ERROR_SCHEMA_INVALID_JSON_SCHEMA = "The schema is not a valid JSON Schema: %s.";
     private static final String ERROR_SCHEMA_MUST_BE_CONSTANT    = "Schema must be a constant object literal, not a runtime expression. "
             + "Variable references and function calls are not allowed in schema definitions.";
     private static final String ERROR_SCHEMA_MUST_BE_OBJECT      = "Schema must be an object, got: %s";
-    private static final String ERROR_SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s";
+    private static final String ERROR_SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s.";
 
     private static final String SCHEMA_ID_FIELD = "$id";
 
@@ -82,8 +87,12 @@ public class SchemaValidatorCompiler {
         if (enforced.isEmpty()) {
             return Value.TRUE;
         }
-        val registry            = buildSchemaRegistry(ctx);
+        val registry = buildSchemaRegistry(ctx);
+        // Grouped in the order of the subscription elements, not in the iteration order of a
+        // hash map over enum constants, which differs from one run to the next and would
+        // change the semantic hash of the combined validator.
         val validatorsByElement = enforced.stream().collect(Collectors.groupingBy(SchemaStatement::element,
+                () -> new EnumMap<>(SubscriptionElement.class),
                 Collectors.mapping(schema -> compileSchemaValidator(schema, ctx, registry), Collectors.toList())));
         val elementValidators   = new ArrayList<PureOperator>();
         for (val validators : validatorsByElement.values()) {
@@ -122,33 +131,22 @@ public class SchemaValidatorCompiler {
             precompiledSchema.initializeValidators();
             return new PrecompiledSchemaValidator(element, constantSchema, precompiledSchema, location);
         } catch (SchemaException e) {
-            throw new SaplCompilerException(ERROR_SCHEMA_INVALID_JSON_SCHEMA.formatted(e.getMessage()), e, location);
+            throw new SaplCompilerException(SchemaErrors.describe(e, ERROR_SCHEMA_INVALID_JSON_SCHEMA), e, location);
         }
     }
 
     private static SchemaRegistry buildSchemaRegistry(CompilationContext ctx) {
-        val schemasValue = ctx.getData().variables().get("schemas");
-        if (!(schemasValue instanceof ArrayValue schemas)) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                    BoundedRegularExpressionFactory::applyTo);
-        }
         val schemaMap = new HashMap<String, String>();
-        for (val schema : schemas) {
-            if (schema instanceof ObjectValue obj && obj.containsKey(SCHEMA_ID_FIELD)) {
-                val id = obj.get(SCHEMA_ID_FIELD);
-                if (id instanceof TextValue(String value)) {
-                    val schemaNode = ValueJsonMarshaller.toJsonNode(obj);
-                    schemaMap.put(value, schemaNode.toString());
+        if (ctx.getData().variables().get("schemas") instanceof ArrayValue schemas) {
+            for (val schema : schemas) {
+                if (schema instanceof ObjectValue obj && obj.get(SCHEMA_ID_FIELD) instanceof TextValue(String id)) {
+                    schemaMap.put(id, ValueJsonMarshaller.toJsonNode(obj).toString());
                 }
             }
         }
-        if (schemaMap.isEmpty()) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                    BoundedRegularExpressionFactory::applyTo);
-        }
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
-            builder.schemas(schemaMap);
-            BoundedRegularExpressionFactory.applyTo(builder);
+            builder.schemaLoader(new ConfinedSchemaLoader(schemaMap));
+            LinearRegularExpressionFactory.applyTo(builder);
         });
     }
 
@@ -156,8 +154,13 @@ public class SchemaValidatorCompiler {
             SubscriptionElement element,
             ObjectValue schemaSource,
             Schema schema,
-            SourceLocation location) implements PureOperator {
+            SourceLocation location) implements StructuredOperator {
         private static final long KIND = SemanticHashing.kindHash(PrecompiledSchemaValidator.class);
+
+        @Override
+        public OperandStructure structure() {
+            return OperandStructure.of("schema", element.name().toLowerCase(Locale.ROOT), schemaSource);
+        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -167,12 +170,12 @@ public class SchemaValidatorCompiler {
             }
             try {
                 val subjectNode = ValueJsonMarshaller.toJsonNode(elementValue);
-                val messages    = BoundedRegex.runWithSharedMatchBudget(() -> schema.validate(subjectNode));
+                val messages    = schema.validate(subjectNode);
                 return messages.isEmpty() ? Value.TRUE : Value.FALSE;
             } catch (Throwable e) {
                 // Third-party validation on hostile input must never crash evaluation. Surface
                 // an ErrorValue.
-                return Value.errorAt(location, ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
+                return Value.error(SchemaErrors.describe(e, ERROR_SCHEMA_VALIDATION_FAILED), location);
             }
         }
 
@@ -192,7 +195,8 @@ public class SchemaValidatorCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, element.hashCode(), schemaSource.hashCode());
+            return SemanticHashing.ordered(KIND, SemanticHashing.kindHash(element),
+                    SemanticHashing.valueHash(schemaSource));
         }
     }
 
@@ -200,8 +204,13 @@ public class SchemaValidatorCompiler {
      * OR semantics: at least one schema for the same subscription element must
      * pass.
      */
-    record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements PureOperator {
+    record ElementSchemaValidator(List<PrecompiledSchemaValidator> validators) implements StructuredOperator {
         private static final long KIND = SemanticHashing.kindHash(ElementSchemaValidator.class);
+
+        @Override
+        public OperandStructure structure() {
+            return new OperandStructure("schema:any", List.copyOf(validators));
+        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
@@ -243,8 +252,13 @@ public class SchemaValidatorCompiler {
     /**
      * AND semantics: all element validators must pass.
      */
-    record CombinedElementValidator(List<PureOperator> elementValidators) implements PureOperator {
+    record CombinedElementValidator(List<PureOperator> elementValidators) implements StructuredOperator {
         private static final long KIND = SemanticHashing.kindHash(CombinedElementValidator.class);
+
+        @Override
+        public OperandStructure structure() {
+            return new OperandStructure("schema:all", List.copyOf(elementValidators));
+        }
 
         @Override
         public Value evaluate(EvaluationContext ctx) {

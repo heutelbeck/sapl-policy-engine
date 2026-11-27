@@ -17,9 +17,9 @@
  */
 package io.sapl.pdp.configuration;
 
+import static io.sapl.api.semver.Version.tryParse;
 import static io.sapl.pdp.SaplBuildInfo.version;
 import static java.util.List.copyOf;
-import static org.semver4j.Semver.parse;
 
 import java.time.Clock;
 import java.time.DateTimeException;
@@ -39,6 +39,7 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.semver.VersionRange;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdp;
@@ -242,6 +243,13 @@ public class PdpVoterSource implements AutoCloseable {
                     ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, versionError));
             return;
         }
+        try {
+            OutboundEndpointConfiguration.validate(pdpConfiguration.data());
+        } catch (IllegalArgumentException e) {
+            reportConfigurationErrorLocked(pdpId,
+                    ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, e.getMessage()));
+            return;
+        }
         // The configuration goes live only if the runtime environment accepts its
         // extension slice. A rejection keeps the last-good configuration and compiles
         // and swaps nothing.
@@ -265,11 +273,11 @@ public class PdpVoterSource implements AutoCloseable {
         if (requirement == null) {
             return null;
         }
-        val parsedVersion = parse(engineVersion);
+        val parsedVersion = tryParse(engineVersion);
         if (parsedVersion == null) {
             return ERROR_ENGINE_VERSION_INVALID.formatted(requirement, engineVersion);
         }
-        if (!parsedVersion.satisfies(requirement)) {
+        if (!VersionRange.parse(requirement).contains(parsedVersion)) {
             return ERROR_ENGINE_VERSION_MISMATCH.formatted(engineVersion, requirement);
         }
         return null;
@@ -316,7 +324,7 @@ public class PdpVoterSource implements AutoCloseable {
     private void compileConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
             PluginsBundle plugins) {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
-                pdpConfiguration.data(), plugins.functionBroker());
+                pdpConfiguration.data(), plugins.functionBroker().forConfiguration());
         compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
         CompiledPdp newConfiguration;
         try {

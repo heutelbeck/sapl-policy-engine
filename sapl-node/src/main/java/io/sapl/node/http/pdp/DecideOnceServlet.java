@@ -86,7 +86,7 @@ public class DecideOnceServlet extends AbstractBypassServlet {
         } catch (Exception e) {
             // Fail closed: no raw 500 (stack leak). Return INDETERMINATE like the streaming
             // servlet.
-            log.error("Decision evaluation failed for decide-once; returning INDETERMINATE.", e);
+            log.error("Decision evaluation failed for decide-once. Returning INDETERMINATE.", e);
             decision = AuthorizationDecision.INDETERMINATE;
         }
         // Serialize first so the status code reflects the actual outcome.
@@ -96,7 +96,7 @@ public class DecideOnceServlet extends AbstractBypassServlet {
         try {
             body = mapper.writeValueAsBytes(decision);
         } catch (Exception e) {
-            log.error("Failed to serialize decision for decide-once; returning INDETERMINATE.", e);
+            log.error("Failed to serialize decision for decide-once. Returning INDETERMINATE.", e);
             body = mapper.writeValueAsBytes(AuthorizationDecision.INDETERMINATE);
         }
         response.setStatus(HttpServletResponse.SC_OK);

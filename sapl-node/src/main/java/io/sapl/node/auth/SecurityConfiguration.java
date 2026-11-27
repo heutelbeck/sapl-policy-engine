@@ -19,6 +19,9 @@ package io.sapl.node.auth;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.stream.Collectors;
 import java.util.Set;
 import java.util.ArrayList;
@@ -45,7 +48,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
@@ -128,7 +130,7 @@ public class SecurityConfiguration {
                         pdp-id: default
                         basic:
                           username: alice
-                          secret: "{argon2id}<encoded password>"
+                          secret: "$argon2id$v=19$<encoded password>"
 
             Generate a credential with:
 
@@ -162,7 +164,22 @@ public class SecurityConfiguration {
             tokens it signs. SAPL Node fetches the JWKS from this issuer on
             the first decision call, then caches it.""";
 
+    private static final String ERROR_INSECURE_ISSUER  = "The issuer URI %s is not an https URI. An http URI is accepted only with io.sapl.node.oauth.allow-insecure-issuer=true, as its keys would be fetched in cleartext.";
+    private static final String ACTION_INSECURE_ISSUER = """
+            Configure the https URI of the identity provider:
+
+              spring.security.oauth2.resourceserver.jwt.issuer-uri=https://issuer.example.org/realms/sapl
+
+            For development only, an http issuer is accepted with:
+
+              io.sapl.node.oauth.allow-insecure-issuer=true""";
+
+    private static final String SCHEME_HTTP  = "http";
+    private static final String SCHEME_HTTPS = "https";
+
     private static final String WARN_BASIC_AUTH_CSRF = "Basic authentication is enabled. Browsers auto-attach Basic credentials, which exposes a CSRF surface that API key and OAuth2 JWT do not. Prefer Bearer auth for production. See https://sapl.io/docs/latest/7_6_Security.";
+
+    private static final String WARN_INSECURE_ISSUER = "Fetching the keys of the OAuth2 issuer over http because io.sapl.node.oauth.allow-insecure-issuer=true. Anyone on the network path can replace them and sign tokens that the node accepts. Use an https issuer outside of development.";
 
     private static final String WARN_NO_API_KEYS = "API key authentication is enabled but no users with API keys are configured. Add users under io.sapl.node.users with an apiKey field.";
 
@@ -172,6 +189,25 @@ public class SecurityConfiguration {
 
     @Value("${" + JWT_ISSUER_URI_PROPERTY + ":#{null}}")
     private String jwtIssuerURI;
+
+    /**
+     * The authentication cache that the HTTP and the RSocket endpoint share. The
+     * keys {@code io.sapl.node.http.auth-cache.*} configure it for both
+     * transports; they keep the names from the time they configured the HTTP
+     * endpoint alone.
+     *
+     * @param positiveTtl how long a success lasts at most
+     * @param negativeTtl how long a failure lasts
+     * @param maxSize how many outcomes the cache holds at most
+     * @return the cache
+     */
+    @Bean
+    AuthenticationCache authenticationCache(
+            @Value("${io.sapl.node.http.auth-cache.positive-ttl:5m}") Duration positiveTtl,
+            @Value("${io.sapl.node.http.auth-cache.negative-ttl:5s}") Duration negativeTtl,
+            @Value("${io.sapl.node.http.auth-cache.max-size:10000}") long maxSize) {
+        return new AuthenticationCache(positiveTtl, negativeTtl, maxSize);
+    }
 
     @Bean
     SaplUserDetailsService saplUserDetailsService() {
@@ -257,13 +293,11 @@ public class SecurityConfiguration {
 
         if (pdpProperties.isAllowNoAuth() && !pdpProperties.isAllowBasicAuth() && !pdpProperties.isAllowApiKeyAuth()
                 && !pdpProperties.isAllowOauth2Auth()) {
-            log.warn("Server has been configured to reply to requests without authentication.");
             return http.httpBasic(AbstractHttpConfigurer::disable).requestCache(cache -> cache.disable())
                     .authorizeHttpRequests(requests -> requests.anyRequest().permitAll()).build();
         }
 
         if (pdpProperties.isAllowNoAuth()) {
-            log.warn("Server has been configured to reply to requests without authentication.");
             http.authorizeHttpRequests(requests -> requests.requestMatchers("/**").permitAll());
         } else {
             http.authorizeHttpRequests(
@@ -300,6 +334,7 @@ public class SecurityConfiguration {
             if (jwtIssuerURI == null) {
                 throw new SaplStartupConfigurationException(ERROR_JWT_ISSUER_REQUIRED, ACTION_JWT_ISSUER_REQUIRED);
             }
+            requireSecureIssuer(jwtIssuerURI, pdpProperties.getOauth().isAllowInsecureIssuer());
             validateOauthAccessConfiguration();
             val converter = new SaplJwtAuthenticationConverter(pdpProperties);
             http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(skipSaplApiKeyResolver())
@@ -351,14 +386,15 @@ public class SecurityConfiguration {
         }
         return new SupplierJwtDecoder(() -> {
             try {
-                val decoder = (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(jwtIssuerURI);
                 val oauth   = pdpProperties.getOauth();
+                val decoder = NimbusJwtDecoder.withIssuerLocation(jwtIssuerURI)
+                        .restOperations(new IssuerRestTemplate(oauth.isAllowInsecureIssuer())).build();
                 decoder.setJwtValidator(jwtValidator(jwtIssuerURI, oauth.getAudiences(), oauth.getRequiredScopes(),
                         oauth.isAllowJwtWithoutExpiry()));
                 return decoder;
             } catch (Exception e) {
-                log.warn("OIDC discovery against issuer {} failed: {}; OAuth2 token validation will retry on the next "
-                        + "request", jwtIssuerURI, e.getMessage());
+                log.warn("OIDC discovery against issuer {} failed: {}. OAuth2 token validation will retry on the next "
+                        + "request.", jwtIssuerURI, e.getMessage());
                 throw new JwtException("OIDC issuer unavailable: " + e.getMessage(), e);
             }
         });
@@ -378,6 +414,37 @@ public class SecurityConfiguration {
         }
         if (oauth.getRequiredScopes().stream().anyMatch(scope -> scope == null || scope.isBlank())) {
             throw new SaplStartupConfigurationException(ERROR_BLANK_REQUIRED_SCOPE, ACTION_BLANK_REQUIRED_SCOPE);
+        }
+    }
+
+    /**
+     * Refuses an issuer that is not https at the start: the node fetches the keys
+     * that check tokens from the issuer, and over http anyone on the network
+     * path could replace them. An http issuer is accepted only with the explicit
+     * opt-in, on every address, and then with a loud warning.
+     *
+     * @param issuer the configured issuer URI
+     * @param allowInsecureIssuer true to accept an http issuer
+     * @throws SaplStartupConfigurationException if the issuer is neither https
+     * nor an accepted http URI
+     */
+    static void requireSecureIssuer(String issuer, boolean allowInsecureIssuer) {
+        val scheme = schemeOf(issuer);
+        if (SCHEME_HTTPS.equalsIgnoreCase(scheme)) {
+            return;
+        }
+        if (allowInsecureIssuer && SCHEME_HTTP.equalsIgnoreCase(scheme)) {
+            log.warn(WARN_INSECURE_ISSUER);
+            return;
+        }
+        throw new SaplStartupConfigurationException(ERROR_INSECURE_ISSUER.formatted(issuer), ACTION_INSECURE_ISSUER);
+    }
+
+    private static @Nullable String schemeOf(String uri) {
+        try {
+            return new URI(uri).getScheme();
+        } catch (URISyntaxException e) {
+            return null;
         }
     }
 

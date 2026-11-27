@@ -18,6 +18,11 @@ name: Push documentation to sapl.io
 
 on:
   workflow_call:
+    inputs:
+      maven_cache_key:
+        required: false
+        type: string
+        default: ''
     secrets:
       GHUB_ACCESS_TOKEN:
         required: true
@@ -32,13 +37,19 @@ permissions:
   contents: read
 
 jobs:
+  prepare-maven:
+    if: inputs.maven_cache_key == ''
+    uses: ./.github/workflows/prepare_maven.yml
+
   build:
+    needs: [prepare-maven]
+    if: ${{ !failure() && !cancelled() }}
 
     runs-on: ubuntu-latest
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
         with:
           egress-policy: audit
 
@@ -49,20 +60,32 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 25
-        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           java-version: 25
           distribution: temurin
-          cache: 'maven'
+
+      - name: Restore Maven dependencies
+        uses: ./.github/actions/restore-maven
+        with:
+          key: ${{ inputs.maven_cache_key || needs.prepare-maven.outputs.cache_key }}
 
       - name: Get version
         id: get-version
         run: |
-          VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+          # Quiet on success, so the output is the version alone. On failure Maven runs once
+          # more with its output, which shows why.
+          if ! VERSION=$( mvn -o -B help:evaluate -Dexpression=project.version -q -DforceStdout ); then
+            mvn -o -B help:evaluate -Dexpression=project.version
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build Required Modules Only
-        run: mvn -B clean install -pl sapl-documentation-generator,sapl-node,sapl-bom -am -DskipTests -T 1C
+        run: mvn -o -B clean install -pl sapl-documentation-generator,sapl-node,sapl-bom -am -DskipTests -T 1C
+
+      - name: Package Maven SBOM resources
+        run: bash .github/maven/package-sbom.sh sapl-node
 
       - name: Run Documentation Generator
         run: |

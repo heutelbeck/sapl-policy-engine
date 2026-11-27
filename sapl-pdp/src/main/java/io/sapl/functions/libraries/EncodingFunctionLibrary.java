@@ -78,7 +78,7 @@ public class EncodingFunctionLibrary {
 
             ## Lenient vs Strict Decoding
 
-            Lenient functions accept missing padding; strict functions require RFC-compliant
+            Lenient functions accept missing padding. Strict functions require RFC-compliant
             format with proper `=` padding and length divisible by 4.
 
             ```sapl

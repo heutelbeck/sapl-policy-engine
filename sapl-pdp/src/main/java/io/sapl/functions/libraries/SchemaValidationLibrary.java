@@ -22,12 +22,16 @@ import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import io.sapl.compiler.util.BoundedRegex;
-import io.sapl.compiler.util.BoundedRegularExpressionFactory;
+import io.sapl.compiler.util.ConfinedSchemaLoader;
+import io.sapl.compiler.util.LinearRegularExpressionFactory;
+import io.sapl.compiler.util.SchemaErrors;
 import lombok.val;
+import tools.jackson.databind.cfg.JsonNodeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
 public class SchemaValidationLibrary {
@@ -125,6 +129,19 @@ public class SchemaValidationLibrary {
             Example: If `resource.form = {"zip": "ABC"}` fails pattern validation,
             `result.errors` contains: `[{"path": "/zip", "message": "does not match
             pattern ^[0-9]{5}$", "type": "pattern", "schemaPath": "/properties/zip"}]`.
+
+            ## Patterns
+
+            The `pattern` and `patternProperties` keywords use the syntax of RE2
+            (https://github.com/google/re2/wiki/Syntax), the same syntax as the `=~`
+            operator, and are matched in time linear in the length of the text. A
+            pattern matches if it matches any part of the text, and `$` matches at
+            the end of the text only. Look-around, backreferences, atomic groups and
+            possessive quantifiers do not exist in this syntax. A schema with a pattern
+            RE2 refuses is an error, even if the subject never reaches the pattern. A
+            rule written with look-ahead is written as several `pattern` keywords under
+            `allOf` instead:
+            `{"type": "string", "minLength": 12, "allOf": [{"pattern": "[0-9]"}, {"pattern": "[A-Z]"}]}`.
             """;
 
     // JSON Schema field names
@@ -191,12 +208,15 @@ public class SchemaValidationLibrary {
             }
             """;
 
-    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
-            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12, BoundedRegularExpressionFactory::applyTo);
+    // External schemas are serialized and read again, including numbers beyond the range of doubles.
+    private static final JsonMapper SCHEMA_MAPPER = JsonMapper.builder()
+            .enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
+
+    private static final SchemaRegistry SCHEMA_REGISTRY = confinedSchemaRegistry(Map.of());
 
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
-            This function tests the `validationSubject` for compliance with the with the provided JSON schema `schema`.
+            This function tests the `validationSubject` for compliance with the provided JSON schema `schema`.
 
             The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
@@ -231,10 +251,10 @@ public class SchemaValidationLibrary {
 
     @Function(docs = """
             ```isCompliantWithExternalSchemas(validationSubject, OBJECT jsonSchema, ARRAY externalSchemas)```:
-            This function tests the ```validationSubject``` for compliance with the with the provided JSON
+            This function tests the ```validationSubject``` for compliance with the provided JSON
             schema `schema`.
 
-            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results.
+            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.
             If the ```jsonSchema``` contains external references to other ```schemas```, the validation function
@@ -397,17 +417,17 @@ public class SchemaValidationLibrary {
             val schemaNode  = ValueJsonMarshaller.toJsonNode(jsonSchema);
             val validator   = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
-            val errors      = BoundedRegex.runWithSharedMatchBudget(() -> validator.validate(subjectNode));
+            val errors      = validator.validate(subjectNode);
             return createValidationResult(errors.isEmpty(), errors);
         } catch (SchemaException e) {
             // An uncompilable schema (malformed, bad or unresolvable $ref) is an author
             // error, not a non-compliant subject. Surface it as an error.
-            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
+            return Value.error(SchemaErrors.describe(e, ERROR_SCHEMA_VALIDATION_FAILED));
         } catch (IllegalArgumentException e) {
             return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
         } catch (Throwable t) {
             // Third-party validation on hostile input must not crash evaluation.
-            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, t.getMessage());
+            return Value.error(SchemaErrors.describe(t, ERROR_SCHEMA_VALIDATION_FAILED));
         }
     }
 
@@ -427,13 +447,18 @@ public class SchemaValidationLibrary {
         return schemaMap;
     }
 
-    private static SchemaRegistry createSchemaRegistry(HashMap<String, String> schemaMap) {
+    private static SchemaRegistry createSchemaRegistry(Map<String, String> schemaMap) {
         if (schemaMap.isEmpty()) {
             return SCHEMA_REGISTRY;
         }
+        return confinedSchemaRegistry(schemaMap);
+    }
+
+    private static SchemaRegistry confinedSchemaRegistry(Map<String, String> schemaMap) {
         return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
-            builder.schemas(schemaMap);
-            BoundedRegularExpressionFactory.applyTo(builder);
+            builder.nodeReader(reader -> reader.jsonMapper(SCHEMA_MAPPER));
+            builder.schemaLoader(new ConfinedSchemaLoader(schemaMap));
+            LinearRegularExpressionFactory.applyTo(builder);
         });
     }
 

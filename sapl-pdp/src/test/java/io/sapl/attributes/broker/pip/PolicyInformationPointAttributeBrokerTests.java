@@ -30,10 +30,13 @@ import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 import io.sapl.attributes.broker.AttributeRepository;
-import io.sapl.attributes.broker.AttributeRepository.Registration;
 import io.sapl.attributes.broker.pip.PipLoadException;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.repository.AttributeAssignment;
+import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.RepositoryState;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -41,17 +44,23 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.InstantSource;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,6 +68,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static java.lang.invoke.MethodHandles.lookup;
+import static java.lang.invoke.MethodHandles.privateLookupIn;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -132,6 +143,385 @@ class PolicyInformationPointAttributeBrokerTests {
         }
     }
 
+    @Test
+    @DisplayName("a transfer becomes visible to an active evaluation and a new subscriber in one step")
+    void whenEmployeeTransfersThenEveryEvaluationSeesACommittedPair() {
+        val department     = envKey("work.department");
+        val clearance      = envKey("work.clearance");
+        val departmentKey  = RepositoryKey.fromInvocation(department.invocation());
+        val clearanceKey   = RepositoryKey.fromInvocation(clearance.invocation());
+        val freshClearance = envKey("work.clearance", true, false);
+        val deps           = Set.of(department, clearance, freshClearance);
+        val rounds         = new Recorder(deps);
+        try (val repository = new InMemoryAttributeRepository();
+                val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, repository)) {
+            repository.publish(List.of(new BoundValue(departmentKey, Value.of("HR"), null),
+                    new BoundValue(clearanceKey, Value.of(5), null)));
+            try (val active = scoped.open("existing", deps, rounds.asCallback())) {
+                repository.publish(List.of(new BoundValue(departmentKey, Value.of("IT"), null),
+                        new BoundValue(clearanceKey, Value.of(1), null)));
+                try (val joined = scoped.open("new", deps, rounds.asCallback())) {
+                    assertThat(rounds.snapshots).allSatisfy(round -> assertThat(round.get(freshClearance).value())
+                            .isEqualTo(round.get(clearance).value()));
+                    assertThat(rounds.snapshots)
+                            .extracting(round -> List.of(round.get(department).value(), round.get(clearance).value()))
+                            .containsExactly(List.of(Value.of("HR"), Value.of(5)), List.of(Value.of("IT"), Value.of(1)),
+                                    List.of(Value.of("IT"), Value.of(1)));
+                }
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("an independent PIP wake and a new subscriber during a transfer see the same committed employee")
+    void whenTransferIsBeingPreparedThenIndependentReadersSeeACompleteState() throws Exception {
+        val department    = envKey("work.department");
+        val clearance     = envKey("work.clearance");
+        val trigger       = envKey("ctrl.latest");
+        val departmentKey = RepositoryKey.fromInvocation(department.invocation());
+        val clearanceKey  = RepositoryKey.fromInvocation(clearance.invocation());
+        val deps          = Set.of(department, clearance, trigger);
+        val existing      = new Recorder(deps);
+        val joining       = new Recorder(deps);
+        val preparing     = new CountDownLatch(1);
+        val proceed       = new CountDownLatch(1);
+        val newValues     = List.<AttributeAssignment>of(new BoundValue(departmentKey, Value.of("IT"), null),
+                new BoundValue(clearanceKey, Value.of(1), null));
+        val transfer      = new AbstractList<AttributeAssignment>() {
+                              @Override
+                              public int size() {
+                                  return newValues.size();
+                              }
+
+                              @Override
+                              public AttributeAssignment get(int index) {
+                                  if (index == 1) {
+                                      preparing.countDown();
+                                      try {
+                                          if (!proceed.await(5, TimeUnit.SECONDS)) {
+                                              throw new IllegalStateException("Transfer timed out");
+                                          }
+                                      } catch (InterruptedException e) {
+                                          Thread.currentThread().interrupt();
+                                          throw new IllegalStateException(e);
+                                      }
+                                  }
+                                  return newValues.get(index);
+                              }
+                          };
+        try (val repository = new InMemoryAttributeRepository();
+                val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, repository)) {
+            scoped.load(new ControllablePip());
+            repository.publish(List.of(new BoundValue(departmentKey, Value.of("HR"), null),
+                    new BoundValue(clearanceKey, Value.of(5), null)));
+            try (val active = scoped.open("active", deps, existing.asCallback())) {
+                ControllablePip.emitToAll(Value.of("before"));
+                Awaitility.await().atMost(Duration.ofSeconds(2)).until(() -> !existing.snapshots.isEmpty());
+                val writing = CompletableFuture.runAsync(() -> repository.publish(transfer));
+                try {
+                    assertThat(preparing.await(2, TimeUnit.SECONDS)).isTrue();
+                    ControllablePip.emitToAll(Value.of("during"));
+                    Awaitility.await().atMost(Duration.ofSeconds(2)).until(() -> existing.snapshots.stream()
+                            .anyMatch(round -> Value.of("during").equals(round.get(trigger).value())));
+                    try (val joined = scoped.open("joining", deps, joining.asCallback())) {
+                        proceed.countDown();
+                        writing.get(2, TimeUnit.SECONDS);
+                        val before = List.<Value>of(Value.of("HR"), Value.of(5));
+                        val after  = List.<Value>of(Value.of("IT"), Value.of(1));
+                        assertThat(existing.snapshots)
+                                .extracting(
+                                        round -> List.of(round.get(department).value(), round.get(clearance).value()))
+                                .containsExactly(before, before, after);
+                        assertThat(joining.snapshots)
+                                .extracting(
+                                        round -> List.of(round.get(department).value(), round.get(clearance).value()))
+                                .containsExactly(before, after);
+                    }
+                } finally {
+                    proceed.countDown();
+                }
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("losing a repository invalidates active bindings and later opens on an already observed route")
+    void whenSourceClosesThenActiveAndNewReadersSeeSourceFailure() {
+        val existing       = envKey("work.department");
+        val later          = envKey("work.clearance");
+        val existingRounds = new Recorder(Set.of(existing));
+        val newRounds      = new Recorder(Set.of(later));
+        try (val repository = new InMemoryAttributeRepository();
+                val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, repository)) {
+            repository.publish(
+                    List.of(new BoundValue(RepositoryKey.fromInvocation(existing.invocation()), Value.of("IT"), null),
+                            new BoundValue(RepositoryKey.fromInvocation(later.invocation()), Value.of(5), null)));
+            try (val active = scoped.open("existing", Set.of(existing), existingRounds.asCallback())) {
+                repository.close();
+                try (val joined = scoped.open("joined", Set.of(later), newRounds.asCallback())) {
+                    assertThat(existingRounds.snapshots.getLast().get(existing).value()).isInstanceOf(ErrorValue.class);
+                    assertThat(newRounds.snapshots.getLast().get(later).value()).isInstanceOf(ErrorValue.class);
+                }
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("a slow decision does not delay another employee's revocation or a new reader of that employee")
+    void whenOneEvaluatorIsBlockedThenAnotherReadersRevocationIsImmediatelyVisible() throws Exception {
+        val first     = envKey("work.first");
+        val second    = envKey("work.second");
+        val firstKey  = RepositoryKey.fromInvocation(first.invocation());
+        val secondKey = RepositoryKey.fromInvocation(second.invocation());
+        val blocked   = new CountDownLatch(1);
+        val release   = new CountDownLatch(1);
+        val current   = new Recorder(Set.of(second));
+        val joined    = new Recorder(Set.of(second));
+        try (val repository = new InMemoryAttributeRepository();
+                val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, repository)) {
+            repository.publish(secondKey, Value.TRUE);
+            try (val slow = scoped.open("slow", Set.of(first), round -> {
+                if (Value.TRUE.equals(round.get(first).value())) {
+                    blocked.countDown();
+                    try {
+                        if (!release.await(5, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("Waiting for revocation timed out");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(e);
+                    }
+                }
+                return Set.of(first);
+            }); val reading = scoped.open("live", Set.of(second), current.asCallback())) {
+                val publishing = CompletableFuture.runAsync(() -> repository.publish(firstKey, Value.TRUE));
+                try {
+                    assertThat(blocked.await(2, TimeUnit.SECONDS)).isTrue();
+                    repository.publish(secondKey, Value.FALSE);
+                    try (val warm = scoped.open("warm", Set.of(second), joined.asCallback())) {
+                        assertThat(current.snapshots.getLast().get(second).value()).isEqualTo(Value.FALSE);
+                        assertThat(joined.snapshots.getLast().get(second).value()).isEqualTo(Value.FALSE);
+                    }
+                } finally {
+                    release.countDown();
+                }
+                publishing.get(2, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Complete source state delivery")
+    class SourceStateDelivery {
+
+        private final SubscriptionKey department    = envKey("work.department");
+        private final RepositoryKey   departmentKey = RepositoryKey.fromInvocation(department.invocation());
+        private final RepositoryKey   clearanceKey  = RepositoryKey
+                .fromInvocation(envKey("work.clearance").invocation());
+
+        @Test
+        @DisplayName("a blocked expiry round leaves the same route free to deliver a second expiry")
+        void whenAnExpiryRoundIsBlockedThenAnotherConsumerOnTheRouteCanObserveItsExpiry() throws Exception {
+            val clearance = envKey("work.clearance");
+            val entered   = new CompletableFuture<Void>();
+            val release   = new CompletableFuture<Void>();
+            val committed = new CompletableFuture<Void>();
+            val expired   = new CompletableFuture<Void>();
+            val joined    = new CompletableFuture<Value>();
+            val ttl       = Duration.ofMillis(20);
+            try (val repository = new InMemoryAttributeRepository();
+                    val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, repository)) {
+                repository.publish(List.of(new BoundValue(departmentKey, Value.TRUE, null),
+                        new BoundValue(clearanceKey, Value.TRUE, null)));
+                try (val slow = scoped.open("department", Set.of(department), inputs -> {
+                    if (Value.UNDEFINED.equals(inputs.get(department).value())) {
+                        entered.complete(null);
+                        release.join();
+                    }
+                    return Set.of(department);
+                }); val live = scoped.open("clearance", Set.of(clearance), inputs -> {
+                    if (Value.UNDEFINED.equals(inputs.get(clearance).value())) {
+                        expired.complete(null);
+                    }
+                    return Set.of(clearance);
+                }); val witness = repository.observeState(clearanceKey.pdpId(), "default", state -> {
+                    if (Value.UNDEFINED.equals(state.value(clearanceKey))) {
+                        committed.complete(null);
+                    }
+                })) {
+                    try {
+                        // Keep the ordinary publisher from racing the first expiry for the same idle subscription.
+                        val schedulerField = privateLookupIn(InMemoryAttributeRepository.class, lookup()).findVarHandle(
+                                InMemoryAttributeRepository.class, "scheduler", ScheduledExecutorService.class);
+                        val scheduler      = (ScheduledExecutorService) schedulerField.get(repository);
+                        val published      = new CompletableFuture<Void>();
+                        scheduler.execute(published::join);
+                        try {
+                            repository.publish(departmentKey, Value.TRUE, ttl);
+                        } finally {
+                            published.complete(null);
+                        }
+                        entered.get(5, TimeUnit.SECONDS);
+                        repository.publish(clearanceKey, Value.TRUE, ttl);
+                        committed.get(5, TimeUnit.SECONDS);
+                        assertThat(expired).as("live clearance consumer after confirmed repository expiry")
+                                .succeedsWithin(Duration.ofSeconds(5));
+                        try (val later = scoped.open("joined", Set.of(clearance), inputs -> {
+                            joined.complete(inputs.get(clearance).value());
+                            return Set.of(clearance);
+                        })) {
+                            assertThat(joined.get(5, TimeUnit.SECONDS)).isEqualTo(Value.UNDEFINED);
+                        }
+                        assertThat(CompletableFuture.runAsync(slow::close))
+                                .as("cancellation while the expiry callback is still blocked")
+                                .succeedsWithin(Duration.ofSeconds(5));
+                    } finally {
+                        release.complete(null);
+                    }
+                }
+            }
+        }
+
+        private RepositoryState baseline() {
+            return new RepositoryState(0, Map.of(departmentKey, new RepositoryState.Binding(0, Value.of("HR")),
+                    clearanceKey, new RepositoryState.Binding(0, Value.of(5))), null);
+        }
+
+        @Test
+        @DisplayName("a newer complete state preserves disjoint changes and a delayed prior delivery cannot undo it")
+        void whenSuccessorArrivesFirstThenEarlierDisjointChangeStillWakesItsSubscribers() {
+            val source   = new ManualSource(baseline());
+            val recorder = new Recorder(Set.of(department));
+            try (val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, source);
+                    val ignored = scoped.open("department", Set.of(department), recorder.asCallback())) {
+                val changedDepartment = new RepositoryState.Binding(1, Value.of("IT"));
+                source.deliver(new RepositoryState(2, Map.of(departmentKey, changedDepartment, clearanceKey,
+                        new RepositoryState.Binding(2, Value.of(1))), null));
+                source.deliver(new RepositoryState(1,
+                        Map.of(departmentKey, changedDepartment, clearanceKey, baseline().binding(clearanceKey)),
+                        null));
+                assertThat(recorder.snapshots).extracting(round -> round.get(department).value())
+                        .containsExactly(Value.of("HR"), Value.of("IT"));
+            }
+        }
+
+        @Test
+        @DisplayName("a queued known-input update survives discovery of a pending dependency")
+        void whenAKnownInputChangesDuringDiscoveryThenTheQueuedRoundUsesAvailableInputs() throws Exception {
+            val source    = new ManualSource(baseline());
+            val extra     = envKey("ctrl.latest");
+            val initial   = Set.of(department);
+            val expanded  = Set.of(department, extra);
+            val maps      = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+            val expanding = new CountDownLatch(1);
+            val proceed   = new CountDownLatch(1);
+            try (val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, source)) {
+                scoped.load(new ControllablePip());
+                try (val ignored = scoped.open("dynamic", initial, round -> {
+                    maps.add(round);
+                    if (Value.of("HR").equals(round.get(department).value())) {
+                        return initial;
+                    }
+                    expanding.countDown();
+                    try {
+                        if (!proceed.await(5, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("Evaluation timed out");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(e);
+                    }
+                    return expanded;
+                })) {
+                    val first      = new RepositoryState(1,
+                            Map.of(departmentKey, new RepositoryState.Binding(1, Value.of("IT"))), null);
+                    val second     = new RepositoryState(2,
+                            Map.of(departmentKey, new RepositoryState.Binding(2, Value.of("legal"))), null);
+                    val evaluating = CompletableFuture.runAsync(() -> source.deliver(first));
+                    try {
+                        assertThat(expanding.await(2, TimeUnit.SECONDS)).isTrue();
+                        source.deliver(second);
+                    } finally {
+                        proceed.countDown();
+                    }
+                    evaluating.get(2, TimeUnit.SECONDS);
+                    // The queued update can finish before the newly discovered hot listener enrolls.
+                    Awaitility.await().atMost(Duration.ofSeconds(2)).until(() -> !ControllablePip.STREAMS.isEmpty());
+                    ControllablePip.emitToAll(Value.of("ready"));
+                    Awaitility.await().atMost(Duration.ofSeconds(2))
+                            .until(() -> maps.stream().anyMatch(round -> round.containsKey(extra)));
+                    assertThat(maps).extracting(Map::keySet).containsExactly(initial, initial, initial, expanded);
+                    assertThat(maps.get(2)).containsOnlyKeys(department);
+                    assertThat(maps.get(2).get(department).value()).isEqualTo(Value.of("legal"));
+                    assertThat(maps.getLast().get(department).value()).isEqualTo(Value.of("legal"));
+                } finally {
+                    proceed.countDown();
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("late updates from a retired registration cannot affect a replacement for the same route")
+        void whenRegistrationIsReplacedThenLateOldViewsAreIgnored() {
+            val source = new ManualSource(baseline());
+            val deps   = Set.of(department);
+            try (val scoped = new PolicyInformationPointAttributeBroker(Duration.ZERO, source)) {
+                val first   = scoped.open("first", deps, round -> deps);
+                val retired = source.receiver;
+                first.close();
+                val recorder = new Recorder(deps);
+                try (val ignored = scoped.open("replacement", deps, recorder.asCallback())) {
+                    retired.accept(new RepositoryState(99,
+                            Map.of(departmentKey, new RepositoryState.Binding(99, Value.of("IT"))), null));
+                    assertThat(recorder.snapshots).extracting(round -> round.get(department).value())
+                            .containsExactly(Value.of("HR"));
+                }
+            }
+        }
+    }
+
+    /** Lets the test choose the order of deliveries and replay from an old registration. */
+    private static final class ManualSource implements AttributeRepository {
+
+        private final RepositoryState     initial;
+        private Consumer<RepositoryState> receiver;
+
+        ManualSource(RepositoryState initial) {
+            this.initial = initial;
+        }
+
+        @Override
+        public StateRegistration observeState(String pdpId, String configurationId,
+                Consumer<RepositoryState> onUpdate) {
+            receiver = onUpdate;
+            return new StateRegistration() {
+                @Override
+                public RepositoryState initialState() {
+                    return initial;
+                }
+
+                @Override
+                public void close() {
+                    // The transport may already have an old delivery in flight.
+                }
+            };
+        }
+
+        void deliver(RepositoryState state) {
+            receiver.accept(state);
+        }
+
+        @Override
+        public void publish(List<AttributeAssignment> assignments) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void close() {
+            // No resources.
+        }
+    }
+
     @Nested
     @DisplayName("Catalog: load happy paths")
     class CatalogLoadHappyPaths {
@@ -200,6 +590,37 @@ class PolicyInformationPointAttributeBrokerTests {
             assertThatThrownBy(() -> broker.load(invalid)).isInstanceOf(PipLoadException.class);
             assertThat(broker.catalog()).isEqualTo(before);
             assertThat(broker.resolve(envInvocation("invalidreturn.good"))).isEmpty();
+        }
+
+        @ParameterizedTest(name = "{1}")
+        @MethodSource("invalidDeclarations")
+        @DisplayName("an invalid finder declaration leaves the catalogue intact on load")
+        void whenANewLibraryDeclaresAnInvalidFinderThenLoadKeepsTheOriginal(Object candidate, String reason) {
+            val serving = broker.load(new StaticPip());
+
+            assertThatThrownBy(() -> broker.load(candidate)).isInstanceOf(PipLoadException.class)
+                    .hasMessageContaining(reason);
+
+            assertThat(broker.catalog()).containsExactly(serving);
+            assertThat(broker.resolve(envInvocation("stock.available"))).isEmpty();
+        }
+
+        @ParameterizedTest(name = "{1}")
+        @MethodSource("invalidDeclarations")
+        @DisplayName("an invalid replacement leaves the original finder available")
+        void whenAReplacementDeclaresAnInvalidFinderThenSwapKeepsTheOriginal(Object candidate, String reason) {
+            val serving = broker.load(new StaticPip());
+
+            assertThatThrownBy(() -> broker.swap(serving, candidate)).isInstanceOf(PipLoadException.class)
+                    .hasMessageContaining(reason);
+
+            assertThat(broker.catalog()).containsExactly(serving);
+            assertThat(broker.resolve(envInvocation("static.greeting"))).isPresent();
+        }
+
+        static List<Arguments> invalidDeclarations() {
+            return List.of(Arguments.of(new InvalidFinderName(), "stock.item-count"),
+                    Arguments.of(new AmbiguousFinders(), "stock.available"));
         }
 
         @Test
@@ -392,43 +813,37 @@ class PolicyInformationPointAttributeBrokerTests {
         @DisplayName("a throwing dependency activation rolls back the dependencies already attached in the same open")
         void whenDependencyActivationThrowsThenAttachedDependenciesRolledBack() {
             val okObserveCount = new AtomicInteger();
+            val delegate       = new InMemoryAttributeRepository();
             val fallback       = new AttributeRepository() {
                                    @Override
                                    public void close() {
-                                       // no resources to release
+                                       delegate.close();
                                    }
 
                                    @Override
-                                   public void publish(RepositoryKey key, Value value) {
-                                       // not exercised by this test
+                                   public void publish(List<AttributeAssignment> assignments) {
+                                       delegate.publish(assignments);
                                    }
 
                                    @Override
-                                   public void publish(RepositoryKey key, Value value, Duration ttl) {
-                                       // not exercised by this test
-                                   }
-
-                                   @Override
-                                   public void remove(RepositoryKey key) {
-                                       // not exercised by this test
-                                   }
-
-                                   @Override
-                                   public Registration observe(AttributeFinderInvocation invocation,
-                                           Consumer<Value> onValue) {
-                                       if (invocation.attributeName().contains("boom")) {
+                                   public StateRegistration observeState(String pdpId, String configurationId,
+                                           Consumer<RepositoryState> onUpdate) {
+                                       if ("unavailable".equals(configurationId)) {
                                            throw new IllegalStateException("activation failed");
                                        }
                                        okObserveCount.incrementAndGet();
-                                       return () -> {
-                                                              // no-op registration
-                                                          };
+                                       return delegate.observeState(pdpId, configurationId, onUpdate);
                                    }
                                };
             val scopedBroker   = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback);
             try {
-                val ok   = envKey("fallback.ok");
-                val boom = envKey("fallback.boom");
+                val ok        = envKey("fallback.ok");
+                val requested = envInvocation("fallback.boom");
+                val boom      = new SubscriptionKey(
+                        new AttributeFinderInvocation(requested.pdpId(), "unavailable", requested.attributeName(),
+                                requested.arguments(), requested.initialTimeOut(), requested.pollInterval(),
+                                requested.backoff(), requested.retries(), requested.fresh(), requested.ctx()),
+                        false);
                 // Ordered so the good dependency attaches before the failing one throws.
                 val orderedDeps = new LinkedHashSet<>(List.of(ok, boom));
 
@@ -444,6 +859,7 @@ class PolicyInformationPointAttributeBrokerTests {
                 sub.close();
             } finally {
                 scopedBroker.close();
+                fallback.close();
             }
         }
 
@@ -782,7 +1198,7 @@ class PolicyInformationPointAttributeBrokerTests {
     class StreamCompletion {
 
         @Test
-        @DisplayName("PIP stream completes after first emission; mailbox value persists")
+        @DisplayName("PIP stream completes after first emission, mailbox value persists")
         void whenStreamCompletesThenLastValueRetained() {
             broker.load(new ConstantPip());
             val key      = envKey("constant.value");
@@ -898,49 +1314,13 @@ class PolicyInformationPointAttributeBrokerTests {
     @DisplayName("Catalog mutation racing broker close")
     class CatalogMutationRacingClose {
 
-        /**
-         * Fallback that keeps a registered observer alive without ever emitting, so an
-         * unmatched invocation becomes a
-         * live repository-backed active invocation eligible for promotion when a
-         * matching PIP is loaded.
-         */
-        private AttributeRepository idleFallback() {
-            return new AttributeRepository() {
-                @Override
-                public void close() {
-                    // no resources to release
-                }
-
-                @Override
-                public void publish(RepositoryKey key, Value value) {
-                    // not exercised by this test
-                }
-
-                @Override
-                public void publish(RepositoryKey key, Value value, Duration ttl) {
-                    // not exercised by this test
-                }
-
-                @Override
-                public void remove(RepositoryKey key) {
-                    // not exercised by this test
-                }
-
-                @Override
-                public Registration observe(AttributeFinderInvocation invocation, Consumer<Value> onValue) {
-                    return () -> {
-                        // no-op registration
-                    };
-                }
-            };
-        }
-
         @Test
         @DisplayName("a load that promotes a live invocation while the broker is concurrently closed "
                 + "must not leak the promoted replacement's pump and PIP stream")
         void whenLoadPromotionRacesCloseThenReplacementNotLeaked() throws InterruptedException {
             PromoteRacePip.reset();
-            val racingBroker = new PolicyInformationPointAttributeBroker(Duration.ZERO, idleFallback());
+            val fallback     = new InMemoryAttributeRepository();
+            val racingBroker = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback);
 
             // The unmatched "promote.target" invocation becomes a live
             // repository-backed active invocation, eligible for promotion when
@@ -958,6 +1338,7 @@ class PolicyInformationPointAttributeBrokerTests {
             racingBroker.close();
             PromoteRacePip.PROCEED_GATE.countDown();
             loader.join(2000);
+            fallback.close();
 
             assertThat(loader.isAlive()).isFalse();
             Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
@@ -1047,6 +1428,27 @@ class PolicyInformationPointAttributeBrokerTests {
         @EnvironmentAttribute(name = "greeting")
         public static Value greetingThatCollides() {
             return Value.of("collides");
+        }
+    }
+
+    @PolicyInformationPoint(name = "stock")
+    static class InvalidFinderName {
+        @EnvironmentAttribute(name = "item-count")
+        public static Value itemCount() {
+            return Value.of(3);
+        }
+    }
+
+    @PolicyInformationPoint(name = "stock")
+    static class AmbiguousFinders {
+        @EnvironmentAttribute(name = "available")
+        public static Value warehouse() {
+            return Value.TRUE;
+        }
+
+        @EnvironmentAttribute(name = "available")
+        public static Value supplier() {
+            return Value.FALSE;
         }
     }
 

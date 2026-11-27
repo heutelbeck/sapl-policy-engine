@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static io.sapl.pip.geo.traccar.TraccarTestContext.context;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
@@ -52,8 +53,7 @@ class TraccarPolicyInformationPointTests {
     private BlockingWebClient mockWebClient;
 
     private static ObjectValue secretsWithToken(String token) {
-        return ObjectValue.builder().put("traccar", ObjectValue.builder().put("token", Value.of(token)).build())
-                .build();
+        return ObjectValue.builder().put("token", Value.of(token)).build();
     }
 
     @Test
@@ -64,7 +64,7 @@ class TraccarPolicyInformationPointTests {
         val pip     = new TraccarPolicyInformationPoint(mockWebClient);
         val secrets = secretsWithToken("my-api-token");
 
-        try (val stream = pip.traccarPosition((TextValue) Value.of("12345"), BASE_CONFIG, secrets)) {
+        try (val stream = pip.traccarPosition((TextValue) Value.of("12345"), context(BASE_CONFIG, secrets))) {
             StreamAssertions.assertThat(stream)
                     .awaitsNext(value -> assertThat(value).asInstanceOf(type(ErrorValue.class))
                             .extracting(ErrorValue::message)

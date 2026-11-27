@@ -82,7 +82,7 @@ class StratifiedBooleanOperationCompilerTests {
         @Test
         @DisplayName("unknown function error propagates through && instead of type mismatch")
         void whenUnknownFunctionInAndThenErrorMentionsFunctionName() {
-            var result = evaluateExpression("nonexisting.fn(subject) && subject.x");
+            var result = evaluateExpression("nonexisting.fn(subject) && (subject == \"testSubject\")");
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains("nonexisting.fn");
         }
@@ -90,7 +90,7 @@ class StratifiedBooleanOperationCompilerTests {
         @Test
         @DisplayName("unknown function error propagates through || instead of type mismatch")
         void whenUnknownFunctionInOrThenErrorMentionsFunctionName() {
-            var result = evaluateExpression("nonexisting.fn(subject) || subject.x");
+            var result = evaluateExpression("nonexisting.fn(subject) || (subject != \"testSubject\")");
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains("nonexisting.fn");
         }

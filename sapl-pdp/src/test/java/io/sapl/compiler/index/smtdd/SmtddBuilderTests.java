@@ -36,7 +36,7 @@ import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("SmtddBuilder - diagram construction")
+@DisplayName("SmtddBuilder: diagram construction")
 class SmtddBuilderTests {
 
     @Nested

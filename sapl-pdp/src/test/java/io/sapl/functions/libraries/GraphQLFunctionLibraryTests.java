@@ -1267,7 +1267,7 @@ class GraphQLFunctionLibraryTests {
             } catch (TimeoutException timeout) {
                 future.cancel(true);
                 throw new AssertionError(
-                        "Circular-fragment detection did not complete in 5s on a wide acyclic lattice; "
+                        "Circular-fragment detection did not complete in 5s on a wide acyclic lattice, "
                                 + "the algorithm scales exponentially.",
                         timeout);
             } catch (ExecutionException execution) {

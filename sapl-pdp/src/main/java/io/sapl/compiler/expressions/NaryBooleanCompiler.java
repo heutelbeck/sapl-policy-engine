@@ -66,7 +66,7 @@ public class NaryBooleanCompiler {
      * {@code a & b & c & ...}). Short-circuits on first {@code false}.
      */
     public static CompiledExpression compileConjunction(Conjunction c, CompilationContext ctx) {
-        val compiled = c.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
+        val compiled = CompilationChildren.map(c.operands(), o -> ExpressionCompiler.compile(o, ctx));
         return compile(compiled, c.location(), Value.FALSE, Value.TRUE, c.isEager());
     }
 
@@ -75,7 +75,7 @@ public class NaryBooleanCompiler {
      * {@code a | b | c | ...}). Short-circuits on first {@code true}.
      */
     public static CompiledExpression compileDisjunction(Disjunction d, CompilationContext ctx) {
-        val compiled = d.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
+        val compiled = CompilationChildren.map(d.operands(), o -> ExpressionCompiler.compile(o, ctx));
         return compile(compiled, d.location(), Value.TRUE, Value.FALSE, d.isEager());
     }
 
@@ -99,7 +99,10 @@ public class NaryBooleanCompiler {
         val   pures        = new ArrayList<PureOperator>();
         val   streams      = new ArrayList<StreamOperator>();
         Value pendingError = null;
-        for (var op : operands) {
+        // AND and OR are commutative: within a stratum the operands take their
+        // canonical order, so that the order written changes neither the compiled
+        // operator nor which of several errors is the result.
+        for (var op : CanonicalOperandOrder.sorted(operands)) {
             switch (op) {
             case BooleanValue b when shortCircuitValue.equals(b) -> {
                 return shortCircuitValue;
@@ -135,20 +138,6 @@ public class NaryBooleanCompiler {
             return new NaryBooleanStreamEager(pures, streams, shortCircuitValue, identityValue, location, pendingError);
         }
         return new NaryBooleanStreamLazy(pures, streams, shortCircuitValue, identityValue, location, pendingError);
-    }
-
-    public static TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
-        val subsequentAttrs = subsequent.contributingAttributes();
-        if (preceding.isEmpty()) {
-            return subsequent;
-        }
-        if (subsequentAttrs.isEmpty()) {
-            return new TracedValue(subsequent.value(), preceding);
-        }
-        val merged = new ArrayList<AttributeRecord>(preceding.size() + subsequentAttrs.size());
-        merged.addAll(preceding);
-        merged.addAll(subsequentAttrs);
-        return new TracedValue(subsequent.value(), merged);
     }
 
     /**

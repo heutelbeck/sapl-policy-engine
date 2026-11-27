@@ -38,6 +38,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * runnable on its thread (plus any follow-up runs triggered while
  * it was running). Other concurrent callers set the re-run bit and
  * return without waiting.
+ * <p>
+ * This provides serialization, not a source transaction or an event queue. The
+ * caller must publish a coherent source change before requesting a run, and the
+ * runnable must capture its own current inputs. No particular thread, fairness
+ * or one-run-per-trigger guarantee follows. The runnable must handle its own
+ * failures: this helper restores its running flag but does not convert thrown
+ * exceptions into policy results.
+ * <p>
+ * First-value collection belongs to broker readiness. This coalescer combines
+ * overlapping triggers but does not batch sequential first arrivals. Before
+ * invoking the consumer, the broker must recheck which inputs have changed
+ * since its previous capture. Otherwise delayed notifications can repeat a
+ * round whose values were already consumed.
  *
  * @since 4.1.0
  */
@@ -47,6 +60,13 @@ public final class DispatchCoalescer {
     private final AtomicBoolean pending = new AtomicBoolean(false);
     private final Runnable      fire;
 
+    /**
+     * Creates an independent serialization boundary for one consumer.
+     *
+     * @param fire body invoked by whichever caller starts a drain; it must not
+     * throw onto a shared producer thread
+     * @throws NullPointerException if fire is null
+     */
     public DispatchCoalescer(@NonNull Runnable fire) {
         this.fire = fire;
     }
@@ -59,7 +79,24 @@ public final class DispatchCoalescer {
      */
     public void requestFire() {
         pending.set(true);
-        while (running.compareAndSet(false, true)) {
+        if (running.compareAndSet(false, true)) {
+            drain();
+        }
+    }
+
+    /**
+     * Requests a serialized round without invoking consumer code on a source enrollment or release stack.
+     * Only the requester that acquires the idle drain starts a worker.
+     */
+    public void requestFireAsync() {
+        pending.set(true);
+        if (running.compareAndSet(false, true)) {
+            Thread.startVirtualThread(this::drain);
+        }
+    }
+
+    private void drain() {
+        do {
             try {
                 while (pending.compareAndSet(true, false)) {
                     fire.run();
@@ -67,9 +104,6 @@ public final class DispatchCoalescer {
             } finally {
                 running.set(false);
             }
-            if (!pending.get()) {
-                return;
-            }
-        }
+        } while (pending.get() && running.compareAndSet(false, true));
     }
 }

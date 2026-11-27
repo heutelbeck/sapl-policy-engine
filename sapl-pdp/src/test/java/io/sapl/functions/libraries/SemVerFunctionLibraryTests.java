@@ -191,7 +191,7 @@ class SemVerFunctionLibraryTests {
         val result = SemVerFunctionLibrary.compare(Value.of(invalidVersion), Value.of("1.0.0"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Invalid version in comparison");
+        assertThat(((ErrorValue) result).message()).contains("Invalid semantic version");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -300,7 +300,7 @@ class SemVerFunctionLibraryTests {
         val result = SemVerFunctionLibrary.isBetween(Value.of(invalidVersion), Value.of("1.0.0"), Value.of("2.0.0"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Invalid version in comparison");
+        assertThat(((ErrorValue) result).message()).contains("Invalid semantic version");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -325,7 +325,7 @@ class SemVerFunctionLibraryTests {
         val result = SemVerFunctionLibrary.isPreRelease(Value.of(invalidVersion));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Invalid version");
+        assertThat(((ErrorValue) result).message()).contains("Invalid semantic version");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -358,7 +358,7 @@ class SemVerFunctionLibraryTests {
         val result = SemVerFunctionLibrary.getMajor(Value.of(invalidVersion));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Invalid version");
+        assertThat(((ErrorValue) result).message()).contains("Invalid semantic version");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -370,7 +370,8 @@ class SemVerFunctionLibraryTests {
     }
 
     private static Stream<Arguments> satisfiesTestCases() {
-        return Stream.of(arguments("2.5.0", ">=2.0.0", true), arguments("1.5.0", ">=2.0.0", false),
+        return Stream.of(arguments("5.0.0", "^0.x", false), arguments("0.0.9", "^0.0.x", true),
+                arguments("2.5.0", ">=2.0.0", true), arguments("1.5.0", ">=2.0.0", false),
                 arguments("2.5.0", ">=2.0.0 <3.0.0", true), arguments("3.0.0", ">=2.0.0 <3.0.0", false),
                 arguments("1.2.5", "1.2.x", true), arguments("1.3.0", "1.2.x", false),
                 arguments("1.2.5", "~1.2.3", true), arguments("1.3.0", "~1.2.3", false),
@@ -401,14 +402,14 @@ class SemVerFunctionLibraryTests {
         val result = SemVerFunctionLibrary.satisfies(Value.of(invalidVersion), Value.of(">=1.0.0"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Invalid version or range");
+        assertThat(((ErrorValue) result).message()).contains("Invalid semantic version");
     }
 
     @Test
-    void satisfiesWhenInvalidRangeThenReturnsFalse() {
+    void satisfiesWhenInvalidRangeThenReturnsError() {
         val result = SemVerFunctionLibrary.satisfies(Value.of("1.0.0"), Value.of(">>invalid<<"));
 
-        assertThat(result).isEqualTo(Value.FALSE);
+        assertThat(result).isEqualTo(Value.error("Invalid range: '>>invalid<<'."));
     }
 
     @Test
@@ -435,21 +436,21 @@ class SemVerFunctionLibraryTests {
     }
 
     @Test
-    void maxSatisfyingWhenMixedTypesThenFiltersOnlyStrings() {
+    void maxSatisfyingWhenMixedTypesThenReturnsIndexedError() {
         val array = ArrayValue.builder().add(Value.of("1.0.0")).add(Value.of(123)).add(Value.of("2.0.0"))
                 .add(Value.TRUE).add(Value.of("1.5.0")).build();
 
         val result = SemVerFunctionLibrary.maxSatisfying(array, Value.of(">=1.0.0"));
 
-        assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of("2.0.0"));
+        assertThat(result).isEqualTo(Value.error("Invalid semantic version at index 1."));
     }
 
     @Test
-    void maxSatisfyingWhenInvalidRangeThenReturnsNull() {
+    void maxSatisfyingWhenInvalidRangeThenReturnsError() {
         val versions = createVersionArray("1.0.0", "2.0.0");
         val result   = SemVerFunctionLibrary.maxSatisfying(versions, Value.of(">>invalid<<"));
 
-        assertThat(result).isEqualTo(Value.NULL);
+        assertThat(result).isEqualTo(Value.error("Invalid range: '>>invalid<<'."));
     }
 
     @Test
@@ -514,7 +515,7 @@ class SemVerFunctionLibraryTests {
         val result = SemVerFunctionLibrary.diff(Value.of(invalidVersion), Value.of("1.0.0"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains("Invalid version");
+        assertThat(((ErrorValue) result).message()).contains("Invalid semantic version");
     }
 
     @Test
@@ -605,13 +606,13 @@ class SemVerFunctionLibraryTests {
     }
 
     @Test
-    void arrayContainsNonStringsThenFiltersCorrectly() {
+    void arrayContainsNonStringsThenReturnsIndexedError() {
         val array = ArrayValue.builder().add(Value.of("1.0.0")).add(Value.of(42)).add(Value.of("2.0.0"))
                 .add(ObjectValue.builder().build()).add(Value.of("1.5.0")).add(Value.EMPTY_ARRAY).build();
 
         val result = SemVerFunctionLibrary.maxSatisfying(array, Value.of("*"));
 
-        assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of("2.0.0"));
+        assertThat(result).isEqualTo(Value.error("Invalid semantic version at index 1."));
     }
 
     @Test

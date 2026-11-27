@@ -174,7 +174,7 @@ expect_exit "loadtest wired" 0 "${SAPL[@]}" loadtest --help
 
 # Server and client round trip
 printf '\nStarting server on port %s\n' "$PORT"
-"${SAPL[@]}" server --no-auth --server.port="$PORT" \
+"${SAPL[@]}" server --no-tls --no-auth --server.port="$PORT" \
     --io.sapl.pdp.embedded.pdp-config-type=DIRECTORY \
     --io.sapl.pdp.embedded.config-path="$POLICIES" \
     --io.sapl.pdp.embedded.policies-path="$POLICIES" >"$WORK/server.log" 2>&1 &

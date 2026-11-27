@@ -1,0 +1,353 @@
+Authorization subscriptions in the SAPL binary format, as the RSocket API receives them on a
+connection with the data MIME type application/vnd.sapl.binary.
+
+The format is specified in BINARY_FORMAT.md of this crate. A payload is the lead byte 00, which
+is the version of the format, the length of the text region, the region with all texts in UTF-8,
+and the structure: subject, action, resource, environment and secrets, one value each. A value is
+one tag byte, followed by what the tag needs; a text names the next bytes of the region. The
+secrets must be an object. Nothing may follow, and every byte of the region must belong to a text.
+Arrays and objects nest at most 500 deep, the secrets object at depth 1. A number beyond the
+limits of the value model refuses the payload.
+
+The document is the payload in hexadecimal bytes. A '//' starts a comment to the end of the line.
+The expectation is either the five parts, each as JSON or as the word 'undefined' or 'error', or
+'refused' with the reason.
+
+=== three short texts, no environment and no secrets
+00 0c 61 6c 69 63 65 72 65 61 64 64 6f 63   // region "alicereaddoc"
+25 24 23                                  // "alice" "read" "doc"
+00                                        // environment undefined
+60                                        // secrets {}
+---
+subject: "alice"
+action: "read"
+resource: "doc"
+environment: undefined
+secrets: {}
+
+=== a subscription with all five parts
+00 16 61 6c 69 63 65 72 65 61 64 69 64 74 6f 6b 65 6e 73 33 63 72 33 74   // region
+25                // subject "alice"
+24                // action "read"
+61 02 87          // resource {"id":7}
+01                // environment null
+61 05 26          // secrets {"token":"s3cr3t"}
+---
+subject: "alice"
+action: "read"
+resource: {"id":7}
+environment: null
+secrets: {"token":"s3cr3t"}
+
+=== values of every kind that JSON has
+00 08 78 72 65 61 64 61 62 63   // region "xreadabc"
+47 01 03 02                     // subject: 7 elements, null, true, false,
+   05 fa 01 02                  //   12.5 as 125 with scale 1,
+   21 40 60                     //   "x", [], {}
+24                              // action "read"
+62 01 21 01 41 81               // resource {"a":"b","c":[1]}
+00 60
+---
+subject: [null,true,false,12.5,"x",[],{}]
+action: "read"
+resource: {"a":"b","c":[1]}
+environment: undefined
+secrets: {}
+
+=== the long forms of texts, arrays, objects and integers
+00 06 61 6c 69 63 65 61         // region "alicea"
+08 05                           // subject: text of 5 bytes
+09 01 04 02                     // action: array of 1 element, the integer 1
+0a 01 01 04 02                  // resource: object of 1 entry, "a": 1
+04 00                           // environment: the integer 0
+0a 00                           // secrets: object of no entries
+---
+subject: "alice"
+action: [1]
+resource: {"a":1}
+environment: 0
+secrets: {}
+
+=== numbers: integers, decimals and a big decimal
+00 05 72 65 61 64 78            // region "readx"
+4a                              // subject, an array of 10 elements:
+   04 01                        //   -1
+   ff                           //   127
+   04 80 02                     //   128
+   04 fe ff ff ff ff ff ff ff ff 01   // the largest 64-bit integer
+   04 ff ff ff ff ff ff ff ff ff 01   // the smallest 64-bit integer
+   05 f4 03 04                  //   2.50 as 250 with scale 2
+   05 02 cf 0f                  //   1e1000 as 1 with scale -1000
+   e4                           //   100
+   06 00 09 05 6b c7 5e 2d 63 10 00 00   // 100000000000000000000, beyond 64 bits
+   05 09 02                     //   -0.5 as -5 with scale 1
+24 21 00 60
+---
+subject: [-1,127,128,9223372036854775807,-9223372036854775808,2.50,1e1000,100,100000000000000000000,-0.5]
+action: "read"
+resource: "x"
+environment: undefined
+secrets: {}
+
+=== a whole decimal is the integer it denotes
+00 00
+05 c8 01 04                     // 100 with scale 2
+05 00 00                        // 0 with scale 0
+05 01 00                        // -1 with scale 0
+00 60
+---
+subject: 1
+action: 0
+resource: -1
+environment: undefined
+secrets: {}
+
+=== a decimal at the limit of the scale
+00 00
+05 02 d0 0f                     // 1 with scale 1000
+05 02 cf 0f                     // 1 with scale -1000
+00 00 60
+---
+subject: 1e-1000
+action: 1e1000
+resource: undefined
+environment: undefined
+secrets: {}
+
+=== undefined and an error
+00 05 42 6f 6f 6d 2e            // region "Boom."
+00                              // subject undefined
+07 05                           // action, an error with the message "Boom."
+01 00 60
+---
+subject: undefined
+action: error
+resource: null
+environment: undefined
+secrets: {}
+
+=== a key authored twice keeps its first position and the last value
+00 03 61 62 61                  // region "aba", the keys in order
+00 00
+63 01 81 01 82 01 83            // resource {"a":1,"b":2,"a":3}
+00 60
+---
+subject: undefined
+action: undefined
+resource: {"a":3,"b":2}
+environment: undefined
+secrets: {}
+
+=== characters outside ASCII
+00 06 c3 a9 f0 9f 98 80         // region
+26                              // subject, a text of 6 bytes
+00 00 00 60
+---
+subject: "<U+00E9><U+1F600>"
+action: undefined
+resource: undefined
+environment: undefined
+secrets: {}
+
+=== an empty text and an empty key
+00 00
+20                              // subject ""
+61 00 01                        // action {"":null}
+00 00 60
+---
+subject: ""
+action: {"":null}
+resource: undefined
+environment: undefined
+secrets: {}
+
+=== arrays nested to the limit
+00 00 <499 times 41 >40 00 00 00 60
+---
+subject: <499 times [>[]<499 times ]>
+action: undefined
+resource: undefined
+environment: undefined
+secrets: {}
+
+=== objects nested to the limit
+00 00 <500 times 61 00 >81 00 00 00 60
+---
+subject: <500 times {"":>1<500 times }>
+action: undefined
+resource: undefined
+environment: undefined
+secrets: {}
+
+=== arrays nested beyond the limit
+00 00 <501 times 41 >81 00 00 00 60
+---
+refused: too deep
+
+=== an empty array nested beyond the limit
+00 00 <500 times 41 >40 00 00 00 60
+---
+refused: too deep
+
+=== secrets nested to the limit, the secrets object at depth 1
+00 00 00 00 00 00 61 00 <499 times 41 >81
+---
+subject: undefined
+action: undefined
+resource: undefined
+environment: undefined
+secrets: {"":<499 times [>1<499 times ]>}
+
+=== secrets nested beyond the limit
+00 00 00 00 00 00 61 00 <500 times 41 >81
+---
+refused: too deep
+
+=== the empty payload
+---
+refused: malformed
+
+=== only the lead byte
+00
+---
+refused: malformed
+
+=== a payload without the lead byte
+0c 61 6c 69 63 65 72 65 61 64 64 6f 63 25 24 23 00 60
+---
+refused: malformed
+
+=== a lead byte of another version
+01 0c 61 6c 69 63 65 72 65 61 64 64 6f 63 25 24 23 00 60
+---
+refused: malformed
+
+=== a protobuf subscription, whose first byte is a field key
+0a 07 22 05 61 6c 69 63 65 12 06 22 04 72 65 61 64 1a 05 22 03 64 6f 63
+---
+refused: malformed
+
+=== cut off after the subject
+00 00 81
+---
+refused: malformed
+
+=== cut off inside a varint
+00 00 04 80
+---
+refused: malformed
+
+=== a region longer than the payload
+00 05 61 62
+---
+refused: malformed
+
+=== a region that is not UTF-8
+00 01 ff 21 00 00 00 60
+---
+refused: malformed
+
+=== a surrogate encoded in UTF-8
+00 03 ed a0 80 23 00 00 00 60
+---
+refused: malformed
+
+=== an overlong encoding in UTF-8
+00 02 c0 af 22 00 00 00 60
+---
+refused: malformed
+
+=== a text that ends inside a character
+00 02 c3 a9 21 21 00 00 60
+---
+refused: malformed
+
+=== a text beyond the region
+00 01 61 22 00 00 00 60
+---
+refused: malformed
+
+=== bytes of the region that belong to no text
+00 02 61 62 21 00 00 00 60
+---
+refused: malformed
+
+=== a byte after the secrets
+00 00 00 00 00 00 60 00
+---
+refused: malformed
+
+=== an unknown tag
+00 00 0b 00 00 00 60
+---
+refused: malformed
+
+=== the last unknown tag
+00 00 1f 00 00 00 60
+---
+refused: malformed
+
+=== an array with more elements than the payload has bytes
+00 00 09 ff ff ff ff 0f 00 00 00 60
+---
+refused: malformed
+
+=== an object with more entries than the payload has bytes
+00 00 7f 00 81
+---
+refused: malformed
+
+=== a varint of eleven bytes
+00 00 04 80 80 80 80 80 80 80 80 80 80 01 00 00 00 60
+---
+refused: malformed
+
+=== a varint beyond 64 bits
+00 00 04 ff ff ff ff ff ff ff ff ff 02 00 00 00 60
+---
+refused: malformed
+
+=== a text length beyond the region
+00 00 08 ff ff ff ff ff ff ff ff ff 01 00 00 00 60
+---
+refused: malformed
+
+=== a decimal with a scale beyond the limit
+00 00 05 02 d2 0f 00 00 00 60   // 1 with scale 1001
+---
+refused: invalid number
+
+=== a decimal with a negative scale beyond the limit
+00 00 05 02 d1 0f 00 00 00 60   // 1 with scale -1001
+---
+refused: invalid number
+
+=== a big decimal of no bytes
+00 00 06 00 00 00 00 00 60
+---
+refused: invalid number
+
+=== a big decimal of more bytes than a number of 1000 digits needs
+00 00 06 00 a3 03 <419 times 01 > 00 00 00 60
+---
+refused: invalid number
+
+=== secrets that are a number
+00 00 00 00 00 00 81
+---
+refused: secrets not an object
+
+=== secrets that are an array
+00 00 00 00 00 00 40
+---
+refused: secrets not an object
+
+=== secrets that are null
+00 00 00 00 00 00 01
+---
+refused: secrets not an object
+
+=== no secrets at all
+00 00 00 00 00 00
+---
+refused: malformed

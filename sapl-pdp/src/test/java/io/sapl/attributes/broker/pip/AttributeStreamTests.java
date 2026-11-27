@@ -86,7 +86,7 @@ class AttributeStreamTests {
     class HappyPath {
 
         @Test
-        @DisplayName("source emits one value then completes; pump waits pollInterval and re-invokes the supplier")
+        @DisplayName("source emits one value then completes, pump waits pollInterval and re-invokes the supplier")
         void whenCleanCycleThenPollIntervalThenNextCycle() throws Exception {
             val source = new ControlledSource(() -> oneShot(Value.of("v1")), () -> oneShot(Value.of("v2")));
             try (val stream = new AttributeStream(invocation("a"), source)) {
@@ -98,7 +98,7 @@ class AttributeStreamTests {
         }
 
         @Test
-        @DisplayName("source emits multiple values within a cycle; all reach the consumer (latest-wins)")
+        @DisplayName("source emits multiple values within a cycle, all reach the consumer (latest-wins)")
         void whenMultipleEmissionsThenAllReachConsumer() throws Exception {
             val inner = new ScriptedStream();
             inner.emit(Value.of("a"));
@@ -168,7 +168,7 @@ class AttributeStreamTests {
         }
 
         @Test
-        @DisplayName("retries exhausted publishes transient ErrorValue; outer poll loop continues")
+        @DisplayName("retries exhausted publishes transient ErrorValue, outer poll loop continues")
         void whenRetriesExhaustedThenErrorValueThenNextCycleRecovers() throws Exception {
             val first = new ScriptedStream();
             first.error(new RuntimeException("first-fail"));
@@ -440,11 +440,11 @@ class AttributeStreamTests {
 
         void error(RuntimeException e) {
             backing.put(Value.error(e.getMessage()));
-            backing.close();
+            backing.complete();
         }
 
         void complete() {
-            backing.close();
+            backing.complete();
         }
 
         @Override

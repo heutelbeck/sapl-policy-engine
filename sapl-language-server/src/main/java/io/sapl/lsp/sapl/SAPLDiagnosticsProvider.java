@@ -17,19 +17,20 @@
  */
 package io.sapl.lsp.sapl;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticRelatedInformation;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.Location;
 
 import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.lsp.core.ProtocolPositions;
+import lombok.val;
 
 /**
- * Provides LSP diagnostics for SAPL documents based on parse and validation
- * errors.
+ * Provides the diagnostics of the protocol for the problems that the engine
+ * reports for a SAPL document.
  */
 public class SAPLDiagnosticsProvider {
 
@@ -39,43 +40,42 @@ public class SAPLDiagnosticsProvider {
      * Provides diagnostics for a parsed document.
      *
      * @param document the parsed document
-     * @return list of diagnostics
+     * @return one diagnostic for each problem of the document, in the order of
+     * their places
      */
     public List<Diagnostic> provideDiagnostics(ParsedDocument document) {
-        var diagnostics = new ArrayList<Diagnostic>();
-
-        // Convert parse errors to diagnostics
-        document.getParseErrors().stream().map(error -> createDiagnostic(error.line(), error.charPositionInLine(),
-                error.message(), error.offendingSymbol(), DiagnosticSeverity.Error)).forEach(diagnostics::add);
-
-        // Convert validation errors to diagnostics
-        document.getValidationErrors().stream().map(error -> createDiagnostic(error.line(), error.charPositionInLine(),
-                error.message(), error.offendingText(), DiagnosticSeverity.Error)).forEach(diagnostics::add);
-
-        return diagnostics;
+        if (!(document instanceof SAPLParsedDocument saplDocument)) {
+            return List.of();
+        }
+        val positions = ProtocolPositions.of(saplDocument.getContent());
+        return saplDocument.getDiagnostics().stream()
+                .map(reported -> published(reported, saplDocument.getUri(), positions)).toList();
     }
 
     /**
-     * Creates a diagnostic from error information.
+     * The diagnostic that tells a client about one problem of a document: the
+     * identifier of its class as the code, the region of the problem as the
+     * range, its short form and its explanation as the message, and its further
+     * regions as related information. The range marks at least one visible
+     * character where the document has one, so that the editor shows it.
      *
-     * @param line the line number (1-based from ANTLR)
-     * @param charPositionInLine the character position in line (0-based)
-     * @param message the error message
-     * @param offendingSymbol the offending symbol text
-     * @param severity the diagnostic severity
-     * @return the diagnostic
+     * @param reported the problem as the engine reports it
+     * @param uri the URI of the document
+     * @param positions the positions of the document
+     * @return the diagnostic of the protocol
      */
-    private Diagnostic createDiagnostic(int line, int charPositionInLine, String message, String offendingSymbol,
-            DiagnosticSeverity severity) {
-        // Convert from ANTLR's 1-based line to LSP's 0-based line
-        var startLine    = line - 1;
-        var endLine      = startLine;
-        var startChar    = charPositionInLine;
-        var symbolLength = (offendingSymbol == null || offendingSymbol.isEmpty()) ? 1 : offendingSymbol.length();
-        var endChar      = startChar + symbolLength;
-
-        var range = new Range(new Position(startLine, startChar), new Position(endLine, endChar));
-        return new Diagnostic(range, message, severity, SOURCE);
+    static Diagnostic published(io.sapl.compiler.diagnostics.Diagnostic reported, String uri,
+            ProtocolPositions positions) {
+        val diagnostic     = new Diagnostic(positions.markOf(reported.region()), reported.message(),
+                DiagnosticSeverity.Error, SOURCE, reported.identifier());
+        val furtherRegions = reported.furtherRegions().stream()
+                .map(further -> new DiagnosticRelatedInformation(new Location(uri, positions.rangeOf(further.region())),
+                        further.label().text()))
+                .toList();
+        if (!furtherRegions.isEmpty()) {
+            diagnostic.setRelatedInformation(furtherRegions);
+        }
+        return diagnostic;
     }
 
 }

@@ -19,6 +19,7 @@ package io.sapl.lsp.sapl;
 
 import java.util.List;
 
+import org.eclipse.lsp4j.CodeAction;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DocumentSymbol;
@@ -26,6 +27,7 @@ import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PrepareRenameResult;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SelectionRange;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensLegend;
@@ -56,6 +58,7 @@ public class SAPLGrammarSupport implements GrammarSupport {
     private final SAPLSelectionRangeProvider selectionRangeProvider;
     private final SAPLHoverProvider          hoverProvider;
     private final SAPLRenameProvider         renameProvider;
+    private final SAPLCodeActionProvider     codeActionProvider;
 
     /**
      * Creates a new SAPL grammar support instance.
@@ -70,6 +73,7 @@ public class SAPLGrammarSupport implements GrammarSupport {
         this.selectionRangeProvider = new SAPLSelectionRangeProvider();
         this.hoverProvider          = new SAPLHoverProvider();
         this.renameProvider         = new SAPLRenameProvider();
+        this.codeActionProvider     = new SAPLCodeActionProvider();
     }
 
     @Override
@@ -146,6 +150,11 @@ public class SAPLGrammarSupport implements GrammarSupport {
     @Override
     public WorkspaceEdit provideRename(ParsedDocument document, Position position, String newName) {
         return renameProvider.provideRename(document, position, newName);
+    }
+
+    @Override
+    public List<CodeAction> provideCodeActions(ParsedDocument document, Range range) {
+        return codeActionProvider.provideCodeActions(document, range);
     }
 
 }

@@ -33,6 +33,7 @@ import jakarta.servlet.Servlet;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.sapl.node.SaplNodeProperties;
+import io.sapl.node.auth.AuthenticationCache;
 import io.sapl.node.auth.UserLookupService;
 import io.sapl.node.auth.http.CachingHttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthHandler;
@@ -121,11 +122,8 @@ class PdpHttpEndpointConfiguration {
 
     @Bean
     HttpAuthHandler httpAuthHandler(SaplNodeProperties properties, UserLookupService userLookupService,
-            @Nullable JwtDecoder jwtDecoder,
-            @Value("${io.sapl.node.http.auth-cache.positive-ttl:5m}") Duration positiveTtl,
-            @Value("${io.sapl.node.http.auth-cache.negative-ttl:5s}") Duration negativeTtl,
-            @Value("${io.sapl.node.http.auth-cache.max-size:10000}") long maxSize) {
-        return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, positiveTtl, negativeTtl, maxSize);
+            @Nullable JwtDecoder jwtDecoder, AuthenticationCache authenticationCache) {
+        return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, authenticationCache);
     }
 
     @Bean

@@ -34,9 +34,22 @@ public record NumberValue(@NonNull BigDecimal value) implements Value {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
+    /**
+     * The text form of the number, as the SAPL value model writes it: a whole
+     * number in the range of a signed 64 bit integer plainly, such as {@code 5}
+     * for {@code 5.0} and {@code 1000} for {@code 1E+3}, and any other number as
+     * {@link BigDecimal#toString()} writes it, such as {@code 12.50},
+     * {@code 1E-7} and {@code 1E+20}.
+     *
+     * @return the text form of the number
+     */
     @Override
     public @NotNull String toString() {
-        return value.toString();
+        try {
+            return Long.toString(value.longValueExact());
+        } catch (ArithmeticException notAWholeNumberOf64Bits) {
+            return value.toString();
+        }
     }
 
     @Override

@@ -18,7 +18,8 @@
 package io.sapl.ast;
 
 /**
- * Metadata about a voter (policy or policy set) in the evaluation process.
+ * Metadata about a voter in the evaluation process. Voters are policies, policy
+ * sets and the PDP that combines them.
  */
 public interface VoterMetadata {
 
@@ -43,7 +44,8 @@ public interface VoterMetadata {
     Outcome outcome();
 
     /**
-     * @return true if the voter has constraints (obligations or advice)
+     * @return true if the voter has constraints (obligations, advice or a
+     * resource transformation)
      */
     boolean hasConstraints();
 }

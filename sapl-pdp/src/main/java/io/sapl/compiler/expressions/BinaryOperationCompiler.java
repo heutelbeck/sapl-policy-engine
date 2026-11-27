@@ -29,7 +29,9 @@ import io.sapl.compiler.operators.HasOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import static io.sapl.ast.BinaryOperatorType.*;
 
@@ -58,6 +60,12 @@ public class BinaryOperationCompiler {
             // XOR (the only non-short-circuit boolean operator)
             Map.entry(XOR, BooleanOperators::xor));
 
+    /**
+     * The commutative operators whose operands are compiled in canonical order.
+     * The operator {@code +} is not among them, as it concatenates texts.
+     */
+    private static final Set<BinaryOperatorType> CANONICALLY_ORDERED = EnumSet.of(EQ, NE, MUL, XOR);
+
     public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val special = tryCompileSpecialCase(binaryOperation, ctx);
         if (special != null) {
@@ -70,15 +78,60 @@ public class BinaryOperationCompiler {
             throw new SaplCompilerException(ERROR_UNIMPLEMENTED_BINARY_OPERATOR.formatted(operatorType),
                     binaryOperation);
         }
-        val left = ExpressionCompiler.compile(binaryOperation.left(), ctx);
+        val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(binaryOperation.left(), ctx),
+                () -> ExpressionCompiler.compile(binaryOperation.right(), ctx));
+        val left     = operands.first();
+        val right    = operands.second();
+        val location = binaryOperation.location();
+        if (CANONICALLY_ORDERED.contains(operatorType)) {
+            return compileCanonicallyOrdered(operatorType, op, left, right, location);
+        }
         if (left instanceof ErrorValue) {
             return left;
         }
-        val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
         if (right instanceof ErrorValue) {
             return right;
         }
-        return dispatchToShape(operatorType, op, left, right, binaryOperation.location());
+        if (operatorType == IN && ctx.unrollInOperator() && binaryOperation.right() instanceof ArrayExpression
+                && left instanceof PureOperator needle && right instanceof ArrayValue haystack
+                && InArrayUnrollingCompiler.reserveExpansion(needle, haystack, ctx)) {
+            return compileUnrolledMembership(needle, haystack, location);
+        }
+        return dispatchToShape(operatorType, op, left, right, location);
+    }
+
+    private static CompiledExpression compileUnrolledMembership(PureOperator needle, ArrayValue haystack,
+            SourceLocation location) {
+        val                equals = BINARY_OPERATIONS.get(EQ);
+        CompiledExpression chain  = compileCanonicallyOrdered(EQ, equals, needle, haystack.getFirst(), location);
+        for (int index = 1; index < haystack.size(); index++) {
+            val next = compileCanonicallyOrdered(EQ, equals, needle, haystack.get(index), location);
+            chain = StratifiedBooleanOperationCompiler.compile(chain, next, LAZY_OR, location);
+        }
+        val notEqual = BINARY_OPERATIONS.get(NE);
+        val defined  = new BinaryPureValue(NE, notEqual, needle, Value.UNDEFINED, location,
+                needle.isDependingOnSubscription(), needle.isRelativeExpression());
+        return StratifiedBooleanOperationCompiler.compile(defined, chain, LAZY_AND, location);
+    }
+
+    private static CompiledExpression compileCanonicallyOrdered(BinaryOperatorType operatorType, BinaryOperation op,
+            CompiledExpression written, CompiledExpression other, SourceLocation location) {
+        final CompiledExpression left;
+        final CompiledExpression right;
+        if (CanonicalOperandOrder.precedes(other, written)) {
+            left  = other;
+            right = written;
+        } else {
+            left  = written;
+            right = other;
+        }
+        if (left instanceof ErrorValue) {
+            return left;
+        }
+        if (right instanceof ErrorValue) {
+            return right;
+        }
+        return dispatchToShape(operatorType, op, left, right, location);
     }
 
     private CompiledExpression tryCompileSpecialCase(BinaryOperator binaryOperation, CompilationContext ctx) {
@@ -88,12 +141,6 @@ public class BinaryOperationCompiler {
         }
         if (operatorType == SUBTEMPLATE) {
             return SubtemplateCompiler.compile(binaryOperation, ctx);
-        }
-        if (ctx.unrollInOperator() && operatorType == IN) {
-            val unrolled = InArrayUnrollingCompiler.tryCompile(binaryOperation, ctx);
-            if (unrolled != null) {
-                return unrolled;
-            }
         }
         if ((operatorType == ANY_IN || operatorType == ALL_IN) && binaryOperation.left() instanceof ArrayExpression arr
                 && arr.elements().size() == 1) {
