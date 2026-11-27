@@ -23,7 +23,7 @@ import static io.sapl.api.shared.NameValidator.requireValidName;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Objects;
 
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.*;
@@ -59,41 +59,32 @@ public class FunctionCallCompiler {
 
     public static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
             CompilationContext ctx) {
-        return compile(functionName, arguments, location, argument -> ExpressionCompiler.compile(argument, ctx));
-    }
-
-    static CompiledExpression compile(String functionName, List<Expression> arguments, SourceLocation location,
-            Function<Expression, CompiledExpression> compileArgument) {
+        try {
+            requireValidName(functionName);
+        } catch (IllegalArgumentException e) {
+            throw new SaplCompilerException(ERROR_INVALID_FUNCTION_NAME.formatted(functionName), e, location);
+        }
         if (arguments.isEmpty()) {
-            return new NoArgsFunction(validateFunctionName(functionName, location), location);
+            return new NoArgsFunction(functionName, location);
         }
 
-        val     inputs    = CompilationChildren.pair(() -> validateFunctionName(functionName, location),
-                () -> CompilationChildren.map(arguments, compileArgument));
-        val     compiled  = inputs.second();
+        val     compiled  = new ArrayList<CompiledExpression>(arguments.size());
         boolean hasStream = false;
-        for (val result : compiled) {
+        for (val argExpr : arguments) {
+            val result = ExpressionCompiler.compile(argExpr, ctx);
             if (result instanceof ErrorValue err) {
                 return err;
             }
             if (result instanceof StreamOperator) {
                 hasStream = true;
             }
+            compiled.add(result);
         }
 
         if (hasStream) {
-            return new StreamFunction(inputs.first(), compiled, location);
+            return new StreamFunction(functionName, compiled, location);
         }
-        return new PureFunction(inputs.first(), compiled, location);
-    }
-
-    private static String validateFunctionName(String functionName, SourceLocation location) {
-        try {
-            requireValidName(functionName);
-            return functionName;
-        } catch (IllegalArgumentException e) {
-            throw new SaplCompilerException(ERROR_INVALID_FUNCTION_NAME.formatted(functionName), e, location);
-        }
+        return new PureFunction(functionName, compiled, location);
     }
 
     /**
@@ -169,9 +160,14 @@ public class FunctionCallCompiler {
         public long semanticHash() {
             long hash = SemanticHashing.ordered(KIND, functionName.hashCode());
             for (val arg : arguments) {
-                hash = SemanticHashing.ordered(hash, SemanticHashing.expressionHash(arg));
+                val argHash = switch (arg) {
+                case Value v                -> SemanticHashing.valueHash(v);
+                case PureOperator p         -> p.semanticHash();
+                case StreamOperator ignored -> (long) arg.hashCode();
+                };
+                hash = SemanticHashing.ordered(hash, argHash);
             }
-            return hash;
+            return SemanticHashing.ordered(hash, Objects.hashCode(location));
         }
     }
 

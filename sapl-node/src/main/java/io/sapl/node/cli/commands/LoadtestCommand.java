@@ -28,6 +28,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -161,7 +162,7 @@ public class LoadtestCommand implements Callable<Integer> {
                 return 1;
             }
 
-            val mapper       = SaplJacksonModule.jsonMapperBuilder().build();
+            val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
             val timestamp    = LocalDateTime.now(ZoneId.systemDefault()).format(TIMESTAMP_FORMAT);
 

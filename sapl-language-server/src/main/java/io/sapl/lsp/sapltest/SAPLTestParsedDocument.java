@@ -29,12 +29,12 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.lsp.core.ParsedDocumentGuards;
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
 import io.sapl.test.grammar.antlr.validation.SAPLTestValidator;
 import lombok.Getter;
-import lombok.val;
 
 /**
  * Represents a parsed SAPLTest document with its AST and any parse errors.
@@ -59,55 +59,45 @@ public final class SAPLTestParsedDocument implements ParsedDocument {
         this.uri     = uri;
         this.content = content;
 
-        // The editor parses untrusted text on every keystroke, so the guards of the
-        // compile path apply here: oversized documents are skipped, and trojan-source
-        // characters and excessive nesting become error diagnostics.
-        val errors  = new ArrayList<>(ParsedDocumentGuards.preParseDiagnostics(content));
-        val toParse = ParsedDocumentGuards.exceedsMaxLength(content) ? "" : content;
+        // The editor parses untrusted text on every keystroke, so the compile-path
+        // guards
+        // apply here: oversized documents are skipped, and trojan-source characters and
+        // excessive nesting become error diagnostics.
+        var errors  = new ArrayList<>(ParsedDocumentGuards.preParseDiagnostics(content));
+        var toParse = ParsedDocumentGuards.exceedsMaxLength(content) ? "" : content;
 
-        val lexer = new SAPLTestLexer(CharStreams.fromString(toParse));
+        // Create lexer
+        var charStream = CharStreams.fromString(toParse);
+        var lexer      = new SAPLTestLexer(charStream);
         lexer.removeErrorListeners();
         lexer.addErrorListener(new ErrorCollector(errors));
 
+        // Create parser
         this.tokenStream = new CommonTokenStream(lexer);
-        val parser = new SAPLTestParser(tokenStream);
+        var parser = new SAPLTestParser(tokenStream);
         parser.removeErrorListeners();
         parser.addErrorListener(new ErrorCollector(errors));
 
+        // Parse
         this.saplTestParseTree = parseWithNestingGuard(parser, errors);
         this.parseErrors       = List.copyOf(errors);
-        this.validationErrors  = new SAPLTestValidator().validate(saplTestParseTree).stream()
+
+        // Semantic validation
+        var validator            = new SAPLTestValidator();
+        var testValidationErrors = validator.validate(saplTestParseTree);
+
+        // Convert SAPLTest validation errors to generic ValidationError
+        this.validationErrors = testValidationErrors.stream()
                 .map(e -> new ValidationError(e.line(), e.charPositionInLine(), e.message(), e.offendingText()))
                 .toList();
     }
-
-    /**
-     * A parse error with location information, as ANTLR reports it.
-     *
-     * @param line the line number (1-based)
-     * @param charPositionInLine the character position in line (0-based)
-     * @param message the error message
-     * @param offendingSymbol the offending symbol text
-     */
-    public record ParseError(int line, int charPositionInLine, String message, String offendingSymbol) {}
-
-    /**
-     * A semantic validation error, as the validator of the test language reports
-     * it.
-     *
-     * @param line the line number (1-based)
-     * @param charPositionInLine the character position in line (0-based)
-     * @param message the error message
-     * @param offendingText the offending text
-     */
-    public record ValidationError(int line, int charPositionInLine, String message, String offendingText) {}
 
     private static SaplTestContext parseWithNestingGuard(SAPLTestParser parser, List<ParseError> errors) {
         try {
             return parser.saplTest();
         } catch (StackOverflowError e) {
             errors.add(ParsedDocumentGuards.nestingTooDeep());
-            val emptyParser = new SAPLTestParser(new CommonTokenStream(new SAPLTestLexer(CharStreams.fromString(""))));
+            var emptyParser = new SAPLTestParser(new CommonTokenStream(new SAPLTestLexer(CharStreams.fromString(""))));
             emptyParser.removeErrorListeners();
             return emptyParser.saplTest();
         }
@@ -143,7 +133,7 @@ public final class SAPLTestParsedDocument implements ParsedDocument {
         @Override
         public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
                 String message, RecognitionException e) {
-            val symbolText = offendingSymbol instanceof Token token ? token.getText() : "";
+            var symbolText = offendingSymbol instanceof Token token ? token.getText() : "";
             errors.add(new ParseError(line, charPositionInLine, message, symbolText));
         }
 

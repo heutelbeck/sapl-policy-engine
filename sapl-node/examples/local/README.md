@@ -3,7 +3,7 @@
 Test setups for sapl-node covering the three policy source modes and multi-tenant routing.
 
 All setups share the same authentication configuration (basic auth, API key, no-auth)
-and run on `localhost:8080` in plaintext, allowed explicitly with `allow-no-tls: true`.
+and run on `localhost:8080` with SSL disabled.
 
 ## Prerequisites
 

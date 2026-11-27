@@ -260,11 +260,7 @@ class PdpVoterSourceEngineVersionTests {
                 arguments("4.2.0", "*", true), arguments("4.2.0-SNAPSHOT", "*", false),
                 arguments("4.2.0+build.42", "4.2.0", true), arguments("unknown", "*", false), arguments("", "*", false),
                 arguments("${project.version}", "*", false), arguments("4.2.01", "*", false),
-                arguments("4.2", "*", false), arguments("invalid", ">=4.2.0", false), arguments("0.9.0", "^0.x", true),
-                arguments("4.2.0", "^0.x", false), arguments("0.0.9", "^0.0.x", true),
-                arguments("0.1.0", "^0.0.x", false), arguments("1.0.0-alpha10", ">=1.0.0-alpha9", false),
-                arguments("9007199254740991.0.0", "^9007199254740991", true),
-                arguments("9007199254740992.0.0", "*", false), arguments("4.2.0", ">=5 ||", true));
+                arguments("4.2", "*", false), arguments("invalid", ">=4.2.0", false));
     }
 
     private static PdpVoterSource source() {

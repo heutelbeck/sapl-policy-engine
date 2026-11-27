@@ -88,51 +88,6 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
-    @DisplayName("hand-edited pdp.json and extension files may contain comments")
-    void whenConfigurationFilesContainCommentsThenLoaded() throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), """
-                // the gateway extension must be present
-                {"requiredExtensions": ["upstreams"]}""");
-        Files.writeString(tempDir.resolve("ext-upstreams.json"), """
-                {
-                  # no upstream servers yet
-                  "servers": [] /* filled in by the operator */
-                }""");
-
-        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp");
-
-        assertThat(config.extensions()).containsEntry("upstreams",
-                Value.ofObject(Map.of("servers", Value.EMPTY_ARRAY)));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "secrets.json", "ext-upstreams-secrets.json" })
-    @DisplayName("secrets files are strict JSON and a commented secrets file is rejected")
-    void whenSecretsFileContainsCommentsThenRejected(String secretsFile) throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), "{}");
-        Files.writeString(tempDir.resolve("ext-upstreams.json"), "{}");
-        Files.writeString(tempDir.resolve(secretsFile), """
-                // rotated quarterly
-                { "apiKey": "cleartext-key" }""");
-
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(secretsFile);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "ext-upstreams.json", "ext-upstreams-secrets.json" })
-    @DisplayName("an extension file that is not valid JSON fails the configuration without echoing its content")
-    void whenExtensionFileMalformedThenRejected(String extensionFile) throws IOException {
-        Files.writeString(tempDir.resolve("pdp.json"), "{}");
-        Files.writeString(tempDir.resolve(extensionFile), """
-                { "apiKey": "cleartext-key\"""");
-
-        assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "arkham-pdp"))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(extensionFile)
-                .hasMessageNotContaining("cleartext-key");
-    }
-
-    @Test
     @DisplayName("a secrets.json file is loaded into the PDP data")
     void whenDirectoryHasSecretsFileThenLoaded() throws IOException {
         Files.writeString(tempDir.resolve("pdp.json"), "{}");
@@ -360,35 +315,6 @@ class PDPConfigurationLoaderTests {
 
         assertThatThrownBy(() -> PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp"))
                 .isInstanceOf(PDPConfigurationException.class);
-    }
-
-    @Test
-    @DisplayName("supplement files given with the content are loaded into the configuration")
-    void whenContentComesWithSupplementFilesThenTheyAreLoaded() {
-        val supplementFiles = Map.of("secrets.json", """
-                { "apiKey": "cleartext-value" }""", "ext-upstreams.json", """
-                { "servers": [] }""", "ext-upstreams-secrets.json", """
-                { "apiKey": "cleartext-key" }""");
-
-        val config = PDPConfigurationLoader.loadFromContent("""
-                {"requiredExtensions": ["upstreams"]}""", Map.of(), supplementFiles, "arkham-pdp", "root");
-
-        assertThat(config).satisfies(c -> {
-            assertThat(c.data().secrets()).containsKey("apiKey");
-            assertThat(c.extensions()).containsKey("upstreams");
-            assertThat(c.extensionSecrets()).containsKey("upstreams");
-        });
-    }
-
-    @Test
-    @DisplayName("the configuration id derived from content covers the supplement files")
-    void whenSupplementFilesDifferThenConfigurationIdDiffers() {
-        val first  = PDPConfigurationLoader.loadFromContent("{}", Map.of(), Map.of("secrets.json", """
-                { "apiKey": "first" }"""), "arkham-pdp", "root");
-        val second = PDPConfigurationLoader.loadFromContent("{}", Map.of(), Map.of("secrets.json", """
-                { "apiKey": "second" }"""), "arkham-pdp", "root");
-
-        assertThat(first.configurationId()).isNotEqualTo(second.configurationId());
     }
 
     @Test

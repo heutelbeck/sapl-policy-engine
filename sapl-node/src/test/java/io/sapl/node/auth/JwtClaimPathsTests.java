@@ -22,18 +22,14 @@ import static io.sapl.node.auth.JwtClaimPaths.resolveStringClaim;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -90,26 +86,6 @@ class JwtClaimPathsTests {
         assertThat(resolveStringClaim(jwt, "resource_access.sapl")).isNull();
         assertThat(resolveStringClaim(jwt, "resource_access.sapl.tenant.deeper")).isNull();
         assertThat(resolveStringClaim(jwt, "absent")).isNull();
-    }
-
-    static Stream<Arguments> topLevelClaimsThatAreNoScalar() {
-        return Stream.of(arguments("an object", Map.of("tenant", "tenant-a")),
-                arguments("a list", List.of("tenant-a")));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("topLevelClaimsThatAreNoScalar")
-    @DisplayName("a top-level claim that is not a text, number or boolean names no tenant, rather than its string form")
-    void whenTopLevelClaimIsNoScalarThenNull(String description, Object claim) {
-        val jwt = jwtWithClaim("sapl_pdp_id", claim);
-        assertThat(resolveStringClaim(jwt, "sapl_pdp_id")).isNull();
-    }
-
-    @Test
-    @DisplayName("a top-level claim that is a number or a boolean resolves to its string form")
-    void whenTopLevelClaimIsNumberOrBooleanThenStringForm() {
-        assertThat(List.of(resolveStringClaim(jwtWithClaim("tenant", 42), "tenant"),
-                resolveStringClaim(jwtWithClaim("tenant", true), "tenant"))).containsExactly("42", "true");
     }
 
     @Test

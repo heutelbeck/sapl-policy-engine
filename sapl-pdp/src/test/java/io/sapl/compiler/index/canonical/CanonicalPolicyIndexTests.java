@@ -17,11 +17,9 @@
  */
 package io.sapl.compiler.index.canonical;
 
-import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.Decision;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler.LazyAndPurePure;
 import io.sapl.compiler.index.IndexTestFixtures;
@@ -30,8 +28,6 @@ import io.sapl.compiler.index.PolicyMatches;
 import io.sapl.compiler.index.dnf.ConjunctiveClause;
 import io.sapl.compiler.index.dnf.DisjunctiveFormula;
 import io.sapl.compiler.index.dnf.Literal;
-import io.sapl.compiler.pdp.PdpCompiler;
-import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,9 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -51,7 +45,6 @@ import java.util.stream.Stream;
 
 import static io.sapl.compiler.index.IndexTestFixtures.*;
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.compilationContext;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -62,41 +55,6 @@ class CanonicalPolicyIndexTests {
     @AfterEach
     void clearPredicateResults() {
         PREDICATE_RESULTS.clear();
-    }
-
-    @DisplayName("a shared audit policy retains its observation and obligation after a sibling applicability error")
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "NAIVE", "CANONICAL" })
-    void whenAnErroredAlternativeLaterMatchesThenTheAuditPolicyStillRequiresItsObservation(String strategy) {
-        val source        = """
-                set "office" priority deny or abstain errors abstain
-                policy "general access" permit
-                    subject < 1 || resource == "testResource" || action == "testAction";
-                policy "visitors" permit resource == "testResource";
-                policy "audit" permit action == "testAction"; <staff.ready>; obligation "record"
-                policy "north room" permit subject < 1 && environment == "north";
-                policy "south room" permit subject < 1 && environment == "south";
-                policy "west room" permit subject < 1 && environment == "west";
-                policy "north visitors" permit resource == "testResource" && environment == "north";
-                """;
-        val settings      = """
-                {"compilerOptions":{"indexing":"%s"}}""".formatted(strategy);
-        val configuration = PDPConfigurationLoader.loadFromContent(settings, Map.of("office.sapl", source), "office",
-                "test");
-        val compilation   = compilationContext();
-        compilation.setCompilerOptions(configuration.compilerOptions());
-        val voter   = PdpCompiler.compilePDPConfiguration(configuration, compilation).voter();
-        val context = evaluationContext();
-        val pending = voter.evaluate(context);
-
-        assertThat(pending.vote()).isNull();
-        assertThat(pending.dependencies().keySet()).singleElement().satisfies(key -> {
-            assertThat(key.invocation().attributeName()).isEqualTo("staff.ready");
-            val ready = context.withSnapshot(Map.of(key, new AttributeSnapshot(Value.TRUE, Instant.EPOCH)));
-            val vote  = voter.evaluate(ready).vote();
-            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-            assertThat(vote.authorizationDecision().obligations()).containsExactly(Value.of("record"));
-        });
     }
 
     @Nested

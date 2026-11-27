@@ -51,8 +51,6 @@ import lombok.val;
 @DisplayName("SaplFlatBuffersCodec")
 class SaplFlatBuffersCodecTests {
 
-    private static final byte TEXT_KIND = 4;
-
     @Nested
     @DisplayName("Value serialization")
     class ValueSerializationTests {
@@ -85,10 +83,6 @@ class SaplFlatBuffersCodecTests {
                     arguments("boolean true", Value.of(true)), arguments("boolean false", Value.of(false)),
                     arguments("integer number", new NumberValue(new BigDecimal("42"))),
                     arguments("decimal number", new NumberValue(new BigDecimal("2.5"))),
-                    arguments("bounded arithmetic result", Value.of(new BigDecimal("1E1999").setScale(-1000))),
-                    arguments("compact exponent beyond the scale bound", Value.of(new BigDecimal("-1E1001"))),
-                    arguments("full precision with a signed exponent form",
-                            Value.of(new BigDecimal("-" + "9".repeat(1000) + "e1000"))),
                     arguments("negative number", new NumberValue(new BigDecimal("-999"))),
                     arguments("large number", new NumberValue(new BigDecimal("12345678901234567890"))),
                     arguments("empty string", Value.of("")), arguments("simple string", Value.of("hello")),
@@ -193,32 +187,6 @@ class SaplFlatBuffersCodecTests {
                 assertThat(d.environment()).isEqualTo(Value.UNDEFINED);
                 assertThat(d.secrets()).isEqualTo(Value.EMPTY_OBJECT);
             });
-        }
-
-        @Test
-        @DisplayName("secrets are read from an object table as the schema declares")
-        void whenSecretsAreAnObjectTableThenTheyAreRead() {
-            val bytes = subscriptionWithObjectTableAsSecrets();
-
-            val deserialized = SaplFlatBuffersCodec.readAuthorizationSubscription(bytes);
-
-            assertThat(deserialized.secrets())
-                    .isEqualTo(ObjectValue.builder().put("apiKey", Value.of("secret123")).build());
-        }
-
-        private static byte[] subscriptionWithObjectTableAsSecrets() {
-            val builder = new FlatBufferBuilder();
-            val key     = builder.createString("apiKey");
-            val text    = FbTextValue.createFbTextValue(builder, builder.createString("secret123"));
-            FbValue.startFbValue(builder);
-            FbValue.addKindType(builder, TEXT_KIND);
-            FbValue.addKind(builder, text);
-            val value   = FbValue.endFbValue(builder);
-            val field   = FbObjectField.createFbObjectField(builder, key, value);
-            val fields  = FbObjectValue.createFieldsVector(builder, new int[] { field });
-            val secrets = FbObjectValue.createFbObjectValue(builder, fields);
-            builder.finish(FbAuthorizationSubscription.createFbAuthorizationSubscription(builder, 0, 0, 0, 0, secrets));
-            return builder.sizedByteArray();
         }
     }
 

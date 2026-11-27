@@ -174,7 +174,6 @@ public class CoverageWriter {
         }
         map.put("targetTrueHits", coverage.getTargetTrueHits());
         map.put("targetFalseHits", coverage.getTargetFalseHits());
-        map.put("targetErrorHits", coverage.getTargetErrorHits());
         map.put("branchCoveragePercent", round(coverage.getBranchCoveragePercent()));
         map.put("conditionCount", coverage.getConditionCount());
         map.put("fullyCoveredConditions", coverage.getFullyCoveredConditionCount());
@@ -190,12 +189,6 @@ public class CoverageWriter {
             branchMap.put("endChar", hit.endChar());
             branchMap.put("trueHits", hit.trueHits());
             branchMap.put("falseHits", hit.falseHits());
-            if (hit.errorHits() > 0) {
-                branchMap.put("errorHits", hit.errorHits());
-            }
-            if (hit.enforcedSchema()) {
-                branchMap.put("enforcedSchema", true);
-            }
             branchMap.put("fullyCovered", hit.isFullyCoveredSemantic());
             branchMap.put("isSingleBranch", hit.isSingleBranch());
             branchMap.put("isPolicyOutcome", hit.isPolicyOutcome());

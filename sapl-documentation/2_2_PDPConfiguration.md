@@ -27,12 +27,6 @@ Common uses include:
 
 Variables are not to be confused with the `environment` field of the authorization subscription. The `environment` carries request-scoped context sent by the PEP, while variables are operator-configured constants shared across all evaluations.
 
-### Outbound PIP connections
-
-Endpoint addresses and public CA certificates belong in `pdp.json`. Define a CA bundle once under `variables.tlsTrustProfiles.<name>.trustedCaPem` and select it with `trustProfile` on an MQTT broker, Traccar server, HTTP service or JWT public-key server. Without a profile, the transport uses its default roots. Setting `includeDefaultTrustRoots` to `true` in a profile adds those roots to the bundle. Invalid profiles prevent activation of the new configuration.
-
-MQTT and Traccar use named objects under `variables.mqtt.brokers` and `variables.traccar.servers`. Their credentials use the same names in the PDP secrets. HTTP services live under `variables.http.services`. A selected service and every credential source must each permit the final URL. The JWT key server is configured under `variables.jwt.publicKeyServer`; the PEP supplies the JWT in subscription secrets. Time and X.509 attributes operate locally.
-
 ### Secrets
 
 Secrets are optional PDP-level credentials available to PIPs during evaluation. They complement subscription-level secrets (see [Authorization Subscriptions](../2_1_AuthorizationSubscriptions/#secrets)) and are the right choice for infrastructure credentials shared across all evaluations, such as database connection strings or API keys for external services.
@@ -41,7 +35,7 @@ PDP-level secrets are configured once and automatically available to all PIPs vi
 
 Secrets never live inside `pdp.json`. They are carried in a dedicated file next to it, and the file name states whether the content is sealed:
 
-- **`secrets.json`**: cleartext secrets, for development setups only. The PDP rejects a configuration with cleartext secrets unless unencrypted secrets are accepted explicitly: `acceptUnencryptedSecrets()` on the `PolicyDecisionPointBuilder`, or `io.sapl.pdp.embedded.secrets.accept-unencrypted: true` for Spring and SAPL Node.
+- **`secrets.json`**: cleartext secrets, for development setups only.
 - **`secrets.sealed.json`**: sealed secrets. Every scalar leaf is replaced by an `ENC[...]` token encrypted to an X25519 recipient key, while the structure and key names stay readable. The recipient (the PDP, or the cluster sharing the key) restores the values at load time.
 
 ```json
@@ -112,7 +106,7 @@ A rejected update leaves the last working configuration active with status `STAL
 
 <span id="requiredExtensions"></span>`requiredExtensions`: optional array of extension names the recipient must support and successfully prepare before accepting the configuration. Omitting the field or providing an empty array declares no required extensions. Null values, other JSON types and array entries that are not strings are rejected.
 
-Each listed name must have configuration in `ext-<name>.json`, secrets in `ext-<name>-secrets.json` (sealed: `ext-<name>-secrets.sealed.json`) or both. For the example above, provide `ext-upstreams.json` or the matching secrets file alongside `pdp.json`. The same declaration applies to policy directories and bundles. Extension secrets follow the sealing rules described in [Secrets](#secrets).
+Each listed name must have configuration in `ext-<name>.json`, secrets in `ext-<name>-secrets.sealed.json` or both. For the example above, provide `ext-upstreams.json` or the matching secrets file alongside `pdp.json`. The same declaration applies to policy directories and bundles. Extension secrets follow the sealing rules described in [Secrets](#secrets).
 
 A recipient may ignore unsupported extensions that are not listed. It rejects the whole configuration if a required extension is unsupported or cannot be prepared. A rejected update leaves the last working configuration active with status `STALE`. Without a working configuration, the status is `ERROR`. The declaration in `pdp.json` is covered by the bundle signature.
 
@@ -126,15 +120,10 @@ The `compilerOptions` object and all its fields are optional. Omitted fields use
 * <span id="unrollInOperator"></span>`unrollInOperator`: when `true`, transforms `EXPR in [a, b, c]` into equality chains for improved index matching. Default: `false`.
 * <span id="minPoliciesForIndexing"></span>`minPoliciesForIndexing`: minimum policy count before `AUTO` mode considers advanced indexing. Below this threshold, NAIVE is used. Default: `10`.
 * <span id="maxIndexNodes"></span>`maxIndexNodes`: maximum number of diagram nodes for SMTDD index construction. If exceeded, AUTO falls back to CANONICAL. Default: `500000`.
-* <span id="maxExpressionDepth"></span>`maxExpressionDepth`: maximum expanded source expression depth, checked before expression compilation and constant folding. Default and hard ceiling: `256`. Supply an exact integer from `1` to `256`. Zero, negative values, fractions, other types and larger values reject the configuration. There is no unlimited mode.
 * <span id="maxDnfClauses"></span>`maxDnfClauses`: maximum number of disjunctive normal form (DNF) clauses per policy applicability expression for the canonical index. Exceeding the limit falls back to the naive index. Default: `10000`.
-* <span id="lowLatencyMode"></span>`lowLatencyMode` is retained for compatibility. With either value, coverage observes the same policy evaluation and requests the same attributes as an ordinary decision. Lazy and eager operators in the policy determine when evaluation requests each attribute.
+* <span id="lowLatencyMode"></span>`lowLatencyMode`: when `true`, the compiler emits eager operator variants that subscribe all children in parallel for the lowest end-to-end decision latency, at the cost of subscribing to children whose values may turn out to be unneeded. When `false`, operators emit lazy variants that short-circuit on the first incomplete or error child, minimizing the per-pass subscription set. The observable decision is identical in both modes. Default: `true`.
 * <span id="maxPolicyDocuments"></span>`maxPolicyDocuments`: maximum number of `*.sapl` documents loaded from a directory source. Loading stops once this cap is reached. Default: `10000`.
 * <span id="maxTotalSizeMegabytes"></span>`maxTotalSizeMegabytes`: maximum combined size of `*.sapl` documents loaded from a directory, in MiB. Exceeding the limit rejects the configuration. Default: `1024`.
-
-Expression depth counts leaves as one. Arrays, objects, function calls and attribute finders add one to their deepest child, regardless of the number of siblings. Each retained unary operator and each path step adds one. Binary operators add one over their deeper operand, following their associativity. Flat conjunction, disjunction, exclusive disjunction and product lists add one over their deepest operand. Their width does not consume depth. Parentheses add no depth. The depth limit applies after syntax normalization. For example, `!!subject` retains one boolean check above the leaf and has depth two. In `!!(subject == action)`, the comparison already produces a boolean, so the negations add no depth. A filter statement adds one, an additional level for `each`, and its target path length plus one when a target path is present. These charges apply over the deeper base or argument, including expressions in target paths. Constants and subscription dependent operands use the same budget. Nested chains accumulate depth. Imports and the width of arrays and objects do not consume this budget.
-
-Standalone parsing and language tooling use the default. This source limit bounds expression construction. It does not bound Java variable alias expansion or the depth of values supplied or generated at runtime.
 
 ### Configuration Updates
 

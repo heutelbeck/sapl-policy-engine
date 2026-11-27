@@ -38,7 +38,6 @@ import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 import io.sapl.api.stream.TimeScheduler;
-import io.sapl.attributes.tls.PemTrust;
 import io.sapl.extensions.mqtt.util.DefaultResponseConfig;
 import io.sapl.extensions.mqtt.util.MqttClientValues;
 import lombok.RequiredArgsConstructor;
@@ -47,10 +46,17 @@ import lombok.val;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import javax.net.ssl.TrustManagerFactory;
+
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
@@ -103,6 +109,10 @@ public class SaplMqttClient implements Closeable {
     public static final String   ENVIRONMENT_EMIT_AT_RETRY            = "emitAtRetry";
     /** Configuration key enabling TLS for the broker connection. */
     public static final String   ENVIRONMENT_TLS                      = "tls";
+    /** Configuration key for a PKCS12/JKS trust store used to verify the broker. */
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE          = "tlsTrustStore";
+    /** Configuration key for the trust store password. */
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE_PW       = "tlsTrustStorePassword";
     private static final String  ENVIRONMENT_MAX_PAYLOAD_SIZE         = "maxPayloadSize";
     private static final String  ENVIRONMENT_MAX_TOPIC_FILTERS        = "maxTopicFilters";
     private static final String  ENVIRONMENT_MAX_TOPIC_FILTER_BYTES   = "maxTopicFilterBytes";
@@ -121,6 +131,7 @@ public class SaplMqttClient implements Closeable {
     private static final String  SECRETS_PASSWORD                     = "password";
     static final boolean         DEFAULT_EMIT_AT_RETRY                = false;
     private static final boolean DEFAULT_TLS                          = false;
+    private static final String  DEFAULT_TLS_TRUST_STORE              = "";
     private static final boolean DEFAULT_ALLOW_INSECURE_TRANSPORT     = false;
 
     private static final Duration CONNECT_TIMEOUT     = Duration.ofSeconds(10L);
@@ -129,7 +140,6 @@ public class SaplMqttClient implements Closeable {
     private static final Duration DISCONNECT_TIMEOUT  = Duration.ofSeconds(5L);
 
     private static final String ERROR_BINARY_PAYLOAD_UNSUPPORTED       = "MQTT binary payloads are not supported. Publish UTF-8 text, JSON, or encode binary data before publishing.";
-    private static final String ERROR_FILE_TRUST                       = "MQTT file-based TLS trust settings are unsupported.";
     private static final String ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED = "A policy may only select an mqtt broker by name or use the default. Supplying an inline broker configuration object is not permitted.";
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT    = "Refusing to send MQTT broker credentials over a plaintext connection. Enable tls, or explicitly accept the risk with allowInsecureTransport.";
     private static final String ERROR_INVALID_QOS                      = "Invalid MQTT QoS: must be 0, 1, or 2.";
@@ -137,7 +147,6 @@ public class SaplMqttClient implements Closeable {
     private static final String ERROR_MQTT_CONNECT_FAILED              = "Failed to connect or subscribe to MQTT broker: %s";
     private static final String ERROR_NO_TOPICS                        = "MQTT subscription requires at least one topic.";
     private static final String ERROR_PAYLOAD_TOO_LARGE                = "MQTT message exceeded the configured limit of %d bytes.";
-    private static final String ERROR_TLS_REQUIRED                     = "MQTT connections with a trustProfile require TLS.";
     private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT     = "Sending MQTT broker credentials over a plaintext connection because allowInsecureTransport is set. A network attacker can capture the credential. Do not use in production.";
 
     private static final String CACHE_KEY_CREDENTIAL_FINGERPRINT = "__credentialFingerprint";
@@ -204,25 +213,22 @@ public class SaplMqttClient implements Closeable {
             val emitAtRetry           = getConfigValueOrDefault(pipConfig, ENVIRONMENT_EMIT_AT_RETRY,
                     DEFAULT_EMIT_AT_RETRY);
 
-            val trust = PemTrust.resolve(variables, (ObjectValue) ValueJsonMarshaller.fromJsonNode(brokerConfig));
-            return openSubscription(brokerConfig, pipConfig, pdpSecrets, trust, filters, effectiveQos, defaultValue,
-                    timeoutMs, emitAtRetry);
+            return openSubscription(brokerConfig, pipConfig, pdpSecrets, filters, effectiveQos, defaultValue, timeoutMs,
+                    emitAtRetry);
         } catch (RuntimeException e) {
             return Streams.error(messageOf(e));
         }
     }
 
     private Stream<Value> openSubscription(ObjectNode brokerConfig, JsonNode pipConfig, ObjectValue pdpSecrets,
-            PemTrust trust, List<MqttTopicFilter> filters, MqttQos qos, Value defaultValue, long timeoutMs,
-            boolean emitAtRetry) {
+            List<MqttTopicFilter> filters, MqttQos qos, Value defaultValue, long timeoutMs, boolean emitAtRetry) {
         val maxPayloadBytes = getConfigValueOrDefault(pipConfig, ENVIRONMENT_MAX_PAYLOAD_SIZE,
                 DEFAULT_MAX_PAYLOAD_SIZE);
-        // Configure TLS before acquiring a cache bin lock.
-        val allowInsecureTransport = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_ALLOW_INSECURE_TRANSPORT,
-                getConfigValueOrDefault(pipConfig, ENVIRONMENT_ALLOW_INSECURE_TRANSPORT,
-                        DEFAULT_ALLOW_INSECURE_TRANSPORT));
-        val candidate              = buildClientValues(brokerConfig, pdpSecrets, trust, allowInsecureTransport);
-        val cacheKey               = cacheKeyFor(brokerConfig, pdpSecrets, trust);
+        // Build the candidate client (including any blocking trust-store I/O)
+        // outside the cache's atomic region, so the ConcurrentHashMap bin lock is
+        // never held across filesystem I/O or client construction.
+        val candidate = buildClientValues(brokerConfig, pipConfig, pdpSecrets);
+        val cacheKey  = cacheKeyFor(brokerConfig, pdpSecrets);
         return Streams.fromCallback((emit, complete) -> {
             // Register this subscriber atomically: insert the prebuilt candidate
             // only if absent, otherwise reuse the existing client and discard the
@@ -362,35 +368,29 @@ public class SaplMqttClient implements Closeable {
         }
     }
 
-    // An existing session authenticates both peers. Rotating either credentials or trust requires a new connection.
-    static JsonNode cacheKeyFor(ObjectNode brokerConfig, ObjectValue pdpSecrets, PemTrust trust) {
+    // Key on the broker config plus a hash of the resolved credentials, so two
+    // tenants on
+    // one broker config with different secrets never share an authenticated
+    // connection.
+    static JsonNode cacheKeyFor(ObjectNode brokerConfig, ObjectValue pdpSecrets) {
         val key = brokerConfig.deepCopy();
-        key.put(CACHE_KEY_CREDENTIAL_FINGERPRINT, credentialFingerprint(brokerConfig, pdpSecrets, trust));
+        key.put(CACHE_KEY_CREDENTIAL_FINGERPRINT, credentialFingerprint(brokerConfig, pdpSecrets));
         return key;
     }
 
-    private static String credentialFingerprint(JsonNode brokerConfig, ObjectValue pdpSecrets, PemTrust trust) {
+    private static String credentialFingerprint(JsonNode brokerConfig, ObjectValue pdpSecrets) {
         val mqttSecrets = resolveMqttSecrets(brokerConfig, pdpSecrets);
         val username    = mqttSecrets.get(ENVIRONMENT_USERNAME) instanceof TextValue(var u) ? u : DEFAULT_USERNAME;
         val password    = mqttSecrets.get(SECRETS_PASSWORD) instanceof TextValue(var p) ? p : "";
         try {
             val digest = MessageDigest.getInstance("SHA-256");
-            addFingerprintField(digest, username);
-            addFingerprintField(digest, password);
-            if (trust != null) {
-                addFingerprintField(digest, trust.trustedCaPem());
-                digest.update((byte) (trust.includeDefaultTrustRoots() ? 1 : 0));
-            }
+            digest.update(username.getBytes(StandardCharsets.UTF_8));
+            digest.update((byte) 0);
+            digest.update(password.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 is required to fingerprint MQTT credentials", e);
         }
-    }
-
-    private static void addFingerprintField(MessageDigest digest, String field) {
-        val bytes = field.getBytes(StandardCharsets.UTF_8);
-        digest.update(ByteBuffer.allocate(Integer.BYTES).putInt(bytes.length).array());
-        digest.update(bytes);
     }
 
     // Registers one broker reference against a prebuilt candidate client. The
@@ -474,20 +474,21 @@ public class SaplMqttClient implements Closeable {
         });
     }
 
-    private MqttClientValues buildClientValues(ObjectNode brokerConfig, ObjectValue pdpSecrets, PemTrust trust,
-            boolean allowInsecureTransport) {
+    private MqttClientValues buildClientValues(ObjectNode brokerConfig, JsonNode pipConfig, ObjectValue pdpSecrets) {
         val clientId              = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_CLIENT_ID,
-                DEFAULT_CLIENT_ID + "-" + UUID.randomUUID());
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID + "-" + UUID.randomUUID()));
         val onDisconnectCallbacks = new CopyOnWriteArrayList<Runnable>();
-        val client                = buildMqttClient(brokerConfig, pdpSecrets, trust, allowInsecureTransport, clientId,
+        val client                = buildMqttClient(brokerConfig, pipConfig, pdpSecrets, clientId,
                 onDisconnectCallbacks);
         return new MqttClientValues(clientId, client, brokerConfig, onDisconnectCallbacks);
     }
 
-    private Mqtt5AsyncClient buildMqttClient(JsonNode brokerConfig, ObjectValue pdpSecrets, PemTrust trust,
-            boolean allowInsecureTransport, String clientId, CopyOnWriteArrayList<Runnable> onDisconnectCallbacks) {
-        val host = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_BROKER_ADDRESS, DEFAULT_BROKER_ADDRESS);
-        val port = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_BROKER_PORT, DEFAULT_BROKER_PORT);
+    private Mqtt5AsyncClient buildMqttClient(JsonNode brokerConfig, JsonNode pipConfig, ObjectValue pdpSecrets,
+            String clientId, CopyOnWriteArrayList<Runnable> onDisconnectCallbacks) {
+        val host = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_BROKER_ADDRESS,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_BROKER_ADDRESS, DEFAULT_BROKER_ADDRESS));
+        val port = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_BROKER_PORT,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_BROKER_PORT, DEFAULT_BROKER_PORT));
 
         MqttClientDisconnectedListener disconnectedListener = (MqttClientDisconnectedContext context) -> {
             log.debug("Mqtt client '{}' disconnected: {}", clientId, context.getCause().getMessage());
@@ -504,21 +505,16 @@ public class SaplMqttClient implements Closeable {
                 .serverAddress(InetSocketAddress.createUnresolved(host, port)).automaticReconnectWithDefaultConfig()
                 .addDisconnectedListener(disconnectedListener);
 
-        val tlsEnabled = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS, DEFAULT_TLS);
-        if (brokerConfig.has("tlsTrustStore") || brokerConfig.has("tlsTrustStorePassword")) {
-            throw new IllegalArgumentException(ERROR_FILE_TRUST);
-        }
-        if (trust != null) {
-            if (!brokerConfig.path(ENVIRONMENT_TLS).isBoolean() || !tlsEnabled) {
-                throw new IllegalArgumentException(ERROR_TLS_REQUIRED);
-            }
-            builder = builder
-                    .sslConfig(MqttClientSslConfig.builder().trustManagerFactory(trust.trustManagerFactory()).build());
-        } else if (tlsEnabled) {
-            builder = builder.sslWithDefaultConfig();
+        val tlsEnabled = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_TLS, DEFAULT_TLS));
+        if (tlsEnabled) {
+            builder = applyTls(builder, brokerConfig, pipConfig);
         }
 
-        val auth = buildAuth(brokerConfig, pdpSecrets);
+        val auth                   = buildAuth(brokerConfig, pdpSecrets);
+        val allowInsecureTransport = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_ALLOW_INSECURE_TRANSPORT,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_ALLOW_INSECURE_TRANSPORT,
+                        DEFAULT_ALLOW_INSECURE_TRANSPORT));
         enforceCredentialTransportSecurity(tlsEnabled, allowInsecureTransport, auth);
         return builder.simpleAuth(auth).buildAsync();
     }
@@ -547,6 +543,34 @@ public class SaplMqttClient implements Closeable {
         }
     }
 
+    private static Mqtt5ClientBuilder applyTls(Mqtt5ClientBuilder builder, JsonNode brokerConfig, JsonNode pipConfig) {
+        val trustStorePath = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS_TRUST_STORE,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_TLS_TRUST_STORE, DEFAULT_TLS_TRUST_STORE));
+        if (trustStorePath.isBlank()) {
+            // No explicit trust store: verify the broker against the platform
+            // default trust material (public CAs).
+            return builder.sslWithDefaultConfig();
+        }
+        val trustStorePassword = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS_TRUST_STORE_PW,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_TLS_TRUST_STORE_PW, ""));
+        return builder.sslConfig(MqttClientSslConfig.builder()
+                .trustManagerFactory(trustManagerFactory(trustStorePath, trustStorePassword)).build());
+    }
+
+    private static TrustManagerFactory trustManagerFactory(String trustStorePath, String password) {
+        try {
+            val trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            try (InputStream in = Files.newInputStream(Path.of(trustStorePath))) {
+                trustStore.load(in, password.isEmpty() ? null : password.toCharArray());
+            }
+            val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            factory.init(trustStore);
+            return factory;
+        } catch (GeneralSecurityException | IOException e) {
+            throw new IllegalStateException("Failed to load MQTT TLS trust store from " + trustStorePath, e);
+        }
+    }
+
     static Mqtt5SimpleAuth buildAuth(JsonNode brokerConfig, ObjectValue pdpSecrets) {
         // Credentials are sourced exclusively from the resolved secrets object.
         // A password is never read from the (potentially policy-controlled)
@@ -560,12 +584,22 @@ public class SaplMqttClient implements Closeable {
     }
 
     private static ObjectValue resolveMqttSecrets(JsonNode brokerConfig, ObjectValue pdpSecrets) {
-        if (pdpSecrets == null || !(pdpSecrets.get(MQTT) instanceof ObjectValue mqttSecrets)) {
+        if (pdpSecrets == null || pdpSecrets.isEmpty()) {
             return Value.EMPTY_OBJECT;
         }
-        if (brokerConfig != null && brokerConfig.has(ENVIRONMENT_BROKER_CONFIG_NAME) && mqttSecrets
-                .get(brokerConfig.get(ENVIRONMENT_BROKER_CONFIG_NAME).asString()) instanceof ObjectValue entry) {
-            return entry;
+        val mqttSecretsValue = pdpSecrets.get(MQTT);
+        if (!(mqttSecretsValue instanceof ObjectValue mqttSecrets)) {
+            return Value.EMPTY_OBJECT;
+        }
+        if (brokerConfig != null && brokerConfig.has(ENVIRONMENT_BROKER_CONFIG_NAME)) {
+            val brokerName      = brokerConfig.get(ENVIRONMENT_BROKER_CONFIG_NAME).asString();
+            val perBrokerSecret = mqttSecrets.get(brokerName);
+            if (perBrokerSecret instanceof ObjectValue perBrokerSecrets) {
+                return perBrokerSecrets;
+            }
+        }
+        if (mqttSecrets.containsKey(ENVIRONMENT_USERNAME) || mqttSecrets.containsKey(SECRETS_PASSWORD)) {
+            return mqttSecrets;
         }
         return Value.EMPTY_OBJECT;
     }

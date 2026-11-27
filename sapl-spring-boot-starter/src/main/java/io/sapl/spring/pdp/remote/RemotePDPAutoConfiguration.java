@@ -128,10 +128,6 @@ public class RemotePDPAutoConfiguration {
             builder.socketPath(configuration.getSocketPath());
         }
         builder.keepAlive(configuration.getKeepAlive(), configuration.getMaxLifeTime());
-        builder.connections(configuration.getConnections());
-        if ("binary".equals(configuration.getFormat())) {
-            builder.binaryFormat();
-        }
         applyRSocketAuthentication(builder);
         // A unix domain socket is local IPC with no network hop, so it counts as a
         // secure channel.

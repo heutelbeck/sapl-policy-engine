@@ -44,12 +44,15 @@ class PatternsFunctionLibraryTests {
 
     @Test
     @Timeout(15)
-    @DisplayName("a regex that backtracking engines take exponential time for finds no match in linear time")
-    void whenPatternWouldBacktrackCatastrophicallyThenFindMatchesAnswersQuickly() {
+    @DisplayName("a backtracking regex that slips the static blacklist still aborts as an error")
+    void whenBacktrackingPatternSlipsBlacklistThenFindMatchesReturnsError() {
+        // A pattern that slips the static blacklist yet backtracks catastrophically
+        // must become an ErrorValue via the bounded matcher.
         val pattern = (TextValue) Value.of("(.*,){30}P");
-        val value   = (TextValue) Value.of("1,".repeat(30_000));
+        val value   = (TextValue) Value.of("1,".repeat(30));
         val result  = PatternsFunctionLibrary.findMatches(pattern, value);
-        assertThat(result).isEqualTo(Value.EMPTY_ARRAY);
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
     }
 
     private static ArrayValue createDelimitersArray(String... delimiters) {
@@ -265,12 +268,10 @@ class PatternsFunctionLibraryTests {
         val validPattern   = PatternsFunctionLibrary.isValidRegex(Value.of("[a-z]+"));
         val invalidPattern = PatternsFunctionLibrary.isValidRegex(Value.of("[a-z"));
         val tooLong        = PatternsFunctionLibrary.isValidRegex(Value.of("a".repeat(1001)));
-        val tooLarge       = PatternsFunctionLibrary.isValidRegex(Value.of("(?:a{1000}){1000}"));
 
         assertThat(validPattern).isEqualTo(Value.TRUE);
         assertThat(invalidPattern).isEqualTo(Value.FALSE);
         assertThat(tooLong).isEqualTo(Value.FALSE);
-        assertThat(tooLarge).isEqualTo(Value.FALSE);
     }
 
     @Test
@@ -322,25 +323,11 @@ class PatternsFunctionLibraryTests {
         assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("X X X"));
     }
 
-    @ParameterizedTest(name = "{0}")
-    @CsvSource(delimiter = '|', textBlock = """
-            numbered groups        | (\\w+) (\\w+)                 | $2, $1             | Doe, John
-            named groups           | (?P<first>\\w+) (?P<last>\\w+) | ${last}, ${first}  | Doe, John
-            an escaped dollar sign | (\\w+) (\\w+)                 | \\$1               | $1
-            """)
-    @DisplayName("a replacement inserts the captured groups it refers to")
-    void whenReplaceAllWithGroupReferencesThenInsertsGroups(String description, String pattern, String replacement,
-            String expected) {
-        val result = PatternsFunctionLibrary.replaceAll(Value.of("John Doe"), Value.of(pattern), Value.of(replacement));
-        assertThat(result).isEqualTo(Value.of(expected));
-    }
-
     @Test
-    @DisplayName("a replacement that refers to a group the pattern does not have is an error")
-    void whenReplaceAllRefersToMissingGroupThenError() {
-        val result = PatternsFunctionLibrary.replaceAll(Value.of("John Doe"), Value.of("(\\w+)"), Value.of("$2"));
-        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                e -> assertThat(e.message()).startsWith("Replacement failed"));
+    void whenReplaceAllWithBackreferencesThenSupportsGroupReferences() {
+        val result = PatternsFunctionLibrary.replaceAll(Value.of("John Doe"), Value.of("(\\w+) (\\w+)"),
+                Value.of("$2, $1"));
+        assertThat(result).isInstanceOf(TextValue.class).isEqualTo(Value.of("Doe, John"));
     }
 
     @Test
@@ -423,54 +410,20 @@ class PatternsFunctionLibraryTests {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "(a+)+", "(a*)*", "(a|a)*", "(a|ab)*", "(.*)*", "(a+)+b", ".*.*test" })
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    @DisplayName("nested quantifiers that backtracking engines take exponential time for are matched in linear time")
-    void whenNestedQuantifiersOnHostileInputThenMatchedInLinearTime(String pattern) {
-        val result = PatternsFunctionLibrary.findMatchesLimited(Value.of(pattern), Value.of("a".repeat(99_999) + "X"),
-                Value.of(1));
-        assertThat(result).isInstanceOf(ArrayValue.class);
+    @ValueSource(strings = { "(a+)+", "(a*)*", "(a|a)*", "(a|ab)*" })
+    @Timeout(value = 1, unit = TimeUnit.SECONDS)
+    void whenUsingDangerousRegexPatternsThenRejected(String pattern) {
+        val result = PatternsFunctionLibrary.findMatches(Value.of(pattern), Value.of("aaaaaaaaaaaaaaaaaaaaX"));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("dangerous");
     }
 
     @Test
-    @DisplayName("a pattern with many alternatives is matched")
-    void whenManyAlternationsThenMatched() {
+    @Timeout(value = 1, unit = TimeUnit.SECONDS)
+    void whenExcessiveAlternationsThenRejected() {
         val manyAlternations = "(" + "a|".repeat(101) + "b)";
-        val result           = PatternsFunctionLibrary.findMatches(Value.of(manyAlternations), Value.of("tbt"));
-        assertThat(result).isEqualTo(Value.ofArray(Value.of("b")));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @CsvSource(delimiter = '|', textBlock = """
-            a look-ahead                        | a(?=b)           | invalid or unsupported Perl syntax
-            a negative look-ahead               | a(?!b)           | invalid or unsupported Perl syntax
-            a look-behind                       | (?<=a)b          | invalid named capture
-            a backreference                     | (a)\\1           | invalid escape sequence
-            a possessive quantifier             | a*+              | invalid nested repetition operator
-            an atomic group                     | (?>a)            | invalid or unsupported Perl syntax
-            a repetition without an argument    | {5,10}{5,10}     | missing argument to repetition operator
-            a program that is too large         | (?:a{100}){101}  | expression too large
-            """)
-    @DisplayName("a construct that needs backtracking or a too large program makes a regex invalid")
-    void whenRegexNeedsBacktrackingOrIsTooLargeThenInvalid(String description, String pattern, String reason) {
-        val result = PatternsFunctionLibrary.findMatches(Value.of(pattern), Value.of("aab"));
-        assertThat(PatternsFunctionLibrary.isValidRegex(Value.of(pattern))).isEqualTo(Value.FALSE);
-        assertThat(result).isInstanceOfSatisfying(ErrorValue.class, e -> assertThat(e.message())
-                .isEqualTo("Invalid regular expression '%s': %s.".formatted(pattern, reason)));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @CsvSource(delimiter = '|', textBlock = """
-            ASCII word characters only          | \\w+          | caf\u00e9   | caf
-            Unicode letters by category         | \\p{L}+       | caf\u00e9   | caf\u00e9
-            case folding follows Unicode        | (?i)\u00e9     | \u00c9      | \u00c9
-            a quoted section is literal         | \\Qa.b\\E     | a.b         | a.b
-            """)
-    @DisplayName("regular expressions follow the syntax and the classes of RE2")
-    void whenRegexUsesClassesThenSemanticsOfRe2Apply(String description, String pattern, String text,
-            String firstMatch) {
-        val result = PatternsFunctionLibrary.findMatchesLimited(Value.of(pattern), Value.of(text), Value.of(1));
-        assertThat(result).isEqualTo(Value.ofArray(Value.of(firstMatch)));
+        val altResult        = PatternsFunctionLibrary.findMatches(Value.of(manyAlternations), Value.of("test"));
+        assertThat(altResult).isInstanceOf(ErrorValue.class);
     }
 
     @Test
@@ -539,6 +492,14 @@ class PatternsFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).containsAnyOf("position", "starting");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "(a+)+", "(a*)*", "(.*)*", "(a+)+b", "{5,10}{5,10}", ".*.*test" })
+    void whenImprovedRedosDetectionThenCatchesMorePatterns(String pattern) {
+        val result = PatternsFunctionLibrary.findMatches(Value.of(pattern), Value.of("test"));
+        assertThat(result).withFailMessage("Pattern '%s' should be detected as dangerous", pattern)
+                .isInstanceOf(ErrorValue.class);
     }
 
     @Test

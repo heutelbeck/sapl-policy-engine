@@ -22,13 +22,9 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 @DisplayName("QueueStream")
 class QueueStreamTests {
@@ -88,33 +84,6 @@ class QueueStreamTests {
 
         assertThat(stream.awaitNext()).isEqualTo("first");
         assertThat(stream.awaitNext()).isNull();
-    }
-
-    @Test
-    @DisplayName("closing after producer completion discards all unread queue entries")
-    void whenCloseWithCompletedQueueThenQueuedValuesAreDiscarded() throws InterruptedException {
-        val stream = new QueueStream<String>();
-        stream.put("first");
-        stream.put("second");
-        stream.complete();
-        stream.close();
-
-        assertThat(stream.tryNext()).isEqualTo(Poll.done());
-        assertThat(stream.awaitNext()).isNull();
-    }
-
-    @Test
-    @DisplayName("closing an empty queue wakes a waiting consumer")
-    void whenClosedWhileWaitingThenConsumerReceivesCompletion() throws Exception {
-        try (val stream = new QueueStream<String>()) {
-            val read     = new FutureTask<String>(stream::awaitNext);
-            val consumer = Thread.startVirtualThread(read);
-            await().atMost(Duration.ofSeconds(5)).until(() -> consumer.getState() == Thread.State.WAITING);
-
-            stream.close();
-
-            assertThat(read.get(5, TimeUnit.SECONDS)).isNull();
-        }
     }
 
     @Test

@@ -17,45 +17,40 @@
  */
 package io.sapl.lsp.sapl;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import io.sapl.compiler.diagnostics.Diagnostic;
-import io.sapl.compiler.document.SyntaxAnalysis;
-import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.grammar.antlr.SAPLLexer;
 import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
+import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.lsp.core.ParsedDocumentGuards;
 import lombok.Getter;
-import lombok.val;
 
 /**
- * A SAPL document as the editor holds it: its tokens, its parse tree and its
- * problems. The engine reads the document, so the editor shows the problems
- * that the compiler reports, at the same places and in the same words.
+ * Represents a parsed SAPL document with its AST and any parse errors.
  */
 @Getter
 public final class SAPLParsedDocument implements ParsedDocument {
 
-    private final String            uri;
-    private final String            content;
-    private final CommonTokenStream tokenStream;
-    private final SaplContext       saplParseTree;
-    private final List<Diagnostic>  diagnostics;
+    private final String                uri;
+    private final String                content;
+    private final CommonTokenStream     tokenStream;
+    private final SaplContext           saplParseTree;
+    private final List<ParseError>      parseErrors;
+    private final List<ValidationError> validationErrors;
 
     /**
-     * Whether the syntax of the document has no problem. A document with a
-     * problem of its rules only has a complete parse tree.
-     */
-    private final boolean syntaxValid;
-
-    /**
-     * Creates a new parsed document by reading the content.
+     * Creates a new parsed document by parsing the content.
      *
      * @param uri the document URI
      * @param content the document content
@@ -64,21 +59,48 @@ public final class SAPLParsedDocument implements ParsedDocument {
         this.uri     = uri;
         this.content = content;
 
-        // The editor reads untrusted text on every keystroke. The engine does not
-        // parse a document that is too large or nested too deeply. The providers
-        // still get an empty parse tree for it.
-        val analysis = SyntaxAnalysis.of(content);
-        val tree     = analysis.parseTree();
-        this.tokenStream   = analysis.tokenStream();
-        this.saplParseTree = tree != null ? tree : emptyParseTree();
-        this.syntaxValid   = analysis.syntaxIsValid();
-        this.diagnostics   = DocumentCompiler.parseDocument(analysis).diagnostics();
+        // The editor parses untrusted text on every keystroke, so the compile-path
+        // guards
+        // apply here: oversized documents are skipped, and trojan-source characters and
+        // excessive nesting become error diagnostics.
+        var errors  = new ArrayList<>(ParsedDocumentGuards.preParseDiagnostics(content));
+        var toParse = ParsedDocumentGuards.exceedsMaxLength(content) ? "" : content;
+
+        // Create lexer
+        var charStream = CharStreams.fromString(toParse);
+        var lexer      = new SAPLLexer(charStream);
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(new ErrorCollector(errors));
+
+        // Create parser
+        this.tokenStream = new CommonTokenStream(lexer);
+        var parser = new SAPLParser(tokenStream);
+        parser.removeErrorListeners();
+        parser.addErrorListener(new ErrorCollector(errors));
+
+        // Parse
+        this.saplParseTree = parseWithNestingGuard(parser, errors);
+        this.parseErrors   = List.copyOf(errors);
+
+        // Semantic validation
+        var validator            = new SAPLValidator();
+        var saplValidationErrors = validator.validate(saplParseTree);
+
+        // Convert SAPL validation errors to generic ValidationError
+        this.validationErrors = saplValidationErrors.stream()
+                .map(e -> new ValidationError(e.line(), e.charPositionInLine(), e.message(), e.offendingText()))
+                .toList();
     }
 
-    private static SaplContext emptyParseTree() {
-        val emptyParser = new SAPLParser(new CommonTokenStream(new SAPLLexer(CharStreams.fromString(""))));
-        emptyParser.removeErrorListeners();
-        return emptyParser.sapl();
+    private static SaplContext parseWithNestingGuard(SAPLParser parser, List<ParseError> errors) {
+        try {
+            return parser.sapl();
+        } catch (StackOverflowError e) {
+            errors.add(ParsedDocumentGuards.nestingTooDeep());
+            var emptyParser = new SAPLParser(new CommonTokenStream(new SAPLLexer(CharStreams.fromString(""))));
+            emptyParser.removeErrorListeners();
+            return emptyParser.sapl();
+        }
     }
 
     @Override
@@ -86,12 +108,9 @@ public final class SAPLParsedDocument implements ParsedDocument {
         return saplParseTree;
     }
 
-    /**
-     * @return true if the document has a problem of its syntax or of its rules
-     */
     @Override
     public boolean hasErrors() {
-        return !diagnostics.isEmpty();
+        return !parseErrors.isEmpty() || !validationErrors.isEmpty();
     }
 
     @Override
@@ -100,6 +119,26 @@ public final class SAPLParsedDocument implements ParsedDocument {
         // concurrent provider requests cannot fill it at the same time.
         tokenStream.fill();
         return tokenStream.getTokens();
+    }
+
+    /**
+     * ANTLR error listener that collects errors into a list.
+     */
+    private static class ErrorCollector extends BaseErrorListener {
+
+        private final List<ParseError> errors;
+
+        ErrorCollector(List<ParseError> errors) {
+            this.errors = errors;
+        }
+
+        @Override
+        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
+                String message, RecognitionException e) {
+            var symbolText = offendingSymbol instanceof Token token ? token.getText() : "";
+            errors.add(new ParseError(line, charPositionInLine, message, symbolText));
+        }
+
     }
 
 }

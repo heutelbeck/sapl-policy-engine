@@ -17,10 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.AttributeSnapshot;
-import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
@@ -29,23 +26,15 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
-import java.time.Instant;
-import java.util.Collections;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.FUNCTION_BROKER;
 import static io.sapl.util.SaplTesting.compileExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static io.sapl.util.SaplTesting.parseExpression;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("in-array unrolling")
 class InArrayUnrollingCompilerTests {
@@ -57,106 +46,6 @@ class InArrayUnrollingCompilerTests {
     private static CompilationContext unrollingContext(CompilationContext ctx) {
         ctx.setCompilerOptions(Value.ofObject(Map.of(CompilationContext.OPTION_UNROLL_IN_OPERATOR, Value.TRUE)));
         return ctx;
-    }
-
-    @Nested
-    @DisplayName("bounded predicate expansion")
-    class BoundedExpansion {
-
-        @ParameterizedTest(name = "{0}")
-        @MethodSource
-        @DisplayName("membership exposes comparisons to the index only within the expansion budget")
-        void whenCompilingMembershipThenItsIndexShapeAndValueMatchTheAllowedExpansion(String expression,
-                Class<? extends BooleanExpression> indexShape, Value expected) {
-            val operator = (PureOperator) compileExpression(expression, unrollingContext());
-            assertThat(operator.booleanExpression()).isInstanceOf(indexShape);
-            assertThat(operator.evaluate(evaluationContext())).isEqualTo(expected);
-        }
-
-        static Stream<Arguments> whenCompilingMembershipThenItsIndexShapeAndValueMatchTheAllowedExpansion() {
-            return Stream.of(arguments("subject.x in [1, 2]", BooleanExpression.And.class, Value.FALSE),
-                    arguments("subject in [" + String.join(",", Collections.nCopies(65, "1")) + "]",
-                            BooleanExpression.Atom.class, Value.FALSE),
-                    arguments("(((subject in [false]) in [false]) in [false]) in [false]", BooleanExpression.Atom.class,
-                            Value.TRUE),
-                    arguments("subject in [[1], [2]]", BooleanExpression.Atom.class, Value.FALSE),
-                    arguments("subject" + ".x".repeat(16) + " in [null, true, 1.5]", BooleanExpression.And.class,
-                            Value.FALSE),
-                    arguments("subject" + ".x".repeat(17) + " in [1]", BooleanExpression.Atom.class, Value.FALSE));
-        }
-
-        @Test
-        @DisplayName("a variable bound to a complex pure operand stays one membership predicate")
-        void whenTheNeedleIsAComplexVariableThenItsShortNameCannotHideTheWork() {
-            val ctx   = unrollingContext();
-            val inner = compileExpression("subject in [1, 2]", ctx);
-            ctx.addLocalPolicyVariable("v", inner);
-            val membership = (PureOperator) compileExpression("v in [false]", ctx);
-            assertThat(membership.booleanExpression()).isInstanceOf(BooleanExpression.Atom.class);
-            assertThat(membership.evaluate(evaluationContext())).isEqualTo(Value.TRUE);
-        }
-
-        @Test
-        @DisplayName("a large constant payload under a short variable name stays in ordinary membership")
-        void whenTheHaystackReferencesALargeConstantThenItsPayloadCountsTowardsTheBudget() {
-            val ctx = unrollingContext();
-            ctx.addGlobalPolicySetVariable("v", Value.of("x".repeat(4096)));
-            val membership = (PureOperator) compileExpression("subject in [v]", ctx);
-            assertThat(membership.booleanExpression()).isInstanceOf(BooleanExpression.Atom.class);
-            assertThat(membership.evaluate(evaluationContext())).isEqualTo(Value.FALSE);
-        }
-
-        @Test
-        @DisplayName("a compilation spends its rewrite allowance once and a fresh compilation can unroll again")
-        void whenCompilingMoreMembershipsThanTheAllowanceThenTheRestStayOrdinary() {
-            val expression = "subject in [" + String.join(",", Collections.nCopies(64, "1")) + "]";
-            val ast        = parseExpression(expression);
-            val ctx        = unrollingContext();
-            for (int index = 0; index < 32; index++) {
-                ExpressionCompiler.compile(ast, ctx);
-            }
-            ctx.resetForNextDocument();
-            val exhausted = (PureOperator) ExpressionCompiler.compile(ast, ctx);
-            val fresh     = (PureOperator) ExpressionCompiler.compile(ast, unrollingContext());
-            assertThat(exhausted.booleanExpression()).isInstanceOf(BooleanExpression.Atom.class);
-            assertThat(fresh.booleanExpression()).isInstanceOf(BooleanExpression.And.class);
-        }
-
-        @Test
-        @DisplayName("an attribute needle retains its result and source occurrences as the snapshot changes")
-        void whenAStreamNeedleResolvesThenItsValueAndDependenciesMatchOrdinaryMembership() {
-            val ast      = parseExpression("<test.attr> in [1, 2]");
-            val ordinary = (StreamOperator) ExpressionCompiler.compile(ast, new CompilationContext(FUNCTION_BROKER));
-            val enabled  = (StreamOperator) ExpressionCompiler.compile(ast, unrollingContext());
-            val ctx      = evaluationContext();
-            val pending  = ordinary.evaluate(ctx);
-            val key      = pending.dependencies().keySet().iterator().next();
-            val resolved = ctx.withSnapshot(Map.of(key, new AttributeSnapshot(Value.of(2), Instant.EPOCH)));
-            assertThat(enabled.evaluate(ctx)).isEqualTo(pending);
-            assertThat(enabled.evaluate(resolved)).isEqualTo(ordinary.evaluate(resolved));
-        }
-
-        @Test
-        @DisplayName("a failing index needle preserves its exact error location")
-        void whenAnIndexNeedleFailsThenTheErrorAndLocationMatchOrdinaryMembership() {
-            val ast      = parseExpression("subject[9] in [1, 2]");
-            val ordinary = (PureOperator) ExpressionCompiler.compile(ast, new CompilationContext(FUNCTION_BROKER));
-            val enabled  = (PureOperator) ExpressionCompiler.compile(ast, unrollingContext());
-            val expected = (ErrorValue) ordinary.evaluate(evaluationContext());
-            assertThat(enabled.evaluate(evaluationContext())).asInstanceOf(type(ErrorValue.class))
-                    .extracting(ErrorValue::message, ErrorValue::location)
-                    .containsExactly(expected.message(), expected.location());
-        }
-
-        @Test
-        @DisplayName("an ineligible haystack still validates a later invalid regular expression")
-        void whenAnInvalidPatternFollowsAnErrorThenOrdinaryMembershipStillRefusesCompilation() {
-            val ast = parseExpression("(1/0) in [1, (subject =~ \"(\")]");
-            val ctx = unrollingContext();
-            assertThatThrownBy(() -> ExpressionCompiler.compile(ast, ctx)).isInstanceOf(SaplCompilerException.class)
-                    .hasMessageContaining("Invalid regular expression");
-        }
-
     }
 
     @Nested
@@ -204,28 +93,6 @@ class InArrayUnrollingCompilerTests {
 
             assertThat(unrolled).isInstanceOf(ErrorValue.class);
             assertThat(baseline).isInstanceOf(ErrorValue.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("constant haystack elements that are errors")
-    class ErroringConstantHaystackElements {
-
-        @ParameterizedTest(name = "{0} is an error with unrolling {1}")
-        @MethodSource
-        void whenHaystackHasErroringConstantElementThenResultIsThatErrorWithAndWithoutUnrolling(String expression,
-                boolean unrolling) {
-            val ctx      = new CompilationContext(FUNCTION_BROKER);
-            val compiled = compileExpression(expression, unrolling ? unrollingContext(ctx) : ctx);
-            assertThat(compiled).isInstanceOfSatisfying(ErrorValue.class,
-                    error -> assertThat(error.message()).isEqualTo("Division by zero."));
-        }
-
-        static Stream<Arguments> whenHaystackHasErroringConstantElementThenResultIsThatErrorWithAndWithoutUnrolling() {
-            return Stream
-                    .of("1 in [1, (1/0)]", "1 in [(1/0), 1]", "2 in [1, (1/0)]", "subject in [1, (1/0)]",
-                            "undefined in [1, (1/0)]")
-                    .flatMap(expression -> Stream.of(arguments(expression, true), arguments(expression, false)));
         }
     }
 

@@ -326,7 +326,7 @@ a migration message on new engines).
 | `version` | Yes | Recorded provenance: the actual `sapl-pdp` build version that wrote the manifest, including prerelease identifiers. Publishers cannot set it, and it is not validated on load. Engine compatibility is declared separately through [`requiredEngineVersion`](../2_2_PDPConfiguration/#requiredEngineVersion). |
 | `hashAlgorithm` | Yes | Always `SHA-256`. |
 | `created` | Yes | Build timestamp. |
-| `configurationId` | Yes | JSON string identifying this publication, explicit (set at build time) or content-derived (`bundle@<hash16>`). 1 to 256 printable ASCII characters without whitespace, `/` or `\`. Signed and tamper-evident. |
+| `configurationId` | Yes | The publication identity of this bundle: explicit (set at build time) or content-derived (`bundle@<hash16>`). 1 to 256 printable ASCII characters without whitespace, `/` or `\`. Signed and tamper-evident. |
 | `attribution` | Yes | An arbitrary JSON string or object (at most 16 KiB serialized), signed, never interpreted by the engine. The single opaque metadata slot: a builder tags a plain string, a publisher can nest a full trust chain. |
 | `audience.sealingRecipient` | Iff sealed content present | The single X25519 recipient key id every sealed leaf in the bundle is sealed to. Consumers reject mixed recipients and fail fast before unsealing when they do not hold this key. One PDP in N realms means N publications, each re-sealed and re-signed. |
 | `files` | Yes | SHA-256 hash per bundle file (the manifest itself excluded). |

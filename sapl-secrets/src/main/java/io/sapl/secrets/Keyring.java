@@ -55,8 +55,7 @@ public record Keyring(Map<String, OctetKeyPair> privateKeysByKeyId) {
      *
      * @throws NullPointerException if the map or a key is null
      * @throws SecretSealingException if a key has no id, uses another curve, has
-     * no private material, has a public part that does not belong to its private
-     * part, is indexed under another id, or duplicates key material
+     * no private material, is indexed under another id, or duplicates key material
      */
     public Keyring {
         Objects.requireNonNull(privateKeysByKeyId, "privateKeysByKeyId");
@@ -73,7 +72,6 @@ public record Keyring(Map<String, OctetKeyPair> privateKeysByKeyId) {
             if (!key.isPrivate()) {
                 throw new SecretSealingException(ERROR_KEY_MUST_BE_PRIVATE);
             }
-            RecipientKeys.requireMatchingPublicPart(key);
             if (!actualKeyId.equals(entry.getKey())) {
                 throw new SecretSealingException(ERROR_INCONSISTENT_KEY_ID.formatted(entry.getKey(), actualKeyId));
             }

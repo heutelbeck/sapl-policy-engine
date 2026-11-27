@@ -20,8 +20,10 @@ package io.sapl.lsp.sapl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SymbolKind;
 
@@ -32,7 +34,6 @@ import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionContext;
 import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionStatementContext;
 import io.sapl.lsp.core.ParsedDocument;
-import io.sapl.lsp.core.ProtocolPositions;
 import lombok.val;
 
 /**
@@ -41,6 +42,8 @@ import lombok.val;
  * for the editor outline view.
  */
 class SAPLDocumentSymbolProvider {
+
+    private static final Range ZERO_RANGE = new Range(new Position(0, 0), new Position(0, 0));
 
     List<DocumentSymbol> provideDocumentSymbols(ParsedDocument document) {
         if (!(document instanceof SAPLParsedDocument saplDocument)) {
@@ -65,8 +68,7 @@ class SAPLDocumentSymbolProvider {
             return null;
         }
         val name     = stripQuotes(ctx.saplName.getText());
-        val symbol   = new DocumentSymbol(name, SymbolKind.Module, ProtocolPositions.rangeOfNode(ctx),
-                rangeOfToken(ctx.saplName));
+        val symbol   = new DocumentSymbol(name, SymbolKind.Module, rangeOf(ctx), rangeOfToken(ctx.saplName));
         val children = new ArrayList<DocumentSymbol>();
         for (val varDef : ctx.valueDefinition()) {
             addIfNotNull(children, buildVariableSymbol(varDef));
@@ -83,8 +85,7 @@ class SAPLDocumentSymbolProvider {
             return null;
         }
         val name     = stripQuotes(ctx.saplName.getText());
-        val symbol   = new DocumentSymbol(name, SymbolKind.Function, ProtocolPositions.rangeOfNode(ctx),
-                rangeOfToken(ctx.saplName));
+        val symbol   = new DocumentSymbol(name, SymbolKind.Function, rangeOf(ctx), rangeOfToken(ctx.saplName));
         val children = new ArrayList<DocumentSymbol>();
         if (ctx.policyBody() != null) {
             for (val statement : ctx.policyBody().statements) {
@@ -104,8 +105,7 @@ class SAPLDocumentSymbolProvider {
             return null;
         }
         val name = ctx.name.getText();
-        return new DocumentSymbol(name, SymbolKind.Variable, ProtocolPositions.rangeOfNode(ctx),
-                ProtocolPositions.rangeOfNode(ctx.name));
+        return new DocumentSymbol(name, SymbolKind.Variable, rangeOf(ctx), rangeOf(ctx.name));
     }
 
     private static <T> void addIfNotNull(List<T> list, T element) {
@@ -114,8 +114,32 @@ class SAPLDocumentSymbolProvider {
         }
     }
 
+    private static Range rangeOf(ParserRuleContext ctx) {
+        if (ctx == null || ctx.getStart() == null || ctx.getStop() == null) {
+            return ZERO_RANGE;
+        }
+        val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
+        val stop  = ctx.getStop();
+        return new Range(start, endPositionOf(stop));
+    }
+
+    private static Position endPositionOf(Token token) {
+        val text        = token.getText();
+        val startLine   = token.getLine() - 1;
+        val startColumn = token.getCharPositionInLine();
+        val lastNewline = text.lastIndexOf('\n');
+        if (lastNewline < 0) {
+            return new Position(startLine, startColumn + text.length());
+        }
+        val newlineCount  = (int) text.chars().filter(c -> c == '\n').count();
+        val trailingChars = text.length() - lastNewline - 1;
+        return new Position(startLine + newlineCount, trailingChars);
+    }
+
     private static Range rangeOfToken(Token token) {
-        return ProtocolPositions.of(token).rangeOf(token);
+        val start = new Position(token.getLine() - 1, token.getCharPositionInLine());
+        val end   = new Position(token.getLine() - 1, token.getCharPositionInLine() + token.getText().length());
+        return new Range(start, end);
     }
 
     private static String stripQuotes(String text) {

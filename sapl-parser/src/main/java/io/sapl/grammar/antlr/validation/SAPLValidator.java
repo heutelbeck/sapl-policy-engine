@@ -19,7 +19,6 @@ package io.sapl.grammar.antlr.validation;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -36,7 +35,6 @@ import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionContext;
 import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionStatementContext;
-import io.sapl.grammar.antlr.SAPLParser.VarNameContext;
 import io.sapl.grammar.antlr.SAPLParserBaseListener;
 
 /**
@@ -45,10 +43,7 @@ import io.sapl.grammar.antlr.SAPLParserBaseListener;
  */
 public class SAPLValidator {
 
-    public static final String  ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA          = "Attribute access is forbidden in schema expressions.";
-    private static final String ERROR_VARIABLE_NAMED_LIKE_SUBSCRIPTION_ELEMENT = "A variable cannot be named '%s'. The name is bound by the authorization subscription.";
-
-    private static final Set<String> SUBSCRIPTION_ELEMENTS = Set.of("subject", "action", "resource", "environment");
+    public static final String ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA = "Attribute access is forbidden in schema expressions.";
 
     /**
      * Validates a SAPL document parse tree.
@@ -94,23 +89,8 @@ public class SAPLValidator {
 
     private void validateValueDefinition(ValueDefinitionContext valueDefinition,
             Consumer<ValidationError> errorConsumer) {
-        validateVariableName(valueDefinition.name, errorConsumer);
         for (var schemaExpression : valueDefinition.schemaVarExpression) {
             validateNoAttributes(schemaExpression, ERROR_ATTRIBUTE_NOT_ALLOWED_IN_SCHEMA, errorConsumer);
-        }
-    }
-
-    /**
-     * The elements of the authorization subscription are read like variables, but
-     * a document must not define a variable that takes one of their names. The
-     * grammar excludes the plain keywords. A backtick identifier can still spell
-     * one of them.
-     */
-    private void validateVariableName(VarNameContext name, Consumer<ValidationError> errorConsumer) {
-        final var variableName = name.getText().replace("`", "");
-        if (SUBSCRIPTION_ELEMENTS.contains(variableName)) {
-            errorConsumer.accept(ValidationError.fromToken(
-                    ERROR_VARIABLE_NAMED_LIKE_SUBSCRIPTION_ELEMENT.formatted(variableName), name.getStart()));
         }
     }
 

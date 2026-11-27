@@ -20,8 +20,6 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
-import io.sapl.compiler.expressions.BooleanGuard.BooleanResult;
-import io.sapl.compiler.expressions.BooleanGuard.CompiledUnary;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
@@ -31,41 +29,25 @@ import lombok.val;
 import java.util.Map;
 
 import static io.sapl.ast.UnaryOperatorType.*;
-import static io.sapl.compiler.expressions.BooleanGuard.BOOLEAN_GUARD;
-import static io.sapl.compiler.expressions.BooleanGuard.withoutBooleanGuard;
 
 @UtilityClass
 public class UnaryOperatorCompiler {
 
     private static final String ERROR_UNIMPLEMENTED_UNARY_OPERATOR = "Unimplemented unary operator: %s";
 
-    private static final UnaryOperation LOGICAL_NOT = BooleanOperators::not;
-
-    static final Map<UnaryOperatorType, UnaryOperation> UNARY_OPERATIONS = Map.of(NOT, LOGICAL_NOT, CHECK_BOOLEAN,
-            BOOLEAN_GUARD, NEGATE, ArithmeticOperators::unaryMinus, PLUS, ArithmeticOperators::unaryPlus);
+    static final Map<UnaryOperatorType, UnaryOperation> UNARY_OPERATIONS = Map.of(NOT, BooleanOperators::not, NEGATE,
+            ArithmeticOperators::unaryMinus, PLUS, ArithmeticOperators::unaryPlus);
 
     public CompiledExpression compile(UnaryOperator unaryOp, CompilationContext ctx) {
         val op = UNARY_OPERATIONS.get(unaryOp.op());
         if (op == null) {
             throw new SaplCompilerException(ERROR_UNIMPLEMENTED_UNARY_OPERATOR.formatted(unaryOp.op()), unaryOp);
         }
-        var operand = ExpressionCompiler.compile(unaryOp.operand(), ctx);
+        val operand = ExpressionCompiler.compile(unaryOp.operand(), ctx);
         if (operand instanceof ErrorValue) {
             return operand;
         }
-        var location = unaryOp.location();
-        // Variable bindings can expose a boolean check that was not visible in the AST.
-        if (op == BOOLEAN_GUARD && (operand instanceof BooleanResult result && result.hasBooleanResult()
-                || operand instanceof CompiledUnary inner
-                        && (inner.op() == LOGICAL_NOT || inner.op() == BOOLEAN_GUARD))) {
-            return operand;
-        }
-        if (op == LOGICAL_NOT) {
-            if (operand instanceof CompiledUnary inner && inner.op() == BOOLEAN_GUARD) {
-                location = inner.location();
-            }
-            operand = withoutBooleanGuard(operand);
-        }
+        val location = unaryOp.location();
 
         return switch (operand) {
         case Value v          -> op.apply(v, location);
@@ -81,7 +63,7 @@ public class UnaryOperatorCompiler {
             PureOperator operand,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator, CompiledUnary {
+            boolean isRelativeExpression) implements PureOperator {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val v = operand.evaluate(ctx);
@@ -93,7 +75,7 @@ public class UnaryOperatorCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(SemanticHashing.kindHash(opType), operand.semanticHash());
+            return SemanticHashing.ordered(opType.hashCode(), operand.semanticHash());
         }
 
         @Override
@@ -106,7 +88,7 @@ public class UnaryOperatorCompiler {
     }
 
     public record UnaryStream(UnaryOperation op, StreamOperator operand, SourceLocation location)
-            implements StreamOperator, CompiledUnary {
+            implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val r = operand.evaluate(ctx);

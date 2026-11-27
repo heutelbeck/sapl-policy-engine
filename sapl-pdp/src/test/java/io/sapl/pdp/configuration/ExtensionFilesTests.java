@@ -41,8 +41,7 @@ class ExtensionFilesTests {
                 "ext-upstreams-secrets.sealed.json, false, false, true", "pdp.json, false, false, false",
                 "policy.sapl, false, false, false", "secrets.json, false, false, false",
                 "secrets.sealed.json, false, false, false", "upstreams.json, false, false, false",
-                "ext-.json, true, false, false", "ext-secrets.json, true, false, false",
-                "ext-secrets.sealed.json, true, false, false", "ext--secrets.json, false, true, false" })
+                "ext-.json, true, false, false" })
         @DisplayName("classifies root-level file names")
         void whenNameGivenThenClassifiedCorrectly(String name, boolean isConfig, boolean isSecrets,
                 boolean isSealedSecrets) {
@@ -58,13 +57,6 @@ class ExtensionFilesTests {
             assertThat(ExtensionFiles.extensionSecretsNameOf("ext-upstreams-secrets.json")).isEqualTo("upstreams");
             assertThat(ExtensionFiles.sealedExtensionSecretsNameOf("ext-upstreams-secrets.sealed.json"))
                     .isEqualTo("upstreams");
-        }
-
-        @ParameterizedTest(name = "\"{0}\" -> \"{1}\"")
-        @CsvSource({ "ext-secrets.json, secrets", "ext-secrets.sealed.json, secrets.sealed" })
-        @DisplayName("the extension name lies between the prefix and the ending, so ext-secrets.json configures 'secrets'")
-        void whenPrefixAndEndingOverlapThenNameIsTakenAfterThePrefix(String fileName, String extensionName) {
-            assertThat(ExtensionFiles.extensionNameOf(fileName)).isEqualTo(extensionName);
         }
     }
 

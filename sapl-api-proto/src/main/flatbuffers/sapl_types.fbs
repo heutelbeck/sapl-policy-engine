@@ -96,7 +96,7 @@ table AuthorizationSubscription {
     action:Value;
     resource:Value;
     environment:Value;
-    secrets:ObjectValue;
+    secrets:Value;
 }
 
 // Authorization decision - result of policy evaluation

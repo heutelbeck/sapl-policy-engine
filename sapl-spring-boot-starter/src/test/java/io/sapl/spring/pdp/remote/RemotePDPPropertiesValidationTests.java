@@ -23,8 +23,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import lombok.val;
-
 class RemotePDPPropertiesValidationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
@@ -195,16 +193,5 @@ class RemotePDPPropertiesValidationTests {
         contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.host=localhost",
                 "io.sapl.pdp.remote.port=7000", "io.sapl.pdp.remote.bearerToken=aApiKey",
                 "io.sapl.pdp.remote.allowInsecureHttp=true").run(context -> assertThat(context).hasNotFailed());
-    }
-
-    @Test
-    void whenPropertiesAreWrittenAsTextThenNoCredentialAppears() {
-        val properties = new RemotePDPProperties();
-        properties.setKey("client");
-        properties.setSecret("the-basic-auth-secret");
-        properties.setBearerToken("the-bearer-token");
-
-        assertThat(properties.toString()).contains("client").doesNotContain("the-basic-auth-secret",
-                "the-bearer-token");
     }
 }

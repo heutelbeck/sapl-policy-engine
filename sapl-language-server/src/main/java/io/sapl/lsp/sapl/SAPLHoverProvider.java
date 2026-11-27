@@ -38,7 +38,6 @@ import io.sapl.grammar.antlr.SAPLParser.FunctionIdentifierContext;
 import io.sapl.grammar.antlr.SAPLParser.HeadAttributeFinderStepContext;
 import io.sapl.lsp.configuration.ConfigurationManager;
 import io.sapl.lsp.core.ParsedDocument;
-import io.sapl.lsp.core.ProtocolPositions;
 import lombok.val;
 
 /**
@@ -53,10 +52,7 @@ class SAPLHoverProvider {
         }
         val tree           = saplDocument.getSaplParseTree();
         val enclosingNodes = new ArrayList<ParserRuleContext>();
-        if (tree.getStart() != null) {
-            val positions = ProtocolPositions.of(tree.getStart());
-            collectEnclosingNodes(tree, positions, positions.offsetOf(position), enclosingNodes);
-        }
+        collectEnclosingNodes(tree, position, enclosingNodes);
 
         val config = configurationManager.getConfigurationForUri(document.getUri());
         val bundle = config.documentationBundle();
@@ -144,15 +140,36 @@ class SAPLHoverProvider {
         return new QualifiedName(qualifiedName.substring(0, lastDot), qualifiedName.substring(lastDot + 1));
     }
 
-    private void collectEnclosingNodes(ParseTree node, ProtocolPositions positions, int offset,
-            List<ParserRuleContext> chain) {
-        if (!(node instanceof ParserRuleContext ctx) || !positions.encloses(ctx, offset)) {
+    private void collectEnclosingNodes(ParseTree node, Position position, List<ParserRuleContext> chain) {
+        if (!(node instanceof ParserRuleContext ctx)) {
+            return;
+        }
+        if (!contains(ctx, position)) {
             return;
         }
         chain.add(ctx);
         for (var i = 0; i < ctx.getChildCount(); i++) {
-            collectEnclosingNodes(ctx.getChild(i), positions, offset, chain);
+            collectEnclosingNodes(ctx.getChild(i), position, chain);
         }
+    }
+
+    private boolean contains(ParserRuleContext ctx, Position position) {
+        if (ctx.getStart() == null || ctx.getStop() == null) {
+            return false;
+        }
+        val startLine = ctx.getStart().getLine() - 1;
+        val startChar = ctx.getStart().getCharPositionInLine();
+        val stopLine  = ctx.getStop().getLine() - 1;
+        val stopChar  = ctx.getStop().getCharPositionInLine() + ctx.getStop().getText().length();
+        val line      = position.getLine();
+        val character = position.getCharacter();
+        if (line < startLine || line > stopLine) {
+            return false;
+        }
+        if (line == startLine && character < startChar) {
+            return false;
+        }
+        return line != stopLine || character <= stopChar;
     }
 
 }

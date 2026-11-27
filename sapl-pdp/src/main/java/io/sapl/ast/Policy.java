@@ -29,7 +29,7 @@ import java.util.List;
  * @param metadata policy identification voterMetadata (name, pdpId,
  * configurationId,
  * documentId)
- * @param effect PERMIT, DENY or SUSPEND
+ * @param effect PERMIT or DENY
  * @param body policy body with statements and source location
  * @param obligations obligation expressions, empty list if none
  * @param advice advice expressions, empty list if none

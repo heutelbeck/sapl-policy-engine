@@ -26,9 +26,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -37,7 +35,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.compileExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -175,68 +172,6 @@ class ArithmeticOperatorsTests {
             arguments("modulo overflowing scales", MOD, HUGE_POSITIVE_SCALE, HUGE_NEGATIVE_SCALE));
     }
     // @formatter:on
-
-    @ParameterizedTest(name = "{0} is {1}")
-    @CsvSource(delimiter = '|', textBlock = """
-            "n=" + 5.0          | n=5
-            "n=" + 1E+3         | n=1000
-            "n=" + -0.0         | n=0
-            "n=" + 1E+20        | n=100000000000000000000
-            "n=" + 12.50        | n=12.5
-            "n=" + (12.51 * 2.0) | n=25.02
-            "n=" + 1E-7         | n=1E-7
-            "n=" + [5.0, 1E+3]  | n=[5, 1000]
-            "n=" + {"a": 2.0}   | n={"a"=2}
-            """)
-    void whenNumberIsAppendedToTextThenItIsWrittenInItsTextForm(String expression, String text) {
-        assertThat(compileExpression(expression)).isEqualTo(Value.of(text));
-    }
-
-    @Test
-    void whenNumberIsNamedInErrorMessageThenItIsWrittenInItsTextForm() {
-        assertThat(compileExpression("[5.0, 1E+3, 1E+20] * 2")).isInstanceOfSatisfying(ErrorValue.class,
-                error -> assertThat(error.message()).isEqualTo(
-                        "Numeric operation requires number values, but found: [5, 1000, 100000000000000000000]."));
-    }
-
-    @ParameterizedTest(name = "{0} = {1} is within the range of numbers")
-    @DisplayName("exactly representable arithmetic results remain usable as operands")
-    @CsvSource(delimiter = '|', textBlock = """
-            1E500 * 1E500   | 1E+1000
-            1E-500 * 1E-500 | 1E-1000
-            1E-500 / 1E500  | 1E-1000
-            1E500 / 1E-500  | 1E+1000
-            1E-1000 * 2.0   | 2E-1000
-            1E-999 * -0.20  | -2E-1000
-            1E500 * 1E501   | 1E1001
-            1E600 * 1E600   | 1E1200
-            1E999 / 1E-999  | 1E1998
-            1E1000 * 1E999  | 1E1999
-            (1E1000 * 1E999) / 1E999 | 1E1000
-            """)
-    void whenResultFitsExactlyThenItIsWithinTheOperandBounds(String expression, String expected) {
-        assertThat(compileExpression(expression)).isInstanceOfSatisfying(NumberValue.class, number -> {
-            assertThat(number.value()).isEqualByComparingTo(new BigDecimal(expected));
-            assertThat(number.value().scale()).isBetween(-1000, 1000);
-            assertThat(number.value().precision()).isLessThanOrEqualTo(1000);
-        });
-    }
-
-    @ParameterizedTest(name = "{0} exceeds the range of numbers")
-    @ValueSource(strings = { "1E1000 * 1E1000", "1E-500 * 1E-501", "1E-600 * 1E-600", "1E-999 / 1E999",
-            "1E-1000 * 1.01", "1E-500 / 1E501", "-1E-500 * 1E-501" })
-    void whenResultScaleExceedsTheBoundThenOverflowError(String expression) {
-        assertThat(compileExpression(expression)).isInstanceOfSatisfying(ErrorValue.class,
-                error -> assertThat(error.message()).isEqualTo("Numeric operation exceeded the supported range."));
-    }
-
-    @Test
-    @DisplayName("a zero product with an excessive result scale fits at scale zero")
-    void whenZeroProductExceedsTheScaleLimitThenItIsExactlyZero() {
-        val operand = new NumberValue(BigDecimal.ZERO.setScale(1000));
-        assertThat(MUL.apply(operand, operand)).isInstanceOfSatisfying(NumberValue.class,
-                zero -> assertThat(zero.value()).isZero().hasScaleOf(0));
-    }
 
     @Test
     void whenDivideNonTerminatingThenUsesDecimal128Precision() {

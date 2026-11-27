@@ -2,13 +2,13 @@
 
 End-to-end demonstration of a Spring Boot consumer reaching the SAPL Node over RSocket+TLS using an OAuth2-managed JWT. The consumer never sees the token directly: Spring's `OAuth2AuthorizedClientManager` mints and refreshes a JWT against Keycloak; the SAPL starter encodes the current token into the RSocket setup-frame metadata on every connect. When the JWT expires the Node disposes the connection, the client reconnects, the manager hands out a fresh token, and operation continues.
 
-This example composes the techniques shown in `with-keycloak` (OAuth2 JWT issuance) and `with-tls` (one PEM certificate on both transports), plus a small consumer Spring Boot app.
+This example composes the techniques shown in `with-keycloak` (OAuth2 JWT issuance) and `with-tls` (shared SSL bundle on both transports), plus a small consumer Spring Boot app.
 
 ## Quick start
 
 ```bash
-# 1. Generate a self-signed development certificate at ./tls/server.pem
-./generate-certificate.sh
+# 1. Generate a self-signed development keystore at ./tls/keystore.p12
+./generate-keystore.sh
 
 # 2. Build and run all three containers (Keycloak, SAPL Node, consumer)
 docker compose up --build
@@ -54,7 +54,7 @@ SAPL Node (`docker-compose.yml`):
 
 - Accepts OAuth2 JWT only (`IO_SAPL_NODE_ALLOWOAUTH2AUTH=true`, all other auth modes off).
 - Validates against the Keycloak realm via `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI`.
-- Terminates TLS on both HTTPS (8443) and RSocket (7000) using one certificate from PEM files (`io.sapl.node.tls.certificate-chain` and `io.sapl.node.tls.private-key`).
+- Terminates TLS on both HTTPS (8443) and RSocket (7000) using one shared Spring SSL bundle (`sapl-bundle`).
 - Disposes RSocket connections on JWT `exp`. The client's reconnect path mints a new token automatically.
 
 Keycloak (`./keycloak/realm-export.json`):
@@ -77,7 +77,7 @@ Every ~60 s you will see the RSocket connection close on the server side and the
 
 | File | Purpose |
 |---|---|
-| `generate-certificate.sh` | Generates `./tls/server.pem` and `./tls/server.key`, a self-signed P-256 certificate with SAN for `sapl-node`, `localhost`, and `127.0.0.1`. |
+| `generate-keystore.sh` | Generates `./tls/keystore.p12` with a self-signed RSA-2048 cert, SAN for `sapl-node`, `localhost`, and `127.0.0.1`. Password `changeit`. |
 | `docker-compose.yml` | Keycloak + SAPL Node + consumer on a single Docker network. SAPL Node exposes HTTPS:8443 and RSocket TLS:7000; consumer exposes HTTP:8090. |
 | `keycloak/realm-export.json` | Realm with one `client_credentials`-only client (`sapl-pdp-client`). Imported on Keycloak startup. |
 | `policies/pdp.json` | PDP configuration: `PRIORITY_PERMIT`, default `DENY`. |
@@ -88,7 +88,7 @@ Every ~60 s you will see the RSocket connection close on the server side and the
 
 This demo is intentionally permissive. Before exposing this pattern to the network:
 
-- [ ] Replace the self-signed certificate with a CA-issued one; remove `ignoreCertificates: true` from the consumer config and rely on the JVM truststore (or load a private-CA cert into it).
+- [ ] Replace the self-signed keystore with a CA-issued cert; remove `ignoreCertificates: true` from the consumer config and rely on the JVM truststore (or load a private-CA cert into it).
 - [ ] Move `client-secret` out of `application.yml` into a secrets manager.
 - [ ] Adjust `access.token.lifespan` to your security/refresh-cost trade-off. 60 s is fine for a demo; production typically uses 5-15 min.
 - [ ] Add `audience` claim validation in Keycloak + `audiences` matching on the SAPL Node side.

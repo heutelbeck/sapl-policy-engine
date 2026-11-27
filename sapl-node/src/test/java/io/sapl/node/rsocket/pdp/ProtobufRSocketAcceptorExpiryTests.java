@@ -17,6 +17,7 @@
  */
 package io.sapl.node.rsocket.pdp;
 
+import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.RSocket;
 import io.sapl.node.rsocket.pdp.RSocketConnectionAuthenticator.AuthenticationResult;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
@@ -32,7 +33,6 @@ import reactor.core.publisher.Sinks;
 
 import java.time.Instant;
 
-import static io.sapl.node.rsocket.pdp.SetupPayloads.protobufSetup;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -57,7 +57,7 @@ class ProtobufRSocketAcceptorExpiryTests {
         val                            acceptor      = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
         val                            sendingSocket = mock(RSocket.class);
         lenient().when(sendingSocket.onClose()).thenReturn(connectionClosed.asMono());
-        acceptor.accept(protobufSetup(), sendingSocket).block();
+        acceptor.accept(mock(ConnectionSetupPayload.class), sendingSocket).block();
         return sendingSocket;
     }
 

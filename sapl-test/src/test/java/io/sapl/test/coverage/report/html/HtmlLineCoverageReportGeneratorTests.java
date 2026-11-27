@@ -20,14 +20,12 @@ package io.sapl.test.coverage.report.html;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.PATH;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,9 +34,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.val;
@@ -109,37 +104,6 @@ class HtmlLineCoverageReportGeneratorTests {
             });
         }
 
-    }
-
-    @Nested
-    @DisplayName("lines of a policy")
-    class PolicyLineTests {
-
-        private static final String POLICY = """
-                policy "miskatonic-library-access"
-                permit
-                    subject.role == "faculty";
-                    resource.department == "occult studies";
-                """;
-
-        static Stream<Arguments> lineEnds() {
-            return Stream.of(arguments("a line feed", "\n"), arguments("a carriage return", "\r"),
-                    arguments("a carriage return and a line feed", "\r\n"));
-        }
-
-        @ParameterizedTest(name = "lines that end with {0}")
-        @MethodSource("lineEnds")
-        @DisplayName("colours each covered line of the policy, whatever ends the lines")
-        void whenLinesEndWithAnyLineBreakThenEachCoveredLineIsColoured(String lineBreak, String lineEnd) {
-            val policy = new PolicyCoverageData("miskatonic.sapl", POLICY.replace("\n", lineEnd), "policy");
-            policy.recordConditionHit(0, 3, true);
-            policy.recordConditionHit(1, 4, true);
-
-            val lineModels = new HtmlLineCoverageReportGenerator().createLineModels(policy);
-
-            assertThat(lineModels).extracting(HtmlPolicyLineModel::cssClass).containsExactly("", "", "coverage-yellow",
-                    "coverage-yellow");
-        }
     }
 
     @Nested

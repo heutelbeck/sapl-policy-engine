@@ -21,7 +21,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -146,43 +145,6 @@ class NumberValueTests {
     static Stream<Arguments> when_toStringCalled_then_showsValue() {
         return Stream.of(arguments(new BigDecimal("3.41"), "3.41"), arguments(BigDecimal.ZERO, "0"),
                 arguments(new BigDecimal("-5"), "-5"));
-    }
-
-    @ParameterizedTest(name = "{0} is written as {1}")
-    @CsvSource(textBlock = """
-            5.0,                       5
-            1E+3,                      1000
-            1.000E+3,                  1000
-            -0.0,                      0
-            0E+5,                      0
-            0.000,                     0
-            1E+18,                     1000000000000000000
-            9223372036854775807.0,     9223372036854775807
-            -9223372036854775808.00,   -9223372036854775808
-            9223372036854775808,       9223372036854775808
-            9.223372036854775808E+19,  92233720368547758080
-            1E+19,                     10000000000000000000
-            1E+20,                     100000000000000000000
-            12.50,                     12.5
-            150E-2,                    1.5
-            0.00000100,                0.000001
-            1000000000000000000001,    1.000000000000000000001E+21
-            1E+21,                     1E+21
-            -1.2300E+21,               -1.23E+21
-            0.5,                       0.5
-            1E-7,                      1E-7
-            1E+2147483647,             1E+2147483647
-            1E-2147483647,             1E-2147483647
-            """)
-    @DisplayName("numbers have an exact text independent of scale")
-    void whenWrittenAsTextThenTheExactValueDeterminesTheNotation(String number, String text) {
-        assertThat(new NumberValue(new BigDecimal(number))).hasToString(text);
-    }
-
-    @Test
-    void whenRemovingZerosWouldUnderflowTheScaleThenTheExponentIsStillExact() {
-        var number = new NumberValue(new BigDecimal(BigInteger.TEN, Integer.MIN_VALUE));
-        assertThat(number).hasToString("1E+2147483649");
     }
 
     @Test

@@ -48,7 +48,7 @@ public class ArrayFunctionLibrary {
             ## Core Principles
 
             Array functions treat inputs as immutable collections and return new arrays. Equality
-            comparison uses JSON value equality. Numerically equivalent but differently formatted
+            comparison uses JSON value equality - numerically equivalent but differently formatted
             numbers (e.g., 0 versus 0.000) may not match. Empty arrays are valid inputs and follow
             mathematical conventions: empty union returns empty, empty intersection returns empty,
             sum of empty returns 0, product of empty returns 1.
@@ -210,7 +210,7 @@ public class ArrayFunctionLibrary {
 
             Returns: New array with elements in array1 but not in array2
 
-            Example: remove revoked permissions
+            Example - remove revoked permissions:
             ```sapl
             policy "example"
             permit
@@ -252,7 +252,7 @@ public class ArrayFunctionLibrary {
 
             Returns: New array with all unique elements
 
-            Example: combine permissions from multiple sources
+            Example - combine permissions from multiple sources:
             ```sapl
             policy "example"
             permit
@@ -318,7 +318,7 @@ public class ArrayFunctionLibrary {
 
                     Returns: New array with common elements
 
-                    Example: find shared permissions
+                    Example - find shared permissions:
             ```sapl
             policy "example"
             permit
@@ -372,7 +372,7 @@ public class ArrayFunctionLibrary {
 
             Returns: Boolean indicating whether elements appear in order
 
-            Example: verify approval workflow sequence
+            Example - verify approval workflow sequence:
             ```sapl
             policy "example"
             permit action == "finalize_contract";
@@ -411,8 +411,9 @@ public class ArrayFunctionLibrary {
             numerically, string arrays are sorted lexicographically. All elements must be of the
             same type. Returns an error for mixed types, or unsupported types.
 
-            Numeric sorting compares exact decimal quantities and preserves the original values.
-            Equal quantities retain their input order.
+            Numeric sorting uses floating-point comparison for performance, which is appropriate
+            for SAPL's authorization policy use cases. Very large integers beyond 2^53 may lose
+            precision during comparison.
 
             Parameters:
             - array: Array to sort
@@ -458,7 +459,7 @@ public class ArrayFunctionLibrary {
             numbers.add(number);
         }
 
-        numbers.sort(Comparator.comparing(NumberValue::value));
+        numbers.sort(Comparator.comparingDouble(n -> n.value().doubleValue()));
 
         val builder = ArrayValue.builder();
         for (val number : numbers) {
@@ -801,7 +802,7 @@ public class ArrayFunctionLibrary {
 
             Returns: Sum of all elements
 
-            Example: enforce rate limit
+            Example - enforce rate limit:
             ```sapl
             policy "example"
             deny action == "api_call";
@@ -1098,7 +1099,7 @@ public class ArrayFunctionLibrary {
 
             Returns: Array of all possible pairs
 
-            Example: generate permission-resource combinations
+            Example - generate permission-resource combinations:
             ```sapl
             policy "example"
             permit

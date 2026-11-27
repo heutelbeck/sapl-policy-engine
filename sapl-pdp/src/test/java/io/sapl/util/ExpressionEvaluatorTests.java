@@ -39,7 +39,7 @@ class ExpressionEvaluatorTests {
     }
 
     @Test
-    @DisplayName("VT: registered PIP delivers one value per publish, tryNext empty before first publish")
+    @DisplayName("VT: registered PIP delivers one value per publish; tryNext empty before first publish")
     void vtEvaluatorDeliversPerStreamPublishWhenPipRegistered() throws InterruptedException {
         try (val broker = new TestAttributeBroker()) {
             broker.register("test.attr");

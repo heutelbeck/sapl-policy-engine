@@ -53,7 +53,7 @@ import reactor.core.publisher.Hooks;
 public class SaplContextPropagationActivator {
 
     private static final String LOG_ENABLING = "io.sapl.shim: enabling Reactor automatic context propagation"
-            + " (registers EnforcementPlan as a ThreadLocal-propagated context value," + " required by the R2DBC shim)";
+            + " (registers EnforcementPlan as a ThreadLocal-propagated context value;" + " required by the R2DBC shim)";
 
     @PostConstruct
     public void activate() {

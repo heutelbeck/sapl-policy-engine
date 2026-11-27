@@ -239,7 +239,6 @@ start_sapl_server() {
 
     $cmd server \
         --io.sapl.node.allow-no-auth=true \
-        --io.sapl.node.allow-no-tls=true \
         --io.sapl.pdp.embedded.metrics-enabled=false \
         --io.sapl.pdp.embedded.policies-path="$policy_dir" \
         --io.sapl.pdp.embedded.config-path="$policy_dir" \

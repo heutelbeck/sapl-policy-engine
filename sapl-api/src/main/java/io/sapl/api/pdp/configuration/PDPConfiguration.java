@@ -17,6 +17,8 @@
  */
 package io.sapl.api.pdp.configuration;
 
+import static org.semver4j.range.RangeListFactory.create;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
@@ -24,11 +26,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
+import org.semver4j.processor.HyphenProcessor;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.semver.VersionRange;
+
+import lombok.val;
 
 /**
  * Immutable configuration for a Policy Decision Point.
@@ -68,6 +72,7 @@ public record PDPConfiguration(
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private static final String ERROR_INVALID_ENGINE_VERSION_RANGE = "Invalid requiredEngineVersion range: '%s'.";
+    private static final HyphenProcessor ENGINE_VERSION_RANGE_PROCESSOR = new HyphenProcessor();
 
     /**
      * Creates a configuration with a validated engine requirement and immutable extension data.
@@ -200,10 +205,29 @@ public record PDPConfiguration(
             return false;
         }
         try {
-            VersionRange.parse(expression);
-            return true;
+            for (val section : expression.split("\\|\\|", -1)) {
+                if (!isValidEngineVersionRangeSection(section)) {
+                    return false;
+                }
+            }
+            return !create(expression).get().isEmpty();
         } catch (IllegalArgumentException exception) {
             return false;
         }
+    }
+
+    private static boolean isValidEngineVersionRangeSection(String section) {
+        if (section.isBlank()) {
+            return false;
+        }
+        val normalized = section.strip().replaceAll("([<>]=?|=)\\s+", "$1");
+        val expanded   = ENGINE_VERSION_RANGE_PROCESSOR.process(normalized, false);
+        // Semver4j otherwise silently ignores unrecognized comparator tokens.
+        for (val token : (expanded == null ? normalized : expanded).split("\\s+")) {
+            if (create(token).get().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -23,37 +23,35 @@ import java.net.UnknownHostException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import io.sapl.node.SaplNodeProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 /**
- * Warns at every start that serves requests without authentication
- * ({@code allow-no-auth}) and names the source of the opt-in. Running without
+ * Emits a factual WARN when a transport binds to a non-loopback address while
+ * anonymous access is permitted ({@code allow-no-auth}). Running without
  * authentication is a legitimate choice when an outer layer owns the trust
  * boundary (a service mesh, a private network segment, or an authenticating
  * reverse proxy), so this is a visible reminder rather than a refusal to
- * start. A transport bound to a non-loopback address adds a warning naming the
- * transport and the address.
+ * start. On loopback, or when an authentication mode gates access, the warning
+ * stays silent.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 class AnonymousAccessStartupWarning {
 
-    private static final String TRANSPORT_HTTP    = "HTTP";
-    private static final String TRANSPORT_RSOCKET = "RSocket";
+    private static final String TRANSPORT_HTTP    = "HTTP server";
+    private static final String TRANSPORT_RSOCKET = "RSocket server";
 
-    private static final String WARN_ANONYMOUS                  = "Server replies to requests without authentication because of {}.";
-    private static final String WARN_ANONYMOUS_NETWORK_EXPOSURE = "The {} server is bound to a non-loopback address ({}) while "
-            + "anonymous access is enabled because of {}. Unauthenticated clients that can reach this address may "
+    private static final String WARN_ANONYMOUS_NETWORK_EXPOSURE = "{} is bound to a non-loopback address ({}) while "
+            + "anonymous access is enabled (allow-no-auth). Unauthenticated clients that can reach this address may "
             + "request authorization decisions. Enable an authentication mode, or restrict the bind address to "
             + "loopback if this exposure is unintended.";
 
-    private final Environment environment;
+    private final SaplNodeProperties properties;
 
     @Value("${server.address:0.0.0.0}")
     private String httpAddress;
@@ -69,20 +67,18 @@ class AnonymousAccessStartupWarning {
 
     @EventListener
     void onReady(ApplicationReadyEvent event) {
-        warnOfAnonymousAccess();
+        warnIfAnonymousAndNetworkExposed();
     }
 
-    void warnOfAnonymousAccess() {
-        val source = OptIn.NO_AUTH.source(environment);
-        if (source.isEmpty()) {
+    void warnIfAnonymousAndNetworkExposed() {
+        if (!properties.isAllowNoAuth()) {
             return;
         }
-        log.warn(WARN_ANONYMOUS, source.get());
         if (isNetworkExposed(httpAddress)) {
-            log.warn(WARN_ANONYMOUS_NETWORK_EXPOSURE, TRANSPORT_HTTP, httpAddress, source.get());
+            log.warn(WARN_ANONYMOUS_NETWORK_EXPOSURE, TRANSPORT_HTTP, httpAddress);
         }
         if (rsocketEnabled && !isUnixSocket() && isNetworkExposed(rsocketAddress)) {
-            log.warn(WARN_ANONYMOUS_NETWORK_EXPOSURE, TRANSPORT_RSOCKET, rsocketAddress, source.get());
+            log.warn(WARN_ANONYMOUS_NETWORK_EXPOSURE, TRANSPORT_RSOCKET, rsocketAddress);
         }
     }
 

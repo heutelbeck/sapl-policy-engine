@@ -17,15 +17,16 @@
  */
 package io.sapl.functions.libraries;
 
-import com.networknt.schema.SchemaException;
+import com.networknt.schema.*;
 import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import io.sapl.compiler.util.JsonSchemaPreparation;
-import io.sapl.compiler.util.SchemaErrors;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegularExpressionFactory;
 import lombok.val;
 
+import java.util.HashMap;
 import java.util.List;
 
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
@@ -124,20 +125,10 @@ public class SchemaValidationLibrary {
             Example: If `resource.form = {"zip": "ABC"}` fails pattern validation,
             `result.errors` contains: `[{"path": "/zip", "message": "does not match
             pattern ^[0-9]{5}$", "type": "pattern", "schemaPath": "/properties/zip"}]`.
-
-            ## Patterns
-
-            The `pattern` and `patternProperties` keywords use the syntax of RE2
-            (https://github.com/google/re2/wiki/Syntax), the same syntax as the `=~`
-            operator, and are matched in time linear in the length of the text. A
-            pattern matches if it matches any part of the text, and `$` matches at
-            the end of the text only. Look-around, backreferences, atomic groups and
-            possessive quantifiers do not exist in this syntax. A schema with a pattern
-            RE2 refuses is an error, even if the subject never reaches the pattern. A
-            rule written with look-ahead is written as several `pattern` keywords under
-            `allOf` instead:
-            `{"type": "string", "minLength": 12, "allOf": [{"pattern": "[0-9]"}, {"pattern": "[A-Z]"}]}`.
             """;
+
+    // JSON Schema field names
+    private static final String SCHEMA_ID_FIELD = "$id";
 
     // JSON result field names
     private static final String FIELD_VALID  = "valid";
@@ -200,15 +191,18 @@ public class SchemaValidationLibrary {
             }
             """;
 
+    private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
+            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12, BoundedRegularExpressionFactory::applyTo);
+
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
-            This function tests the `validationSubject` for compliance with the provided JSON schema `schema`.
+            This function tests the `validationSubject` for compliance with the with the provided JSON schema `schema`.
 
-            An invalid schema returns an error.
+            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.
 
-            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
+            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
 
             **Example:**
             ```sapl
@@ -237,17 +231,17 @@ public class SchemaValidationLibrary {
 
     @Function(docs = """
             ```isCompliantWithExternalSchemas(validationSubject, OBJECT jsonSchema, ARRAY externalSchemas)```:
-            This function tests the ```validationSubject``` for compliance with the provided JSON
+            This function tests the ```validationSubject``` for compliance with the with the provided JSON
             schema `schema`.
 
-            An invalid schema returns an error.
+            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results.
             If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.
             If the ```jsonSchema``` contains external references to other ```schemas```, the validation function
             looks up the schemas in ```externalSchemas``` based on explicitly defined ```$id``` field in the schemas.
             If no $id field is provided, the schema will not be detectable.
 
-            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
+            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
 
             **Example:**
             ```sapl
@@ -312,9 +306,9 @@ public class SchemaValidationLibrary {
             validation failures. Each error includes the location in the subject (`path`), a human-readable message,
             the validation keyword that failed (`type`), and the schema location (`schemaPath`).
 
-            An invalid schema returns an error.
+            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
 
-            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
+            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
 
             **Example:**
             ```sapl
@@ -346,12 +340,12 @@ public class SchemaValidationLibrary {
             validation failures. Each error includes the location in the subject (`path`), a human-readable message,
             the validation keyword that failed (`type`), and the schema location (`schemaPath`).
 
-            An invalid schema returns an error.
+            The schema itself cannot be validated and improper schema definitions may lead to unexpected results.
             If the ```jsonSchema``` contains external references to other ```schemas```, the validation function
             looks up the schemas in ```externalSchemas``` based on explicitly defined ```$id``` field in the schemas.
             If no $id field is provided, the schema will not be detectable.
 
-            The default dialect is [JSON Schema 2020-12](https://json-schema.org/draft/2020-12).
+            *Note:* The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
 
             **Example:**
             ```sapl
@@ -394,25 +388,53 @@ public class SchemaValidationLibrary {
             return validationSubject;
         }
 
+        if (validationSubject instanceof UndefinedValue) {
+            return createValidationResult(false, List.of());
+        }
         try {
-            val registry  = JsonSchemaPreparation.registry(externalSchemas);
-            val validator = JsonSchemaPreparation.prepare(registry, jsonSchema);
-            if (validationSubject instanceof UndefinedValue) {
-                return createValidationResult(false, List.of());
-            }
+            val schemaMap   = buildSchemaMap(externalSchemas);
+            val registry    = createSchemaRegistry(schemaMap);
+            val schemaNode  = ValueJsonMarshaller.toJsonNode(jsonSchema);
+            val validator   = registry.getSchema(SchemaLocation.of("mem://inline"), schemaNode);
             val subjectNode = ValueJsonMarshaller.toJsonNode(validationSubject);
-            val errors      = validator.validate(subjectNode);
+            val errors      = BoundedRegex.runWithSharedMatchBudget(() -> validator.validate(subjectNode));
             return createValidationResult(errors.isEmpty(), errors);
         } catch (SchemaException e) {
             // An uncompilable schema (malformed, bad or unresolvable $ref) is an author
             // error, not a non-compliant subject. Surface it as an error.
-            return Value.error(SchemaErrors.describe(e, ERROR_SCHEMA_VALIDATION_FAILED));
+            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
         } catch (IllegalArgumentException e) {
             return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
         } catch (Throwable t) {
             // Third-party validation on hostile input must not crash evaluation.
-            return Value.error(SchemaErrors.describe(t, ERROR_SCHEMA_VALIDATION_FAILED));
+            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, t.getMessage());
         }
+    }
+
+    private static HashMap<String, String> buildSchemaMap(Value externalSchemas) {
+        val schemaMap = new HashMap<String, String>();
+        if (externalSchemas instanceof ArrayValue array) {
+            for (val externalSchema : array) {
+                if (externalSchema instanceof ObjectValue obj && obj.containsKey(SCHEMA_ID_FIELD)) {
+                    val id = obj.get(SCHEMA_ID_FIELD);
+                    if (id instanceof TextValue text) {
+                        val schemaNode = ValueJsonMarshaller.toJsonNode(obj);
+                        schemaMap.put(text.value(), schemaNode.toString());
+                    }
+                }
+            }
+        }
+        return schemaMap;
+    }
+
+    private static SchemaRegistry createSchemaRegistry(HashMap<String, String> schemaMap) {
+        if (schemaMap.isEmpty()) {
+            return SCHEMA_REGISTRY;
+        }
+        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
+            builder.schemas(schemaMap);
+            BoundedRegularExpressionFactory.applyTo(builder);
+        });
     }
 
     private static Value createValidationResult(boolean valid, List<Error> errors) {

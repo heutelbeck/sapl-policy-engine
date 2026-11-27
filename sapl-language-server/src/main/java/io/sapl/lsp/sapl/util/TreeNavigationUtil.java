@@ -20,9 +20,7 @@ package io.sapl.lsp.sapl.util;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import io.sapl.lsp.core.ProtocolPositions;
 import lombok.NonNull;
-import lombok.val;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -80,15 +78,13 @@ public final class TreeNavigationUtil {
      * This is equivalent to NodeModelUtils.getNode(eObject).getOffset() in Xtext.
      *
      * @param node the parse tree node
-     * @return the offset of the node in the document string, in UTF-16 code units
-     * as a Java string indexes it, or -1 if the node has no start token
+     * @return the character offset, or -1 if the node has no start token
      */
     public static int offsetOf(ParserRuleContext node) {
         if (node == null || node.getStart() == null) {
             return -1;
         }
-        val start = node.getStart();
-        return ProtocolPositions.of(start).startOf(start);
+        return node.getStart().getStartIndex();
     }
 
 }

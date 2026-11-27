@@ -17,14 +17,15 @@
  */
 package io.sapl.functions.libraries;
 
+import org.semver4j.Semver;
+import org.semver4j.SemverException;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.semver.Version;
-import io.sapl.api.semver.VersionRange;
 
 import lombok.val;
 
@@ -54,17 +55,17 @@ public class SemVerFunctionLibrary {
             - PRERELEASE: Optional pre-release identifier with dot-separated alphanumeric parts (e.g., `alpha`, `beta.1`, `rc.2`)
             - BUILDMETADATA: Optional build metadata with dot-separated alphanumeric parts (e.g., `build.123`, `sha.5114f85`)
 
-            Valid examples include `1.0.0`, `2.3.5-alpha`, and `1.0.0-beta.2+build.456`. Whitespace is not trimmed. Major, minor, patch and every numeric identifier are at most 9007199254740991. Numeric version components and numeric pre-release identifiers cannot have leading zeros. Build identifiers may have leading zeros. Identifiers contain only ASCII letters, digits and hyphens. There is no fixed version length limit.
+            Valid examples include `1.0.0`, `2.3.5-alpha`, and `1.0.0-beta.2+build.456`.
 
             The library accepts a lowercase `v` prefix for compatibility with Git tags (e.g., `v1.0.0`). However, uppercase `V` is not supported. While the strict SemVer 2.0.0 specification excludes any prefix, lowercase `v` is widely adopted in version control systems.
 
             ## How Version Comparison Works
 
-            Version precedence follows semantic versioning rules. Major, minor, and patch numbers are compared numerically. Pre-release versions always come before their corresponding normal versions (e.g., `1.0.0-alpha` is lower than `1.0.0`). Numeric pre-release identifiers compare numerically and precede other identifiers. Other identifiers compare lexically in ASCII order. A longer list of otherwise equal identifiers has higher precedence. Build metadata never affects version precedence.
+            Version precedence follows semantic versioning rules. Major, minor, and patch numbers are compared numerically. Pre-release versions always come before their corresponding normal versions (e.g., `1.0.0-alpha` is lower than `1.0.0`). When comparing pre-release identifiers, the comparison is alphanumeric. Build metadata never affects version precedence.
 
             ## Expressing Version Ranges
 
-            The library supports the node-semver range grammar for flexible version matching:
+            The library supports NPM-style range syntax for flexible version matching:
 
             - **Operators**: `>=1.0.0`, `>1.0.0`, `<=2.0.0`, `<2.0.0`, `=1.0.0`
             - **Hyphen ranges**: `1.2.3 - 2.3.4` (both ends inclusive)
@@ -73,10 +74,6 @@ public class SemVerFunctionLibrary {
             - **Caret**: `^1.2.3` (allows minor-level changes: `>=1.2.3 <2.0.0`)
             - **OR**: `>=1.0.0 || >=2.0.0`
             - **AND**: `>=1.0.0 <2.0.0` (space-separated conditions)
-
-            A missing component is a wildcard. Caret ranges follow the first nonzero component, with `^0.x` expanding to `>=0.0.0 <1.0.0-0` and `^0.0.x` to `>=0.0.0 <0.1.0-0`. Tilde also accepts `~>`. Empty ranges and empty alternatives match all releases. Range whitespace is ASCII whitespace. A pre-release satisfies a comparator set only if that set names a pre-release with the same major, minor and patch. Invalid versions and any invalid range token produce errors. Ivy ranges, `latest`, and `+` wildcards are refused.
-
-            `isPreRelease` tests for pre-release identifiers, including in major zero. `isStable` requires a positive major and no pre-release identifiers. `isCompatibleWith` uses the second version as the required API, requiring matching major and minor when its major is zero and matching major otherwise. `diff` ignores build metadata. Version selection validates the range first and refuses every invalid array entry with its zero based index. Equal precedence preserves the first matching entry. Coercion extracts the first version shaped sequence of at most sixteen digits per component, fills missing components with zero, and discards pre-release and build suffixes. An invalid first sequence is an error.
 
             ## Common Authorization Scenarios
 
@@ -144,7 +141,7 @@ public class SemVerFunctionLibrary {
                     },
                     "isStable": {
                         "type": "boolean",
-                        "description": "Indicates a positive major and no pre-release identifiers"
+                        "description": "Indicates stable release without pre-release identifier"
                     },
                     "isPreRelease": {
                         "type": "boolean",
@@ -174,9 +171,13 @@ public class SemVerFunctionLibrary {
     private static final String DIFF_RESULT_PATCH      = "patch";
     private static final String DIFF_RESULT_PRERELEASE = "prerelease";
 
-    private static final String ERROR_CANNOT_COERCE_EMPTY      = "Cannot coerce empty string.";
-    private static final String ERROR_CANNOT_COERCE_INVALID    = "Cannot coerce to valid semantic version.";
-    private static final String ERROR_INVALID_VERSION_AT_INDEX = "Invalid semantic version at index %d.";
+    private static final String ERROR_CANNOT_COERCE_EMPTY           = "Cannot coerce empty string.";
+    private static final String ERROR_CANNOT_COERCE_INVALID         = "Cannot coerce to valid semantic version.";
+    private static final String ERROR_INVALID_SEMANTIC_VERSION      = "Invalid semantic version: %s.";
+    private static final String ERROR_INVALID_VERSION               = "Invalid version: %s.";
+    private static final String ERROR_INVALID_VERSION_IN_COMPARISON = "Invalid version in comparison: %s.";
+    private static final String ERROR_INVALID_VERSION_OR_RANGE      = "Invalid version or range: %s.";
+    private static final String ERROR_INVALID_VERSIONS_OR_RANGE     = "Invalid versions or range: %s.";
 
     private static final String FIELD_BUILD_METADATA = "buildMetadata";
     private static final String FIELD_IS_PRE_RELEASE = "isPreRelease";
@@ -222,7 +223,7 @@ public class SemVerFunctionLibrary {
             Result fields:
             - `version`: Complete version without v-prefix
             - `major`, `minor`, `patch`: Version numbers
-            - `isStable`: Boolean indicating a positive major and no pre-release identifiers
+            - `isStable`: Boolean indicating stable release (no pre-release)
             - `isPreRelease`: Boolean indicating pre-release
             - `preRelease`: Array of pre-release identifiers
             - `buildMetadata`: Array of build metadata identifiers
@@ -237,29 +238,29 @@ public class SemVerFunctionLibrary {
             """, schema = PARSED_VERSION_SCHEMA)
     public static Value parse(TextValue versionString) {
         try {
-            val semver = Version.parse(versionString.value());
+            val semver = new Semver(versionString.value());
 
             val resultBuilder = ObjectValue.builder();
-            resultBuilder.put(FIELD_VERSION, Value.of(semver.text()));
-            resultBuilder.put(FIELD_MAJOR, Value.of(semver.major()));
-            resultBuilder.put(FIELD_MINOR, Value.of(semver.minor()));
-            resultBuilder.put(FIELD_PATCH, Value.of(semver.patch()));
+            resultBuilder.put(FIELD_VERSION, Value.of(semver.getVersion()));
+            resultBuilder.put(FIELD_MAJOR, Value.of(semver.getMajor()));
+            resultBuilder.put(FIELD_MINOR, Value.of(semver.getMinor()));
+            resultBuilder.put(FIELD_PATCH, Value.of(semver.getPatch()));
             resultBuilder.put(FIELD_IS_STABLE, Value.of(semver.isStable()));
-            resultBuilder.put(FIELD_IS_PRE_RELEASE, Value.of(!semver.preRelease().isEmpty()));
+            resultBuilder.put(FIELD_IS_PRE_RELEASE, Value.of(!semver.isStable()));
 
-            val preReleaseList    = semver.preRelease();
+            val preReleaseList    = semver.getPreRelease();
             val preReleaseBuilder = ArrayValue.builder();
             preReleaseList.forEach(identifier -> preReleaseBuilder.add(Value.of(identifier)));
             resultBuilder.put(FIELD_PRE_RELEASE, preReleaseBuilder.build());
 
-            val buildList          = semver.build();
+            val buildList          = semver.getBuild();
             val buildMetadataArray = ArrayValue.builder();
             buildList.forEach(identifier -> buildMetadataArray.add(Value.of(identifier)));
             resultBuilder.put(FIELD_BUILD_METADATA, buildMetadataArray.build());
 
             return resultBuilder.build();
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_SEMANTIC_VERSION, exception.getMessage());
         }
     }
 
@@ -283,7 +284,7 @@ public class SemVerFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isValid(TextValue versionString) {
-        return Value.of(Version.tryParse(versionString.value()) != null);
+        return Value.of(Semver.isValid(versionString.value()));
     }
 
     /**
@@ -310,11 +311,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value compare(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.comparePrecedenceTo(v2));
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.compareTo(v2));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -341,11 +342,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value equals(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.comparePrecedenceTo(v2) == 0);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.isEquivalentTo(v2));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -371,11 +372,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isLower(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.comparePrecedenceTo(v2) < 0);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.isLowerThan(v2));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -401,11 +402,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isHigher(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.comparePrecedenceTo(v2) > 0);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.isGreaterThan(v2));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -431,11 +432,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isLowerOrEqual(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.comparePrecedenceTo(v2) <= 0);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.isLowerThan(v2) || v1.isEquivalentTo(v2));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -462,11 +463,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isHigherOrEqual(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.comparePrecedenceTo(v2) >= 0);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.isGreaterThan(v2) || v1.isEquivalentTo(v2));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -492,11 +493,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value haveSameMajor(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.major() == v2.major());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.getMajor() == v2.getMajor());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -522,11 +523,11 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value haveSameMinor(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.major() == v2.major() && v1.minor() == v2.minor());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(v1.getMajor() == v2.getMajor() && v1.getMinor() == v2.getMinor());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -552,11 +553,12 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value haveSamePatch(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
-            return Value.of(v1.major() == v2.major() && v1.minor() == v2.minor() && v1.patch() == v2.patch());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
+            return Value.of(
+                    v1.getMajor() == v2.getMajor() && v1.getMinor() == v2.getMinor() && v1.getPatch() == v2.getPatch());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -586,16 +588,16 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isCompatibleWith(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
 
-            if (v2.major() == 0) {
-                return Value.of(v1.major() == v2.major() && v1.minor() == v2.minor());
+            if (v2.getMajor() == 0) {
+                return Value.of(v1.getMajor() == v2.getMajor() && v1.getMinor() == v2.getMinor());
             }
 
-            return Value.of(v1.major() == v2.major());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            return Value.of(v1.getMajor() == v2.getMajor());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -625,13 +627,14 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isBetween(TextValue version, TextValue minimum, TextValue maximum) {
         try {
-            val v   = Version.parse(version.value());
-            val min = Version.parse(minimum.value());
-            val max = Version.parse(maximum.value());
+            val v   = new Semver(version.value());
+            val min = new Semver(minimum.value());
+            val max = new Semver(maximum.value());
 
-            return Value.of(v.comparePrecedenceTo(min) >= 0 && v.comparePrecedenceTo(max) <= 0);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            return Value.of(
+                    (v.isGreaterThan(min) || v.isEquivalentTo(min)) && (v.isLowerThan(max) || v.isEquivalentTo(max)));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_IN_COMPARISON, exception.getMessage());
         }
     }
 
@@ -647,7 +650,7 @@ public class SemVerFunctionLibrary {
     @Function(docs = """
             ```isPreRelease(TEXT version)```: Tests if version is pre-release.
 
-            Returns true if pre-release identifiers exist, including for major zero.
+            Returns true if version contains pre-release identifier (e.g., alpha, beta, rc).
 
             ```sapl
             policy "block_unstable"
@@ -657,10 +660,10 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isPreRelease(TextValue version) {
         try {
-            val v = Version.parse(version.value());
-            return Value.of(!v.preRelease().isEmpty());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v = new Semver(version.value());
+            return Value.of(!v.isStable());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION, exception.getMessage());
         }
     }
 
@@ -676,7 +679,7 @@ public class SemVerFunctionLibrary {
     @Function(docs = """
             ```isStable(TEXT version)```: Tests if version is stable release.
 
-            Returns true if the major is positive and no pre-release identifiers exist.
+            Returns true if version does not contain pre-release identifier.
 
             ```sapl
             policy "production_ready"
@@ -687,10 +690,10 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value isStable(TextValue version) {
         try {
-            val v = Version.parse(version.value());
+            val v = new Semver(version.value());
             return Value.of(v.isStable());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION, exception.getMessage());
         }
     }
 
@@ -713,10 +716,10 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value getMajor(TextValue version) {
         try {
-            val v = Version.parse(version.value());
-            return Value.of(v.major());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v = new Semver(version.value());
+            return Value.of(v.getMajor());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION, exception.getMessage());
         }
     }
 
@@ -740,10 +743,10 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value getMinor(TextValue version) {
         try {
-            val v = Version.parse(version.value());
-            return Value.of(v.minor());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v = new Semver(version.value());
+            return Value.of(v.getMinor());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION, exception.getMessage());
         }
     }
 
@@ -768,10 +771,10 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_NUMBER)
     public static Value getPatch(TextValue version) {
         try {
-            val v = Version.parse(version.value());
-            return Value.of(v.patch());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v = new Semver(version.value());
+            return Value.of(v.getPatch());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION, exception.getMessage());
         }
     }
 
@@ -792,8 +795,6 @@ public class SemVerFunctionLibrary {
             Returns true if version satisfies NPM-style range. Supports operators (>=, >, <=, <, =),
             hyphen ranges (1.2.3 - 2.3.4), X-ranges (1.2.x, 1.x, *), tilde (~1.2.3 allows patch),
             caret (^1.2.3 allows minor), and logical operators (||, space-separated AND).
-            Uses the node-semver grammar and excludes pre-releases unless the matching comparator set
-            names a pre-release of the same numeric core. Invalid versions or range tokens are errors.
 
             ```sapl
             policy "version_range"
@@ -803,10 +804,10 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_BOOLEAN)
     public static Value satisfies(TextValue version, TextValue range) {
         try {
-            val v = Version.parse(version.value());
-            return Value.of(VersionRange.parse(range.value()).contains(v));
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+            val v = new Semver(version.value());
+            return Value.of(v.satisfies(range.value()));
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION_OR_RANGE, exception.getMessage());
         }
     }
 
@@ -825,8 +826,6 @@ public class SemVerFunctionLibrary {
             ```maxSatisfying(ARRAY versions, TEXT range)```: Finds highest version matching range.
 
             Returns highest version from array satisfying range, or null if none match.
-            Validates the range first, even for an empty array. Every element must be a valid version text.
-            An invalid element is an error naming its zero based index. Equal precedence preserves the first match.
 
             ```sapl
             policy "use_latest_compatible"
@@ -836,7 +835,24 @@ public class SemVerFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value maxSatisfying(ArrayValue versions, TextValue range) {
-        return satisfying(versions, range.value(), true);
+        try {
+            val rangeExpression = range.value();
+
+            Semver maxVersion = null;
+            for (val element : versions) {
+                if (element instanceof TextValue(String value)) {
+                    val currentVersion = new Semver(value);
+                    if (currentVersion.satisfies(rangeExpression)
+                            && (maxVersion == null || currentVersion.isGreaterThan(maxVersion))) {
+                        maxVersion = currentVersion;
+                    }
+                }
+            }
+
+            return maxVersion != null ? Value.of(maxVersion.getVersion()) : Value.NULL;
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSIONS_OR_RANGE, exception.getMessage());
+        }
     }
 
     /**
@@ -854,8 +870,6 @@ public class SemVerFunctionLibrary {
             ```minSatisfying(ARRAY versions, TEXT range)```: Finds lowest version matching range.
 
             Returns lowest version from array satisfying range, or null if none match.
-            Validates the range first, even for an empty array. Every element must be a valid version text.
-            An invalid element is an error naming its zero based index. Equal precedence preserves the first match.
 
             ```sapl
             policy "require_minimum"
@@ -865,7 +879,24 @@ public class SemVerFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value minSatisfying(ArrayValue versions, TextValue range) {
-        return satisfying(versions, range.value(), false);
+        try {
+            val rangeExpression = range.value();
+
+            Semver minVersion = null;
+            for (val element : versions) {
+                if (element instanceof TextValue(String value)) {
+                    val currentVersion = new Semver(value);
+                    if (currentVersion.satisfies(rangeExpression)
+                            && (minVersion == null || currentVersion.isLowerThan(minVersion))) {
+                        minVersion = currentVersion;
+                    }
+                }
+            }
+
+            return minVersion != null ? Value.of(minVersion.getVersion()) : Value.NULL;
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSIONS_OR_RANGE, exception.getMessage());
+        }
     }
 
     /**
@@ -879,9 +910,8 @@ public class SemVerFunctionLibrary {
     @Function(docs = """
             ```coerce(TEXT value)```: Coerces string to valid semantic version.
 
-            Extracts the first version shaped sequence with one to sixteen digits per component.
-            Missing components become zero. Pre-release and build suffixes are discarded.
-            The first sequence must have no leading zeros and all components must be at most 9007199254740991.
+            Normalizes common formats including partial versions (e.g., "1.2" becomes "1.2.0"),
+            lowercase v-prefix removal, and other standard version formats.
 
             ```sapl
             policy "normalize_version"
@@ -896,12 +926,12 @@ public class SemVerFunctionLibrary {
             return Value.error(ERROR_CANNOT_COERCE_EMPTY);
         }
 
-        val coerced = Version.coerce(text);
+        val coerced = Semver.coerce(text);
         if (coerced == null) {
             return Value.error(ERROR_CANNOT_COERCE_INVALID);
         }
 
-        return Value.of(coerced.text());
+        return Value.of(coerced.getVersion());
     }
 
     /**
@@ -929,27 +959,27 @@ public class SemVerFunctionLibrary {
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value diff(TextValue version1, TextValue version2) {
         try {
-            val v1 = Version.parse(version1.value());
-            val v2 = Version.parse(version2.value());
+            val v1 = new Semver(version1.value());
+            val v2 = new Semver(version2.value());
 
-            if (v1.comparePrecedenceTo(v2) == 0) {
+            if (v1.isEquivalentTo(v2)) {
                 return Value.of(DIFF_RESULT_NONE);
             }
 
-            if (v1.major() != v2.major()) {
+            if (v1.getMajor() != v2.getMajor()) {
                 return Value.of(DIFF_RESULT_MAJOR);
             }
 
-            if (v1.minor() != v2.minor()) {
+            if (v1.getMinor() != v2.getMinor()) {
                 return Value.of(DIFF_RESULT_MINOR);
             }
 
-            if (v1.patch() != v2.patch()) {
+            if (v1.getPatch() != v2.getPatch()) {
                 return Value.of(DIFF_RESULT_PATCH);
             }
 
-            val preRelease1 = v1.preRelease();
-            val preRelease2 = v2.preRelease();
+            val preRelease1 = v1.getPreRelease();
+            val preRelease2 = v2.getPreRelease();
             if (preRelease1.isEmpty() != preRelease2.isEmpty()) {
                 return Value.of(DIFF_RESULT_PRERELEASE);
             }
@@ -958,35 +988,8 @@ public class SemVerFunctionLibrary {
             }
 
             return Value.of(DIFF_RESULT_NONE);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
+        } catch (SemverException exception) {
+            return Value.error(ERROR_INVALID_VERSION, exception.getMessage());
         }
     }
-
-    private static Value satisfying(ArrayValue versions, String expression, boolean highest) {
-        final VersionRange range;
-        try {
-            range = VersionRange.parse(expression);
-        } catch (IllegalArgumentException exception) {
-            return Value.error(exception.getMessage());
-        }
-        Version best  = null;
-        int     index = 0;
-        for (val element : versions) {
-            if (!(element instanceof TextValue(String text))) {
-                return Value.error(ERROR_INVALID_VERSION_AT_INDEX, index);
-            }
-            val candidate = Version.tryParse(text);
-            if (candidate == null) {
-                return Value.error(ERROR_INVALID_VERSION_AT_INDEX, index);
-            }
-            if (range.contains(candidate) && (best == null
-                    || (highest ? candidate.comparePrecedenceTo(best) > 0 : candidate.comparePrecedenceTo(best) < 0))) {
-                best = candidate;
-            }
-            index++;
-        }
-        return best == null ? Value.NULL : Value.of(best.text());
-    }
-
 }

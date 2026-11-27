@@ -57,8 +57,7 @@ public class SecretSealing {
 
     private static final String ERROR_CANNOT_GENERATE_KEY    = "Cannot generate a recipient key.";
     private static final String ERROR_CANNOT_SEAL            = "Cannot seal a secret.";
-    private static final String ERROR_KEY_DOES_NOT_FIT       = "Cannot unseal a secret: the key does not fit the token, or the token was altered.";
-    private static final String ERROR_MALFORMED_TOKEN        = "Cannot unseal a secret: the token is not a compact JWE of a sealed text.";
+    private static final String ERROR_CANNOT_UNSEAL          = "Cannot unseal a secret.";
     private static final String ERROR_MISSING_KEY_ID         = "Cannot unseal a secret: the sealed token declares no key id to route by.";
     private static final String ERROR_UNEXPECTED_ALGORITHM   = "Refusing to unseal: expected %s/%s but the token declares %s/%s.";
     private static final String ERROR_UNEXPECTED_COMPRESSION = "Refusing to unseal: the token declares compression %s but none is expected.";
@@ -124,55 +123,24 @@ public class SecretSealing {
         }
     }
 
-    /**
-     * Unseals a token produced by {@link #seal}, using the recipient's private key.
-     * A token that is not a compact JWE of a sealed text is refused apart from a
-     * token the key does not fit, so an operator sees whether the token or the key
-     * is at fault.
-     *
-     * @param recipientPrivateKey the recipient's private key
-     * @param sealed the compact JWE token to unseal
-     * @return the recovered plaintext
-     * @throws SecretSealingException if the token is malformed, declares other
-     * algorithms or compression, or the key does not fit the token
-     */
+    /** Unseals a token produced by {@link #seal}, using the recipient's private key. */
     public static String unseal(OctetKeyPair recipientPrivateKey, String sealed) {
-        val jwe    = parseToken(sealed);
-        val header = jwe.getHeader();
-        if (!ALGORITHM.equals(header.getAlgorithm()) || !ENCRYPTION.equals(header.getEncryptionMethod())) {
-            throw new SecretSealingException(ERROR_UNEXPECTED_ALGORITHM.formatted(ALGORITHM, ENCRYPTION,
-                    header.getAlgorithm(), header.getEncryptionMethod()));
-        }
-        if (header.getCompressionAlgorithm() != null) {
-            throw new SecretSealingException(ERROR_UNEXPECTED_COMPRESSION.formatted(header.getCompressionAlgorithm()));
-        }
-        if (!isKeyAgreementHeader(header)) {
-            throw new SecretSealingException(ERROR_MALFORMED_TOKEN);
-        }
         try {
+            val jwe    = JWEObject.parse(sealed);
+            val header = jwe.getHeader();
+            if (!ALGORITHM.equals(header.getAlgorithm()) || !ENCRYPTION.equals(header.getEncryptionMethod())) {
+                throw new SecretSealingException(ERROR_UNEXPECTED_ALGORITHM.formatted(ALGORITHM, ENCRYPTION,
+                        header.getAlgorithm(), header.getEncryptionMethod()));
+            }
+            if (header.getCompressionAlgorithm() != null) {
+                throw new SecretSealingException(
+                        ERROR_UNEXPECTED_COMPRESSION.formatted(header.getCompressionAlgorithm()));
+            }
             jwe.decrypt(new X25519Decrypter(recipientPrivateKey));
-        } catch (JOSEException e) {
-            throw new SecretSealingException(ERROR_KEY_DOES_NOT_FIT, e);
+            return jwe.getPayload().toString();
+        } catch (ParseException | JOSEException e) {
+            throw new SecretSealingException(ERROR_CANNOT_UNSEAL, e);
         }
-        return jwe.getPayload().toString();
-    }
-
-    private static JWEObject parseToken(String sealed) {
-        try {
-            return JWEObject.parse(sealed);
-        } catch (ParseException e) {
-            throw new SecretSealingException(ERROR_MALFORMED_TOKEN, e);
-        }
-    }
-
-    // The header the decrypter accepts: an X25519 ephemeral key and no critical
-    // extension. Checked here so that a header of another shape counts as a
-    // malformed token, not as a key that does not fit.
-    private static boolean isKeyAgreementHeader(JWEHeader header) {
-        val critical = header.getCriticalParams();
-        return (critical == null || critical.isEmpty())
-                && header.getEphemeralPublicKey() instanceof OctetKeyPair ephemeral
-                && CURVE.equals(ephemeral.getCurve());
     }
 
     /**

@@ -38,7 +38,7 @@ import lombok.val;
  * <p>
  * This is the recipient (the PDP, or the cluster that shares the key) decrypting
  * a configuration a source has already verified. Structure and keys are
- * untouched; each {@code ENC[...]} leaf of the PDP-level secrets and of every
+ * untouched; each {@code ENC[...]} leaf of {@code pdp.json} secrets and of every
  * extension-secret is restored to its original scalar. Unless
  * {@code acceptUnencryptedSecrets} is set, a configuration whose secrets are not
  * sealed is refused, so plaintext secrets cannot slip in where sealing was

@@ -46,11 +46,11 @@ class ContextAnalyzerTests {
                 arguments("Function with single argument", "policy \"test\" permit time.dayOfWeekFrom(now).",
                         "time.dayOfWeekFrom"),
                 arguments("Simple function without namespace", "policy \"test\" permit foo().", "foo"),
-                arguments("Nested function calls: outermost detected", "policy \"test\" permit outer(inner()).",
+                arguments("Nested function calls - outermost detected", "policy \"test\" permit outer(inner()).",
                         "outer"),
                 arguments("Function with multiple arguments", "policy \"test\" permit format(template, arg1, arg2).",
                         "format"),
-                arguments("Chained function calls: last function detected", "policy \"test\" permit first().second().",
+                arguments("Chained function calls - last function detected", "policy \"test\" permit first().second().",
                         "second"));
     }
 

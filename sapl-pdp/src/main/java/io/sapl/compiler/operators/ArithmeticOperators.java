@@ -22,8 +22,6 @@ import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import static io.sapl.api.model.NumberValueLimits.MAX_PRECISION;
-import static io.sapl.api.model.NumberValueLimits.MAX_SCALE;
 
 /**
  * Arithmetic and comparison operations for SAPL expression evaluation.
@@ -37,6 +35,12 @@ public class ArithmeticOperators {
     private static final String ERROR_DIVISION_BY_ZERO = "Division by zero.";
     private static final String ERROR_NUMERIC_OVERFLOW = "Numeric operation exceeded the supported range.";
     private static final String ERROR_TYPE_MISMATCH    = "Numeric operation requires number values, but found: %s.";
+
+    /** Maximum operand significant digits. */
+    private static final int MAX_PRECISION = 1000;
+
+    /** Maximum absolute operand scale. */
+    private static final int MAX_SCALE = 1000;
 
     /**
      * Adds two values.
@@ -53,7 +57,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(NumberValueLimits.fitExact(va.add(vb, MathContext.DECIMAL128)));
+                return new NumberValue(va.add(vb, MathContext.DECIMAL128));
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -70,7 +74,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(NumberValueLimits.fitExact(va.subtract(vb, MathContext.DECIMAL128)));
+                return new NumberValue(va.subtract(vb, MathContext.DECIMAL128));
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -87,7 +91,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(NumberValueLimits.fitExact(va.multiply(vb, MathContext.DECIMAL128)));
+                return new NumberValue(va.multiply(vb, MathContext.DECIMAL128));
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -112,7 +116,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(NumberValueLimits.fitExact(va.divide(vb, MathContext.DECIMAL128)));
+                return new NumberValue(va.divide(vb, MathContext.DECIMAL128));
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -140,7 +144,7 @@ public class ArithmeticOperators {
                 if (result.signum() < 0 && vb.signum() > 0) {
                     result = result.add(vb, MathContext.DECIMAL128);
                 }
-                return new NumberValue(NumberValueLimits.fitExact(result));
+                return new NumberValue(result);
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }

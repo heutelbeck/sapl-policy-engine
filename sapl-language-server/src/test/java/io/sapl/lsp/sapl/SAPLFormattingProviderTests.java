@@ -26,10 +26,6 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import lombok.val;
 
 @DisplayName("SAPL formatting provider")
 class SAPLFormattingProviderTests {
@@ -235,24 +231,6 @@ class SAPLFormattingProviderTests {
             assertThat(edits).hasSize(1).first().satisfies(edit -> assertThat(edit.getNewText()).isEqualTo(expected));
         }
 
-    }
-
-    @Nested
-    @DisplayName("the range of the edit")
-    class RangeOfTheEditTests {
-
-        @ParameterizedTest(name = "lines that end with {0}")
-        @MethodSource("io.sapl.lsp.sapl.ProtocolText#lineEnds")
-        @DisplayName("replaces the whole document in the editor, whatever ends its lines")
-        void whenDocumentIsFormattedThenTheEditReplacesTheWholeDocument(String lineBreak, String lineEnd) {
-            val content  = ProtocolText.documentOf(lineEnd, "    action == \"read\";");
-            val document = new SAPLParsedDocument("test.sapl", content);
-
-            val edits = provider.provideFormatting(document);
-
-            assertThat(edits).singleElement().extracting(edit -> ProtocolText.textOf(content, edit.getRange()))
-                    .isEqualTo(content);
-        }
     }
 
 }

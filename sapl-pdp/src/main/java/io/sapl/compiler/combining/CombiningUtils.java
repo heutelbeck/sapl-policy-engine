@@ -88,7 +88,9 @@ public class CombiningUtils {
                 continue; // constant FALSE - not applicable, skip
             }
 
-            if (policy.applicabilityAndVote() instanceof Vote vote) {
+            if (isApplicable instanceof ErrorValue error) {
+                foldableVotes.add(Vote.error(error, policy.metadata()));
+            } else if (isApplicable instanceof BooleanValue && voter instanceof Vote vote) {
                 foldableVotes.add(vote);
             } else if (voter instanceof StreamVoter) {
                 streamPolicies.add(policy);

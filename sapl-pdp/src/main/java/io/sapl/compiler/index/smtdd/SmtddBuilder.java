@@ -107,7 +107,7 @@ public class SmtddBuilder {
         log.debug("SMTDD: equality branch (group {}/{}): {} branches", groupIndex + 1, groups.size(),
                 compacted.branchFormulas().size());
 
-        val branches = new LinkedHashMap<Value, SmtddNode>();
+        val branches = new HashMap<Value, SmtddNode>();
         for (val entry : compacted.branchFormulas().entrySet()) {
             branches.put(entry.getKey(),
                     buildEqualityLevels(groups, groupIndex + 1, entry.getValue(), formulaBdds, table, maxIndexNodes));
@@ -117,7 +117,7 @@ public class SmtddBuilder {
                 maxIndexNodes);
 
         return new EqualityBranch(group.getSharedOperand(), branches, defaultChild, defaultChild,
-                compacted.affectedFormulas(), compacted.keyFormulas());
+                compacted.affectedFormulas());
     }
 
     private static SmtddNode mergeBucket(BitSet formulasInBucket, SmtddNode[] formulaBdds, SmtddUniqueTable table,
@@ -208,7 +208,7 @@ public class SmtddBuilder {
                 // In the correct branch, this predicate is always true -> matched
                 yield matched;
             }
-            yield table.literal(level, matched, false);
+            yield table.binaryDecision(level, matched, SmtddUniqueTable.EMPTY, SmtddUniqueTable.EMPTY);
         }
         case Not(var operand)    -> buildBddNot(table, order, operand, matched);
         case Or(var operands)    -> {
@@ -238,7 +238,7 @@ public class SmtddBuilder {
                 // Negated equality predicate in correct branch -> always false
                 yield SmtddUniqueTable.EMPTY;
             }
-            yield table.literal(level, matched, true);
+            yield table.binaryDecision(level, SmtddUniqueTable.EMPTY, matched, SmtddUniqueTable.EMPTY);
         }
         case Not(var inner)      -> buildBdd(table, order, inner, matched);
         case Or(var operands)    -> {

@@ -30,6 +30,11 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      * complete) and the complete dependency map this evaluation pass
      * needed or touched.
      * <p>
+     * Each implementation should override this method. The default
+     * throws {@link UnsupportedOperationException} naming the
+     * concrete class so the migration work list is clear at runtime
+     * for any code path exercised before its operator is migrated.
+     * <p>
      * Implementation pattern: walk children, accumulate their
      * dependency maps, either compute a result (if all needed reads
      * resolved against the snapshot) or return {@code null} in

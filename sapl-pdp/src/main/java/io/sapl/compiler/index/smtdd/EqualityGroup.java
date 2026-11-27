@@ -20,7 +20,6 @@ package io.sapl.compiler.index.smtdd;
 import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -37,53 +36,14 @@ import java.util.*;
 @RequiredArgsConstructor
 public class EqualityGroup {
 
-    private final PureOperator sharedOperand;
-    // Linked in the order of the formulas: the hash of a null, undefined or error
-    // constant is an identity hash, so hash order would change the branch order of
-    // the built index from one run to the next.
-    private final Map<Value, BitSet>  equalsFormulas      = new LinkedHashMap<>();
-    private final Map<Value, BitSet>  excludeFormulas     = new LinkedHashMap<>();
+    private final PureOperator        sharedOperand;
+    private final Map<Value, BitSet>  equalsFormulas      = new HashMap<>();
+    private final Map<Value, BitSet>  excludeFormulas     = new HashMap<>();
     private final Set<IndexPredicate> tentativePredicates = new HashSet<>();
 
-    @Getter(AccessLevel.NONE)
-    private final Map<Integer, Set<Value>> allowedValuesByFormula = new HashMap<>();
-    @Getter(AccessLevel.NONE)
-    private final BitSet                   formulasWithEquality   = new BitSet();
-
-    @Getter(AccessLevel.NONE)
-    private final BitSet formulasUsingKeys = new BitSet();
-
-    void addKeys(Collection<Value> keys, int formulaIndex, IndexPredicate predicate) {
-        formulasUsingKeys.set(formulaIndex);
-        addAlternatives(keys, formulaIndex, predicate);
-    }
-
     void addEquals(Value constant, int formulaIndex, IndexPredicate predicate) {
-        addAlternatives(List.of(constant), formulaIndex, predicate);
-    }
-
-    // Values within a single membership predicate are alternatives. Separate
-    // predicates on the same operand in one conjunction must all hold.
-    void addAlternatives(Collection<Value> alternatives, int formulaIndex, IndexPredicate predicate) {
+        equalsFormulas.computeIfAbsent(constant, k -> new BitSet()).set(formulaIndex);
         tentativePredicates.add(predicate);
-        val previous = allowedValuesByFormula.get(formulaIndex);
-        if (previous == null) {
-            val allowed = new LinkedHashSet<>(alternatives);
-            allowedValuesByFormula.put(formulaIndex, allowed);
-            formulasWithEquality.set(formulaIndex);
-            for (val value : allowed) {
-                equalsFormulas.computeIfAbsent(value, ignored -> new BitSet()).set(formulaIndex);
-            }
-            return;
-        }
-        val accepted = new HashSet<>(alternatives);
-        previous.removeIf(value -> {
-            if (accepted.contains(value)) {
-                return false;
-            }
-            equalsFormulas.get(value).clear(formulaIndex);
-            return true;
-        });
     }
 
     void addExclude(Value constant, int formulaIndex, IndexPredicate predicate) {
@@ -116,22 +76,19 @@ public class EqualityGroup {
         val equalsInBucket  = intersectWithBucket(equalsFormulas, formulasInBucket);
         val excludeInBucket = intersectWithBucket(excludeFormulas, formulasInBucket);
 
-        // Empty intersections still constrain the formula. They match no ordinary
-        // branch, including the default, and still participate in error handling.
-        val equalityConstrained = (BitSet) formulasWithEquality.clone();
-        equalityConstrained.and(formulasInBucket);
-        val excludeConstrained = union(excludeInBucket.values());
+        val equalityConstrained = union(equalsInBucket.values());
+        val excludeConstrained  = union(excludeInBucket.values());
 
         // Formulas with no equality constraint on this operand satisfy the equality
         // test for any value, including a default value distinct from every constant.
         val equalityUnconstrained = (BitSet) formulasInBucket.clone();
         equalityUnconstrained.andNot(equalityConstrained);
 
-        val branchValues = new LinkedHashSet<Value>();
+        val branchValues = new HashSet<Value>();
         branchValues.addAll(equalsInBucket.keySet());
         branchValues.addAll(excludeInBucket.keySet());
 
-        val branchFormulas = new LinkedHashMap<Value, BitSet>();
+        val branchFormulas = new HashMap<Value, BitSet>();
         for (val value : branchValues) {
             val members    = (BitSet) equalityUnconstrained.clone();
             val equalsHere = equalsInBucket.get(value);
@@ -166,14 +123,11 @@ public class EqualityGroup {
         equalityConstrained.or(excludeConstrained);
         val affectedFormulas = equalityConstrained;
 
-        val keyFormulasInBucket = (BitSet) formulasUsingKeys.clone();
-        keyFormulasInBucket.and(formulasInBucket);
-        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, affectedFormulas,
-                keyFormulasInBucket);
+        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, affectedFormulas);
     }
 
     private static Map<Value, BitSet> intersectWithBucket(Map<Value, BitSet> source, BitSet formulasInBucket) {
-        val inBucket = new LinkedHashMap<Value, BitSet>();
+        val inBucket = new HashMap<Value, BitSet>();
         for (val entry : source.entrySet()) {
             val bits = (BitSet) entry.getValue().clone();
             bits.and(formulasInBucket);
@@ -200,14 +154,12 @@ public class EqualityGroup {
      * @param unconstrainedFormulas formulas not constrained by this group
      * @param affectedFormulas all formulas that reference this operand (for error
      * tracking)
-     * @param keyFormulas formulas using the operand as an object key
      */
     record CompactedBranches(
             Map<Value, BitSet> branchFormulas,
             BitSet defaultFormulas,
             BitSet unconstrainedFormulas,
-            BitSet affectedFormulas,
-            BitSet keyFormulas) {
+            BitSet affectedFormulas) {
 
         boolean doesNotSplit(BitSet formulasInBucket) {
             return branchFormulas.size() <= 1 && unconstrainedFormulas.equals(formulasInBucket);

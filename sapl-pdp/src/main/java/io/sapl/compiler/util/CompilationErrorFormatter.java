@@ -17,31 +17,18 @@
  */
 package io.sapl.compiler.util;
 
-import io.sapl.api.model.DocumentLines;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
-
-import static java.util.stream.Collectors.joining;
-
 /**
  * Utility for formatting compilation errors with source code context. Produces
  * human-readable error messages that include the relevant code snippet with the
- * error position highlighted. The lines and columns are those of
- * {@link DocumentLines}, so the snippet shows the lines of the document whatever
- * ends them, and a column counts code points. For multiple errors, each
- * displayed source line includes up to 200 code points. Three dots mark a
- * clipped end. The reported location always uses the original column.
+ * error position highlighted.
  */
 @UtilityClass
 public class CompilationErrorFormatter {
-
-    private static final int    MULTIPLE_ERROR_LINE_WIDTH = 200;
-    private static final String ELLIPSIS                  = "...";
 
     private static final int CONTEXT_LINES_AFTER  = 2;
     private static final int CONTEXT_LINES_BEFORE = 2;
@@ -51,86 +38,6 @@ public class CompilationErrorFormatter {
 
     private static final String LINE_MARKER = "> ";
     private static final String NO_MARKER   = "  ";
-
-    private record ReportSources(boolean clipped, Map<String, DocumentLines> documents) {
-
-        ReportSources(boolean clipped) {
-            this(clipped, new IdentityHashMap<>());
-        }
-
-        String documentName(String name) {
-            if (!clipped || name.length() <= MULTIPLE_ERROR_LINE_WIDTH) {
-                return name;
-            }
-            int end = MULTIPLE_ERROR_LINE_WIDTH;
-            if (Character.isSurrogatePair(name.charAt(end - 1), name.charAt(end))) {
-                end--;
-            }
-            return name.substring(0, end) + ELLIPSIS;
-        }
-    }
-
-    private record DisplayLine(String text, int caretColumn, int markOffset) {}
-
-    /**
-     * The lines of a document around the line of an error, and the width their
-     * numbers take.
-     */
-    private record Snippet(
-            DocumentLines lines,
-            int errorLine,
-            int errorColumn,
-            int startLine,
-            int endLine,
-            int maxLineNumWidth,
-            boolean clipped) {
-
-        static Snippet around(SourceLocation location, ReportSources sources) {
-            val lines     = sources.documents().computeIfAbsent(location.documentSource(), DocumentLines::of);
-            val errorLine = location.line();
-            val endLine   = Math.min(lines.lineCount(), errorLine + CONTEXT_LINES_AFTER);
-            return new Snippet(lines, errorLine, location.column(), Math.max(1, errorLine - CONTEXT_LINES_BEFORE),
-                    endLine, String.valueOf(endLine).length(), sources.clipped());
-        }
-
-        DisplayLine displayLine(int line) {
-            int start       = lines.startOfLine(line);
-            int end         = lines.endOfLine(line);
-            int firstColumn = 1;
-            int caret       = 0;
-            int mark        = end;
-            if (line == errorLine && errorColumn > 0) {
-                caret = errorColumn;
-                mark  = lines.offsetOfColumn(line, errorColumn);
-            }
-            String prefix = "";
-            String suffix = "";
-            if (clipped) {
-                val endColumn = lines.columnOf(end);
-                caret = Math.min(caret, endColumn);
-                val lastStartColumn = Math.max(1, endColumn - MULTIPLE_ERROR_LINE_WIDTH);
-                firstColumn = Math.clamp((long) caret - MULTIPLE_ERROR_LINE_WIDTH / 2, 1, lastStartColumn);
-                if (firstColumn > 1) {
-                    start  = lines.offsetOfColumn(line, firstColumn);
-                    prefix = ELLIPSIS;
-                }
-                if (endColumn - firstColumn > MULTIPLE_ERROR_LINE_WIDTH) {
-                    end    = lines.offsetOfColumn(line, firstColumn + MULTIPLE_ERROR_LINE_WIDTH);
-                    suffix = ELLIPSIS;
-                }
-            }
-            val text = prefix + lines.text().substring(start, end) + suffix;
-            if (caret == 0) {
-                return new DisplayLine(text, 0, text.length());
-            }
-            return new DisplayLine(text, prefix.length() + caret - firstColumn + 1, prefix.length() + mark - start);
-        }
-
-        String lineNumber(int line) {
-            val number = String.valueOf(line);
-            return " ".repeat(Math.max(0, maxLineNumWidth - number.length())) + number;
-        }
-    }
 
     /**
      * Formats a SaplCompilerException with source code context as plain text.
@@ -142,19 +49,14 @@ public class CompilationErrorFormatter {
         if (exception == null) {
             return ERROR_UNKNOWN_TEXT;
         }
-        val diagnostics = exception.diagnostics();
-        val sources     = new ReportSources(diagnostics.size() > 1);
-        return diagnostics.stream().map(failure -> formatOne(failure, sources)).collect(joining("\n"));
-    }
 
-    private static String formatOne(SaplCompilerException exception, ReportSources sources) {
         val sb       = new StringBuilder();
         val location = exception.getLocation();
 
         sb.append("SAPL Compilation Error\n");
 
         if (location != null && location.documentName() != null) {
-            sb.append("Document: ").append(sources.documentName(location.documentName())).append('\n');
+            sb.append("Document: ").append(location.documentName()).append('\n');
         }
 
         sb.append("Error: ").append(exception.getMessage()).append('\n');
@@ -166,7 +68,7 @@ public class CompilationErrorFormatter {
             }
             sb.append('\n');
 
-            val snippet = extractCodeSnippet(location, sources);
+            val snippet = extractCodeSnippet(location);
             if (snippet != null && !snippet.isEmpty()) {
                 sb.append('\n').append(snippet);
             }
@@ -186,12 +88,7 @@ public class CompilationErrorFormatter {
         if (exception == null) {
             return ERROR_UNKNOWN_HTML;
         }
-        val diagnostics = exception.diagnostics();
-        val sources     = new ReportSources(diagnostics.size() > 1);
-        return diagnostics.stream().map(failure -> formatOneHtml(failure, sources)).collect(joining("\n"));
-    }
 
-    private static String formatOneHtml(SaplCompilerException exception, ReportSources sources) {
         val sb       = new StringBuilder();
         val location = exception.getLocation();
 
@@ -199,8 +96,8 @@ public class CompilationErrorFormatter {
         sb.append("  <div class=\"error-header\">SAPL Compilation Error</div>\n");
 
         if (location != null && location.documentName() != null) {
-            sb.append("  <div class=\"error-document\">Document: <code>")
-                    .append(escapeHtml(sources.documentName(location.documentName()))).append("</code></div>\n");
+            sb.append("  <div class=\"error-document\">Document: <code>").append(escapeHtml(location.documentName()))
+                    .append("</code></div>\n");
         }
 
         sb.append("  <div class=\"error-message\">").append(escapeHtml(exception.getMessage())).append("</div>\n");
@@ -212,7 +109,7 @@ public class CompilationErrorFormatter {
             }
             sb.append("</div>\n");
 
-            val snippet = extractCodeSnippetHtml(location, sources);
+            val snippet = extractCodeSnippetHtml(location);
             if (snippet != null && !snippet.isEmpty()) {
                 sb.append("  <pre class=\"error-snippet\">").append(snippet).append("</pre>\n");
             }
@@ -229,23 +126,33 @@ public class CompilationErrorFormatter {
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
-    private static String extractCodeSnippet(SourceLocation location, ReportSources sources) {
+    private static String extractCodeSnippet(SourceLocation location) {
         if (location.documentSource() == null || location.documentSource().isEmpty()) {
             return null;
         }
 
-        val snippet = Snippet.around(location, sources);
-        val sb      = new StringBuilder();
+        val source = location.documentSource();
+        val lines  = source.split("\n", -1);
 
-        for (int lineNum = snippet.startLine(); lineNum <= snippet.endLine(); lineNum++) {
-            val displayed   = snippet.displayLine(lineNum);
-            val isErrorLine = lineNum == snippet.errorLine();
+        val errorLine       = location.line();
+        val errorColumn     = location.column();
+        val startLine       = Math.max(1, errorLine - CONTEXT_LINES_BEFORE);
+        val endLine         = Math.min(lines.length, errorLine + CONTEXT_LINES_AFTER);
+        val maxLineNumWidth = String.valueOf(endLine).length();
+        val lineNumFormat   = "%" + maxLineNumWidth + "d";
+        val sb              = new StringBuilder();
+
+        for (int lineNum = startLine; lineNum <= endLine; lineNum++) {
+            val lineIndex   = lineNum - 1;
+            val lineContent = lineIndex < lines.length ? lines[lineIndex] : "";
+            val isErrorLine = lineNum == errorLine;
             val marker      = isErrorLine ? LINE_MARKER : NO_MARKER;
 
-            sb.append(marker).append(snippet.lineNumber(lineNum)).append(" | ").append(displayed.text()).append('\n');
+            sb.append(marker).append(String.format(lineNumFormat, lineNum)).append(" | ").append(lineContent)
+                    .append('\n');
 
-            if (displayed.caretColumn() > 0) {
-                val caretPadding = marker.length() + snippet.maxLineNumWidth() + 3 + displayed.caretColumn() - 1;
+            if (isErrorLine && errorColumn > 0) {
+                val caretPadding = marker.length() + maxLineNumWidth + 3 + errorColumn - 1;
                 sb.append(" ".repeat(caretPadding)).append("^\n");
             }
         }
@@ -253,31 +160,37 @@ public class CompilationErrorFormatter {
         return sb.toString();
     }
 
-    private static String extractCodeSnippetHtml(SourceLocation location, ReportSources sources) {
+    private static String extractCodeSnippetHtml(SourceLocation location) {
         if (location.documentSource() == null || location.documentSource().isEmpty()) {
             return null;
         }
 
-        val snippet = Snippet.around(location, sources);
-        val sb      = new StringBuilder();
+        val source = location.documentSource();
+        val lines  = source.split("\n", -1);
 
-        for (int lineNum = snippet.startLine(); lineNum <= snippet.endLine(); lineNum++) {
-            val displayed   = snippet.displayLine(lineNum);
-            val lineContent = displayed.text();
-            val isErrorLine = lineNum == snippet.errorLine();
+        val errorLine       = location.line();
+        val errorColumn     = location.column();
+        val startLine       = Math.max(1, errorLine - CONTEXT_LINES_BEFORE);
+        val endLine         = Math.min(lines.length, errorLine + CONTEXT_LINES_AFTER);
+        val maxLineNumWidth = String.valueOf(endLine).length();
+        val lineNumFormat   = "%" + maxLineNumWidth + "d";
+        val sb              = new StringBuilder();
+
+        for (int lineNum = startLine; lineNum <= endLine; lineNum++) {
+            val lineIndex   = lineNum - 1;
+            val lineContent = lineIndex < lines.length ? lines[lineIndex] : "";
+            val isErrorLine = lineNum == errorLine;
 
             if (isErrorLine) {
                 sb.append("<span class=\"error-line\">");
             }
 
-            sb.append("<span class=\"line-number\">").append(snippet.lineNumber(lineNum)).append("</span> ");
+            sb.append("<span class=\"line-number\">").append(String.format(lineNumFormat, lineNum)).append("</span> ");
 
-            val markStart = displayed.markOffset();
-            if (markStart < lineContent.length()) {
-                val markEnd = markStart + Character.charCount(lineContent.codePointAt(markStart));
-                val before  = escapeHtml(lineContent.substring(0, markStart));
-                val at      = escapeHtml(lineContent.substring(markStart, markEnd));
-                val after   = escapeHtml(lineContent.substring(markEnd));
+            if (isErrorLine && errorColumn > 0 && errorColumn <= lineContent.length()) {
+                val before = escapeHtml(lineContent.substring(0, errorColumn - 1));
+                val at     = escapeHtml(String.valueOf(lineContent.charAt(errorColumn - 1)));
+                val after  = escapeHtml(lineContent.substring(errorColumn));
                 sb.append(before).append("<span class=\"error-char\">").append(at).append("</span>").append(after);
             } else {
                 sb.append(escapeHtml(lineContent));

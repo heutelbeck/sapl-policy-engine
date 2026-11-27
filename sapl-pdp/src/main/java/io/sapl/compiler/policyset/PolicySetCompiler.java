@@ -29,7 +29,6 @@ import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policy.ObservedVoter;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policy.SchemaValidatorCompiler;
 import lombok.experimental.UtilityClass;
@@ -50,33 +49,35 @@ public class PolicySetCompiler {
         val compiledPolicies = policySet.policies().stream().map(policy -> PolicyCompiler.compilePolicy(policy, ctx))
                 .toList();
         assertPolicyNamesAreUnique(compiledPolicies);
-        ctx.resetForNextPolicy();
-        val schemaValidator       = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
-        val isApplicable          = TargetExpressionCompiler.compileTargetExpression(policySet.target(),
-                schemaValidator, ctx);
-        val algorithm             = policySet.algorithm();
-        val defaultDecision       = algorithm.defaultDecision();
-        val errorHandling         = algorithm.errorHandling();
-        val voter                 = switch (algorithm.votingMode()) {
-                                  case FIRST            -> FirstVoteCompiler.compileVoter(compiledPolicies, metadata,
-                                          policySet.location(), defaultDecision, errorHandling);
-                                  case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledPolicies, metadata,
-                                          Decision.DENY, defaultDecision, errorHandling, ctx);
-                                  case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledPolicies, metadata,
-                                          Decision.PERMIT, defaultDecision, errorHandling, ctx);
-                                  case PRIORITY_SUSPEND -> PriorityVoteCompiler.compileVoter(compiledPolicies, metadata,
-                                          Decision.SUSPEND, defaultDecision, errorHandling, ctx);
-                                  case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledPolicies,
-                                          metadata, defaultDecision, errorHandling, false, true, ctx);
-                                  case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledPolicies,
-                                          metadata, defaultDecision, errorHandling, true, true, ctx);
-                                  case UNIQUE           -> UniqueVoteCompiler.compileVoter(compiledPolicies, metadata,
-                                          defaultDecision, errorHandling, true, ctx);
-                                  };
-        val applicabilityAndVoter = PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voter, metadata);
-        val coverage              = ObservedVoter.policySet(applicabilityAndVoter, policySet, schemaValidator,
-                isApplicable, compiledPolicies);
-        return new CompiledPolicySet(isApplicable, voter, applicabilityAndVoter, coverage, metadata);
+        val schemaValidator  = SchemaValidatorCompiler.compileValidator(policySet.match(), ctx);
+        val isApplicable     = TargetExpressionCompiler.compileTargetExpression(policySet.target(), schemaValidator,
+                ctx);
+        val algorithm        = policySet.algorithm();
+        val defaultDecision  = algorithm.defaultDecision();
+        val errorHandling    = algorithm.errorHandling();
+        val voterAndCoverage = switch (algorithm.votingMode()) {
+                             case FIRST            -> FirstVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, defaultDecision, errorHandling);
+                             case PRIORITY_DENY    -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, Decision.DENY, defaultDecision, errorHandling, ctx);
+                             case PRIORITY_PERMIT  -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, Decision.PERMIT, defaultDecision, errorHandling, ctx);
+                             case PRIORITY_SUSPEND -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, Decision.SUSPEND, defaultDecision, errorHandling, ctx);
+                             case UNANIMOUS        ->
+                                 UnanimousVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
+                                         metadata, defaultDecision, errorHandling, false, ctx);
+                             case UNANIMOUS_STRICT ->
+                                 UnanimousVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
+                                         metadata, defaultDecision, errorHandling, true, ctx);
+                             case UNIQUE           -> UniqueVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, defaultDecision, errorHandling, ctx);
+                             };
+
+        val applicabilityAndVoter = PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voterAndCoverage.voter(),
+                metadata);
+        return new CompiledPolicySet(isApplicable, voterAndCoverage.voter(), applicabilityAndVoter,
+                voterAndCoverage.coverageVoter(), metadata);
     }
 
     private static void assertPolicyNamesAreUnique(List<? extends CompiledDocument> compiledDocuments) {

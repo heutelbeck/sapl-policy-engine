@@ -1,3 +1,0 @@
-policy "permit read"
-permit
-    action == "read";

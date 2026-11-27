@@ -485,6 +485,12 @@
     "allDeclaredFields": true
   },
   {
+    "name": "io.sapl.api.model.TracedValue",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "io.sapl.api.model.UndefinedValue",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,

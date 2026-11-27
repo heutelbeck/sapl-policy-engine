@@ -21,7 +21,6 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.pdp.configuration.ExtensionFiles;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.NonNull;
@@ -161,10 +160,9 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
     }
 
     private ScannedResourceData scanResources(String normalizedPath) {
-        val    rootSaplFiles       = new HashMap<String, String>();
-        val    rootSupplementFiles = new HashMap<String, String>();
-        val    subDirectoryData    = new HashMap<String, Map<String, String>>();
-        String rootPdpJson         = null;
+        val    rootSaplFiles    = new HashMap<String, String>();
+        val    subDirectoryData = new HashMap<String, Map<String, String>>();
+        String rootPdpJson      = null;
 
         try (var scanResult = new ClassGraph().enableNonSystemModules().enableClasspath().acceptPaths(normalizedPath)
                 .scan()) {
@@ -178,14 +176,12 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
                         rootPdpJson = readResource(resource);
                     } else if (relativePath.endsWith(SAPL_EXTENSION)) {
                         rootSaplFiles.put(relativePath, readResource(resource));
-                    } else if (ExtensionFiles.isSupplementFile(relativePath)) {
-                        rootSupplementFiles.put(relativePath, readResource(resource));
                     }
                 }
             }
         }
 
-        return new ScannedResourceData(rootPdpJson, rootSaplFiles, rootSupplementFiles, subDirectoryData);
+        return new ScannedResourceData(rootPdpJson, rootSaplFiles, subDirectoryData);
     }
 
     private void processSubdirectoryResource(String relativePath, Resource resource,
@@ -196,8 +192,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
 
         subDirectoryData.computeIfAbsent(subdirName, k -> new HashMap<>());
 
-        if (PDP_JSON.equals(fileInSubdir) || fileInSubdir.endsWith(SAPL_EXTENSION)
-                || ExtensionFiles.isSupplementFile(fileInSubdir)) {
+        if (PDP_JSON.equals(fileInSubdir) || fileInSubdir.endsWith(SAPL_EXTENSION)) {
             subDirectoryData.get(subdirName).put(fileInSubdir, readResource(resource));
         }
     }
@@ -208,7 +203,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
         }
 
         val defaultConfig = PDPConfigurationLoader.loadFromContent(data.rootPdpJson(), data.rootSaplFiles(),
-                data.rootSupplementFiles(), StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, "root");
+                StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, "root");
         emit(defaultConfig);
         log.debug("Loaded default PDP configuration with {} SAPL documents.", data.rootSaplFiles().size());
         return 1;
@@ -225,14 +220,12 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
                 continue;
             }
 
-            val subdirData      = entry.getValue();
-            val pdpJson         = subdirData.remove(PDP_JSON);
-            val saplFiles       = extractSaplFiles(subdirData);
-            val supplementFiles = extractSupplementFiles(subdirData);
+            val subdirData = entry.getValue();
+            val pdpJson    = subdirData.remove(PDP_JSON);
+            val saplFiles  = extractSaplFiles(subdirData);
 
             if (pdpJson != null || !saplFiles.isEmpty()) {
-                val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, supplementFiles, subdirName,
-                        subdirName);
+                val config = PDPConfigurationLoader.loadFromContent(pdpJson, saplFiles, subdirName, subdirName);
                 emit(config);
                 count++;
                 log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", subdirName, saplFiles.size());
@@ -245,7 +238,6 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
     private record ScannedResourceData(
             String rootPdpJson,
             Map<String, String> rootSaplFiles,
-            Map<String, String> rootSupplementFiles,
             Map<String, Map<String, String>> subDirectoryData) {}
 
     private Map<String, String> extractSaplFiles(Map<String, String> content) {
@@ -256,16 +248,6 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
             }
         }
         return saplFiles;
-    }
-
-    private Map<String, String> extractSupplementFiles(Map<String, String> content) {
-        val supplementFiles = new HashMap<String, String>();
-        for (val entry : content.entrySet()) {
-            if (ExtensionFiles.isSupplementFile(entry.getKey())) {
-                supplementFiles.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return supplementFiles;
     }
 
     private String normalizeResourcePath(String path) {

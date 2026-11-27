@@ -407,6 +407,6 @@ public sealed interface Value extends Serializable, CompiledExpression
      * @return an ErrorValue with cause and location information
      */
     static ErrorValue error(@NonNull Throwable cause, SourceLocation location) {
-        return new ErrorValue(cause, location);
+        return new ErrorValue(cause.getMessage(), cause, location);
     }
 }

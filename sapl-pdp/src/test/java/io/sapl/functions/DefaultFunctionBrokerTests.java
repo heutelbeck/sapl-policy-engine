@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,17 +45,8 @@ import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionSpecification;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueRepresentation;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.functions.libraries.ObjectFunctionLibrary;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
 
 import lombok.val;
 
@@ -68,82 +58,6 @@ class DefaultFunctionBrokerTests {
     @BeforeEach
     void setUp() {
         broker = new DefaultFunctionBroker();
-    }
-
-    @Test
-    @DisplayName("a cached projection follows the field order of each request")
-    void whenRequestsOrderTheSameFieldsDifferentlyThenTheirKeyArraysFollowTheRequest() {
-        broker.load(new ObjectFunctionLibrary());
-        val desk   = Value.of("desk");
-        val room   = Value.of("room");
-        val first  = ObjectValue.builder().put("desk", desk).put("room", room).build();
-        val second = ObjectValue.builder().put("room", room).put("desk", desk).build();
-
-        val answers = Stream.of(first, second)
-                .map(subject -> broker.evaluateFunction(new FunctionInvocation("object.keys", List.of(subject))))
-                .toList();
-
-        assertThat(answers).containsExactly(Value.ofArray(desk, room), Value.ofArray(room, desk));
-    }
-
-    @Test
-    void whenReturningNestedRequestFieldsThenObjectOrderArrayOrderAndDecimalScaleArePreserved() {
-        broker.loadFunction(new FunctionSpecification("audit", "raw", List.of(Value.class), null,
-                input -> input.arguments().getFirst()));
-        val first  = ObjectValue.builder().put("a", Value.of(1)).put("b", Value.of(2)).build();
-        val second = ObjectValue.builder().put("b", Value.of(2)).put("a", Value.of(1)).build();
-        val prices = List.of(Value.of(new BigDecimal("1.0")), Value.of(new BigDecimal("1.00")));
-        for (val fields : List.of(Value.ofArray(first, prices.getFirst()), Value.ofArray(second, prices.getFirst()),
-                Value.ofArray(second, prices.getLast()), Value.ofArray(prices.getLast(), second))) {
-            val projected = broker.evaluateFunction(new FunctionInvocation("audit.raw", List.of(fields)));
-            assertThat(ValueRepresentation.same(projected, fields)).isTrue();
-        }
-    }
-
-    @Test
-    void whenOfficePolicyIsReplacedThenRepeatedRequestsUseOnlyTheirActiveConfigurationsCache() {
-        val calls = new AtomicInteger();
-        broker.loadFunction(new FunctionSpecification("directory", "canEnter", List.of(Value.class, Value.class), null,
-                invocation -> {
-                    calls.incrementAndGet();
-                    return Value.TRUE;
-                }));
-        // The directory is too large for a request cache key. The compiled configuration owns it.
-        val directory = Value.ofArray(Collections.nCopies(2048, Value.of("Bonn")));
-        val data      = new PdpData(ObjectValue.builder().put("offices", directory).build(), Value.EMPTY_OBJECT);
-        val policies  = List.of("policy \"office\" permit directory.canEnter(offices, subject);");
-        val subject   = AuthorizationSubscription.of("alice", "enter", "Bonn");
-        val counts    = new ArrayList<Integer>();
-        try (val app = PolicyDecisionPointBuilder.withDefaults().withFunctionBroker(broker).build()) {
-            for (val version : List.of("morning", "afternoon")) {
-                app.pdpVoterSource().loadConfiguration(
-                        new PDPConfiguration("office", version, CombiningAlgorithm.DEFAULT, policies, data));
-                for (int request = 0; request < 2; request++) {
-                    assertThat(app.pdp().decideOnce(subject, "office").decision()).isEqualTo(Decision.PERMIT);
-                    counts.add(calls.get());
-                }
-            }
-        }
-        assertThat(counts).containsExactly(1, 1, 2, 2);
-    }
-
-    @Test
-    void whenFunctionEncountersAnErrorInAnArgumentOrResultThenEachOccurrenceIsEvaluated() {
-        val calls = new AtomicInteger();
-        broker.loadFunction(new FunctionSpecification("directory", "lookup", List.of(Value.class), null, input -> {
-            calls.incrementAndGet();
-            if (input.arguments().getFirst() instanceof TextValue) {
-                return Value.ofArray(Value.error("missing office"));
-            }
-            return Value.TRUE;
-        }));
-        val scoped = broker.forConfiguration();
-        for (val input : List.of(Value.of("Bonn"), Value.ofArray(Value.error("missing region")))) {
-            val invocation = new FunctionInvocation("directory.lookup", List.of(input));
-            scoped.evaluateFunction(invocation);
-            scoped.evaluateFunction(invocation);
-        }
-        assertThat(calls.get()).isEqualTo(4);
     }
 
     @Test
@@ -444,11 +358,10 @@ class DefaultFunctionBrokerTests {
                 invocation -> Value.of("varargs"));
 
         broker.loadFunction(fixed);
-        val invocation = new FunctionInvocation("ambiguous.fn", List.of(Value.of("argument")));
-        assertThat(broker.evaluateFunction(invocation)).isEqualTo(Value.of("fixed"));
         broker.loadFunction(varargs);
 
-        val result = broker.evaluateFunction(invocation);
+        val invocation = new FunctionInvocation("ambiguous.fn", List.of(Value.of("argument")));
+        val result     = broker.evaluateFunction(invocation);
 
         assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
                 .contains("ambiguous.fn");
@@ -583,7 +496,7 @@ class DefaultFunctionBrokerTests {
         }
     }
 
-    @FunctionLibrary(name = "nyarlathotep", description = "The Crawling Chaos: mixed static and instance methods")
+    @FunctionLibrary(name = "nyarlathotep", description = "The Crawling Chaos - mixed static and instance methods")
     public static class MixedMethodLibrary {
 
         private final String form;
@@ -592,17 +505,17 @@ class DefaultFunctionBrokerTests {
             this.form = "Haunter of the Dark";
         }
 
-        @Function(docs = "Static method: summons the messenger")
+        @Function(docs = "Static method - summons the messenger")
         public static Value summonMessenger() {
             return Value.of("Nyarlathotep approaches");
         }
 
-        @Function(docs = "Instance method: reveals current form")
+        @Function(docs = "Instance method - reveals current form")
         public Value revealForm() {
             return Value.of(form);
         }
 
-        @Function(docs = "Instance method: transforms with given name")
+        @Function(docs = "Instance method - transforms with given name")
         public Value transform(Value newForm) {
             if (newForm instanceof TextValue text) {
                 return Value.of("Transformed to " + text.value());

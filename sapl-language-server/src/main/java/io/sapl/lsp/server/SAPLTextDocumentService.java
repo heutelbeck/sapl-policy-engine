@@ -17,16 +17,9 @@
  */
 package io.sapl.lsp.server;
 
-import static io.sapl.lsp.server.SAPLLanguageServer.refusedAfterShutdown;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
-import org.eclipse.lsp4j.CodeAction;
-import org.eclipse.lsp4j.CodeActionParams;
-import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
@@ -59,26 +52,26 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either3;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
-import io.sapl.lsp.core.GrammarSupport;
-import io.sapl.lsp.core.ParsedDocument;
 import io.sapl.lsp.core.document.DocumentManager;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Handles text document operations for the Language Server. Provides
- * validation, semantic tokens, completion and quick fixes. Supports multiple
- * grammars (SAPL, SAPLTest) through DocumentManager routing.
+ * Handles text document operations for the Language Server.
+ * Provides validation, semantic tokens, and completion support.
+ * Supports multiple grammars (SAPL, SAPLTest) through DocumentManager routing.
  * <p>
  * Provider NPE containment is a deliberate design decision. Providers run on
- * the raw, error-recovered parse tree of an in-progress document, where
- * children can be null while the author is still typing. Rather than
- * null-guard every provider exhaustively (notably the large formatting
- * visitor), faults are contained centrally: notification handlers via
- * {@link #safely}, request handlers via their {@link CompletableFuture} (a
- * fault becomes a failed response, the server stays up). The small providers
- * still guard their common name-token sites locally for graceful partial
- * results.
+ * the
+ * raw, error-recovered parse tree of an in-progress document, where children
+ * can
+ * be null while the author is still typing. Rather than null-guard every
+ * provider
+ * exhaustively (notably the large formatting visitor), faults are contained
+ * centrally: notification handlers via {@link #safely}, request handlers via
+ * their
+ * {@link java.util.concurrent.CompletableFuture} (a fault becomes a failed
+ * response, the server stays up). The small providers still guard their common
+ * name-token sites locally for graceful partial results.
  */
 @Slf4j
 public class SAPLTextDocumentService implements TextDocumentService {
@@ -104,8 +97,8 @@ public class SAPLTextDocumentService implements TextDocumentService {
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
-        val uri     = params.getTextDocument().getUri();
-        val content = params.getTextDocument().getText();
+        var uri     = params.getTextDocument().getUri();
+        var content = params.getTextDocument().getText();
         safely("didOpen", uri, () -> {
             log.debug("Document opened: {}", uri);
             documentManager.openDocument(uri, content);
@@ -115,12 +108,12 @@ public class SAPLTextDocumentService implements TextDocumentService {
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         // We use full sync, so take the full content from the first change
         if (params.getContentChanges().isEmpty()) {
             return;
         }
-        val content = params.getContentChanges().getFirst().getText();
+        var content = params.getContentChanges().getFirst().getText();
         safely("didChange", uri, () -> {
             log.debug("Document changed: {}", uri);
             documentManager.updateDocument(uri, content);
@@ -130,13 +123,13 @@ public class SAPLTextDocumentService implements TextDocumentService {
 
     @Override
     public void didClose(DidCloseTextDocumentParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         safely("didClose", uri, () -> {
             log.debug("Document closed: {}", uri);
             documentManager.closeDocument(uri);
 
             // Clear diagnostics for closed document
-            val client = server.getClient();
+            var client = server.getClient();
             if (client != null) {
                 client.publishDiagnostics(new PublishDiagnosticsParams(uri, List.of()));
             }
@@ -145,7 +138,7 @@ public class SAPLTextDocumentService implements TextDocumentService {
 
     @Override
     public void didSave(DidSaveTextDocumentParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         safely("didSave", uri, () -> {
             log.debug("Document saved: {}", uri);
             // Re-validate on save
@@ -156,15 +149,9 @@ public class SAPLTextDocumentService implements TextDocumentService {
     /**
      * Exception barrier for the document notification handlers (see the class-level
      * note on provider NPE containment). A fault while handling one document is
-     * logged and contained so the server keeps serving others. After shutdown the
-     * protocol allows no notification but exit, so a document notification is
-     * ignored.
+     * logged and contained so the server keeps serving others.
      */
-    private void safely(String operation, String uri, Runnable action) {
-        if (server.isShutDown()) {
-            log.debug("Ignored {} for {} after shutdown", operation, uri);
-            return;
-        }
+    private static void safely(String operation, String uri, Runnable action) {
         try {
             action.run();
         } catch (Exception e) {
@@ -174,67 +161,111 @@ public class SAPLTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<SemanticTokens> semanticTokensFull(SemanticTokensParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         log.debug("Semantic tokens requested for: {}", uri);
 
-        return answered(uri, () -> new SemanticTokens(List.of()),
-                (document, grammarSupport) -> grammarSupport.provideSemanticTokens(document));
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return new SemanticTokens(List.of());
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideSemanticTokens(document);
+        });
     }
 
     @Override
     public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         log.debug("Formatting requested for: {}", uri);
 
-        return answered(uri, List::of, (document, grammarSupport) -> grammarSupport.provideFormatting(document));
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideFormatting(document);
+        });
     }
 
     @Override
     public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(
             DocumentSymbolParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         log.debug("Document symbols requested for: {}", uri);
 
-        return answered(uri, List::of, (document, grammarSupport) -> grammarSupport.provideDocumentSymbols(document)
-                .stream().map(Either::<SymbolInformation, DocumentSymbol>forRight).toList());
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideDocumentSymbols(document).stream()
+                    .map(Either::<SymbolInformation, DocumentSymbol>forRight).toList();
+        });
     }
 
     @Override
     public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         log.debug("Folding ranges requested for: {}", uri);
 
-        return answered(uri, List::of, (document, grammarSupport) -> grammarSupport.provideFoldingRanges(document));
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideFoldingRanges(document);
+        });
     }
 
     @Override
     public CompletableFuture<List<SelectionRange>> selectionRange(SelectionRangeParams params) {
-        val uri = params.getTextDocument().getUri();
+        var uri = params.getTextDocument().getUri();
         log.debug("Selection ranges requested for: {}", uri);
 
-        return answered(uri, List::of,
-                (document, grammarSupport) -> grammarSupport.provideSelectionRanges(document, params.getPositions()));
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return List.of();
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideSelectionRanges(document, params.getPositions());
+        });
     }
 
     @Override
     public CompletableFuture<Hover> hover(HoverParams params) {
-        val uri      = params.getTextDocument().getUri();
-        val position = params.getPosition();
+        var uri      = params.getTextDocument().getUri();
+        var position = params.getPosition();
         log.debug("Hover requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
 
-        return answered(uri, () -> null,
-                (document, grammarSupport) -> grammarSupport.provideHover(document, position, configurationManager));
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return null;
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideHover(document, position, configurationManager);
+        });
     }
 
     @Override
     public CompletableFuture<Either3<Range, PrepareRenameResult, PrepareRenameDefaultBehavior>> prepareRename(
             PrepareRenameParams params) {
-        val uri      = params.getTextDocument().getUri();
-        val position = params.getPosition();
+        var uri      = params.getTextDocument().getUri();
+        var position = params.getPosition();
         log.debug("Prepare rename requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
 
-        return answered(uri, () -> null, (document, grammarSupport) -> {
-            val result = grammarSupport.prepareRename(document, position);
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return null;
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            var result         = grammarSupport.prepareRename(document, position);
             if (result == null) {
                 return null;
             }
@@ -244,64 +275,39 @@ public class SAPLTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
-        val uri      = params.getTextDocument().getUri();
-        val position = params.getPosition();
-        val newName  = params.getNewName();
+        var uri      = params.getTextDocument().getUri();
+        var position = params.getPosition();
+        var newName  = params.getNewName();
         log.debug("Rename requested at {}:{} in {} to '{}'", position.getLine(), position.getCharacter(), uri, newName);
 
-        return answered(uri, () -> null,
-                (document, grammarSupport) -> grammarSupport.provideRename(document, position, newName));
-    }
-
-    @Override
-    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
-        val uri      = params.getTextDocument().getUri();
-        val position = params.getPosition();
-
-        log.debug("Completion requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
-
-        return answered(uri, () -> {
-            log.warn("Completion: document not found for URI: {}", uri);
-            return Either.forLeft(List.of());
-        }, (document, grammarSupport) -> {
-            val items = grammarSupport.provideCompletions(document, position, configurationManager);
-            log.debug("Completion: returning {} items", items.size());
-            return Either.forLeft(items);
+        return CompletableFuture.supplyAsync(() -> {
+            var document = documentManager.getDocument(uri);
+            if (document == null) {
+                return null;
+            }
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            return grammarSupport.provideRename(document, position, newName);
         });
     }
 
     @Override
-    public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
-        val uri   = params.getTextDocument().getUri();
-        val range = params.getRange();
-        log.debug("Code actions requested in {}", uri);
+    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+        var uri      = params.getTextDocument().getUri();
+        var position = params.getPosition();
 
-        return answered(uri, List::of, (document, grammarSupport) -> grammarSupport.provideCodeActions(document, range)
-                .stream().map(Either::<Command, CodeAction>forRight).toList());
-    }
+        log.debug("Completion requested at {}:{} in {}", position.getLine(), position.getCharacter(), uri);
 
-    /**
-     * Answers a request about a document with the support of its grammar, apart
-     * from the thread of the request. A fault of a provider becomes a failed
-     * response (see the class-level note on provider NPE containment). After
-     * shutdown the request is refused.
-     *
-     * @param uri the URI of the document
-     * @param unknown the answer if no document is open under the URI
-     * @param answer the answer for the document and the support of its grammar
-     * @return the answer
-     */
-    private <T> CompletableFuture<T> answered(String uri, Supplier<T> unknown,
-            BiFunction<ParsedDocument, GrammarSupport, T> answer) {
-        if (server.isShutDown()) {
-            return refusedAfterShutdown();
-        }
         return CompletableFuture.supplyAsync(() -> {
-            val document = documentManager.getDocument(uri);
+            var document = documentManager.getDocument(uri);
             if (document == null) {
-                return unknown.get();
+                log.warn("Completion: document not found for URI: {}", uri);
+                return Either.forLeft(List.of());
             }
-            return answer.apply(document, documentManager.getGrammarSupportForUri(uri));
+
+            var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+            var items          = grammarSupport.provideCompletions(document, position, configurationManager);
+            log.debug("Completion: returning {} items", items.size());
+            return Either.forLeft(items);
         });
     }
 
@@ -311,18 +317,18 @@ public class SAPLTextDocumentService implements TextDocumentService {
      * @param uri the document URI
      */
     private void validateAndPublishDiagnostics(String uri) {
-        val client = server.getClient();
+        var client = server.getClient();
         if (client == null) {
             return;
         }
 
-        val document = documentManager.getDocument(uri);
+        var document = documentManager.getDocument(uri);
         if (document == null) {
             return;
         }
 
-        val grammarSupport = documentManager.getGrammarSupportForUri(uri);
-        val diagnostics    = grammarSupport.provideDiagnostics(document);
+        var grammarSupport = documentManager.getGrammarSupportForUri(uri);
+        var diagnostics    = grammarSupport.provideDiagnostics(document);
         client.publishDiagnostics(new PublishDiagnosticsParams(uri, diagnostics));
     }
 

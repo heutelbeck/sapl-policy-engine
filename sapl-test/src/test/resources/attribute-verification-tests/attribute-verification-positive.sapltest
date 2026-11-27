@@ -55,19 +55,18 @@ requirement "Entity Attribute Verification" {
 
 }
 
-requirement "A Failed First Stream Finishes the Policy" {
+requirement "Eager Mode Subscribes A Stream Dominated By An Earlier Stream" {
 
     given
         - documents "two-stream-policy", "bypass-policy"
         - attribute "first-eager" <first.attr> emits { "ok": true }
         - attribute "second-eager" <second.attr> emits { "ok": true }
 
-    scenario "the default mode requests only the first stream when it decides the body"
+    scenario "eager subscribes the dominated second stream up front"
         when "user" attempts "bypass" on "data"
         expect permit
         verify
-            - attribute <first.attr> is called once
-            - attribute <second.attr> is never called;
+            - attribute <second.attr> is called once;
 
 }
 
@@ -79,11 +78,10 @@ requirement "Lazy Mode Short-Circuits Before A Stream Dominated By An Earlier St
         - attribute "first-lazy" <first.attr> emits { "ok": true }
         - attribute "second-lazy" <second.attr> emits { "ok": true }
 
-    scenario "the first finder is called and its false condition closes the body"
+    scenario "lazy stops at the dominating first stream and never subscribes the second"
         when "user" attempts "bypass" on "data"
         expect permit
         verify
-            - attribute <first.attr> is called once
             - attribute <second.attr> is never called;
 
 }

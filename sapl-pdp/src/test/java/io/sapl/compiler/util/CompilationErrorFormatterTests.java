@@ -18,62 +18,15 @@
 package io.sapl.compiler.util;
 
 import io.sapl.api.model.SourceLocation;
-import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-
-import static io.sapl.util.PlacedDocuments.GRINNING_FACE;
-import static io.sapl.util.PlacedDocuments.documentOf;
-import static io.sapl.util.SaplTesting.compilationContext;
-import static io.sapl.util.SaplTesting.compileExpression;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 @DisplayName("CompilationErrorFormatter")
 class CompilationErrorFormatterTests {
-
-    @Test
-    void whenIndependentErrorsOccurThenEachSnippetIdentifiesItsLocation() {
-        val expression = """
-                subject =~ "(<" ||
-                action =~ "["
-                """;
-        val failure    = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(expression));
-        assertThat(CompilationErrorFormatter.format(failure)).contains("Invalid regular expression '(<",
-                "Location: line 1, column 1", "Invalid regular expression '['", "Location: line 2, column 1");
-        assertThat(CompilationErrorFormatter.formatHtml(failure)).contains("Invalid regular expression '(&lt;",
-                "Line 1, column 1", "Invalid regular expression '['", "Line 2, column 1").doesNotContain("(<");
-    }
-
-    @Test
-    void whenManyErrorsShareALongUnicodeLineThenEveryExcerptHasABoundedWidth() {
-        val count       = 96;
-        val pattern     = "subject =~ \"(\"";
-        val source      = "/*" + GRINNING_FACE.repeat(400) + "*/ ["
-                + String.join(", ", Collections.nCopies(count, pattern)) + "]";
-        val failure     = catchThrowableOfType(SaplCompilerException.class, () -> compileExpression(source));
-        val plain       = CompilationErrorFormatter.format(failure);
-        val html        = CompilationErrorFormatter.formatHtml(failure);
-        val firstColumn = failure.diagnostics().getFirst().getLocation().column();
-        val snippet     = plain.lines().dropWhile(line -> !line.startsWith("> ")).limit(2).toList();
-        val sourceLine  = snippet.getFirst();
-        assertThat(plain).hasSizeLessThan(600 * count).contains("...", "Location: line 1, column " + firstColumn);
-        assertThat(html).hasSizeLessThan(1100 * count).contains("...", "Line 1, column " + firstColumn,
-                "<span class=\"error-char\">s</span>");
-        assertThat(plain.lines().filter(line -> line.startsWith("> "))).hasSize(count);
-        assertThat(snippet.getLast().indexOf('^'))
-                .isEqualTo(sourceLine.codePointCount(0, sourceLine.indexOf("subject")));
-        assertThat(StandardCharsets.UTF_8.newEncoder().canEncode(plain)).isTrue();
-        assertThat(StandardCharsets.UTF_8.newEncoder().canEncode(html)).isTrue();
-    }
 
     @Nested
     @DisplayName("Plain text formatting")
@@ -281,96 +234,6 @@ class CompilationErrorFormatterTests {
             assertThat(result).contains("&lt;special&gt;", "&amp;", "&quot;chars&quot;").doesNotContain("<special>");
         }
 
-    }
-
-    @Nested
-    @DisplayName("A report for an error of the compiler with a place in the document")
-    class ReportsOfPlacedErrorsTests {
-
-        private static final String PLAIN_TEXT_REPORT = """
-                SAPL Compilation Error
-                Document: p
-                Error: Policy attempted to redefine variable 'mood'.
-                Location: line 3, column 19
-
-                  1 | policy "p"
-                  2 | permit
-                > 3 |     var mood = 1; var mood = 2;
-                                        ^
-                """;
-
-        private static final String PLAIN_TEXT_REPORT_AFTER_A_FACE = """
-                SAPL Compilation Error
-                Document: p
-                Error: Policy attempted to redefine variable 'mood'.
-                Location: line 3, column 21
-
-                  1 | policy "p"
-                  2 | permit
-                > 3 |     var mood = "FACE"; var mood = "sad";
-                                          ^
-                """.replace("FACE", GRINNING_FACE);
-
-        private static final String HTML_REPORT = """
-                <div class="sapl-compilation-error">
-                  <div class="error-header">SAPL Compilation Error</div>
-                  <div class="error-document">Document: <code>p</code></div>
-                  <div class="error-message">Policy attempted to redefine variable 'mood'.</div>
-                  <div class="error-location">Line 3, column 19</div>
-                  <pre class="error-snippet"><span class="line-number">1</span> policy &quot;p&quot;
-                <span class="line-number">2</span> permit
-                <span class="error-line"><span class="line-number">3</span>     var mood = 1; <span class="error-char">v</span>ar mood = 2;</span>
-                </pre>
-                </div>""";
-
-        private static final String TWO_DEFINITIONS              = "    var mood = 1; var mood = 2;";
-        private static final String TWO_DEFINITIONS_AFTER_A_FACE = "    var mood = \"" + GRINNING_FACE
-                + "\"; var mood = \"sad\";";
-
-        @ParameterizedTest(name = "lines that end with {0}")
-        @MethodSource("io.sapl.util.PlacedDocuments#lineEnds")
-        @DisplayName("the plain text report shows the lines of the document and marks the place, whatever ends the lines")
-        void whenLinesEndWithAnyLineBreakThenPlainTextReportShowsTheLinesAndMarksThePlace(String lineBreak,
-                String lineEnd) {
-            val redefinition = errorOfCompiling(documentOf(lineEnd, TWO_DEFINITIONS));
-
-            assertThat(CompilationErrorFormatter.format(redefinition)).isEqualTo(PLAIN_TEXT_REPORT);
-        }
-
-        @ParameterizedTest(name = "lines that end with {0}")
-        @MethodSource("io.sapl.util.PlacedDocuments#lineEnds")
-        @DisplayName("the HTML report shows the lines of the document and marks the place, whatever ends the lines")
-        void whenLinesEndWithAnyLineBreakThenHtmlReportShowsTheLinesAndMarksThePlace(String lineBreak, String lineEnd) {
-            val redefinition = errorOfCompiling(documentOf(lineEnd, TWO_DEFINITIONS));
-
-            assertThat(CompilationErrorFormatter.formatHtml(redefinition)).isEqualTo(HTML_REPORT);
-        }
-
-        @Test
-        @DisplayName("the plain text report points at the place after a character outside the basic plane")
-        void whenACharacterOutsideTheBasicPlaneStandsBeforeThePlaceThenPlainTextReportPointsAtThePlace() {
-            val redefinition = errorOfCompiling(documentOf("\n", TWO_DEFINITIONS_AFTER_A_FACE));
-
-            assertThat(CompilationErrorFormatter.format(redefinition)).isEqualTo(PLAIN_TEXT_REPORT_AFTER_A_FACE);
-        }
-
-        @Test
-        @DisplayName("the HTML report marks the first character of the place after a character outside the basic plane")
-        void whenACharacterOutsideTheBasicPlaneStandsBeforeThePlaceThenHtmlReportMarksTheFirstCharacterOfThePlace() {
-            val redefinition = errorOfCompiling(documentOf("\n", TWO_DEFINITIONS_AFTER_A_FACE));
-
-            assertThat(CompilationErrorFormatter.formatHtml(redefinition)).contains("var mood = &quot;" + GRINNING_FACE
-                    + "&quot;; <span class=\"error-char\">v</span>ar mood = &quot;sad&quot;;");
-        }
-
-        /**
-         * The second definition of a variable is refused by the compiler, and
-         * the error names the place of that definition.
-         */
-        private static SaplCompilerException errorOfCompiling(String document) {
-            return catchThrowableOfType(SaplCompilerException.class,
-                    () -> DocumentCompiler.compileDocument(document, compilationContext()));
-        }
     }
 
 }

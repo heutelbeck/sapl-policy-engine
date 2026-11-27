@@ -74,8 +74,7 @@ class ScalarConfiguration {
         try (InputStream in = new ClassPathResource(SAPL_SCALAR_THEME_CSS).getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            log.warn(
-                    "Could not load Scalar theme CSS from classpath:{} ({}). Falling back to the default Scalar theme.",
+            log.warn("Could not load Scalar theme CSS from classpath:{} ({}); falling back to default Scalar theme.",
                     SAPL_SCALAR_THEME_CSS, e.getMessage());
             return null;
         }

@@ -22,7 +22,7 @@ Functions are pure computations. Given the same input arguments, a function alwa
 
 Because of these properties, functions can be used in **any part** of a SAPL document, including target expressions. The engine can safely evaluate them at any time without concern for ordering, external availability, or subscription lifecycle.
 
-Functions are organized in **function libraries**. Each library has a name (e.g., `filter` or `time`). The fully qualified name of a function consists of two parts: the library name followed by a period and the function name (e.g., `filter.blacken`). [Imports](../2_9_Imports/) can shorten these names.
+Functions are organized in **function libraries**. Each library has a name consisting of one or more identifiers separated by periods (e.g., `simple.string` or `filter`). The fully qualified name of a function consists of the library name followed by a period and the function name (e.g., `simple.string.append`). [Imports](../2_9_Imports/) can shorten these names.
 
 SAPL ships with a standard set of function libraries. See [Functions](../3_0_Functions/) for the complete reference of built-in function libraries.
 

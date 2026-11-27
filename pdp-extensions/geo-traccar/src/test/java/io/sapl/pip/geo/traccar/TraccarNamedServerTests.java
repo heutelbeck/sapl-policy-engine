@@ -49,11 +49,11 @@ class TraccarNamedServerTests {
 
     private static final ObjectValue NAMED_SERVERS_CONFIG = (ObjectValue) json("""
             {
-                "default": "prod",
-                "servers": {
-                    "prod": { "baseUrl": "https://prod.traccar.example" },
-                    "lab": { "baseUrl": "http://lab.traccar.example:8082", "allowInsecureHttp": true }
-                }
+                "defaultServerName": "prod",
+                "servers": [
+                    { "name": "prod", "baseUrl": "https://prod.traccar.example" },
+                    { "name": "lab",  "baseUrl": "http://lab.traccar.example:8082", "allowInsecureHttp": true }
+                ]
             }
             """);
 
@@ -129,10 +129,10 @@ class TraccarNamedServerTests {
         val pip          = new TraccarPolicyInformationPoint(mockWebClient);
         val insecureOnly = (ObjectValue) json("""
                 {
-                    "default": "lab",
-                    "servers": {
-                        "lab": { "baseUrl": "http://lab.traccar.example:8082" }
-                    }
+                    "defaultServerName": "lab",
+                    "servers": [
+                        { "name": "lab", "baseUrl": "http://lab.traccar.example:8082" }
+                    ]
                 }
                 """);
         val secrets      = ObjectValue.builder()
@@ -165,14 +165,49 @@ class TraccarNamedServerTests {
     }
 
     @Test
-    @DisplayName("flat credentials are never used for a named endpoint")
-    void whenOnlyFlatSecretsExistThenCredentialsAreMissing() {
-        val pip  = new TraccarPolicyInformationPoint(mockWebClient);
-        val flat = (ObjectValue) json("""
-                {"traccar":{"token":"unused"}}
+    @DisplayName("when a back-compat single-object config and flat secret are used then they act as the default server")
+    void whenSingleObjectConfigAndFlatSecretThenActAsDefaultServer() {
+        when(mockWebClient.httpRequest(any(), any())).thenAnswer(invocation -> Streams.just(json("{}")));
+        val pip         = new TraccarPolicyInformationPoint(mockWebClient);
+        val flatConfig  = (ObjectValue) json("""
+                {
+                    "baseUrl": "https://single.traccar.example"
+                }
                 """);
-        try (val stream = pip.server(ctx(variablesWith(NAMED_SERVERS_CONFIG), flat))) {
-            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+        val flatSecrets = ObjectValue.builder()
+                .put("traccar", ObjectValue.builder().put("token", Value.of("flat-token")).build()).build();
+
+        try (val stream = pip.server(ctx(variablesWith(flatConfig), flatSecrets))) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
         }
+
+        verify(mockWebClient).httpRequest(any(), argThat(settings -> {
+            val baseUrl   = settings.get(BlockingWebClient.BASE_URL);
+            val urlParams = settings.get(BlockingWebClient.URL_PARAMS);
+            return baseUrl instanceof TextValue(var url) && "https://single.traccar.example".equals(url)
+                    && urlParams instanceof ObjectValue params && params.get("token") instanceof TextValue(var token)
+                    && "flat-token".equals(token);
+        }));
+    }
+
+    @Test
+    @DisplayName("a flat single-object config with a custom defaultServerName still serves no-arg calls")
+    void whenSingleObjectConfigHasCustomDefaultServerNameThenNoArgStillResolves() {
+        when(mockWebClient.httpRequest(any(), any())).thenAnswer(invocation -> Streams.just(json("{}")));
+        val pip         = new TraccarPolicyInformationPoint(mockWebClient);
+        val flatConfig  = (ObjectValue) json("""
+                {
+                    "baseUrl": "https://single.traccar.example",
+                    "defaultServerName": "prod"
+                }
+                """);
+        val flatSecrets = ObjectValue.builder()
+                .put("traccar", ObjectValue.builder().put("token", Value.of("flat-token")).build()).build();
+
+        try (val stream = pip.server(ctx(variablesWith(flatConfig), flatSecrets))) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
+        }
+
+        verify(mockWebClient).httpRequest(any(), any());
     }
 }

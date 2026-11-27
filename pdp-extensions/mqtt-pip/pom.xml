@@ -42,7 +42,7 @@
 	<dependencies>
         <dependency>
             <groupId>io.sapl</groupId>
-            <artifactId>sapl-attribute-utils</artifactId>
+            <artifactId>sapl-api</artifactId>
             <version>${project.version}</version>
         </dependency>
 		<dependency>
@@ -75,11 +75,6 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>okhttp-tls</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

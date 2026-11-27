@@ -47,7 +47,9 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
+import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.model.AttributeSnapshot;
@@ -161,10 +163,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_GRACE_DURATION_NEGATIVE = "gracePeriodDuration must not be negative";
     private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
     private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
-    private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw). Ignoring this fire: {}";
+    private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw); ignoring this fire: {}";
     private static final String ERROR_REPOSITORY_CLOSE        = "Failed to close the repository observation for '{}'.";
-    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set). Ignoring this fire and keeping the current dependency set.";
-    private static final String ERROR_AMBIGUOUS_ATTRIBUTE     = "Cannot register PIP '%s': multiple declarations match attribute '%s' (parameter shape %s).";
+    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set); ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
     private static final String ERROR_SOURCE_WAIT             = "A source cannot wait for another unfinished attribute registration.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
@@ -296,8 +297,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      *
      * @throws PipLoadException
      * if the class is not annotated, if any annotated method has an invalid
-     * name or signature, or if two finder declarations can match the same
-     * name, receiver and argument shape with equal priority
+     * signature, or if any of the
+     * instance's specs collides with an already-registered spec
      */
     public PipHandle load(@NonNull Object pipInstance) {
         val namespace = readNamespace(pipInstance);
@@ -673,24 +674,22 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static List<StreamAttributeFinderSpecification> extractSpecs(Object instance, String namespace) {
         val specs = new ArrayList<StreamAttributeFinderSpecification>();
         for (Method method : instance.getClass().getMethods()) {
-            StreamAttributeFinderSpecification spec;
+            if (!method.isAnnotationPresent(Attribute.class)
+                    && !method.isAnnotationPresent(EnvironmentAttribute.class)) {
+                continue;
+            }
             try {
-                spec = StreamAttributeMethodSignatureProcessor.processAttributeMethod(instance, namespace, method);
+                val spec = StreamAttributeMethodSignatureProcessor.processAttributeMethod(instance, namespace, method);
+                if (spec != null) {
+                    specs.add(spec);
+                    log.trace("Processed attribute '{}' ({} fixed parameter(s){})", spec.fullyQualifiedName(),
+                            spec.parameterTypes().size(), spec.hasVariableNumberOfArguments() ? " plus varargs" : "");
+                }
             } catch (RuntimeException e) {
                 val attrFqn = namespace + '.' + method.getName();
                 log.debug("Failed to process attribute method '{}': {}", attrFqn, e.getMessage());
                 throw new PipLoadException(ERROR_LOAD_PROCESSOR_FAILED.formatted(attrFqn, e.getMessage()), e);
             }
-            if (spec == null) {
-                continue;
-            }
-            if (specs.stream().anyMatch(spec::collidesWith)) {
-                throw new PipLoadException(
-                        ERROR_AMBIGUOUS_ATTRIBUTE.formatted(namespace, spec.fullyQualifiedName(), shapeOf(spec)));
-            }
-            specs.add(spec);
-            log.trace("Processed attribute '{}' ({} fixed parameter(s){})", spec.fullyQualifiedName(),
-                    spec.parameterTypes().size(), spec.hasVariableNumberOfArguments() ? " plus varargs" : "");
         }
         return specs;
     }
@@ -955,7 +954,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             try {
                 opened = delegate.get();
             } catch (RuntimeException e) {
-                log.debug("Synchronous first open threw. The pump will retry: {}", e.getMessage());
+                log.debug("Synchronous first open threw; pump will retry: {}", e.getMessage());
                 opened = null;
             }
             this.first = new AtomicReference<>(opened);

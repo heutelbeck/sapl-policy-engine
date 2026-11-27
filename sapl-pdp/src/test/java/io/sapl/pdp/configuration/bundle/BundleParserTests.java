@@ -37,15 +37,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -450,77 +447,11 @@ class BundleParserTests {
     }
 
     @Test
-    @DisplayName("data that is not a ZIP archive is refused as no archive")
-    void whenParsingInvalidZipDataThenRefusedAsNoArchive() {
+    void whenParsingInvalidZipDataThenThrowsExceptionForMissingManifest() {
         val invalidData = "This is not a ZIP file".getBytes(StandardCharsets.UTF_8);
 
         assertThatThrownBy(() -> BundleParser.parse(invalidData, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class).hasMessage("Failed to parse bundle from byte array.");
-    }
-
-    static Stream<Arguments> archivesWhoseDirectoryAndEntriesDisagree() throws IOException {
-        val archive = zipOfBytes(Map.of("pdp.json", DEFAULT_PDP_JSON.getBytes(StandardCharsets.UTF_8), "elder.sapl",
-                "policy \"elder\" permit".getBytes(StandardCharsets.UTF_8)));
-        val hidden  = zipOfBytes(Map.of("hidden.sapl", "policy \"hidden\" deny".getBytes(StandardCharsets.UTF_8)));
-        return Stream.of(
-                arguments("a local entry under a name the directory does not list",
-                        patchedFirst(archive, "elder.sapl", "elder.sapx")),
-                arguments("a damaged local header", patchedFirst(archive, "PK\003\004", "PK\003\005")),
-                arguments("a local entry the directory hides", withLocalEntriesHiddenBeforeDirectory(archive, hidden)));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("archivesWhoseDirectoryAndEntriesDisagree")
-    @DisplayName("an archive whose directory and local entries disagree is refused, as readers would read different files")
-    void whenDirectoryAndLocalEntriesDisagreeThenRefused(String description, byte[] archive) {
-        assertThatThrownBy(() -> BundleParser.parse(archive, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class).hasMessage(
-                        "The archive is inconsistent: a name occurs twice, entries overlap, or its directory does not list an entry.");
-    }
-
-    @Test
-    @DisplayName("an archive that holds a name twice is refused, not read with the later entry winning")
-    void whenArchiveHoldsNameTwiceThenRefused() throws IOException {
-        val archive    = zipOfBytes(Map.of("pdp.json", DEFAULT_PDP_JSON.getBytes(StandardCharsets.UTF_8), "elder.sapl",
-                "policy \"elder\" permit".getBytes(StandardCharsets.UTF_8), "elves.sapl",
-                "policy \"elves\" deny".getBytes(StandardCharsets.UTF_8)));
-        val duplicated = patchedEverywhere(archive, "elves.sapl", "elder.sapl");
-
-        assertThatThrownBy(() -> BundleParser.parse(duplicated, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class).hasMessage(
-                        "The archive is inconsistent: a name occurs twice, entries overlap, or its directory does not list an entry.");
-    }
-
-    static Stream<Arguments> entryNamesNotUtf8() {
-        return Stream.of(arguments("an ASCII name made invalid", "xy.sapl", new byte[] { (byte) 0xff, 'y' }),
-                arguments("a UTF-8 flagged name made invalid", "ü.sapl", new byte[] { (byte) 0xff, (byte) 0xfe }));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("entryNamesNotUtf8")
-    @DisplayName("an entry whose name is not UTF-8 is refused as an unexpected file")
-    void whenEntryNameIsNotUtf8ThenRefused(String description, String validName, byte[] invalidPrefix)
-            throws IOException {
-        val archive = zipOfBytes(Map.of(validName, "policy \"p\" permit".getBytes(StandardCharsets.UTF_8)));
-        val valid   = validName.getBytes(StandardCharsets.UTF_8);
-        val invalid = valid.clone();
-        System.arraycopy(invalidPrefix, 0, invalid, 0, invalidPrefix.length);
-        val patched = patchedEverywhere(archive, valid, invalid);
-
-        assertThatThrownBy(() -> BundleParser.parse(patched, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class)
-                .hasMessage("Unexpected file in bundle from byte array: an entry name is not UTF-8.");
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "pdp.json", "elder.sapl", "ext-upstreams.json" })
-    @DisplayName("an entry whose content is not UTF-8 is refused, never read with replacement characters")
-    void whenEntryContentIsNotUtf8ThenRefused(String name) throws IOException {
-        val archive = zipOfBytes(Map.of(name, new byte[] { '{', (byte) 0xff, (byte) 0xfe, '}' }));
-
-        assertThatThrownBy(() -> BundleParser.parse(archive, TEST_PDP_ID, developmentPolicy))
-                .isInstanceOf(PDPConfigurationException.class)
-                .hasMessage("The bundle entry '%s' is not UTF-8 text.".formatted(name));
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining(".sapl-manifest.json");
     }
 
     @Test
@@ -618,17 +549,6 @@ class BundleParserTests {
     }
 
     @Test
-    @DisplayName("a bundle the builder writes for an extension named 'secrets' parses with that extension")
-    void whenExtensionIsNamedSecretsThenBundleParsesWithThatExtension() {
-        val bundleBytes = BundleBuilder.create().withPdpJson(DEFAULT_PDP_JSON).withExtension("secrets", """
-                { "vault": "eldritch" }""").build();
-
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
-
-        assertThat(config.extensions()).containsOnlyKeys("secrets");
-    }
-
-    @Test
     @DisplayName("a required extension without any payload is rejected at parse time")
     void whenRequiredExtensionMissingPayloadThenRejected() throws IOException {
         val bundleBytes = manifestedBundle(Map.of("pdp.json", """
@@ -654,75 +574,6 @@ class BundleParserTests {
         val allEntries = new LinkedHashMap<String, String>(files);
         allEntries.put(BundleManifest.MANIFEST_FILENAME, manifest.toJson());
         return rawZip(allEntries);
-    }
-
-    private static byte[] zipOfBytes(Map<String, byte[]> entries) throws IOException {
-        val baos = new ByteArrayOutputStream();
-        try (val zos = new ZipOutputStream(baos)) {
-            for (val entry : entries.entrySet()) {
-                zos.putNextEntry(new ZipEntry(entry.getKey()));
-                zos.write(entry.getValue());
-                zos.closeEntry();
-            }
-        }
-        return baos.toByteArray();
-    }
-
-    private static byte[] patchedFirst(byte[] archive, String from, String to) {
-        val fromBytes = from.getBytes(StandardCharsets.ISO_8859_1);
-        val patched   = archive.clone();
-        for (int position = 0; position <= patched.length - fromBytes.length; position++) {
-            if (Arrays.equals(patched, position, position + fromBytes.length, fromBytes, 0, fromBytes.length)) {
-                System.arraycopy(to.getBytes(StandardCharsets.ISO_8859_1), 0, patched, position, fromBytes.length);
-                return patched;
-            }
-        }
-        throw new IllegalArgumentException("The archive does not hold the bytes to patch.");
-    }
-
-    // Puts the local entries of another archive between the local entries of the
-    // archive and its central directory, and moves the offset of the directory
-    // that the end record names accordingly. The directory does not list them.
-    private static byte[] withLocalEntriesHiddenBeforeDirectory(byte[] archive, byte[] hidden) {
-        val directoryStart = directoryStartOf(archive);
-        val hiddenEntries  = Arrays.copyOf(hidden, directoryStartOf(hidden));
-        val combined       = new byte[archive.length + hiddenEntries.length];
-        System.arraycopy(archive, 0, combined, 0, directoryStart);
-        System.arraycopy(hiddenEntries, 0, combined, directoryStart, hiddenEntries.length);
-        System.arraycopy(archive, directoryStart, combined, directoryStart + hiddenEntries.length,
-                archive.length - directoryStart);
-        val endRecord = endRecordOf(combined);
-        ByteBuffer.wrap(combined, endRecord + 16, 4).order(ByteOrder.LITTLE_ENDIAN)
-                .putInt(directoryStart + hiddenEntries.length);
-        return combined;
-    }
-
-    private static int directoryStartOf(byte[] archive) {
-        return ByteBuffer.wrap(archive, endRecordOf(archive) + 16, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
-    }
-
-    private static int endRecordOf(byte[] archive) {
-        val signature = "PK\005\006".getBytes(StandardCharsets.ISO_8859_1);
-        for (int position = archive.length - 22; position >= 0; position--) {
-            if (Arrays.equals(archive, position, position + 4, signature, 0, 4)) {
-                return position;
-            }
-        }
-        throw new IllegalArgumentException("The archive has no end record.");
-    }
-
-    private static byte[] patchedEverywhere(byte[] archive, String from, String to) {
-        return patchedEverywhere(archive, from.getBytes(StandardCharsets.UTF_8), to.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static byte[] patchedEverywhere(byte[] archive, byte[] from, byte[] to) {
-        val patched = archive.clone();
-        for (int position = 0; position <= patched.length - from.length; position++) {
-            if (Arrays.equals(patched, position, position + from.length, from, 0, from.length)) {
-                System.arraycopy(to, 0, patched, position, to.length);
-            }
-        }
-        return patched;
     }
 
     private static byte[] rawZip(Map<String, String> entries) throws IOException {

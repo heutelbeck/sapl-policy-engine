@@ -88,7 +88,7 @@ This prints `{"decision":"PERMIT"}`. The policy matches: subject `housemd`, acti
 
 > **Quoting:** Because subscription components are JSON values, strings must include double quotes. In Bash, wrap them in single quotes: `--subject '"housemd"'`. In PowerShell, use backslash-escaped quotes: `--subject '\"housemd\"'`. The remaining examples use the short flags `-s`, `-a`, `-r`.
 
-Two optional subscription components are available for policies that need them: `--environment` (`-e`) provides additional context as a JSON value, and `--secrets` provides a JSON object of secrets for Policy Information Points. Policies cannot read it.
+Two optional subscription components are available for policies that need them: `--environment` (`-e`) provides additional context as a JSON value, and `--secrets` provides a JSON object accessible to policies via the `secrets()` function.
 
 Try a request that does not match:
 

@@ -11,9 +11,9 @@ This section covers securing the SAPL Node HTTP API: authentication, TLS, and in
 
 ### Default Security Posture
 
-SAPL Node is secure by default in every deployment context. It refuses to start without TLS, unless plaintext is allowed, and without an authentication mode, unless anonymous access is allowed. The rule holds on every address, `127.0.0.1` included. Each opt-in is explicit and named, and the node logs a warning for it at every start that names where it was set: the command-line option, the key in its file, or the environment variable.
+SAPL Node defaults differ by deployment context. The binary is optimized for a quick development start. Packages and Docker are optimized for production safety.
 
-**Binary (development):** Binds to `127.0.0.1`, `DIRECTORY` mode. Start it with `sapl server --no-tls --no-auth` for a quick development start, drop `.sapl` files in the working directory and start evaluating policies immediately.
+**Binary (development):** Binds to `127.0.0.1`, no TLS, no authentication, `DIRECTORY` mode. Drop `.sapl` files in the working directory and start evaluating policies immediately.
 
 **Packages and Docker (production):** `BUNDLES` mode with signature verification enabled. The node starts and accepts connections, but reports health `DOWN` and returns `INDETERMINATE` for all decisions until a signed bundle is deployed. This way it serves authorization decisions only once a signed bundle is in place.
 
@@ -23,24 +23,24 @@ In both contexts, authorization requests without matching policies are denied.
 
 | Level | What to configure | Use case |
 |-------|-------------------|----------|
-| 0 | `--no-tls --no-auth` | Local development, learning, CI |
-| 1 | Enable TLS (`io.sapl.node.tls.*`) | Any service |
-| 2 | Enable auth, generate credentials, bind to `0.0.0.0` | Network-exposed service |
+| 0 | Nothing | Local development, learning, CI |
+| 1 | Enable auth, generate credentials | Multi-service on same host |
+| 2 | Enable TLS, bind to `0.0.0.0` | Network-exposed service |
 
 **Packages and Docker (production)** security progression:
 
 | Level | What to configure | Use case |
 |-------|-------------------|----------|
 | 0 | Configure public key (or allow-unsigned to opt out) | First start |
-| 1 | Enable TLS (or `allow-no-tls` behind a TLS-terminating proxy) | First start |
-| 2 | Enable auth, generate credentials, bind to `0.0.0.0` | Network-exposed service |
+| 1 | Enable auth, generate credentials | Multi-service on same host, trusted network |
+| 2 | Enable TLS, bind to `0.0.0.0` | Network-exposed service |
 | 3 | TLS, auth, signed bundles, metrics | Production |
 
 ### Authentication
 
 SAPL Node supports four authentication modes. Each mode is controlled by a boolean property under `io.sapl.node`. Multiple modes can be active at the same time. When all four modes are disabled, every request is rejected.
 
-By default all four modes are disabled (fail-closed) and the node does not start until at least one is enabled. For local exploration, `sapl server --no-auth` or `allow-no-auth: true` is the quickest path. Production deployments typically rely on one or more credential-based modes.
+By default all four modes are disabled (fail-closed) and the node does not start until at least one is enabled. For local exploration, `allow-no-auth: true` is the quickest path. Production deployments typically rely on one or more credential-based modes.
 
 A request is authenticated if it matches any enabled mode. The first successful match determines the client identity and PDP routing. The `pdp-id` from the matched credential entry selects which tenant's policies evaluate the request.
 
@@ -54,7 +54,7 @@ io.sapl.node:
 
 When `allow-no-auth` is `true`, requests without credentials are accepted and routed to the `default-pdp-id`. This is intended for development environments or deployments where an API gateway or service mesh handles authentication before requests reach the node.
 
-With this flag, any client that can reach the HTTP or RSocket port can submit authorization subscriptions and receive decisions, so it assumes an outer layer (a gateway, service mesh, or reverse proxy) owns authentication, or that the port is reachable only from trusted callers. Every start logs a warning that names where the opt-in was set, for example `Server replies to requests without authentication because of the command-line option --no-auth.` If you enable it while a transport is bound to a non-loopback address, the node also logs a warning naming the transport and the address. See [Interface Binding](#interface-binding).
+With this flag, any client that can reach the HTTP or RSocket port can submit authorization subscriptions and receive decisions, so it assumes an outer layer (a gateway, service mesh, or reverse proxy) owns authentication, or that the port is reachable only from trusted callers. If you enable it while a transport is bound to a non-loopback address, the node logs a startup warning naming the transport. See [Interface Binding](#interface-binding).
 
 ### Basic Authentication
 
@@ -158,59 +158,83 @@ For OAuth2, the PDP identifier is extracted from the JWT claim specified by `oau
 
 ### TLS
 
-Both APIs require TLS, on every address, `127.0.0.1` included. Without TLS the node refuses to start with `The HTTP API has no TLS.` (or `The RSocket API has no TLS.`), naming the ways to configure TLS and to opt out.
-
-One certificate serves both APIs. Configure its PEM files, the certificate followed by the certificates that connect it to a root, and its private key:
+TLS is disabled by default so the node starts without a certificate. The HTTP server ships on port 8080 (plain HTTP). Enable TLS by configuring a keystore and binding to the HTTPS-conventional port 8443:
 
 ```yaml
-io.sapl.node.tls:
-  certificate-chain: /opt/sapl/tls/server.pem
-  private-key: /opt/sapl/tls/server.key
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: file:/opt/sapl/tls/keystore.p12
+    key-store-password: "${KEYSTORE_PASSWORD}"
+    key-store-type: PKCS12
 ```
 
-As environment variables, for example in a container: `IO_SAPL_NODE_TLS_CERTIFICATECHAIN` and `IO_SAPL_NODE_TLS_PRIVATEKEY`.
+#### Sharing TLS material across HTTP and RSocket via SSL bundles
 
-#### Renewal and Expiry
-
-A renewed certificate is served without a restart. Replace the files, and the node serves the new certificate to new connections on both APIs and logs `Reloaded the TLS certificate of the HTTP API.` (and of the RSocket API). Open connections keep their certificate. A renewal that cannot be used, for example a key that does not match, leaves the served certificate in place.
-
-From 14 days before a certificate of the chain expires, the node logs a warning at the start and once a day, for example `The TLS certificate of the HTTP API expires on 2026-12-02T10:00:00Z, in 14 days. Renew it before then.`
-
-#### A Certificate per API
-
-To serve another certificate on one API, name a Spring Boot SSL bundle for it. The bundle overrides the shared certificate for that API only:
+Spring Boot SSL bundles centralise keystore configuration so HTTP and RSocket can terminate TLS using the same material. Define the bundle once under `spring.ssl.bundle.*`, then reference it by name from each transport:
 
 ```yaml
-spring.ssl.bundle.pem.sapl-rsocket:
-  reload-on-update: true
-  keystore:
-    certificate: file:/opt/sapl/tls/rsocket.pem
-    private-key: file:/opt/sapl/tls/rsocket.key
+spring:
+  ssl:
+    bundle:
+      jks:
+        sapl-bundle:
+          key:
+            alias: sapl-node
+            password: "${KEYSTORE_PASSWORD}"
+          keystore:
+            location: file:/opt/sapl/tls/keystore.p12
+            password: "${KEYSTORE_PASSWORD}"
+            type: PKCS12
 
-sapl.pdp.rsocket.ssl.bundle: sapl-rsocket     # RSocket
-# server.ssl.bundle: sapl-http                # HTTP
-```
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    bundle: sapl-bundle
 
-Naming a bundle in `server.ssl.bundle` is enough to serve HTTPS. Do not set `server.ssl.enabled: false` beside it: a bundle that is named while TLS is switched off refuses the start, so that the node never serves plaintext unnoticed. A bundle reloads only with `reload-on-update: true`. Key stores (`spring.ssl.bundle.jks.*`) work as well, PEM files are the simpler choice.
-
-The JDK defaults choose protocols and cipher suites: TLS 1.3 and TLS 1.2 with forward secrecy. To restrict them, set the options of a bundle:
-
-```yaml
-spring.ssl.bundle.pem.sapl-http.options:
-  enabled-protocols: TLSv1.3
+sapl:
+  pdp:
+    rsocket:
+      enabled: true
+      ssl:
+        bundle: sapl-bundle
 ```
 
 CLI clients connect with `--rsocket --rsocket-tls`. The `--insecure` flag skips certificate verification against self-signed development certificates. See [Configuration](../7_2_Configuration/#rsocket-properties) for the full RSocket property reference.
 
-#### Plaintext
+The default configuration restricts connections to modern cipher suites and protocol versions:
 
-Where TLS is terminated upstream, by a proxy or a service mesh, or in development, allow plaintext explicitly with `sapl server --no-tls`, `io.sapl.node.allow-no-tls: true` or `IO_SAPL_NODE_ALLOWNOTLS=true`. Every start then warns for each API in plaintext and names the source, for example:
-
+```yaml
+server:
+  ssl:
+    enabled-protocols:
+      - TLSv1.3
+      - TLSv1.2
+    protocol: TLSv1.3
+    ciphers:
+      - TLS_AES_128_GCM_SHA256
+      - TLS_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+      - TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+      - TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
 ```
-Serving HTTP without TLS because of the command-line option --no-tls. Anyone on the network path can read and change credentials and authorization decisions. Use this only where TLS is terminated upstream, by a proxy or a service mesh, or in development.
-```
 
-An RSocket server on a Unix domain socket (`sapl.pdp.rsocket.socket-path`) needs no TLS: it never crosses a network, and the permissions of the socket file protect it.
+TLSv1.3 is preferred. TLSv1.2 is included for compatibility with older clients. All listed cipher suites use AES with GCM or CBC mode and require forward secrecy via ECDHE or DHE key exchange.
 
 ### Interface Binding
 
@@ -234,11 +258,11 @@ sapl:
 
 For container deployments both transports must reach beyond loopback so Docker port mapping works. The `docker` Spring profile sets both addresses to `0.0.0.0`. You can also override them individually with the `SERVER_ADDRESS` and `SAPL_PDP_RSOCKET_ADDRESS` environment variables.
 
-On a non-loopback address, anyone who reaches the port can ask for decisions, so this is the natural point to add an authentication mode, or to place the node behind a gateway, service mesh, or reverse proxy that authenticates. TLS is required on every address anyway. If `allow-no-auth` is enabled while either transport is bound to a non-loopback address, the node logs a startup warning naming the transport and the address. It still starts, since anonymous access behind an outer trust boundary is a legitimate setup. The warning just makes the exposure visible so it stays a deliberate choice. If you do not use RSocket, `sapl.pdp.rsocket.enabled: false` keeps it off.
+On a non-loopback address, credentials and decisions travel over the network, so this is the natural point to add TLS and an authentication mode, or to place the node behind a gateway, service mesh, or reverse proxy that terminates both. If `allow-no-auth` is enabled while either transport is bound to a non-loopback address, the node logs a startup warning naming the transport and the address. It still starts, since anonymous access behind an outer trust boundary is a legitimate setup. The warning just makes the exposure visible so it stays a deliberate choice. If you do not use RSocket, `sapl.pdp.rsocket.enabled: false` keeps it off.
 
 ### Hardened Configuration Example
 
-This is a complete `application.yml` for production deployments. It enables TLS on both APIs, API key authentication, signed bundles, and metrics. Copy this file and replace the placeholder values.
+This is a complete `application.yml` for production deployments. It enables TLS with the default cipher suite list, API key authentication, signed bundles, and metrics. Copy this file and replace the placeholder values.
 
 ```yaml
 io.sapl:
@@ -250,9 +274,7 @@ io.sapl:
       public-key-path: /opt/sapl/keys/signing.pub
 
   node:
-    tls:
-      certificate-chain: /opt/sapl/tls/server.pem
-      private-key: /opt/sapl/tls/server.key
+    allow-no-auth: false
     allow-basic-auth: false
     allow-api-key-auth: true
     allow-oauth2-auth: false
@@ -265,9 +287,15 @@ io.sapl:
 server:
   address: 0.0.0.0
   port: 8443
-
-sapl.pdp.rsocket:
-  address: 0.0.0.0
+  ssl:
+    enabled: true
+    key-store: file:/opt/sapl/tls/keystore.p12
+    key-store-password: "${KEYSTORE_PASSWORD}"
+    key-store-type: PKCS12
+    enabled-protocols:
+      - TLSv1.3
+      - TLSv1.2
+    protocol: TLSv1.3
 
 management:
   endpoint:

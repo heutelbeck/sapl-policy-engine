@@ -20,6 +20,7 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -50,9 +51,9 @@ public class StepCompiler {
     private static final String ERROR_ATTR_UNION_ON_INVALID           = "Cannot apply attribute union to %s.";
     private static final String ERROR_CONDITION_NON_BOOLEAN           = "Condition must evaluate to boolean, got %s.";
     private static final String ERROR_CONDITION_ON_INVALID            = "Cannot apply condition step to %s.";
-    private static final String ERROR_CONDITION_STREAMING_UNSUPPORTED = "Stream operators are not allowed in a selection condition.";
+    private static final String ERROR_CONDITION_STREAMING_UNSUPPORTED = "Condition step with streaming condition not yet supported";
     private static final String ERROR_EXPR_STEP_INVALID_TYPE          = "Expression step requires number or string, got %s.";
-    private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Stream operators are not allowed in a selection index.";
+    private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Expression step with streaming expression not yet supported";
     private static final String ERROR_HANDLED_ABOVE                   = "Handled above";
     private static final String ERROR_INDEX_NOT_REPRESENTABLE         = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INDEX_ON_NON_ARRAY              = "Cannot apply index step to %s.";
@@ -280,10 +281,8 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileIndexUnionStep(IndexUnionStep step, CompilationContext ctx) {
-        val base = ExpressionCompiler.compile(step.base(), ctx);
-        // A repeated index selects nothing more, so a union compiles like its
-        // deduplicated form.
-        val indices = step.indices().stream().distinct().toList();
+        val base    = ExpressionCompiler.compile(step.base(), ctx);
+        val indices = step.indices();
         val loc     = step.location();
 
         return switch (base) {
@@ -364,10 +363,8 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileAttributeUnionStep(AttributeUnionStep step, CompilationContext ctx) {
-        val base = ExpressionCompiler.compile(step.base(), ctx);
-        // A repeated key selects nothing more, so a union compiles like its
-        // deduplicated form.
-        val attributes = step.attributes().stream().distinct().toList();
+        val base       = ExpressionCompiler.compile(step.base(), ctx);
+        val attributes = step.attributes();
         val loc        = step.location();
 
         return switch (base) {
@@ -438,9 +435,8 @@ public class StepCompiler {
         val base = ExpressionCompiler.compile(step.base(), ctx);
         val from = step.from();
         val to   = step.to();
-        // An omitted step is a step of one, so that [:] and [::1] compile alike.
-        val s   = step.step() == null ? Integer.valueOf(1) : step.step();
-        val loc = step.location();
+        val s    = step.step();
+        val loc  = step.location();
 
         // Validate step at compile time
         if (s != null && s == 0) {
@@ -469,18 +465,16 @@ public class StepCompiler {
         int toVal   = normalizeSliceIndex(to, size, stepVal > 0 ? size : -size - 1);
 
         val builder = ArrayValue.builder();
-        // The index runs in 64 bits, so that a step near the range of int cannot wrap
-        // it around into the array again.
         if (stepVal > 0) {
-            for (long i = fromVal; i < toVal && i < size; i += stepVal) {
+            for (int i = fromVal; i < toVal && i < size; i += stepVal) {
                 if (i >= 0) {
-                    builder.add(arr.get((int) i));
+                    builder.add(arr.get(i));
                 }
             }
         } else {
-            for (long i = fromVal; i > toVal && i >= 0; i += stepVal) {
+            for (int i = fromVal; i > toVal && i >= 0; i += stepVal) {
                 if (i < size) {
-                    builder.add(arr.get((int) i));
+                    builder.add(arr.get(i));
                 }
             }
         }
@@ -538,17 +532,19 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileExpressionStep(ExpressionStep step, CompilationContext ctx) {
-        val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(step.base(), ctx),
-                () -> ExpressionCompiler.compileNonStreaming(step.expression(), ctx,
-                        ERROR_EXPR_STEP_STREAMING_UNSUPPORTED));
-        val base     = operands.first();
-        val expr     = operands.second();
-        val loc      = step.location();
+        val base = ExpressionCompiler.compile(step.base(), ctx);
+        val expr = ExpressionCompiler.compile(step.expression(), ctx);
+        val loc  = step.location();
 
         if (base instanceof ErrorValue e)
             return e;
         if (expr instanceof ErrorValue e)
             return e;
+
+        // If expression is streaming, result is streaming
+        if (expr instanceof StreamOperator) {
+            return Value.error(ERROR_EXPR_STEP_STREAMING_UNSUPPORTED);
+        }
 
         return switch (base) {
         case Value baseVal             -> switch (expr) {
@@ -588,7 +584,7 @@ public class StepCompiler {
             try {
                 index = num.intValueExact();
             } catch (ArithmeticException ignored) {
-                yield Value.errorAt(loc, ERROR_INDEX_NOT_REPRESENTABLE, expr);
+                yield Value.errorAt(loc, ERROR_INDEX_NOT_REPRESENTABLE, num);
             }
             yield applyIndexStep(base, index, loc);
         }
@@ -627,7 +623,8 @@ public class StepCompiler {
         @Override
         public long semanticHash() {
             long baseHash = baseValue != null ? SemanticHashing.valueHash(baseValue) : baseOp.semanticHash();
-            return SemanticHashing.ordered(KIND, baseHash, SemanticHashing.expressionHash(expr));
+            long exprHash = expr instanceof PureOperator po ? po.semanticHash() : expr.hashCode();
+            return SemanticHashing.ordered(KIND, baseHash, exprHash);
         }
     }
 
@@ -684,17 +681,19 @@ public class StepCompiler {
     }
 
     public CompiledExpression compileConditionStep(ConditionStep step, CompilationContext compilationCtx) {
-        val operands  = CompilationChildren.pair(() -> ExpressionCompiler.compile(step.base(), compilationCtx),
-                () -> ExpressionCompiler.compileNonStreaming(step.condition(), compilationCtx,
-                        ERROR_CONDITION_STREAMING_UNSUPPORTED));
-        val base      = operands.first();
-        val condition = operands.second();
+        val base      = ExpressionCompiler.compile(step.base(), compilationCtx);
+        val condition = ExpressionCompiler.compile(step.condition(), compilationCtx);
         val loc       = step.location();
 
         if (base instanceof ErrorValue e)
             return e;
         if (condition instanceof ErrorValue e)
             return e;
+
+        // If condition is streaming, result is streaming
+        if (condition instanceof StreamOperator) {
+            return Value.error(ERROR_CONDITION_STREAMING_UNSUPPORTED);
+        }
 
         return switch (base) {
         case Value baseVal             -> switch (condition) {
@@ -753,21 +752,25 @@ public class StepCompiler {
 
     private static Value filterElements(int size, IntFunction<Value> elementAt, IntFunction<Value> keyAt,
             Value constantCond, PureOperator condOp, EvaluationContext ctx, SourceLocation loc) {
-        val builder = ArrayValue.builder();
-        for (int i = 0; i < size; i++) {
-            val element = elementAt.apply(i);
-            val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
-            val result  = evaluateCondition(constantCond, condOp, elemCtx);
-            if (result instanceof BooleanValue(boolean val)) {
-                if (val)
-                    builder.add(element);
-            } else if (result instanceof ErrorValue) {
-                return result;
-            } else {
-                return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+        // Shared regex budget across all elements so a per-element =~ cannot amplify
+        // cost with array size.
+        return BoundedRegex.runWithSharedMatchBudget(() -> {
+            val builder = ArrayValue.builder();
+            for (int i = 0; i < size; i++) {
+                val element = elementAt.apply(i);
+                val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
+                val result  = evaluateCondition(constantCond, condOp, elemCtx);
+                if (result instanceof BooleanValue(boolean val)) {
+                    if (val)
+                        builder.add(element);
+                } else if (result instanceof ErrorValue) {
+                    return result;
+                } else {
+                    return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+                }
             }
-        }
-        return builder.build();
+            return builder.build();
+        });
     }
 
     private static Value evaluateCondition(Value constantCond, PureOperator condOp, EvaluationContext elemCtx) {

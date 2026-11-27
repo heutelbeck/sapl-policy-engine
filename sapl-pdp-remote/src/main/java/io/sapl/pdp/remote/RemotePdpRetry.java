@@ -62,7 +62,7 @@ class RemotePdpRetry {
 
     // Exponential backoff capped at maxBackOffMillis, with 50% jitter
     // to avoid synchronized reconnect storms across clients.
-    static Duration backoffWithJitter(long attempt, int firstBackoffMillis, int maxBackOffMillis) {
+    private static Duration backoffWithJitter(long attempt, int firstBackoffMillis, int maxBackOffMillis) {
         val exponential = firstBackoffMillis * Math.pow(2d, attempt - 1d);
         val capped      = (long) Math.min(exponential, maxBackOffMillis);
         val jittered    = capped / 2L + ThreadLocalRandom.current().nextLong(capped / 2L + 1L);

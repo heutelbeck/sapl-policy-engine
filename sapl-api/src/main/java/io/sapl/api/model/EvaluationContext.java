@@ -22,7 +22,6 @@ import java.util.Map;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
-import lombok.val;
 
 import org.jspecify.annotations.Nullable;
 
@@ -36,85 +35,13 @@ public record EvaluationContext(
         @NonNull FunctionBroker functionBroker,
         @NonNull Value relativeValue,
         @NonNull Value relativeLocation,
-        @NonNull Map<SubscriptionKey, AttributeSnapshot> snapshot,
-        @Nullable EvaluationObserver observer) {
-
-    /** Receives the result of a reached operand within one evaluation round. */
-    @FunctionalInterface
-    public interface EvaluationObserver {
-        /**
-         * @param parent the enclosing expression, or the operand for a direct evaluation
-         * @param operand the expression that was evaluated
-         * @param value the result, or null while waiting for an attribute
-         */
-        void evaluated(CompiledExpression parent, CompiledExpression operand, @Nullable Value value);
-
-        /**
-         * @param guard guard classified by the index
-         * @param result resolved guard value
-         */
-        default void classified(CompiledExpression guard, Value result) {
-            // Observers may subscribe to individual operand evaluations only.
-        }
-    }
-
-    /**
-     * @param pdpId PDP identifier
-     * @param configurationId configuration identifier
-     * @param subscriptionId subscription identifier
-     * @param authorizationSubscription inputs of the authorization request
-     * @param functionBroker registered functions
-     * @param relativeValue current relative value
-     * @param relativeLocation current relative location
-     * @param snapshot attribute values available to this round
-     */
-    public EvaluationContext(String pdpId,
-            String configurationId,
-            String subscriptionId,
-            AuthorizationSubscription authorizationSubscription,
-            FunctionBroker functionBroker,
-            Value relativeValue,
-            Value relativeLocation,
-            Map<SubscriptionKey, AttributeSnapshot> snapshot) {
-        this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, relativeValue,
-                relativeLocation, snapshot, null);
-    }
-
-    /**
-     * @param listener observer for just this evaluation
-     * @return the same inputs with an observer attached
-     */
-    public EvaluationContext withObserver(EvaluationObserver listener) {
-        return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                relativeValue, relativeLocation, snapshot, listener);
-    }
-
-    /**
-     * @param parent expression evaluating the operand
-     * @param operand evaluated operand
-     * @param result completed value, or null while pending
-     */
-    public void observe(CompiledExpression parent, CompiledExpression operand, @Nullable Value result) {
-        if (observer != null) {
-            observer.evaluated(parent, operand, result);
-        }
-    }
-
-    /**
-     * @param operand the evaluated guard or index predicate
-     * @return its value for this subscription
-     */
-    public Value evaluate(PureOperator operand) {
-        val value = operand.evaluate(this);
-        observe(operand, operand, value);
-        return value;
-    }
+        @NonNull Map<SubscriptionKey, AttributeSnapshot> snapshot) {
 
     /**
      * Convenience constructor matching the pre-snapshot field shape.
      * The snapshot defaults to an empty map so existing callers do not
      * need to thread snapshot state through. The trigger loop uses the
-     * snapshot constructor to bind a populated snapshot.
+     * canonical 8-arg constructor to bind a populated snapshot.
      */
     public EvaluationContext(@NonNull String pdpId,
             @NonNull String configurationId,
@@ -171,12 +98,12 @@ public record EvaluationContext(
 
     public EvaluationContext withRelativeValue(Value relativeValue, Value relativeLocation) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                relativeValue, relativeLocation, snapshot, observer);
+                relativeValue, relativeLocation, snapshot);
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                relativeValue, Value.UNDEFINED, snapshot, observer);
+                relativeValue, Value.UNDEFINED, snapshot);
     }
 
     /**
@@ -191,7 +118,7 @@ public record EvaluationContext(
      */
     public EvaluationContext withSnapshot(Map<SubscriptionKey, AttributeSnapshot> snapshot) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                relativeValue, relativeLocation, snapshot, observer);
+                relativeValue, relativeLocation, snapshot);
     }
 
     public @Nullable Value lookup(SubscriptionKey key) {

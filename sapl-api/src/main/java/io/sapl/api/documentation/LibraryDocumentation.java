@@ -17,13 +17,9 @@
  */
 package io.sapl.api.documentation;
 
-import lombok.val;
-
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * Complete documentation for a SAPL extension library (function library or
@@ -49,22 +45,13 @@ public record LibraryDocumentation(
 
     /**
      * Returns a map of code templates to their documentation strings. Useful for
-     * IDE hover documentation. Overloads with the same insertion text keep their
-     * distinct descriptions in separate paragraphs.
+     * IDE hover documentation.
      *
      * @return map from code template to documentation
      */
     public Map<String, String> codeTemplateToDocumentation() {
-        val descriptions = new HashMap<String, SortedSet<String>>();
-        for (val entry : entries) {
-            val documented = descriptions.computeIfAbsent(entry.codeTemplate(name), ignored -> new TreeSet<>());
-            if (!entry.documentation().isBlank()) {
-                documented.add(entry.documentation());
-            }
-        }
-        val templates = new HashMap<String, String>();
-        descriptions.forEach((template, texts) -> templates.put(template, String.join("\n\n", texts)));
-        return templates;
+        return entries.stream()
+                .collect(Collectors.toMap(entry -> entry.codeTemplate(name), EntryDocumentation::documentation));
     }
 
     /**

@@ -24,9 +24,6 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -54,28 +51,6 @@ class IndexPredicateTests {
             val second = compile("      subject.role == \"admin\"");
             assertThat(first.semanticHash()).isEqualTo(second.semanticHash());
             assertThat(first.semanticEquals(second)).isTrue();
-        }
-
-        @ParameterizedTest(name = "{0} and {1} are equal")
-        @CsvSource(delimiter = '|', textBlock = """
-                subject[:]                         | subject[::1]
-                subject[1:3]                       | subject[1:3:1]
-                subject[1, 2, 1]                   | subject[1, 2]
-                subject["a", "b", "a"]             | subject["a", "b"]
-                """)
-        @DisplayName("paths that denote the same selection are equal")
-        void whenSameSelectionThenEqualWithEqualHash(String expression, String equivalent) {
-            val first  = compile(expression);
-            val second = compile(equivalent);
-            assertThat(first.semanticHash()).isEqualTo(second.semanticHash());
-            assertThat(first.semanticEquals(second)).isTrue();
-        }
-
-        @ParameterizedTest(name = "{0} has the same hash at another source position")
-        @ValueSource(strings = { "[subject.a, 1]", "{\"k\": subject.a}", "standard.length(subject.a)" })
-        @DisplayName("arrays, objects and function calls hash alike at different source positions")
-        void whenSameStructureDifferentLocationThenEqualHash(String expression) {
-            assertThat(compile(expression).semanticHash()).isEqualTo(compile("      " + expression).semanticHash());
         }
 
         @Test

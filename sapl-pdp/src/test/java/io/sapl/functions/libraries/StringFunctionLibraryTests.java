@@ -27,17 +27,12 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.Locale;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 @DisplayName("StringFunctionLibrary")
@@ -312,29 +307,49 @@ class StringFunctionLibraryTests {
         assertThat(result.value().intValue()).isEqualTo(expected);
     }
 
-    @DisplayName("Join preserves every field and validates its type")
-    @MethodSource
-    @ParameterizedTest(name = "{0} joined with {1} yields {2}")
-    void whenJoiningFieldsThenSeparatorsFollowTheirPositions(String input, String delimiter, Value expected) {
-        val elements = (ArrayValue) json(input);
-        val result   = StringFunctionLibrary.join(elements, (TextValue) Value.of(delimiter));
-        assertThat(result).isEqualTo(expected);
+    @ParameterizedTest(name = "join([{0}], {1}) -> {2}")
+    @CsvSource(delimiter = '|', textBlock = """
+            'Cthulhu,Hastur,Azathoth'  | ', '  | 'Cthulhu, Hastur, Azathoth'
+            ''                         | ','   | ''
+            Nyarlathotep               | '|'   | Nyarlathotep
+            'a,b,c'                    | '-'   | 'a-b-c'
+            """)
+    void joinCombinesArrayElementsWithDelimiter(String elements, String delimiter, String expected) {
+        val builder = ArrayValue.builder();
+        if (!elements.isEmpty()) {
+            for (String element : elements.split(",")) {
+                builder.add(Value.of(element));
+            }
+        }
+        val result = (TextValue) StringFunctionLibrary.join(builder.build(), (TextValue) Value.of(delimiter));
+        assertThat(result.value()).isEqualTo(expected);
     }
 
-    private static Stream<Arguments> whenJoiningFieldsThenSeparatorsFollowTheirPositions() {
-        return Stream.of(arguments("[]", ",", Value.of("")), arguments("""
-                [""]""", ":", Value.of("")), arguments("""
-                ["", "b"]""", ":", Value.of(":b")), arguments("""
-                ["", "", "b", ""]""", ":", Value.of("::b:")), arguments("""
-                ["", ""]""", ":", Value.of(":")), arguments("""
-                ["a", "", "b"]""", ":", Value.of("a::b")), arguments("""
-                ["", "b", ""]""", "", Value.of("b")), arguments("""
-                ["a", "b", "c"]""", "-", Value.of("a-b-c")), arguments("""
-                ["Nyarlathotep"]""", "|", Value.of("Nyarlathotep")), arguments("""
-                ["Cthulhu", "Hastur", "Azathoth"]""", ", ", Value.of("Cthulhu, Hastur, Azathoth")), arguments("""
-                ["", 42]""", ":", Value.error("All array elements must be text values.")), arguments("""
-                [42, "text"]""", ",", Value.error("All array elements must be text values.")),
-                arguments("[true, false]", ",", Value.error("All array elements must be text values.")));
+    @Test
+    void joinReturnsErrorWhenTextFollowedByNumber() {
+        val builder = ArrayValue.builder();
+        builder.add(Value.of("text"));
+        builder.add(Value.of(42));
+        Value result = StringFunctionLibrary.join(builder.build(), (TextValue) Value.of(","));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void joinReturnsErrorWhenNumberFollowedByText() {
+        val builder = ArrayValue.builder();
+        builder.add(Value.of(42));
+        builder.add(Value.of("text"));
+        Value result = StringFunctionLibrary.join(builder.build(), (TextValue) Value.of(","));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void joinReturnsErrorForBooleanElements() {
+        val builder = ArrayValue.builder();
+        builder.add(Value.of(true));
+        builder.add(Value.of(false));
+        Value result = StringFunctionLibrary.join(builder.build(), (TextValue) Value.of(","));
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @ParameterizedTest(name = "concat({0}) -> {1}")

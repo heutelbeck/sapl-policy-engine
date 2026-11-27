@@ -38,10 +38,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -105,17 +103,6 @@ class BlockingReactivePolicyDecisionPointTests {
         val decision = pdp.decideOnce(subscription);
 
         assertThat(decision.decision()).isEqualTo(expectedDecision);
-    }
-
-    @ParameterizedTest(name = "multiplier {0} with subject {1} yields {2}")
-    @DisplayName("decimal limits agree for policy literals and subscription values")
-    @CsvSource({ "2,2,PERMIT", "2.0,2.0,PERMIT", "subject,2,PERMIT", "subject,2.0,PERMIT", "0.1,0.1,INDETERMINATE",
-            "subject,0.1,INDETERMINATE" })
-    void whenMultiplyingAtTheDecimalLimitThenDecisionDependsOnTheValue(String multiplier, String subject,
-            Decision expected) {
-        loadConfiguration(DENY_OVERRIDES, "policy \"decimal\" permit 1E-1000 * " + multiplier + " == 2E-1000;");
-        val request = AuthorizationSubscription.of(Value.of(new BigDecimal(subject)), Value.NULL, Value.NULL);
-        assertThat(pdp.decideOnce(request).decision()).isEqualTo(expected);
     }
 
     private static Stream<Arguments> whenCombiningAlgorithmThenReturnsExpectedDecision() {

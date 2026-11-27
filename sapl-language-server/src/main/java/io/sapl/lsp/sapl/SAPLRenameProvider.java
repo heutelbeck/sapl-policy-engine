@@ -25,19 +25,21 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PrepareRenameResult;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.WorkspaceEdit;
 
 import io.sapl.grammar.antlr.SAPLParser.BasicIdentifierContext;
+import io.sapl.grammar.antlr.SAPLParser.PolicyBodyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
+import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionContext;
 import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionStatementContext;
 import io.sapl.grammar.antlr.SAPLParser.VarNameContext;
 import io.sapl.lsp.core.ParsedDocument;
-import io.sapl.lsp.core.ProtocolPositions;
 import lombok.val;
 
 /**
@@ -48,37 +50,20 @@ import lombok.val;
  */
 class SAPLRenameProvider {
 
-    /**
-     * The place of the cursor in the document, looked up once per request.
-     *
-     * @param positions the positions of the document
-     * @param offset the offset of the cursor
-     */
-    private record Place(ProtocolPositions positions, int offset) {
-
-        static Place of(SaplContext tree, Position position) {
-            val positions = ProtocolPositions.of(tree.getStart());
-            return new Place(positions, positions.offsetOf(position));
-        }
-
-        boolean isIn(ParserRuleContext ctx) {
-            return positions.encloses(ctx, offset);
-        }
-    }
+    private static final Range ZERO_RANGE = new Range(new Position(0, 0), new Position(0, 0));
 
     PrepareRenameResult prepareRename(ParsedDocument document, Position position) {
         if (!(document instanceof SAPLParsedDocument saplDocument)) {
             return null;
         }
         val tree    = saplDocument.getSaplParseTree();
-        val place   = Place.of(tree, position);
-        val varName = findVarNameAtPosition(tree, place);
+        val varName = findVarNameAtPosition(tree, position);
         if (varName != null) {
-            return new PrepareRenameResult(ProtocolPositions.rangeOfNode(varName), varName.getText());
+            return new PrepareRenameResult(rangeOf(varName), varName.getText());
         }
-        val identRef = findVariableReferenceAtPosition(tree, place);
+        val identRef = findVariableReferenceAtPosition(tree, position);
         if (identRef != null) {
-            return new PrepareRenameResult(ProtocolPositions.rangeOfNode(identRef), identRef.getText());
+            return new PrepareRenameResult(rangeOf(identRef), identRef.getText());
         }
         return null;
     }
@@ -88,8 +73,7 @@ class SAPLRenameProvider {
             return null;
         }
         val tree       = saplDocument.getSaplParseTree();
-        val place      = Place.of(tree, position);
-        val targetName = findVariableNameAtPosition(tree, place);
+        val targetName = findVariableNameAtPosition(tree, position);
         if (targetName == null) {
             return null;
         }
@@ -97,7 +81,7 @@ class SAPLRenameProvider {
         val policyElement = tree.policyElement();
 
         if (policyElement instanceof PolicySetElementContext policySetElement) {
-            collectRenameEditsInPolicySet(policySetElement.policySet(), targetName, newName, place, edits);
+            collectRenameEditsInPolicySet(policySetElement.policySet(), targetName, newName, position, edits);
         } else if (policyElement instanceof PolicyOnlyElementContext policyOnlyElement) {
             collectRenameEditsInPolicy(policyOnlyElement.policy(), targetName, newName, edits);
         }
@@ -111,7 +95,7 @@ class SAPLRenameProvider {
     }
 
     private void collectRenameEditsInPolicySet(PolicySetContext policySet, String targetName, String newName,
-            Place place, List<TextEdit> edits) {
+            Position position, List<TextEdit> edits) {
         if (policySet == null) {
             return;
         }
@@ -119,7 +103,7 @@ class SAPLRenameProvider {
         // If the cursor is inside such a policy, the rename targets the policy-level
         // var.
         for (val policy : policySet.policy()) {
-            if (place.isIn(policy) && policyRedeclares(policy, targetName)) {
+            if (containsPosition(policy, position) && policyRedeclares(policy, targetName)) {
                 collectRenameEditsInPolicy(policy, targetName, newName, edits);
                 return;
             }
@@ -127,14 +111,14 @@ class SAPLRenameProvider {
         // Check if it's a set-level var
         for (val varDef : policySet.valueDefinition()) {
             if (varDef.name != null && varDef.name.getText().equals(targetName)) {
-                edits.add(new TextEdit(ProtocolPositions.rangeOfNode(varDef.name), newName));
+                edits.add(new TextEdit(rangeOf(varDef.name), newName));
                 collectSetLevelReferences(policySet, targetName, newName, edits);
                 return;
             }
         }
         // Otherwise it's a policy-level var
         for (val policy : policySet.policy()) {
-            if (place.isIn(policy)) {
+            if (containsPosition(policy, position)) {
                 collectRenameEditsInPolicy(policy, targetName, newName, edits);
                 return;
             }
@@ -199,7 +183,7 @@ class SAPLRenameProvider {
             if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
                 val varDef = varDefStmt.valueDefinition();
                 if (varDef.name != null && varDef.name.getText().equals(targetName)) {
-                    edits.add(new TextEdit(ProtocolPositions.rangeOfNode(varDef.name), newName));
+                    edits.add(new TextEdit(rangeOf(varDef.name), newName));
                     found = true;
                     continue;
                 }
@@ -229,7 +213,7 @@ class SAPLRenameProvider {
     private void collectReferencesInTree(ParseTree tree, String targetName, List<TextEdit> edits, String newName) {
         if (tree instanceof BasicIdentifierContext basicId && basicId.saplId() != null
                 && basicId.saplId().getText().equals(targetName)) {
-            edits.add(new TextEdit(ProtocolPositions.rangeOfNode(basicId.saplId()), newName));
+            edits.add(new TextEdit(rangeOf(basicId.saplId()), newName));
         }
         if (tree instanceof ParserRuleContext ctx) {
             for (var i = 0; i < ctx.getChildCount(); i++) {
@@ -238,35 +222,35 @@ class SAPLRenameProvider {
         }
     }
 
-    private VarNameContext findVarNameAtPosition(SaplContext tree, Place place) {
+    private VarNameContext findVarNameAtPosition(SaplContext tree, Position position) {
         val varNames = new ArrayList<VarNameContext>();
         collectNodesOfType(tree, VarNameContext.class, varNames);
         for (val varName : varNames) {
-            if (place.isIn(varName)) {
+            if (containsPosition(varName, position)) {
                 return varName;
             }
         }
         return null;
     }
 
-    private ParserRuleContext findVariableReferenceAtPosition(SaplContext tree, Place place) {
+    private ParserRuleContext findVariableReferenceAtPosition(SaplContext tree, Position position) {
         val identifiers = new ArrayList<BasicIdentifierContext>();
         collectNodesOfType(tree, BasicIdentifierContext.class, identifiers);
         for (val ident : identifiers) {
             val saplId = ident.saplId();
-            if (saplId != null && place.isIn(saplId)) {
+            if (saplId != null && containsPosition(saplId, position)) {
                 return saplId;
             }
         }
         return null;
     }
 
-    private String findVariableNameAtPosition(SaplContext tree, Place place) {
-        val varName = findVarNameAtPosition(tree, place);
+    private String findVariableNameAtPosition(SaplContext tree, Position position) {
+        val varName = findVarNameAtPosition(tree, position);
         if (varName != null) {
             return varName.getText();
         }
-        val identRef = findVariableReferenceAtPosition(tree, place);
+        val identRef = findVariableReferenceAtPosition(tree, position);
         if (identRef != null) {
             return identRef.getText();
         }
@@ -282,6 +266,35 @@ class SAPLRenameProvider {
                 collectNodesOfType(ctx.getChild(i), type, results);
             }
         }
+    }
+
+    private boolean containsPosition(ParserRuleContext ctx, Position position) {
+        if (ctx.getStart() == null || ctx.getStop() == null) {
+            return false;
+        }
+        val startLine = ctx.getStart().getLine() - 1;
+        val startChar = ctx.getStart().getCharPositionInLine();
+        val stopLine  = ctx.getStop().getLine() - 1;
+        val stopChar  = ctx.getStop().getCharPositionInLine() + ctx.getStop().getText().length();
+        val line      = position.getLine();
+        val character = position.getCharacter();
+        if (line < startLine || line > stopLine) {
+            return false;
+        }
+        if (line == startLine && character < startChar) {
+            return false;
+        }
+        return line != stopLine || character <= stopChar;
+    }
+
+    private Range rangeOf(ParserRuleContext ctx) {
+        if (ctx == null || ctx.getStart() == null || ctx.getStop() == null) {
+            return ZERO_RANGE;
+        }
+        val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
+        val stop  = ctx.getStop();
+        val end   = new Position(stop.getLine() - 1, stop.getCharPositionInLine() + stop.getText().length());
+        return new Range(start, end);
     }
 
 }

@@ -93,10 +93,6 @@
             <artifactId>json-schema-validator</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.re2j</groupId>
-            <artifactId>re2j</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.github.jsqlparser</groupId>
             <artifactId>jsqlparser</artifactId>
         </dependency>

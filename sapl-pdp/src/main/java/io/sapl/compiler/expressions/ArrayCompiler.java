@@ -24,15 +24,13 @@ import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
- * Compiles array literals and preserves element order in every stratum.
- * Undefined elements are omitted. A streaming array visits every element to
- * collect its dependencies, including when another element is still pending.
+ * Compiles array literal expressions using the PRECOMPILED pattern.
+ * Elements that evaluate to UndefinedValue are dropped from the result.
  */
 @UtilityClass
 public class ArrayCompiler {
@@ -49,10 +47,11 @@ public class ArrayCompiler {
             return Value.EMPTY_ARRAY;
         }
 
-        val     compiled  = CompilationChildren.map(elements, element -> ExpressionCompiler.compile(element, ctx));
+        val     compiled  = new ArrayList<CompiledExpression>(elements.size());
         boolean allValues = true;
         boolean hasStream = false;
-        for (val result : compiled) {
+        for (val element : elements) {
+            val result = ExpressionCompiler.compile(element, ctx);
             if (result instanceof ErrorValue) {
                 return result;
             }
@@ -62,6 +61,7 @@ public class ArrayCompiler {
             } else if (!(result instanceof Value)) {
                 allValues = false;
             }
+            compiled.add(result);
         }
 
         if (allValues) {
@@ -87,9 +87,83 @@ public class ArrayCompiler {
         return builder.build();
     }
 
+    static int[] toIntArray(List<Integer> list) {
+        int[] arr = new int[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            arr[i] = list.get(i);
+        }
+        return arr;
+    }
+
+    /**
+     * Categorizes compiled expressions into Value, PureOperator, and StreamOperator
+     * strata.
+     * Used by ArrayCompiler, ObjectCompiler, and AttributeCompiler.
+     */
+    record CategorizedExpressions(
+            int[] valueIndices,
+            Value[] values,
+            int[] pureIndices,
+            PureOperator[] pureOperators,
+            int[] streamIndices,
+            StreamOperator[] streams,
+            int totalCount) {
+
+        static CategorizedExpressions categorize(List<CompiledExpression> compiled) {
+            val streamIndices = new ArrayList<Integer>();
+            val streams       = new ArrayList<StreamOperator>();
+            val pureIndices   = new ArrayList<Integer>();
+            val pureOperators = new ArrayList<PureOperator>();
+            val valueIndices  = new ArrayList<Integer>();
+            val values        = new ArrayList<Value>();
+
+            for (int i = 0; i < compiled.size(); i++) {
+                switch (compiled.get(i)) {
+                case Value v          -> {
+                    valueIndices.add(i);
+                    values.add(v);
+                }
+                case PureOperator p   -> {
+                    pureIndices.add(i);
+                    pureOperators.add(p);
+                }
+                case StreamOperator s -> {
+                    streamIndices.add(i);
+                    streams.add(s);
+                }
+                }
+            }
+
+            return new CategorizedExpressions(toIntArray(valueIndices), values.toArray(Value[]::new),
+                    toIntArray(pureIndices), pureOperators.toArray(PureOperator[]::new), toIntArray(streamIndices),
+                    streams.toArray(StreamOperator[]::new), compiled.size());
+        }
+
+        int streamCount() {
+            return streams.length;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
+                    Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices), Arrays.hashCode(streams),
+                    totalCount);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o
+                    || (o instanceof CategorizedExpressions(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
+                            && totalCount == oTotal);
+        }
+    }
+
     /**
      * Array with all pure elements (values and pure operators, no streams).
-     * Constructed after compilation establishes that no element reads an attribute.
+     * Constructed only when the categorizer reports zero stream elements.
      * The {@link StreamOperator} branch in element dispatch is therefore
      * unreachable and folds to an {@link ErrorValue} defensively.
      */
@@ -139,9 +213,14 @@ public class ArrayCompiler {
         public long semanticHash() {
             long hash = KIND;
             for (val element : elements) {
-                hash = SemanticHashing.ordered(hash, SemanticHashing.expressionHash(element));
+                val elementHash = switch (element) {
+                case Value v                -> SemanticHashing.valueHash(v);
+                case PureOperator p         -> p.semanticHash();
+                case StreamOperator ignored -> (long) element.hashCode();
+                };
+                hash = SemanticHashing.ordered(hash, elementHash);
             }
-            return hash;
+            return SemanticHashing.ordered(hash, Objects.hashCode(location));
         }
     }
 

@@ -75,13 +75,8 @@ public interface ReactivePolicyDecisionPoint {
     Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription, String pdpId);
 
     /**
-     * Emits the first bundle when every item has a decision. Each round evaluates
-     * the group against one fixed view of its attributes, so a shared attribute
-     * can change several decisions in one bundle. Later emissions contain all
-     * items under their caller-supplied IDs whenever any item's full decision changes.
-     * Separate calls open independent groups.
-     *
-     * @see StreamingPolicyDecisionPoint#decideAll(MultiAuthorizationSubscription, String)
+     * Evaluates multiple authorization subscriptions against the tenant's
+     * policies and returns bundled decisions.
      *
      * @param multiSubscription the multi-subscription
      * @param pdpId the tenant's PDP identifier

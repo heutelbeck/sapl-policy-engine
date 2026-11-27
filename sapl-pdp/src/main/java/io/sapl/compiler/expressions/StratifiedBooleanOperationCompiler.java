@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.compiler.expressions.BooleanGuard.BooleanResult;
-
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
@@ -31,8 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
-import static io.sapl.compiler.expressions.BooleanGuard.booleanGuard;
-import static io.sapl.compiler.expressions.BooleanGuard.compileBooleanOperand;
 
 /**
  * Compiler for boolean operators AND ({@code &&}, {@code &}) and OR
@@ -54,27 +50,17 @@ public class StratifiedBooleanOperationCompiler {
     public static final String ERROR_NOT_A_BOOLEAN_OPERATOR = "Not a boolean operator: %s.";
     public static final String ERROR_TYPE_MISMATCH          = "Expected BOOLEAN but got: %s.";
 
-    private static final UnaryOperation BOOLEAN_GUARD = booleanGuard(
-            (value, location) -> Value.errorAt(location, ERROR_TYPE_MISMATCH, value.getClass().getSimpleName()));
-
     public static CompiledExpression compile(BinaryOperator expr, CompilationContext ctx) {
         val op       = expr.op();
         val location = expr.location();
 
-        val operands = CompilationChildren.pair(() -> compileBooleanOperand(expr.left(), ctx),
-                () -> compileBooleanOperand(expr.right(), ctx));
-        val left     = operands.first();
-        val right    = operands.second();
+        val left  = ExpressionCompiler.compile(expr.left(), ctx);
+        val right = ExpressionCompiler.compile(expr.right(), ctx);
         return compile(left, right, op, location);
     }
 
-    public static CompiledExpression compile(CompiledExpression written, CompiledExpression other,
-            BinaryOperatorType op, SourceLocation location) {
-        // AND and OR are commutative: within a stratum the operands take their
-        // canonical order, so that a && b and b && a compile alike.
-        val swap      = CanonicalOperandOrder.precedes(other, written);
-        val left      = swap ? other : written;
-        val right     = swap ? written : other;
+    public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, BinaryOperatorType op,
+            SourceLocation location) {
         val isAnd     = op == BinaryOperatorType.LAZY_AND || op == BinaryOperatorType.EAGER_AND;
         val dominator = isAnd ? Value.FALSE : Value.TRUE;
 
@@ -168,13 +154,15 @@ public class StratifiedBooleanOperationCompiler {
      * or an existing error passes through, any other (non-boolean) value becomes
      * a type-mismatch error. Shared by the operators, the policy index, and the
      * coverage evaluator so they all agree on the same rule and message.
-     *
-     * @param v value in a boolean position
-     * @param location source of the operator
-     * @return the boolean or an error
      */
     public static Value asBoolean(Value v, SourceLocation location) {
-        return BOOLEAN_GUARD.apply(v, location);
+        if (v instanceof BooleanValue) {
+            return v;
+        }
+        if (v instanceof ErrorValue) {
+            return v;
+        }
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
     }
 
     /**
@@ -216,25 +204,17 @@ public class StratifiedBooleanOperationCompiler {
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
     }
 
-    /**
-     * Boolean coercion of the remaining pure operand after folding an identity.
-     *
-     * @param p remaining operand
-     * @param location source of the boolean operation
-     * @param isDependingOnSubscription whether the operand reads the subscription
-     * @param isRelativeExpression whether the operand reads a relative value
-     */
-    public record LazyValuePure(
+    record LazyValuePure(
             PureOperator p,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator, BooleanResult {
+            boolean isRelativeExpression) implements PureOperator {
 
         private static final long KIND = SemanticHashing.kindHash(LazyValuePure.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return asBoolean(ctx.evaluate(p), location);
+            return asBoolean(p.evaluate(ctx), location);
         }
 
         @Override
@@ -248,17 +228,17 @@ public class StratifiedBooleanOperationCompiler {
             PureOperator p2,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator, BooleanResult {
+            boolean isRelativeExpression) implements PureOperator {
 
         private static final long KIND = SemanticHashing.kindHash(LazyAndPurePure.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            val v1 = ctx.evaluate(p1);
+            val v1 = p1.evaluate(ctx);
             if (Value.FALSE.equals(v1)) {
                 return Value.FALSE;
             }
-            return combine(v1, ctx.evaluate(p2), true, location);
+            return combine(v1, p2.evaluate(ctx), true, location);
         }
 
         @Override
@@ -277,7 +257,7 @@ public class StratifiedBooleanOperationCompiler {
             PureOperator p2,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator, BooleanResult {
+            boolean isRelativeExpression) implements PureOperator {
 
         private static final long KIND = SemanticHashing.kindHash(LazyOrPurePure.class);
 
@@ -301,7 +281,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    record LazyValueStream(StreamOperator s, SourceLocation location) implements StreamOperator, BooleanResult {
+    record LazyValueStream(StreamOperator s, SourceLocation location) implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
@@ -313,8 +293,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    record LazyAndPureStream(PureOperator p, StreamOperator s, SourceLocation location)
-            implements StreamOperator, BooleanResult {
+    record LazyAndPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
@@ -330,8 +309,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    record LazyOrPureStream(PureOperator p, StreamOperator s, SourceLocation location)
-            implements StreamOperator, BooleanResult {
+    record LazyOrPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
@@ -348,7 +326,7 @@ public class StratifiedBooleanOperationCompiler {
     }
 
     record LazyAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
-            implements StreamOperator, BooleanResult {
+            implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
@@ -367,8 +345,7 @@ public class StratifiedBooleanOperationCompiler {
         }
     }
 
-    record LazyOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
-            implements StreamOperator, BooleanResult {
+    record LazyOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location) implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
@@ -388,7 +365,7 @@ public class StratifiedBooleanOperationCompiler {
     }
 
     record EagerAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
-            implements StreamOperator, BooleanResult {
+            implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
@@ -405,7 +382,7 @@ public class StratifiedBooleanOperationCompiler {
     }
 
     record EagerOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
-            implements StreamOperator, BooleanResult {
+            implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);

@@ -31,7 +31,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.document.AstTransformer;
-import io.sapl.compiler.document.ExpressionDepthValidator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
@@ -46,6 +45,8 @@ import lombok.experimental.UtilityClass;
 public class ExpressionEvaluator {
 
     private static final String CONTENT_ASSIST_ID = "contentAssistEvaluation";
+
+    private static final AstTransformer AST_TRANSFORMER = new AstTransformer();
 
     /**
      * Evaluates an ANTLR expression parse tree to a JSON node.
@@ -62,17 +63,14 @@ public class ExpressionEvaluator {
         }
 
         try {
-            // Convert ANTLR context to AST Expression. A fresh transformer per call. The
-            // transformer carries per-document mutable state, so an instance must not be
-            // shared between documents or threads.
-            if (!(new AstTransformer().visit(expressionCtx) instanceof Expression expression)) {
+            // Convert ANTLR context to AST Expression
+            if (!(AST_TRANSFORMER.visit(expressionCtx) instanceof Expression expression)) {
                 return Optional.empty();
             }
 
             var pdpData            = new PdpData(Value.ofObject(config.variables()), Value.EMPTY_OBJECT);
             var compilationContext = new CompilationContext(pdpData, config.functionBroker());
 
-            ExpressionDepthValidator.validateExpression(expression, compilationContext.maxExpressionDepth());
             var compiledExpression = ExpressionCompiler.compile(expression, compilationContext);
 
             if (compiledExpression == null || compiledExpression instanceof StreamOperator) {
@@ -89,13 +87,10 @@ public class ExpressionEvaluator {
             }
 
             return Optional.of(ValueJsonMarshaller.toJsonNode(schemaObject));
-        } catch (Exception | StackOverflowError e) {
+        } catch (Exception e) {
             // Content-assist compiles and evaluates attacker-influenced schema expressions.
             // Any failure (compile, evaluation, marshalling, or an unexpected node type)
-            // must degrade to no proposal, never escape to the dispatch layer. That
-            // includes an expression nested too deeply for the stack: the transformation,
-            // the compilation and the evaluation each recurse once per link of a chain of
-            // prefix operators, subtemplates or steps.
+            // must degrade to no proposal, never escape to the dispatch layer.
             return Optional.empty();
         }
     }

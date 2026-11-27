@@ -22,15 +22,13 @@ import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.boot.web.server.Ssl;
 import org.springframework.boot.web.server.context.WebServerInitializedEvent;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import io.sapl.node.SaplNodeProperties;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -40,6 +38,7 @@ import lombok.val;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 class SaplNodeReadyBanner {
 
     private static final String AUTH_NONE      = "no-auth";
@@ -50,9 +49,9 @@ class SaplNodeReadyBanner {
     private static final String DISABLED       = "disabled";
 
     private final SaplNodeProperties properties;
-    // Spring Boot serves TLS as soon as a server.ssl setting exists, such as a
-    // named bundle, unless server.ssl.enabled is false.
-    private final boolean httpSslEnabled;
+
+    @Value("${server.ssl.enabled:false}")
+    private boolean httpSslEnabled;
 
     @Value("${sapl.pdp.rsocket.enabled:true}")
     private boolean rsocketEnabled;
@@ -68,11 +67,6 @@ class SaplNodeReadyBanner {
 
     private volatile int  httpPort     = -1;
     private volatile long readyAtNanos = 0L;
-
-    SaplNodeReadyBanner(SaplNodeProperties properties, Environment environment) {
-        this.properties     = properties;
-        this.httpSslEnabled = Ssl.isEnabled(Binder.get(environment).bind("server.ssl", Ssl.class).orElse(null));
-    }
 
     @EventListener
     void onWebServerInitialized(WebServerInitializedEvent event) {

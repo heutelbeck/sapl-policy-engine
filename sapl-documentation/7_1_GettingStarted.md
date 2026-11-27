@@ -58,7 +58,7 @@ The action downloads the correct binary for the runner platform and adds it to t
 
 ### Quick Start
 
-This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP. No configuration files are needed. The built-in defaults keep setup minimal: policies loaded from the current directory. The node ships secure by default and requires TLS and an authentication mode before it starts, on localhost too. This walkthrough passes `--no-tls` and `--no-auth` to serve plaintext and accept unauthenticated requests for local exploration.
+This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP. No configuration files are needed. The built-in defaults keep setup minimal: no TLS and policies loaded from the current directory. The node ships fail-closed and requires choosing an authentication mode before it starts. This walkthrough passes `--no-auth` to accept unauthenticated requests for local exploration.
 
 Create a working directory and a policy file:
 
@@ -79,10 +79,10 @@ The `<time.now>` attribute is a stream. It emits the current UTC timestamp once 
 Start the server:
 
 ```shell
-cd demo && ./sapl --no-tls --no-auth
+cd demo && ./sapl --no-auth
 ```
 
-The node starts on `localhost:8080` without TLS. The `--no-tls` flag allows plaintext and the `--no-auth` flag accepts unauthenticated requests for local exploration. Without these choices the node refuses to start. Each logs a warning at every start that names the option. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
+The node starts on `localhost:8080` with no TLS. The `--no-auth` flag accepts unauthenticated requests for local exploration. Without an authentication choice the node fails closed and refuses to start. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
 
 In a separate terminal, request a one-shot decision:
 
@@ -219,18 +219,6 @@ io.sapl.pdp.embedded:
     public-key-path: /etc/sapl/signing.pub
 ```
 
-The package configuration sets no opt-in for plaintext or anonymous access, so the service also needs TLS and an authentication mode. Both APIs serve one certificate from PEM files readable by the `sapl` user:
-
-```yaml
-io.sapl.node:
-  tls:
-    certificate-chain: /etc/sapl/tls/server.pem
-    private-key: /etc/sapl/tls/server.key
-  allow-api-key-auth: true
-```
-
-Generate the API key user entry with `sapl generate apikey --id <client>`. See [Security](../7_6_Security/) for the other authentication modes and for plaintext behind a TLS-terminating proxy.
-
 #### Managing the Service
 
 Start the service and enable it on boot:
@@ -262,7 +250,7 @@ Enable evaluation diagnostics by setting `print-text-report: true` in `/etc/sapl
 #### Verifying
 
 ```shell
-curl -s --cacert /etc/sapl/tls/ca.pem https://localhost:8080/actuator/health | jq .
+curl -s http://localhost:8080/actuator/health | jq .
 ```
 
 You should see `"status": "UP"`. The PDP watches `/var/lib/sapl/` for bundle changes and reloads automatically.
@@ -271,7 +259,7 @@ Replace the example policies with your own by creating `.sapl` files in a direct
 
 #### Service Hardening
 
-The systemd unit runs with strict security restrictions: `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome=true`, and write access limited to `/var/lib/sapl/`. The service cannot write outside its data directory. Place signing keys and the TLS certificate and key in `/etc/sapl/` (readable but not writable by the service).
+The systemd unit runs with strict security restrictions: `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome=true`, and write access limited to `/var/lib/sapl/`. The service cannot write outside its data directory. Place signing keys and TLS keystores in `/etc/sapl/` (readable but not writable by the service).
 
 ### Running with Docker
 
@@ -281,7 +269,7 @@ The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the
 
 SAPL Node also publishes minimal native images. The `ghcr.io/heutelbeck/sapl-node:<version>-min` tag is a multi architecture manifest for amd64 and arm64. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-amd64` to pin x86_64 deployments. Use `ghcr.io/heutelbeck/sapl-node:<version>-min-arm64` to pin ARM64 deployments.
 
-The minimal images package the native binary on a distroless base. They are smaller, have less attack surface, and boot faster than the JVM image. The tradeoff is a lower performance ceiling under sustained load because there is no JIT, no ZGC, and no runtime loadable extension jars. All Docker images default to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security, TLS and an authentication mode are configured, or until plaintext and anonymous access are allowed explicitly.
+The minimal images package the native binary on a distroless base. They are smaller, have less attack surface, and boot faster than the JVM image. The tradeoff is a lower performance ceiling under sustained load because there is no JIT, no ZGC, and no runtime loadable extension jars. All Docker images default to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
 To get started with signed bundles:
 
@@ -293,24 +281,22 @@ sapl bundle keygen -o signing
 sapl bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem
 ```
 
-Run the container, mounting the bundles directory, the public key, and a certificate with its key as PEM files. Authentication is configured as described in [Security](../7_6_Security/), here with an API key user:
+Run the container, mounting the bundles directory and the public key:
 
 ```shell
-docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -v ./tls:/pdp/tls:ro -e SERVER_ADDRESS=0.0.0.0 -e SERVER_PORT=8443 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub -e IO_SAPL_NODE_TLS_CERTIFICATECHAIN=/pdp/tls/server.pem -e IO_SAPL_NODE_TLS_PRIVATEKEY=/pdp/tls/server.key -e IO_SAPL_NODE_ALLOWAPIKEYAUTH=true -e IO_SAPL_NODE_USERS_0_ID=my-client -e IO_SAPL_NODE_USERS_0_APIKEYID=<api-key-id> -e IO_SAPL_NODE_USERS_0_APIKEY='<argon2-hash>' ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
 ```
-
-For development or evaluation, the two environment variables `IO_SAPL_NODE_ALLOWNOTLS=true` and `IO_SAPL_NODE_ALLOWNOAUTH=true` allow plaintext and anonymous access explicitly. The node logs a warning for each at every start.
 
 For development or evaluation without signing, disable signature verification:
 
 ```shell
-docker run -p 8080:8080 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_NODE_ALLOWNOTLS=true -e IO_SAPL_NODE_ALLOWNOAUTH=true -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
 ```
 
 To use raw `.sapl` files instead of bundles (for learning or demos), override the policy source type:
 
 ```shell
-docker run -p 8080:8080 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_NODE_ALLOWNOTLS=true -e IO_SAPL_NODE_ALLOWNOAUTH=true -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -p 8443:8443 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
 ```
 
 The `SERVER_ADDRESS=0.0.0.0` override is required so Docker's port mapping can reach the server. The default `127.0.0.1` only accepts connections from within the container.
@@ -372,15 +358,10 @@ The following commands run locally without starting the server. Use them to mana
 | Command | Description |
 |---------|-------------|
 | `sapl bundle create` | Create a `.saplbundle` archive from a directory of `.sapl` files and a `pdp.json`. Optionally signs in the same step. |
-| `sapl bundle unpack` | Unpack a policy bundle into a directory. |
-| `sapl bundle seal` | Seal a policy directory's secrets to a recipient. |
-| `sapl bundle unseal` | Unseal a policy directory's secrets with the recipient key. |
-| `sapl bundle reseal` | Reseal a policy directory's secrets from one recipient to another. |
 | `sapl bundle sign` | Sign a bundle with an Ed25519 private key. |
 | `sapl bundle verify` | Verify a signed bundle against a public key. |
 | `sapl bundle inspect` | Display bundle contents, signature status, and policy list. |
 | `sapl bundle keygen` | Generate an Ed25519 keypair for bundle signing. |
-| `sapl bundle keygen-secrets` | Generate an X25519 keypair for sealing bundle secrets. |
 | `sapl generate basic` | Generate Basic Auth credentials and a ready-to-paste YAML block. |
 | `sapl generate apikey` | Generate an API key and a ready-to-paste YAML block. |
 

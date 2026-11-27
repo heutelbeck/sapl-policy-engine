@@ -194,7 +194,7 @@ The `AttributeAccessContext` provides access to:
 | Method                 | Description                                                      |
 |------------------------|------------------------------------------------------------------|
 | `variables()`          | PDP environment variables (from `pdp.json`)                      |
-| `pdpSecrets()`         | Operator-level secrets (`secrets.json`, `secrets.sealed.json`)   |
+| `pdpSecrets()`         | Operator-level secrets configured in `pdp.json`                  |
 | `subscriptionSecrets()`| Per-request secrets provided by the application                  |
 
 The context is injected automatically by the PDP and is invisible to policy authors.
@@ -310,7 +310,7 @@ PIP methods frequently need credentials to access external services. These crede
 
 Use `AttributeAccessContext` to access secrets:
 
-- **`pdpSecrets()`** for operator-level credentials configured in the PDP secrets file, `secrets.json` or `secrets.sealed.json` (e.g., database connection strings, API keys shared across all requests)
+- **`pdpSecrets()`** for operator-level credentials configured in `pdp.json` (e.g., database connection strings, API keys shared across all requests)
 - **`subscriptionSecrets()`** for per-request credentials provided by the application (e.g., the current user's OAuth token)
 - **`variables()`** for non-sensitive PDP configuration (e.g., service URLs, timeout settings)
 

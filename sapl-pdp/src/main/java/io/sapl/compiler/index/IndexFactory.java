@@ -17,24 +17,18 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.Value;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
-
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Creates a {@link PolicyIndex} based on the indexing strategy name
@@ -77,73 +71,6 @@ public class IndexFactory {
         };
     }
 
-    /**
-     * @param documents the documents whose guards this combining scope classifies
-     * @param ctx the compiler options selecting the index
-     * @return the index with its resolved guard results available to a coverage observer
-     */
-    public static PolicyIndex createVoterIndex(List<CompiledDocument> documents, CompilationContext ctx) {
-        return new ObservedIndex(createIndex(documents, ctx), List.copyOf(documents));
-    }
-
-    private record ObservedIndex(PolicyIndex index, List<CompiledDocument> documents) implements PolicyIndex {
-        @Override
-        public PolicyMatches matchKleene(EvaluationContext ctx) {
-            val matches = index.matchKleene(ctx);
-            if (ctx.observer() != null) {
-                val classified = new ClassifiedGuards();
-                classified.add(matches);
-                classified.observe(ctx.observer(), documents);
-            }
-            return matches;
-        }
-
-        @Override
-        public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
-            if (ctx.observer() == null) {
-                index.matchKleeneWhile(ctx, shouldContinue);
-            } else {
-                val classified = new ClassifiedGuards();
-                index.matchKleeneWhile(ctx, matches -> classified.step(matches, shouldContinue));
-                classified.observe(ctx.observer(), documents);
-            }
-        }
-    }
-
-    private static final class ClassifiedGuards {
-        private final Map<CompiledDocument, Value> matches   = new IdentityHashMap<>();
-        private boolean                            exhausted = true;
-
-        void add(PolicyMatches step) {
-            step.trueMatches().forEach(document -> matches.put(document, Value.TRUE));
-            step.errorMatches().forEach(match -> matches.put(match.document(), match.error()));
-        }
-
-        boolean step(PolicyMatches step, Predicate<PolicyMatches> shouldContinue) {
-            add(step);
-            exhausted = shouldContinue.test(step);
-            return exhausted;
-        }
-
-        void observe(EvaluationContext.EvaluationObserver observer, List<CompiledDocument> documents) {
-            // Only an exhausted index proves that every omitted document failed its guard.
-            if (exhausted) {
-                documents.forEach(
-                        document -> observeGuard(observer, document, matches.getOrDefault(document, Value.FALSE)));
-            } else {
-                matches.forEach((document, result) -> observeGuard(observer, document, result));
-            }
-        }
-
-        private static void observeGuard(EvaluationContext.EvaluationObserver observer, CompiledDocument document,
-                Value result) {
-            val guard = document.isApplicable();
-            if (!(guard instanceof Value)) {
-                observer.classified(guard, result);
-            }
-        }
-    }
-
     private static IndexingStrategy parseStrategy(String name) {
         try {
             return IndexingStrategy.valueOf(name.toUpperCase());
@@ -164,7 +91,7 @@ public class IndexFactory {
             return build.get();
         } catch (IndexSizeLimitExceededException e) {
             log.warn(
-                    "The {} index exceeded its size limit ({}). Falling back to the naive index. "
+                    "The {} index exceeded its size limit ({}); falling back to the naive index. "
                             + "Simplify the policy applicability, raise the limit, or use AUTO indexing.",
                     name, e.getMessage());
             return NaivePolicyIndex.create(documents);
@@ -178,13 +105,12 @@ public class IndexFactory {
         try {
             return SmtddPolicyIndex.create(documents, ctx.maxIndexNodes());
         } catch (IndexSizeLimitExceededException e) {
-            log.info("SMTDD index exceeded its node limit ({}). Falling back to the canonical index.", e.getMessage());
+            log.info("SMTDD index exceeded its node limit ({}); falling back to the canonical index", e.getMessage());
         }
         try {
             return CanonicalPolicyIndex.create(documents, ctx.maxDnfClauses());
         } catch (IndexSizeLimitExceededException e) {
-            log.info("Canonical index exceeded its clause limit ({}). Falling back to the naive index.",
-                    e.getMessage());
+            log.info("Canonical index exceeded its clause limit ({}); falling back to the naive index", e.getMessage());
         }
         return NaivePolicyIndex.create(documents);
     }

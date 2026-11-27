@@ -431,8 +431,7 @@ class X509FunctionLibraryTests {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = { "not-a-timestamp", "invalid-format", "2024-13-45T99:99:99Z", "2025-01-01T00:00:00+01",
-            "2025-01-01T00:00:00+0100", "2025-01-01T00:00:00+01:00:30", "2025-01-01", "2025-01-01T24:00:00Z" })
+    @ValueSource(strings = { "not-a-timestamp", "invalid-format", "2024-13-45T99:99:99Z" })
     void whenIsValidAtWithInvalidTimestampThenReturnsError(String timestamp) {
         val result = X509FunctionLibrary.isValidAt((TextValue) Value.of(cthulhuCertPem),
                 (TextValue) Value.of(timestamp));
@@ -633,13 +632,4 @@ class X509FunctionLibraryTests {
         val encoded = Base64.getEncoder().encodeToString(certificate.getEncoded());
         return "-----BEGIN CERTIFICATE-----\n" + encoded + "\n-----END CERTIFICATE-----";
     }
-
-    @Test
-    @DisplayName("Certificate validity preserves the nanosecond after its inclusive upper bound")
-    void whenTimestampIsJustPastCertificateExpiryThenItIsInvalid() {
-        val expiry = ((TextValue) X509FunctionLibrary.extractNotAfter(Value.of(cthulhuCertPem))).value();
-        val after  = Instant.parse(expiry).plusNanos(1).toString();
-        assertThat(X509FunctionLibrary.isValidAt(Value.of(cthulhuCertPem), Value.of(after))).isEqualTo(Value.FALSE);
-    }
-
 }

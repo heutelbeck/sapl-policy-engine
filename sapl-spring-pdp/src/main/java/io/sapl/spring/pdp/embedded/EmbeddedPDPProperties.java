@@ -104,9 +104,8 @@ public class EmbeddedPDPProperties {
     private BundleSecurityProperties bundleSecurity = new BundleSecurityProperties();
 
     /**
-     * Secrets decryption configuration. Used to unseal secrets in bundles and
-     * policy directories that are sealed with this PDP's (or its cluster's) X25519
-     * recipient public key.
+     * Secrets decryption configuration. Used to unseal bundle secrets sealed with
+     * this PDP's (or its cluster's) X25519 recipient public key.
      */
     private SecretsProperties secrets = new SecretsProperties();
 
@@ -150,8 +149,8 @@ public class EmbeddedPDPProperties {
     }
 
     /**
-     * Secrets decryption configuration for bundles and policy directories whose
-     * secrets are sealed to this PDP's X25519 recipient public key.
+     * Secrets decryption configuration for bundles whose secrets are sealed to
+     * this PDP's X25519 recipient public key.
      */
     @Data
     public static class SecretsProperties {
@@ -173,9 +172,9 @@ public class EmbeddedPDPProperties {
         /**
          * Accept configurations whose secrets are not sealed.
          * <p>
-         * WARNING: Cleartext secrets are refused by default, whether or not a
-         * decryption key is configured. Enabling this accepts them. Only use in
-         * trusted or development environments.
+         * WARNING: When a decryption key is configured, cleartext secrets are refused
+         * by default. Enabling this accepts them. Only use in trusted or development
+         * environments.
          */
         private boolean acceptUnencrypted = false;
     }

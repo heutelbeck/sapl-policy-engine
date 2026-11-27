@@ -34,9 +34,11 @@ class DefaultResponseUtilityTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
+    // Operator pip config whose single-object brokerConfig (resolved when the
+    // policy supplies no broker selector) carries the given malformed field.
     private static ObjectNode pipConfigWithBrokerField(String field, JsonNode malformedValue) {
         val broker = JSON.objectNode().set(field, malformedValue);
-        return JSON.objectNode().set("brokers", JSON.objectNode().set("default", broker));
+        return JSON.objectNode().set("brokerConfig", broker);
     }
 
     @Nested

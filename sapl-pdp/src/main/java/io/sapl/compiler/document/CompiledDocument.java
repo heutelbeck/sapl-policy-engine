@@ -17,11 +17,7 @@
  */
 package io.sapl.compiler.document;
 
-import java.util.Map;
-
 import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.policy.CoverageVoter;
@@ -39,17 +35,6 @@ public interface CompiledDocument {
     Voter voter();
 
     Voter applicabilityAndVote();
-
-    /**
-     * Resolves an indexed applicability error for this document.
-     *
-     * @param error the error already produced by the applicability condition
-     * @param ctx the current evaluation context
-     * @return the vote and dependencies of any remaining body conditions
-     */
-    default VoteResult evaluateApplicabilityError(ErrorValue error, EvaluationContext ctx) {
-        return new VoteResult(Vote.error(error, metadata()), Map.of());
-    }
 
     CoverageVoter coverageVoter();
 }

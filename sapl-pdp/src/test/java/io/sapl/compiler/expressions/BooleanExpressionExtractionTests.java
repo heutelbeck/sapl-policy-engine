@@ -93,8 +93,10 @@ class BooleanExpressionExtractionTests {
             val expr = extractBooleanExpression("((subject.x == 1) && (subject.y == 2)) || (resource.z == 3)");
 
             assertThat(expr).isInstanceOf(Or.class);
-            assertThat(((Or) expr).operands()).hasSize(2).anySatisfy(op -> assertThat(op).isInstanceOf(And.class))
-                    .anySatisfy(op -> assertThat(op).isInstanceOf(Atom.class));
+            assertThat(((Or) expr).operands()).hasSize(2).satisfies(ops -> {
+                assertThat(ops.get(0)).isInstanceOf(And.class);
+                assertThat(ops.get(1)).isInstanceOf(Atom.class);
+            });
         }
 
         @Test
@@ -102,11 +104,11 @@ class BooleanExpressionExtractionTests {
         void whenOrInsideAndThenPreservesNesting() {
             val expr = extractBooleanExpression("(subject.x == 1) && ((subject.y == 2) || (resource.z == 3))");
 
-            // The operands of && are in canonical order, not in the order written.
-            assertThat(expr).isInstanceOfSatisfying(And.class,
-                    and -> assertThat(and.operands()).hasSize(2)
-                            .anySatisfy(op -> assertThat(op).isInstanceOf(Atom.class))
-                            .anySatisfy(op -> assertThat(op).isInstanceOf(Or.class)));
+            assertThat(expr).isInstanceOf(And.class);
+            assertThat(((And) expr).operands()).hasSize(2).satisfies(ops -> {
+                assertThat(ops.get(0)).isInstanceOf(Atom.class);
+                assertThat(ops.get(1)).isInstanceOf(Or.class);
+            });
         }
 
         @Test
@@ -126,9 +128,11 @@ class BooleanExpressionExtractionTests {
 
             assertThat(expr).isInstanceOf(Or.class);
             val or = (Or) expr;
-            assertThat(or.operands()).hasSize(2).anySatisfy(op -> assertThat(op).isInstanceOf(And.class))
-                    .anySatisfy(op -> assertThat(op).isInstanceOfSatisfying(Not.class,
-                            not -> assertThat(not.operand()).isInstanceOf(Or.class)));
+            assertThat(or.operands()).satisfies(ops -> {
+                assertThat(ops.get(0)).isInstanceOf(And.class);
+                assertThat(ops.get(1)).isInstanceOf(Not.class);
+                assertThat(((Not) ops.get(1)).operand()).isInstanceOf(Or.class);
+            });
         }
 
         @Test

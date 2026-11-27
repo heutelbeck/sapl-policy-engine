@@ -53,21 +53,6 @@ class LatestIdentifiableDecisionStreamTests {
         }
     }
 
-    @Test
-    @DisplayName("producer completion drains pending IDs and cancellation discards the rest")
-    void whenCloseAfterCompletionThenRemainingIdsAreDiscarded() throws InterruptedException {
-        val stream = new LatestIdentifiableDecisionStream();
-        val first  = decision("first", Decision.PERMIT);
-        stream.put(first);
-        stream.put(decision("second", Decision.DENY));
-        stream.complete();
-        assertThat(stream.awaitNext()).isEqualTo(first);
-
-        stream.close();
-        assertThat(stream.tryNext()).isEqualTo(Poll.done());
-        assertThat(stream.awaitNext()).isNull();
-    }
-
     private static IdentifiableAuthorizationDecision decision(String subscriptionId, Decision decision) {
         val authorizationDecision = decision == Decision.PERMIT ? AuthorizationDecision.PERMIT
                 : AuthorizationDecision.DENY;

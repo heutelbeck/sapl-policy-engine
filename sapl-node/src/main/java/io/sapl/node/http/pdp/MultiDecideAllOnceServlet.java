@@ -120,7 +120,7 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
             return;
         }
         if (exceedsMaxCount(subscription, maxMultiSubscriptionCount)) {
-            log.debug("Rejected multi-subscription with {} entries. The maximum is {}.", subscription.size(),
+            log.debug("Rejected multi-subscription with {} entries; maximum is {}.", subscription.size(),
                     maxMultiSubscriptionCount);
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     exceededMessage(subscription, maxMultiSubscriptionCount));
@@ -136,7 +136,7 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
         } catch (Exception e) {
             // Fail closed: no raw 500 (stack leak). Return INDETERMINATE like the streaming
             // servlet.
-            log.error("Decision evaluation failed for multi-decide-all-once. Returning INDETERMINATE.", e);
+            log.error("Decision evaluation failed for multi-decide-all-once; returning INDETERMINATE.", e);
             decision = MultiAuthorizationDecision.indeterminate();
         }
         if (decision == null) {
@@ -150,7 +150,7 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
         try {
             body = mapper.writeValueAsBytes(decision);
         } catch (Exception e) {
-            log.error("Failed to serialize decision for multi-decide-all-once. Returning INDETERMINATE.", e);
+            log.error("Failed to serialize decision for multi-decide-all-once; returning INDETERMINATE.", e);
             body = mapper.writeValueAsBytes(MultiAuthorizationDecision.indeterminate());
         }
         response.setStatus(HttpServletResponse.SC_OK);

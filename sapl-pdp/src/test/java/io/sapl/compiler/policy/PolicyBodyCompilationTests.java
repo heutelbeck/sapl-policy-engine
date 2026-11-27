@@ -17,14 +17,23 @@
  */
 package io.sapl.compiler.policy;
 
-import static io.sapl.util.SaplTesting.*;
-import static java.util.Objects.requireNonNull;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.List;
-import java.util.Map;
-
+import io.sapl.api.model.*;
+import io.sapl.api.stream.Stream;
+import io.sapl.ast.Outcome;
+import io.sapl.ast.PolicyBody;
+import io.sapl.ast.Statement;
+import io.sapl.ast.VoterMetadata;
+import io.sapl.attributes.broker.api.TestAttributeBroker;
+import io.sapl.compiler.document.AstTransformer;
+import io.sapl.compiler.document.DocumentCompiler;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteResultWithCoverage;
+import io.sapl.util.CoverageEvaluator;
+import io.sapl.util.ExpressionEvaluator;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.Coverage;
+import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
+import lombok.val;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,26 +41,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.api.model.*;
-import io.sapl.api.stream.Stream;
-import io.sapl.ast.PolicyBody;
-import io.sapl.ast.Statement;
-import io.sapl.attributes.broker.api.TestAttributeBroker;
-import io.sapl.compiler.document.AstTransformer;
-import io.sapl.compiler.document.DocumentCompiler;
-import io.sapl.compiler.document.VoteResultWithCoverage;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.model.Coverage;
-import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
-import io.sapl.util.CoverageEvaluator;
-import io.sapl.util.ExpressionEvaluator;
+import java.util.List;
+import java.util.Map;
 
-import lombok.val;
+import static io.sapl.util.SaplTesting.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PolicyCompiler: Body Compilation")
 class PolicyBodyCompilationTests {
 
-    private static final AstTransformer TRANSFORMER = new AstTransformer();
+    private static final AstTransformer TRANSFORMER   = new AstTransformer();
+    private static final VoterMetadata  STUB_METADATA = stubMetadata();
 
     record TestCase(
             String description,
@@ -158,8 +159,7 @@ class PolicyBodyCompilationTests {
                     %s
                 """.formatted(bodyContent);
         val document     = DocumentCompiler.parseDocument(policySource);
-        // The test bodies are valid, so the document has its parse tree.
-        val element = requireNonNull(document.sapl()).policyElement();
+        val element      = document.sapl().policyElement();
         if (element instanceof PolicyOnlyElementContext policyOnly) {
             val policyCtx = policyOnly.policy();
             if (policyCtx.policyBody() != null) {
@@ -192,8 +192,7 @@ class PolicyBodyCompilationTests {
         val pureValue = evaluatePureSection(pureSection);
         assertThat(pureValue).as("pure section value").isEqualTo(tc.expectedPureValue());
 
-        val coverageVoter = DocumentCompiler.compileDocument("policy \"test\" permit " + tc.bodyContent(), compCtx)
-                .coverageVoter();
+        val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(STUB_METADATA), STUB_METADATA);
 
         try (val broker = new TestAttributeBroker()) {
             // Prime every attribute the test case declares so the gate fires
@@ -258,17 +257,17 @@ class PolicyBodyCompilationTests {
 
                     // Short-circuit behavior (pure only)
                     TestCase.pureOnly("first false short-circuits", "false; true; true;", Value.FALSE, 3L, 1, 0L),
-                    TestCase.pureOnly("middle false short-circuits", "true; false; true;", Value.FALSE, 3L, 1, 1L),
+                    TestCase.pureOnly("middle false short-circuits", "true; false; true;", Value.FALSE, 3L, 2, 0L, 1L),
 
                     // Mixed strata - values and pures (pure only)
-                    TestCase.pureWithVars("values and pures: all true", "flag; true; otherFlag;",
+                    TestCase.pureWithVars("values and pures - all true", "flag; true; otherFlag;",
                             Map.of("flag", Value.TRUE, "otherFlag", Value.TRUE), Value.TRUE, 3L, 3),
                     TestCase.pureWithVars("value false short-circuits before pure", "flag; false; otherFlag;",
-                            Map.of("flag", Value.TRUE, "otherFlag", Value.error("should not see")), Value.FALSE, 3L, 1,
-                            1L),
+                            Map.of("flag", Value.TRUE, "otherFlag", Value.error("should not see")), Value.FALSE, 3L, 2,
+                            0L, 1L),
 
                     // Mixed strata - pures and streams (separate expectations)
-                    TestCase.mixed("pure and stream: all true", "flag; <test.attr>;", Map.of("flag", Value.TRUE),
+                    TestCase.mixed("pure and stream - all true", "flag; <test.attr>;", Map.of("flag", Value.TRUE),
                             "test.attr", Value.TRUE, Value.TRUE, Value.TRUE, 2L, 2),
                     TestCase.mixed("pure false, stream true", "flag; <test.attr>;", Map.of("flag", Value.FALSE),
                             "test.attr", Value.TRUE, Value.FALSE, Value.TRUE, 2L, 1, 0L),
@@ -303,8 +302,7 @@ class PolicyBodyCompilationTests {
                         .asString().containsIgnoringCase(tc.expectedErrorFragment());
             }
 
-            val coverageVoter = DocumentCompiler.compileDocument("policy \"test\" permit " + tc.bodyContent(), compCtx)
-                    .coverageVoter();
+            val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(STUB_METADATA), STUB_METADATA);
 
             try (val broker = new TestAttributeBroker()) {
                 if (tc.attrName() != null) {
@@ -369,8 +367,7 @@ class PolicyBodyCompilationTests {
             assertThat(pureSection).isEqualTo(Value.TRUE);
             assertThat(streamSection).isInstanceOf(StreamOperator.class);
 
-            val coverageVoter = DocumentCompiler.compileDocument("policy \"test\" permit " + tc.bodyContent(), compCtx)
-                    .coverageVoter();
+            val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(STUB_METADATA), STUB_METADATA);
 
             try (val broker = new TestAttributeBroker()) {
                 // Register a PIP for every attribute the script publishes to so the
@@ -394,13 +391,42 @@ class PolicyBodyCompilationTests {
                                     new Step.Publish("test.attr", Value.FALSE), new Step.ExpectValue(Value.FALSE),
                                     new Step.Publish("test.attr", Value.TRUE), new Step.ExpectValue(Value.TRUE),
                                     new Step.ExpectNoValue())),
-                    new StreamTestCase("chained streams: first stream changes", "<a.attr>; <b.attr>;",
+                    new StreamTestCase("chained streams - first stream changes", "<a.attr>; <b.attr>;",
                             List.of(new Step.Publish("a.attr", Value.TRUE), new Step.ExpectNoValue(),
                                     new Step.Publish("b.attr", Value.TRUE), new Step.ExpectValue(Value.TRUE),
                                     new Step.Publish("a.attr", Value.TRUE), new Step.ExpectValue(Value.TRUE),
                                     new Step.Publish("a.attr", Value.FALSE), new Step.ExpectValue(Value.FALSE),
                                     new Step.ExpectNoValue())));
         }
+    }
+
+    private static VoterMetadata stubMetadata() {
+        return new VoterMetadata() {
+            @Override
+            public String name() {
+                return "test";
+            }
+
+            @Override
+            public String pdpId() {
+                return "test";
+            }
+
+            @Override
+            public String configurationId() {
+                return "test";
+            }
+
+            @Override
+            public Outcome outcome() {
+                return Outcome.PERMIT;
+            }
+
+            @Override
+            public boolean hasConstraints() {
+                return false;
+            }
+        };
     }
 
     /**

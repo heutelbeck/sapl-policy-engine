@@ -58,9 +58,9 @@ class FbAuthorizationSubscription extends Table {
         return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
-    FbObjectValue secrets() {
+    FbValue secrets() {
         int o = __offset(12);
-        return o == 0 ? null : new FbObjectValue().__assign(__indirect(o + bb_pos), bb);
+        return o == 0 ? null : new FbValue().__assign(__indirect(o + bb_pos), bb);
     }
 
     static int createFbAuthorizationSubscription(FlatBufferBuilder builder, int subjectOffset, int actionOffset,

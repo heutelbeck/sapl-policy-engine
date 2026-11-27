@@ -78,7 +78,7 @@ class RemotePDPRSocketIT {
         return new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_IMAGE)).withImagePullPolicy(NEVER_PULL)
                 .withExposedPorts(HTTP_PORT, RSOCKET_PORT).withEnv("SERVER_ADDRESS", "0.0.0.0")
                 .withEnv("SERVER_PORT", String.valueOf(HTTP_PORT)).withEnv("SERVER_SSL_ENABLED", "false")
-                .withEnv("IO_SAPL_NODE_ALLOWNOTLS", "true").withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
+                .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
                 .withClasspathResourceMapping(POLICIES_PATH, "/pdp/data/", BindMode.READ_ONLY)
                 .withEnv("SAPL_PDP_RSOCKET_ENABLED", "true")

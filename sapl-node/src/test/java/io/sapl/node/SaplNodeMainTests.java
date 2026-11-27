@@ -22,20 +22,13 @@ import static org.junit.jupiter.api.parallel.Resources.SYSTEM_OUT;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
-import io.sapl.node.boot.OptIn;
-import io.sapl.node.testing.IsolatedConsoleLogging;
-
-@ExtendWith(IsolatedConsoleLogging.class)
 @ResourceLock(value = SYSTEM_OUT, mode = ResourceAccessMode.READ_WRITE)
 class SaplNodeMainTests {
 
@@ -80,20 +73,6 @@ class SaplNodeMainTests {
     void whenSubcommandOrHelpFlagThenNotServerMode() {
         assertThat(SaplNodeApplication.isServerMode(new String[] { "generate" })).isFalse();
         assertThat(SaplNodeApplication.isServerMode(new String[] { "--help" })).isFalse();
-    }
-
-    @Test
-    void whenServerIsStartedWithOptInOptionsThenTheyBecomeOptInsAndSpringSeesTheRest() {
-        assertThat(SaplNodeApplication
-                .serverArguments(new String[] { "server", "--no-tls", "--server.port=9000", "--no-auth", "--no-tls" }))
-                .isEqualTo(new SaplNodeApplication.ServerArguments(List.of("--server.port=9000"),
-                        Set.of(OptIn.NO_TLS, OptIn.NO_AUTH)));
-    }
-
-    @Test
-    void whenServerIsStartedWithoutOptionsThenNothingIsAllowed() {
-        assertThat(SaplNodeApplication.serverArguments(new String[] { "--server.port=9000" }))
-                .isEqualTo(new SaplNodeApplication.ServerArguments(List.of("--server.port=9000"), Set.of()));
     }
 
 }

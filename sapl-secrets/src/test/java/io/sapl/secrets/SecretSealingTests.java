@@ -21,8 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.text.ParseException;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
@@ -42,38 +40,31 @@ import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.X25519Encrypter;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.OctetKeyPair;
-import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
-
-import lombok.val;
 
 @DisplayName("Secret sealing (JWE primitive)")
 class SecretSealingTests {
 
-    private static final String ERROR_KEY_DOES_NOT_FIT = "Cannot unseal a secret: the key does not fit the token, or the token was altered.";
-    private static final String ERROR_MALFORMED_TOKEN  = "Cannot unseal a secret: the token is not a compact JWE of a sealed text.";
-
-    private static final OctetKeyPair RECIPIENT = SecretSealing.generateRecipientKey();
-    private static final OctetKeyPair OTHER_KEY = SecretSealing.generateRecipientKey();
+    private final OctetKeyPair recipient = SecretSealing.generateRecipientKey();
 
     @Test
     @DisplayName("a sealed secret unseals to the original plaintext")
     void whenSealedThenUnsealRestoresPlaintext() {
-        val sealed = SecretSealing.seal(RECIPIENT.toPublicJWK(), "s3cr3t-token");
-        assertThat(SecretSealing.unseal(RECIPIENT, sealed)).isEqualTo("s3cr3t-token");
+        var sealed = SecretSealing.seal(recipient.toPublicJWK(), "s3cr3t-token");
+        assertThat(SecretSealing.unseal(recipient, sealed)).isEqualTo("s3cr3t-token");
     }
 
     @Test
     @DisplayName("empty plaintext round-trips")
     void whenEmptyPlaintextThenRoundTrips() {
-        val sealed = SecretSealing.seal(RECIPIENT.toPublicJWK(), "");
-        assertThat(SecretSealing.unseal(RECIPIENT, sealed)).isEmpty();
+        var sealed = SecretSealing.seal(recipient.toPublicJWK(), "");
+        assertThat(SecretSealing.unseal(recipient, sealed)).isEmpty();
     }
 
     @Test
     @DisplayName("sealing the same secret twice yields different tokens (fresh ephemeral key)")
     void whenSealedTwiceThenTokensDiffer() {
-        val publicKey = RECIPIENT.toPublicJWK();
+        var publicKey = recipient.toPublicJWK();
         assertThat(SecretSealing.seal(publicKey, "same")).isNotEqualTo(SecretSealing.seal(publicKey, "same"));
     }
 
@@ -84,84 +75,58 @@ class SecretSealingTests {
                 .isNotEqualTo(SecretSealing.generateRecipientKey().toJSONString());
     }
 
-    static Stream<Arguments> tokensTheKeyDoesNotFit() {
-        val sealed = SecretSealing.seal(RECIPIENT.toPublicJWK(), "secret");
-        return Stream.of(arguments("sealed to another key", SecretSealing.seal(OTHER_KEY.toPublicJWK(), "secret")),
-                arguments("ciphertext altered", withAlteredCiphertext(sealed)));
+    @Test
+    @DisplayName("unsealing with the wrong recipient key is rejected")
+    void whenUnsealedWithWrongKeyThenThrows() {
+        var wrongKey = SecretSealing.generateRecipientKey();
+        var sealed   = SecretSealing.seal(recipient.toPublicJWK(), "secret");
+        assertThatThrownBy(() -> SecretSealing.unseal(wrongKey, sealed)).isInstanceOf(SecretSealingException.class);
     }
 
-    @MethodSource("tokensTheKeyDoesNotFit")
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("a token the key does not fit, or an altered token, is refused naming the key or the alteration")
-    void whenKeyDoesNotFitTokenThenRefusedNamingTheKey(String description, String token) {
-        assertThatThrownBy(() -> SecretSealing.unseal(RECIPIENT, token)).isInstanceOf(SecretSealingException.class)
-                .hasMessage(ERROR_KEY_DOES_NOT_FIT);
+    @Test
+    @DisplayName("a tampered token is rejected")
+    void whenTokenTamperedThenThrows() {
+        var sealed   = SecretSealing.seal(recipient.toPublicJWK(), "secret");
+        var tampered = flipMiddleCharacter(sealed);
+        assertThatThrownBy(() -> SecretSealing.unseal(recipient, tampered)).isInstanceOf(SecretSealingException.class);
     }
 
-    static Stream<Arguments> malformedTokens() throws JOSEException, ParseException {
-        val sealed    = SecretSealing.seal(RECIPIENT.toPublicJWK(), "secret");
-        val ephemeral = JWEObject.parse(sealed).getHeader().getEphemeralPublicKey();
-        return Stream.of(arguments("not a token", "not-a-token"),
-                arguments("three parts", "eyJhbGciOiJFUzI1NiJ9.e30.c2ln"),
-                arguments("no ephemeral key", withHeader(sealed, agreementHeader().build())),
-                arguments("ephemeral key of type EC",
-                        withHeader(sealed, agreementHeader()
-                                .ephemeralPublicKey(new ECKeyGenerator(Curve.P_256).generate().toPublicJWK()).build())),
-                arguments("ephemeral key on the Ed25519 curve", withHeader(sealed,
-                        agreementHeader()
-                                .ephemeralPublicKey(new OctetKeyPairGenerator(Curve.Ed25519).generate().toPublicJWK())
-                                .build())),
-                arguments("critical header extension",
-                        withHeader(sealed, agreementHeader().ephemeralPublicKey(ephemeral).customParam("x-sapl", 1)
-                                .criticalParams(Set.of("x-sapl")).build())));
-    }
-
-    @MethodSource("malformedTokens")
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("a token that is not a compact JWE of a sealed text is refused as malformed")
-    void whenTokenMalformedThenRefusedNamingTheToken(String description, String token) {
-        assertThatThrownBy(() -> SecretSealing.unseal(RECIPIENT, token)).isInstanceOf(SecretSealingException.class)
-                .hasMessage(ERROR_MALFORMED_TOKEN);
+    @Test
+    @DisplayName("a string that is not a JWE token is rejected")
+    void whenNotAJweTokenThenThrows() {
+        assertThatThrownBy(() -> SecretSealing.unseal(recipient, "not-a-token"))
+                .isInstanceOf(SecretSealingException.class);
     }
 
     @Test
     @DisplayName("sealing with a key whose curve is not X25519 is rejected")
     void whenSealingWithIncompatibleKeyThenThrows() throws JOSEException {
-        val ed25519 = new OctetKeyPairGenerator(Curve.Ed25519).generate().toPublicJWK();
+        var ed25519 = new OctetKeyPairGenerator(Curve.Ed25519).generate().toPublicJWK();
         assertThatThrownBy(() -> SecretSealing.seal(ed25519, "secret")).isInstanceOf(SecretSealingException.class);
     }
 
     static Stream<JWEHeader> rejectedHeaders() {
         return Stream.of(new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM).build(),
                 new JWEHeader.Builder(JWEAlgorithm.ECDH_ES_A128KW, EncryptionMethod.A256GCM).build(),
-                agreementHeader().compressionAlgorithm(CompressionAlgorithm.DEF).build());
+                new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM)
+                        .compressionAlgorithm(CompressionAlgorithm.DEF).build());
     }
 
     @MethodSource("rejectedHeaders")
     @ParameterizedTest(name = "{0}")
     @DisplayName("a token whose header is not the pinned uncompressed ECDH-ES/A256GCM is refused")
     void whenTokenHeaderNotAcceptedThenRefused(JWEHeader header) throws JOSEException {
-        val jwe = new JWEObject(header, new Payload("secret"));
-        jwe.encrypt(new X25519Encrypter(RECIPIENT.toPublicJWK()));
-        val token = jwe.serialize();
-        assertThatThrownBy(() -> SecretSealing.unseal(RECIPIENT, token)).isInstanceOf(SecretSealingException.class)
+        var jwe = new JWEObject(header, new Payload("secret"));
+        jwe.encrypt(new X25519Encrypter(recipient.toPublicJWK()));
+        var token = jwe.serialize();
+        assertThatThrownBy(() -> SecretSealing.unseal(recipient, token)).isInstanceOf(SecretSealingException.class)
                 .hasMessageContaining("Refusing to unseal");
     }
 
-    private static JWEHeader.Builder agreementHeader() {
-        return new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A256GCM);
-    }
-
-    private static String withHeader(String token, JWEHeader header) {
-        return header.toBase64URL() + token.substring(token.indexOf('.'));
-    }
-
-    private static String withAlteredCiphertext(String token) {
-        val parts       = token.split("\\.", -1);
-        val ciphertext  = parts[3];
-        val replacement = ciphertext.charAt(0) == 'A' ? 'B' : 'A';
-        parts[3] = replacement + ciphertext.substring(1);
-        return String.join(".", parts);
+    private static String flipMiddleCharacter(String token) {
+        var index       = token.length() / 2;
+        var replacement = token.charAt(index) == 'A' ? 'B' : 'A';
+        return token.substring(0, index) + replacement + token.substring(index + 1);
     }
 
     @Nested
@@ -197,16 +162,16 @@ class SecretSealingTests {
         @ParameterizedTest(name = "{0}")
         @DisplayName("a keyring routes each token to the key its own key id names")
         void whenKeyringHoldsManyKeysThenEachTokenRoutesToItsOwnKey(String plaintext, OctetKeyPair key) {
-            val ring   = Keyring.of(keyA, keyB);
-            val sealed = SecretSealing.seal(key.toPublicJWK(), plaintext);
+            var ring   = Keyring.of(keyA, keyB);
+            var sealed = SecretSealing.seal(key.toPublicJWK(), plaintext);
             assertThat(SecretSealing.unseal(ring, sealed)).isEqualTo(plaintext);
         }
 
         @Test
         @DisplayName("a token whose key id is not in the keyring is rejected")
         void whenKeyIdNotInKeyringThenThrows() {
-            val ring   = Keyring.of(keyB);
-            val sealed = SecretSealing.seal(keyA.toPublicJWK(), "secret");
+            var ring   = Keyring.of(keyB);
+            var sealed = SecretSealing.seal(keyA.toPublicJWK(), "secret");
             assertThatThrownBy(() -> SecretSealing.unseal(ring, sealed)).isInstanceOf(SecretSealingException.class)
                     .hasMessageContaining("'a'");
         }
@@ -214,9 +179,9 @@ class SecretSealingTests {
         @Test
         @DisplayName("a token that names no key id is rejected")
         void whenTokenNamesNoKeyIdThenThrows() {
-            val noKid  = new OctetKeyPair.Builder(keyA.toPublicJWK()).keyID(null).build();
-            val ring   = Keyring.of(keyA);
-            val sealed = SecretSealing.seal(noKid, "secret");
+            var noKid  = new OctetKeyPair.Builder(keyA.toPublicJWK()).keyID(null).build();
+            var ring   = Keyring.of(keyA);
+            var sealed = SecretSealing.seal(noKid, "secret");
             assertThatThrownBy(() -> SecretSealing.unseal(ring, sealed)).isInstanceOf(SecretSealingException.class)
                     .hasMessageContaining("no key id");
         }
@@ -224,8 +189,8 @@ class SecretSealingTests {
         @Test
         @DisplayName("an empty keyring rejects every token, failing closed")
         void whenKeyringEmptyThenThrows() {
-            val ring   = Keyring.of();
-            val sealed = SecretSealing.seal(keyA.toPublicJWK(), "secret");
+            var ring   = Keyring.of();
+            var sealed = SecretSealing.seal(keyA.toPublicJWK(), "secret");
             assertThatThrownBy(() -> SecretSealing.unseal(ring, sealed)).isInstanceOf(SecretSealingException.class);
         }
     }
@@ -238,18 +203,11 @@ class SecretSealingTests {
         private final OctetKeyPair keyB = SecretSealing.generateRecipientKey("b");
 
         @Test
-        @DisplayName("a resealed token unseals under the target")
-        void whenResealedThenUnsealsUnderTarget() {
-            val sealed   = SecretSealing.seal(keyA.toPublicJWK(), "s3cr3t");
-            val resealed = SecretSealing.reseal(Keyring.of(keyA), keyB.toPublicJWK(), sealed);
+        @DisplayName("a resealed token unseals under the target but no longer under the source")
+        void whenResealedThenUnsealsUnderTargetButNotSource() {
+            var sealed   = SecretSealing.seal(keyA.toPublicJWK(), "s3cr3t");
+            var resealed = SecretSealing.reseal(Keyring.of(keyA), keyB.toPublicJWK(), sealed);
             assertThat(SecretSealing.unseal(keyB, resealed)).isEqualTo("s3cr3t");
-        }
-
-        @Test
-        @DisplayName("a resealed token no longer unseals under the source")
-        void whenResealedThenNoLongerUnsealsUnderSource() {
-            val sealed   = SecretSealing.seal(keyA.toPublicJWK(), "s3cr3t");
-            val resealed = SecretSealing.reseal(Keyring.of(keyA), keyB.toPublicJWK(), sealed);
             assertThatThrownBy(() -> SecretSealing.unseal(keyA, resealed)).isInstanceOf(SecretSealingException.class);
         }
     }

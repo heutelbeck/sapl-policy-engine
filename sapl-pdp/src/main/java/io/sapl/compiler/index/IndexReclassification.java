@@ -73,6 +73,6 @@ public class IndexReclassification {
         if (expression instanceof Value value) {
             return value;
         }
-        return ctx.evaluate((PureOperator) expression);
+        return ((PureOperator) expression).evaluate(ctx);
     }
 }

@@ -19,35 +19,45 @@ package io.sapl.lsp.sapl;
 
 import java.util.List;
 
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
 
 import io.sapl.lsp.core.ParsedDocument;
-import io.sapl.lsp.core.ProtocolPositions;
 import lombok.val;
 
 /**
  * Provides document formatting for SAPL documents.
- * Formats only when the syntax of the document has no problem (problems of
- * its rules are acceptable).
+ * Formats only when there are no parse errors (validation errors are
+ * acceptable).
  */
 class SAPLFormattingProvider {
 
     /**
      * Provides formatting edits for a SAPL document.
-     * Returns an empty list if the syntax of the document has a problem.
+     * Returns an empty list if the document has parse errors.
      *
      * @param document the parsed document
      * @return list of text edits to apply
      */
     List<TextEdit> provideFormatting(ParsedDocument document) {
-        if (!(document instanceof SAPLParsedDocument saplDocument) || !saplDocument.isSyntaxValid()) {
+        if (!document.getParseErrors().isEmpty()) {
+            return List.of();
+        }
+
+        if (!(document instanceof SAPLParsedDocument saplDocument)) {
             return List.of();
         }
 
         val visitor   = new SAPLFormattingVisitor(saplDocument.getTokenStream());
         val formatted = visitor.visitSapl(saplDocument.getSaplParseTree());
 
-        val range = ProtocolPositions.of(document.getContent()).rangeOfDocument();
+        val content  = document.getContent();
+        val lines    = content.split("\n", -1);
+        val lastLine = lines.length - 1;
+        val lastChar = lines[lastLine].length();
+
+        val range = new Range(new Position(0, 0), new Position(lastLine, lastChar));
         return List.of(new TextEdit(range, formatted));
     }
 

@@ -221,7 +221,9 @@ public class SemanticVariableOrder {
         if (!group.getSharedOperand().semanticEquals(pureOperand)) {
             return false;
         }
-        group.addKeys(object.keySet().stream().<Value>map(Value::of).toList(), formulaIndex, predicate);
+        for (val key : object.keySet()) {
+            group.addEquals(Value.of(key), formulaIndex, predicate);
+        }
         return true;
     }
 
@@ -236,7 +238,9 @@ public class SemanticVariableOrder {
             if (!group.getSharedOperand().semanticEquals(pureOperand)) {
                 return false;
             }
-            group.addAlternatives(array, formulaIndex, predicate);
+            for (var i = 0; i < array.size(); i++) {
+                group.addEquals(array.get(i), formulaIndex, predicate);
+            }
             return true;
         }
         if (collection instanceof ObjectValue object) {
@@ -248,7 +252,9 @@ public class SemanticVariableOrder {
             if (!group.getSharedOperand().semanticEquals(pureOperand)) {
                 return false;
             }
-            group.addAlternatives(object.values(), formulaIndex, predicate);
+            for (val value : object.values()) {
+                group.addEquals(value, formulaIndex, predicate);
+            }
             return true;
         }
         return false;

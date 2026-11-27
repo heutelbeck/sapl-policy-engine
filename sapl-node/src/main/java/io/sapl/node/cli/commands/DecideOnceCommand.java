@@ -47,7 +47,7 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
         prints the full decision to stdout as a JSON object containing the
         decision (PERMIT, DENY, SUSPEND, NOT_APPLICABLE, INDETERMINATE), any
         obligations, advice, and resource transformations. The JSON is compact
-        by default. Pass --pretty for an indented, human-readable form.
+        by default; pass --pretty for an indented, human-readable form.
 
         By default, policies are loaded from ~/.sapl/. Use
         --dir for a different directory, --bundle for a bundle file, or

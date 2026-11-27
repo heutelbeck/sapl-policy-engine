@@ -25,12 +25,9 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import lombok.val;
 
 @DisplayName("SAPLSemanticTokensProvider")
 class SAPLSemanticTokensProviderTests {
@@ -76,17 +73,6 @@ class SAPLSemanticTokensProviderTests {
         var tokens = decodedTokens(content);
 
         assertThat(tokens).isNotEmpty().allSatisfy(t -> assertThat(t.text()).doesNotContain("\n"));
-    }
-
-    @Test
-    @DisplayName("tokens after a character outside the basic plane are coloured where they stand in the editor")
-    void whenACharacterOutsideTheBasicPlaneStandsBeforeTokensOnTheirLineThenTheyAreColouredWhereTheyStand() {
-        val face    = "\"" + ProtocolText.GRINNING_FACE + "\"";
-        val content = "policy \"p\" permit " + face + " == subject.mood;";
-
-        val tokens = decodedTokens(content);
-
-        assertThat(tokens).extracting(DecodedToken::text).contains(face, "==", "subject");
     }
 
     private List<DecodedToken> decodedTokens(String content) {

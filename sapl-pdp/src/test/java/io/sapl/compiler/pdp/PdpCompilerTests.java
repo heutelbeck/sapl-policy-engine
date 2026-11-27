@@ -18,7 +18,6 @@
 package io.sapl.compiler.pdp;
 
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -49,10 +48,7 @@ import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PRO
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.*;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PdpCompiler")
@@ -93,37 +89,6 @@ class PdpCompilerTests {
     @DisplayName("error handling")
     class ErrorHandlingTests {
 
-        @MethodSource
-        @ParameterizedTest(name = "{0}")
-        @DisplayName("Numeric ordering reports each constant boolean at its use site")
-        void whenOrderingOperandsAreKnownBooleansThenCompilationMarksTheirUseSites(String condition,
-                List<String> marks) {
-            val policy  = VALID_POLICY + condition + ";";
-            val config  = new PDPConfiguration("test-pdp", "config-1",
-                    new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(policy),
-                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-            val context = compilationContext();
-
-            val expected = marks.stream().map(mark -> {
-                val start = policy.lastIndexOf(mark);
-                return tuple(start, start + mark.length());
-            }).toList();
-
-            assertThatExceptionOfType(SaplCompilerException.class)
-                    .isThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, context)).satisfies(
-                            failure -> assertThat(failure.diagnostics()).extracting(SaplCompilerException::getLocation)
-                                    .extracting(SourceLocation::start, SourceLocation::end)
-                                    .containsExactlyElementsOf(expected));
-        }
-
-        static Stream<Arguments> whenOrderingOperandsAreKnownBooleansThenCompilationMarksTheirUseSites() {
-            return Stream.of(arguments("subject > false", List.of("false")),
-                    arguments("<test.a> > false", List.of("false")), arguments("true <= subject", List.of("true")),
-                    arguments("!false >= <test.a>", List.of("!false")),
-                    arguments("var enabled = true; enabled < 3", List.of("enabled")),
-                    arguments("true < false", List.of("true", "false")));
-        }
-
         @Test
         @DisplayName("parsing failure throws SaplCompilerException")
         void whenParsingFailsThenThrowsSaplCompilerException() {
@@ -134,26 +99,6 @@ class PdpCompilerTests {
 
             assertThatThrownBy(() -> PdpCompiler.compilePDPConfiguration(config, context))
                     .isInstanceOf(SaplCompilerException.class);
-        }
-
-        @Test
-        void whenBothOperandsAreInvalidThenErrorVoterReportsBothLocations() {
-            val policy  = """
-                    policy "broken"
-                    permit
-                    (subject =~ "(") ||
-                    (action =~ "[");
-                    """;
-            val config  = new PDPConfiguration("test-pdp", "config-1",
-                    new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE), List.of(policy),
-                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-            val failure = catchThrowableOfType(SaplCompilerException.class,
-                    () -> PdpCompiler.compilePDPConfiguration(config, compilationContext()));
-            val voter   = PdpCompiler.createErrorVoter(config, failure, new PluginsBundle(SaplTesting.FUNCTION_BROKER));
-            assertThat(evaluate(voter, DEFAULT_SUBSCRIPTION).errors()).singleElement()
-                    .satisfies(error -> assertThat(error.message()).contains("Invalid regular expression '('",
-                            "Invalid regular expression '['", "from offset " + policy.indexOf("subject") + " to",
-                            "from offset " + policy.indexOf("action") + " to"));
         }
 
         @Test

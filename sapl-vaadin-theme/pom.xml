@@ -36,8 +36,6 @@
 
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
-		<!-- The theme has no classes to analyze. -->
-		<spotbugs.skip>true</spotbugs.skip>
 	</properties>
 	
     <dependencies>

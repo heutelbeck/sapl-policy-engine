@@ -22,15 +22,9 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.AstNode;
 import io.sapl.compiler.util.SourceLocationUtil;
 import lombok.Getter;
-import lombok.val;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.io.Serial;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-
-import static java.util.stream.Collectors.joining;
 
 /**
  * Thrown when SAPL compilation fails due to invalid policy structure or
@@ -93,62 +87,5 @@ public class SaplCompilerException extends RuntimeException {
     public SaplCompilerException(String message, Throwable cause, AstNode context) {
         super(message, cause);
         this.location = context.location();
-    }
-
-    /**
-     * Returns each independent failure in compiler traversal order.
-     *
-     * @return the original exceptions, including their individual locations and causes
-     */
-    public List<SaplCompilerException> diagnostics() {
-        return List.of(this);
-    }
-
-    static SaplCompilerException multiple(List<SaplCompilerException> failures) {
-        return new Multiple(failures);
-    }
-
-    private static final class Multiple extends SaplCompilerException {
-        @Serial
-        private static final long serialVersionUID = SaplVersion.VERSION_UID;
-
-        private static final String ERROR_WITH_LOCATION = "%s The error occurred at line %d, from offset %d to %d.";
-
-        private final SaplCompilerException[] failures;
-
-        private Multiple(List<SaplCompilerException> failures) {
-            super(null, failures.getFirst().getLocation());
-            this.failures = failures.toArray(SaplCompilerException[]::new);
-        }
-
-        @Override
-        public List<SaplCompilerException> diagnostics() {
-            val leaves  = new ArrayList<SaplCompilerException>();
-            val pending = new ArrayDeque<SaplCompilerException>();
-            pending.push(this);
-            while (!pending.isEmpty()) {
-                val next = pending.pop();
-                if (next instanceof Multiple group) {
-                    for (int index = group.failures.length - 1; index >= 0; index--) {
-                        pending.push(group.failures[index]);
-                    }
-                } else {
-                    leaves.add(next);
-                }
-            }
-            return List.copyOf(leaves);
-        }
-
-        @Override
-        public String getMessage() {
-            return diagnostics().stream().map(failure -> {
-                val failureLocation = failure.getLocation();
-                if (failureLocation == null) {
-                    return failure.getMessage();
-                }
-                return ERROR_WITH_LOCATION.formatted(failure.getMessage(), failureLocation.line(),
-                        failureLocation.start(), failureLocation.end());
-            }).collect(joining("\n"));
-        }
     }
 }

@@ -96,7 +96,7 @@ class CanonicalIndexSearch {
                 continue;
             }
 
-            val evaluationResult = ctx.evaluate(predicates.get(i).operator());
+            val evaluationResult = predicates.get(i).operator().evaluate(ctx);
 
             // A non-boolean predicate result (error, or any non-boolean now that the
             // body type-check is gone) is treated as a type error: route the formula to
@@ -110,7 +110,7 @@ class CanonicalIndexSearch {
             val predicateTrue = b;
 
             findAndMarkSatisfied(p, predicateTrue, data, candidateConjunctions, trueLiteralCount, matchedFormulas,
-                    errorFormulas, remainingFormulasWithConjunction, scratch);
+                    remainingFormulasWithConjunction, scratch);
 
             eliminateUnsatisfied(p, predicateTrue, data, candidateConjunctions, scratch);
         }
@@ -173,7 +173,7 @@ class CanonicalIndexSearch {
                 continue;
             }
 
-            val evaluationResult = ctx.evaluate(predicates.get(i).operator());
+            val evaluationResult = predicates.get(i).operator().evaluate(ctx);
 
             // A non-boolean predicate result (error, or any non-boolean now that the
             // body type-check is gone) is treated as a type error: route the formula to
@@ -208,7 +208,7 @@ class CanonicalIndexSearch {
     }
 
     private static void findAndMarkSatisfied(int p, boolean predicateTrue, CanonicalIndexData data,
-            BitSet candidateConjunctions, int[] trueLiteralCount, BitSet matchedFormulas, BitSet errorFormulas,
+            BitSet candidateConjunctions, int[] trueLiteralCount, BitSet matchedFormulas,
             int[] remainingFormulasWithConjunction, BitSet scratch) {
         val trueLiterals = predicateTrue ? data.falseForFalsePredicate()[p] : data.falseForTruePredicate()[p];
         andInto(scratch, trueLiterals, candidateConjunctions);
@@ -218,8 +218,7 @@ class CanonicalIndexSearch {
             if (trueLiteralCount[c] == data.numberOfLiteralsInConjunction()[c]) {
                 candidateConjunctions.clear(c);
                 for (val f : data.conjunctionToFormulaIndices()[c]) {
-                    // Suspect formulas already released their siblings and will be reclassified.
-                    if (!errorFormulas.get(f) && !matchedFormulas.get(f)) {
+                    if (!matchedFormulas.get(f)) {
                         matchedFormulas.set(f);
                         orphanSiblingConjunctions(f, data, candidateConjunctions, remainingFormulasWithConjunction);
                     }

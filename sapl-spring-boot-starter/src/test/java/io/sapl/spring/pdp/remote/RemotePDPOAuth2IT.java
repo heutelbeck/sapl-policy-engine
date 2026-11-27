@@ -103,8 +103,7 @@ class RemotePDPOAuth2IT {
         saplNode = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_IMAGE)).withImagePullPolicy(NEVER_PULL)
                 .withNetwork(network).withNetworkAliases("sapl-node").withExposedPorts(HTTP_PORT, RSOCKET_PORT)
                 .withEnv("SERVER_ADDRESS", "0.0.0.0").withEnv("SERVER_PORT", String.valueOf(HTTP_PORT))
-                .withEnv("SERVER_SSL_ENABLED", "false").withEnv("IO_SAPL_NODE_ALLOWNOTLS", "true")
-                .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
+                .withEnv("SERVER_SSL_ENABLED", "false").withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
                 .withClasspathResourceMapping(POLICIES_PATH, "/pdp/data/",
                         org.testcontainers.containers.BindMode.READ_ONLY)
@@ -114,7 +113,6 @@ class RemotePDPOAuth2IT {
                 .withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "false").withEnv("IO_SAPL_NODE_ALLOWOAUTH2AUTH", "true")
                 .withEnv("IO_SAPL_NODE_REJECTONMISSINGPDPID", "false").withEnv("IO_SAPL_NODE_DEFAULTPDPID", "default")
                 .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI", "http://keycloak:8080/realms/" + REALM)
-                .withEnv("IO_SAPL_NODE_OAUTH_ALLOWINSECUREISSUER", "true")
                 .waitingFor(Wait.forLogMessage(STARTUP_LOG, 1).withStartupTimeout(STARTUP));
         saplNode.start();
     }

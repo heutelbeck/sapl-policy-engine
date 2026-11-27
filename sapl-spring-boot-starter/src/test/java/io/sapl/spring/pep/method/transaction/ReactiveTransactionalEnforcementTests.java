@@ -113,7 +113,7 @@ class ReactiveTransactionalEnforcementTests {
     class PreEnforceTransactional {
 
         @Test
-        @DisplayName("PERMIT lets the loan be recorded, the row commits")
+        @DisplayName("PERMIT lets the loan be recorded; the row commits")
         void whenPermitThenRowIsCommitted() {
             org.mockito.Mockito
                     .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
@@ -126,7 +126,7 @@ class ReactiveTransactionalEnforcementTests {
         }
 
         @Test
-        @DisplayName("DENY blocks the protected method entirely, no row is ever written")
+        @DisplayName("DENY blocks the protected method entirely; no row is ever written")
         void whenDenyThenMethodNeverInvokedAndNoRowWritten() {
             org.mockito.Mockito
                     .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
@@ -158,7 +158,8 @@ class ReactiveTransactionalEnforcementTests {
                     .verify(STEP_TIMEOUT);
 
             assertThat(rowCount())
-                    .as("row count after handler failure (must be 0, rollback applies to handler errors too)").isZero();
+                    .as("row count after handler failure (must be 0 - rollback applies to handler errors too)")
+                    .isZero();
         }
 
         private static AuthorizationDecision decisionWithObligation(String type) {
@@ -187,7 +188,7 @@ class ReactiveTransactionalEnforcementTests {
         }
 
         @Test
-        @DisplayName("DENY blocks the rite entirely, no row is ever written")
+        @DisplayName("DENY blocks the rite entirely; no row is ever written")
         void whenDenyThenMethodNeverInvoked() {
             org.mockito.Mockito
                     .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
@@ -219,7 +220,7 @@ class ReactiveTransactionalEnforcementTests {
         }
 
         @Test
-        @DisplayName("DENY after the insert rolls the transaction back, the row is expunged")
+        @DisplayName("DENY after the insert rolls the transaction back; the row is expunged")
         void whenDenyAfterInsertThenTransactionRollsBack() {
             org.mockito.Mockito
                     .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))

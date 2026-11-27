@@ -22,7 +22,12 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.geotools.api.feature.Feature;
+import org.geotools.api.feature.Property;
+import org.geotools.feature.FeatureCollection;
+import org.geotools.geometry.jts.JTS;
 import org.geotools.kml.v22.KMLConfiguration;
+import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
 import org.geotools.xsd.Configuration;
 import org.geotools.xsd.Parser;
@@ -40,6 +45,7 @@ import org.locationtech.spatial4j.distance.DistanceUtils;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Optional;
@@ -52,17 +58,13 @@ import java.util.logging.Logger;
 @FunctionLibrary(name = "geo", description = GeographicFunctionLibrary.DESCRIPTION, libraryDocumentation = GeographicFunctionLibrary.DOCUMENTATION)
 public class GeographicFunctionLibrary {
 
-    // GeoTools logs every intentionally blocked external reference at WARNING with
-    // a full stack trace, so silence it to prevent log flooding in production. The
-    // JUL LogManager references loggers only weakly, so the configured logger is
-    // held here. Otherwise a garbage collection drops it along with its level.
-    private static final Logger GEOTOOLS_XSD_LOGGER = Logger.getLogger("org.geotools.xsd");
-
     static {
-        GEOTOOLS_XSD_LOGGER.setLevel(Level.SEVERE);
+        // GeoTools logs every intentionally blocked external reference at WARNING with
+        // a full stack trace, so silence it to prevent log flooding in production.
+        Logger.getLogger("org.geotools.xsd").setLevel(Level.SEVERE);
     }
 
-    static final String DESCRIPTION   = "A function library to manipulate, inspect, and convert geographic data.";
+    static final String DESCRIPTION   = "A function library to manipulate, inspect, and convert geograpihc data.";
     static final String DOCUMENTATION = """
             # Geographic Function Library
 
@@ -87,18 +89,7 @@ public class GeographicFunctionLibrary {
             - **MultiPoint, MultiLineString, MultiPolygon:** Collections of points, lines, or polygons.
             - **GeometryCollection:** Groups multiple geometries into a single structure.
 
-            Inputs must be geometries, not Feature or FeatureCollection objects. Each position has at least two numbers.
-            Results are RFC 7946 geometries without a `crs` member. Empty coordinate arrays represent empty geometries.
-            Distances require nonempty geometries. Geodesic distances use longitude and latitude in degrees.
-
-            ## Numerical Tolerances
-            PDP implementations use different geometry libraries and may approximate computed results differently.
-            Planar predicates use the supplied coordinate units and the floating-point topology of JTS.
-            Use ordinary coordinate ranges for the chosen reference system. Extreme scales and nearly degenerate shapes
-            can change a predicate result. For geofencing, verify who supplies the location and the perimeter used by the policy.
-            - `buffer`: Up to 1 percent of the absolute buffer width in coordinate units, because circular arcs are approximated by line segments.
-            - `geoDistance`, `geodesicDistance`, `isWithinGeodesicDistance`: Up to 1 millimeter in the computed distance, because ellipsoidal geodesics use numerical approximations. Threshold decisions within this distance may differ.
-            - `union`, `intersection`, `difference`, `symDifference`: Up to 0.000001 coordinate units in the symmetric discrete Hausdorff distance between result boundaries. Overlay algorithms use different precision grids and intersection calculations. This tolerance applies to ordinary finite coordinate ranges and does not guarantee accuracy for arbitrary coordinate magnitudes or degenerate inputs.
+            GeoJSON also includes properties for defining coordinate reference systems, though it defaults to WGS84 (EPSG:4326).
 
             ## Use Cases
             The library is suitable for:
@@ -121,8 +112,6 @@ public class GeographicFunctionLibrary {
             - A geometry collection may contain at most 50,000 members.
             - The collection comparisons `subset` and `atLeastOneMemberOf` are quadratic, so they are
               additionally capped at 1,000,000 pairwise checks.
-            - Distance searches allow up to 1,000,000 candidate comparisons. Planar `isWithinDistance` returns
-              false immediately when the bounding boxes are already farther apart than the threshold.
 
             These limits comfortably accommodate detailed real-world boundaries. They apply because
             this input may originate from the authorization subscription or from policy information
@@ -131,43 +120,30 @@ public class GeographicFunctionLibrary {
 
             KML and GML inputs are parsed with external entity and remote schema resolution disabled,
             so a document cannot make the PDP fetch an external entity or schema (no server-side
-            request forgery). Only the schemas bundled locally with the engine are used.
+            request forgery); only the schemas bundled locally with the engine are used.
 
             For more details, refer to individual function documentation.
             """;
 
-    static final String ERROR_DISTANCE_COMPARISON_LIMIT      = "Geometry distance calculation exceeds the maximum of %d comparisons.";
-    static final String ERROR_EMPTY_DISTANCE                 = "Distances require nonempty geometries.";
     static final String ERROR_FAILED_TO_PARSE_GML            = "Failed to parse GML.";
     static final String ERROR_FAILED_TO_PARSE_KML            = "Failed to parse KML.";
     static final String ERROR_GEOMETRY_INPUT_TOO_LARGE       = "Geographic input exceeds the maximum size of %d bytes.";
-    static final String ERROR_GEOMETRY_TOO_MANY_MEMBERS      = "Geometry exceeds the maximum of %d members.";
-    static final String ERROR_GEOMETRY_TOO_MANY_VERTICES     = "Geometry exceeds the maximum of %d vertices.";
-    static final String ERROR_GEOMETRY_TO_GEO_JSON           = "Failed to convert geometry to GeoJSON.";
+    static final String ERROR_GEOMETRY_TOO_COMPLEX           = "Geometry exceeds the maximum of %d vertices or %d members.";
+    static final String ERROR_GEOMETRY_TO_GEO_JSON_S         = "Error converting Geometry to GeoJSON: %s";
     static final String ERROR_GEOMETRY_WKT_NESTING_TOO_DEEP  = "WKT nesting exceeds the maximum of %d levels.";
     static final String ERROR_INCORRECT_NUMBER_OF_GEOMETRIES = "Input must be a GeometryCollection containing only one Geometry.";
     static final String ERROR_INVALID_GEOJSON                = "Invalid GeoJSON geometry.";
     static final String ERROR_INVALID_WKT                    = "Invalid WKT.";
-    static final String ERROR_INVALID_WKT_LINE               = "Invalid WKT geometry. A LineString must have zero or at least two positions.";
-    static final String ERROR_INVALID_WKT_RING_CLOSED        = "Invalid WKT geometry. A LinearRing must be closed.";
-    static final String ERROR_INVALID_WKT_RING_SIZE          = "Invalid WKT geometry. A LinearRing must have zero or at least three positions.";
-    static final String ERROR_INVALID_WKT_SHELL              = "Invalid WKT geometry. An empty polygon shell cannot have nonempty holes.";
     static final String ERROR_IS_CLOSED_NOT_APPLICABLE_FOR_S = "Operation isClosed is not applicable for the type %s.";
     static final String ERROR_NO_GEOMETRIES_IN_GML           = "No geometries in GML.";
     static final String ERROR_NO_GEOMETRIES_IN_KML           = "No geometries in KML.";
     static final String ERROR_NOT_A_GEOMETRY_COLLECTION      = "The second parameter of the geometryIsIn was not a geometry collection.";
     static final String ERROR_TOO_MANY_COMPARISONS           = "Geometry collection comparison exceeds the maximum of %d pairwise checks.";
 
-    static final String ERROR_UNSUPPORTED_CRS = "The coordinate reference system '%s' is not supported. Geodesic distances take a geographic coordinate reference system such as EPSG:4326.";
-
     private static final String WGS84 = "EPSG:4326";
 
-    private static final GeoJsonReader GEOJSON_READER = new GeoJsonReader();
-    private static final GeoJsonWriter GEOJSON_WRITER = new GeoJsonWriter();
-    static {
-        GEOJSON_WRITER.setEncodeCRS(false);
-    }
-
+    private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
+    private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
     // GeoTools Parser is stateful and not thread-safe. A fresh one is built per
     // call
@@ -265,7 +241,7 @@ public class GeographicFunctionLibrary {
         }
     }
 
-    static Parser hardenedParser(Configuration configuration) {
+    private static Parser hardenedParser(Configuration configuration) {
         val parser = new Parser(configuration);
         parser.setEntityResolver(SchemaOnlyEntityResolver.INSTANCE);
         return parser;
@@ -301,7 +277,7 @@ public class GeographicFunctionLibrary {
 
             **Notes:**
 
-            - Only exact matches are considered equal. Differences in precision or coordinate order will result in `false`.
+            - Only exact matches are considered equal; differences in precision or coordinate order will result in `false`.
             - Suitable for testing identical geometries in scenarios requiring strict equality.
             """)
     public static Value equalsExact(ObjectValue thisGeometry, ObjectValue thatGeometry) {
@@ -565,15 +541,8 @@ public class GeographicFunctionLibrary {
             - Use this function for proximity checks between geometries.
             """)
     public static Value isWithinDistance(ObjectValue thisGeometry, ObjectValue thatGeometry, NumberValue distance) {
-        return testGeometryBiPredicate(thisGeometry, thatGeometry, (thiz, that) -> {
-            requireNonempty(thiz, that);
-            val threshold = distance.value().doubleValue();
-            if (thiz.getEnvelopeInternal().distance(that.getEnvelopeInternal()) > threshold) {
-                return false;
-            }
-            requireDistanceWork(thiz, that);
-            return new DistanceOp(thiz, that, threshold).distance() <= threshold;
-        });
+        return testGeometryBiPredicate(thisGeometry, thatGeometry,
+                (thiz, that) -> thiz.isWithinDistance(that, distance.value().doubleValue()));
     }
 
     @Function(docs = """
@@ -598,7 +567,7 @@ public class GeographicFunctionLibrary {
             permit
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
-                geo.isWithinGeodesicDistance(point1, point2, 160) == true;
+                geo.isWithinGeoDistance(point1, point2, 150) == true;
             ```
 
             **Notes:**
@@ -616,7 +585,7 @@ public class GeographicFunctionLibrary {
         try {
             return Value.of(predicate.test(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry)));
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -654,7 +623,7 @@ public class GeographicFunctionLibrary {
         try {
             return Value.of(geoJsonToGeometry(geometry).isSimple());
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -683,11 +652,11 @@ public class GeographicFunctionLibrary {
 
             - A valid geometry adheres to topological constraints such as no self-intersections.
             """)
-    public static Value isValid(ObjectValue geometry) {
+    public static Value isValid(ObjectValue jsonGeometry) {
         try {
-            return Value.of(geoJsonToGeometry(geometry).isValid());
+            return Value.of(geoJsonToGeometry(jsonGeometry).isValid());
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -732,7 +701,7 @@ public class GeographicFunctionLibrary {
                 Value.error(ERROR_IS_CLOSED_NOT_APPLICABLE_FOR_S.formatted(jtsGeometry.getGeometryType()));
             };
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -759,7 +728,7 @@ public class GeographicFunctionLibrary {
             policy "example"
             permit
                 var point = { "type": "Point", "coordinates": [0, 0] };
-                geo.area(geo.buffer(point, 10.0)) > 300;
+                geo.buffer(point, 10.0) == { "type": "Polygon", "coordinates": [[[10,0], [0,10], [-10,0], [0,-10], [10,0]]] };
             ```
 
             **Notes:**
@@ -787,7 +756,7 @@ public class GeographicFunctionLibrary {
             policy "example"
             permit
                 var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
-                geo.length(geo.boundary(polygon)) == 40;
+                geo.boundary(polygon) == { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
             ```
 
             **Notes:**
@@ -845,7 +814,7 @@ public class GeographicFunctionLibrary {
             policy "example"
             permit
                 var points = { "type": "MultiPoint", "coordinates": [[0,0], [0,10], [10,10], [10,0]] };
-                geo.area(geo.convexHull(points)) == 100;
+                geo.convexHull(points) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
             ```
 
             **Notes:**
@@ -861,12 +830,12 @@ public class GeographicFunctionLibrary {
         try {
             return boundedGeometryToGeoJSON(transformation.apply(geoJsonToGeometry(thisGeometry)));
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
     @Function(docs = """
-            ```union(GEOMETRY... geometries)```: Returns the union of an arbitrary number of geometries.
+            ```union(GEOMETRY... geometries)```: Returns the union of an arbritrary number of geometries.
 
             **Inputs:**
 
@@ -883,13 +852,13 @@ public class GeographicFunctionLibrary {
             permit
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                geo.area(geo.union(polygon1, polygon2)) == 175;
+                geo.union(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [5,10], [5,15], [15,15], [15,5], [10,5], [10,0], [0,0]]] };
             ```
 
             **Notes:**
 
             - Merges overlapping areas of geometries.
-            - Accepts single geometries and multi geometries. GeometryCollection inputs are refused when combined with nonempty geometries.
+            - Accepts geometry collections as input.
             """)
     public static Value union(ObjectValue... geometries) {
         try {
@@ -903,7 +872,7 @@ public class GeographicFunctionLibrary {
             }
             return boundedGeometryToGeoJSON(geomUnion);
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -912,8 +881,8 @@ public class GeographicFunctionLibrary {
 
             **Inputs:**
 
-            - `thisGeometry`: A geometry object in GeoJSON format.
-            - `thatGeometry`: Another geometry object in GeoJSON format.
+            - `geometryThis`: A geometry object in GeoJSON format.
+            - `geometryThat`: Another geometry object in GeoJSON format.
 
             **Output:**
 
@@ -926,7 +895,7 @@ public class GeographicFunctionLibrary {
             permit
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                geo.area(geo.intersection(polygon1, polygon2)) == 25;
+                geo.intersection(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[5,5], [5,10], [10,10], [10,5], [5,5]]] };
             ```
 
             **Notes:**
@@ -957,7 +926,7 @@ public class GeographicFunctionLibrary {
             permit
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                geo.area(geo.difference(polygon1, polygon2)) == 75;
+                geo.difference(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
             ```
 
             **Notes:**
@@ -988,7 +957,7 @@ public class GeographicFunctionLibrary {
             permit
                 var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
                 var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
-                geo.area(geo.symDifference(polygon1, polygon2)) == 150;
+                geo.symDifference(polygon1, polygon2) == { "type": "MultiPolygon", "coordinates": [[[[0,0], [0,10], [10,10], [10,0], [0,0]]], [[[5,5], [5,15], [15,15], [15,5], [5,5]]]] };
             ```
 
             **Notes:**
@@ -1006,7 +975,7 @@ public class GeographicFunctionLibrary {
             return boundedGeometryToGeoJSON(
                     transformation.apply(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry)));
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1044,13 +1013,9 @@ public class GeographicFunctionLibrary {
             """)
     public static Value distance(ObjectValue thisGeometry, ObjectValue thatGeometry) {
         try {
-            val first  = geoJsonToGeometry(thisGeometry);
-            val second = geoJsonToGeometry(thatGeometry);
-            requireNonempty(first, second);
-            requireDistanceWork(first, second);
-            return Value.of(first.distance(second));
+            return Value.of(geoJsonToGeometry(thisGeometry).distance(geoJsonToGeometry(thatGeometry)));
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1073,7 +1038,7 @@ public class GeographicFunctionLibrary {
             permit
                 var point1 = { "type": "Point", "coordinates": [0, 0] };
                 var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
-                geo.geodesicDistance(point1, point2) <= 157.25;
+                geo.geoDistance(point1, point2) <= 157.25;
             ```
 
             **Notes:**
@@ -1085,12 +1050,12 @@ public class GeographicFunctionLibrary {
         try {
             return Value.of(geodesicDistanceOfValues(thisGeometry, thatGeometry));
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
     @Function(docs = """
-            ```geoDistance(GEOMETRY thisGeometry, GEOMETRY thatGeometry, TEXT coordinateReferenceSystem)```:
+            ```geodesicDistance(GEOMETRY thisGeometry, GEOMETRY thatGeometry, TEXT coordinateReferenceSystem)```:
             Returns the shortest geodesic distance between two geometries in meters.
 
             **Inputs:**
@@ -1119,12 +1084,12 @@ public class GeographicFunctionLibrary {
             - Uses geodesic calculations suitable for geographic coordinates.
             - Ideal for large-scale or global distance computations.
             """)
-    public static Value geoDistance(ObjectValue thisGeometry, ObjectValue thatGeometry,
+    public static Value geoDistance(ObjectValue jsonGeometryThis, ObjectValue jsonGeometryThat,
             TextValue coordinateReferenceSystem) {
         try {
-            return Value.of(geodesicDistance(thisGeometry, thatGeometry, coordinateReferenceSystem.value()));
+            return Value.of(geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem.value()));
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1142,15 +1107,17 @@ public class GeographicFunctionLibrary {
         return geodesicDistance(thisGeometry, thatGeometry, WGS84);
     }
 
+    @SneakyThrows
     private static double geodesicDistance(Geometry thisGeometry, Geometry thatGeometry,
             String coordinateReferenceSystem) {
-        requireNonempty(thisGeometry, thatGeometry);
-        val ellipsoid = GeographicCoordinateSystems.ellipsoidOf(coordinateReferenceSystem);
-        requireDistanceWork(thisGeometry, thatGeometry);
-        val nearestPoints = new DistanceOp(thisGeometry, thatGeometry).nearestPoints();
-        val gc            = new GeodeticCalculator(ellipsoid);
-        gc.setStartingGeographicPoint(nearestPoints[0].x, nearestPoints[0].y);
-        gc.setDestinationGeographicPoint(nearestPoints[1].x, nearestPoints[1].y);
+        var crs              = CRS.decode(coordinateReferenceSystem);
+        var distOp           = new DistanceOp(thisGeometry, thatGeometry);
+        var nearestPoints    = distOp.nearestPoints();
+        var nearestPointThis = nearestPoints[0];
+        var nearestPointThat = nearestPoints[1];
+        var gc               = new GeodeticCalculator(crs);
+        gc.setStartingPosition(JTS.toDirectPosition(nearestPointThis, crs));
+        gc.setDestinationPosition(JTS.toDirectPosition(nearestPointThat, crs));
         return gc.getOrthodromicDistance();
     }
 
@@ -1182,7 +1149,7 @@ public class GeographicFunctionLibrary {
         try {
             return Value.of(geoJsonToGeometry(geometry).getLength());
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1215,7 +1182,7 @@ public class GeographicFunctionLibrary {
         try {
             return Value.of(geoJsonToGeometry(geometry).getArea());
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1263,7 +1230,7 @@ public class GeographicFunctionLibrary {
 
     private static void enforcePairwiseBound(Geometry first, Geometry second) {
         if ((long) first.getNumGeometries() * second.getNumGeometries() > MAX_PAIRWISE_COMPARISONS) {
-            throw new GeometryProblem(ERROR_TOO_MANY_COMPARISONS.formatted(MAX_PAIRWISE_COMPARISONS));
+            throw new IllegalArgumentException(ERROR_TOO_MANY_COMPARISONS.formatted(MAX_PAIRWISE_COMPARISONS));
         }
     }
 
@@ -1356,11 +1323,11 @@ public class GeographicFunctionLibrary {
 
             - Useful for evaluating collection size.
             """)
-    public static Value bagSize(ObjectValue geometryCollection) {
+    public static Value bagSize(ObjectValue jsonGeometry) {
         try {
-            return Value.of(geoJsonToGeometry(geometryCollection).getNumGeometries());
+            return Value.of(geoJsonToGeometry(jsonGeometry).getNumGeometries());
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1392,16 +1359,16 @@ public class GeographicFunctionLibrary {
             - Ensures uniqueness of geometry within a collection.
             - Returns an error if more than one geometry is present.
             """)
-    public static Value oneAndOnly(ObjectValue geometryCollection) {
+    public static Value oneAndOnly(ObjectValue jsonGeometryCollection) {
         try {
-            if (geoJsonToGeometry(geometryCollection) instanceof GeometryCollection collection
-                    && collection.getNumGeometries() == 1) {
-                return geometryToGeoJSON(collection.getGeometryN(0));
+            if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection
+                    && geometryCollection.getNumGeometries() == 1) {
+                return geometryToGeoJSON(geometryCollection.getGeometryN(0));
             } else {
                 return Value.error(ERROR_INCORRECT_NUMBER_OF_GEOMETRIES);
             }
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1434,12 +1401,12 @@ public class GeographicFunctionLibrary {
 
             - Checks for the existence of a specific geometry within a collection.
             """)
-    public static Value geometryIsIn(ObjectValue geometry, ObjectValue geometryCollection) {
+    public static Value geometryIsIn(ObjectValue jsonGeometry, ObjectValue jsonGeometryCollection) {
         try {
-            if (geoJsonToGeometry(geometryCollection) instanceof GeometryCollection collection) {
-                val member = geoJsonToGeometry(geometry);
-                for (int i = 0; i < collection.getNumGeometries(); i++) {
-                    if (member.equals(collection.getGeometryN(i))) {
+            if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection) {
+                var geometry = geoJsonToGeometry(jsonGeometry);
+                for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
+                    if (geometry.equals(geometryCollection.getGeometryN(i))) {
                         return Value.TRUE;
                     }
                 }
@@ -1447,7 +1414,7 @@ public class GeographicFunctionLibrary {
             }
             return Value.error(ERROR_NOT_A_GEOMETRY_COLLECTION);
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1479,18 +1446,18 @@ public class GeographicFunctionLibrary {
 
             - Useful for grouping geometries into collections.
             """)
-    public static Value geometryBag(ObjectValue... geometries) {
+    public static Value geometryBag(ObjectValue... geometryValues) {
         try {
-            if (geometries.length > MAX_GEOMETRY_COUNT) {
-                return Value.error(ERROR_GEOMETRY_TOO_MANY_MEMBERS.formatted(MAX_GEOMETRY_COUNT));
+            if (geometryValues.length > MAX_GEOMETRY_COUNT) {
+                return Value.error(ERROR_GEOMETRY_TOO_COMPLEX.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
             }
-            val members = new Geometry[geometries.length];
-            for (int i = 0; i < geometries.length; i++) {
-                members[i] = geoJsonToGeometry(geometries[i]);
+            var geometries = new Geometry[geometryValues.length];
+            for (int i = 0; i < geometryValues.length; i++) {
+                geometries[i] = geoJsonToGeometry(geometryValues[i]);
             }
-            return boundedGeometryToGeoJSON(GEOMETRY_FACTORY.createGeometryCollection(members));
+            return boundedGeometryToGeoJSON(GEOMETRY_FACTORY.createGeometryCollection(geometries));
         } catch (Exception e) {
-            return geometryError(e);
+            return Value.error(ERROR_INVALID_GEOJSON);
         }
     }
 
@@ -1525,13 +1492,13 @@ public class GeographicFunctionLibrary {
 
             - Useful for combining geometries from arrays into collections.
             """)
-    public static Value flattenGeometryBag(ArrayValue geometriesArray) {
-        if (geometriesArray.size() > MAX_GEOMETRY_COUNT) {
-            return Value.error(ERROR_GEOMETRY_TOO_MANY_MEMBERS.formatted(MAX_GEOMETRY_COUNT));
+    public static Value flattenGeometryBag(ArrayValue arrayOfGeometries) {
+        if (arrayOfGeometries.size() > MAX_GEOMETRY_COUNT) {
+            return Value.error(ERROR_GEOMETRY_TOO_COMPLEX.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
         }
-        var objectValues = new ObjectValue[geometriesArray.size()];
-        for (int i = 0; i < geometriesArray.size(); i++) {
-            if (!(geometriesArray.get(i) instanceof ObjectValue geometry)) {
+        var objectValues = new ObjectValue[arrayOfGeometries.size()];
+        for (int i = 0; i < arrayOfGeometries.size(); i++) {
+            if (!(arrayOfGeometries.get(i) instanceof ObjectValue geometry)) {
                 return Value.error(ERROR_INVALID_GEOJSON);
             }
             objectValues[i] = geometry;
@@ -1559,7 +1526,7 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-                geo.milesToMeter(1.0) == 1609.344;
+                geo.milesToMeter(1.0) == 1609.34;
             ```
 
             **Notes:**
@@ -1621,7 +1588,7 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-                geo.degreeToMeter(1.0) > 111000;
+                geo.degreeToMeter(1.0) == 111319.9;
             ```
 
             **Notes:**
@@ -1668,12 +1635,13 @@ public class GeographicFunctionLibrary {
         if (exceedsInputBound(kml.value())) {
             return Value.error(ERROR_GEOMETRY_INPUT_TOO_LARGE.formatted(MAX_GEO_INPUT_BYTES));
         }
-        List<Geometry> geometries;
+        Object parsed;
         try {
-            geometries = GeometryDocuments.read(kml.value(), KML_CONFIG, true);
+            parsed = hardenedParser(KML_CONFIG).parse(new StringReader(kml.value()));
         } catch (Exception e) {
             return Value.error(ERROR_FAILED_TO_PARSE_KML);
         }
+        var geometries = collect(parsed);
         if (geometries.isEmpty()) {
             return Value.error(ERROR_NO_GEOMETRIES_IN_KML);
         } else if (geometries.size() == 1) {
@@ -1681,6 +1649,47 @@ public class GeographicFunctionLibrary {
         }
         var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
         return boundedGeometryToGeoJSON(geometryCollection);
+    }
+
+    @SneakyThrows
+    private static List<Geometry> collect(Object o) {
+        if (o instanceof Feature feature) {
+            return collectGeometries(feature);
+        } else if (o instanceof FeatureCollection<?, ?> featureCollection) {
+            return collectGeometries(featureCollection);
+        } else if (o instanceof List<?> featureList) {
+            return collectGeometries(featureList);
+        } else if (o instanceof Geometry geometry) {
+            geometry.setUserData(CRS.decode(WGS84));
+            return List.of(geometry);
+        }
+        return List.of();
+    }
+
+    private static List<Geometry> collectGeometries(List<?> featureList) {
+        var geometries = new ArrayList<Geometry>();
+        for (var feature : featureList) {
+            geometries.addAll(collect(feature));
+        }
+        return geometries;
+    }
+
+    private static List<Geometry> collectGeometries(FeatureCollection<?, ?> featureCollection) {
+        var geometries = new ArrayList<Geometry>();
+        try (var features = featureCollection.features()) {
+            while (features.hasNext()) {
+                geometries.addAll(collect(features.next()));
+            }
+        }
+        return geometries;
+    }
+
+    private static List<Geometry> collectGeometries(Feature feature) {
+        var geometries = new ArrayList<Geometry>();
+        for (Property property : feature.getProperties()) {
+            geometries.addAll(collect(property.getValue()));
+        }
+        return geometries;
     }
 
     @Function(docs = """
@@ -1714,10 +1723,8 @@ public class GeographicFunctionLibrary {
             return boundedGeometryToGeoJSON(wktToGeometryWithinBounds(wktString));
         } catch (ParseException e) {
             return Value.error(ERROR_INVALID_WKT);
-        } catch (GeometryProblem e) {
-            return Value.error(e.getMessage());
         } catch (IllegalArgumentException e) {
-            return Value.error(wktGeometryError(e));
+            return Value.error(e.getMessage());
         }
     }
 
@@ -1735,7 +1742,7 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-                var gmlData = "<gml:Point xmlns:gml='http://www.opengis.net/gml'><gml:coordinates>10,20</gml:coordinates></gml:Point>";
+                var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
                 geo.gml3ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
 
@@ -1763,7 +1770,7 @@ public class GeographicFunctionLibrary {
             ```sapl
             policy "example"
             permit
-                var gmlData = "<gml:Point xmlns:gml='http://www.opengis.net/gml'><gml:coordinates>10,20</gml:coordinates></gml:Point>";
+                var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
                 geo.gml2ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
             ```
 
@@ -1779,12 +1786,13 @@ public class GeographicFunctionLibrary {
         if (exceedsInputBound(gml.value())) {
             return Value.error(ERROR_GEOMETRY_INPUT_TOO_LARGE.formatted(MAX_GEO_INPUT_BYTES));
         }
-        List<Geometry> geometries;
+        Object parsed;
         try {
-            geometries = GeometryDocuments.read(gml.value(), configuration, false);
+            parsed = hardenedParser(configuration).parse(new StringReader(gml.value()));
         } catch (Exception e) {
             return Value.error(ERROR_FAILED_TO_PARSE_GML);
         }
+        var geometries = collect(parsed);
         if (geometries.isEmpty()) {
             return Value.error(ERROR_NO_GEOMETRIES_IN_GML);
         } else if (geometries.size() == 1) {
@@ -1802,11 +1810,13 @@ public class GeographicFunctionLibrary {
     static Geometry geoJsonToGeometry(ObjectValue geoJson) {
         val json = ValueJsonMarshaller.toJsonString(geoJson);
         if (exceedsInputBound(json)) {
-            throw new GeometryProblem(ERROR_GEOMETRY_INPUT_TOO_LARGE.formatted(MAX_GEO_INPUT_BYTES));
+            throw new IllegalArgumentException(ERROR_GEOMETRY_INPUT_TOO_LARGE.formatted(MAX_GEO_INPUT_BYTES));
         }
-        requireGeometryPositions(geoJson);
         val geometry = GEOJSON_READER.read(json);
-        requireComplexityWithinBounds(geometry);
+        if (exceedsComplexityBound(geometry)) {
+            throw new IllegalArgumentException(
+                    ERROR_GEOMETRY_TOO_COMPLEX.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
+        }
         return geometry;
     }
 
@@ -1823,7 +1833,7 @@ public class GeographicFunctionLibrary {
      */
     public static void requireInputWithinBounds(String input) {
         if (exceedsInputBound(input)) {
-            throw new GeometryProblem(ERROR_GEOMETRY_INPUT_TOO_LARGE.formatted(MAX_GEO_INPUT_BYTES));
+            throw new IllegalArgumentException(ERROR_GEOMETRY_INPUT_TOO_LARGE.formatted(MAX_GEO_INPUT_BYTES));
         }
     }
 
@@ -1838,47 +1848,15 @@ public class GeographicFunctionLibrary {
     public static Geometry wktToGeometryWithinBounds(String wkt) throws ParseException {
         requireInputWithinBounds(wkt);
         requireWktNestingWithinBounds(wkt);
-        requireCompleteWkt(wkt);
         try {
             return new WKTReader().read(wkt);
         } catch (StackOverflowError e) {
-            throw new GeometryProblem(ERROR_GEOMETRY_WKT_NESTING_TOO_DEEP.formatted(MAX_WKT_NESTING_DEPTH), e);
+            throw new IllegalArgumentException(ERROR_GEOMETRY_WKT_NESTING_TOO_DEEP.formatted(MAX_WKT_NESTING_DEPTH), e);
         }
     }
 
-    private static void requireCompleteWkt(String input) throws ParseException {
-        val start = input.indexOf('(');
-        if (start < 0) {
-            if (!input.strip().matches("(?i)[A-Z]+(?:\\s+Z|\\s+M|\\s+ZM)?\\s+EMPTY")) {
-                throw new ParseException(ERROR_INVALID_WKT);
-            }
-            return;
-        }
-        int depth = 0;
-        for (int index = start; index < input.length(); index++) {
-            val character = input.charAt(index);
-            if (character == '(') {
-                depth++;
-            } else if (character == ')') {
-                depth--;
-                if (depth == 0) {
-                    if (!input.substring(index + 1).isBlank()) {
-                        throw new ParseException(ERROR_INVALID_WKT);
-                    }
-                    return;
-                }
-            }
-        }
-        throw new ParseException(ERROR_INVALID_WKT);
-    }
-
-    private static void requireComplexityWithinBounds(Geometry geometry) {
-        if (geometry.getNumPoints() > MAX_GEOMETRY_VERTICES) {
-            throw new GeometryProblem(ERROR_GEOMETRY_TOO_MANY_VERTICES.formatted(MAX_GEOMETRY_VERTICES));
-        }
-        if (geometry.getNumGeometries() > MAX_GEOMETRY_COUNT) {
-            throw new GeometryProblem(ERROR_GEOMETRY_TOO_MANY_MEMBERS.formatted(MAX_GEOMETRY_COUNT));
-        }
+    private static boolean exceedsComplexityBound(Geometry geometry) {
+        return geometry.getNumPoints() > MAX_GEOMETRY_VERTICES || geometry.getNumGeometries() > MAX_GEOMETRY_COUNT;
     }
 
     private static void requireWktNestingWithinBounds(String input) {
@@ -1888,7 +1866,8 @@ public class GeographicFunctionLibrary {
             if (character == '(') {
                 depth++;
                 if (depth > MAX_WKT_NESTING_DEPTH) {
-                    throw new GeometryProblem(ERROR_GEOMETRY_WKT_NESTING_TOO_DEEP.formatted(MAX_WKT_NESTING_DEPTH));
+                    throw new IllegalArgumentException(
+                            ERROR_GEOMETRY_WKT_NESTING_TOO_DEEP.formatted(MAX_WKT_NESTING_DEPTH));
                 }
             } else if (character == ')' && depth > 0) {
                 depth--;
@@ -1905,187 +1884,18 @@ public class GeographicFunctionLibrary {
      * serialization fails
      */
     public static Value boundedGeometryToGeoJSON(Geometry geometry) {
-        try {
-            requireComplexityWithinBounds(geometry);
-            return geometryToGeoJSON(geometry);
-        } catch (GeometryProblem e) {
-            return Value.error(e.getMessage());
+        if (exceedsComplexityBound(geometry)) {
+            return Value.error(ERROR_GEOMETRY_TOO_COMPLEX.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
         }
+        return geometryToGeoJSON(geometry);
     }
 
     static Value geometryToGeoJSON(Geometry geo) {
         try {
-            return ValueJsonMarshaller.json(GEOJSON_WRITER.write(geo).replace("\"LinearRing\"", "\"LineString\"")
-                    .replace("\"MultiSurface\"", "\"MultiPolygon\"").replace("\"MultiCurve\"", "\"MultiLineString\""));
+            return ValueJsonMarshaller.json(GEOJSON_WRITER.write(geo));
         } catch (Exception e) {
-            return Value.error(ERROR_GEOMETRY_TO_GEO_JSON);
+            return Value.error(ERROR_GEOMETRY_TO_GEO_JSON_S.formatted(e.getMessage()));
         }
     }
 
-    private static Value geometryError(Exception exception) {
-        return Value.error(exception instanceof GeometryProblem ? exception.getMessage() : ERROR_INVALID_GEOJSON);
-    }
-
-    private static void requireDistanceWork(Geometry first, Geometry second) {
-        val left  = DistancePrimitives.of(first);
-        val right = DistancePrimitives.of(second);
-        val pairs = left.facets * right.facets + left.polygonEdges * right.locations
-                + right.polygonEdges * left.locations;
-        if (pairs > MAX_PAIRWISE_COMPARISONS) {
-            throw new GeometryProblem(ERROR_DISTANCE_COMPARISON_LIMIT.formatted(MAX_PAIRWISE_COMPARISONS));
-        }
-    }
-
-    private static final class DistancePrimitives {
-        private long facets;
-        private long polygonEdges;
-        private long locations;
-
-        static DistancePrimitives of(Geometry geometry) {
-            val primitives = new DistancePrimitives();
-            geometry.apply((GeometryFilter) primitives::count);
-            return primitives;
-        }
-
-        private void count(Geometry component) {
-            if (component instanceof GeometryCollection) {
-                return;
-            }
-            locations++;
-            switch (component) {
-            case Point ignored   -> facets++;
-            case LineString line -> facets += line.getNumPoints() - 1L;
-            case Polygon polygon -> {
-                val edges = polygon.getNumPoints() - polygon.getNumInteriorRing() - 1L;
-                facets       += edges;
-                polygonEdges += edges;
-            }
-            default              -> throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-            }
-        }
-    }
-
-    private static void requireNonempty(Geometry first, Geometry second) {
-        if (hasEmptyComponent(first) || hasEmptyComponent(second)) {
-            throw new GeometryProblem(ERROR_EMPTY_DISTANCE);
-        }
-    }
-
-    private static boolean hasEmptyComponent(Geometry geometry) {
-        if (geometry.isEmpty()) {
-            return true;
-        }
-        if (geometry instanceof GeometryCollection collection) {
-            for (int index = 0; index < collection.getNumGeometries(); index++) {
-                if (hasEmptyComponent(collection.getGeometryN(index))) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private static void requireGeometryPositions(ObjectValue object) {
-        val kind = object.get("type");
-        if (!(kind instanceof TextValue(String name))) {
-            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-        }
-        if ("GeometryCollection".equals(name)) {
-            if (!(object.get("geometries") instanceof ArrayValue members)) {
-                throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-            }
-            for (val member : members) {
-                if (!(member instanceof ObjectValue geometry)) {
-                    throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-                }
-                requireGeometryPositions(geometry);
-            }
-            return;
-        }
-        if (!(object.get("coordinates") instanceof ArrayValue coordinates)) {
-            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-        }
-        switch (name) {
-        case "Point"                    -> requirePosition(coordinates, true);
-        case "LineString", "MultiPoint" -> requirePositions(coordinates, 1, true);
-        case "MultiLineString"          -> requirePositions(coordinates, 2, true);
-        case "Polygon"                  -> requirePolygon(coordinates, true);
-        case "MultiPolygon"             -> {
-            for (val polygon : coordinates) {
-                requirePolygon(polygon, false);
-            }
-        }
-        default                         -> throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-        }
-    }
-
-    private static void requirePolygon(Value value, boolean allowEmpty) {
-        if (!(value instanceof ArrayValue rings) || (rings.isEmpty() && !allowEmpty)) {
-            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-        }
-        if (rings.size() == 1 && rings.getFirst() instanceof ArrayValue shell && shell.isEmpty()) {
-            return;
-        }
-        for (val ring : rings) {
-            if (!(ring instanceof ArrayValue positions) || positions.size() < 4
-                    || !positions.getFirst().equals(positions.getLast())) {
-                throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-            }
-            requirePositions(positions, 1, false);
-        }
-    }
-
-    private static void requirePositions(Value value, int depth, boolean allowEmpty) {
-        if (!(value instanceof ArrayValue elements)) {
-            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-        }
-        if (depth == 0) {
-            requirePosition(elements, allowEmpty);
-            return;
-        }
-        for (val element : elements) {
-            requirePositions(element, depth - 1, depth > 1);
-        }
-    }
-
-    private static void requirePosition(ArrayValue elements, boolean allowEmpty) {
-        if (allowEmpty && elements.isEmpty()) {
-            return;
-        }
-        if (elements.size() < 2) {
-            throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-        }
-        for (val element : elements) {
-            if (!(element instanceof NumberValue number) || !Double.isFinite(number.value().doubleValue())) {
-                throw new GeometryProblem(ERROR_INVALID_GEOJSON);
-            }
-        }
-    }
-
-    private static String wktGeometryError(IllegalArgumentException exception) {
-        val message = exception.getMessage();
-        if (message.contains("closed linestring")) {
-            return ERROR_INVALID_WKT_RING_CLOSED;
-        }
-        if (message.contains("LineString")) {
-            return ERROR_INVALID_WKT_LINE;
-        }
-        if (message.contains("LinearRing")) {
-            return ERROR_INVALID_WKT_RING_SIZE;
-        }
-        if (message.contains("shell is empty")) {
-            return ERROR_INVALID_WKT_SHELL;
-        }
-        return ERROR_INVALID_WKT;
-    }
-
-    static final class GeometryProblem extends IllegalArgumentException {
-        GeometryProblem(String message) {
-            super(message);
-        }
-
-        GeometryProblem(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
 }

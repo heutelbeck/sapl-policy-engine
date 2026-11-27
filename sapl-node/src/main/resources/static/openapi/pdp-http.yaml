@@ -189,7 +189,7 @@ components:
           description: Optional contextual information. Any JSON value or omitted.
         secrets:
           type: object
-          description: Optional object of secrets for Policy Information Points. Policies cannot read its entries, and they are not echoed back in responses.
+          description: Optional object whose entries are accessible to policies via `secrets()` and not echoed back in responses.
       example:
         subject: "alice"
         action: "read"

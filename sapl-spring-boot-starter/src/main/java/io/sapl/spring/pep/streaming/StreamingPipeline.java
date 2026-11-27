@@ -103,9 +103,9 @@ import reactor.util.context.ContextView;
 public final class StreamingPipeline {
 
     private static final String ERROR_INPUT_REQUIRES_INVOCATION          = "Input handlers require a method invocation.";
-    private static final String ERROR_PDP_STREAM_COMPLETED               = "PDP decision stream completed unexpectedly. A streaming PDP must not complete.";
+    private static final String ERROR_PDP_STREAM_COMPLETED               = "PDP decision stream completed unexpectedly; a streaming PDP must not complete.";
     private static final String ERROR_STREAM_SUSPENDED                   = "Stream suspended: %s";
-    private static final String WARN_AFTER_TERMINATION_OBLIGATION_FAILED = "After-termination obligation handler failed after the stream had already terminated. The completion cannot be retracted: {}";
+    private static final String WARN_AFTER_TERMINATION_OBLIGATION_FAILED = "After-termination obligation handler failed after the stream had already terminated; the completion cannot be retracted: {}";
     private static final String WARN_CANCEL_OBLIGATION_FAILED            = "Cancel obligation handler failed after the subscriber had already cancelled: {}";
     private static final String ERROR_SUSPEND_OBLIGATION_FAILED          = "Access denied. A suspension obligation failed.";
 

@@ -23,9 +23,7 @@ import org.antlr.v4.runtime.Token;
 import org.eclipse.lsp4j.Position;
 
 import io.sapl.grammar.antlr.SAPLLexer;
-import io.sapl.lsp.core.ProtocolPositions;
 import lombok.experimental.UtilityClass;
-import lombok.val;
 
 /**
  * Analyzes cursor context to determine what type of completions should be
@@ -92,13 +90,10 @@ public class ContextAnalyzer {
      * @return analysis result containing proposal type and function/attribute name
      */
     public static ContextAnalysisResult analyze(List<Token> tokens, Position position) {
-        if (tokens.isEmpty()) {
-            return ContextAnalysisResult.indeterminate("");
-        }
-        val positions = ProtocolPositions.of(tokens.getFirst());
-        val cursor    = positions.offsetOf(position);
+        var line   = position.getLine() + 1; // Tokens use 1-based lines
+        var column = position.getCharacter();
 
-        val tokenContext = findTokensAtCursor(tokens, positions, cursor);
+        var tokenContext = findTokensAtCursor(tokens, line, column);
         if (tokenContext.current == null) {
             return ContextAnalysisResult.indeterminate("");
         }
@@ -106,7 +101,7 @@ public class ContextAnalyzer {
         var tokenAtCursor = tokenContext.current;
         var previousToken = tokenContext.previous;
         var twoTokensBack = tokenContext.twoBack;
-        val ctxPrefix     = buildCtxPrefix(tokenAtCursor, positions, cursor);
+        var ctxPrefix     = buildCtxPrefix(tokenAtCursor, line, column);
 
         var result = tryMatchDotAfterCallOrAttribute(tokens, tokenAtCursor, previousToken, ctxPrefix);
         if (result != null) {
@@ -169,12 +164,11 @@ public class ContextAnalyzer {
     /**
      * Builds the immediate prefix from cursor position.
      */
-    private static String buildCtxPrefix(Token token, ProtocolPositions positions, int cursor) {
+    private static String buildCtxPrefix(Token token, int line, int column) {
         if (token.getType() == SAPLLexer.ID) {
-            val tokenStart = positions.startOf(token);
-            val sameLine   = positions.lineOf(tokenStart) == positions.lineOf(cursor);
-            if (sameLine && cursor > tokenStart) {
-                val endIdx = cursor - tokenStart;
+            var tokenStart = token.getCharPositionInLine();
+            if (token.getLine() == line && column > tokenStart) {
+                var endIdx = column - tokenStart;
                 var text   = token.getText();
                 return text.substring(0, Math.min(endIdx, text.length()));
             }
@@ -338,13 +332,13 @@ public class ContextAnalyzer {
     /**
      * Finds up to three tokens at or before the cursor position.
      */
-    private static TokenContext findTokensAtCursor(List<Token> tokens, ProtocolPositions positions, int cursor) {
+    private static TokenContext findTokensAtCursor(List<Token> tokens, int line, int column) {
         Token tokenAtCursor = null;
         Token previousToken = null;
         Token twoTokensBack = null;
 
         for (var token : tokens) {
-            if (token.getType() == Token.EOF || positions.endOf(token) > cursor) {
+            if (token.getType() == Token.EOF || !isTokenBeforeOrAtCursor(token, line, column)) {
                 break;
             }
             if (token.getChannel() != Token.HIDDEN_CHANNEL) {
@@ -354,6 +348,12 @@ public class ContextAnalyzer {
             }
         }
         return new TokenContext(tokenAtCursor, previousToken, twoTokensBack);
+    }
+
+    private static boolean isTokenBeforeOrAtCursor(Token token, int line, int column) {
+        var tokenEndLine   = token.getLine();
+        var tokenEndColumn = token.getCharPositionInLine() + token.getText().length();
+        return tokenEndLine < line || (tokenEndLine == line && tokenEndColumn <= column);
     }
 
     /**

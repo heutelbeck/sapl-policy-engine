@@ -53,13 +53,59 @@ jobs:
   # ---------------------------------------------------------------------------
 
   version-check:
-    name: Check Version and Prepare Maven
+    name: Check Version
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-    uses: ./.github/workflows/prepare_maven.yml
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      is_snapshot: ${{ steps.get-version.outputs.is_snapshot }}
+      is_tag: ${{ steps.check-ref.outputs.is_tag }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Extract Version
+        id: get-version
+        run: |
+          VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: Failed to extract version" >&2
+            exit 1
+          fi
+          echo "Extracted version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-SNAPSHOT ]]; then
+            echo "is_snapshot=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_snapshot=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check Ref Type
+        id: check-ref
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "is_tag=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_tag=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Clean up Local Repository before Caching
+        run: rm -rf ~/.m2/repository/io/sapl
 
   test:
-    needs: [version-check]
     strategy:
       matrix:
         java: [ '21', '25' ]
@@ -79,7 +125,7 @@ jobs:
     steps:
       - name: Harden Runner
         if: matrix.os == 'ubuntu-latest'
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -97,11 +143,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
-
-      - name: Restore Maven dependencies
-        uses: ./.github/actions/restore-maven
-        with:
-          key: ${{ needs.version-check.outputs.cache_key }}
+          cache: 'maven'
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -110,17 +152,15 @@ jobs:
 
       - name: Build Dependencies of SAPL Node
         if: env.RUN_ANALYSIS == 'true'
-        run: |
-          mvn -o -B install -pl sapl-node -am -Dmaven.test.skip=true
-          bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true
+        run: mvn -U -B install -pl sapl-node -am -Dmaven.test.skip=true
 
       - name: Build SAPL Node Image
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -o -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
+        run: mvn -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
 
       - name: Run Unit Tests Only
         if: env.RUN_ANALYSIS == 'false'
-        run: mvn -o -B package javadoc:jar
+        run: mvn -B package javadoc:jar
 
         # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
         # SonarCloud analysis. The SonarCloud analysis is run separately because a
@@ -128,19 +168,15 @@ jobs:
         # fork and workflows triggered by other events.
       - name: Run Unit Tests, Analysis, and Integration Tests
         if: env.RUN_ANALYSIS == 'true'
-        run: mvn -o -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T 1.5C
-
-      - name: Package Maven SBOM resources
-        shell: bash
-        run: bash .github/maven/package-sbom.sh sapl-node,sapl-language-server
+        run: mvn -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -T 1.5C
 
       - name: Verify Installed Editor Dependencies
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          mvn -o -B install -pl sapl-vaadin-editor -am -DskipTests
-          version=$(mvn -o -q help:evaluate -Dexpression=project.version -DforceStdout)
-          bash .github/scripts/lsp-library-smoke-test.sh "$version" -o
+          mvn -B install -pl sapl-vaadin-editor -am -DskipTests
+          version=$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)
+          bash .github/scripts/lsp-library-smoke-test.sh "$version"
 
       - name: Cache Sonar Packages
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -210,9 +246,16 @@ jobs:
             **/plugin.xml
           retention-days: 1
 
+        # This action currently contains a bug. If a commit triggers more than one workflow
+        # run all test reports are published on the first workflow run.
+        # See: https://github.com/ScaCap/action-surefire-report/issues/75
       - name: Publish Test Report
         if: ${{ (success() || failure()) && (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
-        uses: ScalableCapital/action-surefire-report@4004a71652495d6ed111f5b717c2cf9aa0f37627 # v2.0.5
+        uses: scacap/action-surefire-report@c38a2d74b9840ae8950a4387ae02b637421d0f39 # v1.13.0
+
+      - name: Clean up Local Repository before Caching
+        shell: bash
+        run: rm -rf ~/.m2/repository/io/sapl
 
   build-docker:
     # Dependabot-triggered runs get no repository secrets, and this job needs
@@ -227,7 +270,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -242,16 +285,12 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '25'
+          cache: 'maven'
           server-id: central
           server-username-env-var: NEXUS_USERNAME
           server-password-env-var: NEXUS_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase-env-var: MAVEN_GPG_PASSPHRASE
-
-      - name: Restore Maven dependencies
-        uses: ./.github/actions/restore-maven
-        with:
-          key: ${{ needs.version-check.outputs.cache_key }}
 
       - name: Configure Servers
         uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
@@ -273,29 +312,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # The vaadin-maven-plugin of sapl-playground is not thread-safe. The playground
-      # is built single-threaded against the artifacts installed by the parallel build.
       - name: Build All for Server
-        run: |
-          mvn -o -B clean install -Dmaven.test.skip=true -Psign,production -T 1.5C -pl '!sapl-playground'
-          bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true -Psign,production
-        env:
-          MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: Build SAPL Playground for Server
-        run: mvn -o -B clean install -Dmaven.test.skip=true -Psign,production -pl sapl-playground
+        run: mvn -U -B clean install -Dmaven.test.skip=true -Psign,production -T 1.5C
         env:
           MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Build SAPL Node Image
-        run: mvn -o -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
+        run: mvn -B spring-boot:build-image -pl sapl-node -Dmaven.test.skip=true
 
       - name: Build SAPL Playground Image
-        run: mvn -o -B spring-boot:build-image -pl sapl-playground -Dmaven.test.skip=true -Pproduction
+        run: mvn -B spring-boot:build-image -pl sapl-playground -Dmaven.test.skip=true -Pproduction
 
       - name: Save SAPL Node Image
         run: docker save ghcr.io/heutelbeck/sapl-node:${{ needs.version-check.outputs.version }} | gzip > sapl-node-docker-image.tar.gz
@@ -327,6 +355,9 @@ jobs:
             sapl-node/target/site/io.*.spdx.json
           retention-days: 1
 
+      - name: Clean up Local Repository before Caching
+        run: rm -rf ~/.m2/repository/io/sapl
+
   build-native-node:
     needs: [version-check]
     if: ${{ github.event_name != 'pull_request' }}
@@ -334,17 +365,13 @@ jobs:
       contents: read
     uses: ./.github/workflows/build_native_node.yml
     with:
-      maven_cache_key: ${{ needs.version-check.outputs.cache_key }}
       build_macos: ${{ needs.version-check.outputs.is_tag == 'true' }}
 
   build-native-lsp:
-    needs: [version-check]
     if: ${{ github.event_name != 'pull_request' }}
     permissions:
       contents: read
     uses: ./.github/workflows/build_native_lsp.yml
-    with:
-      maven_cache_key: ${{ needs.version-check.outputs.cache_key }}
 
   smoke-test-native-node:
     needs: [build-native-node]
@@ -357,7 +384,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -379,7 +406,7 @@ jobs:
           .github/scripts/native-node-smoke-test.sh ./artifacts/linux-amd64/sapl
 
   benchmark-scripts-test:
-    needs: [version-check, smoke-test-native-node]
+    needs: [smoke-test-native-node]
     if: ${{ github.event_name != 'pull_request' }}
     name: Benchmark Scripts Regression Test
     runs-on: ubuntu-24.04
@@ -389,7 +416,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -402,10 +429,12 @@ jobs:
           distribution: 'temurin'
           java-version: '25'
 
-      - name: Restore Maven dependencies
-        uses: ./.github/actions/restore-maven
+      - name: Cache Maven packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          key: ${{ needs.version-check.outputs.cache_key }}
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
 
       - name: Install wrk2 (HTTP load generator)
         shell: bash
@@ -437,9 +466,7 @@ jobs:
           # this binary untouched. The native image is never rebuilt here.
           cp artifacts/linux-amd64/sapl sapl-benchmark/bin/sapl
           chmod +x sapl-benchmark/bin/sapl
-          MAVEN_ARGS=-o ./sapl-benchmark/scripts/build.sh
-          bash .github/maven/package-sbom.sh sapl-node -Dlicense.skip
-          cp sapl-node/target/sapl-node-*.jar sapl-benchmark/bin/sapl-node.jar
+          ./sapl-benchmark/scripts/build.sh
           env BENCH_QUALITIES=test ./sapl-benchmark/scripts/run-all.sh "$RUNNER_TEMP/bench-results"
 
   build-min-docker:
@@ -453,7 +480,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -506,7 +533,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -702,7 +729,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -876,7 +903,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -891,16 +918,12 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '25'
+          cache: 'maven'
           server-id: central
           server-username-env-var: NEXUS_USERNAME
           server-password-env-var: NEXUS_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase-env-var: MAVEN_GPG_PASSPHRASE
-
-      - name: Restore Maven dependencies
-        uses: ./.github/actions/restore-maven
-        with:
-          key: ${{ needs.version-check.outputs.cache_key }}
 
       - name: Configure Servers
         uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
@@ -954,6 +977,9 @@ jobs:
             **/target/*.jar
             **/target/**/*.spdx.json
 
+      - name: Clean up Local Repository before Caching
+        run: rm -rf ~/.m2/repository/io/sapl
+
   publish-docker:
     needs: [test, version-check, build-native-node, build-native-lsp, build-docker, build-min-docker, build-native-node-release-assets, build-native-lsp-release-assets, smoke-test-native-node, benchmark-scripts-test]
     if: >-
@@ -979,7 +1005,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -1133,7 +1159,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -1293,7 +1319,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -1371,7 +1397,7 @@ jobs:
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
-          name: SAPL ${{ github.ref_name }}
+          name: SAPL Node ${{ github.ref_name }}
           body: |
             ## SAPL Node ${{ github.ref_name }}
 
@@ -1449,7 +1475,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -1512,8 +1538,7 @@ jobs:
         if: ${{ needs.version-check.outputs.is_tag == 'true' }}
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
-          name: SAPL ${{ github.ref_name }}
-          append_body: true
+          name: SAPL Language Server ${{ github.ref_name }}
           body: |
             ## SAPL Language Server ${{ github.ref_name }}
 
@@ -1572,7 +1597,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -1641,7 +1666,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -1673,38 +1698,6 @@ jobs:
         run: |
           gh release upload "${TAG}" sums-staging/SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
 
-  # Once version X is released, its snapshot builds are superseded. Their assets are
-  # removed from the rolling snapshot releases, which then only carry snapshots of the
-  # next version. Versioned releases are never touched.
-  retire-snapshot-assets:
-    name: Remove the snapshot assets of the released version
-    needs: [version-check, publish-version-sums]
-    if: ${{ needs.version-check.outputs.is_tag == 'true' && needs.version-check.outputs.is_snapshot == 'false' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
-        with:
-          egress-policy: audit
-
-      - name: Delete the snapshot assets of this version
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.version-check.outputs.version }}
-        run: |
-          set -euo pipefail
-          for release in snapshot snapshot-node; do
-            assets=$(gh release view "$release" --repo "${{ github.repository }}" --json assets --jq '.assets[].name')
-            for asset in $(grep -F -- "${VERSION}-SNAPSHOT" <<< "$assets" || true); do
-              echo "Deleting ${asset} from ${release}"
-              gh release delete-asset "$release" "$asset" --repo "${{ github.repository }}" --yes
-            done
-          done
-
   publish-docs:
     needs: [test, version-check]
     if: >-
@@ -1719,8 +1712,6 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/build_documentation.yml
-    with:
-      maven_cache_key: ${{ needs.version-check.outputs.cache_key }}
     secrets:
       GHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
@@ -1739,7 +1730,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -1800,7 +1791,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 

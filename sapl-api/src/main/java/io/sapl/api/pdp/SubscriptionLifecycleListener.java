@@ -25,11 +25,7 @@ package io.sapl.api.pdp;
  * {@link #onSubscribe(String, AuthorizationSubscription, String)} call
  * followed by zero or more decision emissions and exactly one
  * {@link #onUnsubscribe(String)} call when the stream ends (normally,
- * via error, or via consumer cancellation). In a group, each item has its
- * own lifetime across attribute updates and PDP configuration changes.
- * The PDP selects the listeners once when opening a subscription or group.
- * They receive the closing callbacks even if the plugins change in the meantime.
- * Subscriptions opened after replacement use the new listeners.
+ * via error, or via consumer cancellation).
  * <p>
  * Listeners are observability concerns: misbehaving listeners must not
  * affect authorization correctness. The PDP catches and logs exceptions
@@ -42,10 +38,7 @@ public interface SubscriptionLifecycleListener {
     /**
      * Called once when an authorization subscription stream begins.
      *
-     * @param subscriptionId the PDP-generated identifier for this subscription lifetime.
-     * Each element of a multi-subscription has its own identifier, shared
-     * by its decision and lifecycle callbacks. The public decision bundle
-     * uses the element identifier supplied by the caller
+     * @param subscriptionId the per-evaluation subscription identifier
      * @param authorizationSubscription the subscription being evaluated
      * @param pdpId the tenant identifier the request was routed to
      */
@@ -55,8 +48,7 @@ public interface SubscriptionLifecycleListener {
      * Called once when an authorization subscription stream ends,
      * regardless of how the stream terminated.
      *
-     * @param subscriptionId the identifier previously passed to
-     * {@link #onSubscribe(String, AuthorizationSubscription, String)}
+     * @param subscriptionId the per-evaluation subscription identifier
      */
     void onUnsubscribe(String subscriptionId);
 }

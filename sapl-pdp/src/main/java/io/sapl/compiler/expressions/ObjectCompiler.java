@@ -23,6 +23,7 @@ import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -48,13 +49,13 @@ public class ObjectCompiler {
         }
 
         val     keys      = new String[entries.size()];
-        val     compiled  = CompilationChildren.map(entries, entry -> ExpressionCompiler.compile(entry.value(), ctx));
+        val     compiled  = new ArrayList<CompiledExpression>(entries.size());
         boolean allValues = true;
         boolean hasStream = false;
         for (int i = 0; i < entries.size(); i++) {
             val entry = entries.get(i);
             keys[i] = entry.key();
-            val result = compiled.get(i);
+            val result = ExpressionCompiler.compile(entry.value(), ctx);
             if (result instanceof ErrorValue) {
                 return result;
             }
@@ -64,6 +65,7 @@ public class ObjectCompiler {
             } else if (!(result instanceof Value)) {
                 allValues = false;
             }
+            compiled.add(result);
         }
 
         if (allValues) {
@@ -139,10 +141,15 @@ public class ObjectCompiler {
         public long semanticHash() {
             long hash = KIND;
             for (int i = 0; i < entries.size(); i++) {
-                hash = SemanticHashing.ordered(hash, SemanticHashing.textHash(keys[i]),
-                        SemanticHashing.expressionHash(entries.get(i)));
+                val entry     = entries.get(i);
+                val entryHash = switch (entry) {
+                              case Value v                -> SemanticHashing.valueHash(v);
+                              case PureOperator p         -> p.semanticHash();
+                              case StreamOperator ignored -> (long) entry.hashCode();
+                              };
+                hash = SemanticHashing.ordered(hash, SemanticHashing.textHash(keys[i]), entryHash);
             }
-            return hash;
+            return SemanticHashing.ordered(hash, Objects.hashCode(location));
         }
 
         @Override

@@ -23,6 +23,7 @@ import io.sapl.api.stream.Stream;
 import lombok.val;
 
 import java.util.LinkedHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -32,22 +33,17 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 final class LatestIdentifiableDecisionStream implements Stream<IdentifiableAuthorizationDecision> {
 
+    private final AtomicBoolean                                            closed  = new AtomicBoolean(false);
     private final LinkedHashMap<String, IdentifiableAuthorizationDecision> pending = new LinkedHashMap<>();
     private final ReentrantLock                                            lock    = new ReentrantLock();
     private final Condition                                                ready   = lock.newCondition();
 
     private Runnable closeAction = () -> {};
     private boolean  completed;
-    private boolean  closed;
 
     void onClose(Runnable closeAction) {
-        lock.lock();
-        try {
-            if (!closed) {
-                this.closeAction = closeAction;
-            }
-        } finally {
-            lock.unlock();
+        if (!closed.get()) {
+            this.closeAction = closeAction;
         }
     }
 
@@ -108,19 +104,10 @@ final class LatestIdentifiableDecisionStream implements Stream<IdentifiableAutho
 
     @Override
     public void close() {
-        lock.lock();
-        try {
-            if (closed) {
-                return;
-            }
-            closed    = true;
-            completed = true;
-            pending.clear();
-            ready.signalAll();
-        } finally {
-            lock.unlock();
+        if (closed.compareAndSet(false, true)) {
+            complete();
+            closeAction.run();
         }
-        closeAction.run();
     }
 
     private IdentifiableAuthorizationDecision removeFirstPending() {

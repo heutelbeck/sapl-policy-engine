@@ -27,8 +27,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
-import java.util.List;
-import lombok.val;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -47,38 +45,6 @@ class ValueJsonMarshallerTests {
     private static final String LOCATION_RLYEH      = "R'lyeh";
     private static final int    SANITY_THRESHOLD    = 42;
     private static final int    HORROR_LEVEL_MAX    = 100;
-
-    @Test
-    @DisplayName("an arithmetic result at the decimal limit round-trips through both JSON readers")
-    void whenLargeArithmeticResultIsWrittenThenBothJsonReadersRecoverTheNumber() {
-        val result = Value.of(new BigDecimal("1E1999").setScale(-1000));
-        val json   = ValueJsonMarshaller.toJsonString(result);
-        assertThat(json).isEqualTo("1E+1999");
-        assertThat(List.of(ValueJsonMarshaller.json(json), ValueJsonMarshaller.jsonAllowingComments(json)))
-                .containsExactly(result, result);
-    }
-
-    @Test
-    @DisplayName("JSON admits a full signed coefficient with exponent and enforces the raw zero limit")
-    void whenWireTokenNeedsOverheadThenBothJsonReadersApplyTheSameBounds() {
-        val dense   = Value.of(new BigDecimal("-" + "9".repeat(1000) + "e1000"));
-        val encoded = ValueJsonMarshaller.toJsonString(dense);
-        assertThat(ValueJsonMarshaller.json(encoded)).isEqualTo(dense);
-        assertThat(ValueJsonMarshaller.jsonAllowingComments("/* header */" + encoded)).isEqualTo(dense);
-        assertThat(ValueJsonMarshaller.json("1".repeat(1001))).isInstanceOf(ErrorValue.class);
-        assertThat(ValueJsonMarshaller.json("0e1000000")).isEqualTo(Value.ZERO);
-        assertThat(ValueJsonMarshaller.json("0." + "0".repeat(1009))).isInstanceOf(ErrorValue.class);
-    }
-
-    @Test
-    @DisplayName("the innermost JSON value counts towards the nesting limit")
-    void whenReadingANestedScalarThenTheSameDepthLimitAppliesAsForTrees() {
-        val open  = "[".repeat(ValueJsonMarshaller.MAX_DEPTH);
-        val close = "]".repeat(ValueJsonMarshaller.MAX_DEPTH);
-        assertThat(ValueJsonMarshaller.json(open + close)).isEqualTo(Value.error("Maximum nesting depth exceeded."));
-        assertThat(ValueJsonMarshaller.json(open + "0" + close))
-                .isEqualTo(Value.error("Maximum nesting depth exceeded."));
-    }
 
     // Round-trip Conversion Tests - Primitives
 
@@ -202,13 +168,12 @@ class ValueJsonMarshallerTests {
     }
 
     @Test
-    @DisplayName("pretty-printing an exception without a message retains the fallback text")
-    void whenPrettyPrintingExceptionWithoutMessageThenRendersWithoutThrowing() {
-        val errorWithoutCauseMessage = new ErrorValue(new RuntimeException());
-        val array                    = Value.ofArray(errorWithoutCauseMessage);
+    @DisplayName("pretty-printing an error with a null message does not throw")
+    void whenPrettyPrintingErrorWithNullMessageThenRendersWithoutThrowing() {
+        var errorWithNullMessage = new ErrorValue(new RuntimeException());
+        var array                = Value.ofArray(errorWithNullMessage);
 
-        assertThat(errorWithoutCauseMessage.message()).isEqualTo("unknown error");
-        assertThat(ValueJsonMarshaller.toPrettyString(errorWithoutCauseMessage)).contains("ERROR");
+        assertThat(ValueJsonMarshaller.toPrettyString(errorWithNullMessage)).contains("ERROR");
         assertThat(ValueJsonMarshaller.toPrettyString(array)).contains("ERROR");
     }
 
@@ -543,47 +508,6 @@ class ValueJsonMarshallerTests {
 
         assertThat(result).isNotNull().isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Unknown JsonNode type: MISSING");
-    }
-
-    @ParameterizedTest(name = "jsonAllowingComments parses: {0}")
-    @MethodSource("commentedJsonStrings")
-    @DisplayName("jsonAllowingComments() parses human-edited configuration with comments")
-    void whenCommentedJsonThenJsonAllowingCommentsIgnoresComments(String description, String json) {
-        var result = ValueJsonMarshaller.jsonAllowingComments(json);
-
-        assertThat(result).isEqualTo(Value.ofObject(Map.of("entity", Value.of(ENTITY_CTHULHU))));
-    }
-
-    @ParameterizedTest(name = "json rejects: {0}")
-    @MethodSource("commentedJsonStrings")
-    @DisplayName("json() stays strict and rejects comments")
-    void whenCommentedJsonThenStrictJsonReturnsErrorValue(String description, String json) {
-        var result = ValueJsonMarshaller.json(json);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-    }
-
-    static Stream<Arguments> commentedJsonStrings() {
-        return Stream.of(arguments("double-slash line comment", """
-                {
-                  // the summoned entity
-                  "entity": "Cthulhu"
-                }"""), arguments("hash line comment", """
-                # the summoned entity
-                { "entity": "Cthulhu" }"""), arguments("block comment", """
-                { /* the summoned
-                     entity */ "entity": "Cthulhu" }"""), arguments("trailing comment", """
-                { "entity": "Cthulhu" } // end of file"""));
-    }
-
-    @ParameterizedTest(name = "jsonAllowingComments returns error for: {0}")
-    @MethodSource("invalidJsonStrings")
-    @DisplayName("jsonAllowingComments() still returns error for invalid JSON")
-    void whenInvalidJsonThenJsonAllowingCommentsReturnsErrorValue(String description, String json) {
-        var result = ValueJsonMarshaller.jsonAllowingComments(json);
-
-        assertThat(result).isInstanceOf(ErrorValue.class).extracting(error -> ((ErrorValue) error).message()).asString()
-                .contains("Failed to parse JSON");
     }
 
     // toJsonString Tests

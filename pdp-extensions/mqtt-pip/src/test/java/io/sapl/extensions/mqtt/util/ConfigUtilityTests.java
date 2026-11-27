@@ -89,7 +89,7 @@ class ConfigUtilityTests {
     }
 
     @Nested
-    @DisplayName("getMqttBrokerConfig: invalid inputs")
+    @DisplayName("getMqttBrokerConfig - invalid inputs")
     class InvalidBrokerConfig {
 
         static Stream<Arguments> invalidBrokerConfigCases() {
@@ -136,29 +136,43 @@ class ConfigUtilityTests {
     }
 
     @Nested
-    @DisplayName("getMqttBrokerConfig: resolution paths")
+    @DisplayName("getMqttBrokerConfig - resolution paths")
     class BrokerConfigResolution {
 
-        @ParameterizedTest(name = "{0}")
-        @MethodSource("selectors")
-        @DisplayName("broker selection uses the endpoint map key")
-        void whenSelectingBrokerThenUsesNamedEntry(String description, String defaultName, Value selector,
-                String expected) {
-            val brokers = JSON.objectNode();
-            brokers.set("default", JSON.objectNode().put("clientId", "default"));
-            brokers.set("production", JSON.objectNode().put("clientId", "production"));
-            val mqtt = JSON.objectNode().set("brokers", brokers);
-            if (defaultName != null) {
-                mqtt.put("default", defaultName);
-            }
-            assertThat(ConfigUtility.getMqttBrokerConfig(mqtt, selector).get("clientId").asString())
-                    .isEqualTo(expected);
+        @Test
+        @DisplayName("when array config is referenced by name in attribute finder then matching entry returned")
+        void whenArrayConfigReferencedByNameThenReturnsMatchingEntry() {
+            val mqttConfig = JSON.objectNode().put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
+                            JSON.arrayNode().add(brokerEntry("production", "localhost", 1883, "mqttPipDefault"))
+                                    .add(brokerEntry("broker2", "localhost", 1883, "broker2")));
+
+            val config = ConfigUtility.getMqttBrokerConfig(mqttConfig, Value.of("broker2"));
+
+            assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
         }
 
-        static Stream<Arguments> selectors() {
-            return Stream.of(arguments("explicit broker", null, Value.of("production"), "production"),
-                    arguments("operator default", "production", Value.UNDEFINED, "production"),
-                    arguments("implicit default", null, Value.UNDEFINED, "default"));
+        @Test
+        @DisplayName("when object config name matches the attribute finder reference then config returned")
+        void whenObjectConfigNameMatchesReferenceThenReturnsConfig() {
+            val mqttConfig = JSON.objectNode().put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG, brokerEntry("broker2", "localhost", 1883, "broker2"));
+
+            val config = ConfigUtility.getMqttBrokerConfig(mqttConfig, Value.of("broker2"));
+
+            assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("broker2");
+        }
+
+        @Test
+        @DisplayName("when object config present and no attribute finder param then pdp object returned")
+        void whenObjectConfigAndNoAttributeFinderParamThenReturnsPdpConfig() {
+            val mqttConfig = JSON.objectNode().put(ConfigUtility.ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME, "production")
+                    .set(ConfigUtility.ENVIRONMENT_BROKER_CONFIG,
+                            brokerEntry("production", "localhost", 1883, "production"));
+
+            val config = ConfigUtility.getMqttBrokerConfig(mqttConfig, Value.UNDEFINED);
+
+            assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("production");
         }
     }
 

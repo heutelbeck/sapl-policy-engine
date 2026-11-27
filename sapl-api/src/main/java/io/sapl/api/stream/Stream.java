@@ -33,9 +33,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>
  * A stream that has completed delivers no further values:
  * {@link #awaitNext()} returns {@code null}, {@link #tryNext()}
- * returns {@link Poll.Done}. When the source finishes producing,
- * buffered values remain readable until drained. Calling {@link #close()}
- * discards any unread values immediately.
+ * returns {@link Poll.Done}. A stream completes either when its
+ * source has no more values to produce or when {@link #close()}
+ * is called.
  * <p>
  * Always close the stream when finished. Use try-with-resources.
  *
@@ -171,7 +171,7 @@ public interface Stream<T> extends AutoCloseable {
     Poll<T> tryNext();
 
     /**
-     * Cancels the stream and discards unread values. After this returns, no further values
+     * Closes the stream. After this returns, no further values
      * will be delivered. Idempotent and safe to call from any thread.
      */
     @Override

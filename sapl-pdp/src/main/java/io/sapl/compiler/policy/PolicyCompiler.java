@@ -47,7 +47,8 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
  * <li>{@code applicabilityAndVote} - Combined applicability and constraint
  * evaluation (e.g., in policy sets walking the contained polices).</li>
  * <li>{@code coverageVoter} - Snapshot-driven coverage-instrumented evaluator.
- * It observes the compiled authorization voter in the same round.</li>
+ * {@link CoverageVoter.Lazy} or {@link CoverageVoter.Eager} based on
+ * {@link CompilationContext#lowLatencyMode()}.</li>
  * </ul>
  */
 @UtilityClass
@@ -71,34 +72,19 @@ public class PolicyCompiler {
      */
     public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val metadata              = policy.metadata();
-        val conditions            = compileConditions(policy.body().statements(), ctx);
-        val isApplicable          = compilePureSectionOfBodyExpression(conditions, policy.body());
-        val streamingSection      = compileStreamingSectionOfBodyExpression(conditions, policy.body());
-        val constraintsVoter      = compileConstraintsVoter(policy, metadata, ctx);
-        val voter                 = wrapWithStreamingBody(constraintsVoter, streamingSection, metadata,
+        val           metadata              = policy.metadata();
+        val           conditions            = compileConditions(policy.body().statements(), ctx);
+        val           isApplicable          = compilePureSectionOfBodyExpression(conditions, policy.body());
+        val           streamingSection      = compileStreamingSectionOfBodyExpression(conditions, policy.body());
+        val           constraintsVoter      = compileConstraintsVoter(policy, metadata, ctx);
+        val           voter                 = wrapWithStreamingBody(constraintsVoter, streamingSection, metadata,
                 policy.location());
-        val applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, streamingSection, voter,
+        val           applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, streamingSection, voter,
                 constraintsVoter, metadata);
-        val coverageVoter         = ObservedVoter.policy(applicabilityAndVoter, policy, conditions, isApplicable,
-                streamingSection);
+        CoverageVoter coverageVoter         = ctx.lowLatencyMode()
+                ? new CoverageVoter.Eager(conditions, constraintsVoter, metadata)
+                : new CoverageVoter.Lazy(conditions, constraintsVoter, metadata);
         return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverageVoter, metadata);
-    }
-
-    static CoverageVoter coverageForConditions(List<IndexedCompiledCondition> conditions, Voter constraints,
-            VoterMetadata metadata) {
-        if (conditions.isEmpty()) {
-            return ObservedVoter.policy(constraints, metadata, null, conditions, Value.TRUE, Value.TRUE, false);
-        }
-        val location  = SourceLocation.spanning(conditions.getFirst().location(), conditions.getLast().location());
-        val body      = new PolicyBody(List.of(), location);
-        val pure      = compilePureSectionOfBodyExpression(conditions, body);
-        val streaming = compileStreamingSectionOfBodyExpression(conditions, body);
-        val voter     = wrapWithStreamingBody(constraints, streaming, metadata, location);
-        val complete  = compileApplicabilityAndVoter(pure, streaming, voter, constraints, metadata);
-        val first     = conditions.getFirst();
-        val enforced  = first.statementId() == -1 && first.expression() instanceof PureOperator;
-        return ObservedVoter.policy(complete, metadata, null, conditions, pure, streaming, enforced);
     }
 
     /**
@@ -357,12 +343,9 @@ public class PolicyCompiler {
 
         @Override
         public VoteResult evaluate(EvaluationContext ctx) {
-            val applicabilityValue = applicability instanceof PureOperator pure ? pure.evaluate(ctx)
+            // Eval the pure section of the body
+            var applicabilityValue = applicability instanceof PureOperator pure ? pure.evaluate(ctx)
                     : (Value) applicability;
-            return evaluateWithApplicability(applicabilityValue, ctx);
-        }
-
-        VoteResult evaluateWithApplicability(Value applicabilityValue, EvaluationContext ctx) {
             if (applicabilityValue instanceof BooleanValue(var applicable) && !applicable) {
                 // If now known to be false -> short circuit to abstain
                 return new VoteResult(Vote.abstain(voterMetadata), Map.of());

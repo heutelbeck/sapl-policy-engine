@@ -111,7 +111,7 @@ class BlockingTransactionalEnforcementTests {
     class PreEnforceTransactional {
 
         @Test
-        @DisplayName("PERMIT lets the loan be recorded, the row commits")
+        @DisplayName("PERMIT lets the loan be recorded; the row commits")
         void whenPermitThenRowIsCommitted() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
@@ -121,7 +121,7 @@ class BlockingTransactionalEnforcementTests {
         }
 
         @Test
-        @DisplayName("DENY blocks the protected method entirely, no row is ever written")
+        @DisplayName("DENY blocks the protected method entirely; no row is ever written")
         void whenDenyThenMethodNeverInvokedAndNoRowWritten() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
             val loanId = NEXT_LOAN_ID.getAndIncrement();
@@ -150,7 +150,8 @@ class BlockingTransactionalEnforcementTests {
                     .withMessageContaining("post-invocation");
 
             assertThat(rowCount())
-                    .as("row count after handler failure (must be 0, rollback applies to handler errors too)").isZero();
+                    .as("row count after handler failure (must be 0 - rollback applies to handler errors too)")
+                    .isZero();
         }
 
         private static AuthorizationDecision decisionWithObligation(String type) {
@@ -176,7 +177,7 @@ class BlockingTransactionalEnforcementTests {
         }
 
         @Test
-        @DisplayName("DENY after the insert rolls the transaction back, the row is expunged")
+        @DisplayName("DENY after the insert rolls the transaction back; the row is expunged")
         void whenDenyAfterInsertThenTransactionRollsBack() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
             val loanId = NEXT_LOAN_ID.getAndIncrement();

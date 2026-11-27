@@ -357,7 +357,7 @@ public class ExamplesCollection {
 
     static final Example ACCESS_CONTROL_BELL_LAPADULA_BASIC = new Example("bell-lapadula-basic",
             "Bell-LaPadula: NATO Classification",
-            "Confidentiality model with security clearances: no read up, no write down", List.of("""
+            "Confidentiality model with security clearances - no read up, no write down", List.of("""
                     // Bell-LaPadula Model: Basic Confidentiality Policy
                     //
                     // The Bell-LaPadula model enforces confidentiality through two core properties:

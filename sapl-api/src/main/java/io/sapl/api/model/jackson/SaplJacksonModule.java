@@ -17,17 +17,14 @@
  */
 package io.sapl.api.model.jackson;
 
-import java.io.Serial;
-
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import tools.jackson.databind.module.SimpleModule;
 import io.sapl.api.SaplVersion;
-import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.*;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.module.SimpleModule;
+
+import java.io.Serial;
 
 /**
  * Jackson module that registers serializers and deserializers for SAPL types.
@@ -36,7 +33,8 @@ import tools.jackson.databind.module.SimpleModule;
  * of SAPL Value types and PDP API types:
  *
  * <pre>{@code
- * JsonMapper mapper = SaplJacksonModule.jsonMapperBuilder().build();
+ * ObjectMapper mapper = new ObjectMapper();
+ * mapper.registerModule(new SaplJacksonModule());
  *
  * // Now serialize/deserialize SAPL types
  * Value value = Value.of("test");
@@ -47,8 +45,6 @@ import tools.jackson.databind.module.SimpleModule;
  * String decisionJson = mapper.writeValueAsString(decision);
  * }</pre>
  * <p>
- * For a caller-owned JSON factory, set its maximum number length to at least
- * {@link NumberValueLimits#MAX_WIRE_NUMBER_LENGTH} to read the full decimal range.
  * For Spring Boot applications, this module can be auto-configured by creating
  * a bean.
  */
@@ -56,17 +52,6 @@ public class SaplJacksonModule extends SimpleModule {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
-
-    /**
-     * Creates a JSON mapper builder for SAPL wire values. The factory accepts the
-     * exponent digits of a full-precision number before its token reaches the
-     * SAPL deserializer.
-     *
-     * @return a builder with the SAPL module and numeric token limit
-     */
-    public static JsonMapper.Builder jsonMapperBuilder() {
-        return JsonMapper.builder(ValueJsonMarshaller.JSON_FACTORY).addModule(new SaplJacksonModule());
-    }
 
     /**
      * Creates a new SAPL Jackson module with all serializers and deserializers

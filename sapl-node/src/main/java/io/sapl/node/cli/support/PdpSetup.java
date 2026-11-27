@@ -118,7 +118,7 @@ public record PdpSetup(
         configureAuth(builder, remote.auth);
         val reactive = builder.build();
         val blocking = new DelegatingBlockingPolicyDecisionPoint(reactive);
-        val mapper   = SaplJacksonModule.jsonMapperBuilder().build();
+        val mapper   = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         return new PdpSetup(blocking, reactive, mapper, null);
     }
 
@@ -138,7 +138,7 @@ public record PdpSetup(
         configureRsocketAuth(builder, remote.auth);
         val reactive = builder.build();
         val blocking = new DelegatingBlockingPolicyDecisionPoint(reactive);
-        val mapper   = SaplJacksonModule.jsonMapperBuilder().build();
+        val mapper   = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         return new PdpSetup(blocking, reactive, mapper, null);
     }
 
@@ -148,7 +148,7 @@ public record PdpSetup(
         if (resolved == null) {
             return null;
         }
-        val mapper  = SaplJacksonModule.jsonMapperBuilder().build();
+        val mapper  = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         val builder = PolicyDecisionPointBuilder.withDefaults(mapper);
         switch (resolved.kind()) {
         case DIRECTORY        -> builder.withDirectorySource(resolved.path());

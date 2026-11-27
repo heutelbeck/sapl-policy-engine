@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.compiler.expressions.BooleanGuard.BinaryResult;
-
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
@@ -28,19 +26,17 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
- * Compiles N-ary operators: ExclusiveDisjunction (XOR), Product.
+ * Compiles N-ary operators: ExclusiveDisjunction (XOR), Sum, Product.
  * <p>
- * A successful result uses every operand. Errors can be detected at a cheaper
- * stratum before attributes are requested:
+ * These operators cannot short-circuit (all operands must be evaluated),
+ * but we still apply cost-stratified optimization:
  * <ul>
  * <li>Fold all Value operands at compile time</li>
  * <li>Evaluate Pure operands before walking Streams</li>
@@ -55,15 +51,14 @@ import static io.sapl.api.model.StreamOperator.evalChild;
 @UtilityClass
 public class NaryOperatorCompiler {
 
-    private static final String                 ERROR_EMPTY_NARY_EXPRESSION = "Empty N-ary expression.";
-    private static final BooleanGuard.Predicate XOR                         = BooleanOperators::xor;
+    private static final String ERROR_EMPTY_NARY_EXPRESSION = "Empty N-ary expression.";
 
     public CompiledExpression compileXor(ExclusiveDisjunction xd, CompilationContext ctx) {
-        return compileXor(xd.operands(), ctx, xd.location());
+        return compile(xd.operands(), ctx, xd.location(), BinaryOperatorType.XOR, BooleanOperators::xor);
     }
 
-    static CompiledExpression compileXor(List<Expression> operands, CompilationContext ctx, SourceLocation location) {
-        return compile(operands, ctx, location, BinaryOperatorType.XOR, XOR);
+    public CompiledExpression compileSum(Sum s, CompilationContext ctx) {
+        return compile(s.operands(), ctx, s.location(), BinaryOperatorType.ADD, ArithmeticOperators::add);
     }
 
     public CompiledExpression compileProduct(Product p, CompilationContext ctx) {
@@ -78,27 +73,12 @@ public class NaryOperatorCompiler {
         val pures   = new ArrayList<PureOperator>();
         val streams = new ArrayList<StreamOperator>();
 
-        // XOR and multiplication are commutative: within a stratum the operands take
-        // their canonical order, so that the order written changes neither the
-        // compiled operator nor which of several errors is the result.
-        val compiledOperands = CompilationChildren.map(operands, operand -> compileOperand(operand, ctx, op));
-        val ordered          = new ArrayList<>(compiledOperands);
-        ordered.sort(Comparator.comparing(Operand::expression, CanonicalOperandOrder::compareOperands));
-        List<SourceLocation> xorLocations = op == XOR ? new ArrayList<>() : List.of();
-        for (val operand : ordered) {
-            switch (operand.expression()) {
-            case ErrorValue error -> {
-                return error;
-            }
-            case Value v          -> {
-                values.add(op == XOR ? BooleanGuard.BOOLEAN_GUARD.apply(v, operand.location()) : v);
-                continue;
-            }
+        for (val operand : operands) {
+            val compiled = ExpressionCompiler.compile(operand, ctx);
+            switch (compiled) {
+            case Value v          -> values.add(v);
             case PureOperator p   -> pures.add(p);
             case StreamOperator s -> streams.add(s);
-            }
-            if (op == XOR) {
-                xorLocations.add(operand.location());
             }
         }
 
@@ -118,21 +98,11 @@ public class NaryOperatorCompiler {
             // Values + Pures only: return PureOperator
             boolean dependsOnSubscription = pures.stream().anyMatch(PureOperator::isDependingOnSubscription);
             boolean isRelative            = pures.stream().anyMatch(PureOperator::isRelativeExpression);
-            return new NaryPure(opType, op, valueResult, pures, xorLocations, location, dependsOnSubscription,
-                    isRelative);
+            return new NaryPure(opType, op, valueResult, pures, location, dependsOnSubscription, isRelative);
         }
 
         // Has streams: return StreamOperator
-        return new NaryStream(op, valueResult, pures, streams, xorLocations, location);
-    }
-
-    private record Operand(CompiledExpression expression, SourceLocation location) {}
-
-    private static Operand compileOperand(Expression operand, CompilationContext ctx, BinaryOperation op) {
-        if (op == XOR) {
-            return new Operand(BooleanGuard.compileBooleanOperand(operand, ctx), BooleanGuard.operandLocation(operand));
-        }
-        return new Operand(ExpressionCompiler.compile(operand, ctx), operand.location());
+        return new NaryStream(op, valueResult, pures, streams, location);
     }
 
     /**
@@ -145,12 +115,10 @@ public class NaryOperatorCompiler {
         if (values.isEmpty()) {
             return null;
         }
-        for (val value : values) {
-            if (value instanceof ErrorValue) {
-                return value;
-            }
-        }
         Value result = values.getFirst();
+        if (result instanceof ErrorValue) {
+            return result;
+        }
         for (int i = 1; i < values.size(); i++) {
             result = op.apply(result, values.get(i), location);
             if (result instanceof ErrorValue) {
@@ -168,12 +136,11 @@ public class NaryOperatorCompiler {
      * empty),
      * or ErrorValue if evaluation fails
      */
-    private static Value evaluateAndFoldPures(Value initial, List<PureOperator> pures,
-            List<SourceLocation> xorLocations, BinaryOperation op, SourceLocation location, EvaluationContext ctx) {
+    private static Value evaluateAndFoldPures(Value initial, List<PureOperator> pures, BinaryOperation op,
+            SourceLocation location, EvaluationContext ctx) {
         Value result = initial;
-        for (int i = 0; i < pures.size(); i++) {
-            val value = pures.get(i).evaluate(ctx);
-            val pv    = op == XOR ? BooleanGuard.BOOLEAN_GUARD.apply(value, xorLocations.get(i)) : value;
+        for (val pure : pures) {
+            val pv = pure.evaluate(ctx);
             if (pv instanceof ErrorValue) {
                 return pv;
             }
@@ -196,19 +163,18 @@ public class NaryOperatorCompiler {
             BinaryOperation op,
             Value valueResult,
             List<PureOperator> pures,
-            List<SourceLocation> xorLocations,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator, BinaryResult {
+            boolean isRelativeExpression) implements PureOperator {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return evaluateAndFoldPures(valueResult, pures, xorLocations, op, location, ctx);
+            return evaluateAndFoldPures(valueResult, pures, op, location, ctx);
         }
 
         @Override
         public long semanticHash() {
-            val kind        = SemanticHashing.kindHash(opType);
+            val kind        = (long) opType.hashCode();
             val childHashes = pures.stream().mapToLong(PureOperator::semanticHash).toArray();
             if (valueResult == null) {
                 return SemanticHashing.commutative(kind, childHashes);
@@ -235,14 +201,13 @@ public class NaryOperatorCompiler {
             Value valueResult,
             List<PureOperator> pures,
             List<StreamOperator> streams,
-            List<SourceLocation> xorLocations,
-            SourceLocation location) implements StreamOperator, BinaryResult {
+            SourceLocation location) implements StreamOperator {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(streams.size());
 
-            val preCombined = evaluateAndFoldPures(valueResult, pures, xorLocations, op, location, ctx);
+            val preCombined = evaluateAndFoldPures(valueResult, pures, op, location, ctx);
             if (preCombined instanceof ErrorValue) {
                 return new ExpressionResult(preCombined, deps);
             }
@@ -263,42 +228,25 @@ public class NaryOperatorCompiler {
 
         private FoldState foldStreams(EvaluationContext ctx, Value preCombined,
                 Map<SubscriptionKey, List<Occurrence>> deps) {
-            Value      result     = preCombined;
-            boolean    seenNull   = false;
-            ErrorValue firstError = null;
-            for (int i = 0; i < streams.size(); i++) {
-                val sv = evalChild(streams.get(i), ctx, deps);
+            Value   result     = preCombined;
+            boolean seenNull   = false;
+            Value   firstError = null;
+            for (val s : streams) {
+                val sv = evalChild(s, ctx, deps);
                 if (sv == null) {
                     seenNull = true;
-                } else if (sv instanceof ErrorValue error) {
-                    firstError = Objects.requireNonNullElse(firstError, error);
-                } else if (firstError == null) {
-                    result = foldAvailableStreamValue(result, sv, seenNull, i);
-                    if (op != XOR && result instanceof ErrorValue error) {
-                        firstError = error;
+                } else if (sv instanceof ErrorValue err) {
+                    if (firstError == null) {
+                        firstError = err;
+                    }
+                } else if (firstError == null && !seenNull) {
+                    result = result == null ? sv : op.apply(result, sv, location);
+                    if (result instanceof ErrorValue) {
+                        firstError = result;
                     }
                 }
             }
-            if (firstError == null && result instanceof ErrorValue error) {
-                firstError = error;
-            }
             return new FoldState(result, firstError, seenNull);
-        }
-
-        private Value foldAvailableStreamValue(Value result, Value operand, boolean seenNull, int index) {
-            if (result instanceof ErrorValue) {
-                return result;
-            }
-            if (op == XOR) {
-                val checked = BooleanGuard.BOOLEAN_GUARD.apply(operand, xorLocations.get(pures.size() + index));
-                if (checked instanceof ErrorValue) {
-                    return checked;
-                }
-            }
-            if (seenNull) {
-                return result;
-            }
-            return result == null ? operand : op.apply(result, operand, location);
         }
 
         private record FoldState(Value result, Value firstError, boolean seenNull) {}

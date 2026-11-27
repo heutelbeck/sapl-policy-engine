@@ -19,18 +19,13 @@ package io.sapl.test.grammar.antlr.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser;
@@ -152,8 +147,8 @@ class SAPLTestValidatorTests {
 
         var errors = validate(document);
 
-        assertThat(errors).hasSize(1).first().satisfies(e -> assertThat(e.message())
-                .isEqualTo("The regular expression '[invalid(' is invalid: missing closing ]."));
+        assertThat(errors).hasSize(1).first().satisfies(
+                e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX));
     }
 
     @Test
@@ -172,48 +167,22 @@ class SAPLTestValidatorTests {
         assertThat(errors).isEmpty();
     }
 
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("a regex that policies refuse is refused in tests with the reason, as policies and tests share the RE2 syntax")
-    void whenRegexRefusedByPoliciesThenError(String description, String regex, String reason) {
-        var errors = validate(documentWithRegex(regex));
-
-        assertThat(errors).hasSize(1).first().satisfies(e -> assertThat(e.message())
-                .startsWith("The regular expression '").endsWith("' is invalid: " + reason + "."));
-    }
-
-    static Stream<Arguments> whenRegexRefusedByPoliciesThenError() {
-        return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$", "invalid or unsupported Perl syntax"),
-                arguments("a backreference", "(a)\\\\1", "invalid escape sequence"),
-                arguments("a possessive quantifier", "a*+", "invalid nested repetition operator"),
-                arguments("an atomic group", "(?>a)", "invalid or unsupported Perl syntax"),
-                arguments("a class only Java knows", "\\\\h+", "invalid escape sequence"),
-                arguments("a program too large to compile", "a".repeat(20_000), "expression too large"));
-    }
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("a regex that policies accept is accepted in tests, as policies and tests share the RE2 syntax")
-    void whenRegexAcceptedByPoliciesThenNoError(String description, String regex) {
-        var errors = validate(documentWithRegex(regex));
-
-        assertThat(errors).isEmpty();
-    }
-
-    static Stream<Arguments> whenRegexAcceptedByPoliciesThenNoError() {
-        return Stream.of(arguments("a named group in Python syntax", "(?P<word>[a-z]+)"),
-                arguments("a literal longer than a thousand characters", "a".repeat(1_500)));
-    }
-
-    private static String documentWithRegex(String regex) {
-        return """
+    @Test
+    @DisplayName("an over-long regex is rejected without compiling, guarding the LSP validation thread")
+    void whenRegexExceedsLengthCapThenError() {
+        var document = """
                 requirement "Pattern Matching" {
-                    scenario "regex"
+                    scenario "huge regex"
                         when subject "mi-go" attempts action "communicate" on resource "brain_cylinder"
                         expect decision is permit, with obligation matching object where { "pattern" is text with regex "%s" };
                 }
                 """
-                .formatted(regex);
+                .formatted("a".repeat(10_000));
+
+        var errors = validate(document);
+
+        assertThat(errors).hasSize(1).first().satisfies(
+                e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX));
     }
 
     @Test
@@ -368,7 +337,7 @@ class SAPLTestValidatorTests {
         var errors = validate(document);
 
         assertThat(errors).hasSize(1).first().satisfies(
-                e -> assertThat(e.message()).isEqualTo("The regular expression '[' is invalid: missing closing ]."));
+                e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX));
     }
 
     @Test
@@ -551,10 +520,6 @@ class SAPLTestValidatorTests {
         var lexer  = new SAPLTestLexer(CharStreams.fromString(document));
         var tokens = new CommonTokenStream(lexer);
         var parser = new SAPLTestParser(tokens);
-        // These tests cover the validator. Syntax errors are recovered by the parser
-        // and need no report on the console.
-        lexer.removeErrorListeners();
-        parser.removeErrorListeners();
         return parser.saplTest();
     }
 

@@ -18,35 +18,59 @@
 package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.compiler.diagnostics.Diagnostic;
-import io.sapl.compiler.diagnostics.Problem;
 import io.sapl.compiler.document.DocumentCompiler;
-import lombok.val;
 
-@DisplayName("SAPL parsed document")
 class SAPLParsedDocumentTests {
 
-    private static final String URI = "test.sapl";
-
-    static Stream<Arguments> validDocuments() {
-        return Stream.of(arguments("a policy without a body", """
+    @Test
+    void whenValidPolicy_thenParsesWithoutErrors() {
+        var content = """
                 policy "test"
                 permit
-                """), arguments("a condition with a lazy operator", """
+                """;
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isFalse();
+        assertThat(document.getParseTree()).isNotNull();
+        assertThat(document.getTokens()).isNotEmpty();
+    }
+
+    @Test
+    void whenSyntaxError_thenCapturesParseError() {
+        var content = """
+                policy
+                permit
+                """;
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isTrue();
+        assertThat(document.getParseErrors()).isNotEmpty();
+    }
+
+    @Test
+    void whenLazyOperatorInCondition_thenParsesSuccessfully() {
+        // Both & and && (| and ||) are now treated identically - no validation error
+        // Note: Standalone policies don't have target expressions in the new grammar
+        var content = """
                 policy "test"
                 permit
                   subject == "admin" || action == "read";
-                """), arguments("a policy set", """
+                """;
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isFalse();
+    }
+
+    @Test
+    void whenPolicySet_thenParsesSuccessfully() {
+        // Note: Policy body statements require trailing semicolons
+        var content = """
                 set "test policies"
                 first or abstain
 
@@ -56,7 +80,19 @@ class SAPLParsedDocumentTests {
 
                 policy "policy 2"
                 deny
-                """), arguments("a policy with every part", """
+                """;
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isFalse();
+        assertThat(document.getParseTree()).isNotNull();
+    }
+
+    @Test
+    void whenPolicyWithBody_thenParsesSuccessfully() {
+        // Note: Standalone policies don't have target expressions in the new grammar
+        // Policy body statements require trailing semicolons
+        var content = """
                 policy "complex policy"
                 permit
                   action == "read";
@@ -65,78 +101,59 @@ class SAPLParsedDocumentTests {
                 obligation "log access"
                 advice "consider caching"
                 transform { "allowed": true }
-                """));
-    }
+                """;
 
-    @MethodSource("validDocuments")
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("a valid document has no problem, and the editor gets its parse tree and its tokens")
-    void whenDocumentIsValidThenItHasNoProblemAndItsTreeAndTokens(String description, String content) {
-        val document = new SAPLParsedDocument(URI, content);
+        var document = new SAPLParsedDocument("test.sapl", content);
 
-        assertThat(document).satisfies(parsed -> {
-            assertThat(parsed.hasErrors()).isFalse();
-            assertThat(parsed.isSyntaxValid()).isTrue();
-            assertThat(parsed.getDiagnostics()).isEmpty();
-            assertThat(parsed.getParseTree()).isNotNull();
-            assertThat(parsed.getTokens()).isNotEmpty();
-        });
+        assertThat(document.hasErrors()).isFalse();
     }
 
     @Test
-    @DisplayName("a syntax error is a problem of the syntax")
-    void whenDocumentHasASyntaxErrorThenItHasAProblemOfItsSyntax() {
-        val document = new SAPLParsedDocument(URI, """
-                policy
-                permit
-                """);
-
-        assertThat(document).satisfies(parsed -> {
-            assertThat(parsed.hasErrors()).isTrue();
-            assertThat(parsed.isSyntaxValid()).isFalse();
-            assertThat(parsed.getDiagnostics()).isNotEmpty();
-        });
-    }
-
-    @Test
-    @DisplayName("an attribute finder in a schema breaks a rule, and the syntax of the document has no problem")
-    void whenAttributeFinderStandsInASchemaThenARuleIsBrokenAndTheSyntaxHasNoProblem() {
-        val document = new SAPLParsedDocument(URI, """
+    void whenAttributeInSchemaExpression_thenCapturesValidationError() {
+        // Attributes are not allowed in schema expressions
+        var content = """
                 subject schema <time.now>
                 policy "test"
                 permit
-                """);
+                """;
 
-        assertThat(document).satisfies(parsed -> {
-            assertThat(parsed.isSyntaxValid()).isTrue();
-            assertThat(parsed.getDiagnostics()).singleElement().extracting(Diagnostic::message).asString()
-                    .contains("Attribute");
-        });
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.getValidationErrors()).isNotEmpty();
+        assertThat(document.getValidationErrors().getFirst().message()).contains("Attribute");
     }
 
-    static Stream<Arguments> documentsBeyondTheGuards() {
-        return Stream.of(
-                arguments("a flat expression beyond the default depth",
-                        "policy \"test\" permit subject" + " + 1".repeat(256) + ";", Problem.EXPRESSION_TOO_DEEP),
-                arguments("a document beyond the size limit", "a".repeat(DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES + 1),
-                        Problem.DOCUMENT_TOO_LARGE),
-                arguments("a trojan source character", "policy \u202E\"test\" permit", Problem.BIDIRECTIONAL_CONTROL),
-                arguments("deeply nested input",
-                        "policy \"test\" permit " + "(".repeat(100_000) + "true" + ")".repeat(100_000),
-                        Problem.NESTING_TOO_DEEP));
+    @Test
+    void whenDocumentExceedsMaxSize_thenReportsErrorAndDoesNotCrash() {
+        var content = "a".repeat(DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES + 1);
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isTrue();
+        assertThat(document.getParseErrors())
+                .anySatisfy(error -> assertThat(error.message()).contains("exceeds the maximum size"));
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("documentsBeyondTheGuards")
-    @DisplayName("a document beyond the guards of the engine is reported as the engine reports it, and the editor still gets a parse tree")
-    void whenDocumentIsBeyondTheGuardsThenItIsReportedAndTheEditorStillGetsATree(String description, String content,
-            Problem problem) {
-        val document = new SAPLParsedDocument(URI, content);
+    @Test
+    void whenTrojanSourceCharacter_thenReportsErrorDiagnostic() {
+        var content = "policy \u202E\"test\" permit";
 
-        assertThat(document).satisfies(parsed -> {
-            assertThat(parsed.getDiagnostics()).singleElement().extracting(Diagnostic::problem).isEqualTo(problem);
-            assertThat(parsed.getParseTree()).isNotNull();
-        });
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isTrue();
+        assertThat(document.getParseErrors())
+                .anySatisfy(error -> assertThat(error.message()).contains("Bidirectional unicode control character"));
+    }
+
+    @Test
+    void whenDeeplyNestedExpression_thenDoesNotCrash() {
+        var depth   = 100_000;
+        var content = "policy \"test\" permit " + "(".repeat(depth) + "true" + ")".repeat(depth);
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document).isNotNull();
+        assertThat(document.hasErrors()).isTrue();
     }
 
 }

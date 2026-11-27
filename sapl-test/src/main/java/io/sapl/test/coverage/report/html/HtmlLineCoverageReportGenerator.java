@@ -115,7 +115,7 @@ public class HtmlLineCoverageReportGenerator {
         }
     }
 
-    List<HtmlPolicyLineModel> createLineModels(PolicyCoverageData policy) {
+    private List<HtmlPolicyLineModel> createLineModels(PolicyCoverageData policy) {
         val lineCoverage = policy.getLineCoverage();
         val lines        = policy.getDocumentSource().lines().toList();
         val models       = new ArrayList<HtmlPolicyLineModel>(lines.size());

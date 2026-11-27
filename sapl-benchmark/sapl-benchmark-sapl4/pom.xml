@@ -155,37 +155,6 @@
 										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
 										<exclude>module-info.class</exclude>
-										<!-- Duplicates of the dependencies that the benchmark jar does not need -->
-										<exclude>META-INF/MANIFEST.MF</exclude>
-										<exclude>META-INF/versions/*/module-info.class</exclude>
-										<exclude>META-INF/versions/*/OSGI-INF/**</exclude>
-										<exclude>META-INF/LICENSE</exclude>
-										<exclude>META-INF/LICENSE.txt</exclude>
-										<exclude>META-INF/LICENSE.md</exclude>
-										<exclude>META-INF/NOTICE</exclude>
-										<exclude>META-INF/NOTICE.txt</exclude>
-										<exclude>META-INF/proguard/**</exclude>
-									</excludes>
-								</filter>
-								<!-- The ClassGraph modules ship the same license file. Keep the one of the main module. -->
-								<filter>
-									<artifact>io.github.classgraph:classgraph-*</artifact>
-									<excludes>
-										<exclude>LICENSE-ClassGraph.txt</exclude>
-									</excludes>
-								</filter>
-								<!-- Exclude bundled ANTLR metadata from graphql-java -->
-								<filter>
-									<artifact>com.graphql-java:graphql-java</artifact>
-									<excludes>
-										<exclude>META-INF/maven/org.antlr/**</exclude>
-									</excludes>
-								</filter>
-								<!-- Exclude bundled gson metadata from nimbus-jose-jwt -->
-								<filter>
-									<artifact>com.nimbusds:nimbus-jose-jwt</artifact>
-									<excludes>
-										<exclude>META-INF/maven/com.google.code.gson/**</exclude>
 									</excludes>
 								</filter>
 							</filters>

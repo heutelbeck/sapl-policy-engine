@@ -160,10 +160,11 @@ class DigestFunctionLibraryTests {
      */
     private static Stream<Arguments> specialInputTestCases() {
         return Stream.of(arguments("special characters", "!@#$%^&*(){}[]|\\:;\"'<>,.?/~`"),
-                arguments("Unicode: Chinese and emoji", "Hello 世界 🌍"), arguments("Unicode: emoji only", "😀🎉🌟"),
-                arguments("Unicode: accented characters", "café résumé naïve"), arguments("whitespace: spaces", "   "),
-                arguments("whitespace: tabs", "\t\t\t"), arguments("whitespace: newlines", "\n\n\n"),
-                arguments("whitespace: mixed", " \t\n "), arguments("long input", "a".repeat(10000)));
+                arguments("Unicode - Chinese and emoji", "Hello 世界 🌍"), arguments("Unicode - emoji only", "😀🎉🌟"),
+                arguments("Unicode - accented characters", "café résumé naïve"),
+                arguments("whitespace - spaces", "   "), arguments("whitespace - tabs", "\t\t\t"),
+                arguments("whitespace - newlines", "\n\n\n"), arguments("whitespace - mixed", " \t\n "),
+                arguments("long input", "a".repeat(10000)));
     }
 
     @ParameterizedTest(name = "All algorithms should handle: {0}")

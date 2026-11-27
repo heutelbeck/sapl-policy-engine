@@ -42,7 +42,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class UniqueVoteCompilerTests {
 
     @Nested
-    @DisplayName("Static voter case: all foldable policies")
+    @DisplayName("Static voter case - all foldable policies")
     class StaticVoterCase {
 
         @Test
@@ -653,7 +653,7 @@ class UniqueVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with obligation: constraint preserved")
+        @DisplayName("SUSPEND with obligation - constraint preserved")
         void whenSuspendWithObligationThenObligationPreserved() {
             val compiled = compilePolicySet("""
                     set "test"
@@ -672,7 +672,7 @@ class UniqueVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with advice: constraint preserved")
+        @DisplayName("SUSPEND with advice - constraint preserved")
         void whenSuspendWithAdviceThenAdvicePreserved() {
             val compiled = compilePolicySet("""
                     set "test"
@@ -691,7 +691,7 @@ class UniqueVoteCompilerTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with transform: resource transformed")
+        @DisplayName("SUSPEND with transform - resource transformed")
         void whenSuspendWithTransformThenResourceTransformed() {
             val compiled = compilePolicySet("""
                     set "test"

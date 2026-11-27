@@ -225,7 +225,7 @@ class UniqueVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes: zero applicable")
+    @DisplayName("combineMultipleVotes - zero applicable")
     class CombineMultipleZeroApplicableTests {
 
         @Test
@@ -252,7 +252,7 @@ class UniqueVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes: one applicable")
+    @DisplayName("combineMultipleVotes - one applicable")
     class CombineMultipleOneApplicableTests {
 
         static Stream<Arguments> singleApplicableVotes() {
@@ -294,7 +294,7 @@ class UniqueVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes: multiple applicable (collision)")
+    @DisplayName("combineMultipleVotes - multiple applicable (collision)")
     class CombineMultipleCollisionTests {
 
         static Stream<Arguments> collisionScenarios() {
@@ -345,7 +345,7 @@ class UniqueVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes: INDETERMINATE handling")
+    @DisplayName("combineMultipleVotes - INDETERMINATE handling")
     class CombineMultipleIndeterminateTests {
 
         @Test
@@ -408,7 +408,7 @@ class UniqueVoteCombinerTests {
     }
 
     @Nested
-    @DisplayName("combineMultipleVotes: contributing votes")
+    @DisplayName("combineMultipleVotes - contributing votes")
     class CombineMultipleContributingVotesTests {
 
         @Test

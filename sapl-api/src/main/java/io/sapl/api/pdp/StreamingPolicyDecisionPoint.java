@@ -65,27 +65,14 @@ public interface StreamingPolicyDecisionPoint {
     Stream<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Returns one decision from the configuration serving {@code pdpId}.
-     * If this tenant activates a replacement before the decision is admitted,
-     * the PDP evaluates the original subscription against the replacement.
-     * A pending attribute stream from the previous configuration need not
-     * supply a value. If a synchronous finder is still opening its stream,
-     * evaluation resumes after setup returns. Updates to other tenants and
-     * rejected updates that retain the serving configuration leave the evaluation
-     * in progress.
-     * <p>
-     * Admission checks that the configuration which produced the decision
-     * still serves the tenant. Decision interceptors then observe the admitted
-     * result with the original subscription ID. Each superseded evaluation
-     * releases its own attribute registrations. The local PDP returns
-     * {@link AuthorizationDecision#INDETERMINATE} if the configuration is
-     * withdrawn or the wait is interrupted. An interrupted caller retains its
-     * interrupt status.
+     * Returns the current authorization decision for the subscription
+     * and does not keep watching for changes. Never returns
+     * {@code null}: when no decision can be produced,
+     * {@link AuthorizationDecision#INDETERMINATE} is returned.
      *
      * @param authorizationSubscription the authorization subscription
      * @param pdpId the tenant identifier
-     * @return the authorization decision, or {@link AuthorizationDecision#INDETERMINATE}
-     * if no decision can be produced
+     * @return the authorization decision
      */
     AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId);
 
@@ -101,17 +88,9 @@ public interface StreamingPolicyDecisionPoint {
     Stream<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription, String pdpId);
 
     /**
-     * Evaluates the group against one fixed view of its attributes per round.
-     * The first bundle is ready when every item has a decision. Later rounds
-     * emit a complete bundle whenever any item's {@link AuthorizationDecision}
-     * changes. Each bundle uses the caller's item IDs.
-     * <p>
-     * If two items depend on the same attribute, a change affecting both
-     * decisions appears in one bundle. The group also sees assignments published
-     * atomically by an attribute repository together. Separate calls open independent groups.
-     * For an empty group the stream returns {@link MultiAuthorizationDecision#indeterminate()}.
-     *
-     * @see DecisionInterceptor
+     * Opens a stream that delivers a combined
+     * {@link MultiAuthorizationDecision} containing every
+     * subscription's current decision.
      *
      * @param multiSubscription the batch of subscriptions
      * @param pdpId the tenant identifier
@@ -133,9 +112,6 @@ public interface StreamingPolicyDecisionPoint {
      * Delegates to
      * {@link #decideOnce(AuthorizationSubscription, String)} with
      * {@link #DEFAULT_PDP_ID}.
-     *
-     * @param authorizationSubscription the authorization subscription
-     * @return the decision for the default tenant
      */
     default AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription) {
         return decideOnce(authorizationSubscription, DEFAULT_PDP_ID);

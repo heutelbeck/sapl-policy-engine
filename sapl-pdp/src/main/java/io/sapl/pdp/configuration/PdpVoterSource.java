@@ -17,10 +17,9 @@
  */
 package io.sapl.pdp.configuration;
 
-import static io.sapl.api.semver.Version.tryParse;
 import static io.sapl.pdp.SaplBuildInfo.version;
 import static java.util.List.copyOf;
-import static java.util.concurrent.CompletableFuture.anyOf;
+import static org.semver4j.Semver.parse;
 
 import java.time.Clock;
 import java.time.DateTimeException;
@@ -31,9 +30,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -42,7 +39,6 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.api.semver.VersionRange;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdp;
@@ -69,7 +65,7 @@ import lombok.val;
  * source has delivered at least one snapshot.
  * <p>
  * Snapshot reads on {@link #getCurrentConfiguration(String)} stay
- * lock-free via a concurrent map of published voters.
+ * lock-free via per-pdpId {@link AtomicReference} caches.
  */
 @Slf4j
 public class PdpVoterSource implements AutoCloseable {
@@ -125,13 +121,11 @@ public class PdpVoterSource implements AutoCloseable {
      */
     private final Map<String, Long> servedGeneration = new HashMap<>();
 
-    private record Publication(CompiledPdp voter, CompletableFuture<Void> retired) {
-        private Publication(CompiledPdp voter) {
-            this(voter, new CompletableFuture<>());
-        }
-    }
-
-    private final Map<String, Publication> configCache = new ConcurrentHashMap<>();
+    /**
+     * Per-PDP configuration cache. Lock-free volatile reads via
+     * {@link AtomicReference} for snapshot consumers.
+     */
+    private final Map<String, AtomicReference<Optional<CompiledPdp>>> configCache = new ConcurrentHashMap<>();
 
     /**
      * Per-PDP update listeners.
@@ -248,13 +242,6 @@ public class PdpVoterSource implements AutoCloseable {
                     ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, versionError));
             return;
         }
-        try {
-            OutboundEndpointConfiguration.validate(pdpConfiguration.data());
-        } catch (IllegalArgumentException e) {
-            reportConfigurationErrorLocked(pdpId,
-                    ERROR_CONFIGURATION_REJECTED.formatted(pdpConfiguration.configurationId(), pdpId, e.getMessage()));
-            return;
-        }
         // The configuration goes live only if the runtime environment accepts its
         // extension slice. A rejection keeps the last-good configuration and compiles
         // and swaps nothing.
@@ -278,11 +265,11 @@ public class PdpVoterSource implements AutoCloseable {
         if (requirement == null) {
             return null;
         }
-        val parsedVersion = tryParse(engineVersion);
+        val parsedVersion = parse(engineVersion);
         if (parsedVersion == null) {
             return ERROR_ENGINE_VERSION_INVALID.formatted(requirement, engineVersion);
         }
-        if (!VersionRange.parse(requirement).contains(parsedVersion)) {
+        if (!parsedVersion.satisfies(requirement)) {
             return ERROR_ENGINE_VERSION_MISMATCH.formatted(engineVersion, requirement);
         }
         return null;
@@ -329,7 +316,7 @@ public class PdpVoterSource implements AutoCloseable {
     private void compileConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
             PluginsBundle plugins) {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
-                pdpConfiguration.data(), plugins.functionBroker().forConfiguration());
+                pdpConfiguration.data(), plugins.functionBroker());
         compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
         CompiledPdp newConfiguration;
         try {
@@ -363,9 +350,7 @@ public class PdpVoterSource implements AutoCloseable {
         if (failure instanceof RuntimeException && onCompileError == OnCompileError.RETAIN_LAST_GOOD
                 && hasLastGood(previous.status().state()) && lastGood != null && lastGood.plugins() == plugins) {
             val voterChanged = getCurrentConfiguration(pdpId).orElse(null) != lastGood;
-            if (voterChanged) {
-                installVoter(pdpId, lastGood);
-            }
+            getConfigRef(pdpId).set(previous.configuration());
             val status = previous.status();
             getStatusRef(pdpId).set(new PdpStatus(PdpState.STALE, status.configurationId(), status.combiningAlgorithm(),
                     status.documentCount(), status.lastSuccessfulLoad(), null, reason));
@@ -411,7 +396,7 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     private void publishVoter(String pdpId, CompiledPdp voter) {
-        installVoter(pdpId, voter);
+        getConfigRef(pdpId).set(Optional.of(voter));
         servedGeneration.put(pdpId, pluginGeneration);
         notifyListeners(pdpId, new PdpUpdateEvent.Voter(pdpId, voter));
     }
@@ -521,7 +506,7 @@ public class PdpVoterSource implements AutoCloseable {
         val now = statusTimestamp(pdpId);
         retainedConfigurations.remove(pdpId);
         servedGeneration.remove(pdpId);
-        withdrawVoter(pdpId);
+        getConfigRef(pdpId).set(Optional.empty());
         markError(pdpId, now, reason);
         notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
         removeExtensions(pdpId);
@@ -571,48 +556,28 @@ public class PdpVoterSource implements AutoCloseable {
         }
         retainedConfigurations.remove(pdpId);
         servedGeneration.remove(pdpId);
-        withdrawVoter(pdpId);
+        getConfigRef(pdpId).set(Optional.empty());
         statusCache.remove(pdpId);
+        configCache.remove(pdpId);
         notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
         removeExtensions(pdpId);
     }
 
     /**
-     * Returns the currently served configuration with a lock-free read.
+     * Returns the current configuration synchronously. Lock-free volatile
+     * read from {@link AtomicReference}.
      *
      * @param pdpId the PDP identifier
      * @return the current configuration, or empty if none is loaded
      */
     public Optional<CompiledPdp> getCurrentConfiguration(String pdpId) {
-        val active = configCache.get(pdpId);
-        return active == null ? Optional.empty() : Optional.of(active.voter());
-    }
-
-    /**
-     * Waits for the first decision or the retirement of the configuration that
-     * opened its attribute subscriptions. The caller must check the serving
-     * voter again before admitting a completed result.
-     *
-     * @param <T> result type
-     * @param voter the configuration being evaluated
-     * @param decision the evaluation's first-result future, cancelled on exit if still pending
-     * @return the completed result, or {@code null} when the configuration changes first
-     * @throws InterruptedException if the caller is interrupted while waiting
-     * @throws ExecutionException if the evaluation fails
-     */
-    public <T> @Nullable T awaitWhileCurrent(CompiledPdp voter, CompletableFuture<T> decision)
-            throws InterruptedException, ExecutionException {
-        val active = configCache.get(voter.metadata().pdpId());
-        try {
-            if (active == null || active.voter() != voter) {
-                return null;
-            }
-            anyOf(active.retired(), decision).get();
-            return active.retired().isDone() ? null : decision.get();
-        } finally {
-            // Completing either input detaches the wait from the long-lived publication.
-            decision.cancel(false);
-        }
+        // Non-inserting read: a query for an unknown pdpId must not create a cache
+        // entry,
+        // otherwise configCache grows without bound as distinct pdpIds are read over
+        // the
+        // PDP's lifetime (tenant churn, removed or transient pdpIds).
+        val ref = configCache.get(pdpId);
+        return ref != null ? ref.get() : Optional.empty();
     }
 
     /**
@@ -650,7 +615,7 @@ public class PdpVoterSource implements AutoCloseable {
         // Deliver the current configuration under the lock so a concurrent
         // update cannot interleave between subscription and this initial
         // delivery and leave a stale configuration latched downstream.
-        val current = getCurrentConfiguration(pdpId);
+        val current = getConfigRef(pdpId).get();
         val initial = current.<PdpUpdateEvent>map(voter -> new PdpUpdateEvent.Voter(pdpId, voter))
                 .orElseGet(() -> new PdpUpdateEvent.Removed(pdpId));
         notifyListener(listener, pdpId, initial);
@@ -731,7 +696,7 @@ public class PdpVoterSource implements AutoCloseable {
             }
         } finally {
             updateListeners.clear();
-            configCache.keySet().forEach(this::withdrawVoter);
+            configCache.clear();
             statusCache.clear();
             retainedConfigurations.clear();
             servedGeneration.clear();
@@ -776,18 +741,8 @@ public class PdpVoterSource implements AutoCloseable {
                 + (message == null || message.isBlank() ? ERROR_EXCEPTION_MESSAGE_MISSING : message);
     }
 
-    private void installVoter(String pdpId, CompiledPdp voter) {
-        val previous = configCache.put(pdpId, new Publication(voter));
-        if (previous != null) {
-            previous.retired().complete(null);
-        }
-    }
-
-    private void withdrawVoter(String pdpId) {
-        val previous = configCache.remove(pdpId);
-        if (previous != null) {
-            previous.retired().complete(null);
-        }
+    private AtomicReference<Optional<CompiledPdp>> getConfigRef(String pdpId) {
+        return configCache.computeIfAbsent(pdpId, id -> new AtomicReference<>(Optional.empty()));
     }
 
     private AtomicReference<PdpStatus> getStatusRef(String pdpId) {

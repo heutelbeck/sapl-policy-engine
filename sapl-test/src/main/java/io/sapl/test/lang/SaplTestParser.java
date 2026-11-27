@@ -17,7 +17,6 @@
  */
 package io.sapl.test.lang;
 
-import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.util.InputStreamUtil;
 import io.sapl.compiler.util.TrojanSourceUtil;
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
@@ -43,10 +42,8 @@ public class SaplTestParser {
      *
      * @param testDefinition the test definition source code
      * @return the parsed ANTLR parse tree
-     * @throws SaplTestException if parsing fails or the definition cannot be
-     * read
-     * @throws SaplCompilerException if the definition contains trojan source
-     * characters
+     * @throws SaplTestException if parsing fails or invalid characters are
+     * detected
      */
     public static SaplTestContext parse(String testDefinition) {
         return parse(new ByteArrayInputStream(testDefinition.getBytes(StandardCharsets.UTF_8)));
@@ -60,10 +57,8 @@ public class SaplTestParser {
      *
      * @param inputStream the input stream containing the test definition
      * @return the parsed ANTLR parse tree
-     * @throws SaplTestException if parsing fails or the definition cannot be
-     * read
-     * @throws SaplCompilerException if the definition contains trojan source
-     * characters
+     * @throws SaplTestException if parsing fails or invalid characters are
+     * detected
      */
     public static SaplTestContext parse(InputStream inputStream) {
         try {

@@ -125,7 +125,7 @@ class BundleManifestTests {
                     .replaceFirst("\"" + field + "Removed\"[^,}]*(,)?", "");
 
             assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
-                    .hasMessageContaining("Rebuild the bundle with SAPL 4.2.0 or later");
+                    .hasMessageContaining("rebuild the bundle with SAPL 4.2.0 or later");
         }
 
         @ParameterizedTest(name = "invalid configurationId \"{0}\" is rejected at build")
@@ -135,22 +135,6 @@ class BundleManifestTests {
 
             assertThatThrownBy(builder::buildUnsigned).isInstanceOf(BundleSignatureException.class)
                     .hasMessageContaining("configurationId");
-        }
-
-        @ParameterizedTest(name = "rejects configurationId {0}")
-        @ValueSource(strings = { "42", "true", "{}", "[]" })
-        void whenConfigurationIdIsNotAJsonStringThenTheManifestIsRejected(String value) {
-            val json = validManifestJson().replace("\"test-config\"", value);
-
-            assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
-                    .hasMessageContaining("configurationId").hasMessageContaining("JSON string");
-        }
-
-        @Test
-        void whenAQuotedConfigurationIdLooksNumericThenItsTextIsPreserved() {
-            val json = validManifestJson().replace("\"test-config\"", "\"0042\"");
-
-            assertThat(BundleManifest.fromJson(json).configurationId()).isEqualTo("0042");
         }
 
         @Test
@@ -204,40 +188,6 @@ class BundleManifestTests {
             val manifest = BundleManifest.fromJson(json);
 
             assertThat(manifest.version()).isEqualTo(version);
-        }
-
-        @ParameterizedTest(name = "created {0} is accepted")
-        @ValueSource(strings = { "\"2024-01-15T10:30:00Z\"", "\"2024-01-15T10:30:00.1Z\"",
-                "\"2024-01-15T10:30:00.123456789Z\"" })
-        @DisplayName("reads the creation time as an instant in UTC with no fraction or a fraction of 1 to 9 digits")
-        void whenCreatedIsUtcInstantThenAccepted(String created) {
-            val json = validManifestJson().replace("\"2024-01-15T10:30:00Z\"", created);
-
-            assertThat(BundleManifest.fromJson(json).created()).isBetween(CREATED_TIME, CREATED_TIME.plusSeconds(1));
-        }
-
-        @ParameterizedTest(name = "created {0} is refused")
-        @ValueSource(strings = { "\"2024-01-15T11:30:00+01:00\"", "\"2024-01-15T10:30:00.1234567890Z\"",
-                "\"2024-01-15T10:30:00z\"", "\"2024-01-15T10:30Z\"", "\"2024-01-15 10:30:00Z\"",
-                "\"2024-01-15T23:59:60Z\"", "\"+2024-01-15T10:30:00Z\"", "1705314600" })
-        @DisplayName("refuses a creation time in any other form")
-        void whenCreatedIsNotUtcInstantThenRefused(String created) {
-            val json = validManifestJson().replace("\"2024-01-15T10:30:00Z\"", created);
-
-            assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
-                    .hasMessageStartingWith("Failed to parse manifest: 'created' is not an ISO-8601 instant in UTC: ");
-        }
-
-        @ParameterizedTest(name = "signature {0} is refused")
-        @ValueSource(strings = { "{}", "{ \"algorithm\": \"Ed25519\", \"keyId\": \"elder-key\" }",
-                "{ \"algorithm\": \"Ed25519\", \"value\": \"c2ln\" }",
-                "{ \"keyId\": \"elder-key\", \"value\": \"c2ln\" }" })
-        @DisplayName("refuses a signature block that lacks a field as malformed, never as unsigned")
-        void whenSignatureBlockLacksFieldThenRefusedAsMalformed(String signature) {
-            val json = validManifestJson().replaceFirst("\\{", "{ \"signature\": " + signature + ",");
-
-            assertThatThrownBy(() -> BundleManifest.fromJson(json)).isInstanceOf(BundleSignatureException.class)
-                    .hasMessageStartingWith("Failed to parse manifest: the signature block is missing the field '");
         }
 
         @Test

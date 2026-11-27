@@ -47,7 +47,6 @@ import com.vaadin.flow.data.binder.Validator;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.util.ConfinedSchemaLoader;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -161,12 +160,9 @@ public class FieldValidationConstraintHandlerProvider implements ConstraintHandl
             validationJson.set("properties", JSON.objectNode().set(fieldName, fieldPolicyJson));
 
             var schemaVersion  = extractSchemaVersion(fieldPolicy);
-            var schemaRegistry = SchemaRegistry.withDefaultDialect(schemaVersion,
-                    builder -> builder.schemaLoader(new ConfinedSchemaLoader(Map.of())));
+            var schemaRegistry = SchemaRegistry.withDefaultDialect(schemaVersion);
 
-            var schema = schemaRegistry.getSchema(validationJson);
-            schema.initializeValidators();
-            jsonValidationSchemaFromFieldName.put(fieldName, schema);
+            jsonValidationSchemaFromFieldName.put(fieldName, schemaRegistry.getSchema(validationJson));
 
             if (fieldPolicy.containsKey("message") && fieldPolicy.get("message") instanceof TextValue(var message)) {
                 validationMessageFromFieldName.put(fieldName, message);

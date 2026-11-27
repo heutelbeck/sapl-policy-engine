@@ -24,8 +24,6 @@ import io.sapl.api.model.Value;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
 import lombok.val;
-import org.bouncycastle.asn1.edec.EdECObjectIdentifiers;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -38,11 +36,6 @@ import java.util.Base64;
 import java.util.HexFormat;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
-import static io.sapl.functions.libraries.crypto.PemUtils.decodePublicKeyPem;
-import static org.bouncycastle.math.ec.rfc8032.Ed25519.PUBLIC_KEY_SIZE;
-import static org.bouncycastle.math.ec.rfc8032.Ed25519.SIGNATURE_SIZE;
-import static org.bouncycastle.math.ec.rfc8032.Ed25519.validatePublicKeyFull;
-import static org.bouncycastle.math.ec.rfc8032.Ed25519.verify;
 
 /**
  * Provides digital signature verification functions for verifying message
@@ -152,9 +145,6 @@ public class SignatureFunctionLibrary {
 
     private static final String ERROR_ALGORITHM_NOT_SUPPORTED  = "Signature algorithm not supported: ";
     private static final String ERROR_CURVE_MISMATCH           = "Public key is not on the expected elliptic curve. Expected %s but the key uses %s.";
-    private static final String ERROR_ED25519_PUBLIC_KEY       = "Invalid Ed25519 public key. Expected a canonical point of prime order.";
-    private static final String ERROR_ED25519_SIGNATURE_FORMAT = "Ed25519 signatures must be in hexadecimal or Base64 format.";
-    private static final String ERROR_ED25519_VERIFICATION     = "Ed25519 signature verification failed.";
     private static final String ERROR_FAILED_TO_VERIFY         = "Failed to verify signature: ";
     private static final String ERROR_INVALID_PUBLIC_KEY       = "Invalid public key: ";
     private static final String ERROR_NOT_EC_KEY               = "Public key is not an elliptic curve key.";
@@ -313,9 +303,6 @@ public class SignatureFunctionLibrary {
             Ed25519 curve. Ed25519 is fast, secure, and has small keys and signatures.
 
             Standard in SSH keys, TLS 1.3, Signal Protocol, and many blockchain implementations.
-            Public keys must canonically encode a nonidentity point in the prime-order subgroup.
-            Invalid keys or signature text produce an error value. Invalid signature bytes,
-            including noncanonical encodings and small order R points, return false.
 
             **Parameters:**
             - message: The original message that was signed
@@ -330,53 +317,8 @@ public class SignatureFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidEd25519(TextValue message, TextValue signature, TextValue publicKeyPem) {
-        try {
-            val publicKey      = ed25519PublicKey(publicKeyPem.value());
-            val signatureBytes = parseEd25519Signature(signature.value());
-            return verifyEd25519(message.value(), signatureBytes, publicKey);
-        } catch (CryptoException exception) {
-            return Value.error(exception.getMessage());
-        } catch (IllegalArgumentException exception) {
-            return Value.error(ERROR_ED25519_SIGNATURE_FORMAT);
-        } catch (IllegalStateException exception) {
-            return Value.error(ERROR_ED25519_VERIFICATION);
-        }
-    }
-
-    private static byte[] parseEd25519Signature(String signature) {
-        val text = signature.strip();
-        try {
-            return HexFormat.of().parseHex(text);
-        } catch (IllegalArgumentException hexParsingFailed) {
-            return Base64.getDecoder().decode(text);
-        }
-    }
-
-    private static byte[] ed25519PublicKey(String pem) {
-        val der = decodePublicKeyPem(pem);
-        try {
-            val info = SubjectPublicKeyInfo.getInstance(der);
-            if (!EdECObjectIdentifiers.id_Ed25519.equals(info.getAlgorithm().getAlgorithm())
-                    || info.getAlgorithm().getParameters() != null) {
-                throw new CryptoException(ERROR_ED25519_PUBLIC_KEY);
-            }
-            val point = info.getPublicKeyData().getOctets();
-            if (point.length != PUBLIC_KEY_SIZE || !validatePublicKeyFull(point, 0)) {
-                throw new CryptoException(ERROR_ED25519_PUBLIC_KEY);
-            }
-            return point;
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            throw new CryptoException(ERROR_ED25519_PUBLIC_KEY, exception);
-        }
-    }
-
-    private static Value verifyEd25519(String message, byte[] signature, byte[] publicKey) {
-        // With a prime-order public key, a valid R must also be a prime-order point.
-        if (signature.length != SIGNATURE_SIZE || !validatePublicKeyFull(signature, 0)) {
-            return Value.FALSE;
-        }
-        val bytes = message.getBytes(StandardCharsets.UTF_8);
-        return Value.of(verify(signature, 0, publicKey, 0, bytes, 0, bytes.length));
+        return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_ED25519,
+                ALGORITHM_EDDSA, NO_CURVE_CHECK);
     }
 
     /**

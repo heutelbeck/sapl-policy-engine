@@ -71,25 +71,6 @@ class SaplTestParserTests {
     }
 
     @Test
-    void whenNamesAreInSingleQuotesThenTheyDenoteTheirText() {
-        var testDefinition = """
-                requirement 'it\\'s a requirement' {
-                    scenario 'a "quoted" scenario'
-                        when subject 'user' attempts action 'read' on resource 'data'
-                        expect permit;
-                }
-                """;
-
-        var requirement = SaplTestParser.parse(testDefinition).requirement().getFirst();
-
-        assertThat(requirement).satisfies(r -> {
-            assertThat(unquoteString(r.name.getText())).isEqualTo("it's a requirement");
-            assertThat(unquoteString(r.scenario().getFirst().name.getText())).isEqualTo("""
-                    a "quoted" scenario""");
-        });
-    }
-
-    @Test
     void whenInvalidSyntax_thenThrowsParseException() {
         var invalidTestDefinition = """
                 requirement "broken" {

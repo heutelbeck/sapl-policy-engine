@@ -47,7 +47,7 @@ public class MqttPolicyInformationPoint {
             |---|---|
             | `topic.<mqtt.messages>` | Subscribe with QoS 0, using the default broker. |
             | `topic.<mqtt.messages(qos)>` | Subscribe with the given QoS level, using the default broker. |
-            | `topic.<mqtt.messages(qos, "staging")>` | Subscribe with the given QoS, selecting the broker named `"staging"` from `variables.mqtt.brokers`. |
+            | `topic.<mqtt.messages(qos, "staging")>` | Subscribe with the given QoS, selecting the broker named `"staging"` from the `brokerConfig` array. |
 
             A policy selects a broker only by name or uses the default. A policy may not
             supply an inline broker configuration object.
@@ -57,23 +57,26 @@ public class MqttPolicyInformationPoint {
             ## Quality of Service Levels
 
             MQTT QoS levels determine message delivery guarantees:
-            * QoS 0: At most once, fire and forget, no acknowledgment
-            * QoS 1: At least once, acknowledged delivery, possible duplicates
-            * QoS 2: Exactly once, assured delivery, no duplicates
+            * QoS 0: At most once - fire and forget, no acknowledgment
+            * QoS 1: At least once - acknowledged delivery, possible duplicates
+            * QoS 2: Exactly once - assured delivery, no duplicates
 
-            ## Broker and delivery options
+            ## Broker Configuration
 
-            Set these defaults under `variables.mqtt`. Set `brokerAddress`, `brokerPort`, an optional `clientId`, and `tls` on each named broker.
+            Configure the PIP through the `variables.mqtt` PDP variable in `pdp.json`.
 
+            Top-level `variables.mqtt` settings:
+            * `brokerConfig`: A single broker configuration object, or an array of named broker
+              configuration objects for multi-broker setups
             * `allowInsecureTransport`: Allow broker credentials over plaintext MQTT when set to
               `true` (defaults to `false`). Prefer `tls: true` for credentialed broker connections.
-
-
-            * `defaultResponse`: Response when no messages arrive before timeout:
+            * `defaultBrokerConfigName`: The `name` of the broker to use when no broker is
+              specified in the policy (defaults to `"default"`)
+            * `defaultResponse`: Response when no messages arrive before timeout --
               `"undefined"` or `"error"` (defaults to `"undefined"`)
             * `defaultResponseTimeout`: Timeout in milliseconds before emitting the default
               response (defaults to 2000)
-            * `emitAtRetry`: Emit value on reconnection: `"true"` or `"false"` (defaults to `"false"`)
+            * `emitAtRetry`: Emit value on reconnection -- `"true"` or `"false"` (defaults to `"false"`)
             * `maxPayloadSize`: Maximum incoming message payload in bytes (defaults to 1048576). A
               larger message fails closed to an error value rather than being decoded.
             * `maxTopicFilters`: Maximum number of topic filters accepted per subscription
@@ -81,18 +84,138 @@ public class MqttPolicyInformationPoint {
             * `maxTopicFilterBytes`: Maximum total UTF-8 bytes across all topic filters accepted
               per subscription (defaults to 8192).
 
+            Each broker configuration object contains:
+            * `name`: Broker identifier used for broker selection and secrets matching (see below)
+            * `brokerAddress`: Hostname or IP address of the MQTT broker
+            * `brokerPort`: Port number of the MQTT broker
+            * `clientId`: Unique identifier for the MQTT client connection
+            * `allowInsecureTransport`: Broker-level override for plaintext credential transport
+
+            Example `pdp.json` with two named brokers:
+            ```json
+            {
+              "variables": {
+                "mqtt": {
+                  "defaultBrokerConfigName": "production",
+                  "maxTopicFilters": 32,
+                  "maxTopicFilterBytes": 8192,
+                  "brokerConfig": [
+                    {
+                      "name": "production",
+                      "brokerAddress": "mqtt.example.com",
+                      "brokerPort": 1883,
+                      "clientId": "sapl-prod"
+                    },
+                    {
+                      "name": "staging",
+                      "brokerAddress": "mqtt-staging.example.com",
+                      "brokerPort": 1883,
+                      "clientId": "sapl-staging"
+                    }
+                  ]
+                }
+              }
+            }
+            ```
+
+            ## Broker Selection
+
+            When the policy does not specify a broker (e.g. `topic.<mqtt.messages>`):
+            1. The PDP reads `defaultBrokerConfigName` from `variables.mqtt`.
+               If not set, the default name is `"default"`.
+            2. The `brokerConfig` array is searched for a broker whose `name` matches.
+            3. If `brokerConfig` is a single object (not an array), it is used directly
+               without name matching.
+
+            When the policy specifies a broker name (e.g. `topic.<mqtt.messages(1, "staging")>`):
+            1. The `brokerConfig` array is searched for a broker whose `name` matches `"staging"`.
+            2. If no match is found, an error is returned.
+
+            A policy may only select a broker by name or use the default. Supplying an inline
+            broker configuration object from a policy is rejected with an error value.
+
+            ## Secrets Configuration
+
+            Broker credentials are sourced exclusively from the `secrets` section in `pdp.json`.
+            They are never read from broker configuration objects or policy parameters.
+            When credentials are configured, broker connections require `tls: true` by default.
+            Plaintext credential transport is rejected unless `variables.mqtt.allowInsecureTransport`
+            or the selected broker's `allowInsecureTransport` is explicitly set to `true`.
+
+            The broker `name` field is the join key between the broker configuration and the
+            secrets. For a broker with `"name": "staging"`, the PDP looks up
+            `secrets.mqtt.staging` for that broker's credentials.
+
+            Credential resolution order:
+            1. **Per-broker secrets**: If the resolved broker config has a `name` field, look
+               for `secrets.mqtt.<name>` (e.g. `secrets.mqtt.production`).
+            2. **Flat secrets**: If no per-broker match, check whether `secrets.mqtt` directly
+               contains `username`/`password` fields.
+            3. **Anonymous**: If no secrets are found at all, connect with empty credentials.
+
+            Multi-broker secrets example:
+            ```json
+            {
+              "secrets": {
+                "mqtt": {
+                  "production": { "username": "prod-user", "password": "prod-secret" },
+                  "staging": { "username": "staging-user", "password": "staging-secret" }
+                }
+              }
+            }
+            ```
+
+            Single-broker or flat secrets example (used when no per-broker key matches):
+            ```json
+            {
+              "secrets": {
+                "mqtt": { "username": "sapl-user", "password": "secure-password" }
+              }
+            }
+            ```
+
+            ## Complete pdp.json Example
+
+            ```json
+            {
+              "variables": {
+                "mqtt": {
+                  "defaultBrokerConfigName": "production",
+                  "maxTopicFilters": 32,
+                  "maxTopicFilterBytes": 8192,
+                  "brokerConfig": [
+                    { "name": "production", "brokerAddress": "mqtt.example.com", "brokerPort": 1883, "clientId": "sapl-prod" },
+                    { "name": "staging", "brokerAddress": "mqtt-staging.example.com", "brokerPort": 1883, "clientId": "sapl-staging" }
+                  ]
+                }
+              },
+              "secrets": {
+                "mqtt": {
+                  "production": { "username": "prod-user", "password": "prod-secret" },
+                  "staging": { "username": "staging-user", "password": "staging-secret" }
+                }
+              }
+            }
+            ```
+
+            With this configuration:
+            * `"sensors/#".<mqtt.messages>` connects to `mqtt.example.com` as `prod-user`
+              (default broker is `"production"`).
+            * `"sensors/#".<mqtt.messages(1, "staging")>` connects to `mqtt-staging.example.com`
+              as `staging-user`.
+
             ## Message Format
 
             Received messages are automatically converted based on their MQTT payload format:
             * Messages with content type `application/json` are parsed as JSON values
             * UTF-8 encoded text messages are returned as text values
-            * Binary payloads are rejected with an error value. Publish text, JSON, or an explicit encoded string
+            * Binary payloads are rejected with an error value; publish text, JSON, or an explicit encoded string
 
             ## Topic Wildcards
 
             The PIP supports MQTT topic wildcards for flexible subscriptions:
-            * `+`: Single-level wildcard (matches one topic level)
-            * `#`: Multi-level wildcard (matches zero or more topic levels, must be last)
+            * `+` - Single-level wildcard (matches one topic level)
+            * `#` - Multi-level wildcard (matches zero or more topic levels, must be last)
 
             Examples:
             * `sensors/+/temperature` matches `sensors/room1/temperature` and `sensors/room2/temperature`
@@ -103,83 +226,6 @@ public class MqttPolicyInformationPoint {
             The PIP automatically handles broker reconnection in case of connection loss.
             When reconnection occurs, the PIP re-subscribes to all active topics and continues
             emitting messages.
-
-            ## Configure TLS trust
-
-            The MQTT PIP reads its endpoint from the public PDP configuration. For a private CA, start with the following `pdp.json` settings and install the referenced profile before deployment. Multiple endpoints and PIPs can reference the same profile.
-
-            ```json
-            {
-              "variables": {
-                "mqtt": {
-                  "default": "plant",
-                  "brokers": {
-                    "plant": {
-                      "brokerAddress": "mqtt.example.org",
-                      "brokerPort": 8883,
-                      "tls": true,
-                      "trustProfile": "site-ca"
-                    }
-                  }
-                }
-              }
-            }
-            ```
-
-            Select the broker with `"factory/door".<mqtt.messages(1, "plant")>`. Without a name, the PIP selects the configured `default`, or the broker named `default` if the setting is absent. An unknown broker is an error. Set a TLS port appropriate for your broker.
-
-            For password authentication, put this entry in the operator secrets and supply the actual credentials. A broker that allows anonymous access needs no credential entry.
-
-            ```json
-            {
-              "mqtt": {
-                "plant": {
-                  "username": "door-reader",
-                  "password": "REPLACE_WITH_PASSWORD"
-                }
-              }
-            }
-            ```
-
-            The operator secrets file is `secrets.json` for explicitly enabled cleartext development or `secrets.sealed.json` for sealed deployment. Broker and server credentials are selected only by their configured name.
-
-            ### Obtain and verify the CA certificate
-
-            Ask the administrator of the MQTT broker for its public CA certificate and confirm its SHA-256 fingerprint through your organization's PKI or another authenticated channel. A PEM file contains a `-----BEGIN CERTIFICATE-----` block. If the administrator provides a binary DER certificate, convert it first.
-
-            ```sh
-            openssl x509 -inform DER -in issuer.cer -out ca.pem
-            ```
-
-            If the CA is already in an approved Java truststore, export its trusted-certificate alias. `keytool` prompts for the store password.
-
-            ```sh
-            keytool -exportcert -rfc -keystore truststore.p12 -alias issuing-ca -file ca.pem
-            ```
-
-            Check the identity and fingerprint of each certificate before installing it.
-
-            ```sh
-            openssl x509 -in ca.pem -noout -subject -issuer -fingerprint -sha256
-            ```
-
-            ### Install the named profile
-
-            In the following command, `pdp.input.json` is the complete configuration with the endpoint settings above. `jq --rawfile` reads the public certificate including its PEM delimiters and line breaks. The resulting `pdp.json` keeps the other configuration fields.
-
-            ```sh
-            jq --rawfile ca ca.pem '.variables.tlsTrustProfiles["site-ca"] = {trustedCaPem: $ca, includeDefaultTrustRoots: false}' pdp.input.json > pdp.json
-            ```
-
-            | Endpoint setting | Trusted roots |
-            | --- | --- |
-            | Omit `trustProfile` | Runtime defaults. |
-            | Select a profile with `includeDefaultTrustRoots` absent or `false` | Only the CA certificates in that profile. |
-            | Select a profile with `includeDefaultTrustRoots: true` | Profile certificates and runtime defaults. |
-
-            A named profile requires a nonempty `trustedCaPem` string. Each PEM block must contain a public X.509 certificate. The Java client uses the JVM trust configuration by default. The certificate must match the server's hostname. An invalid bundle, an unknown profile, or a profile on a plaintext endpoint prevents the new PDP configuration from taking effect.
-
-            For a CA rollover, deploy the old and new CA certificates together as consecutive PEM blocks in the profile. After the service switches certificates, remove the retired CA and deploy the configuration again.
             """;
 
     private final SaplMqttClient saplMqttClient;
@@ -252,9 +298,9 @@ public class MqttPolicyInformationPoint {
             Subscribes to MQTT topics with a specified Quality of Service level.
 
             QoS levels and their trade-offs:
-            * QoS 0: At most once, fastest but may lose messages
-            * QoS 1: At least once, acknowledged delivery, may receive duplicates
-            * QoS 2: Exactly once, slowest but guaranteed
+            * QoS 0: At most once - fastest but may lose messages
+            * QoS 1: At least once - acknowledged delivery, may receive duplicates
+            * QoS 2: Exactly once - slowest but guaranteed
 
             Accepts a single topic string or an array of topic strings. Topic arrays are
             bounded by `variables.mqtt.maxTopicFilters`. The total UTF-8 bytes across all
@@ -303,8 +349,8 @@ public class MqttPolicyInformationPoint {
             Subscribes to MQTT topics on an operator-configured broker selected by name.
 
             The `brokerName` parameter is the name of a broker from the operator-configured
-            `variables.mqtt.brokers`. A policy may only select a broker by name or use the default. A
-            policy may not supply an inline broker configuration object. Doing so yields an
+            `brokerConfig`. A policy may only select a broker by name or use the default. A
+            policy may not supply an inline broker configuration object; doing so yields an
             error value.
 
             Accepts a single topic string or an array of topic strings. Topic arrays are

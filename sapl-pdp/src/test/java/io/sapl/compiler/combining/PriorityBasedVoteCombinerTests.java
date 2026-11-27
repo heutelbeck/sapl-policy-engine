@@ -21,8 +21,6 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
@@ -33,8 +31,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
@@ -232,7 +228,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("does not short-circuit on priority, collects constraints")
+        @DisplayName("does not short-circuit on priority - collects constraints")
         void whenPriorityThenContinuesToCollectConstraints() {
             val obligation1 = Value.of("obligation-1");
             val obligation2 = Value.of("obligation-2");
@@ -283,23 +279,6 @@ class PriorityBasedVoteCombinerTests {
     @DisplayName("combineVotes extended indeterminate logic")
     class CombineVotesExtendedIndeterminateTests {
 
-        @ParameterizedTest(name = "priority {0}")
-        @EnumSource(value = Decision.class, names = { "PERMIT", "DENY", "SUSPEND" })
-        @DisplayName("an abstaining policy preserves the other policy's error and possible effects in either order")
-        void whenAPolicyAbstainsThenTheErrorAndItsPossibleEffectsSurvive(Decision priority) {
-            val error      = indeterminateVote("alarm", Outcome.DENY);
-            val abstention = Vote.abstain(testMetadata("exception", Outcome.PERMIT));
-
-            for (val votes : List.of(List.of(error, abstention), List.of(abstention, error))) {
-                val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(votes.getFirst(), TEST_METADATA);
-                val result      = PriorityBasedVoteCombiner.combineVotes(accumulator, votes.getLast(), priority,
-                        TEST_METADATA);
-
-                assertThat(result).isEqualTo(
-                        new Vote(error.authorizationDecision(), error.errors(), votes, TEST_METADATA, error.outcome()));
-            }
-        }
-
         @ParameterizedTest(name = "{0}")
         @MethodSource("extendedIndeterminateCases")
         @DisplayName("extended indeterminate handling")
@@ -325,7 +304,7 @@ class PriorityBasedVoteCombinerTests {
                             Outcome.PERMIT_OR_DENY),
 
                     // Non-critical error loses to priority
-                    arguments("DENY + INDET(DENY) non-critical for permit-overrides, DENY wins", denyVote("a"),
+                    arguments("DENY + INDET(DENY) non-critical for permit-overrides - DENY wins", denyVote("a"),
                             indeterminateVote("b", Outcome.DENY), Decision.PERMIT, Decision.DENY, Outcome.DENY),
 
                     // Priority wins over non-critical accumulated error
@@ -362,7 +341,7 @@ class PriorityBasedVoteCombinerTests {
                             Outcome.DENY),
 
                     // Deny-overrides scenarios (DENY is priority, PERMIT is non-critical)
-                    arguments("PERMIT + INDET(PERMIT): non-critical error for deny-overrides, PERMIT wins",
+                    arguments("PERMIT + INDET(PERMIT): non-critical error for deny-overrides - PERMIT wins",
                             permitVote("a"), indeterminateVote("b", Outcome.PERMIT), Decision.DENY, Decision.PERMIT,
                             Outcome.PERMIT),
                     arguments("PERMIT + INDET(DENY): critical error for deny-overrides blocks", permitVote("a"),
@@ -579,68 +558,6 @@ class PriorityBasedVoteCombinerTests {
             val result = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote, TEST_METADATA);
 
             assertThat(result.outcome()).isEqualTo(Outcome.DENY);
-        }
-    }
-
-    @Nested
-    @DisplayName("Conflicting transformations on the winning effect")
-    class ConflictingTransformations {
-
-        static Vote permitConflict() {
-            return PriorityBasedVoteCombiner
-                    .combineMultipleVotes(List.of(permitWithResource("onsite", Value.of("floor")),
-                            permitWithResource("remote", Value.of("zone"))), Decision.DENY, TEST_METADATA);
-        }
-
-        @ParameterizedTest(name = "order {0}, {1}, {2}")
-        @CsvSource({ "0,1,2", "0,2,1", "1,0,2", "1,2,0", "2,0,1", "2,1,0" })
-        @DisplayName("an additional permit leaves both distinct transformed resources ambiguous")
-        void whenWinningTransformationsDisagreeThenEveryOrderIsIndeterminate(int first, int second, int third) {
-            val votes   = List.of(permitWithResource("onsite", Value.of("floor")),
-                    permitWithResource("remote", Value.of("zone")), permitWithObligations("audit", Value.of("log")));
-            val ordered = List.of(votes.get(first), votes.get(second), votes.get(third));
-            val result  = PriorityBasedVoteCombiner.combineMultipleVotes(ordered, Decision.DENY, TEST_METADATA);
-
-            assertThat(result.authorizationDecision()).isEqualTo(AuthorizationDecision.INDETERMINATE);
-            assertThat(result.errors()).hasSize(1);
-            assertThat(result.contributingVotes()).containsExactlyElementsOf(ordered);
-        }
-
-        @ParameterizedTest(name = "higher effect {0}")
-        @EnumSource(value = Decision.class, names = { "DENY", "SUSPEND" })
-        @DisplayName("a higher concrete effect defeats the conflicting permits")
-        void whenAHigherConcreteEffectAppliesThenItsConstraintsWin(Decision effect) {
-            val outcome = Outcome.valueOf(effect.name());
-            val winner  = Vote.of(effect, ArrayValue.builder().add(Value.of("review")).build(), Value.EMPTY_ARRAY,
-                    Value.UNDEFINED, testMetadata("inspection", outcome));
-            val result  = PriorityBasedVoteCombiner.combineMultipleVotes(permitConflict(), List.of(winner),
-                    Decision.DENY, TEST_METADATA);
-
-            assertThat(result.authorizationDecision()).isEqualTo(winner.authorizationDecision());
-            assertThat(result.outcome()).isEqualTo(outcome);
-        }
-
-        @ParameterizedTest(name = "error outcome {0}")
-        @EnumSource(value = Outcome.class, names = { "DENY", "SUSPEND" })
-        @DisplayName("only a critical evaluation error replaces the transformation diagnostic")
-        void whenAnErrorFollowsTheConflictThenCriticalitySelectsTheDiagnostic(Outcome outcome) {
-            val conflict = permitConflict();
-            val error    = indeterminateVote("inspection", outcome);
-            val result   = PriorityBasedVoteCombiner.combineVotes(conflict, error, Decision.DENY, TEST_METADATA);
-
-            assertThat(result.authorizationDecision()).isEqualTo(AuthorizationDecision.INDETERMINATE);
-            assertThat(result.errors()).isEqualTo(outcome == Outcome.DENY ? error.errors() : conflict.errors());
-        }
-
-        @Test
-        @DisplayName("a conflict within a finalized child contributes its ordinary indeterminate outcome")
-        void whenAFinalizedSetConflictIsNoncriticalThenTheParentCanPermit() {
-            val child   = permitConflict().finalizeVote(DefaultDecision.DENY, ErrorHandling.PROPAGATE);
-            val sibling = permitWithObligations("supervisor", Value.of("log"));
-            val result  = PriorityBasedVoteCombiner.combineMultipleVotes(List.of(child, sibling), Decision.DENY,
-                    TEST_METADATA);
-
-            assertThat(result.authorizationDecision()).isEqualTo(sibling.authorizationDecision());
         }
     }
 
@@ -868,7 +785,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("priority suspend: SUSPEND vs DENY, SUSPEND wins as priority")
+        @DisplayName("priority suspend: SUSPEND vs DENY - SUSPEND wins as priority")
         void whenPrioritySuspendAndSuspendVsDenyThenSuspendWins() {
             val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
             val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.SUSPEND,
@@ -939,7 +856,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("priority deny: priority via accumulator beats SUSPEND non-priority, winner-only")
+        @DisplayName("priority deny: priority via accumulator beats SUSPEND non-priority - winner-only")
         void whenPriorityDenyArrivesViaAccVsSuspendThenAccDenyWins() {
             val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
             val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.DENY, TEST_METADATA);
@@ -948,7 +865,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("priority suspend: priority via accumulator beats DENY non-priority, winner-only")
+        @DisplayName("priority suspend: priority via accumulator beats DENY non-priority - winner-only")
         void whenPrioritySuspendArrivesViaAccVsDenyThenAccSuspendWins() {
             val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
             val result = PriorityBasedVoteCombiner.combineVotes(acc, denyVote("p2"), Decision.SUSPEND, TEST_METADATA);

@@ -53,8 +53,8 @@ public class CsvFunctionLibrary {
             ## Core Principles
 
             CSV parsing treats the first row as column headers. Each subsequent row becomes an
-            object with properties named after the headers. All values are parsed as strings.
-            Type conversion must be done explicitly in policies. CSV generation takes an array
+            object with properties named after the headers. All values are parsed as strings -
+            type conversion must be done explicitly in policies. CSV generation takes an array
             of objects and uses the first object's keys as column headers. Empty arrays produce
             empty CSV output.
 
@@ -193,7 +193,7 @@ public class CsvFunctionLibrary {
 
             Returns: Array of objects, one per data row
 
-            Example: parse user allowlist
+            Example - parse user allowlist:
             ```sapl
             policy "example"
             permit
@@ -253,7 +253,7 @@ public class CsvFunctionLibrary {
 
             Returns: CSV string with headers
 
-            Example: generate audit log
+            Example - generate audit log:
             ```sapl
             policy "example"
             permit

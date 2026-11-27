@@ -40,11 +40,10 @@ public class SaplFunctionLibrary {
     public static final String DESCRIPTION = "SAPL system information functions.";
 
     public static final String DOCUMENTATION = """
-            Runtime environment introspection for authorization policies. Query the SAPL version, the engine
-            that evaluates the policies and its runtime, and operating system information to make
-            platform-aware access control decisions.
+            Runtime environment introspection for authorization policies. Query application version,
+            JDK details, and operating system information to make platform-aware access control decisions.
 
-            The library provides a single function that returns system metadata collected once when the engine starts.
+            The library provides a single function that returns system metadata cached at class initialization.
             Use this to enforce runtime requirements, restrict operations to specific platforms, or capture
             environment context in audit trails.
             """;
@@ -56,8 +55,6 @@ public class SaplFunctionLibrary {
     private static final String PROPERTY_GIT_COMMIT_ID  = "gitCommitId";
     private static final String PROPERTY_GIT_BRANCH     = "gitBranch";
     private static final String PROPERTY_GIT_BUILD_TIME = "gitBuildTime";
-    private static final String PROPERTY_ENGINE         = "engine";
-    private static final String PROPERTY_ENGINE_VERSION = "engineVersion";
     private static final String PROPERTY_JDK_VERSION    = "jdkVersion";
     private static final String PROPERTY_JAVA_VERSION   = "javaVersion";
     private static final String PROPERTY_JAVA_VENDOR    = "javaVendor";
@@ -84,37 +81,37 @@ public class SaplFunctionLibrary {
             }
             """;
 
-    private static final TextValue  ENGINE         = new TextValue("java");
     private static final TextValue  SAPL_VERSION   = new TextValue(version());
     private static final Properties GIT_PROPERTIES = loadProperties(GIT_PROPERTIES_PATH);
 
     @Function(docs = """
-            ```info()```: Returns system information including the SAPL version, git details, the engine and its runtime, and operating system information.
+            ```info()```: Returns system information including application version, git details, JDK/JRE, and operating system information.
 
             The returned object contains the following properties:
             - ```saplVersion```: Version of the SAPL Engine
-            - ```engine```: Implementation of the engine, "java" or "rust"
-            - ```engineVersion```: Version of the runtime of the engine, the Java runtime or the Rust compiler
             - ```gitCommitId```: Abbreviated git commit hash
             - ```gitBranch```: Git branch name
             - ```gitBuildTime```: Build timestamp
+            - ```jdkVersion```: JDK version used for compilation
+            - ```javaVersion```: Current JRE version
+            - ```javaVendor```: Java vendor name
             - ```osName```: Operating system name
             - ```osVersion```: Operating system version
             - ```osArch```: Operating system architecture
 
-            A value that cannot be determined, such as the git details of a build without git information, is "unknown".
+            If properties cannot be loaded from the classpath, fields will contain "unknown" as a fallback value.
 
             Use this function to validate system requirements, log runtime environment details for audit trails, or conditionally enable features based on platform capabilities.
 
-            **Example: Restrict Operations to an Engine**
+            **Example - Enforce Minimum JDK Version:**
             ```sapl
-            policy "java_engine_only"
+            policy "require_jdk21"
             permit action == "system:deploy";
               var info = sapl.info();
-              info.engine == "java";
+              info.jdkVersion >= "21";
             ```
 
-            **Example: Platform-Specific Access Control**
+            **Example - Platform-Specific Access Control:**
             ```sapl
             policy "linux_only_operations"
             permit action == "admin:configure-network";
@@ -122,7 +119,7 @@ public class SaplFunctionLibrary {
               info.osName =~ "Linux";
             ```
 
-            **Example: Audit Logging with Environment Context**
+            **Example - Audit Logging with Environment Context:**
             ```sapl
             policy "audit_with_environment"
             permit action == "data:access";
@@ -137,14 +134,11 @@ public class SaplFunctionLibrary {
         val builder = ObjectValue.builder();
 
         builder.put(PROPERTY_SAPL_VERSION, SAPL_VERSION);
-        builder.put(PROPERTY_ENGINE, ENGINE);
-        builder.put(PROPERTY_ENGINE_VERSION, systemProperty(JAVA_VERSION));
 
         builder.put(PROPERTY_GIT_COMMIT_ID, gitProperty(GIT_COMMIT_ID_ABBREV));
         builder.put(PROPERTY_GIT_BRANCH, gitProperty(GIT_BRANCH));
         builder.put(PROPERTY_GIT_BUILD_TIME, gitProperty(GIT_BUILD_TIME));
 
-        // Deprecated keys of the Java runtime, kept for one release.
         builder.put(PROPERTY_JDK_VERSION, systemProperty(JAVA_SPECIFICATION_VERSION));
         builder.put(PROPERTY_JAVA_VERSION, systemProperty(JAVA_VERSION));
         builder.put(PROPERTY_JAVA_VENDOR, systemProperty(JAVA_VENDOR));

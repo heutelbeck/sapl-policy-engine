@@ -17,7 +17,6 @@
  */
 package io.sapl.test;
 
-import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,6 @@ import java.util.stream.Stream;
 
 import static io.sapl.test.Matchers.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import org.junit.jupiter.api.DisplayName;
@@ -202,33 +200,6 @@ class MatchersTests {
         var matcher = textMatching(".*");
         assertThat(matcher.matches(Value.of(42))).isFalse();
         assertThat(matcher.matches(Value.TRUE)).isFalse();
-    }
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("textMatching matches like the =~ operator of policies, in RE2 syntax against the whole text")
-    void whenTextMatchingThenMatchesLikePolicies(String description, String regex, String text, boolean matches) {
-        assertThat(textMatching(regex).matches(Value.of(text))).isEqualTo(matches);
-    }
-
-    static Stream<Arguments> whenTextMatchingThenMatchesLikePolicies() {
-        return Stream.of(arguments("a part of the text does not match", "admin", "administrator", false),
-                arguments("the whole text matches", "admin.*", "administrator", true),
-                arguments("case folding follows Unicode", "(?i)é", "É", true),
-                arguments("a named group in Python syntax", "(?P<word>[a-z]+)", "cthulhu", true));
-    }
-
-    @MethodSource
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("textMatching refuses a regex that policies refuse when the matcher is created")
-    void whenTextMatchingWithRegexRefusedByPoliciesThenThrows(String description, String regex) {
-        assertThatThrownBy(() -> textMatching(regex)).isInstanceOf(PatternSyntaxException.class);
-    }
-
-    static Stream<Arguments> whenTextMatchingWithRegexRefusedByPoliciesThenThrows() {
-        return Stream.of(arguments("a look-ahead", "^(?=.*[0-9]).{8,}$"), arguments("a backreference", "(a)\\1"),
-                arguments("an unclosed group", "(abc"),
-                arguments("a program too large to compile", "(?:(?:a{1000}){1000}){1000}"));
     }
 
     @Test

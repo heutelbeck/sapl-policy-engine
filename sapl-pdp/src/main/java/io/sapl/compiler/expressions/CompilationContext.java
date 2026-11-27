@@ -26,10 +26,8 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.Document;
-import io.sapl.compiler.document.ExpressionDepthValidator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -55,7 +53,6 @@ import lombok.val;
 public class CompilationContext {
     public static final String OPTION_INDEXING                  = "indexing";
     public static final String OPTION_LOW_LATENCY_MODE          = "lowLatencyMode";
-    public static final String OPTION_MAX_EXPRESSION_DEPTH      = "maxExpressionDepth";
     public static final String OPTION_MAX_DNF_CLAUSES           = "maxDnfClauses";
     public static final String OPTION_MAX_INDEX_NODES           = "maxIndexNodes";
     public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
@@ -72,29 +69,17 @@ public class CompilationContext {
     public static final int     DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
     public static final int     DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
 
-    private static final String ERROR_MAX_EXPRESSION_DEPTH = "The compiler option maxExpressionDepth must be an integer from 1 to %s.";
-
-    // A single configuration may generate at most this much extra predicate work for indexing.
-    private static final int MAX_MEMBERSHIP_EXPANSION = 4_096;
-
-    @ToString.Exclude
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private int remainingMembershipExpansion = MAX_MEMBERSHIP_EXPANSION;
-
-    private String                                pdpId                    = "defaultPdp";
-    private String                                configurationId          = "defaultConfiguration";
-    private Document                              document;
-    private String                                documentSource;
-    final FunctionBroker                          functionBroker;
-    final PdpData                                 data;
-    private Map<String, CompiledExpression>       documentVariablesInScope = new HashMap<>();
-    private Set<String>                           localVariableNames       = new HashSet<>();
-    private final Map<Value, Value>               valueDedup               = new HashMap<>();
-    @Getter(AccessLevel.NONE)
-    private final Map<ValueRepresentation, Value> orderedVariants          = new HashMap<>();
-    private ObjectValue                           compilerOptions          = Value.EMPTY_OBJECT;
-    private Map<IndexPredicate, Value>            foldingCache             = new HashMap<>();
+    private String                          pdpId                    = "defaultPdp";
+    private String                          configurationId          = "defaultConfiguration";
+    private Document                        document;
+    private String                          documentSource;
+    final FunctionBroker                    functionBroker;
+    final PdpData                           data;
+    private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
+    private Set<String>                     localVariableNames       = new HashSet<>();
+    private final Map<Value, Value>         valueDedup               = new HashMap<>();
+    private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
+    private Map<IndexPredicate, Value>      foldingCache             = new HashMap<>();
 
     public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;
@@ -114,38 +99,6 @@ public class CompilationContext {
     public CompilationContext(FunctionBroker functionBroker) {
         this.functionBroker = functionBroker;
         this.data           = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
-    }
-
-    /**
-     * @param options compiler options, with an exact bounded maxExpressionDepth
-     * @throws IllegalArgumentException if maxExpressionDepth is invalid
-     */
-    public void setCompilerOptions(ObjectValue options) {
-        expressionDepthOption(options);
-        compilerOptions = options;
-    }
-
-    /** @return maximum expanded source expression depth before folding */
-    public int maxExpressionDepth() {
-        return expressionDepthOption(compilerOptions);
-    }
-
-    private static int expressionDepthOption(ObjectValue options) {
-        if (!options.containsKey(OPTION_MAX_EXPRESSION_DEPTH)) {
-            return ExpressionDepthValidator.DEFAULT_MAX_EXPRESSION_DEPTH;
-        }
-        if (options.get(OPTION_MAX_EXPRESSION_DEPTH) instanceof NumberValue(var number)) {
-            try {
-                val limit = number.intValueExact();
-                ExpressionDepthValidator.validateLimit(limit);
-                return limit;
-            } catch (ArithmeticException invalid) {
-                throw new IllegalArgumentException(
-                        ERROR_MAX_EXPRESSION_DEPTH.formatted(ExpressionDepthValidator.MAX_EXPRESSION_DEPTH), invalid);
-            }
-        }
-        throw new IllegalArgumentException(
-                ERROR_MAX_EXPRESSION_DEPTH.formatted(ExpressionDepthValidator.MAX_EXPRESSION_DEPTH));
     }
 
     /**
@@ -228,31 +181,8 @@ public class CompilationContext {
     }
 
     private Value dedupeValue(Value value) {
-        if (ValueRepresentation.containsError(value)) {
-            return value;
-        }
         val existing = valueDedup.putIfAbsent(value, value);
-        if (existing == null) {
-            registerConstant(value);
-            return value;
-        }
-        if (existing == value) {
-            return value;
-        }
-        if (ValueRepresentation.same(existing, value)) {
-            return existing;
-        }
-        // Equal objects can expose different wildcard orders. Keep a representative of each order.
-        return orderedVariants.computeIfAbsent(new ValueRepresentation(value), representation -> {
-            registerConstant(value);
-            return value;
-        });
-    }
-
-    private void registerConstant(Value value) {
-        if (value instanceof ArrayValue || value instanceof ObjectValue) {
-            functionBroker.registerConstant(value);
-        }
+        return existing != null ? existing : value;
     }
 
     /**
@@ -276,18 +206,8 @@ public class CompilationContext {
         }
         val foldingContext = DummyEvaluationContextFactory.dummyContext(this);
         val result         = dedupeValue(po.evaluate(foldingContext));
-        if (!ValueRepresentation.containsError(result)) {
-            foldingCache.put(key, result);
-        }
+        foldingCache.put(key, result);
         return result;
-    }
-
-    boolean reserveMembershipExpansion(long cost) {
-        if (cost > remainingMembershipExpansion) {
-            return false;
-        }
-        remainingMembershipExpansion -= (int) cost;
-        return true;
     }
 
     /**
@@ -377,10 +297,29 @@ public class CompilationContext {
     }
 
     /**
-     * The setting is retained for configuration compatibility. Coverage follows the
-     * dependency demand of the compiled policy for both values.
+     * Whether the compiler should emit eager operator variants that subscribe
+     * all children in parallel for the lowest end-to-end decision latency, at
+     * the cost of subscribing to children whose values may turn out to be
+     * unneeded (after errors or short-circuit values resolve later children).
+     * <p>
+     * When {@code true} (default): operators emit eager variants. Per
+     * evaluation pass they walk every child to accumulate the maximum
+     * subscription set, so the trigger loop can subscribe everything in
+     * parallel and converge in a single round.
+     * <p>
+     * When {@code false}: operators emit lazy variants. Per evaluation pass
+     * they short-circuit on the first {@code null} (incomplete) or
+     * {@link io.sapl.api.model.ErrorValue} child without subscribing later
+     * children. Smaller subscription set per round. Convergence may take
+     * multiple rounds for independent missing dependencies but never
+     * subscribes to children whose values turn out to be unneeded.
+     * <p>
+     * Observable result is identical across both modes. The difference is
+     * the per-pass subscription set size and the number of trigger-loop
+     * rounds to reach a stable answer.
      *
-     * @return the configured legacy low-latency option
+     * @return {@code true} for eager subscription (low end-to-end latency),
+     * {@code false} for lazy subscription (minimal subscription cost)
      */
     public boolean lowLatencyMode() {
         return booleanCompilerOption(OPTION_LOW_LATENCY_MODE, DEFAULT_LOW_LATENCY_MODE);

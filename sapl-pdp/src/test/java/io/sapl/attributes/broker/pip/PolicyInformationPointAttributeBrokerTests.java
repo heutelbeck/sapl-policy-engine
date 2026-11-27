@@ -44,9 +44,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -590,37 +587,6 @@ class PolicyInformationPointAttributeBrokerTests {
             assertThatThrownBy(() -> broker.load(invalid)).isInstanceOf(PipLoadException.class);
             assertThat(broker.catalog()).isEqualTo(before);
             assertThat(broker.resolve(envInvocation("invalidreturn.good"))).isEmpty();
-        }
-
-        @ParameterizedTest(name = "{1}")
-        @MethodSource("invalidDeclarations")
-        @DisplayName("an invalid finder declaration leaves the catalogue intact on load")
-        void whenANewLibraryDeclaresAnInvalidFinderThenLoadKeepsTheOriginal(Object candidate, String reason) {
-            val serving = broker.load(new StaticPip());
-
-            assertThatThrownBy(() -> broker.load(candidate)).isInstanceOf(PipLoadException.class)
-                    .hasMessageContaining(reason);
-
-            assertThat(broker.catalog()).containsExactly(serving);
-            assertThat(broker.resolve(envInvocation("stock.available"))).isEmpty();
-        }
-
-        @ParameterizedTest(name = "{1}")
-        @MethodSource("invalidDeclarations")
-        @DisplayName("an invalid replacement leaves the original finder available")
-        void whenAReplacementDeclaresAnInvalidFinderThenSwapKeepsTheOriginal(Object candidate, String reason) {
-            val serving = broker.load(new StaticPip());
-
-            assertThatThrownBy(() -> broker.swap(serving, candidate)).isInstanceOf(PipLoadException.class)
-                    .hasMessageContaining(reason);
-
-            assertThat(broker.catalog()).containsExactly(serving);
-            assertThat(broker.resolve(envInvocation("static.greeting"))).isPresent();
-        }
-
-        static List<Arguments> invalidDeclarations() {
-            return List.of(Arguments.of(new InvalidFinderName(), "stock.item-count"),
-                    Arguments.of(new AmbiguousFinders(), "stock.available"));
         }
 
         @Test
@@ -1198,7 +1164,7 @@ class PolicyInformationPointAttributeBrokerTests {
     class StreamCompletion {
 
         @Test
-        @DisplayName("PIP stream completes after first emission, mailbox value persists")
+        @DisplayName("PIP stream completes after first emission; mailbox value persists")
         void whenStreamCompletesThenLastValueRetained() {
             broker.load(new ConstantPip());
             val key      = envKey("constant.value");
@@ -1428,27 +1394,6 @@ class PolicyInformationPointAttributeBrokerTests {
         @EnvironmentAttribute(name = "greeting")
         public static Value greetingThatCollides() {
             return Value.of("collides");
-        }
-    }
-
-    @PolicyInformationPoint(name = "stock")
-    static class InvalidFinderName {
-        @EnvironmentAttribute(name = "item-count")
-        public static Value itemCount() {
-            return Value.of(3);
-        }
-    }
-
-    @PolicyInformationPoint(name = "stock")
-    static class AmbiguousFinders {
-        @EnvironmentAttribute(name = "available")
-        public static Value warehouse() {
-            return Value.TRUE;
-        }
-
-        @EnvironmentAttribute(name = "available")
-        public static Value supplier() {
-            return Value.FALSE;
         }
     }
 

@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -35,15 +34,6 @@ import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.grammar.antlr.validation.ValidationError;
 
 class SAPLValidatorTests {
-
-    private static final String POLICY_DEFINING_VARIABLE = """
-            policy "test" permit var `%s` = 1;""";
-
-    private static final String POLICY_SET_DEFINING_VARIABLE = """
-            set "test" first or abstain var `%s` = 1; policy "inner" permit""";
-
-    private static final String POLICY_IN_SET_DEFINING_VARIABLE = """
-            set "test" first or abstain policy "inner" permit var `%s` = 1;""";
 
     static Stream<Arguments> attributesInSchema() {
         return Stream.of(arguments("environment attribute in schema", """
@@ -68,29 +58,6 @@ class SAPLValidatorTests {
 
         assertThat(errors).as("Should detect attribute in schema: %s", description).isNotEmpty()
                 .anyMatch(e -> e.message().contains("Attribute access is forbidden in schema"));
-    }
-
-    static Stream<Arguments> variablesNamedLikeSubscriptionElements() {
-        return Stream.of("subject", "action", "resource", "environment")
-                .flatMap(name -> Stream.of(
-                        arguments(name + " in a policy", name, POLICY_DEFINING_VARIABLE.formatted(name)),
-                        arguments(name + " in a policy set", name, POLICY_SET_DEFINING_VARIABLE.formatted(name)),
-                        arguments(name + " in a policy inside a policy set", name,
-                                POLICY_IN_SET_DEFINING_VARIABLE.formatted(name))));
-    }
-
-    @ParameterizedTest(name = "rejects a variable named {0}")
-    @MethodSource("variablesNamedLikeSubscriptionElements")
-    @DisplayName("a variable cannot take the name of a subscription element")
-    void whenVariableIsNamedLikeSubscriptionElementThenValidationError(String description, String name, String policy) {
-        final var errors = validatePolicy(policy);
-
-        assertThat(errors).singleElement().satisfies(error -> {
-            assertThat(error.message())
-                    .isEqualTo("A variable cannot be named '%s'. The name is bound by the authorization subscription."
-                            .formatted(name));
-            assertThat(error.offendingText()).isEqualTo("`" + name + "`");
-        });
     }
 
     // Valid Policy Tests (no validation errors expected)
@@ -133,10 +100,6 @@ class SAPLValidatorTests {
                     var actionName = action;
                     var resourceId = resource.id;
                     var envValue = environment.value;
-                """), arguments("variable named like a keyword through backticks", """
-                policy "test" permit
-                    var `permit` = subject;
-                    `permit` == `subject`;
                 """), arguments("reserved words as field access", """
                 policy "test" permit
                     subject.subject == "value";

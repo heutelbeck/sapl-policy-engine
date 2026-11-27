@@ -1,4 +1,4 @@
-requirement "Resource Matcher Negative Tests: Object" {
+requirement "Resource Matcher Negative Tests - Object" {
 
     given
         - document "resource-transform-policy"
@@ -17,7 +17,7 @@ requirement "Resource Matcher Negative Tests: Object" {
 
 }
 
-requirement "Resource Matcher Negative Tests: Text" {
+requirement "Resource Matcher Negative Tests - Text" {
 
     given
         - document "resource-text-policy"

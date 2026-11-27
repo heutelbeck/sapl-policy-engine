@@ -101,7 +101,7 @@ import java.util.function.Supplier;
 @UtilityClass
 public class BrokerEvalLoops {
 
-    private static final String ERROR_EVAL_CALLBACK_THREW = "Eval-loop callback for subscription {} threw (engine invariant: it must never throw). Surfacing a fail-closed decision to the subscriber: {}";
+    private static final String ERROR_EVAL_CALLBACK_THREW = "Eval-loop callback for subscription {} threw (engine invariant: it must never throw); surfacing a fail-closed decision to the subscriber: {}";
     private static final String ERROR_NO_DECISION         = "Evaluation produced no decision and no remaining dependencies.";
 
     /**

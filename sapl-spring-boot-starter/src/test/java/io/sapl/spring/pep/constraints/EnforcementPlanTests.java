@@ -333,7 +333,7 @@ class EnforcementPlanTests {
     class SelfContainedSignal {
 
         @Test
-        @DisplayName("runner at the decision signal executes, value remains absent")
+        @DisplayName("runner at the decision signal executes; value remains absent")
         void givenRunnerAtDecisionSignalThenValueAbsent() {
             val invocations = new AtomicInteger();
             val plan        = plan(decisionSignal(), obligation(runner(invocations::incrementAndGet), 0));

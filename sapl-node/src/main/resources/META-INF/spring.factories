@@ -1,4 +1,2 @@
 org.springframework.boot.diagnostics.FailureAnalyzer=\
 io.sapl.node.boot.SaplStartupConfigurationFailureAnalyzer
-org.springframework.boot.EnvironmentPostProcessor=\
-io.sapl.node.boot.TlsKeysEnvironmentPostProcessor

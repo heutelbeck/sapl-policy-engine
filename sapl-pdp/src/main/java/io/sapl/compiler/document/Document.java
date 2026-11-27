@@ -18,52 +18,43 @@
 package io.sapl.compiler.document;
 
 import io.sapl.ast.SaplDocument;
-import io.sapl.compiler.diagnostics.Diagnostic;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
+import io.sapl.grammar.antlr.validation.ValidationError;
 import lombok.val;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 /**
- * Represents a parsed SAPL document with its parse tree and its problems.
+ * Represents a parsed SAPL document with its parse tree and validation status.
  *
- * @param sapl the ANTLR parse tree, or null if the document was not parsed
- * @param saplDocument the optimized AST, or null if the document is invalid
+ * @param sapl the ANTLR parse tree
+ * @param saplDocument optimized AST
  * @param source the original source text
- * @param diagnostics the problems of the document, in the order of their
- * places. Empty if the document is valid.
+ * @param syntaxErrors list of syntax errors from parsing
+ * @param validationErrors list of semantic validation errors
+ * @param errorMessage combined error message if any errors exist
  */
 public record Document(
-        @Nullable SaplContext sapl,
-        @Nullable SaplDocument saplDocument,
+        SaplContext sapl,
+        SaplDocument saplDocument,
         String source,
-        List<Diagnostic> diagnostics) {
-
-    private static final String ERROR_AT_PLACE = "line %d:%d %s";
-
-    /**
-     * Keeps the problems as they are reported, whatever the caller does with its
-     * list afterwards.
-     */
-    public Document {
-        diagnostics = List.copyOf(diagnostics);
-    }
+        List<String> syntaxErrors,
+        List<ValidationError> validationErrors,
+        String errorMessage) {
 
     /**
-     * @return true if the document has any problem
+     * Returns true if the document has any syntax or validation errors.
      */
     public boolean isInvalid() {
-        return !diagnostics.isEmpty();
+        return !syntaxErrors.isEmpty() || !validationErrors.isEmpty();
     }
 
     /**
-     * @return the type of the document, as its parse tree shows it, or
-     * {@link DocumentType#INVALID} if the document has a problem
+     * Returns the document type based on the parse tree content.
      */
     public DocumentType type() {
         if (isInvalid() || sapl == null) {
@@ -81,7 +72,7 @@ public record Document(
      *
      * @return the document name, or null if not available
      */
-    public @Nullable String name() {
+    public String name() {
         if (sapl == null) {
             return null;
         }
@@ -94,18 +85,23 @@ public record Document(
         };
     }
 
-    /**
-     * Lists every problem of the document on a line of its own: the line and the
-     * column where it starts, both counted from 1, and its message.
-     *
-     * @return the problems, or an empty text if the document is valid
-     */
     public String errors() {
         val errors = new StringBuilder();
-        for (val diagnostic : diagnostics) {
-            val region = diagnostic.region();
-            errors.append(ERROR_AT_PLACE.formatted(region.line(), region.column(), diagnostic.message()));
+        if (errorMessage != null) {
+            errors.append(errorMessage);
             errors.append('\n');
+        }
+        if (syntaxErrors != null) {
+            for (val syntaxError : syntaxErrors) {
+                errors.append(syntaxError);
+                errors.append('\n');
+            }
+        }
+        if (validationErrors != null) {
+            for (val validationError : validationErrors) {
+                errors.append(validationError);
+                errors.append('\n');
+            }
         }
         return errors.toString();
     }

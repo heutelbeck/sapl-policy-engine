@@ -108,20 +108,16 @@ public record AuthorizationSubscription(
     }
 
     /**
-     * Creates an AuthorizationSubscription with all four attributes and secrets.
-     * Objects are marshaled using the supplied ObjectMapper.
+     * Creates an AuthorizationSubscription with all four attributes. Objects are
+     * marshaled using the supplied ObjectMapper.
      *
      * @param subject an object describing the subject
      * @param action an object describing the action
      * @param resource an object describing the resource
      * @param environment an object describing the environment (null becomes
      * UNDEFINED)
-     * @param secrets an object holding the secrets for Policy Information Points.
-     * It must marshal to a JSON object (null becomes an empty object)
      * @param mapper the ObjectMapper to be used for marshaling
      * @return new AuthorizationSubscription
-     * @throws IllegalArgumentException if secrets does not marshal to a JSON
-     * object
      */
     public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment,
             Object secrets, ObjectMapper mapper) {

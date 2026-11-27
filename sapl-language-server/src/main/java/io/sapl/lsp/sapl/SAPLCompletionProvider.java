@@ -53,13 +53,11 @@ import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionContext;
 import io.sapl.lsp.configuration.ConfigurationManager;
 import io.sapl.lsp.configuration.LSPConfiguration;
 import io.sapl.lsp.core.ParsedDocument;
-import io.sapl.lsp.core.ProtocolPositions;
 import io.sapl.lsp.sapl.completion.ContextAnalyzer;
 import io.sapl.lsp.sapl.completion.LibraryProposalsGenerator;
 import io.sapl.lsp.sapl.completion.SnippetConverter;
 import io.sapl.lsp.sapl.completion.VariablesProposalsGenerator;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 /**
  * Provides completion items for SAPL documents.
@@ -102,12 +100,10 @@ public class SAPLCompletionProvider {
      */
     public List<CompletionItem> provideCompletions(ParsedDocument document, Position position,
             ConfigurationManager configurationManager) {
-        val items     = new ArrayList<CompletionItem>();
-        val positions = ProtocolPositions.of(document.getContent());
-        val cursor    = positions.offsetOf(position);
-        val context   = analyzeContext(document, positions, cursor);
-        val config    = configurationManager.getConfigurationForUri(document.getUri());
-        val prefix    = extractPrefix(document.getContent(), cursor);
+        var items   = new ArrayList<CompletionItem>();
+        var context = analyzeContext(document, position);
+        var config  = configurationManager.getConfigurationForUri(document.getUri());
+        var prefix  = extractPrefix(document.getContent(), position);
 
         log.debug("Completion context: {}, prefix: '{}'", context, prefix);
 
@@ -122,7 +118,7 @@ public class SAPLCompletionProvider {
 
         case POLICY_SET_BODY -> {
             addKeywordCompletions(items, POLICY_SET_BODY_KEYWORDS);
-            addExpressionCompletions(items, document, positions, cursor, config);
+            addExpressionCompletions(items, document, position, config);
         }
 
         case EFFECT -> addKeywordCompletions(items, EFFECT_KEYWORDS);
@@ -130,23 +126,23 @@ public class SAPLCompletionProvider {
         case POLICY_AFTER_EFFECT -> {
             // After permit/deny/suspend - can have target expression or structure keywords
             addKeywordCompletions(items, POLICY_STRUCTURE_KEYWORDS);
-            addExpressionCompletions(items, document, positions, cursor, config);
+            addExpressionCompletions(items, document, position, config);
         }
 
         case POLICY_BODY_START -> {
             // Start of where clause - var or expression
             addKeywordCompletions(items, BODY_STATEMENT_KEYWORDS);
-            addExpressionCompletions(items, document, positions, cursor, config);
+            addExpressionCompletions(items, document, position, config);
         }
 
         case POLICY_BODY_AFTER_STATEMENT -> {
             // After a statement in body - can continue with var, expression, or end body
             addKeywordCompletions(items, BODY_STATEMENT_KEYWORDS);
             addKeywordCompletions(items, Set.of("obligation", "advice", "transform"));
-            addExpressionCompletions(items, document, positions, cursor, config);
+            addExpressionCompletions(items, document, position, config);
         }
 
-        case EXPRESSION -> addExpressionCompletions(items, document, positions, cursor, config);
+        case EXPRESSION -> addExpressionCompletions(items, document, position, config);
 
         case ENVIRONMENT_ATTRIBUTE -> addAttributeCompletions(items, config, true);
 
@@ -154,10 +150,9 @@ public class SAPLCompletionProvider {
 
         case FUNCTION_CALL -> addFunctionCompletions(items, config);
 
-        default ->
-            // UNKNOWN, and any context without completions of its own: expression
-            // completions only, the safe fallback
-            addExpressionCompletions(items, document, positions, cursor, config);
+        case UNKNOWN ->
+            // Fallback - provide expression completions only (safe default)
+            addExpressionCompletions(items, document, position, config);
         }
 
         // Filter items by prefix for expression contexts only (not structural)
@@ -207,8 +202,27 @@ public class SAPLCompletionProvider {
      * A prefix that starts with a dot (like after time.now().) returns empty
      * since the dot is a trigger character, not part of an identifier.
      */
-    private String extractPrefix(String content, int cursor) {
-        var prefix = content.substring(startOfIdentifierBefore(content, cursor), cursor);
+    private String extractPrefix(String content, Position position) {
+        var lines = content.split("\n", -1);
+        if (position.getLine() >= lines.length) {
+            return "";
+        }
+
+        var line   = lines[position.getLine()];
+        var column = Math.min(position.getCharacter(), line.length());
+
+        // Scan backwards to find the start of the identifier
+        var start = column;
+        while (start > 0) {
+            var ch = line.charAt(start - 1);
+            if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.') {
+                start--;
+            } else {
+                break;
+            }
+        }
+
+        var prefix = line.substring(start, column);
 
         // If prefix starts with a dot, it's a trigger character context, not a filter
         // prefix
@@ -248,14 +262,14 @@ public class SAPLCompletionProvider {
      * This includes expression keywords, variables, functions, and schema
      * extensions after function/attribute calls.
      */
-    private void addExpressionCompletions(List<CompletionItem> items, ParsedDocument document,
-            ProtocolPositions positions, int cursor, LSPConfiguration config) {
+    private void addExpressionCompletions(List<CompletionItem> items, ParsedDocument document, Position position,
+            LSPConfiguration config) {
         // Check if we're in a schema extension context (after function/attribute call)
-        addSchemaExtensionCompletions(items, document, positions.positionOf(cursor), config);
+        addSchemaExtensionCompletions(items, document, position, config);
 
         // Standard expression completions
         addKeywordCompletions(items, EXPRESSION_KEYWORDS);
-        addVariableCompletions(items, document, positions, cursor, config);
+        addVariableCompletions(items, document, position, config);
         addFunctionCompletions(items, config);
     }
 
@@ -293,13 +307,15 @@ public class SAPLCompletionProvider {
     /**
      * Analyzes the context at the given position.
      */
-    private CompletionContext analyzeContext(ParsedDocument document, ProtocolPositions positions, int cursor) {
+    private CompletionContext analyzeContext(ParsedDocument document, Position position) {
         var tokens       = document.getTokens();
-        val tokenContext = findTokensAroundCursor(tokens, positions, cursor);
+        var line         = position.getLine() + 1;
+        var column       = position.getCharacter();
+        var tokenContext = findTokensAroundCursor(tokens, line, column);
 
         // Token-based context detection (highest priority for specific triggers)
         if (tokenContext.tokenAtCursor() != null) {
-            val context = analyzeTokenBasedContext(tokenContext, tokens, positions, cursor);
+            var context = analyzeTokenBasedContext(tokenContext, tokens, position);
             if (context != CompletionContext.UNKNOWN) {
                 return context;
             }
@@ -308,9 +324,9 @@ public class SAPLCompletionProvider {
         // Parse tree based context detection
         var parseTree = document.getParseTree();
         if (parseTree != null) {
-            val contextNode = findDeepestContextAtPosition(parseTree, positions, cursor);
+            var contextNode = findDeepestContextAtPosition(parseTree, line, column);
             if (contextNode != null) {
-                return analyzeParseTreeContext(contextNode, positions, cursor);
+                return analyzeParseTreeContext(contextNode, line, column);
             }
         }
 
@@ -331,7 +347,7 @@ public class SAPLCompletionProvider {
     /**
      * Finds the tokens around the cursor position.
      */
-    private TokenContext findTokensAroundCursor(List<Token> tokens, ProtocolPositions positions, int cursor) {
+    private TokenContext findTokensAroundCursor(List<Token> tokens, int line, int column) {
         Token tokenAtCursor = null;
         Token previousToken = null;
         Token twoTokensBack = null;
@@ -339,7 +355,8 @@ public class SAPLCompletionProvider {
         for (var token : tokens) {
             var isEndOfFile   = token.getType() == Token.EOF;
             var isHiddenToken = token.getChannel() == Token.HIDDEN_CHANNEL;
-            val isPastCursor  = positions.startOf(token) > cursor;
+            var isPastCursor  = token.getLine() > line
+                    || (token.getLine() == line && token.getCharPositionInLine() > column);
 
             if (isEndOfFile || isPastCursor) {
                 break;
@@ -357,8 +374,7 @@ public class SAPLCompletionProvider {
     /**
      * Analyzes token-based context detection.
      */
-    private CompletionContext analyzeTokenBasedContext(TokenContext ctx, List<Token> tokens,
-            ProtocolPositions positions, int cursor) {
+    private CompletionContext analyzeTokenBasedContext(TokenContext ctx, List<Token> tokens, Position position) {
         var tokenAtCursor = ctx.tokenAtCursor();
         var tokenType     = tokenAtCursor.getType();
 
@@ -379,7 +395,7 @@ public class SAPLCompletionProvider {
         }
 
         // Check for import context
-        if (isImportContext(ctx, tokens, positions, cursor)) {
+        if (isImportContext(ctx, tokens, position)) {
             return CompletionContext.IMPORT_PATH;
         }
 
@@ -423,7 +439,7 @@ public class SAPLCompletionProvider {
     /**
      * Checks if cursor is in import context.
      */
-    private boolean isImportContext(TokenContext ctx, List<Token> tokens, ProtocolPositions positions, int cursor) {
+    private boolean isImportContext(TokenContext ctx, List<Token> tokens, Position position) {
         var tokenAtCursor = ctx.tokenAtCursor();
         var previousToken = ctx.previousToken();
         var tokenType     = tokenAtCursor.getType();
@@ -439,13 +455,13 @@ public class SAPLCompletionProvider {
         }
 
         // After dot in import path (e.g., `import time.`)
-        if (tokenType == SAPLLexer.DOT && hasImportTokenInHistory(tokens, positions, cursor)) {
+        if (tokenType == SAPLLexer.DOT && hasImportTokenInHistory(tokens, position)) {
             return true;
         }
 
         // Typing after dot in import path (e.g., `import time.no`)
         return previousToken != null && previousToken.getType() == SAPLLexer.DOT
-                && hasImportTokenInHistory(tokens, positions, cursor);
+                && hasImportTokenInHistory(tokens, position);
     }
 
     /**
@@ -492,14 +508,15 @@ public class SAPLCompletionProvider {
     /**
      * Finds the deepest parse tree node containing the position.
      */
-    private ParseTree findDeepestContextAtPosition(ParseTree tree, ProtocolPositions positions, int cursor) {
+    private ParseTree findDeepestContextAtPosition(ParseTree tree, int line, int column) {
         if (tree instanceof TerminalNode terminal) {
             var token = terminal.getSymbol();
             // Skip EOF token - we want the actual content token before EOF
             if (token.getType() == Token.EOF) {
                 return null;
             }
-            if (positions.startOf(token) <= cursor && cursor <= positions.endOf(token)) {
+            if (token.getLine() == line && token.getCharPositionInLine() <= column
+                    && column <= token.getCharPositionInLine() + token.getText().length()) {
                 return tree;
             }
             return null;
@@ -509,7 +526,7 @@ public class SAPLCompletionProvider {
         ParseTree deepestMatch = null;
         for (var i = 0; i < tree.getChildCount(); i++) {
             var child = tree.getChild(i);
-            val match = findDeepestContextAtPosition(child, positions, cursor);
+            var match = findDeepestContextAtPosition(child, line, column);
             if (match != null) {
                 deepestMatch = match;
             }
@@ -518,12 +535,24 @@ public class SAPLCompletionProvider {
         // If no child matched, but we're a rule context, check if position is within
         // our
         // bounds
-        if (deepestMatch == null && tree instanceof ParserRuleContext ruleContext
-                && positions.encloses(ruleContext, cursor)) {
-            return tree;
+        if (deepestMatch == null && tree instanceof ParserRuleContext ruleContext) {
+            var start = ruleContext.getStart();
+            var stop  = ruleContext.getStop();
+            if (start != null && stop != null && isPositionWithinTokenRange(line, column, start, stop)) {
+                return tree;
+            }
+
         }
 
         return deepestMatch;
+    }
+
+    private boolean isPositionWithinTokenRange(int line, int column, Token start, Token stop) {
+        var isAfterStart = line > start.getLine()
+                || (line == start.getLine() && column >= start.getCharPositionInLine());
+        var isBeforeEnd  = line < stop.getLine()
+                || (line == stop.getLine() && column <= stop.getCharPositionInLine() + stop.getText().length());
+        return isAfterStart && isBeforeEnd;
     }
 
     /**
@@ -531,11 +560,14 @@ public class SAPLCompletionProvider {
      * position.
      * This helps detect when we're inside an import statement path.
      */
-    private boolean hasImportTokenInHistory(List<Token> tokens, ProtocolPositions positions, int cursor) {
+    private boolean hasImportTokenInHistory(List<Token> tokens, Position position) {
+        var line        = position.getLine() + 1;
+        var column      = position.getCharacter();
         var foundImport = false;
 
         for (var token : tokens) {
-            val isPastCursor        = positions.startOf(token) >= cursor;
+            var isPastCursor        = token.getLine() > line
+                    || (token.getLine() == line && token.getCharPositionInLine() >= column);
             var isStructuralKeyword = isStructuralKeyword(token.getType());
 
             if (token.getType() == Token.EOF || isPastCursor || isStructuralKeyword) {
@@ -556,7 +588,7 @@ public class SAPLCompletionProvider {
     /**
      * Analyzes parse tree context with detailed grammar awareness.
      */
-    private CompletionContext analyzeParseTreeContext(ParseTree node, ProtocolPositions positions, int cursor) {
+    private CompletionContext analyzeParseTreeContext(ParseTree node, int line, int column) {
         var current = node;
         while (current != null) {
             // Environment attribute context
@@ -593,12 +625,12 @@ public class SAPLCompletionProvider {
 
             // Policy context - determine where in the policy
             case PolicyContext policyContext -> {
-                return analyzePolicyContext(policyContext, positions, cursor);
+                return analyzePolicyContext(policyContext, line, column);
             }
 
             // Policy set context
             case PolicySetContext policySetContext -> {
-                return analyzePolicySetContext(policySetContext);
+                return analyzePolicySetContext(policySetContext, line, column);
             }
 
             // Combining algorithm context
@@ -627,16 +659,25 @@ public class SAPLCompletionProvider {
     /**
      * Determines context within a policy rule.
      */
-    private CompletionContext analyzePolicyContext(PolicyContext policy, ProtocolPositions positions, int cursor) {
+    private CompletionContext analyzePolicyContext(PolicyContext policy, int line, int column) {
         // Check if we're in the body
-        if (policy.policyBody() != null && positions.encloses(policy.policyBody(), cursor)) {
-            return CompletionContext.POLICY_BODY_AFTER_STATEMENT;
+        if (policy.policyBody() != null) {
+            var body = policy.policyBody();
+            if (body.getStart() != null && body.getStop() != null
+                    && isPositionWithinTokenRange(line, column, body.getStart(), body.getStop())) {
+                return CompletionContext.POLICY_BODY_AFTER_STATEMENT;
+            }
+
         }
 
         // Check if after effect
         var effect = policy.effect();
-        if (effect != null && effect.getStop() != null && cursor > positions.endOf(effect.getStop())) {
-            return CompletionContext.POLICY_AFTER_EFFECT;
+        if (effect != null && effect.getStop() != null) {
+            var effectEnd = effect.getStop();
+            if (line > effectEnd.getLine() || (line == effectEnd.getLine()
+                    && column > effectEnd.getCharPositionInLine() + effectEnd.getText().length())) {
+                return CompletionContext.POLICY_AFTER_EFFECT;
+            }
         }
 
         return CompletionContext.EFFECT;
@@ -645,7 +686,7 @@ public class SAPLCompletionProvider {
     /**
      * Determines context within a policy set.
      */
-    private CompletionContext analyzePolicySetContext(PolicySetContext policySet) {
+    private CompletionContext analyzePolicySetContext(PolicySetContext policySet, int line, int column) {
         // Check if we have a combining algorithm yet
         if (policySet.combiningAlgorithm() == null) {
             return CompletionContext.COMBINING_ALGORITHM;
@@ -675,8 +716,8 @@ public class SAPLCompletionProvider {
      * - In-scope value definitions from policy body and set header
      * - Schema path expansions for all of the above
      */
-    private void addVariableCompletions(List<CompletionItem> items, ParsedDocument document,
-            ProtocolPositions positions, int cursor, LSPConfiguration config) {
+    private void addVariableCompletions(List<CompletionItem> items, ParsedDocument document, Position position,
+            LSPConfiguration config) {
         var saplParseTree = getSaplContext(document);
         if (saplParseTree == null) {
             // Fallback to simple variable completions without schema support
@@ -684,12 +725,13 @@ public class SAPLCompletionProvider {
             return;
         }
 
-        val inSchemaContext = isInSchemaContext(document, positions, cursor);
-        val proposals       = VariablesProposalsGenerator.variableProposalsForContext(saplParseTree, cursor, config,
-                inSchemaContext);
+        var cursorOffset    = calculateCursorOffset(document.getContent(), position);
+        var inSchemaContext = isInSchemaContext(document, position);
+        var proposals       = VariablesProposalsGenerator.variableProposalsForContext(saplParseTree, cursorOffset,
+                config, inSchemaContext);
 
         // Calculate the range for text edits (from start of identifier to cursor)
-        val editRange = calculateCompletionRange(document.getContent(), positions, cursor);
+        var editRange = calculateCompletionRange(document.getContent(), position);
 
         for (var proposal : proposals) {
             var item = new CompletionItem(proposal);
@@ -721,26 +763,27 @@ public class SAPLCompletionProvider {
      * dots for
      * qualified names) and ends at the cursor position.
      */
-    private Range calculateCompletionRange(String content, ProtocolPositions positions, int cursor) {
-        val start = startOfIdentifierBefore(content, cursor);
-        return new Range(positions.positionOf(start), positions.positionOf(cursor));
-    }
+    private Range calculateCompletionRange(String content, Position position) {
+        var lines = content.split("\n", -1);
+        if (position.getLine() >= lines.length) {
+            return new Range(position, position);
+        }
 
-    /**
-     * Scans backwards from a place over the characters of an identifier,
-     * including dots for qualified names. A line break ends the scan.
-     */
-    private static int startOfIdentifierBefore(String content, int offset) {
-        var start = offset;
+        var line = lines[position.getLine()];
+
+        // Scan backwards to find the start of the identifier (including dots)
+        var start = Math.min(position.getCharacter(), line.length());
         while (start > 0) {
-            val ch = content.charAt(start - 1);
+            var ch = line.charAt(start - 1);
             if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.') {
                 start--;
             } else {
                 break;
             }
         }
-        return start;
+
+        var startPosition = new Position(position.getLine(), start);
+        return new Range(startPosition, position);
     }
 
     /**
@@ -779,20 +822,40 @@ public class SAPLCompletionProvider {
     }
 
     /**
+     * Calculates the character offset for a position in the document content.
+     */
+    private int calculateCursorOffset(String content, Position position) {
+        var lines  = content.split("\n", -1);
+        var offset = 0;
+        for (var lineNumber = 0; lineNumber < position.getLine() && lineNumber < lines.length; lineNumber++) {
+            offset += lines[lineNumber].length() + 1; // +1 for newline
+        }
+        offset += position.getCharacter();
+        return offset;
+    }
+
+    /**
      * Determines if the cursor is within a schema statement expression.
      * In schema context, only environment variables should be offered
      * (not subscription elements or other value definitions).
      */
-    private boolean isInSchemaContext(ParsedDocument document, ProtocolPositions positions, int cursor) {
+    private boolean isInSchemaContext(ParsedDocument document, Position position) {
         var sapl = getSaplContext(document);
         if (sapl == null || sapl.schemaStatement().isEmpty()) {
             return false;
         }
 
+        var line   = position.getLine() + 1;
+        var column = position.getCharacter();
+
         for (var schemaStatement : sapl.schemaStatement()) {
             var schemaExpression = schemaStatement.schemaExpression;
-            if (schemaExpression != null && positions.encloses(schemaExpression, cursor)) {
-                return true;
+            if (schemaExpression != null) {
+                var start = schemaExpression.getStart();
+                var stop  = schemaExpression.getStop();
+                if (start != null && stop != null && isPositionWithinTokenRange(line, column, start, stop)) {
+                    return true;
+                }
             }
         }
         return false;

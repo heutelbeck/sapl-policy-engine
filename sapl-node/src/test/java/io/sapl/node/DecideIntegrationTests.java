@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
@@ -49,19 +48,14 @@ class DecideIntegrationTests extends AbstractCliIntegrationTests {
         void whenPermitPolicyThenPermitNdjsonOutput() throws Exception {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
 
-            val exitCode = new CompletableFuture<Integer>();
-            val command  = Thread.ofPlatform()
-                    .start(() -> exitCode.complete(SaplNodeApplication.run(new String[] { "decide", "--dir",
-                            policyDir.toString(), "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"document\"" })));
+            val future = CompletableFuture.supplyAsync(() -> SaplNodeApplication.run(new String[] { "decide", "--dir",
+                    policyDir.toString(), "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"document\"" }));
 
             waitForOutput(5);
 
             assertThat(capturedOutput()).contains("{\"decision\":\"PERMIT\"}");
 
-            // The stream runs until it is interrupted. It must then end cleanly and stop
-            // watching the policy directory before the test removes it.
-            command.interrupt();
-            assertThat(exitCode.get(5, TimeUnit.SECONDS)).isZero();
+            future.cancel(true);
         }
 
     }

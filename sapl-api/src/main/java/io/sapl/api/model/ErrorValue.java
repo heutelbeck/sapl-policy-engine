@@ -25,8 +25,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.Serial;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNullElse;
-
 /**
  * Error value representing a failure during policy evaluation. Errors are
  * values, not exceptions, enabling functional
@@ -37,15 +35,13 @@ import static java.util.Objects.requireNonNullElse;
  * This is invaluable for debugging policy evaluation failures.
  *
  * @param message
- * the error message describing what went wrong (must not be null)
+ * the error message describing what went wrong
  * @param cause
  * the underlying exception, if any (may be null)
  * @param location
  * the metadata location where the error occurred (may be null)
  */
-public record ErrorValue(@NonNull String message, Throwable cause, SourceLocation location) implements Value {
-
-    private static final String ERROR_UNKNOWN = "unknown error";
+public record ErrorValue(String message, Throwable cause, SourceLocation location) implements Value {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
@@ -57,26 +53,19 @@ public record ErrorValue(@NonNull String message, Throwable cause, SourceLocatio
      * the error message (must not be null)
      * @param cause
      * the exception (may be null)
-     * @throws NullPointerException if message is null
      */
     public ErrorValue(@NonNull String message, Throwable cause) {
         this(message, cause, null);
     }
 
     /**
-     * Creates an error from an exception with no location. An exception without a
-     * message uses the text "unknown error".
+     * Creates an error from an exception with metadata, no location.
      *
      * @param cause
      * the exception (must not be null)
-     * @throws NullPointerException if cause is null
      */
     public ErrorValue(@NonNull Throwable cause) {
-        this(cause, null);
-    }
-
-    ErrorValue(@NonNull Throwable cause, SourceLocation location) {
-        this(requireNonNullElse(cause.getMessage(), ERROR_UNKNOWN), cause, location);
+        this(cause.getMessage(), cause, null);
     }
 
     /**
@@ -84,7 +73,6 @@ public record ErrorValue(@NonNull String message, Throwable cause, SourceLocatio
      *
      * @param message
      * the error message (must not be null)
-     * @throws NullPointerException if message is null
      */
     public ErrorValue(@NonNull String message) {
         this(message, null, null);
@@ -92,7 +80,8 @@ public record ErrorValue(@NonNull String message, Throwable cause, SourceLocatio
 
     @Override
     public @NotNull String toString() {
-        val result = new StringBuilder("ERROR[message=\"").append(message).append('"');
+        val printMessage = message == null ? "unknown error" : message;
+        val result       = new StringBuilder("ERROR[message=\"").append(printMessage).append('"');
         if (cause != null) {
             result.append(", cause=").append(cause.getClass().getSimpleName());
         }

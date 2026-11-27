@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.BitSet;
-import java.util.List;
 
 import static io.sapl.compiler.index.IndexTestFixtures.predicate;
 import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;
@@ -36,26 +35,6 @@ class EqualityGroupTests {
     @Nested
     @DisplayName("compact")
     class CompactTests {
-
-        /**
-         * The hash of a null, undefined or error constant is an identity hash, so
-         * branches in hash order would change the built index from one run to the
-         * next. Branches follow the order in which the formulas name the constants.
-         */
-        @Test
-        @DisplayName("branches follow the order of the formulas, also for null, undefined and error constants")
-        void whenConstantsHaveIdentityHashesThenBranchesFollowTheOrderOfTheFormulas() {
-            val group = new EqualityGroup(stubOperand(100L));
-            group.addEquals(Value.NULL, 0, predicate(1L));
-            group.addEquals(Value.of("a"), 1, predicate(2L));
-            group.addExclude(Value.UNDEFINED, 2, predicate(3L));
-            group.addEquals(Value.error("e"), 3, predicate(4L));
-
-            val bucket = new BitSet();
-            bucket.set(0, 4);
-            assertThat(List.copyOf(group.compact(bucket).branchFormulas().keySet())).containsExactly(Value.NULL,
-                    Value.of("a"), Value.error("e"), Value.UNDEFINED);
-        }
 
         @Test
         @DisplayName("NE-only group creates explicit branch for excluded value")

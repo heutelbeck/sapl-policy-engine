@@ -29,6 +29,7 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.source.DirectoryPDPConfigurationSource;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
@@ -183,7 +184,7 @@ class ReactivePolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir, DEFAULT_PDP_ID)
                 .build();
 
-        val source = components.source();
+        val source = (DirectoryPDPConfigurationSource) components.source();
         assertThat(source).isNotNull();
         assertThat(source.isClosed()).isFalse();
 

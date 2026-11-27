@@ -18,17 +18,8 @@
 name: Build Native SAPL Node
 
 on:
-  workflow_dispatch:
-    inputs:
-      build_macos:
-        description: Build the macOS native image.
-        type: boolean
-        default: false
   workflow_call:
     inputs:
-      maven_cache_key:
-        required: true
-        type: string
       build_macos:
         required: false
         type: boolean
@@ -38,13 +29,7 @@ permissions:
   contents: read
 
 jobs:
-  prepare-maven:
-    if: inputs.maven_cache_key == ''
-    uses: ./.github/workflows/prepare_maven.yml
-
   build-native:
-    needs: [prepare-maven]
-    if: ${{ !failure() && !cancelled() }}
     strategy:
       matrix:
         include:
@@ -80,7 +65,7 @@ jobs:
     steps:
       - name: Harden Runner
         if: runner.os == 'Linux'
-        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -98,8 +83,12 @@ jobs:
           docker run --rm -v /tmp/alpine-zlib:/out alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b sh -c 'apk add --no-cache zlib-static && cp /usr/lib/libz.a /out/'
           sudo cp /tmp/alpine-zlib/libz.a "/usr/lib/$(uname -m)-linux-musl/"
 
+      - name: Setup Visual Studio Build Tools (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@d6eca2595046623d69d636041513c80abf745406 # v1.6.9
+        uses: graalvm/setup-graalvm@f70bc8032f90a104502824a54bcb94b6f01715bc # v1.6.8
         with:
           version: '25.0.5.0.3'
           java-version: '25'
@@ -107,22 +96,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
 
-      - name: Restore Maven dependencies
-        uses: ./.github/actions/restore-maven
+      - name: Cache Maven packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          key: ${{ inputs.maven_cache_key || needs.prepare-maven.outputs.cache_key }}
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-native-node-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-native-node-
+            ${{ runner.os }}-maven-native-
+            ${{ runner.os }}-maven-
 
       - name: Build Dependencies
         shell: bash
-        run: mvn -o -B install -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
-
-      - name: Package Maven SBOM resources
-        shell: bash
-        run: bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true
+        run: mvn -B install -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
 
       - name: Build Native Image
         shell: bash
-        run: mvn -o -B package -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
+        run: mvn -B package -pl sapl-node -P${{ matrix.profile }} -am -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -132,11 +122,14 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Clean up Local Repository before Caching
+        shell: bash
+        run: rm -rf ~/.m2/repository/io/sapl
+
   build-native-macos:
-    name: Build (macos-15-xlarge)
-    needs: [prepare-maven]
-    if: ${{ !failure() && !cancelled() && inputs.build_macos }}
-    runs-on: macos-15-xlarge
+    name: Build (macos-14-xlarge)
+    if: ${{ inputs.build_macos }}
+    runs-on: macos-14-xlarge
     timeout-minutes: 120
 
     steps:
@@ -144,7 +137,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@d6eca2595046623d69d636041513c80abf745406 # v1.6.9
+        uses: graalvm/setup-graalvm@f70bc8032f90a104502824a54bcb94b6f01715bc # v1.6.8
         with:
           version: '25.0.5.0.3'
           java-version: '25'
@@ -152,22 +145,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
 
-      - name: Restore Maven dependencies
-        uses: ./.github/actions/restore-maven
+      - name: Cache Maven packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          key: ${{ inputs.maven_cache_key || needs.prepare-maven.outputs.cache_key }}
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-native-node-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-native-node-
+            ${{ runner.os }}-maven-native-
+            ${{ runner.os }}-maven-
 
       - name: Build Dependencies
         shell: bash
-        run: mvn -o -B install -pl sapl-node -am -DskipTests
-
-      - name: Package Maven SBOM resources
-        shell: bash
-        run: bash .github/maven/package-sbom.sh sapl-node -Dmaven.test.skip=true
+        run: mvn -B install -pl sapl-node -am -DskipTests
 
       - name: Build Native Image
         shell: bash
-        run: mvn -o -B package -pl sapl-node -Pnative -DskipTests
+        run: mvn -B package -pl sapl-node -Pnative -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -178,3 +172,7 @@ jobs:
             sapl-node/target/classes/META-INF/sbom/application.cdx.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Clean up Local Repository before Caching
+        shell: bash
+        run: rm -rf ~/.m2/repository/io/sapl

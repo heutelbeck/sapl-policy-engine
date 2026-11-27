@@ -37,7 +37,7 @@ public class NamedSubscriptionOptions {
             "--environment" }, description = "Environment as a JSON value (optional context for policy evaluation)")
     public String environment;
 
-    @Option(names = "--secrets", description = "Secrets as a JSON object (for Policy Information Points, not readable by policies)")
+    @Option(names = "--secrets", description = "Secrets as a JSON object (available to policies via the secrets() function)")
     public String secrets;
 
 }

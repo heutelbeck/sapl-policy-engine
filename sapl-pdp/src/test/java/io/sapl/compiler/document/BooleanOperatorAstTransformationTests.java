@@ -17,15 +17,12 @@
  */
 package io.sapl.compiler.document;
 
-import io.sapl.api.model.SourceLocation;
 import io.sapl.ast.*;
-import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -173,7 +170,7 @@ class BooleanOperatorAstTransformationTests {
     class PrecedenceWithoutParens {
 
         @Test
-        @DisplayName("a & b && c & d -> LAZY_AND(EAGER_AND, EAGER_AND), & binds tighter than &&")
+        @DisplayName("a & b && c & d -> LAZY_AND(EAGER_AND, EAGER_AND) - & binds tighter than &&")
         void whenEagerAndWithinLazyAndThenCorrectPrecedence() {
             var ast = parseExpression("true & false && true & false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -186,7 +183,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("a | b || c | d -> LAZY_OR(EAGER_OR, EAGER_OR), | binds tighter than ||")
+        @DisplayName("a | b || c | d -> LAZY_OR(EAGER_OR, EAGER_OR) - | binds tighter than ||")
         void whenEagerOrWithinLazyOrThenCorrectPrecedence() {
             var ast = parseExpression("true | false || true | false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -199,7 +196,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("a && b || c && d -> LAZY_OR(LAZY_AND, LAZY_AND), && binds tighter than ||")
+        @DisplayName("a && b || c && d -> LAZY_OR(LAZY_AND, LAZY_AND) - && binds tighter than ||")
         void whenLazyAndWithinLazyOrThenCorrectPrecedence() {
             var ast = parseExpression("true && false || true && false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -212,7 +209,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("a & b | c & d -> EAGER_OR(EAGER_AND, EAGER_AND), & binds tighter than |")
+        @DisplayName("a & b | c & d -> EAGER_OR(EAGER_AND, EAGER_AND) - & binds tighter than |")
         void whenEagerAndWithinEagerOrThenCorrectPrecedence() {
             var ast = parseExpression("true & false | true & false");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -333,7 +330,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("(a & b) & c -> EAGER_AND(EAGER_AND, c), parens prevent 3-way flattening")
+        @DisplayName("(a & b) & c -> EAGER_AND(EAGER_AND, c) - parens prevent 3-way flattening")
         void whenParensPreventFlatteningThenBinaryNotConjunction() {
             var ast = parseExpression("(true & false) & true");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -344,7 +341,7 @@ class BooleanOperatorAstTransformationTests {
         }
 
         @Test
-        @DisplayName("(a || b) & (c || d) -> EAGER_AND of two LAZY_OR, parens override precedence")
+        @DisplayName("(a || b) & (c || d) -> EAGER_AND of two LAZY_OR - parens override precedence")
         void whenParensOverridePrecedenceThenCorrectNesting() {
             var ast = parseExpression("(true || false) & (true || false)");
             assertThat(ast).isInstanceOfSatisfying(BinaryOperator.class, bin -> {
@@ -479,29 +476,19 @@ class BooleanOperatorAstTransformationTests {
                     arguments("a <= b", BinaryOperatorType.GT), arguments("a >= b", BinaryOperatorType.LT));
         }
 
-        @ParameterizedTest(name = "{0} needs one {1}")
-        @CsvSource({ "!!a, CHECK_BOOLEAN", "!(!a), CHECK_BOOLEAN", "!!!a, NOT", "!(!(!a)), NOT", "!!!!a, CHECK_BOOLEAN",
-                "!(!(!(!a))), CHECK_BOOLEAN", "!!!!!a, NOT" })
-        @DisplayName("A negation chain retains one operation at the innermost NOT")
-        void whenAnOperandHasUnknownTypeThenOneOperationChecksIt(String expression, String operation) {
-            val ast = parseExpression(expression);
-            assertThat(ast).isInstanceOfSatisfying(UnaryOperator.class, unary -> {
-                assertThat(unary.op().name()).isEqualTo(operation);
-                assertThat(unary.operand()).isInstanceOfSatisfying(Identifier.class,
-                        identifier -> assertThat(identifier.name()).isEqualTo("a"));
-                assertThat(unary.location()).extracting(SourceLocation::start, SourceLocation::end)
-                        .containsExactly(expression.lastIndexOf('!'), expression.indexOf('a') + 1);
-            });
+        @Test
+        @DisplayName("!!a normalizes to a")
+        void whenDoubleNegationThenStripped() {
+            var ast = parseExpression("!!a");
+            assertThat(ast).isInstanceOfSatisfying(Identifier.class, id -> assertThat(id.name()).isEqualTo("a"));
         }
 
-        @ParameterizedTest(name = "!!({0}) keeps the boolean operand")
-        @ValueSource(strings = { "false", "a < b", "a && b", "a in b", "a =~ b", "a has b", "a && b && c",
-                "a || b || c", "a ^ b ^ c" })
-        @DisplayName("An even chain on a boolean expression needs no guard")
-        void whenTheOperandProducesABooleanThenDoubleNegationKeepsItsOperation(String expression) {
-            val plain = parseExpression(expression);
-            val twice = parseExpression("!!(" + expression + ")");
-            assertThat(twice).usingRecursiveComparison().ignoringFieldsOfTypes(SourceLocation.class).isEqualTo(plain);
+        @Test
+        @DisplayName("!!!a normalizes to !a")
+        void whenTripleNegationThenSingleNot() {
+            var ast = parseExpression("!!!a");
+            assertThat(ast).isInstanceOfSatisfying(UnaryOperator.class,
+                    u -> assertThat(u.op()).isEqualTo(UnaryOperatorType.NOT));
         }
 
         @ParameterizedTest(name = "!({0}) is unchanged")

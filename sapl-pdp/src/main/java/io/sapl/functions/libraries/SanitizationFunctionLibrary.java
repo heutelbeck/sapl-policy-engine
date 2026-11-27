@@ -17,15 +17,16 @@
  */
 package io.sapl.functions.libraries;
 
-import com.google.re2j.Pattern;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.util.BoundedRegex;
 import lombok.val;
 
 import java.text.Normalizer;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 /**
  * Detects SQL injection attempts in policy information point parameters.
@@ -126,7 +127,7 @@ public class SanitizationFunctionLibrary {
 
     static final String ERROR_POTENTIAL_SQL_INJECTION_DETECTED = "Potential SQL injection detected in text.";
 
-    private static final Pattern ZERO_WIDTH_CHARACTERS = Pattern.compile("[\\x{200b}\\x{200c}\\x{200d}\\x{feff}]");
+    private static final Pattern ZERO_WIDTH_CHARACTERS = Pattern.compile("[\\u200b\\u200c\\u200d\\ufeff]");
 
     private static final Pattern SQL_METACHARACTERS    = Pattern.compile("[';*()@]");
     private static final Pattern SQL_DML_DDL_KEYWORDS  = Pattern.compile(
@@ -140,7 +141,7 @@ public class SanitizationFunctionLibrary {
     private static final Pattern SQL_COMMENT_MARKERS = Pattern.compile("--|#");
 
     private static final Pattern SQL_SELECT_FROM_STATEMENT = Pattern
-            .compile("\\bSELECT\\s+\\S+(?:\\s*,\\s*\\S+)*\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
+            .compile("\\bSELECT\\s+\\S++(?:\\s*+,\\s*+(?!FROM\\b)\\S++)*+\\s+FROM\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern SQL_INSERT_INTO_STATEMENT = Pattern.compile("\\bINSERT\\s+INTO\\b",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern SQL_DELETE_FROM_STATEMENT = Pattern.compile("\\bDELETE\\s+FROM\\b",
@@ -201,7 +202,7 @@ public class SanitizationFunctionLibrary {
             // interior zero-width character are matched as the plain keyword.
             val normalizedInput = ZERO_WIDTH_CHARACTERS.matcher(canonicalInput).replaceAll("");
             for (Pattern pattern : patterns) {
-                if (pattern.matcher(normalizedInput).find()) {
+                if (BoundedRegex.matcher(pattern, normalizedInput).find()) {
                     return true;
                 }
             }

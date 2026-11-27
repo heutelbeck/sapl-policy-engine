@@ -17,11 +17,8 @@
  */
 package io.sapl.lsp.server;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.lsp4j.CodeActionKind;
-import org.eclipse.lsp4j.CodeActionOptions;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
@@ -30,9 +27,6 @@ import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ServerInfo;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
-import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
-import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
-import org.eclipse.lsp4j.jsonrpc.messages.ResponseErrorCode;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -45,9 +39,7 @@ import io.sapl.lsp.core.document.DocumentManager;
 import io.sapl.lsp.sapl.SAPLGrammarSupport;
 import io.sapl.lsp.sapltest.SAPLTestGrammarSupport;
 import io.sapl.pdp.SaplBuildInfo;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -57,19 +49,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
 
-    private static final String ERROR_SHUT_DOWN = "The server is shut down.";
-    private static final String SERVER_NAME     = "SAPL Language Server";
-    private static final String SERVER_VERSION  = SaplBuildInfo.version();
+    private static final String SERVER_NAME    = "SAPL Language Server";
+    private static final String SERVER_VERSION = SaplBuildInfo.version();
 
     @Getter
     private LanguageClient client;
-
-    /**
-     * Whether the client has shut the server down. The protocol then refuses
-     * every request; only the exit notification is still served.
-     */
-    @Getter(AccessLevel.PACKAGE)
-    private volatile boolean shutDown;
 
     private final GrammarRegistry         grammarRegistry;
     private final DocumentManager         documentManager;
@@ -85,12 +69,12 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
         this.grammarRegistry = new GrammarRegistry();
 
         // Register SAPL grammar support
-        val saplGrammar = new SAPLGrammarSupport();
+        var saplGrammar = new SAPLGrammarSupport();
         grammarRegistry.register(saplGrammar);
         grammarRegistry.setDefaultGrammar(saplGrammar.getGrammarId());
 
         // Register SAPLTest grammar support
-        val saplTestGrammar = new SAPLTestGrammarSupport();
+        var saplTestGrammar = new SAPLTestGrammarSupport();
         grammarRegistry.register(saplTestGrammar);
 
         log.info("Registered grammars: {} (SAPL: {}, SAPLTest: {})", grammarRegistry.getAllFileExtensions(),
@@ -113,25 +97,18 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        if (shutDown) {
-            return refusedAfterShutdown();
-        }
         log.info("Initializing {} v{}", SERVER_NAME, SERVER_VERSION);
 
-        val capabilities = createServerCapabilities();
-        val serverInfo   = new ServerInfo(SERVER_NAME, SERVER_VERSION);
-        val result       = new InitializeResult(capabilities, serverInfo);
+        var capabilities = createServerCapabilities();
+        var serverInfo   = new ServerInfo(SERVER_NAME, SERVER_VERSION);
+        var result       = new InitializeResult(capabilities, serverInfo);
 
         return CompletableFuture.completedFuture(result);
     }
 
     @Override
     public CompletableFuture<Object> shutdown() {
-        if (shutDown) {
-            return refusedAfterShutdown();
-        }
         log.info("Shutting down {}", SERVER_NAME);
-        shutDown = true;
         return CompletableFuture.completedFuture(null);
     }
 
@@ -152,20 +129,12 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
     }
 
     /**
-     * @return the answer to a request after shutdown: the error InvalidRequest
-     */
-    static <T> CompletableFuture<T> refusedAfterShutdown() {
-        return CompletableFuture.failedFuture(
-                new ResponseErrorException(new ResponseError(ResponseErrorCode.InvalidRequest, ERROR_SHUT_DOWN, null)));
-    }
-
-    /**
      * Creates the server capabilities to advertise to the client.
      *
      * @return configured server capabilities
      */
     private ServerCapabilities createServerCapabilities() {
-        val capabilities = new ServerCapabilities();
+        var capabilities = new ServerCapabilities();
 
         // Document synchronization - full sync for simplicity
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
@@ -174,7 +143,7 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
         capabilities.setSemanticTokensProvider(createSemanticTokensOptions());
 
         // Completion support
-        val completionOptions = new CompletionOptions();
+        var completionOptions = new CompletionOptions();
         completionOptions.setTriggerCharacters(grammarRegistry.getAllCompletionTriggerCharacters());
         completionOptions.setResolveProvider(false);
         capabilities.setCompletionProvider(completionOptions);
@@ -195,12 +164,9 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
         capabilities.setHoverProvider(true);
 
         // Rename support for variable definitions
-        val renameOptions = new RenameOptions();
+        var renameOptions = new RenameOptions();
         renameOptions.setPrepareProvider(true);
         capabilities.setRenameProvider(renameOptions);
-
-        // Quick fixes for the problems of a document
-        capabilities.setCodeActionProvider(new CodeActionOptions(List.of(CodeActionKind.QuickFix)));
 
         return capabilities;
     }
@@ -211,7 +177,7 @@ public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
      * @return configured semantic tokens options
      */
     private SemanticTokensWithRegistrationOptions createSemanticTokensOptions() {
-        val options = new SemanticTokensWithRegistrationOptions();
+        var options = new SemanticTokensWithRegistrationOptions();
         options.setFull(true);
         options.setRange(false);
         options.setLegend(grammarRegistry.getCombinedSemanticTokensLegend());

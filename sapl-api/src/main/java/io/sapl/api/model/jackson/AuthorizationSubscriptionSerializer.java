@@ -30,8 +30,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
  * <ul>
  * <li>subject, action, resource fields are always included</li>
  * <li>environment field is omitted if UndefinedValue</li>
- * <li>secrets field is omitted if empty, otherwise included in clear text (not
- * redacted)</li>
  * </ul>
  */
 public class AuthorizationSubscriptionSerializer extends StdSerializer<AuthorizationSubscription> {

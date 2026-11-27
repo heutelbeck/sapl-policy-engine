@@ -26,27 +26,18 @@ import org.jspecify.annotations.Nullable;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.apache.commons.compress.utils.SeekableInMemoryByteChannel;
-
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
-import java.util.zip.CRC32;
-import java.util.zip.ZipException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * Parser for SAPL bundle files (.saplbundle).
@@ -158,20 +149,11 @@ public class BundleParser {
 
     private static final int READ_BUFFER_SIZE = 4096;
 
-    // The largest array a JVM reliably allocates.
-    private static final int MAX_ARCHIVE_ARRAY_LENGTH = Integer.MAX_VALUE - 8;
-
-    private static final String BYTE_ARRAY_SOURCE = "byte array";
-
     private static final String ERROR_COMPRESSION_RATIO_EXCEEDS         = "Compression ratio exceeds %d:1.";
     private static final String ERROR_COMPRESSION_RATIO_EXCEEDS_MAXIMUM = "Compression ratio %.1f:1 exceeds maximum %d:1.";
-    private static final String ERROR_ENTRY_CHECKSUM_MISMATCH           = "The checksum of a bundle entry does not match its content.";
-    private static final String ERROR_ENTRY_NAME_NOT_UTF8               = "Unexpected file in bundle from %s: an entry name is not UTF-8.";
     private static final String ERROR_ENTRY_NAME_TOO_LONG               = "Entry name too long (>%d).";
-    private static final String ERROR_ENTRY_NOT_TEXT                    = "The bundle entry '%s' is not UTF-8 text.";
     private static final String ERROR_FAILED_TO_PARSE_BUNDLE            = "Failed to parse bundle from %s.";
     private static final String ERROR_FAILED_TO_READ_BUNDLE             = "Failed to read bundle file.";
-    private static final String ERROR_INCONSISTENT_ARCHIVE              = "The archive is inconsistent: a name occurs twice, entries overlap, or its directory does not list an entry.";
     private static final String ERROR_MIXED_SEALING_IN_BUNDLE           = "The bundle mixes sealed and plaintext secrets files. Seal all secrets or none.";
     private static final String ERROR_NESTED_ARCHIVE_DETECTED           = "Nested archive detected.";
     private static final String ERROR_PATH_TRAVERSAL_ATTEMPT            = "ZIP security violation: Path traversal attempt in bundle from %s.";
@@ -204,28 +186,12 @@ public class BundleParser {
      * if signature verification fails or security policy is violated
      */
     public PDPConfiguration parse(Path bundlePath, String pdpId, BundleSecurityPolicy securityPolicy) {
-        return toBundleContent(readEntries(bundlePath)).toPDPConfiguration(pdpId, securityPolicy);
-    }
-
-    /**
-     * Reads the entries of a bundle file with the archive checks of
-     * {@link #parse(Path, String, BundleSecurityPolicy)}: the limits against ZIP
-     * bombs, the names a bundle may hold, each name at most once, and content
-     * that is UTF-8 text. Nothing else is checked: the manifest is neither read
-     * nor verified, so that tools can inspect and unpack a bundle whose manifest
-     * is of an older form.
-     *
-     * @param bundlePath
-     * the path to the .saplbundle file
-     *
-     * @return the entries by name, each as its text
-     *
-     * @throws PDPConfigurationException
-     * if the file cannot be read or the archive is refused
-     */
-    public Map<String, String> readEntries(Path bundlePath) {
-        try (val archive = Files.newByteChannel(bundlePath)) {
-            return readEntries(archive, archive.size(), bundlePath.toString(), MAX_UNCOMPRESSED_SIZE_BYTES);
+        try {
+            val compressedSize = Files.size(bundlePath);
+            try (val inputStream = Files.newInputStream(bundlePath)) {
+                return parseInternal(inputStream, compressedSize, bundlePath.toString(), MAX_UNCOMPRESSED_SIZE_BYTES)
+                        .toPDPConfiguration(pdpId, securityPolicy);
+            }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_READ_BUNDLE, e);
         }
@@ -355,7 +321,7 @@ public class BundleParser {
      * if signature verification fails or security policy is violated
      */
     public ParsedBundle parseWithMetadata(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy) {
-        val bundle        = parseArchive(bundleBytes, bundleBytes.length, BYTE_ARRAY_SOURCE,
+        val bundle        = parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
                 MAX_UNCOMPRESSED_SIZE_BYTES);
         val configuration = bundle.toPDPConfiguration(pdpId, securityPolicy);
         // Only expose the signing time when the signature was actually verified. With
@@ -369,106 +335,50 @@ public class BundleParser {
 
     PDPConfiguration parse(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy,
             long maxUncompressedBytes) {
-        return parseArchive(bundleBytes, bundleBytes.length, BYTE_ARRAY_SOURCE, maxUncompressedBytes)
-                .toPDPConfiguration(pdpId, securityPolicy);
+        return parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
+                maxUncompressedBytes).toPDPConfiguration(pdpId, securityPolicy);
     }
 
     private Bundle parseInternal(InputStream inputStream, long compressedSize, String sourceDescription,
             long maxUncompressedBytes) {
-        return parseArchive(archiveOf(inputStream, sourceDescription, maxUncompressedBytes), compressedSize,
-                sourceDescription, maxUncompressedBytes);
-    }
-
-    private Bundle parseArchive(byte[] archive, long compressedSize, String sourceDescription,
-            long maxUncompressedBytes) {
-        return toBundleContent(readEntries(new SeekableInMemoryByteChannel(archive), compressedSize, sourceDescription,
-                maxUncompressedBytes));
-    }
-
-    // The central directory lies at the end of an archive, so a stream is read
-    // whole first. An archive larger than its contents may unpack to is refused
-    // before it is held in memory.
-    private byte[] archiveOf(InputStream inputStream, String sourceDescription, long maxUncompressedBytes) {
-        try {
-            val archive = inputStream.readNBytes((int) Math.min(maxUncompressedBytes + 1, MAX_ARCHIVE_ARRAY_LENGTH));
-            if (archive.length > maxUncompressedBytes) {
-                throw zipBombException(ERROR_UNCOMPRESSED_SIZE_EXCEEDS.formatted(maxUncompressedBytes / 1024 / 1024),
-                        sourceDescription);
-            }
-            return archive;
-        } catch (IOException e) {
-            throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_BUNDLE.formatted(sourceDescription), e);
-        }
-    }
-
-    // The archive is read through its central directory, as every other reader
-    // of it reads it, and refused if its local entries tell otherwise.
-    private Map<String, String> readEntries(SeekableByteChannel archive, long compressedSize, String sourceDescription,
-            long maxUncompressedBytes) {
         val content           = new HashMap<String, String>();
         var totalUncompressed = 0L;
+        var entryCount        = 0;
 
-        try (val zip = ZipFile.builder().setSeekableByteChannel(archive).setCharset(StandardCharsets.UTF_8)
-                .setUseUnicodeExtraFields(false).setIgnoreLocalFileHeader(true).get()) {
-            val entries = Collections.list(zip.getEntries());
-            if (entries.size() > MAX_ENTRY_COUNT) {
-                throw zipBombException(ERROR_TOO_MANY_ENTRIES.formatted(MAX_ENTRY_COUNT), sourceDescription);
-            }
-            if (!ZipConsistency.isConsistent(zip, archive)) {
-                throw new PDPConfigurationException(ERROR_INCONSISTENT_ARCHIVE);
-            }
-            for (val entry : entries) {
-                val rawName = nameOf(entry, sourceDescription);
-                validateEntryName(rawName, sourceDescription);
+        try (val zipStream = new ZipInputStream(inputStream)) {
+            ZipEntry entry;
+            while ((entry = zipStream.getNextEntry()) != null) {
+                entryCount++;
+                validateZipEntry(entry, entryCount, sourceDescription);
 
-                val entryName = normalizeEntryName(rawName);
+                val entryName = normalizeEntryName(entry.getName());
 
                 // Read and count every entry before deciding whether to keep it, so a zip
                 // bomb hidden in a rejected entry cannot bypass the uncompressed-size and
                 // compression-ratio limits.
-                val entryBytes = readZipEntryContent(zip, entry, sourceDescription, totalUncompressed, compressedSize,
+                val entryContent = readZipEntryContent(zipStream, sourceDescription, totalUncompressed, compressedSize,
                         maxUncompressedBytes);
-                // Decompressed bytes, not the characters of the decoded text, count
-                // towards the limits: the two differ for multibyte UTF-8 content.
-                totalUncompressed += entryBytes.length;
+                totalUncompressed += entryContent.uncompressedBytes();
 
                 if (compressedSize > 0) {
                     validateCompressionRatio(compressedSize, totalUncompressed, sourceDescription);
                 }
 
-                if (!isAllowedEntry(entry.isDirectory(), entryName)) {
+                if (!isAllowedEntry(entry, entryName)) {
                     throw new PDPConfigurationException(
                             ERROR_UNEXPECTED_FILE_IN_BUNDLE.formatted(sourceDescription, entryName));
                 }
 
-                content.put(entryName, textOf(entryName, entryBytes));
+                content.put(entryName, entryContent.text());
             }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_BUNDLE.formatted(sourceDescription), e);
         }
-        return content;
+
+        return toBundleContent(content);
     }
 
-    private String nameOf(ZipArchiveEntry entry, String sourceDescription) {
-        try {
-            return StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(entry.getRawName()))
-                    .toString();
-        } catch (CharacterCodingException e) {
-            throw new PDPConfigurationException(ERROR_ENTRY_NAME_NOT_UTF8.formatted(sourceDescription), e);
-        }
-    }
-
-    private String textOf(String entryName, byte[] content) {
-        try {
-            return StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(content)).toString();
-        } catch (CharacterCodingException e) {
-            throw new PDPConfigurationException(ERROR_ENTRY_NOT_TEXT.formatted(entryName), e);
-        }
-    }
-
-    private Bundle toBundleContent(Map<String, String> content) {
+    private Bundle toBundleContent(HashMap<String, String> content) {
         val manifestJson           = content.remove(MANIFEST_FILENAME);
         val pdpJson                = content.remove(PDP_JSON);
         val plaintextSecrets       = content.remove(ExtensionFiles.SECRETS_FILE);
@@ -517,8 +427,8 @@ public class BundleParser {
         }
     }
 
-    private boolean isAllowedEntry(boolean directory, String normalizedName) {
-        if (directory || normalizedName.contains("/")) {
+    private boolean isAllowedEntry(ZipEntry entry, String normalizedName) {
+        if (entry.isDirectory() || normalizedName.contains("/")) {
             return false;
         }
         return PDP_JSON.equals(normalizedName) || MANIFEST_FILENAME.equals(normalizedName)
@@ -529,7 +439,13 @@ public class BundleParser {
                 || ExtensionFiles.isSealedExtensionSecretsFile(normalizedName);
     }
 
-    private void validateEntryName(String entryName, String sourceDescription) {
+    private void validateZipEntry(ZipEntry entry, int entryCount, String sourceDescription) {
+        if (entryCount > MAX_ENTRY_COUNT) {
+            throw zipBombException(ERROR_TOO_MANY_ENTRIES.formatted(MAX_ENTRY_COUNT), sourceDescription);
+        }
+
+        val entryName = entry.getName();
+
         if (entryName.length() > MAX_ENTRY_NAME_LENGTH) {
             throw zipBombException(ERROR_ENTRY_NAME_TOO_LONG.formatted(MAX_ENTRY_NAME_LENGTH), sourceDescription);
         }
@@ -564,35 +480,36 @@ public class BundleParser {
         return normalized;
     }
 
-    private byte[] readZipEntryContent(ZipFile zip, ZipArchiveEntry entry, String sourceDescription, long currentTotal,
+    private EntryContent readZipEntryContent(ZipInputStream zipStream, String sourceDescription, long currentTotal,
             long compressedSize, long maxUncompressedBytes) throws IOException {
         val buffer    = new ByteArrayOutputStream();
         val data      = new byte[READ_BUFFER_SIZE];
-        val checksum  = new CRC32();
         var entrySize = 0L;
         int bytesRead;
 
-        try (val entryStream = zip.getInputStream(entry)) {
-            while ((bytesRead = entryStream.read(data)) != -1) {
-                entrySize += bytesRead;
-                val runningTotal = currentTotal + entrySize;
+        while ((bytesRead = zipStream.read(data)) != -1) {
+            entrySize += bytesRead;
+            val runningTotal = currentTotal + entrySize;
 
-                validateUncompressedSize(runningTotal, sourceDescription, maxUncompressedBytes);
+            validateUncompressedSize(runningTotal, sourceDescription, maxUncompressedBytes);
 
-                if (compressedSize > 0) {
-                    validateCompressionRatioDuringRead(compressedSize, runningTotal, sourceDescription);
-                }
-
-                checksum.update(data, 0, bytesRead);
-                buffer.write(data, 0, bytesRead);
+            if (compressedSize > 0) {
+                validateCompressionRatioDuringRead(compressedSize, runningTotal, sourceDescription);
             }
-        }
-        if (checksum.getValue() != entry.getCrc()) {
-            throw new ZipException(ERROR_ENTRY_CHECKSUM_MISMATCH);
+
+            buffer.write(data, 0, bytesRead);
         }
 
-        return buffer.toByteArray();
+        return new EntryContent(buffer.toString(StandardCharsets.UTF_8), entrySize);
     }
+
+    /**
+     * Decoded entry text together with its decompressed byte count. The byte count
+     * feeds the cumulative ZIP-bomb size and compression-ratio limits, which must
+     * track decompressed bytes rather than the UTF-16 char count of the decoded
+     * text (the two differ for multibyte UTF-8 content).
+     */
+    private record EntryContent(String text, long uncompressedBytes) {}
 
     private void validateUncompressedSize(long totalUncompressed, String sourceDescription, long maxUncompressedBytes) {
         if (totalUncompressed > maxUncompressedBytes) {

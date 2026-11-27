@@ -19,18 +19,12 @@ package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.stream.Stream;
-
 import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.lsp.configuration.ConfigurationManager;
-import lombok.val;
 
 @DisplayName("SAPL hover provider")
 class SAPLHoverProviderTests {
@@ -91,34 +85,6 @@ class SAPLHoverProviderTests {
             assertThat(hover.getContents().getRight().getValue()).contains("now");
         }
 
-    }
-
-    @Nested
-    @DisplayName("the position of the pointer in the editor")
-    class PositionOfThePointerTests {
-
-        private static final String END_OF_THE_FUNCTION_NAME_AND_ITS_ARGUMENT = "h(\"hello\")";
-
-        static Stream<Arguments> documentsThatCallAStandardFunction() {
-            val plainLine     = "    standard.length(\"hello\") > 3;";
-            val afterTwoFaces = "    \"" + ProtocolText.GRINNING_FACE.repeat(2)
-                    + "\" == subject.mood || standard.length(\"hello\") > 3;";
-            return ProtocolText.documentsWithEveryLineEndAndFaces(plainLine, afterTwoFaces);
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @MethodSource("documentsThatCallAStandardFunction")
-        @DisplayName("on the last letter of a function name shows the documentation of the function")
-        void whenPointerIsOnTheLastLetterOfAFunctionNameThenDocumentationOfTheFunctionIsShown(String description,
-                String content) {
-            val document = new SAPLParsedDocument("test.sapl", content);
-            val pointer  = ProtocolText.positionOf(content, END_OF_THE_FUNCTION_NAME_AND_ITS_ARGUMENT);
-
-            val hover = provider.provideHover(document, pointer, configurationManager);
-
-            assertThat(hover).isNotNull().extracting(shown -> shown.getContents().getRight().getValue()).asString()
-                    .contains("length");
-        }
     }
 
 }

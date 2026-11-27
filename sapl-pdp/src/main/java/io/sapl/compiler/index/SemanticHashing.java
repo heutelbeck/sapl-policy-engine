@@ -19,13 +19,10 @@ package io.sapl.compiler.index;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NullValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -43,9 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * identify semantically equivalent expressions across policies, enabling the
  * canonical policy index to evaluate each unique predicate at most once.
  * <p>
- * The hashes are the same in every run, as the canonical order of operands and
- * the construction of the policy index rely on them. They are not suitable for
- * persistence.
+ * The hashes are only meaningful within a single JVM session and compilation.
+ * They are not suitable for persistence or cross-process comparison.
  * <p>
  * <b>Algorithm choice:</b> Uses MurmurHash3's 64-bit finalizer ({@code fmix64})
  * for bit mixing and a Boost-style {@code hash_combine} for accumulation.
@@ -76,20 +72,6 @@ public class SemanticHashing {
      */
     public static long kindHash(Class<?> clazz) {
         return fmix64(clazz.getName().hashCode());
-    }
-
-    /**
-     * Generates a stable kind constant from an enum constant, such as an operator
-     * type.
-     *
-     * @param kind the enum constant
-     * @return a hash constant unique per enum class and constant name
-     */
-    public static long kindHash(Enum<?> kind) {
-        // Not kind.hashCode(): an enum's hash is its identity hash and differs from one
-        // JVM run to the next, while the canonical operand order and the index need
-        // semantic hashes that are the same in every run.
-        return fmix64((kind.getDeclaringClass().getName() + '.' + kind.name()).hashCode());
     }
 
     private static final long TEXT_KIND         = kindHash(TextValue.class);
@@ -133,23 +115,6 @@ public class SemanticHashing {
                 error.cause() == null ? 0L : textHash(error.cause().getClass().getName()));
         case ArrayValue array        -> cachedContainerHash(array);
         case ObjectValue object      -> cachedContainerHash(object);
-        };
-    }
-
-    /**
-     * Computes the hash of a compiled operand: the content hash of a constant,
-     * the semantic hash of a pure operator, and the kind of a stream operator.
-     *
-     * @param expression the compiled operand
-     * @return a hash that is the same in every run
-     */
-    public static long expressionHash(CompiledExpression expression) {
-        return switch (expression) {
-        case Value value       -> valueHash(value);
-        case PureOperator pure -> pure.semanticHash();
-        // A stream has no semantic hash. Its kind is a coarse but stable stand-in, never
-        // its hashCode(), which reaches identity hashes of enums and lambdas.
-        case StreamOperator stream -> kindHash(stream.getClass());
         };
     }
 
@@ -273,9 +238,9 @@ public class SemanticHashing {
      */
     public static long binaryOp(BinaryOperatorType opType, long leftHash, long rightHash) {
         if (opType.isCommutative()) {
-            return commutative(kindHash(opType), leftHash, rightHash);
+            return commutative(opType.hashCode(), leftHash, rightHash);
         }
-        return ordered(kindHash(opType), leftHash, rightHash);
+        return ordered(opType.hashCode(), leftHash, rightHash);
     }
 
     /**

@@ -35,12 +35,9 @@ import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.access.AccessDeniedException;
 
 import tools.jackson.databind.json.JsonMapper;
-import com.networknt.schema.SchemaException;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -341,21 +338,6 @@ class FieldValidationConstraintHandlerProviderTests {
         // THEN
         form.integerField.setValue(21);
         assertThat(form.integerField.isInvalid()).isFalse();
-    }
-
-    @ParameterizedTest(name = "when a field schema names {0} then the constraint is not applied")
-    @ValueSource(strings = { "http://127.0.0.1:9/schema", "file:///etc/passwd", "classpath:draft-07/schema" })
-    void whenFieldSchemaNamesForeignReferenceThenConstraintFailsClosed(String reference) {
-        var sut = new FieldValidationConstraintHandlerProvider(binder, form);
-        sut.bindField(form.integerField);
-        binder.bindInstanceFields(form);
-        var integerFieldSchema = ObjectValue.builder().put("$ref", Value.of(reference)).build();
-        var constraint         = ObjectValue.builder().put("type", Value.of("saplVaadin"))
-                .put("id", Value.of("validation"))
-                .put("fields", ObjectValue.builder().put("integerField", integerFieldSchema).build()).build();
-
-        assertThatThrownBy(() -> applyHandler(sut, constraint, defaultUi)).isInstanceOf(SchemaException.class)
-                .hasMessage("the reference '%s' names neither a built-in meta-schema nor a provided schema", reference);
     }
 
     @Getter

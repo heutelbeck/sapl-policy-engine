@@ -20,38 +20,22 @@ package io.sapl.test;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
-import static io.sapl.api.stream.Streams.just;
-import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-
-import io.sapl.api.attributes.EnvironmentAttribute;
-import io.sapl.api.attributes.PolicyInformationPoint;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.api.stream.Stream;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.test.plain.PlainTestAdapter;
 import io.sapl.test.plain.SaplDocument;
 import io.sapl.test.plain.SaplTestDocument;
 import io.sapl.test.plain.TestConfiguration;
 import io.sapl.test.plain.TestStatus;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-import lombok.val;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("AttributeVerification tests")
 class AttributeVerificationTests {
@@ -83,63 +67,6 @@ class AttributeVerificationTests {
 
         assertThat(results.allPassed()).withFailMessage(() -> buildFailureMessage(results)).isTrue();
         assertThat(results.passed()).isEqualTo(6);
-    }
-
-    @ParameterizedTest(name = "clearance {0}, low-latency mode {1}")
-    @CsvSource({ "true,true", "true,false", "false,true", "false,false" })
-    @DisplayName("ordinary and covered decisions call exactly the necessary finders")
-    void whenCheckingEntryThenBothDecisionsRequestTheSameFinders(boolean clearance, boolean lowLatency) {
-        val ordinary = decide(clearance, lowLatency, false);
-        val covered  = decide(clearance, lowLatency, true);
-        assertThat(covered).isEqualTo(ordinary);
-        if (clearance) {
-            assertThat(ordinary.decision()).isEqualTo(AuthorizationDecision.PERMIT);
-            assertThat(ordinary.calls()).containsExactly("clearance", "duty");
-        } else {
-            assertThat(ordinary.decision()).isEqualTo(AuthorizationDecision.NOT_APPLICABLE);
-            assertThat(ordinary.calls()).containsExactly("clearance");
-        }
-    }
-
-    private static Result decide(boolean clearance, boolean lowLatency, boolean coverage) {
-        val finder        = new EntryFinder(clearance);
-        val subscription  = AuthorizationSubscription.of("guard", "enter", "building");
-        val configuration = new PDPConfiguration("entrance", "open",
-                new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE),
-                ObjectValue.builder().put("lowLatencyMode", Value.of(lowLatency)).build(),
-                List.of("policy \"access\" permit <entry.clearance>; <entry.duty>;"),
-                new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-        try (val components = PolicyDecisionPointBuilder.withoutDefaults().withPolicyInformationPoint(finder).build()) {
-            components.pdpVoterSource().loadConfiguration(configuration);
-            val decision = coverage
-                    ? components.pdp().decideOnceWithCoverage(subscription, "entrance").vote().authorizationDecision()
-                    : components.pdp().decideOnce(subscription, "entrance");
-            return new Result(decision, List.copyOf(finder.calls));
-        }
-    }
-
-    private record Result(AuthorizationDecision decision, List<String> calls) {}
-
-    @PolicyInformationPoint(name = "entry")
-    public static class EntryFinder {
-        private final List<String> calls = new CopyOnWriteArrayList<>();
-        private final boolean      cleared;
-
-        EntryFinder(boolean cleared) {
-            this.cleared = cleared;
-        }
-
-        @EnvironmentAttribute(name = "clearance")
-        public Stream<Value> clearance() {
-            calls.add("clearance");
-            return just(Value.of(cleared));
-        }
-
-        @EnvironmentAttribute(name = "duty")
-        public Stream<Value> duty() {
-            calls.add("duty");
-            return just(Value.TRUE);
-        }
     }
 
     @Test

@@ -17,7 +17,6 @@
  */
 package io.sapl.pdp.configuration.source;
 
-import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
@@ -113,35 +112,6 @@ class ResourcesPDPConfigurationSourceTests {
 
         assertThatThrownBy(() -> source.subscribe(capture)).isInstanceOf(PDPConfigurationException.class)
                 .hasMessageContaining(path);
-    }
-
-    @Test
-    @DisplayName("secrets and extension files next to pdp.json are loaded from the resources")
-    void whenResourcesHoldSecretsAndExtensionFilesThenConfigurationsCarryThem() {
-        val source  = new ResourcesPDPConfigurationSource("/secrets-pdp-policies");
-        val configs = captureConfigurations(source);
-
-        assertThat(configs).hasSize(2).anySatisfy(config -> {
-            assertThat(config.pdpId()).isEqualTo("default");
-            assertThat(config.data().secrets()).containsEntry("token", Value.of("ROOT-PLAINTEXT"));
-            assertThat(config.extensions()).containsKey("upstreams");
-            assertThat(config.extensionSecrets()).containsKey("upstreams");
-        }).anySatisfy(config -> {
-            assertThat(config.pdpId()).isEqualTo("tenant-a");
-            assertThat(config.data().secrets()).containsEntry("token", Value.of("TENANT-A-PLAINTEXT"));
-        });
-
-        source.close();
-    }
-
-    @Test
-    @DisplayName("resources mixing sealed and plaintext secrets files are rejected")
-    void whenResourcesMixSealedAndPlaintextSecretsThenLoadingFails() {
-        val source  = new ResourcesPDPConfigurationSource("/mixed-secrets-pdp-policies");
-        val capture = new CapturingSubscriber();
-
-        assertThatThrownBy(() -> source.subscribe(capture)).isInstanceOf(PDPConfigurationException.class)
-                .hasMessageContaining("mixes sealed and plaintext");
     }
 
     @Test

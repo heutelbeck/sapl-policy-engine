@@ -17,37 +17,19 @@
  */
 package io.sapl.functions.libraries;
 
-import com.github.valfirst.slf4jtest.TestLogger;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.dialect.Dialect;
-import com.networknt.schema.keyword.PatternValidator;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Stream;
-
-import static com.github.valfirst.slf4jtest.TestLoggerFactory.getTestLogger;
-import static io.sapl.api.model.ValueJsonMarshaller.json;
-import static io.sapl.compiler.util.SchemaReferenceFixtures.UNRESOLVABLE_REFERENCE;
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
-
-    private static final String INVALID_REGULAR_EXPRESSION = "The schema holds an invalid regular expression: %s.";
-    private static final String SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s.";
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
@@ -57,104 +39,16 @@ class SchemaValidationLibraryTests {
 
     @Test
     @Timeout(15)
-    @DisplayName("a schema pattern that backtracking engines take exponential time for answers in linear time")
-    void whenSchemaPatternWouldBacktrackCatastrophicallyThenAnswersQuickly() {
+    @DisplayName("a catastrophically backtracking schema pattern aborts under the match budget instead of hanging the evaluation thread")
+    void whenSchemaPatternIsCatastrophicallyBacktrackingThenBoundedAbort() {
         val schema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
                 .build();
-        val hostile = Value.of("a".repeat(29) + "b".repeat(10_000));
+        val hostile = Value.of("a".repeat(50));
 
         val result = isCompliant(hostile, schema);
 
-        assertThat(result).isEqualTo(Value.FALSE);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    @DisplayName("a schema pattern matches any part of the text, and $ only at the end of the text")
-    void whenSchemaPatternMatchedThenSemanticsOfJsonSchemaApply(String description, String pattern, String text,
-            boolean compliant) {
-        val schema = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of(pattern)).build();
-        assertThat(isCompliant(Value.of(text), schema)).isEqualTo(Value.of(compliant));
-    }
-
-    static Stream<Arguments> whenSchemaPatternMatchedThenSemanticsOfJsonSchemaApply() {
-        return Stream.of(arguments("a part of the text", "[0-9]{5}", "zip 12345", true),
-                arguments("an anchored pattern", "^[0-9]{5}$", "12345", true),
-                arguments("a line feed before the end", "^[0-9]{5}$", "12345\n", false),
-                arguments("a long form Unicode property", "^\\p{Letter}+$", "caf\u00e9", true));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    @DisplayName("a schema with a pattern RE2 refuses is an error in every function, never a compliant subject")
-    void whenSchemaPatternRefusedThenEveryFunctionReturnsError(String description, String schema, String subject,
-            String reason) {
-        val jsonSchema        = (ObjectValue) json(schema);
-        val validationSubject = json(subject);
-
-        assertThat(List.of(isCompliant(validationSubject, jsonSchema),
-                isCompliantWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY),
-                validate(validationSubject, jsonSchema),
-                validateWithExternalSchemas(validationSubject, jsonSchema, Value.EMPTY_ARRAY)))
-                .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                        error -> assertThat(error.message()).isEqualTo(INVALID_REGULAR_EXPRESSION.formatted(reason))));
-    }
-
-    static Stream<Arguments> whenSchemaPatternRefusedThenEveryFunctionReturnsError() {
-        return Stream.of(arguments("a look-ahead in pattern", """
-                {"type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}
-                """, "\"password1\"", "invalid or unsupported Perl syntax"),
-                arguments("a backreference in a nested pattern", """
-                        {"type": "object", "properties": {"code": {"type": "string", "pattern": "(a)\\\\1"}}}
-                        """, "{}", "invalid escape sequence"), arguments("a look-behind in a patternProperties key", """
-                        {"type": "object", "patternProperties": {"(?<=x)y": {"type": "number"}}}
-                        """, "{\"other\": 1}", "invalid named capture"),
-                arguments("a look-ahead in a branch the subject does not need", """
-                        {"anyOf": [{"type": "number"}, {"type": "string", "pattern": "(?!admin)"}]}
-                        """, "1", "invalid or unsupported Perl syntax"), arguments("a pattern too large to compile", """
-                        {"type": "string", "pattern": "(?:a{1000}){1000}"}
-                        """, "\"a\"", "expression too large"));
-    }
-
-    @Test
-    @DisplayName("an external schema with a pattern RE2 refuses is an error, never a compliant subject")
-    void whenExternalSchemaPatternRefusedThenError() {
-        val externals = (ArrayValue) json("""
-                [{"$id": "https://example.com/password", "type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}]
-                """);
-        val schema    = (ObjectValue) json("""
-                {"$ref": "https://example.com/password"}
-                """);
-
-        assertThat(isCompliantWithExternalSchemas(Value.of("password1"), schema, externals))
-                .isInstanceOfSatisfying(ErrorValue.class, error -> assertThat(error.message())
-                        .isEqualTo(INVALID_REGULAR_EXPRESSION.formatted("invalid or unsupported Perl syntax")));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    @DisplayName("a schema pattern RE2 refuses leaves no trace in the log, as subscriptions may supply schemas")
-    void whenSchemaPatternRefusedThenNothingIsLogged(String description, String schema) {
-        val jsonSchema    = (ObjectValue) json(schema);
-        val networkntLogs = List.of(getTestLogger(PatternValidator.class), getTestLogger(Dialect.class));
-        networkntLogs.forEach(TestLogger::clearAll);
-
-        val result = validate(Value.of("text"), jsonSchema);
-
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(networkntLogs).allSatisfy(log -> assertThat(log.getAllLoggingEvents()).isEmpty());
-    }
-
-    static Stream<Arguments> whenSchemaPatternRefusedThenNothingIsLogged() {
-        return Stream.of(arguments("a look-ahead in pattern", """
-                {"type": "string", "pattern": "^(?=.*[0-9]).{8,}$"}
-                """), arguments("a look-behind in a patternProperties key", """
-                {"type": "object", "patternProperties": {"(?<=x)y": {"type": "number"}}}
-                """), arguments("a look-behind in a patternProperties key next to additionalProperties", """
-                {"type": "object", "additionalProperties": false, "patternProperties": {"(?<=x)y": {"type": "number"}}}
-                """), arguments("a look-ahead in pattern under the draft-07 dialect", """
-                {"$schema": "http://json-schema.org/draft-07/schema#", "type": "string", "pattern": "(?!admin)"}
-                """));
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
     }
 
     @Test
@@ -167,36 +61,6 @@ class SchemaValidationLibraryTests {
         val result = validateWithExternalSchemas(Value.of("x"), selfReferential, Value.EMPTY_ARRAY);
 
         assertThat(result).isInstanceOf(ErrorValue.class);
-    }
-
-    @ParameterizedTest(name = "when a schema names {1} by {0} then every function returns an error")
-    @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#foreignReferences")
-    @DisplayName("a schema may name only the built-in meta-schemas and the provided schemas, and a refusal leaves no trace in the log")
-    void whenSchemaNamesForeignReferenceThenEveryFunctionReturnsErrorAndNothingIsLogged(String keyword,
-            String reference) {
-        val jsonSchema   = ObjectValue.builder().put(keyword, Value.of(reference)).put("type", Value.of("string"))
-                .build();
-        val subject      = Value.of("text");
-        val networkntLog = getTestLogger(SchemaRegistry.class);
-        networkntLog.clearAll();
-
-        val results = List.of(isCompliant(subject, jsonSchema),
-                isCompliantWithExternalSchemas(subject, jsonSchema, Value.EMPTY_ARRAY), validate(subject, jsonSchema),
-                validateWithExternalSchemas(subject, jsonSchema, Value.EMPTY_ARRAY));
-
-        assertThat(results).allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
-                error -> assertThat(error.message())
-                        .isEqualTo(SCHEMA_VALIDATION_FAILED.formatted(UNRESOLVABLE_REFERENCE.formatted(reference)))));
-        assertThat(networkntLog.getAllLoggingEvents()).isEmpty();
-    }
-
-    @ParameterizedTest(name = "when a schema names {0} then subjects are validated against it")
-    @MethodSource("io.sapl.compiler.util.SchemaReferenceFixtures#builtInReferences")
-    void whenSchemaNamesBuiltInMetaSchemaThenSubjectsAreValidated(String description, String schema, String compliant,
-            String nonCompliant) {
-        val jsonSchema = (ObjectValue) json(schema);
-        assertThat(List.of(isCompliant(json(compliant), jsonSchema), isCompliant(json(nonCompliant), jsonSchema)))
-                .containsExactly(Value.TRUE, Value.FALSE);
     }
 
     @Test
@@ -338,24 +202,28 @@ class SchemaValidationLibraryTests {
     @Test
     @Timeout(30)
     @DisplayName("when many array elements each match a backtracking pattern then the aggregate validation is bounded and aborts")
-    void whenManyElementsMatchBacktrackingPatternThenValidationAnswersQuickly() {
-        // A schema "pattern" keyword is matched once per array element. Each match takes
-        // time linear in the length of the element, so the whole validation scales
-        // linearly with the element count.
+    void whenManyElementsMatchBacktrackingPatternThenAggregateIsBounded() {
+        // A schema "pattern" keyword is matched once per array element. Each individual
+        // element match stays under the single-match budget, while the aggregate of all
+        // element matches would run far past it. The bound must be per validate() call
+        // so
+        // the whole validation aborts once the shared budget is exhausted, rather than
+        // letting eval-thread CPU scale linearly with the element count.
         val itemSchema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
                 .build();
         val arraySchema = ObjectValue.builder().put("type", Value.of("array")).put("items", itemSchema).build();
 
         val hostileElement = Value.of("a".repeat(24));
         val arrayBuilder   = ArrayValue.builder();
-        for (int i = 0; i < 1_000; i++) {
+        for (int i = 0; i < 9; i++) {
             arrayBuilder.add(hostileElement);
         }
         val hostileArray = arrayBuilder.build();
 
         val result = isCompliant(hostileArray, arraySchema);
 
-        assertThat(result).isEqualTo(Value.FALSE);
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
     }
 
     @Test
@@ -386,145 +254,4 @@ class SchemaValidationLibraryTests {
 
         assertThat(result).isInstanceOf(BooleanValue.class).isEqualTo(Value.FALSE);
     }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource
-    @DisplayName("numeric schema constraints compare exact quantities in subjects and schemas")
-    void whenNumbersAreValidatedThenExactQuantitiesDetermineCompliance(String description, Value subject,
-            ObjectValue schema, boolean compliant) {
-        val external  = ObjectValue.builder().putAll(schema).put("$id", Value.of("https://example.com/exact-number"))
-                .build();
-        val externals = Value.ofArray(external);
-        val reference = ObjectValue.builder().put("$ref", Value.of("https://example.com/exact-number")).build();
-
-        assertThat(List.of(isCompliant(subject, schema), isCompliantWithExternalSchemas(subject, reference, externals)))
-                .containsOnly(Value.of(compliant));
-        assertThat(List.of(validate(subject, schema), validateWithExternalSchemas(subject, reference, externals)))
-                .allSatisfy(result -> assertThat(result).isInstanceOfSatisfying(ObjectValue.class,
-                        object -> assertThat(object).containsEntry("valid", Value.of(compliant)).hasEntrySatisfying(
-                                "errors", errors -> assertThat(errors).isInstanceOfSatisfying(ArrayValue.class,
-                                        entries -> assertThat(entries.isEmpty()).isEqualTo(compliant)))));
-    }
-
-    static Stream<Arguments> whenNumbersAreValidatedThenExactQuantitiesDetermineCompliance() {
-        return Stream.of(
-                numericConstraint("a decimal above a maximum", "0.10000000000000000001", "maximum", "0.1", false),
-                numericConstraint("a decimal at a maximum", "0.10000000000000000001", "maximum",
-                        "0.10000000000000000001", true),
-                numericConstraint("a precise maximum below an integer", "1", "maximum", "0.99999999999999999", false),
-                numericConstraint("a decimal below a minimum", "0.09999999999999999999", "minimum", "0.1", false),
-                numericConstraint(
-                        "a precise minimum above a decimal", "0.1", "minimum", "0.10000000000000000001", false),
-                numericConstraint("a decimal at a minimum", "0.1", "minimum", "0.10", true),
-                numericConstraint("an integer below an exclusive maximum", "1", "exclusiveMaximum",
-                        "1.0000000000000000001", true),
-                numericConstraint("a decimal at an exclusive maximum", "1.0000000000000000001", "exclusiveMaximum",
-                        "1.0000000000000000001", false),
-                numericConstraint("a decimal above an exclusive maximum", "1.0000000000000000002", "exclusiveMaximum",
-                        "1.0000000000000000001", false),
-                numericConstraint("an integer above an exclusive minimum", "1", "exclusiveMinimum",
-                        "0.99999999999999999", true),
-                numericConstraint("a decimal at an exclusive minimum", "0.99999999999999999", "exclusiveMinimum",
-                        "0.99999999999999999", false),
-                numericConstraint("a decimal below an exclusive minimum", "0.99999999999999998", "exclusiveMinimum",
-                        "0.99999999999999999", false),
-                numericConstraint("a decimal different from an integer const", "1.0000000000000000001", "const", "1",
-                        false),
-                numericConstraint("an integer different from a decimal const", "1", "const", "1.0000000000000000001",
-                        false),
-                numericConstraint("equal decimals with different scales", "1.2300", "const", "123e-2", true),
-                numericConstraint("adjacent integers beyond u64", "18446744073709551617", "const",
-                        "18446744073709551616", false),
-                numericConstraint("the integer above u64 maximum", "18446744073709551616", "const",
-                        "18446744073709551615", false),
-                numericConstraint("the integer above i64 maximum", "9223372036854775808", "const",
-                        "9223372036854775807", false),
-                numericConstraint("the integer below i64 minimum", "-9223372036854775809", "const",
-                        "-9223372036854775808", false),
-                numericConstraint("adjacent negative integers beyond i64", "-9223372036854775810", "maximum",
-                        "-9223372036854775809", true),
-                numericConstraint("a negative integer above a maximum beyond i64", "-9223372036854775809", "maximum",
-                        "-9223372036854775810", false),
-                numericConstraint("adjacent integers beyond the f64 exact range", "9007199254740993", "const",
-                        "9007199254740992", false),
-                numericConstraint("adjacent negative integers beyond the f64 exact range", "-9007199254740993", "const",
-                        "-9007199254740992", false),
-                numericConstraint("an integer above a maximum beyond u64", "18446744073709551617", "maximum",
-                        "18446744073709551616", false),
-                numericConstraint("an integer below a minimum beyond u64", "18446744073709551616", "minimum",
-                        "18446744073709551617", false),
-                numericConstraint("an exact decimal multiple", "0.3", "multipleOf", "0.1", true),
-                numericConstraint("an inexact decimal multiple", "1.0000000000000000001", "multipleOf", "0.1", false),
-                numericConstraint("a precise divisor different from one tenth", "1", "multipleOf",
-                        "0.10000000000000000001", false),
-                numericConstraint("an odd integer beyond u64", "18446744073709551617", "multipleOf", "2", false),
-                numericConstraint("an even integer beyond u64", "18446744073709551616", "multipleOf", "2", true),
-                numericConstraint("a positive number at the smallest allowed scale", "1e-1000", "maximum", "0", false),
-                numericConstraint("zero below the smallest positive scale", "0", "minimum", "1e-1000", false),
-                numericConstraint("equal numbers at the smallest allowed scale", "1e-1000", "const", "1E-1000", true),
-                numericConstraint("a negative number at the smallest allowed scale", "-1e-1000", "minimum", "0", false),
-                numericConstraint("a number at the largest allowed exponent", "1e1000", "maximum", "9e999", false),
-                numericConstraint("a number at the largest allowed exponent equals itself", "1e1000", "const", "1e1000",
-                        true),
-                arguments("a decimal outside an enum", exactNumber("1.0000000000000000001"),
-                        ObjectValue.builder().put("enum", Value.ofArray(exactNumber("1"), exactNumber("2"))).build(),
-                        false),
-                arguments("an integer outside an enum beyond u64", exactNumber("18446744073709551617"),
-                        ObjectValue.builder()
-                                .put("enum", Value.ofArray(exactNumber("18446744073709551616"), exactNumber("0")))
-                                .build(),
-                        false),
-                arguments("equal enum members with different scales", exactNumber("1.2300"),
-                        ObjectValue.builder().put("enum", Value.ofArray(exactNumber("123e-2"), exactNumber("0")))
-                                .build(),
-                        true),
-                arguments("distinct precise decimals are unique",
-                        Value.ofArray(exactNumber("1"), exactNumber("1.0000000000000000001")),
-                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), true),
-                arguments("equal decimals with different scales are not unique",
-                        Value.ofArray(exactNumber("1.2300"), exactNumber("123e-2")),
-                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), false),
-                arguments("distinct integers beyond u64 are unique",
-                        Value.ofArray(exactNumber("18446744073709551616"), exactNumber("18446744073709551617")),
-                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), true),
-                arguments("nested numeric differences do not equal a const",
-                        ObjectValue.builder().put("amount", Value.ofArray(exactNumber("1.0000000000000000001")))
-                                .build(),
-                        ObjectValue.builder()
-                                .put("const",
-                                        ObjectValue.builder().put("amount", Value.ofArray(exactNumber("1"))).build())
-                                .build(),
-                        false),
-                arguments("nested equal numbers with different scales are not unique",
-                        Value.ofArray(ObjectValue.builder().put("amount", Value.ofArray(exactNumber("1.2300"))).build(),
-                                ObjectValue.builder().put("amount", Value.ofArray(exactNumber("123e-2"))).build()),
-                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), false),
-                arguments("a precise fraction is not an integer", exactNumber("1.0000000000000000001"),
-                        ObjectValue.builder().put("type", Value.of("integer")).build(), false),
-                arguments("a large scaled whole number is an integer", exactNumber("18446744073709551616.00"),
-                        ObjectValue.builder().put("type", Value.of("integer")).build(), true),
-                arguments("distinct precise decimals in a longer array are unique",
-                        Value.ofArray(exactNumber("1"), exactNumber("1.0000000000000000001"), Value.of(0), Value.of(2),
-                                Value.of(3), Value.of(4), Value.of(5), Value.of(6), Value.of(7), Value.of(8),
-                                Value.of(9), Value.of(10), Value.of(11), Value.of(12), Value.of(13), Value.of(14),
-                                Value.of(15)),
-                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), true),
-                arguments("equal decimals in a longer array are not unique",
-                        Value.ofArray(exactNumber("1.2300"), exactNumber("123e-2"), Value.of(0), Value.of(2),
-                                Value.of(3), Value.of(4), Value.of(5), Value.of(6), Value.of(7), Value.of(8),
-                                Value.of(9), Value.of(10), Value.of(11), Value.of(12), Value.of(13), Value.of(14),
-                                Value.of(15)),
-                        ObjectValue.builder().put("uniqueItems", Value.TRUE).build(), false));
-    }
-
-    private static Arguments numericConstraint(String description, String subject, String keyword, String operand,
-            boolean compliant) {
-        val schema = ObjectValue.builder().put(keyword, exactNumber(operand)).build();
-        return arguments(description, exactNumber(subject), schema, compliant);
-    }
-
-    private static Value exactNumber(String number) {
-        return Value.of(new BigDecimal(number));
-    }
-
 }

@@ -17,8 +17,6 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -74,7 +72,6 @@ public class ExtensionFiles {
      */
     public static final String SEALED_SECRETS_FILE = "secrets.sealed.json";
 
-    private static final String ERROR_EXTENSION_FILE_NOT_JSON  = "Extension file '%s' does not contain valid JSON.";
     private static final String ERROR_REQUIRED_WITHOUT_PAYLOAD = "Required extension '%1$s' has no configuration or secrets payload. Provide 'ext-%1$s.json', 'ext-%1$s-secrets.json' or 'ext-%1$s-secrets.sealed.json'.";
 
     /**
@@ -84,7 +81,7 @@ public class ExtensionFiles {
      * @return true if the name is a sealed extension secrets file
      */
     public static boolean isSealedExtensionSecretsFile(String fileName) {
-        return isExtensionNameEndingWith(fileName, SEALED_EXTENSION_SECRETS_SUFFIX);
+        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(SEALED_EXTENSION_SECRETS_SUFFIX);
     }
 
     /**
@@ -94,22 +91,8 @@ public class ExtensionFiles {
      * @return true if the name is a cleartext extension secrets file
      */
     public static boolean isExtensionSecretsFile(String fileName) {
-        return isExtensionNameEndingWith(fileName, EXTENSION_SECRETS_SUFFIX) && !isSealedExtensionSecretsFile(fileName);
-    }
-
-    /**
-     * Tells whether a file supplements a {@code pdp.json}: the secrets of the PDP,
-     * the configuration of an extension, or the secrets of an extension, sealed or
-     * not.
-     *
-     * @param fileName
-     * the file name to check
-     *
-     * @return true if the file is a secrets or extension file
-     */
-    public static boolean isSupplementFile(String fileName) {
-        return SECRETS_FILE.equals(fileName) || SEALED_SECRETS_FILE.equals(fileName) || isExtensionFile(fileName)
-                || isExtensionSecretsFile(fileName) || isSealedExtensionSecretsFile(fileName);
+        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(EXTENSION_SECRETS_SUFFIX)
+                && !isSealedExtensionSecretsFile(fileName);
     }
 
     /**
@@ -119,8 +102,8 @@ public class ExtensionFiles {
      * @return true if the name is a cleartext extension configuration file
      */
     public static boolean isExtensionFile(String fileName) {
-        return isExtensionNameEndingWith(fileName, EXTENSION_SUFFIX) && !isExtensionSecretsFile(fileName)
-                && !isSealedExtensionSecretsFile(fileName);
+        return fileName.startsWith(EXTENSION_PREFIX) && fileName.endsWith(EXTENSION_SUFFIX)
+                && !isExtensionSecretsFile(fileName) && !isSealedExtensionSecretsFile(fileName);
     }
 
     /**
@@ -156,7 +139,7 @@ public class ExtensionFiles {
 
     /**
      * Enforces the structural integrity rule that makes an extension set well-formed: every declared required
-     * extension must have a payload present, a cleartext configuration or secrets or both. A required
+     * extension must have a payload present, a cleartext configuration or sealed secrets or both. A required
      * extension declared without any payload would let the consumer believe it is honored while it silently runs on
      * nothing. The check fails closed with a {@link PDPConfigurationException}.
      *
@@ -165,7 +148,7 @@ public class ExtensionFiles {
      * @param extensionNames
      * the names with a cleartext configuration present
      * @param extensionSecretNames
-     * the names with secrets present, cleartext or sealed
+     * the names with sealed secrets present
      *
      * @throws PDPConfigurationException
      * if a required extension has neither configuration nor secrets
@@ -177,34 +160,6 @@ public class ExtensionFiles {
                 throw new PDPConfigurationException(ERROR_REQUIRED_WITHOUT_PAYLOAD.formatted(extensionName));
             }
         }
-    }
-
-    /**
-     * Rejects an extension file whose content failed to parse. The message names the file but never the parser
-     * diagnostics, because those can quote file content and extension files may carry secrets.
-     *
-     * @param fileName
-     * the extension file name, used in the error message
-     * @param parsed
-     * the parse result of the file content
-     *
-     * @return the parsed value
-     *
-     * @throws PDPConfigurationException
-     * if the content did not parse
-     */
-    public static Value requireValidJson(String fileName, Value parsed) {
-        if (parsed instanceof ErrorValue) {
-            throw new PDPConfigurationException(ERROR_EXTENSION_FILE_NOT_JSON.formatted(fileName));
-        }
-        return parsed;
-    }
-
-    // The ending is looked for after the prefix, so that the two never overlap:
-    // ext-secrets.json is the configuration of the extension 'secrets'.
-    private static boolean isExtensionNameEndingWith(String fileName, String ending) {
-        return fileName.startsWith(EXTENSION_PREFIX) && fileName.length() >= EXTENSION_PREFIX.length() + ending.length()
-                && fileName.endsWith(ending);
     }
 
 }

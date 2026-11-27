@@ -19,10 +19,11 @@ package io.sapl.lsp.sapltest;
 
 import java.util.List;
 
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
 
 import io.sapl.lsp.core.ParsedDocument;
-import io.sapl.lsp.core.ProtocolPositions;
 import lombok.val;
 
 /**
@@ -40,14 +41,23 @@ class SAPLTestFormattingProvider {
      * @return list of text edits to apply
      */
     List<TextEdit> provideFormatting(ParsedDocument document) {
-        if (!(document instanceof SAPLTestParsedDocument testDocument) || !testDocument.getParseErrors().isEmpty()) {
+        if (!document.getParseErrors().isEmpty()) {
+            return List.of();
+        }
+
+        if (!(document instanceof SAPLTestParsedDocument testDocument)) {
             return List.of();
         }
 
         val visitor   = new SAPLTestFormattingVisitor(testDocument.getTokenStream());
         val formatted = visitor.visitSaplTest(testDocument.getSaplTestParseTree());
 
-        val range = ProtocolPositions.of(document.getContent()).rangeOfDocument();
+        val content  = document.getContent();
+        val lines    = content.split("\n", -1);
+        val lastLine = lines.length - 1;
+        val lastChar = lines[lastLine].length();
+
+        val range = new Range(new Position(0, 0), new Position(lastLine, lastChar));
         return List.of(new TextEdit(range, formatted));
     }
 

@@ -20,9 +20,6 @@ package io.sapl.compiler.index.smtdd;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
 import io.sapl.compiler.index.smtdd.SmtddNode.BinaryDecision;
 import io.sapl.compiler.index.smtdd.SmtddNode.EqualityBranch;
 import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
@@ -71,20 +68,19 @@ class SmtddEvaluator {
         // Traverse equality branches and binary decisions
         while (!(node instanceof Terminal(BitSet matchedByTerminal))) {
             switch (node) {
-            case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected, var keyFormulas) -> {
-                val result = ctx.evaluate(operand);
+            case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected) -> {
+                val result = operand.evaluate(ctx);
                 if (result instanceof ErrorValue error) {
                     firstError = firstEncountered(firstError, error);
                     accumulatedErrors.or(affected);
                     node = errorChild;
                 } else {
-                    markInvalidKeyFormulas(result, keyFormulas, accumulatedErrors);
                     val branch = branches.get(result);
                     node = branch != null ? branch : defaultChild;
                 }
             }
-            case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                                   -> {
-                val result = ctx.evaluate(binaryOrder.predicateAt(level).operator());
+            case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                  -> {
+                val result = binaryOrder.predicateAt(level).operator().evaluate(ctx);
                 switch (result) {
                 case ErrorValue error           -> {
                     firstError = firstEncountered(firstError, error);
@@ -101,7 +97,7 @@ class SmtddEvaluator {
                 }
                 }
             }
-            case Terminal ignored                                                                                           ->
+            case Terminal ignored                                                                          ->
                 { /* handled by while condition */ }
             }
         }
@@ -109,12 +105,6 @@ class SmtddEvaluator {
         val matched = (BitSet) matchedByTerminal.clone();
         matched.andNot(accumulatedErrors);
         return new EvaluationResult(matched, accumulatedErrors, firstError);
-    }
-
-    private static void markInvalidKeyFormulas(Value value, BitSet keyFormulas, BitSet accumulatedErrors) {
-        if (!(value instanceof TextValue || value instanceof UndefinedValue)) {
-            accumulatedErrors.or(keyFormulas);
-        }
     }
 
 }

@@ -26,7 +26,6 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,28 +63,9 @@ class SaplJacksonModuleTests {
 
     private static JsonMapper mapper;
 
-    @Test
-    @DisplayName("a bounded arithmetic result remains readable as a JSON number")
-    void whenReadingEncodedArithmeticResultThenItsQuantityIsPreserved() {
-        val result = Value.of(new BigDecimal("1E1999").setScale(-1000));
-        val json   = mapper.writeValueAsString(result);
-        assertThat(json).isEqualTo("1E+1999");
-        assertThat(mapper.readValue(json, Value.class)).isEqualTo(result);
-        val dense = Value.of(new BigDecimal("-" + "9".repeat(1000) + "e1000"));
-        assertThat(mapper.readValue(mapper.writeValueAsString(dense), Value.class)).isEqualTo(dense);
-    }
-
-    @Test
-    @DisplayName("the raw JSON number limit applies before numeric admission")
-    void whenArrayNumberExceedsWireLengthThenTheDocumentIsRejected() {
-        val rawZero = "0." + "0".repeat(1009);
-        assertThatThrownBy(() -> mapper.readValue("[" + rawZero + ",7]", Value.class))
-                .isInstanceOf(JacksonException.class);
-    }
-
     @BeforeAll
     static void setup() {
-        mapper = SaplJacksonModule.jsonMapperBuilder().build();
+        mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
     }
 
     @ParameterizedTest(name = "{index}")

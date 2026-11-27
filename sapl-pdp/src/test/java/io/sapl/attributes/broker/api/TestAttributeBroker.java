@@ -70,8 +70,8 @@ import java.util.function.Function;
 public final class TestAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_INITIAL_DEPS_EMPTY     = "initialDependencies must not be empty";
-    private static final String ERROR_ONUPDATE_THREW         = "Subscription {} onUpdate callback threw (engine invariant: it must never throw). Ignoring this fire: {}";
-    private static final String ERROR_RETURNED_DEPS_EMPTY    = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set). Ignoring this fire and keeping the current dependency set.";
+    private static final String ERROR_ONUPDATE_THREW         = "Subscription {} onUpdate callback threw (engine invariant: it must never throw); ignoring this fire: {}";
+    private static final String ERROR_RETURNED_DEPS_EMPTY    = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set); ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE = "subscriptionId already open: %s";
 

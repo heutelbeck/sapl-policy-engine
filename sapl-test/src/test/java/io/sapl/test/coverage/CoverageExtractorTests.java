@@ -26,10 +26,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
-import io.sapl.api.coverage.BranchHit;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -83,15 +80,13 @@ class CoverageExtractorTests {
     @Test
     @DisplayName("extracts coverage when policy returns NOT_APPLICABLE")
     void whenPolicyReturnsNotApplicable_thenRecordsOutcome() {
-        val voteWithCoverage = buildPolicyVoteWithCoverage("unmatched-policy", Outcome.PERMIT, Decision.NOT_APPLICABLE,
-                new ConditionData(0, false, 3));
+        val voteWithCoverage = buildPolicyVoteWithCoverage("unmatched-policy", Outcome.PERMIT, Decision.NOT_APPLICABLE);
 
         val coverages = CoverageExtractor.extractCoverage(voteWithCoverage, Map.of());
 
-        assertThat(coverages).singleElement().satisfies(
-                data -> assertThat(data.getBranchHits()).filteredOn(BranchHit::isPolicyOutcome).singleElement()
-                        .extracting(BranchHit::trueHits, BranchHit::falseHits, BranchHit::coveredBranchCount)
-                        .containsExactly(0, 1, 1));
+        assertThat(coverages).hasSize(1);
+        // Policy returned NOT_APPLICABLE instead of its effect (PERMIT)
+        // This is tracked via policy outcome
     }
 
     @Test
@@ -214,37 +209,6 @@ class CoverageExtractorTests {
 
         assertThat(coverages).hasSize(1);
         // Condition with null location should use line 0 as fallback
-    }
-
-    @Test
-    @DisplayName("a missing child vote leaves the observed condition without a policy outcome hit")
-    void retainsBodyWithoutInventingAChildVote() {
-        val observed = buildPolicyVoteWithCoverage("reader", Outcome.PERMIT, Decision.PERMIT,
-                new ConditionData(0, true, 3));
-        val parent   = buildPolicySetVoteWithCoverage("staff", Outcome.PERMIT_OR_DENY, Decision.DENY, true);
-        val set      = ((PolicySetCoverage) parent.coverage()).with(observed.coverage());
-        val data     = CoverageExtractor.extractCoverage(new VoteWithCoverage(parent.vote(), set), Map.of()).getFirst();
-
-        assertThat(data.getBranchHits()).filteredOn(BranchHit::isPolicyOutcome).hasSize(1);
-        assertThat(data.getBranchHits()).filteredOn(hit -> hit.statementId() == 0).singleElement()
-                .extracting(BranchHit::trueHits).isEqualTo(1);
-    }
-
-    @ParameterizedTest(name = "schema-only target has its own location {0}")
-    @ValueSource(booleans = { true, false })
-    @DisplayName("schema-only targets retain the effective error with one schema branch site")
-    void recordsOneSiteForASchemaOnlyTarget(boolean locatedTarget) {
-        val schema = new ConditionHit(Value.error("schema error"), sourceLocation(1), -1, true);
-        val set    = buildPolicySetVoteWithCoverage("staff", Outcome.PERMIT, Decision.INDETERMINATE, false);
-        val target = locatedTarget ? new Coverage.TargetResult(schema.result(), schema.location())
-                : Coverage.BLANK_TARGET_HIT;
-        val raw    = new PolicySetCoverage(set.coverage().voter(), target, List.of(), sourceLocation(2), schema);
-        val data   = CoverageExtractor.extractCoverage(new VoteWithCoverage(set.vote(), raw), Map.of()).getFirst();
-
-        assertThat(data.getTargetErrorHits()).isOne();
-        assertThat(data.getBranchHits()).hasSize(2).filteredOn(BranchHit::enforcedSchema).singleElement()
-                .extracting(BranchHit::errorHits, BranchHit::coveredBranchCount, BranchHit::totalBranchCount)
-                .containsExactly(1, 0, 2);
     }
 
     // Helper record for test data

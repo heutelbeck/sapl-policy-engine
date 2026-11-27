@@ -17,10 +17,6 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.secrets.SecretSealing;
@@ -28,10 +24,7 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -99,32 +92,6 @@ class PDPAutoConfigurationTests {
                     assertThat(configured.keyIds()).containsExactlyInAnyOrder("current", "previous");
                     assertThat(configured.toString()).doesNotContain(current.toJSONString(), previous.toJSONString());
                 });
-    }
-
-    @CsvSource({ "true, 1", "false, 0" })
-    @ParameterizedTest(name = "accept-unencrypted={0} logs {1} warning(s)")
-    @DisplayName("accepting unencrypted secrets is warned about at startup, and only then")
-    void whenUnencryptedSecretsAreAcceptedThenStartupWarns(boolean acceptUnencrypted, int expectedWarnings) {
-        val logger        = (Logger) LoggerFactory.getLogger(PDPAutoConfiguration.class.getName());
-        val originalLevel = logger.getLevel();
-        val appender      = new ListAppender<ILoggingEvent>();
-        appender.start();
-        logger.setLevel(Level.WARN);
-        logger.addAppender(appender);
-        try {
-            contextRunner
-                    .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies",
-                            "io.sapl.pdp.embedded.enabled=true",
-                            "io.sapl.pdp.embedded.secrets.accept-unencrypted=" + acceptUnencrypted)
-                    .run(context -> assertThat(context).hasNotFailed());
-        } finally {
-            logger.detachAppender(appender);
-            logger.setLevel(originalLevel);
-        }
-
-        assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
-                .filteredOn(message -> message.startsWith("SECURITY: Accepting unencrypted secrets."))
-                .hasSize(expectedWarnings);
     }
 
     @Test

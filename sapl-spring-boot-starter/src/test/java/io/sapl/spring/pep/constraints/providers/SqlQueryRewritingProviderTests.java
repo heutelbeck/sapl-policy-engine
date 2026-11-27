@@ -483,7 +483,7 @@ class SqlQueryRewritingProviderTests {
         }
 
         @Test
-        @DisplayName("Typed criteria + string conditions can coexist on one obligation, both contribute")
+        @DisplayName("Typed criteria + string conditions can coexist on one obligation; both contribute")
         void whenTypedCriteriaAndStringConditionsCoexistThenBothApplied() {
             val mapper = mapperFor("""
                     {"type": "sql:queryRewriting",

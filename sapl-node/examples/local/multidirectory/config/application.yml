@@ -26,8 +26,6 @@ io.sapl:
     print-text-report: true
     pretty-print-reports: true
   node:
-    # Plaintext for this local example. The node logs a warning at every start.
-    allow-no-tls: true
     allow-no-auth: true
     allow-basic-auth: true
     allow-api-key-auth: true
@@ -91,6 +89,8 @@ spring.security.oauth2:
 server:
    address: localhost
    port: 8080
+   ssl:
+      enabled: false
 
 logging.level:
   "[io.sapl]": INFO

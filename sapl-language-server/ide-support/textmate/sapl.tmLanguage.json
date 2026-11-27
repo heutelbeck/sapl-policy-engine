@@ -43,17 +43,6 @@
               "match": "\\\\."
             }
           ]
-        },
-        {
-          "name": "string.quoted.single.sapl",
-          "begin": "'",
-          "end": "'",
-          "patterns": [
-            {
-              "name": "constant.character.escape.sapl",
-              "match": "\\\\."
-            }
-          ]
         }
       ]
     },

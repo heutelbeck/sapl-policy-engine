@@ -236,7 +236,6 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                         .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")
                         .withEnv("SERVER_SSL_ENABLED", "false")
-                        .withEnv("IO_SAPL_NODE_ALLOWNOTLS", "true")
                         .withEnv("SERVER_ADDRESS", "0.0.0.0")
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTRACE","true")
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT","true")
@@ -287,9 +286,7 @@ class RemoteHttpDecisionPointServerIT {
                 .withEnv("SERVER_SSL_KEYSTORE", "/pdp/data/keystore.p12")
                 .withEnv("SERVER_SSL_KEYSTOREPASSWORD", "changeme")
                 .withEnv("SERVER_SSL_KEYPASSWORD", "changeme")
-                .withEnv("SERVER_SSL_KEYALIAS", "netty")
-                // RSocket serves plaintext beside the HTTPS API.
-                .withEnv("IO_SAPL_NODE_ALLOWNOTLS", "true");
+                .withEnv("SERVER_SSL_KEYALIAS", "netty");
         // @formatter:on
     }
 
@@ -375,8 +372,7 @@ class RemoteHttpDecisionPointServerIT {
                     val container = saplServerWithTls(baseContainer).withNetwork(network)
                             .withEnv("IO_SAPL_NODE_ALLOWOAUTH2AUTH", "true")
                             .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI",
-                                    "http://auth-host:8080/default")
-                            .withEnv("IO_SAPL_NODE_OAUTH_ALLOWINSECUREISSUER", "true")) {
+                                    "http://auth-host:8080/default")) {
                 container.start();
                 val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
                 warmUpAuthenticatedServer(baseUrl, oauth2Container);

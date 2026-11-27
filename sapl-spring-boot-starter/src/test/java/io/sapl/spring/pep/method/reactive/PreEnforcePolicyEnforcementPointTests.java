@@ -131,7 +131,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: permitted requests without obligations")
+    @DisplayName("Mono - permitted requests without obligations")
     class MonoPermittedWithoutObligations {
 
         @Test
@@ -173,7 +173,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: resource substitution")
+    @DisplayName("Mono - resource substitution")
     class MonoResourceSubstitution {
 
         @Test
@@ -205,7 +205,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with a substitute resource still denies, one-shot PEPs cannot pause, so substitution cannot save a suspension")
+        @DisplayName("SUSPEND with a substitute resource still denies; one-shot PEPs cannot pause, so substitution cannot save a suspension")
         void whenSuspendWithResourceThenStillAccessDenied() {
             decide(new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(CASE_FILE_REDACTED)));
@@ -217,7 +217,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: decisions other than PERMIT")
+    @DisplayName("Mono - decisions other than PERMIT")
     class MonoDenialDecisions {
 
         @Test
@@ -245,7 +245,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND raises AccessDeniedException, reactive one-shot PEPs cannot suspend, so the warrant is refused outright")
+        @DisplayName("SUSPEND raises AccessDeniedException; reactive one-shot PEPs cannot suspend, so the warrant is refused outright")
         void whenSuspendThenAccessDenied() {
             decide(AuthorizationDecision.SUSPEND);
 
@@ -254,7 +254,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: signal handlers fire on every applicable signal")
+    @DisplayName("Mono - signal handlers fire on every applicable signal")
     class MonoSignalHandlers {
 
         @Test
@@ -321,7 +321,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: pre-invocation obligation failures")
+    @DisplayName("Mono - pre-invocation obligation failures")
     class MonoPreInvocationFailures {
 
         @Test
@@ -342,7 +342,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: post-invocation obligation failures")
+    @DisplayName("Mono - post-invocation obligation failures")
     class MonoPostInvocationFailures {
 
         @Test
@@ -365,7 +365,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: advice handlers are noted but never bar action")
+    @DisplayName("Mono - advice handlers are noted but never bar action")
     class MonoAdviceHandlers {
 
         @Test
@@ -378,7 +378,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: ErrorSignal handlers transform errors before they leave the Watch House")
+    @DisplayName("Mono - ErrorSignal handlers transform errors before they leave the Watch House")
     class MonoErrorSignalHandlers {
 
         @Test
@@ -406,11 +406,11 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono, RAP exceptions: routed through ErrorSignal because the plan exists")
+    @DisplayName("Mono - RAP exceptions: routed through ErrorSignal because the plan exists")
     class MonoRapExceptions {
 
         @Test
-        @DisplayName("RAP throws synchronously, without an ErrorSignal Mapper the original exception escapes")
+        @DisplayName("RAP throws synchronously; without an ErrorSignal Mapper the original exception escapes")
         void whenRapThrowsAndNoErrorMapperThenOriginalExceptionPropagates() {
             permit();
 
@@ -421,7 +421,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("RAP throws synchronously, an ErrorSignal Mapper rewrites it on the way out")
+        @DisplayName("RAP throws synchronously; an ErrorSignal Mapper rewrites it on the way out")
         void whenRapThrowsAndErrorMapperPresentThenMappedExceptionPropagates() {
             decide(decisionWithObligation(Obligation.DEATH_CLAIMS_EXCEPTION));
 
@@ -432,7 +432,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("RAP returns Mono.error, an ErrorSignal Mapper rewrites it on the way out")
+        @DisplayName("RAP returns Mono.error; an ErrorSignal Mapper rewrites it on the way out")
         void whenRapReturnsMonoErrorAndErrorMapperPresentThenMapped() {
             decide(decisionWithObligation(Obligation.DEATH_CLAIMS_EXCEPTION));
 
@@ -444,7 +444,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Mono: empty Mono is still authorised")
+    @DisplayName("Mono - empty Mono is still authorised")
     class MonoEmpty {
 
         @Test
@@ -483,7 +483,7 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("DENY: AccessDeniedException, the side effect did not run because PreEnforce gates the proceed call")
+        @DisplayName("DENY: AccessDeniedException; the side effect did not run because PreEnforce gates the proceed call")
         void whenMonoVoidDenyThenAccessDeniedAndNoSideEffect() {
             decide(AuthorizationDecision.DENY);
 
@@ -511,7 +511,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Flux: publisher-level OutputSignal dispatch")
+    @DisplayName("Flux - publisher-level OutputSignal dispatch")
     class FluxScenarios {
 
         @Test
@@ -555,7 +555,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Flux: jsonContentFilterPredicate via the production ContentFilterPredicateProvider")
+    @DisplayName("Flux - jsonContentFilterPredicate via the production ContentFilterPredicateProvider")
     class FluxContentFilterPredicate {
 
         @Test

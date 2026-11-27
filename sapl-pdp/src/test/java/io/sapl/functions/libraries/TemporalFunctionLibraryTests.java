@@ -25,11 +25,6 @@ import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import java.util.stream.Stream;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -456,45 +451,4 @@ class TemporalFunctionLibraryTests {
         assertThat(TemporalFunctionLibrary.validUTC(valOfNull)).isEqualTo(Value.FALSE);
     }
 
-    static Stream<Arguments> instantForms() {
-        return Stream.of(arguments("2000-02-29t01:02:03z", true, true),
-                arguments("2024-02-29T23:59:59.1-18:00", true, true),
-                arguments("2024-02-29T23:59:59.123456789+18:00", true, true),
-                arguments("2017-01-01T00:59:60.123456789+01:00", true, true),
-                arguments("0000-01-01T00:00:00+18:00", true, true), arguments("9999-12-31T23:59:59-18:00", true, true),
-                arguments("2024-01-01T00:00:00+01", false, false), arguments("2024-01-01T00:00:00+0100", false, false),
-                arguments("2024-01-01T00:00:00+01:00:30", false, false),
-                arguments("2024-01-01T00:00:00+18:01", false, false),
-                arguments("2024-01-01T00:00:00-19:00", false, false),
-                arguments("2024-01-01T00:00:00+01:60", false, false), arguments("2024-01-01T00:00:00.Z", false, false),
-                arguments("2024-01-01T00:00:00.1234567890Z", false, false),
-                arguments("2024-01-01T00:00Z", false, false), arguments("2024-01-01T24:00:00Z", false, false),
-                arguments("2023-02-29T00:00:00Z", false, false), arguments("1900-02-29T00:00:00Z", false, false),
-                arguments("2024-04-31T00:00:00Z", false, false), arguments("2016-12-31T23:59:60+01:00", false, false),
-                arguments("2024-01-01 00:00:00Z", false, false), arguments("+10000-01-01T00:00:00Z", false, false),
-                arguments("-0001-01-01T00:00:00Z", false, false), arguments("0000-02-29", false, true),
-                arguments("2000-02-29", false, true), arguments("9999-12-31", false, true));
-    }
-
-    @MethodSource("instantForms")
-    @ParameterizedTest(name = "{0}")
-    @DisplayName("Timestamp validity follows the SAPL instant profile")
-    void whenTimestampHasProfileFormThenValidityIsPortable(String text, boolean fullTimestamp, boolean instantOrDate) {
-        val input = Value.of(text);
-        assertThat(TemporalFunctionLibrary.validRFC3339(input)).isEqualTo(Value.of(fullTimestamp));
-        assertThat(TemporalFunctionLibrary.validUTC(input)).isEqualTo(Value.of(instantOrDate));
-    }
-
-    @Test
-    @DisplayName("UTC leap seconds preserve fractional precision across offsets")
-    void whenLeapSecondIsWrittenWithOffsetThenComparisonsPreserveNanoseconds() {
-        val shifted = Value.of("2017-01-01T00:59:60.123456789+01:00");
-        val clamped = Value.of("2016-12-31T23:59:59.123456789Z");
-        val later   = Value.of("2016-12-31T23:59:59.123456790Z");
-        assertThat(TemporalFunctionLibrary.before(shifted, later)).isEqualTo(Value.TRUE);
-        assertThat(TemporalFunctionLibrary.after(later, shifted)).isEqualTo(Value.TRUE);
-        assertThat(TemporalFunctionLibrary.between(shifted, clamped, later)).isEqualTo(Value.TRUE);
-        assertThat(TemporalFunctionLibrary.timeBetween(clamped, shifted, Value.of("NANOS"))).isEqualTo(Value.of(0));
-        assertThat(TemporalFunctionLibrary.timeBetween(shifted, later, Value.of("NANOS"))).isEqualTo(Value.of(1));
-    }
 }

@@ -154,7 +154,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("Permit allows closing the warded door, the rite runs and returns nothing")
+        @DisplayName("Permit allows closing the warded door; the rite runs and returns nothing")
         void whenPermitAndVoidThenRiteCompletes() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
@@ -180,7 +180,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("Void method with DENY raises AccessDeniedException, side effect already ran (post-invocation gate)")
+        @DisplayName("Void method with DENY raises AccessDeniedException; side effect already ran (post-invocation gate)")
         void whenVoidDenyThenAccessDeniedAfterSideEffect() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
 
@@ -270,7 +270,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("DENY with a substitute resource still denies, substitution cannot save a denial")
+        @DisplayName("DENY with a substitute resource still denies; substitution cannot save a denial")
         void whenDenyWithResourceThenStillAccessDenied() {
             val deny = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
@@ -281,7 +281,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with a substitute resource still denies, one-shot PEPs cannot pause, so substitution cannot save a suspension")
+        @DisplayName("SUSPEND with a substitute resource still denies; one-shot PEPs cannot pause, so substitution cannot save a suspension")
         void whenSuspendWithResourceThenStillAccessDenied() {
             val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
@@ -324,7 +324,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND raises AccessDeniedException, one-shot PEPs cannot suspend, so the wards stay shut")
+        @DisplayName("SUSPEND raises AccessDeniedException; one-shot PEPs cannot suspend, so the wards stay shut")
         void whenSuspendThenAccessDenied() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.SUSPEND);
 
@@ -384,7 +384,7 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Obligation-handler failures: the warding ritual collapses, access is denied")
+    @DisplayName("Obligation-handler failures: the warding ritual collapses; access is denied")
     class ObligationFailures {
 
         @Test
@@ -417,11 +417,11 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Advice handlers are noted but never bar access, a faculty memo is just a memo")
+    @DisplayName("Advice handlers are noted but never bar access; a faculty memo is just a memo")
     class AdviceHandlers {
 
         @Test
-        @DisplayName("Failing advice does not deny access, the cultist's interference is dismissed")
+        @DisplayName("Failing advice does not deny access; the cultist's interference is dismissed")
         void whenAdviceFailsThenAccessStillPermitted() {
             when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(decisionWithAdvice(Obligation.CULTIST_SABOTAGES_DECISION));
@@ -463,7 +463,7 @@ class PostEnforcePolicyEnforcementPointTests {
     class RapExceptions {
 
         @Test
-        @DisplayName("Opening the Gate of Yog-Sothoth throws before the PDP is consulted, the exception escapes unmapped")
+        @DisplayName("Opening the Gate of Yog-Sothoth throws before the PDP is consulted; the exception escapes unmapped")
         void whenRapThrowsThenPropagatesUnmapped() {
             assertThatExceptionOfType(IllegalStateException.class).isThrownBy(archive::openTheGateOfYogSothoth)
                     .withMessageContaining("Yog-Sothoth stirs");

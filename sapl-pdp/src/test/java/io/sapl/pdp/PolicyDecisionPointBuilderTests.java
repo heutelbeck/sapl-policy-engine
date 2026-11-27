@@ -21,15 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -47,13 +44,10 @@ import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSource;
 import io.sapl.secrets.SecretSealing;
-import io.sapl.secrets.SecretSealingException;
-import io.sapl.secrets.ValueSealer;
 
 import lombok.val;
 
@@ -194,71 +188,14 @@ class PolicyDecisionPointBuilderTests {
                 arguments("public key only", publicOnly, "private"));
     }
 
-    static Stream<Arguments> buildersWithAndWithoutDecryptionKey() {
-        return Stream.of(
-                arguments("with a decryption key",
-                        PolicyDecisionPointBuilder.withDefaults()
-                                .withSecretsDecryptionKey(SecretSealing.generateRecipientKey())),
-                arguments("without a decryption key", PolicyDecisionPointBuilder.withDefaults()));
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("buildersWithAndWithoutDecryptionKey")
-    @DisplayName("a configuration whose secrets are unencrypted is rejected by default")
-    void whenUnencryptedSecretsThenBuildFails(String description, PolicyDecisionPointBuilder builder) {
-        builder.withConfiguration(configWithPlaintextSecret());
+    @Test
+    @DisplayName("a decryption key rejects a configuration whose secrets are unencrypted by default")
+    void whenKeyAndUnencryptedSecretsThenBuildFails() {
+        val key     = SecretSealing.generateRecipientKey();
+        val builder = PolicyDecisionPointBuilder.withDefaults().withConfiguration(configWithPlaintextSecret())
+                .withSecretsDecryptionKey(key);
         assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
                 .hasMessageContaining("not sealed");
-    }
-
-    @Test
-    @DisplayName("without a decryption key a configuration whose secrets are sealed is rejected")
-    void whenNoKeyAndSealedSecretsThenBuildFails() {
-        val recipient = SecretSealing.generateRecipientKey().toPublicJWK();
-        val secrets   = ObjectValue.builder().put("apiKey", ValueSealer.seal(recipient, Value.of("SEALED"))).build();
-        val builder   = PolicyDecisionPointBuilder.withDefaults().withConfiguration(configWithSecrets(secrets));
-        assertThatThrownBy(builder::build).isInstanceOf(SecretSealingException.class)
-                .hasMessageContaining("holds no key");
-    }
-
-    @Test
-    @DisplayName("without a decryption key a source delivering unencrypted secrets leaves the PDP without configuration")
-    void whenNoKeyAndSourceDeliversUnencryptedSecretsThenConfigurationIsRejected(@TempDir Path policyDir)
-            throws Exception {
-        writePolicyDirectoryWithPlaintextSecrets(policyDir);
-
-        try (val components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(policyDir).build()) {
-            assertThat(components.pdpVoterSource()).satisfies(voterSource -> {
-                assertThat(voterSource.getPdpStatus("default"))
-                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.ERROR));
-                assertThat(voterSource.getCurrentConfiguration("default")).isEmpty();
-            });
-        }
-    }
-
-    @Test
-    @DisplayName("without a decryption key classpath resources with unencrypted secrets leave the PDP without configuration")
-    void whenNoKeyAndResourcesHoldUnencryptedSecretsThenConfigurationIsRejected() throws Exception {
-        try (val components = PolicyDecisionPointBuilder.withDefaults().withResourcesSource("/secrets-pdp-policies")
-                .build()) {
-            assertThat(components.pdpVoterSource()).satisfies(voterSource -> {
-                assertThat(voterSource.getPdpStatus("default"))
-                        .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.ERROR));
-                assertThat(voterSource.getCurrentConfiguration("default")).isEmpty();
-            });
-        }
-    }
-
-    @Test
-    @DisplayName("without a decryption key acceptUnencryptedSecrets lets a source deliver unencrypted secrets")
-    void whenNoKeyAndAcceptUnencryptedThenSourceConfigurationIsLoaded(@TempDir Path policyDir) throws Exception {
-        writePolicyDirectoryWithPlaintextSecrets(policyDir);
-
-        try (val components = PolicyDecisionPointBuilder.withDefaults().acceptUnencryptedSecrets()
-                .withDirectorySource(policyDir).build()) {
-            assertThat(components.pdpVoterSource().getPdpStatus("default"))
-                    .hasValueSatisfying(status -> assertThat(status.state()).isEqualTo(PdpState.LOADED));
-        }
     }
 
     @Test
@@ -269,31 +206,20 @@ class PolicyDecisionPointBuilderTests {
                 .hasMessageContaining("failed to compile");
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("buildersWithAndWithoutDecryptionKey")
+    @Test
     @DisplayName("acceptUnencryptedSecrets allows a configuration whose secrets are unencrypted")
-    void whenAcceptUnencryptedThenBuildSucceeds(String description, PolicyDecisionPointBuilder builder) {
-        val components = builder.withConfiguration(configWithPlaintextSecret()).acceptUnencryptedSecrets().build();
+    void whenAcceptUnencryptedThenBuildSucceeds() {
+        val key        = SecretSealing.generateRecipientKey();
+        val components = PolicyDecisionPointBuilder.withDefaults().withConfiguration(configWithPlaintextSecret())
+                .withSecretsDecryptionKey(key).acceptUnencryptedSecrets().build();
         assertThat(components).isNotNull();
         components.close();
     }
 
     private static PDPConfiguration configWithPlaintextSecret() {
-        return configWithSecrets(ObjectValue.builder().put("apiKey", Value.of("PLAINTEXT")).build());
-    }
-
-    private static PDPConfiguration configWithSecrets(ObjectValue secrets) {
+        val secrets = ObjectValue.builder().put("apiKey", Value.of("PLAINTEXT")).build();
         return new PDPConfiguration("pdp", "config", CombiningAlgorithm.DEFAULT, List.of(),
                 new PdpData(Value.EMPTY_OBJECT, secrets));
-    }
-
-    private static void writePolicyDirectoryWithPlaintextSecrets(Path policyDir) throws Exception {
-        Files.writeString(policyDir.resolve("pdp.json"), "{}");
-        Files.writeString(policyDir.resolve("policy.sapl"), """
-                policy "p" permit true;
-                """);
-        Files.writeString(policyDir.resolve("secrets.json"), """
-                { "token": "PLAINTEXT" }""");
     }
 
     private static final class TrackingConfigurationSource implements PDPConfigurationSource {

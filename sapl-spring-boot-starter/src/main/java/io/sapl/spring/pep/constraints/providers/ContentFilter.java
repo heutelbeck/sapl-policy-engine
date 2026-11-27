@@ -26,13 +26,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.reactivestreams.Publisher;
 
-import com.google.re2j.Pattern;
-import com.google.re2j.PatternSyntaxException;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.MapFunction;
@@ -43,7 +42,8 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import lombok.experimental.UtilityClass;
@@ -55,47 +55,47 @@ import tools.jackson.databind.ObjectMapper;
 @UtilityClass
 public class ContentFilter {
 
-    private static final String ERROR_ACTIONS_NOT_AN_ARRAY                    = "The field 'actions' is not an array.";
-    private static final String ERROR_ACTION_NOT_AN_OBJECT                    = "An action in 'actions' is not an object.";
-    private static final String ERROR_CONDITIONS_NOT_AN_ARRAY                 = "The field 'conditions' is not an array: %s.";
-    private static final String ERROR_CONSTRAINT_INVALID                      = "The constraint is not an object.";
-    private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT             = "The predicate of the constraint cannot be evaluated, as its path is not present in the data.";
-    private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT = "The constraint cannot be enforced, as its path is not present in the data.";
-    private static final String ERROR_CONVERTING_MODIFIED_OBJECT              = "The modified object cannot be converted to its original class.";
-    private static final String ERROR_LENGTH_NEGATIVE_S                       = "The field '%s' of an action must not be negative.";
-    private static final String ERROR_LENGTH_NOT_NUMBER                       = "The field 'length' of a 'blacken' action is not a number.";
-    private static final String ERROR_LENGTH_TOO_LARGE                        = "The field 'length' of a 'blacken' action exceeds the largest permitted length.";
-    private static final String ERROR_NO_REPLACEMENT_SPECIFIED                = "A 'replace' action does not specify a 'replacement'.";
-    private static final String ERROR_PATH_NOT_TEXTUAL                        = "The node the path of a 'blacken' action points to is not text.";
-    private static final String ERROR_PREDICATE_CONDITION_INVALID             = "The predicate condition is not valid: %s.";
-    private static final String ERROR_PREDICATE_REGEX_INVALID                 = "Invalid regular expression '%s' in a predicate condition: %s.";
-    private static final String ERROR_REPLACEMENT_NOT_TEXTUAL                 = "The field 'replacement' of a 'blacken' action is not text.";
-    private static final String ERROR_UNKNOWN_ACTION_S                        = "The action type '%s' is unknown.";
-    private static final String ERROR_VALUE_NOT_INTEGER_S                     = "The field '%s' of an action is not an integer.";
-    private static final String ERROR_VALUE_NOT_TEXTUAL_S                     = "The field '%s' of an action is not text.";
+    private static final String ERROR_CONDITIONS_NOT_AN_ARRAY                 = "'conditions' not an array: ";
+    private static final String ERROR_CONSTRAINT_INVALID                      = "Not a valid constraint. Expected an object value";
+    private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT             = "Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.";
+    private static final String ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT = "Constraint enforcement failed. Error evaluating a constraint predicate. The path defined in the constraint is not present in the data.";
+    private static final String ERROR_CONVERTING_MODIFIED_OBJECT              = "Error converting modified object to original class type.";
+    private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
+    private static final String ERROR_REGEX_UNSAFE                            = "Unsafe regex pattern rejected (potential ReDoS): ";
 
-    private static final String     DISCLOSE_LEFT                = "discloseLeft";
-    private static final String     DISCLOSE_RIGHT               = "discloseRight";
-    private static final String     REPLACEMENT                  = "replacement";
-    private static final String     REPLACE                      = "replace";
-    private static final String     LENGTH                       = "length";
-    private static final String     BLACKEN                      = "blacken";
-    private static final String     DELETE                       = "delete";
-    private static final String     PATH                         = "path";
-    private static final String     ACTIONS                      = "actions";
-    private static final String     CONDITIONS                   = "conditions";
-    private static final String     VALUE                        = "value";
-    private static final String     EQUALS                       = "==";
-    private static final String     NEQ                          = "!=";
-    private static final String     GEQ                          = ">=";
-    private static final String     LEQ                          = "<=";
-    private static final String     GT                           = ">";
-    private static final String     LT                           = "<";
-    private static final String     REGEX                        = "=~";
-    private static final String     TYPE                         = "type";
-    private static final String     BLACK_SQUARE                 = "█";
-    private static final int        BLACKEN_LENGTH_INVALID_VALUE = -1;
-    private static final BigDecimal MAX_BLACKEN                  = BigDecimal.valueOf(1_000_000);
+    private static final String     DISCLOSE_LEFT                  = "discloseLeft";
+    private static final String     DISCLOSE_RIGHT                 = "discloseRight";
+    private static final String     REPLACEMENT                    = "replacement";
+    private static final String     REPLACE                        = "replace";
+    private static final String     LENGTH                         = "length";
+    private static final String     BLACKEN                        = "blacken";
+    private static final String     DELETE                         = "delete";
+    private static final String     PATH                           = "path";
+    private static final String     ACTIONS                        = "actions";
+    private static final String     CONDITIONS                     = "conditions";
+    private static final String     VALUE                          = "value";
+    private static final String     EQUALS                         = "==";
+    private static final String     NEQ                            = "!=";
+    private static final String     GEQ                            = ">=";
+    private static final String     LEQ                            = "<=";
+    private static final String     GT                             = ">";
+    private static final String     LT                             = "<";
+    private static final String     REGEX                          = "=~";
+    private static final String     TYPE                           = "type";
+    private static final String     BLACK_SQUARE                   = "█";
+    private static final String     ERROR_ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
+    private static final String     ERROR_ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
+    private static final String     ERROR_LENGTH_NEGATIVE_S        = "An action's '%s' must not be negative.";
+    private static final String     ERROR_LENGTH_NOT_NUMBER        = "'length' of 'blacken' action is not numeric.";
+    private static final String     ERROR_LENGTH_TOO_LARGE         = "'length' of 'blacken' action exceeds the maximum permitted blacken length.";
+    private static final String     ERROR_NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+    private static final String     ERROR_PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+    private static final String     ERROR_REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
+    private static final String     ERROR_UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
+    private static final String     ERROR_VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
+    private static final String     ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
+    private static final int        BLACKEN_LENGTH_INVALID_VALUE   = -1;
+    private static final BigDecimal MAX_BLACKEN                    = BigDecimal.valueOf(1_000_000);
 
     /**
      * Builds a typed mapper that filters JSON content of the payload according to
@@ -211,7 +211,7 @@ public class ContentFilter {
             return anything -> true;
         }
         if (!(conditionsValue instanceof ArrayValue conditions)) {
-            throw new AccessDeniedException(ERROR_CONDITIONS_NOT_AN_ARRAY.formatted(conditionsValue));
+            throw new AccessDeniedException(ERROR_CONDITIONS_NOT_AN_ARRAY + conditionsValue);
         }
         Predicate<Object> combined = anything -> true;
         for (var condition : conditions) {
@@ -238,17 +238,17 @@ public class ContentFilter {
 
     private static Predicate<Object> conditionToPredicate(Value condition, ObjectMapper objectMapper) {
         if (!(condition instanceof ObjectValue conditionObject)) {
-            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         if (!(conditionObject.get(PATH) instanceof TextValue(var path))) {
-            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         if (!(conditionObject.get(TYPE) instanceof TextValue(var type))) {
-            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         val conditionValue = conditionObject.get(VALUE);
         if (conditionValue == null) {
-            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         return switch (type) {
         case EQUALS -> equalsCondition(condition, path, conditionValue, objectMapper);
@@ -258,7 +258,7 @@ public class ContentFilter {
         case LT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) < 0);
         case GT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) > 0);
         case REGEX  -> regexCondition(condition, path, conditionValue, objectMapper);
-        default     -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+        default     -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         };
     }
 
@@ -270,7 +270,7 @@ public class ContentFilter {
     private static Predicate<Object> numericCondition(Value condition, String path, Value conditionValue,
             ObjectMapper objectMapper, NumericComparison comparison) {
         if (!(conditionValue instanceof NumberValue(var conditionNumber))) {
-            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         return original -> {
             val value = getValueAtPath(original, path, objectMapper);
@@ -301,17 +301,22 @@ public class ContentFilter {
     private static Predicate<Object> regexCondition(Value condition, String path, Value conditionValue,
             ObjectMapper objectMapper) {
         if (!(conditionValue instanceof TextValue(var patternText))) {
-            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
-        final Pattern regex;
-        try {
-            regex = LinearRegex.compile(patternText);
-        } catch (PatternSyntaxException e) {
-            throw new AccessDeniedException(ERROR_PREDICATE_REGEX_INVALID.formatted(patternText, e.getDescription()),
-                    e);
-        }
-        return original -> getValueAtPath(original, path, objectMapper) instanceof String stringValue
-                && regex.matches(stringValue);
+        val regex = Pattern.compile(patternText);
+        return original -> {
+            val value = getValueAtPath(original, path, objectMapper);
+            if (!(value instanceof String stringValue)) {
+                return false;
+            }
+            // Bound the match. A runaway pattern or hostile input aborts within
+            // the budget and denies, instead of hanging the request thread.
+            try {
+                return BoundedRegex.matches(regex, stringValue);
+            } catch (RegexBudgetExceededException e) {
+                throw new AccessDeniedException(ERROR_REGEX_UNSAFE + patternText);
+            }
+        };
     }
 
     private static Predicate<Object> equalsCondition(Value condition, String path, Value conditionValue,
@@ -321,8 +326,7 @@ public class ContentFilter {
                 && asBigDecimal(n).map(payload -> payload.compareTo(bd) == 0).orElse(false);
         case TextValue(var s)    ->
             original -> getValueAtPath(original, path, objectMapper) instanceof String str && s.equals(str);
-        default                  ->
-            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID.formatted(condition));
+        default                  -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         };
     }
 

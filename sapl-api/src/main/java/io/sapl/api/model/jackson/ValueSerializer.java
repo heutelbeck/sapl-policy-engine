@@ -60,7 +60,7 @@ public class ValueSerializer extends StdSerializer<Value> {
         switch (value) {
         case NullValue ignored                   -> generator.writeNull();
         case BooleanValue(boolean booleanValue)  -> generator.writeBoolean(booleanValue);
-        case NumberValue(BigDecimal numberValue) -> generator.writeNumber(NumberValueLimits.wireNumber(numberValue));
+        case NumberValue(BigDecimal numberValue) -> generator.writeNumber(numberValue);
         case TextValue(String textValue)         -> generator.writeString(textValue);
         case ArrayValue arrayValue               -> serializeArray(arrayValue, generator);
         case ObjectValue objectValue             -> serializeObject(objectValue, generator);

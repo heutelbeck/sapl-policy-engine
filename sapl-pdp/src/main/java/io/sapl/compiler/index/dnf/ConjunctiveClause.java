@@ -69,8 +69,8 @@ public record ConjunctiveClause(List<Literal> literals) {
 
     /**
      * Returns true if this clause contains complementary literals, i.e., both
-     * {@code p} and {@code !p} for some predicate. Such a clause can never be
-     * true, but can error when the predicate fails.
+     * {@code p} and {@code !p} for some predicate. Such a clause is
+     * unsatisfiable and can be removed from a DNF formula.
      *
      * @return true if this clause contains a literal and its negation
      */

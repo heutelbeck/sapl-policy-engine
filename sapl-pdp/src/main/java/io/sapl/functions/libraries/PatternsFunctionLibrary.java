@@ -17,22 +17,23 @@
  */
 package io.sapl.functions.libraries;
 
-import com.google.re2j.Pattern;
-import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.util.LinearRegex;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Pattern matching functions for authorization policies.
@@ -48,19 +49,24 @@ import java.util.function.BiFunction;
  * structure matters. The syntax is simpler and
  * more intuitive for non-technical users than regular expressions.
  * <p>
- * <b>Regular Expressions</b> - Full pattern matching in the syntax of RE2,
- * matched in linear time by {@link LinearRegex}. Use regex when glob patterns
- * are insufficient. Regular expressions are more powerful but require
+ * <b>Regular Expressions</b> - Full pattern matching using standard regex
+ * syntax following the same construction rules
+ * as the Java Pattern class. Use regex when glob patterns are insufficient or
+ * when advanced matching features like
+ * lookahead, backreferences, or precise quantifiers are needed. Regular
+ * expressions are more powerful but require
  * familiarity with regex syntax.
  * <p>
  * For simple literal operations like checking prefixes, suffixes, or
  * substrings, use the string library instead. It is
  * faster and more straightforward for these common cases.
  * <p>
- * <b>Security</b>: Regular expressions never backtrack, so no pattern can
- * make matching take time exponential in the length of the input. Limits on
- * the size of patterns, inputs and results bound memory and computation.
+ * <b>Security</b>: All regex functions include protection against Regular
+ * Expression Denial of Service attacks.
+ * Patterns with dangerous constructs like nested quantifiers or excessive
+ * alternations are rejected before evaluation.
  */
+@Slf4j
 @FunctionLibrary(name = PatternsFunctionLibrary.NAME, description = PatternsFunctionLibrary.DESCRIPTION, libraryDocumentation = PatternsFunctionLibrary.DOCUMENTATION)
 public class PatternsFunctionLibrary {
 
@@ -80,30 +86,23 @@ public class PatternsFunctionLibrary {
             - Non-technical users need to write or understand patterns
 
             Glob patterns support:
-            - `*`: Matches zero or more characters within a segment
-            - `**`: Matches across segment boundaries
-            - `?`: Matches exactly one character
-            - `[abc]` or `[a-z]`: Character sets and ranges
-            - `[!abc]`: Negated character sets
-            - `{cat,dog,bird}`: Alternatives
-            - `\\`: Escape character for literal matching
+            - `*` - Matches zero or more characters within a segment
+            - `**` - Matches across segment boundaries
+            - `?` - Matches exactly one character
+            - `[abc]` or `[a-z]` - Character sets and ranges
+            - `[!abc]` - Negated character sets
+            - `{cat,dog,bird}` - Alternatives
+            - `\\` - Escape character for literal matching
 
             Delimiters define segment boundaries. When not specified, `.` is used by default.
 
             ## Regular Expressions
 
-            Regular expressions provide full pattern matching power in the syntax of RE2
-            (https://github.com/google/re2/wiki/Syntax), the same syntax as the `=~` operator. Use them when:
+            Regular expressions provide full pattern matching power using standard regex syntax. Construction
+            rules follow the Java Pattern class specification. Use them when:
             - Glob patterns cannot express the required matching logic
+            - Advanced features like lookahead, backreferences, or precise quantifiers are needed
             - Complex validation rules require regex capabilities
-
-            Regular expressions are matched in time linear in the length of the input and never backtrack.
-            Look-around, backreferences, atomic groups and possessive quantifiers do not exist in this syntax and
-            make a pattern invalid. The classes `\\d`, `\\w`, `\\s` and `\\b` hold ASCII characters only. Use
-            `\\p{L}`, `\\p{Nd}` and similar Unicode classes for other scripts.
-
-            In the replacement of `replaceAll`, `$1` or `${name}` insert a captured group, and a backslash makes the
-            next character literal.
 
             ## When to Use Simple String Operations
 
@@ -112,9 +111,9 @@ public class PatternsFunctionLibrary {
 
             ## Security
 
-            Regular expressions never backtrack, so no pattern, not even one with nested quantifiers like `(a+)+`,
-            can make matching take time exponential in the length of the input. Glob patterns are translated to
-            regular expressions and are matched the same way.
+            All regex functions include protection against Regular Expression Denial of Service attacks.
+            Patterns containing dangerous constructs like nested quantifiers `(a+)+`, excessive alternations,
+            or nested wildcards are rejected before evaluation.
 
             ## Limits
 
@@ -128,8 +127,8 @@ public class PatternsFunctionLibrary {
               A larger explicit limit is reduced to 10000.
             - Glob patterns may nest alternative groups at most 50 levels deep, and a single glob pattern may contain
               at most 30 alternative groups.
-            - A regular expression may compile to at most 10000 instructions, and its groups may nest at most 250
-              levels deep. Each repetition counts with its number of copies, so `(?:a{100}){101}` is too large.
+            - Regular expressions may contain at most 100 top-level alternations. Patterns above this are rejected
+              as part of the denial-of-service protection.
             - The output of `replaceAll` may be at most 10000000 characters. Replacement stops with an error once the
               accumulated result exceeds this length.
 
@@ -142,6 +141,7 @@ public class PatternsFunctionLibrary {
     private static final int    MAX_INPUT_LENGTH          = 100_000;
     private static final int    MAX_MATCHES               = 10_000;
     private static final int    MAX_GLOB_RECURSION_DEPTH  = 50;
+    private static final int    MAX_ALTERNATIONS          = 100;
     private static final int    MAX_ALTERNATIVE_GROUPS    = 30;
     private static final int    MAX_OUTPUT_LENGTH         = 10_000_000;
     private static final String REGEX_METACHARACTERS      = ".^$*+?()[]{}\\|";
@@ -149,17 +149,20 @@ public class PatternsFunctionLibrary {
     private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[";
     private static final String GLOB_METACHARACTERS       = "*?[]{}\\-!";
 
+    private static final String ERROR_DANGEROUS_PATTERN   = "Invalid or dangerous regex pattern.";
+    private static final String ERROR_DANGEROUS_TEMPLATE  = "Template contains dangerous regex patterns.";
     private static final String ERROR_DELIMITERS_EMPTY    = "Delimiters cannot be empty.";
     private static final String ERROR_DELIMITERS_TEXT     = "All delimiters must be text values.";
     private static final String ERROR_GLOB_TOO_NESTED     = "Glob pattern too deeply nested (max %d levels).";
     private static final String ERROR_INPUT_TOO_LONG      = "Input too long (max %d characters).";
     private static final String ERROR_INVALID_GLOB        = "Invalid glob pattern: %s";
-    private static final String ERROR_INVALID_REGEX       = "Invalid regular expression '%s': %s.";
     private static final String ERROR_INVALID_TEMPLATE    = "Invalid regex in template: %s";
     private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative.";
+    private static final String ERROR_MATCHING_FAILED     = "Pattern matching failed: %s";
     private static final String ERROR_OUTPUT_TOO_LONG     = "Replacement result too long (max %d characters).";
     private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters).";
     private static final String ERROR_REPLACEMENT_FAILED  = "Replacement failed: %s";
+    private static final String ERROR_SPLIT_FAILED        = "Split failed: %s";
     private static final String ERROR_TEMPLATE_FORMAT     = "Invalid template format: mismatched or nested delimiters.";
     private static final String ERROR_TEMPLATE_LENGTH     = "Template or value exceeds maximum length.";
     private static final String ERROR_TOO_MANY_ALT_GROUPS = "Too many alternative groups (max %d groups).";
@@ -173,6 +176,16 @@ public class PatternsFunctionLibrary {
     private static final String REGEX_DOUBLE_BACKSLASH  = "\\\\";
     private static final String REGEX_GROUP_START       = "(?:";
     private static final char   REGEX_ALTERNATION       = '|';
+
+    /**
+     * Pre-compiled patterns for ReDoS detection. These patterns use find() without
+     * greedy quantifiers at boundaries to
+     * ensure safe detection.
+     */
+    private static final Pattern NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
+    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)|]*\\|[^)]*\\)[*+]");
+    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)*]*\\*[^)]*\\)[^)*]*\\*");
+    private static final Pattern NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
 
     @Function(docs = """
             ```matchGlob(TEXT pattern, TEXT value, ARRAY delimiters)```: Matches text against a glob pattern.
@@ -320,7 +333,7 @@ public class PatternsFunctionLibrary {
         }
 
         try {
-            LinearRegex.compile(pattern.value());
+            Pattern.compile(pattern.value());
             return Value.of(true);
         } catch (PatternSyntaxException e) {
             return Value.of(false);
@@ -330,8 +343,8 @@ public class PatternsFunctionLibrary {
     @Function(docs = """
             ```findMatches(TEXT pattern, TEXT value)```: Finds all matches of a regex pattern.
 
-            Returns all non-overlapping matches. Maximum 10,000 matches returned. An invalid pattern returns
-            an error.
+            Returns all non-overlapping matches. Maximum 10,000 matches returned. Patterns with dangerous
+            constructs are rejected.
 
             **Examples**:
             ```sapl
@@ -442,8 +455,8 @@ public class PatternsFunctionLibrary {
             ```replaceAll(TEXT value, TEXT pattern, TEXT replacement)```: Replaces all regex matches with
             replacement text.
 
-            Replacement can include references like `$1` or `${name}` to insert captured groups from
-            parentheses in the pattern. A backslash makes the next character of the replacement literal.
+            Replacement can include backreferences like `$1` to refer to captured groups from parentheses
+            in the pattern.
 
             **Examples**:
             ```sapl
@@ -468,16 +481,19 @@ public class PatternsFunctionLibrary {
             ```
             """)
     public static Value replaceAll(TextValue value, TextValue pattern, TextValue replacement) {
-        return withRegex(pattern, value,
-                (compiledPattern, text) -> replaceAllMatches(compiledPattern, text, replacement.value()));
-    }
+        val error = validateInputs(pattern, value);
+        if (error != null)
+            return error;
 
-    private static Value replaceAllMatches(Pattern compiledPattern, String text, String replacement) {
+        val compiledPattern = compileRegex(pattern.value());
+        if (compiledPattern == null)
+            return Value.error(ERROR_DANGEROUS_PATTERN);
+
         try {
-            val matcher = compiledPattern.matcher(text);
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
             val result  = new StringBuilder();
             while (matcher.find()) {
-                matcher.appendReplacement(result, replacement);
+                matcher.appendReplacement(result, replacement.value());
                 if (result.length() > MAX_OUTPUT_LENGTH) {
                     return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
                 }
@@ -487,7 +503,7 @@ public class PatternsFunctionLibrary {
                 return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
             }
             return Value.of(result.toString());
-        } catch (IndexOutOfBoundsException | IllegalArgumentException e) {
+        } catch (Exception e) {
             return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));
         }
     }
@@ -520,13 +536,24 @@ public class PatternsFunctionLibrary {
             ```
             """)
     public static Value split(TextValue pattern, TextValue value) {
-        return withRegex(pattern, value, (compiledPattern, text) -> {
+        val error = validateInputs(pattern, value);
+        if (error != null)
+            return error;
+
+        val compiledPattern = compileRegex(pattern.value());
+        if (compiledPattern == null)
+            return Value.error(ERROR_DANGEROUS_PATTERN);
+
+        try {
+            val parts  = compiledPattern.split(BoundedRegex.guarded(value.value()), MAX_MATCHES);
             val result = ArrayValue.builder();
-            for (val part : compiledPattern.split(text, MAX_MATCHES)) {
+            for (val part : parts) {
                 result.add(Value.of(part));
             }
             return result.build();
-        });
+        } catch (Exception e) {
+            return Value.error(ERROR_SPLIT_FAILED.formatted(e.getMessage()));
+        }
     }
 
     @Function(docs = """
@@ -592,10 +619,18 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_TEMPLATE_FORMAT);
         }
 
+        if (isDangerousPattern(regexPattern)) {
+            logSecurityEvent("Dangerous pattern in template rejected", regexPattern);
+            return Value.error(ERROR_DANGEROUS_TEMPLATE);
+        }
+
         try {
-            return Value.of(LinearRegex.compile(regexPattern).matches(valueText));
+            val pattern = Pattern.compile(regexPattern);
+            return Value.of(BoundedRegex.matches(pattern, valueText));
+        } catch (RegexBudgetExceededException e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         } catch (PatternSyntaxException e) {
-            return Value.error(ERROR_INVALID_TEMPLATE.formatted(e.getDescription()));
+            return Value.error(ERROR_INVALID_TEMPLATE.formatted(e.getMessage()));
         }
     }
 
@@ -713,12 +748,15 @@ public class PatternsFunctionLibrary {
      */
     private static Value matchGlobImplementation(String pattern, String value, List<String> delimiters) {
         try {
-            val regex = convertGlobToRegex(pattern, delimiters, 0);
-            return Value.of(LinearRegex.compile(regex).matches(value));
+            val regex           = convertGlobToRegex(pattern, delimiters, 0);
+            val compiledPattern = Pattern.compile(regex);
+            return Value.of(BoundedRegex.matches(compiledPattern, value));
+        } catch (RegexBudgetExceededException e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         } catch (IllegalStateException e) {
             return Value.error(e.getMessage());
         } catch (PatternSyntaxException e) {
-            return Value.error(ERROR_INVALID_GLOB.formatted(e.getDescription()));
+            return Value.error(ERROR_INVALID_GLOB.formatted(e.getMessage()));
         }
     }
 
@@ -1034,29 +1072,46 @@ public class PatternsFunctionLibrary {
     }
 
     /**
-     * Validates the pattern and the value, compiles the pattern, and applies the
-     * operation to the compiled pattern and the text of the value.
+     * Compiles regex pattern after validating it is not dangerous.
      */
-    private static Value withRegex(TextValue pattern, TextValue value, BiFunction<Pattern, String, Value> operation) {
-        val error = validateInputs(pattern, value);
-        if (error != null)
-            return error;
-
-        final Pattern compiledPattern;
-        try {
-            compiledPattern = LinearRegex.compile(pattern.value());
-        } catch (PatternSyntaxException e) {
-            return Value.error(ERROR_INVALID_REGEX.formatted(pattern.value(), e.getDescription()));
+    private static Pattern compileRegex(String patternText) {
+        if (isDangerousPattern(patternText)) {
+            logSecurityEvent("Dangerous regex pattern rejected", patternText);
+            return null;
         }
-        return operation.apply(compiledPattern, value.value());
+
+        try {
+            return Pattern.compile(patternText);
+        } catch (PatternSyntaxException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Analyzes regex pattern for dangerous constructs that could cause ReDoS. Uses
+     * pre-compiled patterns with find() to
+     * avoid ReDoS in detection itself.
+     */
+    private static boolean isDangerousPattern(String pattern) {
+        return pattern.split("\\|").length > MAX_ALTERNATIONS || NESTED_QUANTIFIERS.matcher(pattern).find()
+                || ALTERNATION_WITH_QUANT.matcher(pattern).find() || NESTED_WILDCARDS.matcher(pattern).find()
+                || NESTED_BOUNDED_QUANT.matcher(pattern).find() || pattern.contains(".*.*") || pattern.contains(".+.+");
     }
 
     /**
      * Finds all matches of regex pattern in value, up to specified limit.
      */
     private static Value findMatchesWithLimit(TextValue pattern, TextValue value, int limit) {
-        return withRegex(pattern, value, (compiledPattern, text) -> {
-            val matcher = compiledPattern.matcher(text);
+        val error = validateInputs(pattern, value);
+        if (error != null)
+            return error;
+
+        val compiledPattern = compileRegex(pattern.value());
+        if (compiledPattern == null)
+            return Value.error(ERROR_DANGEROUS_PATTERN);
+
+        try {
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
             val matches = ArrayValue.builder();
 
             var count = 0;
@@ -1066,15 +1121,25 @@ public class PatternsFunctionLibrary {
             }
 
             return matches.build();
-        });
+        } catch (Exception e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
+        }
     }
 
     /**
      * Finds all matches with capturing groups, up to specified limit.
      */
     private static Value findAllSubmatchWithLimit(TextValue pattern, TextValue value, int limit) {
-        return withRegex(pattern, value, (compiledPattern, text) -> {
-            val matcher = compiledPattern.matcher(text);
+        val error = validateInputs(pattern, value);
+        if (error != null)
+            return error;
+
+        val compiledPattern = compileRegex(pattern.value());
+        if (compiledPattern == null)
+            return Value.error(ERROR_DANGEROUS_PATTERN);
+
+        try {
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
             val results = ArrayValue.builder();
 
             var count = 0;
@@ -1092,7 +1157,9 @@ public class PatternsFunctionLibrary {
             }
 
             return results.build();
-        });
+        } catch (Exception e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
+        }
     }
 
     /**
@@ -1128,6 +1195,15 @@ public class PatternsFunctionLibrary {
         }
 
         return result.toString();
+    }
+
+    /**
+     * Logs security-related events at WARN level.
+     */
+    private static void logSecurityEvent(String event, String details) {
+        if (log.isWarnEnabled()) {
+            log.warn("SECURITY: {} - {}", event, details);
+        }
     }
 
     /**

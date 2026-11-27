@@ -44,7 +44,6 @@ public class PolicyCoverageData {
     private int                        sourceHash;
     private int                        targetTrueHits;
     private int                        targetFalseHits;
-    private int                        targetErrorHits;
     private int                        targetStartLine;
     private int                        targetEndLine;
     private final Map<Long, BranchHit> branchHitsByPosition = new HashMap<>();
@@ -65,30 +64,13 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Accumulates an observation at a branch site, preserving its source span,
-     * statement identity and error count.
-     *
-     * @param hit branch and its observed counts
+     * Computes a unique position key for a condition based on its metadata
+     * location.
+     * The key combines line and character position to uniquely identify conditions
+     * even when multiple appear on the same line.
      */
-    public void recordBranchHit(BranchHit hit) {
-        // Keep the historical map key for unambiguous starts. Several distinct
-        // sites can share it, including line-only sites in older reports.
-        long key      = hit.startLine() * 100_000L + hit.startChar();
-        var  previous = branchHitsByPosition.get(key);
-        while (previous != null && !sameSite(previous, hit)) {
-            previous = branchHitsByPosition.get(++key);
-        }
-        branchHitsByPosition.put(key, previous == null ? hit : previous.mergeHitCounts(hit));
-        if (hit.isTargetExpression() && targetStartLine == 0) {
-            targetStartLine = hit.startLine();
-            targetEndLine   = hit.endLine();
-        }
-    }
-
-    private static boolean sameSite(BranchHit left, BranchHit right) {
-        return left.statementId() == right.statementId() && left.enforcedSchema() == right.enforcedSchema()
-                && left.startLine() == right.startLine() && left.startChar() == right.startChar()
-                && left.endLine() == right.endLine() && left.endChar() == right.endChar();
+    private static long positionKey(int startLine, int startChar) {
+        return startLine * 100_000L + startChar;
     }
 
     /**
@@ -105,14 +87,6 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Records an effective target that ended in an error. Such an evaluation
-     * contributes to neither boolean branch.
-     */
-    public void recordTargetError() {
-        targetErrorHits++;
-    }
-
-    /**
      * Records a target expression evaluation result with position data.
      * <p>
      * For policy sets with multiple nested policies, each target expression
@@ -125,9 +99,19 @@ public class PolicyCoverageData {
      */
     public void recordTargetHit(boolean matched, int startLine, int endLine) {
         recordTargetHit(matched);
+        // Store the primary target position for backwards compatibility
+        if (this.targetStartLine == 0 && startLine > 0) {
+            this.targetStartLine = startLine;
+            this.targetEndLine   = endLine > 0 ? endLine : startLine;
+        }
+        // Record as branch hit keyed by position
+        // Use negative statementId to distinguish targets from where-clause conditions
         if (startLine > 0) {
-            val actualEndLine = endLine > 0 ? endLine : startLine;
-            recordBranchHit(BranchHit.of(-startLine, startLine, actualEndLine, 0, 0, matched));
+            val actualEndLine     = endLine > 0 ? endLine : startLine;
+            val targetStatementId = -startLine;
+            val key               = positionKey(startLine, 0);
+            val newHit            = BranchHit.of(targetStatementId, startLine, actualEndLine, 0, 0, matched);
+            branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
         }
     }
 
@@ -140,7 +124,9 @@ public class PolicyCoverageData {
      * @param result the evaluation result
      */
     public void recordConditionHit(int statementId, int line, boolean result) {
-        recordBranchHit(BranchHit.of(statementId, line, result));
+        val key    = positionKey(line, 0);
+        val newHit = BranchHit.of(statementId, line, result);
+        branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
     }
 
     /**
@@ -159,7 +145,9 @@ public class PolicyCoverageData {
      */
     public void recordConditionHit(int statementId, int startLine, int endLine, int startChar, int endChar,
             boolean result) {
-        recordBranchHit(BranchHit.of(statementId, startLine, endLine, startChar, endChar, result));
+        val key    = positionKey(startLine, startChar);
+        val newHit = BranchHit.of(statementId, startLine, endLine, startChar, endChar, result);
+        branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
     }
 
     /**
@@ -183,8 +171,9 @@ public class PolicyCoverageData {
      */
     public void recordPolicyOutcome(int startLine, int endLine, int startChar, int endChar, boolean effectReturned,
             boolean hasConditions) {
-        recordBranchHit(
-                BranchHit.forPolicyOutcome(startLine, endLine, startChar, endChar, effectReturned, hasConditions));
+        val key    = positionKey(startLine, startChar);
+        val newHit = BranchHit.forPolicyOutcome(startLine, endLine, startChar, endChar, effectReturned, hasConditions);
+        branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
     }
 
     /**
@@ -202,11 +191,12 @@ public class PolicyCoverageData {
         }
         this.targetTrueHits  += other.targetTrueHits;
         this.targetFalseHits += other.targetFalseHits;
-        this.targetErrorHits += other.targetErrorHits;
         if (this.filePath == null && other.filePath != null) {
             this.filePath = other.filePath;
         }
-        other.branchHitsByPosition.values().forEach(this::recordBranchHit);
+        for (val entry : other.branchHitsByPosition.entrySet()) {
+            branchHitsByPosition.merge(entry.getKey(), entry.getValue(), BranchHit::mergeHitCounts);
+        }
     }
 
     /**
@@ -259,22 +249,12 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Reports whether a policy returned its effect or a set matched its target.
-     * Legacy policy reports may carry the match in their target totals.
-     *
-     * @return true if the document matched at least once
-     */
-    public boolean wasMatched() {
-        return wasTargetMatched() || ("policy".equals(documentType) && wasActivated());
-    }
-
-    /**
      * Checks if the target expression was ever evaluated (matched or not).
      *
-     * @return true if any boolean or error target result was recorded
+     * @return true if any target hits recorded
      */
     public boolean wasTargetEvaluated() {
-        return targetTrueHits > 0 || targetFalseHits > 0 || targetErrorHits > 0;
+        return targetTrueHits > 0 || targetFalseHits > 0;
     }
 
     /**
@@ -303,12 +283,12 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Returns the number of sites for which every required branch was hit.
+     * Returns the number of fully covered conditions (both branches hit).
      *
      * @return count of fully covered conditions
      */
     public int getFullyCoveredConditionCount() {
-        return (int) branchHitsByPosition.values().stream().filter(BranchHit::isFullyCoveredSemantic).count();
+        return (int) branchHitsByPosition.values().stream().filter(BranchHit::isFullyCovered).count();
     }
 
     /**
@@ -378,7 +358,8 @@ public class PolicyCoverageData {
                 }
             }
         }
-        if (wasTargetMatched() && hasTargetLine()) {
+        if (wasTargetMatched()) {
+            // BinaryOperationCompiler all lines covered by the target expression
             val startLine = targetStartLine > 0 ? targetStartLine : 1;
             val endLine   = targetEndLine > 0 ? targetEndLine : startLine;
             for (int line = startLine; line <= endLine; line++) {
@@ -395,13 +376,13 @@ public class PolicyCoverageData {
      * conditions appear on the same line, their branch counts are summed to show
      * the total coverage for that line.
      * <p>
-     * Target expressions use single-branch semantics: they
+     * Target expressions (negative statementId) use single-branch semantics: they
      * are either "hit" (fully covered) or "not hit" (not covered). This reflects
      * the architectural reality that we can only observe target matches, not
      * mismatches, since non-matching policies are filtered by the PRP before
      * reaching the PDP trace.
      * <p>
-     * Enforced schemas and authored conditions use two-branch semantics:
+     * Where-clause conditions (non-negative statementId) use two-branch semantics:
      * each condition has true and false branches that can be independently covered.
      *
      * @return list of LineCoverageInfo for each line (1-indexed, list index 0 =
@@ -414,7 +395,7 @@ public class PolicyCoverageData {
         }
 
         val branchesByLine = aggregateBranchCountsByLine();
-        val targetStart    = hasTargetLine() ? Math.max(1, targetStartLine) : 0;
+        val targetStart    = targetStartLine > 0 ? targetStartLine : 1;
         val targetEnd      = targetEndLine > 0 ? targetEndLine : targetStart;
 
         val result = new ArrayList<LineCoverageInfo>(lineCount);
@@ -422,17 +403,6 @@ public class PolicyCoverageData {
             result.add(createLineCoverageInfo(i, branchesByLine.get(i), targetStart, targetEnd));
         }
         return result;
-    }
-
-    /**
-     * Determines whether target counters identify an authored line. Older
-     * reports with only target totals use the first line as their fallback.
-     *
-     * @return true for a located target or a legacy target-only observation
-     */
-    public boolean hasTargetLine() {
-        return targetStartLine > 0 || branchHitsByPosition.values().stream()
-                .noneMatch(hit -> hit.isPolicyOutcome() || hit.enforcedSchema());
     }
 
     private Map<Integer, int[]> aggregateBranchCountsByLine() {

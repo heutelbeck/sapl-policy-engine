@@ -7,9 +7,10 @@
 		</encoder>
 	</appender>
 
-	<!-- Tests drive failure paths on purpose and the build console stays quiet.
-	     Raise the root level to read the log while debugging a test. -->
-	<root level="OFF">
+	<root level="WARN">
 		<appender-ref ref="STDOUT" />
 	</root>
+
+	<logger name="io.sapl" level="OFF" />
+	<logger name="com.networknt" level="OFF" />
 </configuration>

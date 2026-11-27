@@ -144,7 +144,7 @@ public class GenerateCredentialsCommand {
                           -d %s%n\
                         %n\
                         IMPORTANT: Store the password securely. Use the encoded value in%n\
-                        server configuration. Use the plaintext password in clients.%n\
+                        server configuration; use the plaintext password in clients.%n\
                         """, id, pdpId, username, secret, id, pdpId, username, encodedSecret, posix(credential),
                         posix(bodyJson), powerShell(credential), powerShell(bodyJson));
                 return 0;
@@ -228,9 +228,9 @@ public class GenerateCredentialsCommand {
                         %n\
                         The 'apiKeyId' field is the public middle segment of the key%n\
                         (between the 'sapl_' prefix and the secret). The server uses it%n\
-                        for O(1) routing on incoming requests. Without it, requests fall%n\
+                        for O(1) routing on incoming requests; without it, requests fall%n\
                         back to a slow scan across all configured users. Both 'apiKeyId'%n\
-                        and 'apiKey' come from the same generator run. Pair them or%n\
+                        and 'apiKey' come from the same generator run -- pair them or%n\
                         rotate together.%n\
                         %n\
                         Usage (curl):%n\

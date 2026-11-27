@@ -66,7 +66,7 @@ Each imported name must be unique within a document. The compiler reports an err
 
 ```sapl
 import time.now
-import clock.now      // Error: Import conflict. The short name 'now' is already imported from 'time.now'.
+import clock.now      // Error: Import conflict: 'now' already imported
 ```
 
 **Solution:** Use an alias for one of the imports:
@@ -84,7 +84,7 @@ If you use a function or attribute finder without importing it or qualifying it 
 policy "example"
 permit
 obligation
-  blacken(data);   // Error: Name 'blacken' not imported.
+  blacken(data);   // Error: Unresolved reference 'blacken'
 ```
 
 **Solutions:**

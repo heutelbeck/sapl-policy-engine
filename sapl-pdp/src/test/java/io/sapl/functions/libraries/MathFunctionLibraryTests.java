@@ -263,65 +263,30 @@ class MathFunctionLibraryTests {
     private static Stream<Arguments> errorCases() {
         return Stream.of(
                 // pow errors
-                arguments("pow(-1, 0.5): NaN result", MathFunctionLibrary.pow(num(-1.0), num(0.5)),
+                arguments("pow(-1, 0.5) - NaN result", MathFunctionLibrary.pow(num(-1.0), num(0.5)),
                         "Power operation resulted in NaN"),
                 // sqrt errors
-                arguments("sqrt(-1): negative value", MathFunctionLibrary.sqrt(num(-1.0)),
+                arguments("sqrt(-1) - negative value", MathFunctionLibrary.sqrt(num(-1.0)),
                         "Cannot calculate square root of a negative number"),
                 // clamp errors
                 arguments("clamp with min > max", MathFunctionLibrary.clamp(num(5.0), num(10.0), num(0.0)),
                         "Minimum must be less than or equal to maximum"),
                 // log errors
-                arguments("log(0): zero value", MathFunctionLibrary.log(num(0.0)),
+                arguments("log(0) - zero value", MathFunctionLibrary.log(num(0.0)),
                         "Logarithm requires a positive value"),
-                arguments("log(-1): negative value", MathFunctionLibrary.log(num(-1.0)),
+                arguments("log(-1) - negative value", MathFunctionLibrary.log(num(-1.0)),
                         "Logarithm requires a positive value"),
-                arguments("log10(0): zero value", MathFunctionLibrary.log10(num(0.0)),
+                arguments("log10(0) - zero value", MathFunctionLibrary.log10(num(0.0)),
                         "Logarithm requires a positive value"),
-                arguments("log10(-1): negative value", MathFunctionLibrary.log10(num(-1.0)),
+                arguments("log10(-1) - negative value", MathFunctionLibrary.log10(num(-1.0)),
                         "Logarithm requires a positive value"),
-                arguments("logb(-1, 10): negative value", MathFunctionLibrary.logb(num(-1.0), num(10.0)),
+                arguments("logb(-1, 10) - negative value", MathFunctionLibrary.logb(num(-1.0), num(10.0)),
                         "Logarithm requires a positive value"),
-                arguments("logb(10, 1): base 1", MathFunctionLibrary.logb(num(10.0), num(1.0)),
+                arguments("logb(10, 1) - base 1", MathFunctionLibrary.logb(num(10.0), num(1.0)),
                         "Logarithm base must be positive and not equal to 1"),
-                arguments("logb(10, -2): negative base", MathFunctionLibrary.logb(num(10.0), num(-2.0)),
+                arguments("logb(10, -2) - negative base", MathFunctionLibrary.logb(num(10.0), num(-2.0)),
                         "Logarithm base must be positive and not equal to 1"),
-                arguments("logb(10, 0): zero base", MathFunctionLibrary.logb(num(10.0), num(0.0)),
+                arguments("logb(10, 0) - zero base", MathFunctionLibrary.logb(num(10.0), num(0.0)),
                         "Logarithm base must be positive and not equal to 1"));
     }
-
-    @DisplayName("Clamp compares exactly and retains the selected number")
-    @MethodSource
-    @ParameterizedTest(name = "clamp({0}, {1}, {2}) selects {3}")
-    void whenClampingExactNumbersThenTheOriginalSelectedNumberIsReturned(String number, String lower, String upper,
-            String selected) {
-        val value    = (NumberValue) Value.of(new BigDecimal(number));
-        val minimum  = (NumberValue) Value.of(new BigDecimal(lower));
-        val maximum  = (NumberValue) Value.of(new BigDecimal(upper));
-        val expected = switch (selected) {
-                     case "minimum" -> minimum;
-                     case "maximum" -> maximum;
-                     default        -> value;
-                     };
-        assertThat(MathFunctionLibrary.clamp(value, minimum, maximum)).isSameAs(expected);
-    }
-
-    private static Stream<Arguments> whenClampingExactNumbersThenTheOriginalSelectedNumberIsReturned() {
-        return Stream.of(arguments("9007199254740993", "9007199254740993", "9007199254740993", "value"),
-                arguments("9007199254740992", "9007199254740993", "9007199254740994", "minimum"),
-                arguments("9007199254740995", "9007199254740993", "9007199254740994", "maximum"),
-                arguments("1.23456789012345678901", "0", "10", "value"), arguments("1.0", "2.5000", "3.0", "minimum"),
-                arguments("4.0", "2.0", "3.5000", "maximum"), arguments("1e1000", "0", "2e1000", "value"));
-    }
-
-    @Test
-    @DisplayName("Reversed bounds are invalid even when their double approximations are equal")
-    void whenClampBoundsDifferBeyondDoublePrecisionThenTheirOrderIsStillValidated() {
-        val value   = (NumberValue) Value.of(new BigDecimal("9007199254740992"));
-        val minimum = (NumberValue) Value.of(new BigDecimal("9007199254740993"));
-        val maximum = (NumberValue) Value.of(new BigDecimal("9007199254740992"));
-        assertThat(MathFunctionLibrary.clamp(value, minimum, maximum))
-                .isEqualTo(Value.error("Minimum must be less than or equal to maximum."));
-    }
-
 }

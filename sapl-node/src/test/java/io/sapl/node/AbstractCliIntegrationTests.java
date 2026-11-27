@@ -23,11 +23,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-import io.sapl.node.testing.IsolatedConsoleLogging;
-
-@ExtendWith(IsolatedConsoleLogging.class)
 abstract class AbstractCliIntegrationTests {
 
     static final String SUBSCRIPTION_JSON = "{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"document\"}";

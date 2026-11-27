@@ -55,10 +55,8 @@ services:
       - IO_SAPL_NODE_USERS_1_BASIC_USERNAME=tenant-b-user
       - IO_SAPL_NODE_USERS_1_BASIC_SECRET=$$argon2id$$v=19$$m=16384,t=2,p=1$$sNTVjma/BQZb5dzyIVCS3Q$$c1Cy8OfyiEar4iv3Soxycc2jaOTJy6vV7gcMm+/jSRY
 
-      # TLS/Port
-      # Plaintext for this demo, allowed explicitly. The node logs a warning at
-      # every start. See examples/docker/with-tls for TLS.
-      - IO_SAPL_NODE_ALLOWNOTLS=true
+      # SSL/Port
+      - SERVER_SSL_ENABLED=false
       - SERVER_PORT=8080
       # Binding to 0.0.0.0 is required inside Docker for the port mapping to work.
       - SERVER_ADDRESS=0.0.0.0

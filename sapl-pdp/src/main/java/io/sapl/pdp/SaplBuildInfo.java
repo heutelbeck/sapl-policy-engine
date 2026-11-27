@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp;
 
-import static io.sapl.api.semver.Version.tryParse;
+import static org.semver4j.Semver.parse;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -68,12 +68,12 @@ public class SaplBuildInfo {
     }
 
     static String minimumVersionRequirement(@Nullable String engineVersion) {
-        val parsedVersion = tryParse(engineVersion);
+        val parsedVersion = parse(engineVersion);
         if (parsedVersion == null) {
             throw new IllegalStateException(ERROR_ENGINE_VERSION_INVALID.formatted(engineVersion));
         }
-        val baseVersion = parsedVersion.core();
-        return ">=" + baseVersion + (parsedVersion.preRelease().isEmpty() ? "" : "-0");
+        val baseVersion = parsedVersion.withClearedPreReleaseAndBuild().getVersion();
+        return ">=" + baseVersion + (parsedVersion.getPreRelease().isEmpty() ? "" : "-0");
     }
 
     private static String load() {

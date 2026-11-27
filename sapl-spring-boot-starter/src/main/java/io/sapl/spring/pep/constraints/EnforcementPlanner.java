@@ -254,7 +254,7 @@ public class EnforcementPlanner {
         try {
             return provider.getConstraintHandlers(constraint, supportedSignals);
         } catch (RuntimeException e) {
-            log.warn("Constraint handler provider {} failed to resolve a handler. Treating it as unresolved: {}",
+            log.warn("Constraint handler provider {} failed to resolve a handler; treating as unresolved: {}",
                     provider.getClass().getSimpleName(), e.getMessage());
             return List.of();
         }

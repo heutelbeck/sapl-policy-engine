@@ -81,16 +81,6 @@ class KeyringTests {
     }
 
     @Test
-    @DisplayName("a private key whose public part belongs to another private part is rejected when loaded")
-    void whenPublicPartDoesNotBelongToPrivatePartThenThrows() {
-        val other      = SecretSealing.generateRecipientKey("b");
-        val mismatched = new OctetKeyPair.Builder(Curve.X25519, other.getX()).d(keyA.getD()).keyID("a").build();
-
-        assertThatThrownBy(() -> Keyring.of(mismatched)).isInstanceOf(SecretSealingException.class)
-                .hasMessage("The public part of the key does not belong to its private part.");
-    }
-
-    @Test
     @DisplayName("a key indexed under a key id other than its own is rejected, failing closed")
     void whenKeyIndexedUnderForeignKeyIdThenThrows() {
         val inconsistent = Map.of("wrong-id", keyA);

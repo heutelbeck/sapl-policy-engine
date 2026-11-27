@@ -28,9 +28,8 @@ importStatement
     : IMPORT libSteps+=saplId (DOT libSteps+=saplId)* DOT functionName=saplId (AS functionAlias=saplId)?
     ;
 
-// A schema belongs to an element of the authorization subscription.
 schemaStatement
-    : subscriptionElement=(SUBJECT | ACTION | RESOURCE | ENVIRONMENT) enforced=ENFORCED? SCHEMA schemaExpression=expression
+    : subscriptionElement=reservedId enforced=ENFORCED? SCHEMA schemaExpression=expression
     ;
 
 policyElement

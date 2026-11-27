@@ -12,6 +12,3 @@
 *.css           text
 *.js            text
 *.sql           text
-
-# Conformance and wire test cases are specified with line feeds on every platform.
-*.cases         text eol=lf

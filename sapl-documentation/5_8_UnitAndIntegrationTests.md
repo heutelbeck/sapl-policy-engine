@@ -112,7 +112,7 @@ given
     - secrets { "api_key": "sk-test-key", "db_password": "test-password" }
 ```
 
-Variables are accessible in policies by their name, for example `tenant`. Secrets are accessible to PIPs through `AttributeAccessContext.pdpSecrets()` but are not visible to policy expressions.
+Variables are accessible in policies through the `environment` object. Secrets are accessible to PIPs through `AttributeAccessContext.pdpSecrets()` but are not visible to policy expressions.
 
 ### Validation Rules
 

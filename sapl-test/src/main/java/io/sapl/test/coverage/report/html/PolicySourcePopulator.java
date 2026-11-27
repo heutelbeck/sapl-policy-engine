@@ -90,7 +90,7 @@ public class PolicySourcePopulator {
                         return Files.readString(realPath);
                     }
                 } catch (IOException e) {
-                    log.debug("Could not read {}: {}", path, e.getMessage());
+                    log.debug("Could not read: {} - {}", path, e.getMessage());
                 }
             }
         }

@@ -78,7 +78,7 @@ public class EmbeddedBenchmarkRunner {
     public static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
             PrintWriter err) {
         try (val components = ctx.buildEmbeddedPdp()) {
-            val mapper        = SaplJacksonModule.jsonMapperBuilder().build();
+            val mapper        = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscriptions = loadSubscriptions(ctx, mapper);
             val pdp           = components.pdp();
             val methods       = resolveMethods(pdp, subscriptions, cfg.benchmarks());

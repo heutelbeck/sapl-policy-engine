@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import tools.jackson.databind.json.JsonMapper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -185,7 +186,7 @@ public final class RemoteHttpReactivePolicyDecisionPoint implements ReactivePoli
      * deserialize correctly. Used by every WebClient this class builds.
      */
     private static ExchangeStrategies saplExchangeStrategies() {
-        val mapper = SaplJacksonModule.jsonMapperBuilder().build();
+        val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
         return ExchangeStrategies.builder().codecs(configurer -> {
             configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
             configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));

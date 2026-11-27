@@ -297,7 +297,6 @@ for runtime in "${SAPL_RUNTIMES[@]}"; do
         if [ "$runtime" = "jvm" ]; then
             taskset -c "$cpu_range" java -XX:ActiveProcessorCount=$((pcores * 2)) -jar "$SAPL_NODE_JAR" server \
                 --io.sapl.node.allow-no-auth=true \
-                --io.sapl.node.allow-no-tls=true \
                 --io.sapl.pdp.embedded.metrics-enabled=false \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/rbac-opa" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/rbac-opa" \
@@ -306,7 +305,6 @@ for runtime in "${SAPL_RUNTIMES[@]}"; do
         else
             taskset -c "$cpu_range" "$SAPL_NATIVE" server \
                 --io.sapl.node.allow-no-auth=true \
-                --io.sapl.node.allow-no-tls=true \
                 --io.sapl.pdp.embedded.metrics-enabled=false \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/rbac-opa" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/rbac-opa" \

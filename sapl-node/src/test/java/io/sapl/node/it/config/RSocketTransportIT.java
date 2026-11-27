@@ -218,7 +218,7 @@ class RSocketTransportIT extends BaseIntegrationTest {
 
         private static Path requireExists(Path path) {
             if (!java.nio.file.Files.exists(path)) {
-                throw new IllegalStateException("RSocketTransportIT requires the sapl-node module's working directory, "
+                throw new IllegalStateException("RSocketTransportIT requires the sapl-node module's working directory; "
                         + "expected to find " + path + ". Run from the sapl-node module root, e.g. "
                         + "'mvn -pl sapl-node test' from the engine repo root.");
             }
@@ -272,8 +272,7 @@ class RSocketTransportIT extends BaseIntegrationTest {
                     .withEnv("IO_SAPL_NODE_DEFAULTPDPID", "default")
                     .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI",
                             "http://keycloak:8080/realms/sapl-demo")
-                    .withEnv("IO_SAPL_NODE_OAUTH_ALLOWINSECUREISSUER", "true").withEnv("SERVER_SSL_ENABLED", "false")
-                    .withEnv("SAPL_PDP_RSOCKET_ENABLED", "true")
+                    .withEnv("SERVER_SSL_ENABLED", "false").withEnv("SAPL_PDP_RSOCKET_ENABLED", "true")
                     .withEnv("SAPL_PDP_RSOCKET_PORT", String.valueOf(RSOCKET_PORT));
         }
 

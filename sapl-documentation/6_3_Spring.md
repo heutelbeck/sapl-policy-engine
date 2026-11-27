@@ -829,7 +829,7 @@ The full schema looks like this.
 }
 ```
 
-The optional `conditions` array narrows which elements the actions apply to. Each condition has a JSONPath, a comparison type (`==`, `!=`, `>=`, `<=`, `>`, `<`, or `=~` for regex), and a value. A `=~` condition matches the whole text against a pattern in [RE2 syntax](../2_7_Expressions/#regular-expressions). A condition with an invalid or too large pattern denies access with an `AccessDeniedException` that names the reason. All conditions must match (AND-joined) for the actions to apply. Action types are `delete` (remove the node), `blacken` (obfuscate text with optional partial disclosure), and `replace` (substitute the value). The provider works on `Optional`, `List`, `Set`, `Mono`, `Flux`, arrays, and single objects.
+The optional `conditions` array narrows which elements the actions apply to. Each condition has a JSONPath, a comparison type (`==`, `!=`, `>=`, `<=`, `>`, `<`, or `=~` for regex), and a value. All conditions must match (AND-joined) for the actions to apply. Action types are `delete` (remove the node), `blacken` (obfuscate text with optional partial disclosure), and `replace` (substitute the value). The provider works on `Optional`, `List`, `Set`, `Mono`, `Flux`, arrays, and single objects.
 
 #### `jsonContentFilterPredicate`
 
@@ -1131,8 +1131,6 @@ The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. O
 | `io.sapl.pdp.remote.tls` | `false` | Enable TLS for the connection. Used only when `type=rsocket`. The HTTP transport selects TLS via the `https://` scheme on `host`. |
 | `io.sapl.pdp.remote.keep-alive` | `20s` | RSocket KEEPALIVE frame interval. Used only when `type=rsocket`. |
 | `io.sapl.pdp.remote.max-life-time` | `90s` | Maximum time without an inbound KEEPALIVE before the connection is considered dead. Used only when `type=rsocket`. |
-| `io.sapl.pdp.remote.connections` | `1` | Number of RSocket connections to the node. Requests go to the connection with the fewest in flight, and a lost connection is reopened in the background while the others serve. Used only when `type=rsocket`. |
-| `io.sapl.pdp.remote.format` | `protobuf` | Data format of the RSocket payloads, `protobuf` or `binary`. `binary` is the SAPL binary format, which the node reads and writes faster. A connection to a node that does not speak it falls back to protobuf, and the next connection tries it again. Used only when `type=rsocket`. |
 | `io.sapl.pdp.remote.key` | empty | Username for basic authentication. |
 | `io.sapl.pdp.remote.secret` | empty | Password for basic authentication. |
 | `io.sapl.pdp.remote.bearer-token` | empty | Bearer token for token authentication. Carries either a SAPL API key (`sapl_*`) or a static JWT. Renamed from `api-key` in 4.1.0; the old name no longer binds. |

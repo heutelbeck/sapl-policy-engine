@@ -151,8 +151,8 @@ public class SonarQubeCoverageReportGenerator {
         val coverage   = aggregated.computeIfAbsent(uniqueKey,
                 key -> createPolicyCoverageData(policy, documentName, sourceHash));
 
-        CoverageReader.parseTargetTotals(policy, coverage);
-        CoverageReader.parseBranches(policy, coverage);
+        aggregateTargetHits(policy, coverage);
+        aggregateBranchHits(policy, coverage);
     }
 
     private PolicyCoverageData createPolicyCoverageData(JsonNode policy, String documentName, int sourceHash) {
@@ -164,6 +164,47 @@ public class SonarQubeCoverageReportGenerator {
             data.setFilePath(filePath);
         }
         return data;
+    }
+
+    private void aggregateTargetHits(JsonNode policy, PolicyCoverageData coverage) {
+        val targetTrueHits  = getIntOrZero(policy, "targetTrueHits");
+        val targetFalseHits = getIntOrZero(policy, "targetFalseHits");
+        for (var i = 0; i < targetTrueHits; i++) {
+            coverage.recordTargetHit(true);
+        }
+        for (var i = 0; i < targetFalseHits; i++) {
+            coverage.recordTargetHit(false);
+        }
+    }
+
+    private void aggregateBranchHits(JsonNode policy, PolicyCoverageData coverage) {
+        val branches = policy.get("branches");
+        if (branches == null || !branches.isArray()) {
+            return;
+        }
+
+        for (val branch : branches) {
+            aggregateBranch(branch, coverage);
+        }
+    }
+
+    private void aggregateBranch(JsonNode branch, PolicyCoverageData coverage) {
+        val statementId = getIntOrZero(branch, "statementId");
+        val trueHits    = getIntOrZero(branch, "trueHits");
+        val falseHits   = getIntOrZero(branch, "falseHits");
+
+        // Support both new format (startLine/endLine) and legacy (line)
+        val startLine = getIntOrZero(branch, branch.has("startLine") ? "startLine" : "line");
+        val endLine   = branch.has("endLine") ? getIntOrZero(branch, "endLine") : startLine;
+        val startChar = getIntOrZero(branch, "startChar");
+        val endChar   = getIntOrZero(branch, "endChar");
+
+        for (var i = 0; i < trueHits; i++) {
+            coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, true);
+        }
+        for (var i = 0; i < falseHits; i++) {
+            coverage.recordConditionHit(statementId, startLine, endLine, startChar, endChar, false);
+        }
     }
 
     private String generateXml(Map<String, PolicyCoverageData> coverageByPolicy) throws IOException {
@@ -221,9 +262,8 @@ public class SonarQubeCoverageReportGenerator {
     private Map<Integer, LineAggregate> aggregateCoverageByLine(PolicyCoverageData coverage) {
         val byLine = new TreeMap<Integer, LineAggregate>();
 
-        if (coverage.wasTargetEvaluated() && coverage.hasTargetLine()) {
-            byLine.computeIfAbsent(Math.max(1, coverage.getTargetStartLine()), l -> new LineAggregate())
-                    .accumulate(coverage.wasTargetMatched(), 0, 0);
+        if (coverage.wasTargetEvaluated()) {
+            byLine.computeIfAbsent(1, l -> new LineAggregate()).accumulate(coverage.wasTargetMatched(), 0, 0);
         }
 
         for (val branch : coverage.getBranchHits()) {

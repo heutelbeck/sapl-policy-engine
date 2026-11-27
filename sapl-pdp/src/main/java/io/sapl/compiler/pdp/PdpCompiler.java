@@ -34,7 +34,6 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CoverageVoter;
-import io.sapl.compiler.policy.ObservedVoter;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -44,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 
 import static io.sapl.compiler.document.DocumentCompiler.compileDocument;
-import static io.sapl.compiler.pdp.StackOverflowGuard.guarded;
 
 @UtilityClass
 public class PdpCompiler {
@@ -139,10 +137,24 @@ public class PdpCompiler {
                 errorHandling, false, ctx);
         };
 
-        val coverageVoter = ObservedVoter.pdp(voter, voterMetadata, compiledDocuments);
+        val coverageVoter = switch (algorithm.votingMode()) {
+        case FIRST            ->
+            throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
+        case PRIORITY_DENY    -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                Decision.DENY, defaultDecision, errorHandling);
+        case PRIORITY_PERMIT  -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                Decision.PERMIT, defaultDecision, errorHandling);
+        case PRIORITY_SUSPEND -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                Decision.SUSPEND, defaultDecision, errorHandling);
+        case UNANIMOUS        -> UnanimousVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling, false);
+        case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling, true);
+        case UNIQUE           -> UniqueVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling);
+        };
 
-        return new CompiledPdp(voterMetadata, guarded(voter, voterMetadata), guarded(coverageVoter, voterMetadata),
-                plugins, ctx.getFunctionBroker());
+        return new CompiledPdp(voterMetadata, voter, coverageVoter, plugins);
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

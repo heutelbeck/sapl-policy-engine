@@ -17,9 +17,13 @@
  */
 package io.sapl.lsp.sapltest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticSeverity;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 
 import io.sapl.lsp.core.ParsedDocument;
 
@@ -38,11 +42,40 @@ public class SAPLTestDiagnosticsProvider {
      * @return list of diagnostics
      */
     public List<Diagnostic> provideDiagnostics(ParsedDocument document) {
-        if (!(document instanceof SAPLTestParsedDocument testDocument)) {
-            return List.of();
-        }
-        return ErrorDiagnostics.diagnosticsOf(testDocument.getContent(), testDocument.getParseErrors(),
-                testDocument.getValidationErrors(), SOURCE);
+        var diagnostics = new ArrayList<Diagnostic>();
+
+        // Convert parse errors to diagnostics
+        document.getParseErrors().stream().map(error -> createDiagnostic(error.line(), error.charPositionInLine(),
+                error.message(), error.offendingSymbol(), DiagnosticSeverity.Error)).forEach(diagnostics::add);
+
+        // Convert validation errors to diagnostics
+        document.getValidationErrors().stream().map(error -> createDiagnostic(error.line(), error.charPositionInLine(),
+                error.message(), error.offendingText(), DiagnosticSeverity.Error)).forEach(diagnostics::add);
+
+        return diagnostics;
+    }
+
+    /**
+     * Creates a diagnostic from error information.
+     *
+     * @param line the line number (1-based from ANTLR)
+     * @param charPositionInLine the character position in line (0-based)
+     * @param message the error message
+     * @param offendingSymbol the offending symbol text
+     * @param severity the diagnostic severity
+     * @return the diagnostic
+     */
+    private Diagnostic createDiagnostic(int line, int charPositionInLine, String message, String offendingSymbol,
+            DiagnosticSeverity severity) {
+        // Convert from ANTLR's 1-based line to LSP's 0-based line
+        var startLine = line - 1;
+        var endLine   = startLine;
+        var startChar = charPositionInLine;
+        var endChar   = startChar + (offendingSymbol != null ? offendingSymbol.length() : 1);
+
+        var range = new Range(new Position(startLine, startChar), new Position(endLine, endChar));
+
+        return new Diagnostic(range, message, severity, SOURCE);
     }
 
 }
