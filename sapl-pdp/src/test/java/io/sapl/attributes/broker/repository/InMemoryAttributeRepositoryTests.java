@@ -21,6 +21,8 @@ import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.repository.AttributeAssignment.BoundValue;
+import io.sapl.attributes.broker.repository.AttributeAssignment.UnboundValue;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -33,8 +35,12 @@ import org.junit.jupiter.api.Timeout;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
@@ -131,6 +137,135 @@ class InMemoryAttributeRepositoryTests {
         @Override
         public void accept(Value value) {
             values.add(value);
+        }
+    }
+
+    @Test
+    @DisplayName("one transfer publishes one complete state, with the final assignment for each key")
+    void whenTransferCommitsThenObserversReceiveItsFinalState() {
+        val department = repoKey("work.department");
+        val clearance  = repoKey("work.clearance");
+        val views      = new CopyOnWriteArrayList<RepositoryState>();
+        try (val watch = repository.observeState(TEST_PDP_ID, "default", views::add)) {
+            repository.publish(List.of(new BoundValue(department, Value.of("HR"), null),
+                    new BoundValue(clearance, Value.of(5), null)));
+            repository.publish(List.of(new UnboundValue(department), new BoundValue(department, Value.of("IT"), null),
+                    new BoundValue(clearance, Value.of(1), null)));
+            assertThat(watch.initialState().bindings()).isEmpty();
+            assertThat(views).extracting(state -> List.of(state.value(department), state.value(clearance)))
+                    .containsExactly(List.of(Value.of("HR"), Value.of(5)), List.of(Value.of("IT"), Value.of(1)));
+        }
+    }
+
+    @Test
+    @DisplayName("a publication spanning tenants leaves both tenants and their observers untouched")
+    void whenPublicationSpansTenantsThenNoAssignmentIsPublished() {
+        val first   = repoKey("work.department");
+        val other   = new RepositoryKey(null, "work.clearance", List.of(), "other");
+        val changes = List.<AttributeAssignment>of(new BoundValue(first, Value.of("IT"), null),
+                new BoundValue(other, Value.of(5), null));
+        val updates = new CopyOnWriteArrayList<RepositoryState>();
+        try (val watch = repository.observeState(TEST_PDP_ID, "default", updates::add)) {
+            assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> repository.publish(changes));
+            try (val current = repository.observeState(TEST_PDP_ID, "default", updates::add)) {
+                assertThat(current.initialState()).isEqualTo(watch.initialState());
+            }
+            assertThat(updates).isEmpty();
+        }
+    }
+
+    @Test
+    @DisplayName("renewing the same value cancels its former expiry without extending another binding")
+    void whenEqualValueIsReboundThenOnlyItsCurrentLifetimeApplies() {
+        val renewed  = repoKey("work.renewed");
+        val expires  = repoKey("work.expires");
+        val value    = Value.of("active");
+        val observed = new CopyOnWriteArrayList<RepositoryState>();
+        try (val ignored = repository.observeState(TEST_PDP_ID, "default", observed::add)) {
+            repository.publish(renewed, value, Duration.ofMillis(80));
+            repository.publish(List.of(new BoundValue(renewed, value, null),
+                    new BoundValue(expires, value, Duration.ofMillis(160))));
+            Awaitility.await().atMost(Duration.ofSeconds(2))
+                    .until(() -> observed.getLast().value(expires).equals(Value.UNDEFINED));
+            assertThat(observed.getLast().value(expires)).isEqualTo(Value.UNDEFINED);
+            assertThat(observed.getLast().value(renewed)).isEqualTo(value);
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("an expiry observer in one tenant cannot extend another tenant's grant")
+    void whenAnExpiryObserverIsBlockedThenAnotherTenantExpiresAndIsNotified() throws Exception {
+        val first   = repoKey("access.grant");
+        val second  = new RepositoryKey(null, "access.grant", List.of(), "other");
+        val entered = new CompletableFuture<Void>();
+        val release = new CompletableFuture<Void>();
+        val expired = new CompletableFuture<RepositoryState>();
+        val ttl     = Duration.ofMillis(20);
+        try (val slow = repository.observeState(first.pdpId(), "default", state -> {
+            if (state.value(first).equals(Value.UNDEFINED)) {
+                entered.complete(null);
+                release.join();
+            }
+        }); val fast = repository.observeState(second.pdpId(), "default", state -> {
+            if (state.value(second).equals(Value.UNDEFINED)) {
+                expired.complete(state);
+            }
+        })) {
+            repository.publish(first, Value.TRUE, ttl);
+            entered.get(2, TimeUnit.SECONDS);
+            repository.publish(second, Value.TRUE, ttl);
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                try (val reader = repository.observeState(second.pdpId(), "default", ignored -> {})) {
+                    assertThat(reader.initialState().value(second)).isEqualTo(Value.UNDEFINED);
+                }
+            });
+            assertThat(expired.get(2, TimeUnit.SECONDS).bindings()).doesNotContainKey(second);
+        } finally {
+            release.complete(null);
+        }
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("a slow registration catches up to the latest complete expiry while a second observer keeps receiving")
+    void whenExpiriesAccumulateThenTheSlowObserverReceivesTheCurrentView() throws Exception {
+        val key          = repoKey("access.grant");
+        val entered      = new CompletableFuture<Void>();
+        val release      = new CompletableFuture<Void>();
+        val caughtUp     = new CompletableFuture<RepositoryState>();
+        val slowExpiries = new CopyOnWriteArrayList<RepositoryState>();
+        val fastExpiries = new LinkedBlockingQueue<RepositoryState>();
+        try (val slow = repository.observeState(TEST_PDP_ID, "default", state -> {
+            if (state.bindings().isEmpty()) {
+                slowExpiries.add(state);
+                if (entered.complete(null)) {
+                    release.join();
+                } else {
+                    caughtUp.complete(state);
+                }
+            }
+        }); val fast = repository.observeState(TEST_PDP_ID, "default", state -> {
+            if (state.bindings().isEmpty()) {
+                fastExpiries.add(state);
+            }
+        })) {
+            val ttl = Duration.ofMillis(20);
+            repository.publish(key, Value.TRUE, ttl);
+            entered.get(2, TimeUnit.SECONDS);
+            val first = fastExpiries.poll(2, TimeUnit.SECONDS);
+            assertThat(first).isNotNull();
+            RepositoryState latest = first;
+            for (int renewal = 0; renewal < 3; renewal++) {
+                repository.publish(key, Value.TRUE, ttl);
+                latest = fastExpiries.poll(2, TimeUnit.SECONDS);
+                assertThat(latest).isNotNull();
+            }
+            assertThat(slowExpiries).containsExactly(first);
+            release.complete(null);
+            assertThat(caughtUp.get(2, TimeUnit.SECONDS)).isEqualTo(latest);
+        } finally {
+            release.complete(null);
         }
     }
 
@@ -305,16 +440,46 @@ class InMemoryAttributeRepositoryTests {
     class WhenTheRepositoryIsClosed {
 
         @Test
+        @Timeout(20)
+        @DisplayName("each live registration receives its terminal view while another terminal callback is blocked")
+        void whenTheFirstTerminalObserverIsBlockedThenTheOtherStillReceivesTheFinalView() throws Exception {
+            val firstView  = new CompletableFuture<RepositoryState>();
+            val secondView = new CompletableFuture<RepositoryState>();
+            val release    = new CompletableFuture<Void>();
+            try (val first = repository.observeState(TEST_PDP_ID, "default", state -> {
+                firstView.complete(state);
+                release.join();
+            }); val second = repository.observeState(TEST_PDP_ID, "default", state -> {
+                secondView.complete(state);
+                release.join();
+            }); val worker = Executors.newVirtualThreadPerTaskExecutor()) {
+                val closing = worker.submit(repository::close);
+                try {
+                    assertThat(CompletableFuture.allOf(firstView, secondView))
+                            .as("both terminal observations before releasing either callback")
+                            .succeedsWithin(Duration.ofSeconds(5));
+                    val terminal = firstView.join();
+                    assertThat(terminal.unavailable()).isNotNull();
+                    assertThat(terminal.revision()).isGreaterThan(first.initialState().revision());
+                    assertThat(secondView.join()).isEqualTo(terminal);
+                } finally {
+                    release.complete(null);
+                }
+                closing.get(5, TimeUnit.SECONDS);
+            }
+        }
+
+        @Test
         @DisplayName("then subsequent publishes are silently ignored")
         void thenSubsequentPublishesAreSilentlyIgnored() {
             val recorder = new Recorder();
             repository.observe(invocation("env.x"), recorder);
-            val before = recorder.values.size();
-
             repository.close();
+            val atClose = List.copyOf(recorder.values);
             repository.publish(repoKey("env.x"), Value.of("v1"));
 
-            assertThat(recorder.values).hasSize(before);
+            assertThat(recorder.values).containsExactlyElementsOf(atClose);
+            assertThat(atClose.getLast()).isInstanceOf(ErrorValue.class);
         }
 
         @Test
@@ -387,7 +552,7 @@ class InMemoryAttributeRepositoryTests {
                         .as("slow observer must be entered before we test TTL on unrelated key").isTrue();
 
                 // Publish to the unrelated key with a short TTL. Expiry fires
-                // on the scheduler thread. The slow observer is still parked
+                // independently. The slow observer is still parked
                 // in its accept(...) call right now.
                 repository.publish(repoKey("env.ttl"), Value.of("with-ttl"), Duration.ofMillis(50));
 

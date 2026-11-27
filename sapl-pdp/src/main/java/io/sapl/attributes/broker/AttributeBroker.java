@@ -25,89 +25,138 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * Multi-tenant view over the attribute layer for evaluator instances.
- * Many concurrent consumers (one per authorization subscription) hold
- * a {@link Subscription} obtained via
- * {@link #open(String, Set, Function)}. The broker deduplicates the
- * active invocations underlying each consumer's dep set and routes
- * value updates to the consumers that depend on the changed key.
+ * Consumer contract between attribute sources and policy evaluation. Each
+ * evaluation that needs attributes opens a {@link Subscription} with an initial
+ * set of attribute keys and one evaluation callback. The broker manages source
+ * invocations and routes changes; the callback evaluates the policy and reports
+ * which keys it wants the broker to observe after that round.
  * <p>
- * The consumer interacts with the broker through a single function
- * callback. On each fire the broker invokes the callback with the
- * fulfilled snapshot for the consumer's currently subscribed keys.
- * The callback evaluates against the snapshot and returns the
- * dependency set its next evaluation pass will read. The broker
- * diffs the returned set against the previous one, activating and
- * releasing active invocations accordingly. The {@link Subscription}
- * handle is a pure lifecycle marker, with a single
- * {@link Subscription#close()} method.
- * <p>
- * The first callback for a given dependency set fires only when every
- * declared key has a value in its mailbox (the all-deps-fulfilled
- * gate). The consumer never observes a partial snapshot. After the gate
- * first opens it stays open for the dep set, firing on each subsequent
- * value change. A callback whose return value adds a key with an empty
- * mailbox re-closes the gate until that key fills.
- * <p>
- * {@link io.sapl.api.model.ErrorValue} counts as a fulfilled value: a
- * PIP that fails materialises an {@code ErrorValue} in the mailbox, the
- * gate opens, and the consumer's evaluator handles the error per its
- * own semantics.
+ * The guarantees have separate purposes:
+ * <ol>
+ * <li><b>One stable input per round.</b> Each callback receives an immutable map
+ * containing the currently available registered values. A pending key can be
+ * absent when an update of a previously delivered input starts a round before
+ * new dependencies are fulfilled. Later source changes cannot modify that map
+ * while the policy uses it. Keys sharing one active invocation receive the same
+ * observation, or are all absent when that invocation is unfulfilled. An
+ * evaluation-side head cache can then supply an earlier frozen observation.
+ * A new callback starts a new
+ * evaluation against a newly captured map; it does not resume an expression
+ * using attribute results from the previous round.</li>
+ * <li><b>Preserve source consistency.</b> For changes a source identifies as one
+ * atomic update within a route, the broker installs all affected bindings before
+ * an evaluation can capture the new view. Otherwise a correct repository transaction could still
+ * produce a policy result from a combination that never existed. This does not
+ * create a transaction across independent PIPs or repository routes. See
+ * {@link AttributeRepository#observeState} for the source-side guarantees.</li>
+ * <li><b>Observation sets are replaced in full.</b> The callback returns every
+ * key it wants observed after that round, not a delta. For ordinary live keys,
+ * this follows the dependencies the evaluation needed or touched, including
+ * missing attributes. A loop can serve logical head dependencies from its own
+ * cache instead of observing them here; see {@link BrokerEvalLoops}.
+ * Adding a key attaches its source; removing a key releases only this consumer's
+ * interest. Removal does not change repository data or by itself request
+ * another evaluation.</li>
+ * <li><b>Collect first values, react to known inputs.</b> The initial keys wait
+ * for a complete first input. Newly discovered keys also collect their first
+ * values before requesting another round on their own. A value becomes known
+ * to this subscription when it has been included in a captured callback input,
+ * not merely when it reaches a mailbox or another consumer. An update of a
+ * still-observed known key can request a round while new keys remain pending.
+ * This lets a changed A make a missing B unnecessary without evaluating once
+ * for every first arrival in a newly requested group. Updates arriving during
+ * a callback survive its discovery of further missing dependencies.</li>
+ * <li><b>Absence stays distinct from data.</b> An absent mailbox has not
+ * delivered a value yet. Omit it from the input map rather than inventing a
+ * placeholder. A materialized {@code UNDEFINED}, SAPL null or an error value
+ * is fulfilled data and follows policy semantics. The callback must be able to
+ * report an incomplete result when its available inputs do not suffice.</li>
+ * <li><b>Serialization without thread affinity.</b> Callbacks for one open
+ * subscription never overlap. They run outside the broker lock but may use the
+ * opening thread or a source notification thread. Separate subscriptions may
+ * run concurrently. Slow callbacks can delay synchronous notification of other
+ * consumers; there is no fairness or latency guarantee.</li>
+ * <li><b>Changes can coalesce.</b> A callback already in progress retains its
+ * captured inputs. Concurrent wake requests can collapse into a later callback
+ * against newer inputs. There is no one-callback-per-change or
+ * one-decision-per-commit guarantee. The broker does not decide which completed
+ * policy results to publish or suppress.</li>
+ * </ol>
+ * The callback must handle evaluation failures without throwing onto a shared
+ * source thread. Only the result owner publishes completed policy results.
+ * An incomplete evaluation is not itself a reason to reevaluate unchanged
+ * inputs. The broker has no decision sink and cannot manufacture a
+ * fail-closed policy decision for it. {@link BrokerEvalLoops} supplies the usual
+ * evaluation-side guard and lifecycle handling.
  *
  * @since 4.1.0
  */
 public interface AttributeBroker extends AutoCloseable {
 
     /**
-     * Opens a per-consumer subscription. Initial dependencies and the
-     * trigger callback are wired atomically so the first update never
-     * races a not-yet-installed callback. If every key in
-     * {@code initialDependencies} already has a value in its mailbox at
-     * this point, the callback fires synchronously before this method
-     * returns. Otherwise the callback fires later, when the last
-     * unfulfilled key receives its first value.
+     * Opens one consumer's observation. Initial dependencies and the callback
+     * are installed together so a source change cannot reach a half-registered
+     * consumer. If the initial keys are already fulfilled, opening requests a
+     * callback immediately and may execute it inline before returning the
+     * handle. A racing producer may own delivery instead; callers cannot rely
+     * on a particular callback thread or completion before return. They must
+     * be ready to receive results before obtaining the handle. Otherwise
+     * the initial delivery waits for the last missing value.
      * <p>
-     * The {@code subscriptionId} is caller-supplied and must uniquely
-     * identify this consumer for the lifetime of this broker. The same
-     * id surfaces in broker-side telemetry and metrics so operators can
-     * correlate broker activity with the originating authorization
-     * subscription.
+     * {@code onUpdate} receives an immutable map of available registered values
+     * and returns its full, non-empty effective observation set. Already evaluated
+     * live attributes remain dependencies if their changes can affect the
+     * result. For example, discovering B after A=true keeps both A and B until
+     * the next round reevaluates them. If that round reads A=false and skips B,
+     * it returns only A.
+     * Cached head values can remain logical dependencies while the loop omits
+     * them from the broker's effective observation set.
      * <p>
-     * The {@code onUpdate} callback receives the fulfilled snapshot
-     * (the gate guarantees an entry per current dep) and must return a
-     * non-empty {@link Set} of the SubscriptionKeys its next evaluation
-     * pass will read. The broker applies the diff against the previous
-     * dep set. Active invocations are reference-counted across
-     * consumers. Freshly added keys activate an invocation (or attach
-     * to an existing one), dropped keys release. Returning an empty
-     * set is illegal. Consumers who want to stop must call
-     * {@link Subscription#close()} externally.
+     * The broker applies additions and removals after the callback returns.
+     * A completed first-value set requests another round, so a policy can
+     * complete without another publication. An update of a retained known key
+     * also requests a round even when newly added keys are still missing.
+     * A first arrival for only part of a new set does not request a round on
+     * its own. Already captured notifications can coalesce without repeating
+     * the same input. Removing keys alone does not request a round. Shared
+     * source invocations are reference-counted;
+     * releasing this handle need not stop a source still used by others.
+     * <p>
+     * Callbacks must return normally with a non-null, non-empty set. A thrown
+     * runtime exception or a null or empty return is a programming error. The
+     * PIP broker logs it and retains the previous dependencies as a last-resort
+     * backstop, rather than throwing on the producer thread. This does not
+     * produce a decision; the evaluation-side guard must report its own failure.
+     * A completed evaluation with no remaining logical dependencies must handle
+     * termination without passing an empty set to the broker; see
+     * {@link BrokerEvalLoops#openWithHead}.
      *
-     * @param subscriptionId non-blank identifier. Must not collide with
-     * any open subscription on this broker
-     * @param initialDependencies the SubscriptionKeys the consumer's
-     * first evaluation pass will read. Must be non-empty (consumers
-     * with no streaming dependencies do not interact with the broker at
-     * all)
-     * @param onUpdate fired when a fulfilled snapshot is available.
-     * Receives the snapshot, returns the next dep set.
-     * Per-subscription serialized (never invoked concurrently with
-     * itself for the same {@code subscriptionId}). Fires outside any
-     * internal broker lock. An empty returned set or a {@code null}
-     * returned set causes the broker to fail the subscription with an
-     * {@link IllegalStateException} on the firing thread
-     * @return per-consumer lifecycle handle for releasing the
-     * subscription
+     * The PIP implementation recognizes an {@link AttributeSubscriptionObserver} as
+     * a result owner with a failure channel. A terminal infrastructure failure is
+     * serialized with its rounds even if no further complete input can be captured.
+     * Existing implementations can continue using the ordinary update function.
+     *
+     * @param subscriptionId non-blank identifier, unique among open subscriptions;
+     * reusable after the previous subscription is closed
+     * @param initialDependencies non-empty keys discovered by an initial evaluation;
+     * an evaluation without attribute dependencies does not open a broker subscription
+     * @param onUpdate serialized callback receiving the immutable current inputs
+     * and returning the complete effective set of keys to observe afterwards
+     * @return handle owned and eventually closed by the consumer
      * @throws IllegalArgumentException if {@code subscriptionId} is
      * blank or already in use, or if {@code initialDependencies} is
      * empty
+     * @throws IllegalStateException if the broker has been closed
      */
     Subscription open(String subscriptionId, Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate);
 
     /**
-     * Releases every open subscription and all active invocations. No
-     * further callbacks fire after this returns.
+     * Closes all subscriptions and active invocations and rejects new opens.
+     * Closing prevents later dispatches from selecting a callback, but does not
+     * join callbacks already selected or executing. Such a callback may still
+     * begin or finish after this method returns. Consumers must guard their
+     * result publication if they require cancellation to suppress late output.
      */
     @Override
     void close();
@@ -124,11 +173,13 @@ public interface AttributeBroker extends AutoCloseable {
     interface Subscription extends AutoCloseable {
 
         /**
-         * Releases this consumer's dependencies and unregisters the
-         * trigger callback. Idempotent. Safe to call from any thread.
-         * After {@code close()} returns the broker will not invoke the
-         * callback again. Active invocations whose refcount falls to
-         * zero are released by the broker.
+         * Detaches this consumer and releases its dependency references.
+         * Idempotent and safe from any thread. Already selected or running
+         * callbacks are not joined and may still begin or finish; subsequent
+         * dependency changes returned by them are ignored after detachment.
+         * A source with no remaining consumers can be released immediately or
+         * after an implementation's grace period. This does not unbind its
+         * repository value or cancel another consumer's observation.
          */
         @Override
         void close();

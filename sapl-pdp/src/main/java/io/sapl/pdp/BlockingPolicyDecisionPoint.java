@@ -57,6 +57,7 @@ import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.AttributeSubscriptionObserver;
 import io.sapl.attributes.broker.BrokerEvalLoops;
 import io.sapl.attributes.broker.EvaluationException;
 import io.sapl.attributes.broker.HeadCache;
@@ -708,34 +709,42 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         val headCache  = new HeadCache();
         val terminated = new AtomicBoolean(false);
         val firstDeps  = headCache.brokerDepsFor(initialDeps);
-        val handle     = attributeBroker.open(subscriptionId, firstDeps, brokerSnap -> {
-                           if (terminated.get()) {
-                               // A prior round failed and surfaced INDETERMINATE. Idle on the
-                               // last dep set until the consumer closes the stream.
-                               return firstDeps;
-                           }
-                           try {
-                               val newDeps = new HashSet<SubscriptionKey>();
-                               val multi   = evaluateRound(items, pdp, subscriptionId, headCache.merge(brokerSnap),
-                                       newDeps);
-                               if (multi != null) {
-                                   out.put(multi);
-                               }
-                               val effective = newDeps.isEmpty() ? initialDeps : newDeps;
-                               headCache.captureFrom(brokerSnap);
-                               headCache.retainOnly(effective);
-                               return headCache.brokerDepsFor(effective);
-                           } catch (RuntimeException e) {
-                               // Engine invariant: the eval callback must never throw. The broker
-                               // would swallow it and strand the subscriber on a stale decision,
-                               // so surface a fail-closed INDETERMINATE and complete the stream.
-                               terminated.set(true);
-                               log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, e.getMessage(), e);
-                               out.put(indeterminateFor(items));
-                               out.complete();
-                               return firstDeps;
-                           }
-                       });
+        val handle     = attributeBroker.open(subscriptionId, firstDeps,
+                new AttributeSubscriptionObserver(brokerSnap -> {
+                                   if (terminated.get()) {
+                                       // A prior round failed and surfaced INDETERMINATE. Idle on the
+                                       // last dep set until the consumer closes the stream.
+                                       return firstDeps;
+                                   }
+                                   try {
+                                       val newDeps = new HashSet<SubscriptionKey>();
+                                       val multi = evaluateRound(items, pdp, subscriptionId, headCache.merge(brokerSnap),
+                                               newDeps);
+                                       if (multi != null) {
+                                           out.put(multi);
+                                       }
+                                       val effective = newDeps.isEmpty() ? initialDeps : newDeps;
+                                       headCache.captureFrom(brokerSnap);
+                                       headCache.retainOnly(effective);
+                                       return headCache.brokerDepsFor(effective);
+                                   } catch (RuntimeException e) {
+                                       // Engine invariant: the eval callback must never throw. The broker
+                                       // would swallow it and strand the subscriber on a stale decision,
+                                       // so surface a fail-closed INDETERMINATE and complete the stream.
+                                       terminated.set(true);
+                                       log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, e.getMessage(), e);
+                                       out.put(indeterminateFor(items));
+                                       out.complete();
+                                       return firstDeps;
+                                   }
+                               },
+                        failure -> {
+                            if (terminated.compareAndSet(false, true)) {
+                                log.error(ERROR_MULTI_EVALUATION_THREW, subscriptionId, failure.getMessage(), failure);
+                                out.put(indeterminateFor(items));
+                                out.complete();
+                            }
+                        }));
         out.onClose(handle::close);
         return out;
     }
@@ -755,20 +764,26 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             CompiledPdp pdp, String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
             Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, InstantSource timestampSource,
             BiConsumer<TracedVote, IdentifiableAuthorizationSubscription> perSubTraceObserver) {
-        val multi = new MultiAuthorizationDecision();
+        val     multi   = new MultiAuthorizationDecision();
+        boolean pending = false;
         for (val item : items) {
             val ctx = evaluationContext(pdp, item.subscription(), subscriptionId, functionBroker)
                     .withSnapshot(snapshot);
             val r   = evaluateVoter(pdp.voter(), ctx);
             depsAccumulator.addAll(r.dependencies().keySet());
             val vote = r.vote();
-            if (vote == null) {
-                return null;
+            if (pending || vote == null) {
+                // Later items still contribute their live and frozen dependencies.
+                pending = true;
+                continue;
             }
             if (perSubTraceObserver != null) {
                 perSubTraceObserver.accept(buildTracedVote(r, snapshot, timestampSource), item);
             }
             multi.setDecision(item.subscriptionId(), vote.authorizationDecision());
+        }
+        if (pending) {
+            return null;
         }
         return multi;
     }

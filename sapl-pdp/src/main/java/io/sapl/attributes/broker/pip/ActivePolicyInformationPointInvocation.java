@@ -27,6 +27,7 @@ import lombok.val;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.InstantSource;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,30 +35,30 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
- * Active invocation fed by a PIP. One instance per unique invocation across the
- * broker's consumers. Many consumers can
- * attach to the same instance.
+ * Active invocation fed by a PIP. Compatible consumers can share one instance.
+ * A fresh request creates another instance at attachment time. A later non-fresh
+ * request may reuse it, so freshness is not an exclusive lifetime lease.
  * <p>
  * What it owns: a single-slot mailbox (the latest value), a pump on a virtual
  * thread that reads the PIP's stream and
  * pushes each value into the slot, the subscriber index for dispatch, and the
  * refcount for lifecycle.
  * <p>
- * Hot-swap: {@link #rebind} replaces the source stream atomically without
- * clearing the slot. The prior value stays
- * visible until the new stream emits, so consumers don't see a transient
- * UNDEFINED while a replacement PIP spins up.
+ * A replacing PIP retains the previous observation at cutover. The broker
+ * serializes value admission with capture and source replacement. The mailbox monitor
+ * protects the stream identity and lifecycle. Value admission takes the routing lock
+ * before the mailbox monitor. Timestamp sampling, user callbacks and physical disconnect
+ * happen outside both. A retiring pump verifies its stream when committing a value.
+ * Subscriber counts and inverse routes are owned by the routing lock.
  * <p>
- * Locking: two locks in play. The broker's outer lock guards the subscriber
- * index and the refcount, so dispatch and
- * attach/detach stay consistent with the broker's wider state. This class's own
- * lock guards the mailbox plus
- * sourceStream and lifecycle flags. Callers of {@link #attach},
- * {@link #detach}, {@link #subscribers} and
- * {@link #refcount} must hold the broker lock.
+ * Accepted publications allocate distinct observation instances, including
+ * repeated values under an unchanged clock. Mailbox reads retain that instance.
+ * This lets each consumer recognize updates independently while first values
+ * of its newly requested keys are still being collected.
  */
 @Slf4j
 final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
@@ -77,6 +78,9 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     private final InstantSource             timestampSource;
     private final Consumer<Value>           onValue;
 
+    private final ReentrantLock              admission;
+    private final Consumer<RuntimeException> onFailure;
+
     // Subscriber index + refcount are guarded by the BROKER lock, not by this
     // class's internal lock. Walking only `subscriberRefs` keeps dispatch
     // O(consumers-of-this-active-invocation), not O(all-broker-consumers). The
@@ -89,14 +93,13 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
     private final AtomicInteger                    refcount       = new AtomicInteger();
 
-    private final Object                                 lock               = new Object();
+    private final Object                                 lock           = new Object();
     private Stream<Value>                                sourceStream;
-    private boolean                                      pumpStarted        = false;
-    private Optional<AttributeSnapshot>                  latestSnapshot     = Optional.empty();
+    private boolean                                      pumpStarted    = false;
+    private Optional<AttributeSnapshot>                  latestSnapshot = Optional.empty();
     private @Nullable StreamAttributeFinderSpecification sourceSpec;
-    private boolean                                      closed             = false;
-    private boolean                                      inRebindTransition = false;
-    private boolean                                      terminal           = false;
+    private boolean                                      closed         = false;
+    private boolean                                      terminal       = false;
 
     // Rate-limits the onValue-handler-threw warning to one per minute.
     // Guarded by `lock`: the pump thread and the broker thread both reach
@@ -127,6 +130,20 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
             @Nullable StreamAttributeFinderSpecification sourceSpec,
             InstantSource timestampSource,
             Consumer<Value> onValue) {
+        this(invocation, sourceStream, sourceSpec, timestampSource, onValue, new ReentrantLock(), failure -> {
+            throw failure;
+        });
+    }
+
+    ActivePolicyInformationPointInvocation(AttributeFinderInvocation invocation,
+            @Nullable Stream<Value> sourceStream,
+            @Nullable StreamAttributeFinderSpecification sourceSpec,
+            InstantSource timestampSource,
+            Consumer<Value> onValue,
+            ReentrantLock admission,
+            Consumer<RuntimeException> onFailure) {
+        this.admission       = admission;
+        this.onFailure       = onFailure;
         this.invocation      = invocation;
         this.sourceStream    = sourceStream;
         this.sourceSpec      = sourceSpec;
@@ -160,6 +177,18 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     public Optional<AttributeSnapshot> snapshot() {
         synchronized (lock) {
             return latestSnapshot;
+        }
+    }
+
+    void installPrepared(Stream<Value> prepared) {
+        synchronized (lock) {
+            sourceStream = prepared;
+        }
+    }
+
+    void retainObservation(Optional<AttributeSnapshot> prior) {
+        synchronized (lock) {
+            latestSnapshot = prior;
         }
     }
 
@@ -235,17 +264,13 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
      * swap-eviction, an ErrorValue on rebind
      * failure) before discarding the active invocation.
      * <p>
-     * Bypasses the rebind-transition gate (see {@link #rebind}): the caller has
-     * explicitly chosen this value as
-     * terminal.
-     * <p>
      * Marks the active invocation as terminal so a still-running pump cannot
      * overwrite this terminal value with a stale
      * source value after the PIP was unloaded or evicted: subsequent pump-path
      * publishes are suppressed.
      */
     void publishImmediate(Value value) {
-        publishInternal(value, false);
+        publishInternal(value, null);
     }
 
     /**
@@ -255,14 +280,9 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
      * its first value. Closes the old
      * stream so its pump exits naturally.
      * <p>
-     * Marks the active invocation as in a rebind transition. Pump-path publishes of
-     * {@link Value#UNDEFINED} are
-     * suppressed until the new stream emits a non-UNDEFINED value. This prevents
-     * transient absence jitter during a
-     * hot-swap when the replacement stream's initial-value timeout would otherwise
-     * propagate UNDEFINED to consumers
-     * that were observing a real prior value. Terminal UNDEFINED (via
-     * {@link #publishImmediate}) is unaffected.
+     * A previous pump can already hold a value when the rebind commits. The
+     * mailbox verifies which stream supplied a value when accepting it, so a
+     * delayed old pump cannot overwrite the replacement's observation.
      *
      * @param newSourceStream
      * the freshly opened replacement stream
@@ -273,16 +293,13 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
         Stream<Value> oldStream;
         synchronized (lock) {
             if (closed) {
-                if (newSourceStream != null) {
-                    safeClose(newSourceStream);
-                }
-                return;
+                oldStream = newSourceStream;
+            } else {
+                oldStream    = sourceStream;
+                sourceStream = newSourceStream;
+                sourceSpec   = newSourceSpec;
+                pumpStarted  = false;
             }
-            oldStream          = sourceStream;
-            sourceStream       = newSourceStream;
-            sourceSpec         = newSourceSpec;
-            pumpStarted        = false;
-            inRebindTransition = true;
         }
         if (oldStream != null) {
             safeClose(oldStream);
@@ -345,34 +362,39 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
             if (next == null) {
                 return;
             }
-            publishInternal(next, true);
+            publishInternal(next, boundStream);
         }
     }
 
-    /**
-     * @param value
-     * the value to publish
-     * @param gatedByRebind
-     * {@code true} when this publish flows from the source-stream pump (subject to
-     * the rebind-transition
-     * gate); {@code false} for immediate / terminal publishes that bypass the gate
-     */
-    private void publishInternal(Value value, boolean gatedByRebind) {
-        synchronized (lock) {
-            if (closed) {
-                return;
+    private void publishInternal(Value value, @Nullable Stream<Value> publisher) {
+        Instant observedAt;
+        try {
+            observedAt = timestampSource.instant();
+        } catch (RuntimeException failure) {
+            if (publisher == null) {
+                throw failure;
             }
-            if (gatedByRebind && terminal) {
-                return;
+            synchronized (lock) {
+                if (closed || terminal || publisher != sourceStream) {
+                    return;
+                }
             }
-            if (gatedByRebind && inRebindTransition && Value.UNDEFINED.equals(value)) {
-                return;
+            onFailure.accept(failure);
+            return;
+        }
+        admission.lock();
+        try {
+            synchronized (lock) {
+                if (closed || publisher != null && (terminal || publisher != sourceStream)) {
+                    return;
+                }
+                if (publisher == null) {
+                    terminal = true;
+                }
+                latestSnapshot = Optional.of(new AttributeSnapshot(value, observedAt));
             }
-            if (!gatedByRebind) {
-                terminal = true;
-            }
-            inRebindTransition = false;
-            latestSnapshot     = Optional.of(new AttributeSnapshot(value, timestampSource.instant()));
+        } finally {
+            admission.unlock();
         }
         try {
             onValue.accept(value);
