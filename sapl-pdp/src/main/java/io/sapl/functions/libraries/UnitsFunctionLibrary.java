@@ -24,6 +24,7 @@ import io.sapl.api.model.Value;
 import lombok.val;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -367,12 +368,12 @@ public class UnitsFunctionLibrary {
             return unit;
         }
 
-        val lower = unit.toLowerCase();
+        val lower = unit.toLowerCase(Locale.ROOT);
         if (lower.endsWith("i")) {
-            return unit.substring(0, unit.length() - 1).toUpperCase() + "I";
+            return unit.substring(0, unit.length() - 1).toUpperCase(Locale.ROOT) + "I";
         }
 
-        return unit.toUpperCase();
+        return unit.toUpperCase(Locale.ROOT);
     }
 
     /**
@@ -392,12 +393,12 @@ public class UnitsFunctionLibrary {
             return normalizedUnit;
         }
 
-        val lower = normalizedUnit.toLowerCase();
+        val lower = normalizedUnit.toLowerCase(Locale.ROOT);
         if (lower.endsWith("i")) {
-            return normalizedUnit.substring(0, normalizedUnit.length() - 1).toUpperCase() + "I";
+            return normalizedUnit.substring(0, normalizedUnit.length() - 1).toUpperCase(Locale.ROOT) + "I";
         }
 
-        return normalizedUnit.toUpperCase();
+        return normalizedUnit.toUpperCase(Locale.ROOT);
     }
 
     /**
