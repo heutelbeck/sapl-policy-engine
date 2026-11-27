@@ -111,6 +111,7 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private final AtomicReference<Disposable> changeStreamSubscription = new AtomicReference<>();
     private final AtomicReference<Disposable> resyncSubscription       = new AtomicReference<>();
     private volatile boolean                  closed                   = false;
+    private volatile Instant                  resumeFrom               = Instant.now();
 
     private record ViewEntry(Value value, @Nullable Instant expiresAt) {}
 
@@ -198,7 +199,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
     private Flux<ChangeStreamEvent<Document>> openChangeStream(String watchedCollection) {
         return Flux.defer(() -> mongo.changeStream(Document.class)
                 .withOptions(options -> options.fullDocumentLookup(FullDocument.UPDATE_LOOKUP)
-                        .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.WHEN_AVAILABLE))
+                        .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.WHEN_AVAILABLE)
+                        .resumeAt(resumeFrom.minusSeconds(5)))
                 .watchCollection(watchedCollection).listen());
     }
 
@@ -211,6 +213,11 @@ public final class MongoAttributeRepository implements AttributeRepository {
 
     // Handles change stream event for publish/delete events from a transaction
     private void processChangeStreamEvent(ChangeStreamEvent<Document> event) {
+        // While disconnected the reload after reconnect loads everything
+        if (disconnected.get()) {
+            return;
+        }
+
         try {
             loadFromDB();
         } catch (RuntimeException e) {
@@ -243,6 +250,8 @@ public final class MongoAttributeRepository implements AttributeRepository {
         reloadLock.lock();
 
         try {
+            resumeFrom = Instant.now();
+
             var newView = new HashMap<RepositoryKey, ViewEntry>();
             var now     = Instant.now();
             var query   = new Query(new Criteria().andOperator(Criteria.where(FIELD_PDP_ID).is(pdpId), new Criteria()
