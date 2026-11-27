@@ -53,9 +53,16 @@ import java.util.concurrent.Callable;
           --sapl.pdp.rsocket.enabled=false
           --sapl.pdp.rsocket.port=7000
 
-        Shortcut for local development:
+        The server refuses to start without TLS, unless plaintext is
+        allowed, and without an authentication mode, unless anonymous
+        access is allowed. The rule holds on localhost too. Each opt-in
+        logs a warning at every start that names where it was set.
+
+        Opt-ins for local development:
+          --no-tls    serve without TLS
+                      (as --io.sapl.node.allow-no-tls=true)
           --no-auth   accept unauthenticated requests
-                      (alias for --io.sapl.node.allow-no-auth=true)
+                      (as --io.sapl.node.allow-no-auth=true)
 
         Key configuration areas: policy source type (DIRECTORY, BUNDLES),
         authentication (no-auth, basic, API key, OAuth2), TLS, RSocket,
@@ -68,14 +75,14 @@ import java.util.concurrent.Callable;
     },
     footerHeading = "%nExamples:%n",
     footer = { """
-          # Start with default settings
+          # Start with the configuration in config/application.yml
           sapl server
 
-          # Local development without authentication
-          sapl server --no-auth
+          # Local development without TLS and authentication
+          sapl server --no-tls --no-auth
 
-          # Start on a custom port
-          sapl server --server.port=9090
+          # Serve one certificate on both APIs
+          sapl server --io.sapl.node.tls.certificate-chain=tls/server.pem --io.sapl.node.tls.private-key=tls/server.key
 
           # Use a custom configuration file
           sapl server --spring.config.location=file:/etc/sapl/application.yml

@@ -21,10 +21,14 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.security.*;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 /**
  * Utility for signing and verifying SAPL bundle manifests using Ed25519.
@@ -60,6 +64,25 @@ public class BundleSigner {
 
     private static final Set<String> ED25519_ALGORITHM_NAMES = Set.of(BundleManifest.SIGNATURE_ALGORITHM, "EdDSA");
 
+    // The X.509 SubjectPublicKeyInfo of an Ed25519 key is this prefix and the 32
+    // bytes of the encoded point (RFC 8410).
+    private static final int    ED25519_KEY_LENGTH  = 32;
+    private static final byte[] ED25519_SPKI_PREFIX = HexFormat.of().parseHex("302a300506032b6570032100");
+
+    // The encodings of the points of small order with the sign bit of x clear: the
+    // identity and the point of order 2, the two points of order 4 (y = 0), the
+    // four points of order 8 (two values of y), and y = p and y = p + 1, which
+    // are 0 and 1 not reduced modulo p.
+    private static final List<byte[]> SMALL_ORDER_POINTS = Stream
+            .of("0100000000000000000000000000000000000000000000000000000000000000",
+                    "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+                    "0000000000000000000000000000000000000000000000000000000000000000",
+                    "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+                    "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+                    "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+                    "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f")
+            .map(HexFormat.of()::parseHex).toList();
+
     private static final String ERROR_ED25519_NOT_AVAILABLE           = "Ed25519 algorithm not available.";
     private static final String ERROR_FILE_INTEGRITY_CHECK_FAILED     = "File integrity check failed for: %s. Expected hash: %s, actual: %s.";
     private static final String ERROR_INVALID_PRIVATE_KEY             = "Invalid private key: %s";
@@ -74,6 +97,7 @@ public class BundleSigner {
     private static final String ERROR_PRIVATE_KEY_NULL                = "Private key must not be null.";
     private static final String ERROR_PUBLIC_KEY_MUST_BE_ED25519      = "Public key must be Ed25519, got: %s.";
     private static final String ERROR_PUBLIC_KEY_NULL                 = "Public key must not be null.";
+    private static final String ERROR_PUBLIC_KEY_WEAK                 = "Public key must not be a weak Ed25519 key of small order.";
     private static final String ERROR_SIGNATURE_DOES_NOT_MATCH        = "Signature verification failed: signature does not match manifest.";
     private static final String ERROR_SIGNATURE_VERIFICATION          = "Signature verification error: %s";
     private static final String ERROR_SIGNING_FAILED                  = "Signing failed: %s";
@@ -170,12 +194,35 @@ public class BundleSigner {
         }
     }
 
+    /**
+     * Tells whether a public key is a weak Ed25519 key: a point of small order,
+     * whose signatures a forger can produce without the private key. The check
+     * reads the encoding of the point without the sign bit of x, so the
+     * encodings with y not reduced modulo p count as well.
+     *
+     * @param publicKey the public key
+     * @return true if the key is an Ed25519 key whose point has small order
+     */
+    static boolean isWeakEd25519Key(PublicKey publicKey) {
+        val encoded = publicKey.getEncoded();
+        if (encoded == null || encoded.length != ED25519_SPKI_PREFIX.length + ED25519_KEY_LENGTH || !Arrays
+                .equals(encoded, 0, ED25519_SPKI_PREFIX.length, ED25519_SPKI_PREFIX, 0, ED25519_SPKI_PREFIX.length)) {
+            return false;
+        }
+        val point = Arrays.copyOfRange(encoded, ED25519_SPKI_PREFIX.length, encoded.length);
+        point[ED25519_KEY_LENGTH - 1] &= 0x7f;
+        return SMALL_ORDER_POINTS.stream().anyMatch(smallOrder -> Arrays.equals(point, smallOrder));
+    }
+
     private void validatePublicKey(PublicKey publicKey) {
         if (publicKey == null) {
             throw new BundleSignatureException(ERROR_PUBLIC_KEY_NULL);
         }
         if (!ED25519_ALGORITHM_NAMES.contains(publicKey.getAlgorithm())) {
             throw new BundleSignatureException(ERROR_PUBLIC_KEY_MUST_BE_ED25519.formatted(publicKey.getAlgorithm()));
+        }
+        if (isWeakEd25519Key(publicKey)) {
+            throw new BundleSignatureException(ERROR_PUBLIC_KEY_WEAK);
         }
     }
 

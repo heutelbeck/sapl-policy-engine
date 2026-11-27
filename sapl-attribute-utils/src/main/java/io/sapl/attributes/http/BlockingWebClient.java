@@ -24,6 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
+import io.sapl.attributes.tls.PemTrust;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -42,10 +43,12 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -103,6 +106,8 @@ public class BlockingWebClient {
     private static final String ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
     private static final String ERROR_RESPONSE_TOO_LARGE                    = "HTTP response exceeded the configured limit of %d bytes.";
 
+    private static final String ERROR_TLS_REQUIRED = "HTTP connections with trustedCaPem require HTTPS or WSS.";
+
     private static final String MEDIATYPE_APPLICATION_JSON  = "application/json";
     private static final String MEDIATYPE_TEXT_EVENT_STREAM = "text/event-stream";
 
@@ -113,18 +118,60 @@ public class BlockingWebClient {
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
     private static final JsonNode        APPLICATION_JSON = JSON.stringNode(MEDIATYPE_APPLICATION_JSON);
 
+    private record TrustIdentity(String entryName, PemTrust trust) {}
+
+    private static final int                                      MAX_TRUST_CLIENTS = 64;
+    private final LinkedHashMap<TrustIdentity, BlockingWebClient> trustClients      = new LinkedHashMap<>(16, 0.75F,
+            true);
+
     private final JsonMapper mapper;
     private final HttpClient httpClient;
     private final long       maxResponseBytes;
+    private final boolean    requiresTls;
 
     public BlockingWebClient(JsonMapper mapper, HttpClient httpClient) {
         this(mapper, httpClient, DEFAULT_MAX_RESPONSE_BYTES);
     }
 
     public BlockingWebClient(JsonMapper mapper, HttpClient httpClient, long maxResponseBytes) {
+        this(mapper, httpClient, maxResponseBytes, false);
+    }
+
+    private BlockingWebClient(JsonMapper mapper, HttpClient httpClient, long maxResponseBytes, boolean requiresTls) {
+        this.requiresTls      = requiresTls;
         this.mapper           = mapper;
         this.httpClient       = httpClient;
         this.maxResponseBytes = maxResponseBytes;
+    }
+
+    /**
+     * Selects a separate connection pool for an operator's named trust configuration.
+     *
+     * @param entryName selected PIP and entry name
+     * @param trust trust anchors for this entry
+     * @return transport restricted to the supplied trust configuration
+     * @throws IllegalArgumentException if the trust configuration is invalid
+     */
+    public BlockingWebClient withTrust(String entryName, PemTrust trust) {
+        synchronized (trustClients) {
+            val key      = new TrustIdentity(entryName, trust);
+            val existing = trustClients.get(key);
+            if (existing != null) {
+                return existing;
+            }
+            val builder = HttpClient.newBuilder().sslContext(trust.sslContext()).version(httpClient.version())
+                    .sslParameters(httpClient.sslParameters());
+            httpClient.connectTimeout().ifPresent(builder::connectTimeout);
+            httpClient.proxy().ifPresent(builder::proxy);
+            httpClient.executor().ifPresent(builder::executor);
+            val client = new BlockingWebClient(mapper, builder.build(), maxResponseBytes, true);
+            trustClients.put(key, client);
+            if (trustClients.size() > MAX_TRUST_CLIENTS) {
+                // Existing streams retain their client until their own exchange finishes.
+                trustClients.pollFirstEntry();
+            }
+            return client;
+        }
     }
 
     /**
@@ -138,8 +185,6 @@ public class BlockingWebClient {
      */
     public Stream<Value> httpRequest(String httpMethod, ObjectValue requestSettings) {
         try {
-            val baseUrl       = baseUrl(requestSettings);
-            val path          = textOrDefault(requestSettings, PATH, "");
             val urlParameters = toStringMap(jsonOrDefault(requestSettings, URL_PARAMS, JSON.objectNode()));
             val headers       = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
             val accept        = jsonOrDefault(requestSettings, ACCEPT_MEDIATYPE, APPLICATION_JSON).asString();
@@ -147,7 +192,7 @@ public class BlockingWebClient {
             val body          = jsonOrDefault(requestSettings, BODY, null);
             val maxBytes      = maxResponseBytesOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
 
-            val uri     = buildUri(baseUrl, path, urlParameters);
+            val uri     = buildUri(requestUrl(requestSettings), urlParameters);
             val request = buildRequest(uri, httpMethod, headers, accept, contentType, body);
 
             if (MEDIATYPE_TEXT_EVENT_STREAM.equals(accept)) {
@@ -170,22 +215,39 @@ public class BlockingWebClient {
      */
     public Stream<Value> consumeWebSocket(ObjectValue requestSettings) {
         try {
-            val baseUrl  = baseUrl(requestSettings);
-            val path     = textOrDefault(requestSettings, PATH, "");
             val headers  = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
             val body     = jsonOrDefault(requestSettings, BODY, null);
             val maxBytes = maxResponseBytesOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
-            val uri      = createUri(baseUrl + path);
+            val uri      = createUri(requestUrl(requestSettings));
+            if (requiresTls && !"wss".equalsIgnoreCase(uri.getScheme())) {
+                return Streams.error(ERROR_TLS_REQUIRED);
+            }
             return openWebSocket(uri, headers, body, maxBytes);
         } catch (RuntimeException e) {
             return Streams.error(messageOf(e));
         }
     }
 
+    /**
+     * Sends a request through this transport and returns the response stream.
+     * The caller must close the response body.
+     *
+     * @param request HTTP request to send
+     * @return response with its open body stream
+     * @throws IOException if the connection or exchange fails
+     * @throws InterruptedException if interrupted while sending the request
+     */
+    public HttpResponse<InputStream> send(HttpRequest request) throws IOException, InterruptedException {
+        if (requiresTls && !"https".equalsIgnoreCase(request.uri().getScheme())) {
+            throw new IOException(ERROR_TLS_REQUIRED);
+        }
+        return httpClient.send(request, BodyHandlers.ofInputStream());
+    }
+
     private Supplier<Value> jsonRequestSupplier(HttpRequest request, String accept, long maxBytes) {
         return () -> {
             try {
-                val response = httpClient.send(request, BodyHandlers.ofInputStream());
+                val response = send(request);
                 if (response.statusCode() >= 400) {
                     // Close the body to release the connection on the error branch.
                     try (val ignored = response.body()) {
@@ -222,7 +284,7 @@ public class BlockingWebClient {
             val bodyRef = new AtomicReference<InputStream>();
             val thread  = Thread.startVirtualThread(() -> {
                             try {
-                                val response = httpClient.send(request, BodyHandlers.ofInputStream());
+                                val response = send(request);
                                 // Open the body before the status check to release the connection on the error
                                 // branch too.
                                 try (val body = response.body()) {
@@ -394,8 +456,18 @@ public class BlockingWebClient {
         });
     }
 
-    private static URI buildUri(String baseUrl, String path, Map<String, String> queryParams) {
-        val uri = baseUrl + path;
+    /**
+     * Returns the destination used for HTTP and WebSocket exchanges before adding query parameters.
+     *
+     * @param settings request settings
+     * @return combined base URL and path
+     * @throws IllegalArgumentException if the base URL is absent or invalid
+     */
+    public static String requestUrl(ObjectValue settings) {
+        return baseUrl(settings) + textOrDefault(settings, PATH, "");
+    }
+
+    private static URI buildUri(String uri, Map<String, String> queryParams) {
         if (queryParams.isEmpty()) {
             return createUri(uri);
         }
@@ -498,7 +570,7 @@ public class BlockingWebClient {
         return builder;
     }
 
-    private String baseUrl(ObjectValue requestSettings) {
+    private static String baseUrl(ObjectValue requestSettings) {
         if (!requestSettings.containsKey(BASE_URL)) {
             throw new IllegalArgumentException(ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST);
         }
@@ -509,7 +581,7 @@ public class BlockingWebClient {
         throw new IllegalArgumentException(ERROR_BASE_URL_MUST_BE_TEXT);
     }
 
-    private String textOrDefault(ObjectValue requestSettings, String fieldName, String defaultValue) {
+    private static String textOrDefault(ObjectValue requestSettings, String fieldName, String defaultValue) {
         if (!requestSettings.containsKey(fieldName)) {
             return defaultValue;
         }

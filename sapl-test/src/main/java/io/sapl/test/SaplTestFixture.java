@@ -861,6 +861,10 @@ public class SaplTestFixture {
         var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
                 effectiveAlgorithm, compilerOptions, effectivePolicies, pdpData);
 
+        // Secrets of a test are written in cleartext in its definition.
+        if (!effectiveSecrets.isEmpty()) {
+            pdpBuilder.acceptUnencryptedSecrets();
+        }
         return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeBroker(mockingAttributeBroker)
                 .withConfiguration(configuration).build();
     }
@@ -1164,7 +1168,7 @@ public class SaplTestFixture {
      */
     public static class DecisionResult {
 
-        private static final String ERROR_TIMEOUT_AWAITING_DECISION = "Timed out awaiting the expected decision; the decision stream stayed open but never emitted within the timeout.";
+        private static final String ERROR_TIMEOUT_AWAITING_DECISION = "Timed out awaiting the expected decision. The decision stream stayed open but never emitted within the timeout.";
 
         private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 

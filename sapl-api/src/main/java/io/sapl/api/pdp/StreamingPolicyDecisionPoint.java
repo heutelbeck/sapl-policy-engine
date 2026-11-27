@@ -88,9 +88,17 @@ public interface StreamingPolicyDecisionPoint {
     Stream<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription, String pdpId);
 
     /**
-     * Opens a stream that delivers a combined
-     * {@link MultiAuthorizationDecision} containing every
-     * subscription's current decision.
+     * Evaluates the group against one fixed view of its attributes per round.
+     * The first bundle is ready when every item has a decision. Later rounds
+     * emit a complete bundle whenever any item's {@link AuthorizationDecision}
+     * changes. Each bundle uses the caller's item IDs.
+     * <p>
+     * If two items depend on the same attribute, a change affecting both
+     * decisions appears in one bundle. The group also sees assignments published
+     * atomically by an attribute repository together. Separate calls open independent groups.
+     * For an empty group the stream returns {@link MultiAuthorizationDecision#indeterminate()}.
+     *
+     * @see DecisionInterceptor
      *
      * @param multiSubscription the batch of subscriptions
      * @param pdpId the tenant identifier

@@ -138,9 +138,12 @@ public final class SecretsUnsealingSource implements PDPConfigurationSource {
      * content, the ciphertext, or the key. Only the exception type steers the
      * wording, so no attacker-influenced or secret-bearing text is logged.
      */
-    private static String reasonWithoutSecrets(RuntimeException failure) {
+    private String reasonWithoutSecrets(RuntimeException failure) {
         if (failure instanceof PDPConfigurationException) {
             return "its secrets are not sealed and unsealed secrets are not accepted";
+        }
+        if (failure instanceof SecretSealingException && keyring.privateKeysByKeyId().isEmpty()) {
+            return "its secrets are sealed and no recipient key is configured";
         }
         if (failure instanceof SecretSealingException) {
             return "its secrets could not be decrypted with the configured recipient key (wrong key or tampered data)";

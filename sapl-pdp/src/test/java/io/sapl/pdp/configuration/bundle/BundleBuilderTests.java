@@ -52,6 +52,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
@@ -59,6 +60,8 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.ConfigurationIds;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.secrets.SecretSealing;
+
+import com.nimbusds.jose.jwk.OctetKeyPair;
 
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
@@ -639,6 +642,28 @@ class BundleBuilderTests {
         }
 
         @Test
+        @DisplayName("an explicit sealing recipient names the audience of sealed secrets that hold no sealed leaf")
+        void whenSealedSecretsHoldNoLeafThenExplicitRecipientNamesTheAudience() throws IOException {
+            val bundle   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets("{}")
+                    .withSealingRecipient("vault-key").build();
+            val manifest = BundleManifest.fromJson(extractEntries(bundle).get(BundleManifest.MANIFEST_FILENAME));
+            assertThat(manifest.audience()).isEqualTo(new BundleManifest.Audience("vault-key"));
+        }
+
+        @Test
+        @DisplayName("sealed tokens without a key id are refused even with an explicit sealing recipient")
+        void whenSealedTokensCarryNoKeyIdThenRefusedDespiteExplicitRecipient() {
+            val recipient = new OctetKeyPair.Builder(SecretSealing.generateRecipientKey().toPublicJWK()).keyID(null)
+                    .build();
+            val sealed    = """
+                    { "apiKey": "ENC[%s]" }""".formatted(SecretSealing.seal(recipient, "\"secret\""));
+            val builder   = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withSealedSecrets(sealed)
+                    .withSealingRecipient("vault-key");
+            assertThatThrownBy(builder::build).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("requires a sealing recipient key id");
+        }
+
+        @Test
         @DisplayName("plaintext content passed as sealed secrets is rejected")
         void whenSealedSecretsNotSealedThenThrows() {
             val builder   = BundleBuilder.create();
@@ -749,6 +774,27 @@ class BundleBuilderTests {
             val config    = BundleParser.parse(bundle, "pdp", signedPolicy);
             assertThat(config.extensions()).containsKey("paratron-gateway");
             assertThat(config.extensionSecrets()).containsKey("paratron-gateway");
+        }
+
+        @Test
+        @DisplayName("a bundled extension file may contain comments")
+        void whenBundledExtensionHasCommentsThenLoaded() {
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON).withExtension("paratron-gateway", """
+                    { /* public entry point */ "route": "/api" } // end""")
+                    .signWith(cultKeyPair.getPrivate(), "elder-key").build();
+            val config = BundleParser.parse(bundle, "pdp", signedPolicy);
+            assertThat(config.extensions()).containsEntry("paratron-gateway",
+                    Value.ofObject(Map.of("route", Value.of("/api"))));
+        }
+
+        @Test
+        @DisplayName("a bundled extension file that is not valid JSON fails the configuration")
+        void whenBundledExtensionMalformedThenRejected() {
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                    .withExtension("paratron-gateway", "{ \"route\": ").signWith(cultKeyPair.getPrivate(), "elder-key")
+                    .build();
+            assertThatThrownBy(() -> BundleParser.parse(bundle, "pdp", signedPolicy))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("ext-paratron-gateway.json");
         }
     }
 

@@ -202,6 +202,12 @@ public class PriorityBasedVoteCombiner {
             return concreteResult(newAuthz, newVote.outcome(), contributingVotes, voterMetadata);
         }
 
+        // An abstention contributes to the trace without resolving an error or adding a possible effect.
+        if (newDec == Decision.NOT_APPLICABLE) {
+            return new Vote(accAuthz, accumulatorVote.errors(), contributingVotes, voterMetadata,
+                    accumulatorVote.outcome());
+        }
+
         // Priority decision in new vote always wins
         if (newDec == priorityDecision) {
             // Same decision - check transformation uncertainty and merge
@@ -249,12 +255,6 @@ public class PriorityBasedVoteCombiner {
             // Critical error blocks - stays INDETERMINATE
             return indeterminateResult(combineOutcomes(accumulatorVote.outcome(), newVote.outcome()),
                     accumulatorVote.errors(), contributingVotes, voterMetadata);
-        }
-
-        // New vote is NOT_APPLICABLE - accumulator wins. Symmetric counterpart
-        // of the accDec NOT_APPLICABLE branch at the top of this method.
-        if (newDec == Decision.NOT_APPLICABLE) {
-            return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
         }
 
         // Same concrete decision - merge constraints
@@ -323,7 +323,7 @@ public class PriorityBasedVoteCombiner {
         case DENY    -> Effect.DENY;
         case SUSPEND -> Effect.SUSPEND;
         default      -> throw new IllegalArgumentException(
-                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
+                "Priority decision must be PERMIT, DENY, or SUSPEND, got " + priorityDecision);
         };
     }
 
@@ -346,7 +346,7 @@ public class PriorityBasedVoteCombiner {
         case PERMIT, DENY -> Decision.SUSPEND;
         case SUSPEND      -> Decision.DENY;
         default           -> throw new IllegalArgumentException(
-                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
+                "Priority decision must be PERMIT, DENY, or SUSPEND, got " + priorityDecision);
         };
     }
 

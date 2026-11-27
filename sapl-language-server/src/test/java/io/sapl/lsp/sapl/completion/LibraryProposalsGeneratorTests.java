@@ -56,11 +56,11 @@ class LibraryProposalsGeneratorTests {
 
     static Stream<Arguments> functionSchemaTestCases() {
         return Stream.of(
-                arguments("Function with schema - offers all properties", "time.now", "policy \"test\" permit",
+                arguments("Function with schema: offers all properties", "time.now", "policy \"test\" permit",
                         TIME_SCHEMA, List.of("year", "month", "day", "hour", "minute", "second")),
-                arguments("Function without schema - no proposals", "standard.textOf", "policy \"test\" permit", null,
+                arguments("Function without schema: no proposals", "standard.textOf", "policy \"test\" permit", null,
                         List.of()),
-                arguments("Nested schema - includes nested paths", "custom.getData", "policy \"test\" permit",
+                arguments("Nested schema: includes nested paths", "custom.getData", "policy \"test\" permit",
                         NESTED_SCHEMA, List.of("profile", "profile.name", "profile.email")));
     }
 
@@ -122,7 +122,7 @@ class LibraryProposalsGeneratorTests {
         return Stream.of(arguments("Function imported without alias", "now", "import time.now policy \"test\" permit"),
                 arguments("Function imported with explicit alias", "currentTime",
                         "import time.now as currentTime policy \"test\" permit"),
-                arguments("Library imported - short name works", "now", "import time policy \"test\" permit"));
+                arguments("Library imported: short name works", "now", "import time policy \"test\" permit"));
     }
 
     @ParameterizedTest(name = "{0}")

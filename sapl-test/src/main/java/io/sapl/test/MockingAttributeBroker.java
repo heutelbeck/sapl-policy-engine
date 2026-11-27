@@ -76,7 +76,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
     private static final String ERROR_MOCK_ID_ALREADY_REGISTERED  = "Mock ID '%s' is already registered.";
     private static final String ERROR_MOCK_ID_BLANK               = "Mock ID must not be blank.";
     private static final String ERROR_NO_MOCK_FOR_ID              = "No mock registered with ID '%s'.";
-    private static final String ERROR_RETURNED_DEPS_EMPTY         = "Subscription %s returned empty/null dependencies; close externally instead.";
+    private static final String ERROR_RETURNED_DEPS_EMPTY         = "Subscription %s returned empty/null dependencies. Close externally instead.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK       = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE      = "subscriptionId already open: %s";
     private static final String ERROR_VERIFICATION_FAILED         = "Attribute verification failed for '%s'.%n";

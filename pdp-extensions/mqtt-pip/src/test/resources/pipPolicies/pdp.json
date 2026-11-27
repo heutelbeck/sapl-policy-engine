@@ -5,27 +5,20 @@
 		"errorHandling": "PROPAGATE"
 	},
 	"variables": {
-		"mqttPipConfig": {
-			"defaultMessage" : "defaultMessage",
-			"defaultBrokerConfigName": "production",
-			"brokerConfig": [
-				{
-					"name": "production",
+		"mqtt": {
+			"default": "production",
+			"brokers": {
+				"production": {
 					"brokerAddress": "localhost",
 					"brokerPort": 1883,
-					"clientId": "mqttPipDefault",
-					"username": "",
-					"password": ""
+					"clientId": "mqttPipDefault"
 				},
-				{
-					"name": "broker1",
+				"broker1": {
 					"brokerAddress": "localhost",
 					"brokerPort": 1883,
-					"clientId": "mqttPip1",
-					"username": "",
-					"password": ""
+					"clientId": "mqttPip1"
 				}
-			]
+			}
 		}
 	}
 }

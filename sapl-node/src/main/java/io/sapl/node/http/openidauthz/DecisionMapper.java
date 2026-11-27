@@ -65,7 +65,7 @@ class DecisionMapper {
     static final String REASON_DENY_EN                     = "Access denied by policy.";
     static final String REASON_INDETERMINATE_EN            = "Policy evaluation could not reach a conclusion.";
     static final String REASON_NOT_APPLICABLE_EN           = "No policy matched the request.";
-    static final String REASON_PERMIT_NEEDS_ENFORCEMENT_EN = "Permit requires SAPL-aware enforcement of obligations or a transformed resource; mapped to deny for vanilla OpenID PEPs.";
+    static final String REASON_PERMIT_NEEDS_ENFORCEMENT_EN = "Permit requires SAPL-aware enforcement of obligations or a transformed resource. Mapped to deny for vanilla OpenID PEPs.";
     static final String REASON_SUSPEND_EN_403              = "Authorization deferred. Retry after additional authentication.";
     static final String REASON_USER_KEY                    = "reason_user";
     static final String RESOURCE_KEY                       = "resource";

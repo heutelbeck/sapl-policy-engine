@@ -1,0 +1,140 @@
+Authorization decisions in JSON, in protobuf and in the SAPL binary format, as the node sends them.
+
+JSON leaves out empty obligations, empty advice and an undefined resource, and writes the fields
+in the order decision, obligations, advice, resource. A whole number within 64 bits is written
+plainly, whatever notation it came in. Any other number without exponent is written plainly, one
+with an exponent in scientific notation unless it is a small negative one. Undefined and error
+values have no JSON form. Protobuf is AuthorizationDecision of sapl_types.proto; fields that hold
+their default are left out, and numbers are written plainly. The binary form (BINARY_FORMAT.md of
+this crate) is the lead byte 00, the text region, the verdict byte, the obligations and the advice each as a count
+and values, and the resource, undefined when absent.
+
+The document holds the parts of the decision, one per line: 'decision' with its name, and
+optionally 'obligations' and 'advice' as JSON arrays and 'resource' as JSON or as the word 'error'.
+A missing part is empty or undefined. The expectation holds 'json' with the JSON form, or
+'refused', 'protobuf' with the bytes in hexadecimal, which may go on in further lines, and
+'binary' with the bytes of the binary form alike. A '//' starts a comment to the end of the line.
+
+=== a permit
+decision: PERMIT
+---
+json: {"decision":"PERMIT"}
+protobuf: 08 01
+binary: 00 00 01 00 00 00
+
+=== a deny
+decision: DENY
+---
+json: {"decision":"DENY"}
+protobuf: 08 02
+binary: 00 00 02 00 00 00
+
+=== not applicable
+decision: NOT_APPLICABLE
+---
+json: {"decision":"NOT_APPLICABLE"}
+protobuf: 08 03
+binary: 00 00 03 00 00 00
+
+=== a suspend
+decision: SUSPEND
+---
+json: {"decision":"SUSPEND"}
+protobuf: 08 04
+binary: 00 00 04 00 00 00
+
+=== indeterminate, which in protobuf is the empty message
+decision: INDETERMINATE
+---
+json: {"decision":"INDETERMINATE"}
+protobuf:
+binary: 00 00 00 00 00 00
+
+=== empty obligations and advice
+decision: PERMIT
+obligations: []
+advice: []
+---
+json: {"decision":"PERMIT"}
+protobuf: 08 01
+binary: 00 00 01 00 00 00
+
+=== obligations, advice and a resource
+decision: PERMIT
+obligations: [{"type":"log"}]
+advice: ["hint"]
+resource: {"name":"Wilbur"}
+---
+json: {"decision":"PERMIT","obligations":[{"type":"log"}],"advice":["hint"],"resource":{"name":"Wilbur"}}
+protobuf: 08 01
+   12 13 0a 11 32 0f 0a 0d 0a 04 74 79 70 65 12 05 22 03 6c 6f 67    // obligations
+   1a 08 0a 06 22 04 68 69 6e 74                                     // advice
+   22 14 32 12 0a 10 0a 04 6e 61 6d 65 12 08 22 06 57 69 6c 62 75 72 // resource
+binary: 00 15 74 79 70 65 6c 6f 67 68 69 6e 74 6e 61 6d 65 57 69 6c 62 75 72 01 01 61 04 23 01 24 61 04 26
+
+=== a resource that is null
+decision: PERMIT
+resource: null
+---
+json: {"decision":"PERMIT","resource":null}
+protobuf: 08 01 22 02 0a 00
+binary: 00 00 01 00 00 01
+
+=== a resource that is false
+decision: PERMIT
+resource: false
+---
+json: {"decision":"PERMIT","resource":false}
+protobuf: 08 01 22 02 10 00
+binary: 00 00 01 00 00 02
+
+=== numbers in plain and in scientific notation
+decision: PERMIT
+obligations: [1E+3,1E-7,2.50,-0.5,123.456]
+---
+json: {"decision":"PERMIT","obligations":[1000,1E-7,2.50,-0.5,123.456]}
+protobuf: 08 01 12 30
+   0a 06 1a 04 31 30 30 30                     // "1000"
+   0a 0b 1a 09 30 2e 30 30 30 30 30 30 31      // "0.0000001"
+   0a 06 1a 04 32 2e 35 30                     // "2.50"
+   0a 06 1a 04 2d 30 2e 35                     // "-0.5"
+   0a 09 1a 07 31 32 33 2e 34 35 36            // "123.456"
+binary: 00 00 01 05 04 d0 0f 05 02 0e 05 f4 03 04 05 09 02 05 80 89 0f 06 00 00
+
+=== numbers at the border of the plain notation
+decision: PERMIT
+obligations: [0.000001,0.0000012,1000000,1e2,0.00]
+---
+json: {"decision":"PERMIT","obligations":[0.000001,0.0000012,1000000,100,0]}
+binary: 00 00 01 05 05 02 0c 05 18 0e 04 80 89 7a e4 80 00 00
+
+=== nested arrays and empty containers
+decision: PERMIT
+obligations: [[[],{}]]
+---
+json: {"decision":"PERMIT","obligations":[[[],{}]]}
+protobuf: 08 01 12 0c 0a 0a 2a 08 0a 02 2a 00 0a 02 32 00
+binary: 00 00 01 01 42 40 60 00 00
+
+=== quotes, backslashes and control characters in a text
+decision: PERMIT
+obligations: ["a\"b\\c\n\u0001"]
+---
+json: {"decision":"PERMIT","obligations":["a\"b\\c\n\u0001"]}
+protobuf: 08 01 12 0b 0a 09 22 07 61 22 62 5c 63 0a 01
+binary: 00 07 61 22 62 5c 63 0a 01 01 01 27 00 00
+
+=== characters outside ASCII and a slash
+decision: PERMIT
+advice: ["<U+00E9>/<U+1F600>"]
+---
+json: {"decision":"PERMIT","advice":["<U+00E9>/<U+1F600>"]}
+binary: 00 07 c3 a9 2f f0 9f 98 80 01 00 01 27 00
+
+=== an error as resource
+decision: DENY
+resource: error
+---
+json: refused
+protobuf: 08 02 22 09 42 07 0a 05 42 6f 6f 6d 2e    // error "Boom."
+binary: 00 05 42 6f 6f 6d 2e 02 00 00 07 05

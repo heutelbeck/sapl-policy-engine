@@ -30,6 +30,7 @@ import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
+import lombok.ToString;
 import lombok.val;
 
 @Data
@@ -39,6 +40,8 @@ public class RemotePDPProperties implements Validator {
 
     private static final String TYPE_HTTP                  = "http";
     private static final String TYPE_RSOCKET               = "rsocket";
+    private static final String FORMAT_BINARY              = "binary";
+    private static final String FORMAT_PROTOBUF            = "protobuf";
     private static final String OAUTH2_CLIENT_REGISTRATION = "oauth2.clientRegistrationId";
 
     private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Refusing to send remote PDP credentials over an unencrypted channel. Use https (or rsocket tls), or set io.sapl.pdp.remote.allow-insecure-http=true to permit this for local development only.";
@@ -64,9 +67,20 @@ public class RemotePDPProperties implements Validator {
     private Duration keepAlive   = Duration.ofSeconds(20);
     private Duration maxLifeTime = Duration.ofSeconds(90);
 
-    private String key    = "";
+    // How many RSocket connections the client keeps to the node.
+    private int connections = 1;
+
+    // The encoding of the RSocket payloads: protobuf, or the SAPL binary format
+    // with a fallback to protobuf for a node that does not speak it.
+    private String format = FORMAT_PROTOBUF;
+
+    private String key = "";
+
+    // Credentials stay out of the text form, which ends up in logs and error messages.
+    @ToString.Exclude
     private String secret = "";
 
+    @ToString.Exclude
     private String bearerToken = "";
 
     private boolean tokenRelay = false;
@@ -149,6 +163,15 @@ public class RemotePDPProperties implements Validator {
                 errors.rejectValue("port", "port-invalid", new String[] { String.valueOf(properties.port) },
                         "port must be between 1 and 65535 for rsocket transport");
             }
+        }
+        if (properties.connections < 1) {
+            errors.rejectValue("connections", "connections-invalid",
+                    new String[] { String.valueOf(properties.connections) },
+                    "The number of connections must be at least 1.");
+        }
+        if (!FORMAT_PROTOBUF.equals(properties.format) && !FORMAT_BINARY.equals(properties.format)) {
+            errors.rejectValue("format", "format-invalid", new String[] { properties.format },
+                    "The format must be protobuf or binary.");
         }
         if (properties.tokenRelay) {
             errors.rejectValue("tokenRelay", "token-relay-rsocket",

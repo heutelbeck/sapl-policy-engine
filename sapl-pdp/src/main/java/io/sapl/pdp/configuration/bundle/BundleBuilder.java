@@ -346,8 +346,10 @@ public final class BundleBuilder {
      * Usually the recipient is resolved automatically: from the
      * {@link #sealSecretsWith} key's key id, or from the JWE header of
      * already-sealed input. Use this method to state it explicitly, for example
-     * when re-bundling sealed content whose tokens carry no key id. Building
-     * fails when a recipient is set but the bundle carries no sealed content.
+     * when the sealed secrets hold no sealed value to take it from. Building
+     * fails when a recipient is set but the bundle carries no sealed content,
+     * when it differs from the key id the sealed values name, and when a sealed
+     * value names no key id, since a bundle parser refuses such a value.
      * </p>
      *
      * @param sealingRecipientKeyId

@@ -57,44 +57,10 @@ public interface ParsedDocument {
     List<Token> getTokens();
 
     /**
-     * Checks if the document has any parse or validation errors.
+     * Checks if the document has any problem.
      *
-     * @return true if there are errors
+     * @return true if there are problems
      */
     boolean hasErrors();
-
-    /**
-     * Gets parse errors from lexer/parser.
-     *
-     * @return list of parse errors
-     */
-    List<ParseError> getParseErrors();
-
-    /**
-     * Gets semantic validation errors.
-     *
-     * @return list of validation errors
-     */
-    List<ValidationError> getValidationErrors();
-
-    /**
-     * Represents a parse error with location information.
-     *
-     * @param line the line number (1-based)
-     * @param charPositionInLine the character position in line (0-based)
-     * @param message the error message
-     * @param offendingSymbol the offending symbol text
-     */
-    record ParseError(int line, int charPositionInLine, String message, String offendingSymbol) {}
-
-    /**
-     * Represents a semantic validation error.
-     *
-     * @param line the line number (1-based)
-     * @param charPositionInLine the character position in line (0-based)
-     * @param message the error message
-     * @param offendingText the offending text
-     */
-    record ValidationError(int line, int charPositionInLine, String message, String offendingText) {}
 
 }

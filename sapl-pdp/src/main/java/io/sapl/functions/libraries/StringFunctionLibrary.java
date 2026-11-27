@@ -23,8 +23,6 @@ import io.sapl.api.model.*;
 import lombok.val;
 
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Functions for string manipulation in authorization policies. Provides simple,
@@ -533,31 +531,26 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_STRING)
     public static Value join(ArrayValue elements, TextValue delimiter) {
-        val array         = elements.toArray();
         val delimiterText = delimiter.value();
-
-        if (0 == array.length) {
-            return Value.of("");
-        }
-
-        val result   = new StringBuilder();
-        val iterator = elements.iterator();
-
-        while (iterator.hasNext()) {
-            val element = iterator.next();
+        val result        = new StringBuilder();
+        var first         = true;
+        for (val element : elements) {
             if (!(element instanceof TextValue text)) {
                 return Value.error(ERROR_ALL_ARRAY_ELEMENTS_MUST_BE_TEXT);
             }
-
-            if (!result.isEmpty()) {
+            long additional = text.value().length();
+            if (!first) {
+                additional += delimiterText.length();
+            }
+            if (additional > TextOutputLimits.MAX_OUTPUT_CHARS - result.length()) {
+                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
+            }
+            if (!first) {
                 result.append(delimiterText);
             }
             result.append(text.value());
-            if (result.length() > TextOutputLimits.MAX_OUTPUT_CHARS) {
-                return Value.error(ERROR_OUTPUT_EXCEEDS_MAXIMUM, TextOutputLimits.MAX_OUTPUT_CHARS);
-            }
+            first = false;
         }
-
         return Value.of(result.toString());
     }
 
@@ -674,7 +667,11 @@ public class StringFunctionLibrary {
             return Value.error(ERROR_TARGET_STRING_CANNOT_BE_EMPTY);
         }
 
-        return Value.of(text.replaceFirst(Pattern.quote(targetText), Matcher.quoteReplacement(replacementText)));
+        val index = text.indexOf(targetText);
+        if (index < 0) {
+            return str;
+        }
+        return Value.of(text.substring(0, index) + replacementText + text.substring(index + targetText.length()));
     }
 
     @Function(docs = """

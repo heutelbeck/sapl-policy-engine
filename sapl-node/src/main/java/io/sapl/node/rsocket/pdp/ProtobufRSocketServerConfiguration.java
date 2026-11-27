@@ -23,16 +23,21 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ssl.NoSuchSslBundleException;
+import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
+import io.sapl.node.boot.OptIn;
 import io.sapl.node.boot.SaplStartupConfigurationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
@@ -51,16 +56,23 @@ import lombok.val;
  * are authenticated via the RSocket setup frame. Otherwise, all connections
  * are accepted without authentication.
  * <p>
- * TLS is opt-in via {@code sapl.pdp.rsocket.ssl.bundle=<name>}, which
- * resolves a Spring Boot {@link SslBundles SSL bundle} configured under
- * {@code spring.ssl.bundle.*}. The same bundle definition can be shared
- * with the HTTP server, so a single keystore covers both transports.
+ * TLS comes from {@code sapl.pdp.rsocket.ssl.bundle=<name>}, which resolves
+ * a Spring Boot {@link SslBundles SSL bundle} configured under
+ * {@code spring.ssl.bundle.*}, or from {@code io.sapl.node.tls.*}, which names
+ * the PEM files of both transports. A bundle that is updated, as one with
+ * {@code reload-on-update} is when its files change, serves new connections
+ * with the renewed certificate. Without TLS the server starts only if
+ * plaintext is allowed.
  * <p>
  * The server lifecycle is managed by {@link ProtobufRSocketServerLifecycle}
  * via Spring's {@link org.springframework.context.SmartLifecycle} interface.
  */
+@Slf4j
 @Configuration
 public class ProtobufRSocketServerConfiguration {
+
+    private static final String INFO_CERTIFICATE_RELOADED     = "Reloaded the TLS certificate of the RSocket API.";
+    private static final String WARN_CERTIFICATE_NOT_RELOADED = "The TLS certificate of the RSocket API cannot be reloaded: {}. The node keeps serving the previous certificate.";
 
     private static final String ERROR_BUNDLE_BUILD  = "SAPL Node refused to start. The SSL bundle '%s' for RSocket TLS could not be loaded.";
     private static final String ACTION_BUNDLE_BUILD = """
@@ -114,12 +126,13 @@ public class ProtobufRSocketServerConfiguration {
             @Value("${io.sapl.node.limits.rsocket.requests-per-second:0}") int requestsPerSecond,
             BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
             ObjectProvider<RSocketConnectionAuthenticator> authenticator, ObjectProvider<SslBundles> sslBundles,
-            ObjectProvider<MeterRegistry> meterRegistry) {
+            ObjectProvider<MeterRegistry> meterRegistry, Environment environment) {
         val sslContext = resolveSslContext(sslBundleName, sslBundles.getIfAvailable());
         val limiter    = RSocketLimiter.of(maxConnections, maxStreamsPerConnection, requestsPerSecond,
                 meterRegistry.getIfAvailable());
         return new ProtobufRSocketServerLifecycle(enabled, bindAddress, port, socketPath, maxInboundPayloadSize,
-                maxMultiSubscriptionCount, blockingPdp, pdp, authenticator.getIfAvailable(), limiter, sslContext);
+                maxMultiSubscriptionCount, blockingPdp, pdp, authenticator.getIfAvailable(), limiter, sslContext,
+                OptIn.NO_TLS.source(environment).orElse(null));
     }
 
     private static @Nullable SslContext resolveSslContext(@Nullable String bundleName,
@@ -132,8 +145,9 @@ public class ProtobufRSocketServerConfiguration {
                     ACTION_BUNDLE_NO_REGISTRY);
         }
         try {
-            val bundle = sslBundles.getBundle(bundleName);
-            return SslContextBuilder.forServer(bundle.getManagers().getKeyManagerFactory()).build();
+            val sslContext = new ReloadableSslContext(serverContext(sslBundles.getBundle(bundleName)));
+            sslBundles.addBundleUpdateHandler(bundleName, bundle -> reload(sslContext, bundle));
+            return sslContext;
         } catch (NoSuchSslBundleException e) {
             val ex = new SaplStartupConfigurationException(ERROR_BUNDLE_NOT_FOUND.formatted(bundleName),
                     ACTION_BUNDLE_NOT_FOUND);
@@ -145,6 +159,22 @@ public class ProtobufRSocketServerConfiguration {
             ex.initCause(e);
             throw ex;
         }
+    }
+
+    // A renewed certificate that cannot be used leaves the served one in place,
+    // so a broken file never takes TLS down.
+    static void reload(ReloadableSslContext sslContext, SslBundle bundle) {
+        try {
+            sslContext.update(serverContext(bundle));
+            log.info(INFO_CERTIFICATE_RELOADED);
+        } catch (SSLException | RuntimeException e) {
+            log.warn(WARN_CERTIFICATE_NOT_RELOADED, e.getMessage());
+        }
+    }
+
+    private static SslContext serverContext(SslBundle bundle) throws SSLException {
+        return SslContextBuilder.forServer(bundle.getManagers().getKeyManagerFactory()).sslProvider(SslProvider.JDK)
+                .build();
     }
 
 }

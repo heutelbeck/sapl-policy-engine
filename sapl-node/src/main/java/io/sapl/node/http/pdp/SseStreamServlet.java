@@ -337,7 +337,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             });
         } catch (RejectedExecutionException e) {
             connection.endKeepAlive();
-            log.debug("Keep-alive dispatch rejected; pump executor is shutting down: {}", e.getMessage());
+            log.debug("Keep-alive dispatch rejected. The pump executor is shutting down: {}", e.getMessage());
         }
     }
 

@@ -52,12 +52,14 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
  * <li>{@link Lazy} subscribes lazily, stopping at the first {@link Value#FALSE}
  * or incomplete child. Minimal subscription set. Convergence may take multiple
  * trigger-loop rounds when independent dependencies are missing.</li>
- * <li>{@link Eager} walks every condition unconditionally to gather the full
- * subscription set, then resolves the body value. Larger subscription set.
- * Single-round convergence once the snapshot is sufficient.</li>
+ * <li>{@link Eager} first checks constants and pure conditions. If these
+ * leave the body undecided, it gathers every streaming dependency reached by
+ * the remaining conditions, then records hits in order up to the first
+ * missing value or FALSE.</li>
  * </ul>
- * Observable {@link VoteResultWithCoverage} is identical across both
- * variants. Only the per-pass subscription set differs.
+ * With the same complete snapshot both strategies produce the same decision
+ * and condition hits. An eager round can additionally observe attributes
+ * beyond the last recorded hit.
  *
  * @since 4.1.0
  */

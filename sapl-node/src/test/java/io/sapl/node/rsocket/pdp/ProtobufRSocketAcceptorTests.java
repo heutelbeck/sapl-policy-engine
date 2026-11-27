@@ -17,6 +17,7 @@
  */
 package io.sapl.node.rsocket.pdp;
 
+import static io.sapl.node.rsocket.pdp.SetupPayloads.protobufSetup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -39,7 +40,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.test.util.TestSocketUtils;
 
-import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
@@ -151,7 +151,7 @@ class ProtobufRSocketAcceptorTests {
                             return new AuthenticationResult("tenant-1", null);
                         }));
 
-        acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+        acceptor.accept(protobufSetup(), mock(RSocket.class)).block();
 
         assertThat(authThread.get()).isNotNull();
         assertThat(authThread.get().isVirtual()).isTrue();
@@ -189,7 +189,7 @@ class ProtobufRSocketAcceptorTests {
         val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
         val pdp         = mock(ReactivePolicyDecisionPoint.class);
         val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp, null, 1);
-        val rsocket     = acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+        val rsocket     = acceptor.accept(protobufSetup(), mock(RSocket.class)).block();
         val payload     = createMultiDecidePayload();
 
         val result = rsocket.requestStream(payload);
@@ -302,7 +302,7 @@ class ProtobufRSocketAcceptorTests {
         val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
         val pdp         = mock(ReactivePolicyDecisionPoint.class);
         val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp);
-        return acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+        return acceptor.accept(protobufSetup(), mock(RSocket.class)).block();
     }
 
     private static Payload unknownRoutePayload() {

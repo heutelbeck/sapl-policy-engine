@@ -93,9 +93,7 @@ class FilterNatureInferenceTests {
             // Path expressions (strata 1, 3)
             String[][] pathExprs = { { "0", "VALUE" }, { "subject.index", "PURE_SUB" } };
 
-            // Function argument expressions (strata 1, 3, 4)
-            String[][] funcArgs = { { "1", "VALUE" }, { "subject.offset", "PURE_SUB" },
-                    { "subject.<test.offset>", "STREAM" } };
+            String[][] funcArgs = { { "1", "VALUE" }, { "subject.offset", "PURE_SUB" } };
 
             return Stream.of(bases).flatMap(base -> Stream.of(pathExprs)
                     .flatMap(pathExpr -> Stream.of(funcArgs).map(funcArg -> createArgs(base, pathExpr, funcArg))));
@@ -110,11 +108,6 @@ class FilterNatureInferenceTests {
         }
 
         private static Stratum computeExpectedStratum(Stratum base, Stratum pathExpr, Stratum funcArg) {
-            if (funcArg == Stratum.STREAM) {
-                // Stream operators not allowed as filter function arguments.
-                // ExtendedFilterCompiler compiles to ErrorValue directly.
-                return Stratum.VALUE;
-            }
             if (base == Stratum.STREAM || pathExpr == Stratum.STREAM) {
                 return Stratum.STREAM;
             }
@@ -125,6 +118,20 @@ class FilterNatureInferenceTests {
                 return Stratum.VALUE;
             }
             return Stratum.PURE_NON_SUB;
+        }
+
+        @MethodSource
+        @ParameterizedTest(name = "base={0}, path={1}")
+        @DisplayName("A streaming filter argument refuses compilation for every base stratum")
+        void whenExtendedFilterHasAStreamingArgumentThenCompilationFails(String base, String path) {
+            val expression = "%s |- { @[(%s)] : simple.addValue(subject.<test.offset>) }".formatted(base, path);
+            assertThatThrownBy(() -> compileExpression(expression)).isInstanceOf(SaplCompilerException.class)
+                    .hasMessageContaining("Stream operators not allowed in filter function arguments");
+        }
+
+        private static Stream<Arguments> whenExtendedFilterHasAStreamingArgumentThenCompilationFails() {
+            return Stream.of("[1, 2, 3]", "subject.items", "subject.<test.items>")
+                    .flatMap(base -> Stream.of("0", "subject.index").map(path -> arguments(base, path)));
         }
 
         @Test

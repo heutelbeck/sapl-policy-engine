@@ -44,7 +44,7 @@ public class ConfigUtility {
      * The reference for the default broker configuration name in the
      * configurations.
      */
-    public static final String  ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME = "defaultBrokerConfigName";
+    public static final String  ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME = "default";
     /**
      * The reference for the broker configuration name in the configurations.
      */
@@ -52,7 +52,7 @@ public class ConfigUtility {
     /**
      * The reference for the broker configuration settings in configurations.
      */
-    public static final String  ENVIRONMENT_BROKER_CONFIG              = "brokerConfig";
+    public static final String  ENVIRONMENT_BROKER_CONFIG              = "brokers";
     private static final String DEFAULT_BROKER_CONFIG_NAME             = "default";
 
     private static final String ERROR_INVALID_QOS              = "The mqtt quality of service level must be a number.";
@@ -202,86 +202,20 @@ public class ConfigUtility {
      * @throws NoSuchElementException if no matching broker configuration is found
      */
     public static ObjectNode getMqttBrokerConfig(JsonNode pipMqttClientConfig, Value pipMqttClientConfigVal) {
-        // Inline broker objects are rejected at the attribute boundary. Only
-        // name/default reach here.
-        val mqttPipBrokerConfig = getBrokerConfigFromPdpConfig(pipMqttClientConfig, null, pipMqttClientConfigVal);
-
-        if (mqttPipBrokerConfig == null) {
+        val          entries = getConfigValue(pipMqttClientConfig, ENVIRONMENT_BROKER_CONFIG);
+        final String name;
+        if (pipMqttClientConfigVal instanceof TextValue(var selected)) {
+            name = selected;
+        } else if (pipMqttClientConfigVal instanceof UndefinedValue) {
+            name = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME,
+                    DEFAULT_BROKER_CONFIG_NAME);
+        } else {
             throw new NoSuchElementException(ERROR_NO_VALID_MQTT_PIP_CONFIG);
         }
-        return mqttPipBrokerConfig;
-    }
-
-    private static ObjectNode getBrokerConfigFromPdpConfig(JsonNode pipMqttClientConfig, ObjectNode mqttPipBrokerConfig,
-            Value pipMqttClientConfigVal) {
-        JsonNode brokerConfig = getConfigValue(pipMqttClientConfig, ENVIRONMENT_BROKER_CONFIG);
-        if (brokerConfig != null) {
-            if (pipMqttClientConfigVal instanceof UndefinedValue) {
-                mqttPipBrokerConfig = getBrokerConfigIfNoConfigInAttributeFinder(mqttPipBrokerConfig,
-                        pipMqttClientConfig, brokerConfig);
-            } else if (pipMqttClientConfigVal instanceof TextValue) {
-                mqttPipBrokerConfig = getBrokerConfigViaReference(mqttPipBrokerConfig, pipMqttClientConfigVal,
-                        brokerConfig);
-            }
+        if (!(entries instanceof ObjectNode brokers) || !(brokers.get(name) instanceof ObjectNode broker)) {
+            throw new NoSuchElementException(ERROR_NO_VALID_MQTT_PIP_CONFIG);
         }
-        return mqttPipBrokerConfig;
-    }
-
-    private static ObjectNode getBrokerConfigIfNoConfigInAttributeFinder(ObjectNode mqttPipBrokerConfig,
-            JsonNode pipMqttClientConfig, JsonNode brokerConfig) {
-        if (brokerConfig.isArray()) {
-            mqttPipBrokerConfig = getDefaultBroker(mqttPipBrokerConfig, pipMqttClientConfig, brokerConfig);
-        } else if (brokerConfig.isObject()) {
-            mqttPipBrokerConfig = (ObjectNode) brokerConfig;
-        }
-        return mqttPipBrokerConfig;
-    }
-
-    private static ObjectNode getBrokerConfigViaReference(ObjectNode mqttPipBrokerConfig, Value pipMqttClientConfigVal,
-            JsonNode brokerConfig) {
-        var configName = ((TextValue) pipMqttClientConfigVal).value();
-        if (brokerConfig.isArray()) {
-            mqttPipBrokerConfig = getBrokerConfig(mqttPipBrokerConfig, brokerConfig, configName);
-        } else if (brokerConfig.isObject()) {
-            mqttPipBrokerConfig = getBrokerConfigIfAttributeFinderReferenceMatches(mqttPipBrokerConfig, configName,
-                    brokerConfig);
-        }
-        return mqttPipBrokerConfig;
-    }
-
-    private static ObjectNode getBrokerConfigIfAttributeFinderReferenceMatches(ObjectNode mqttPipBrokerConfig,
-            String configName, JsonNode brokerConfig) {
-        JsonNode configDescription = brokerConfig.get(ENVIRONMENT_BROKER_CONFIG_NAME);
-        if (configDescription != null) {
-            val configDescriptionValue = configDescription.asString();
-            if (configDescriptionValue.equals(configName)) {
-                mqttPipBrokerConfig = (ObjectNode) brokerConfig;
-            }
-        }
-        return mqttPipBrokerConfig;
-    }
-
-    private static ObjectNode getDefaultBroker(ObjectNode mqttPipBrokerConfig, JsonNode pipMqttClientConfig,
-            JsonNode brokerConfig) {
-        String brokerConfigName = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME,
-                DEFAULT_BROKER_CONFIG_NAME);
-        mqttPipBrokerConfig = getBrokerConfig(mqttPipBrokerConfig, brokerConfig, brokerConfigName);
-        return mqttPipBrokerConfig;
-    }
-
-    private static ObjectNode getBrokerConfig(ObjectNode mqttPipClientConfig, JsonNode brokerConfig,
-            String brokerConfigName) {
-        for (JsonNode brokerConfigs : brokerConfig) {
-            JsonNode configDescription = brokerConfigs.get(ENVIRONMENT_BROKER_CONFIG_NAME);
-            if (configDescription != null) {
-                val configDescriptionValue = configDescription.asString();
-                if (configDescriptionValue.equals(brokerConfigName)) {
-                    mqttPipClientConfig = (ObjectNode) brokerConfigs;
-                    break;
-                }
-            }
-        }
-        return mqttPipClientConfig;
+        return broker.deepCopy().put(ENVIRONMENT_BROKER_CONFIG_NAME, name);
     }
 
     /**

@@ -33,7 +33,7 @@ import java.util.Map;
 import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
- * Compiles N-ary operators: ExclusiveDisjunction (XOR), Sum, Product.
+ * Compiles N-ary operators: ExclusiveDisjunction (XOR), Product.
  * <p>
  * These operators cannot short-circuit (all operands must be evaluated),
  * but we still apply cost-stratified optimization:
@@ -57,10 +57,6 @@ public class NaryOperatorCompiler {
         return compile(xd.operands(), ctx, xd.location(), BinaryOperatorType.XOR, BooleanOperators::xor);
     }
 
-    public CompiledExpression compileSum(Sum s, CompilationContext ctx) {
-        return compile(s.operands(), ctx, s.location(), BinaryOperatorType.ADD, ArithmeticOperators::add);
-    }
-
     public CompiledExpression compileProduct(Product p, CompilationContext ctx) {
         return compile(p.operands(), ctx, p.location(), BinaryOperatorType.MUL, ArithmeticOperators::multiply);
     }
@@ -73,8 +69,11 @@ public class NaryOperatorCompiler {
         val pures   = new ArrayList<PureOperator>();
         val streams = new ArrayList<StreamOperator>();
 
-        for (val operand : operands) {
-            val compiled = ExpressionCompiler.compile(operand, ctx);
+        // XOR and multiplication are commutative: within a stratum the operands take
+        // their canonical order, so that the order written changes neither the
+        // compiled operator nor which of several errors is the result.
+        val compiledOperands = CompilationChildren.map(operands, operand -> ExpressionCompiler.compile(operand, ctx));
+        for (val compiled : CanonicalOperandOrder.sorted(compiledOperands)) {
             switch (compiled) {
             case Value v          -> values.add(v);
             case PureOperator p   -> pures.add(p);
@@ -115,10 +114,12 @@ public class NaryOperatorCompiler {
         if (values.isEmpty()) {
             return null;
         }
-        Value result = values.getFirst();
-        if (result instanceof ErrorValue) {
-            return result;
+        for (val value : values) {
+            if (value instanceof ErrorValue) {
+                return value;
+            }
         }
+        Value result = values.getFirst();
         for (int i = 1; i < values.size(); i++) {
             result = op.apply(result, values.get(i), location);
             if (result instanceof ErrorValue) {
@@ -174,7 +175,7 @@ public class NaryOperatorCompiler {
 
         @Override
         public long semanticHash() {
-            val kind        = (long) opType.hashCode();
+            val kind        = SemanticHashing.kindHash(opType);
             val childHashes = pures.stream().mapToLong(PureOperator::semanticHash).toArray();
             if (valueResult == null) {
                 return SemanticHashing.commutative(kind, childHashes);

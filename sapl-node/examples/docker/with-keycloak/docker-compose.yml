@@ -56,8 +56,10 @@ services:
     tmpfs:
       - /tmp
     environment:
-      # SSL/Port/Memory
-      - SERVER_SSL_ENABLED=false
+      # TLS/Port/Memory
+      # Plaintext for this demo, allowed explicitly. The node logs a warning at
+      # every start. See examples/docker/with-tls for TLS.
+      - IO_SAPL_NODE_ALLOWNOTLS=true
       - SERVER_PORT=8443
       # Binding to 0.0.0.0 is required inside Docker for the port mapping to work.
       - SERVER_ADDRESS=0.0.0.0
@@ -78,6 +80,7 @@ services:
 
       # Spring Security OAuth2 Resource Server Configuration
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI=http://keycloak:8080/realms/sapl-demo
+      - IO_SAPL_NODE_OAUTH_ALLOWINSECUREISSUER=true
 
       # Policy Configuration (DIRECTORY for this demo, Docker default is BUNDLES)
       - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY

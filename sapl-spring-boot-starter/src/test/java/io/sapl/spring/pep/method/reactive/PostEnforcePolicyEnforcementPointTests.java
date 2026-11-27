@@ -183,7 +183,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("DENY with a substitute resource still denies; substitution cannot save a denial")
+        @DisplayName("DENY with a substitute resource still denies, substitution cannot save a denial")
         void whenDenyWithResourceThenStillAccessDenied() {
             val deny = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
@@ -195,7 +195,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND with a substitute resource still denies; one-shot PEPs cannot pause, so substitution cannot save a suspension")
+        @DisplayName("SUSPEND with a substitute resource still denies, one-shot PEPs cannot pause, so substitution cannot save a suspension")
         void whenSuspendWithResourceThenStillAccessDenied() {
             val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
@@ -244,7 +244,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("SUSPEND raises AccessDeniedException; reactive one-shot PEPs cannot suspend, so the wards stay shut")
+        @DisplayName("SUSPEND raises AccessDeniedException, reactive one-shot PEPs cannot suspend, so the wards stay shut")
         void whenSuspendThenAccessDenied() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.SUSPEND));
 
@@ -299,7 +299,7 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Obligation-handler failures: the warding ritual collapses; access is denied")
+    @DisplayName("Obligation-handler failures: the warding ritual collapses, access is denied")
     class ObligationFailures {
 
         @Test
@@ -337,11 +337,11 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Nested
-    @DisplayName("Advice handlers are noted but never bar access; a faculty memo is just a memo")
+    @DisplayName("Advice handlers are noted but never bar access, a faculty memo is just a memo")
     class AdviceHandlers {
 
         @Test
-        @DisplayName("Failing advice does not deny access; the cultist's interference is dismissed")
+        @DisplayName("Failing advice does not deny access, the cultist's interference is dismissed")
         void whenAdviceFailsThenAccessStillPermitted() {
             when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(Mono.just(decisionWithAdvice(Obligation.CULTIST_SABOTAGES_DECISION)));
@@ -466,7 +466,7 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Test
-        @DisplayName("Mono<Void> with DENY raises AccessDeniedException; the side effect still runs because the RAP completed before enforcement")
+        @DisplayName("Mono<Void> with DENY raises AccessDeniedException, the side effect still runs because the RAP completed before enforcement")
         void whenMonoVoidDenyThenAccessDeniedAfterSideEffect() {
             when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.DENY));
 

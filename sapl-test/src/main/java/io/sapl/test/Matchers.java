@@ -17,13 +17,16 @@
  */
 package io.sapl.test;
 
+import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
+import io.sapl.compiler.util.LinearRegex;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -231,12 +234,18 @@ public class Matchers {
     }
 
     /**
-     * Matches text values matching a regex pattern.
+     * Matches text values matching a regex pattern. The pattern follows the RE2
+     * syntax and must match the whole text, like the {@code =~} operator of
+     * policies.
      *
      * @param regex the regex pattern
+     * @return the matcher
+     * @throws PatternSyntaxException if the pattern is invalid, too large, or
+     * nests its groups too deeply
      */
     public static ArgumentMatcher textMatching(@NonNull String regex) {
-        return matching(v -> v instanceof TextValue(String value) && value.matches(regex));
+        val pattern = LinearRegex.compile(regex);
+        return matching(v -> v instanceof TextValue(String value) && pattern.matches(value));
     }
 
     /**

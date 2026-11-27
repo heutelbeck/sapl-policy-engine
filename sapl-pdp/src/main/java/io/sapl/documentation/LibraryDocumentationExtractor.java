@@ -104,19 +104,19 @@ public class LibraryDocumentationExtractor {
                     ERROR_NOT_ANNOTATED_WITH_POLICY_INFORMATION_POINT.formatted(pipClass.getName()));
         }
 
-        val name    = annotation.name().isEmpty() ? pipClass.getSimpleName() : annotation.name();
+        val name    = annotation.name().isBlank() ? pipClass.getSimpleName() : annotation.name();
         val entries = new ArrayList<EntryDocumentation>();
 
-        for (Method method : pipClass.getDeclaredMethods()) {
-            val attributeAnnotation = method.getAnnotation(Attribute.class);
-            if (attributeAnnotation != null) {
-                entries.add(extractAttributeEntry(method, attributeAnnotation));
-                continue;
-            }
-
-            val envAttributeAnnotation = method.getAnnotation(EnvironmentAttribute.class);
-            if (envAttributeAnnotation != null) {
-                entries.add(extractEnvironmentAttributeEntry(method, envAttributeAnnotation));
+        for (Method method : pipClass.getMethods()) {
+            val attribute   = method.getAnnotation(Attribute.class);
+            val environment = method.getAnnotation(EnvironmentAttribute.class);
+            if (environment != null) {
+                // The broker serves a legacy dual-annotated method as an environment finder
+                // under the name declared by its entity annotation.
+                val declaredName = attribute == null ? environment.name() : attribute.name();
+                entries.add(extractEnvironmentAttributeEntry(method, environment, declaredName));
+            } else if (attribute != null) {
+                entries.add(extractAttributeEntry(method, attribute));
             }
         }
 
@@ -133,7 +133,7 @@ public class LibraryDocumentationExtractor {
     }
 
     private static EntryDocumentation extractAttributeEntry(Method method, Attribute annotation) {
-        val name       = annotation.name().isEmpty() ? method.getName() : annotation.name();
+        val name       = annotation.name().isBlank() ? method.getName() : annotation.name();
         val schema     = loadSchema(method, annotation.schema(), annotation.pathToSchema());
         val startIndex = determineParameterStartIndex(method, false);
         val parameters = extractParameters(method.getParameters(), startIndex);
@@ -141,8 +141,9 @@ public class LibraryDocumentationExtractor {
         return new EntryDocumentation(EntryType.ATTRIBUTE, name, annotation.docs(), schema, parameters);
     }
 
-    private static EntryDocumentation extractEnvironmentAttributeEntry(Method method, EnvironmentAttribute annotation) {
-        val name       = annotation.name().isEmpty() ? method.getName() : annotation.name();
+    private static EntryDocumentation extractEnvironmentAttributeEntry(Method method, EnvironmentAttribute annotation,
+            String declaredName) {
+        val name       = declaredName.isBlank() ? method.getName() : declaredName;
         val schema     = loadSchema(method, annotation.schema(), annotation.pathToSchema());
         val startIndex = determineParameterStartIndex(method, true);
         val parameters = extractParameters(method.getParameters(), startIndex);

@@ -222,7 +222,7 @@ class ActivePolicyInformationPointInvocationPumpTests {
     }
 
     @Test
-    @DisplayName("repeated hot-swaps do not accumulate pumps - the final stream has exactly one consumer")
+    @DisplayName("repeated hot-swaps do not accumulate pumps, the final stream has exactly one consumer")
     void whenManyRebindsThenNoPumpAccumulation() {
         val invocation = pump(new ControllableStream(), value -> {});
         invocation.start();
@@ -241,7 +241,7 @@ class ActivePolicyInformationPointInvocationPumpTests {
     }
 
     @Test
-    @DisplayName("close terminates the pump - it consumes nothing further")
+    @DisplayName("close terminates the pump: it consumes nothing further")
     void whenClosedThenPumpExits() {
         val stream     = new ControllableStream();
         val invocation = pump(stream, value -> {});

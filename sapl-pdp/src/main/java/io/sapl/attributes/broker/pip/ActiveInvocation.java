@@ -58,6 +58,12 @@ sealed interface ActiveInvocation permits ActivePolicyInformationPointInvocation
      * invocation's mailbox, or {@link Optional#empty()} if no value has
      * arrived yet. The timestamp is the value's arrival time, not the
      * time a consumer reads the snapshot.
+     * <p>
+     * Retain the same {@link AttributeSnapshot} instance until another observation
+     * is accepted. A new publication or binding generation supplies a new instance
+     * even when its value and timestamp compare equal. The broker uses this private
+     * identity to distinguish an update from a delayed notification already captured
+     * by a consumer. Reading the mailbox must not manufacture a new instance.
      */
     Optional<AttributeSnapshot> snapshot();
 

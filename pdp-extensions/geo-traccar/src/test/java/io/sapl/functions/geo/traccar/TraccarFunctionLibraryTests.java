@@ -106,13 +106,7 @@ class TraccarFunctionLibraryTests {
         val expected = json("""
                 {
                     "type":"Polygon",
-                    "coordinates":[[[10,30],[40,40],[40,20],[20,10],[10,30]]],
-                    "crs":{
-                        "type":"name",
-                        "properties":{
-                            "name":"EPSG:4326"
-                            }
-                        }
+                    "coordinates":[[[10,30],[40,40],[40,20],[20,10],[10,30]]]
                 }
                 """);
         assertThat(traccarGeofenceToGeoJson(geofence)).isEqualTo(expected);
@@ -127,8 +121,7 @@ class TraccarFunctionLibraryTests {
                 """);
         val result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message())
-                .contains(ERROR_GEOMETRY_PROCESSING_S.formatted("Unknown geometry type: INVALID (line 1)"));
+        assertThat(((ErrorValue) result).message()).contains(ERROR_GEOMETRY_PROCESSING_S.formatted("Invalid WKT."));
     }
 
     @Test

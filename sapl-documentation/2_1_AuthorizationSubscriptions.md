@@ -51,7 +51,7 @@ The PEP constructs this JSON object from the application context and sends it to
 Policy Information Points (PIPs) often need credentials to access external data sources during policy evaluation. For example, a PIP may need an API key to query a patient database, or a token to call an external risk-scoring service. These credentials are sensitive and must be handled with care:
 
 - They must **never appear in policies**. Hardcoding credentials in policy text is a security risk and makes credential rotation impossible.
-- They must **never appear in logs or decision output**. SAPL automatically redacts secrets from all serialization and logging.
+- They must **never appear in logs or decision output**. SAPL redacts secrets from logs, traces, reports and `toString()` output. They are part of the wire format between PEP and PDP, so protect that channel with TLS.
 - They must be **available to PIPs at evaluation time**. Without credentials, PIPs cannot fetch the attributes policies need.
 
 The `secrets` field solves this by providing a **secure side-channel** for passing credentials to PIPs without exposing them in policies, logs, or authorization decisions.

@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration;
 
+import static io.sapl.api.model.ValueJsonMarshaller.jsonAllowingComments;
 import static io.sapl.pdp.configuration.ExtensionFiles.validateIntegrity;
 
 import java.io.ByteArrayOutputStream;
@@ -207,13 +208,6 @@ public class PDPConfigurationLoader {
     }
 
     private static ConfigurationSupplements loadSupplementsFromDirectory(Path directory) {
-        val extensions       = new LinkedHashMap<String, Value>();
-        val extensionSecrets = new LinkedHashMap<String, Value>();
-        val rawFiles         = new LinkedHashMap<String, String>();
-        var secrets          = Value.EMPTY_OBJECT;
-        var hasPlaintext     = false;
-        var hasSealed        = false;
-
         List<Path> files;
         try (Stream<Path> paths = Files.list(directory)) {
             files = paths.filter(Files::isRegularFile).toList();
@@ -221,39 +215,51 @@ public class PDPConfigurationLoader {
             throw new PDPConfigurationException(ERROR_FAILED_TO_LIST_EXTENSION_FILES, e);
         }
 
+        val contentByName = new LinkedHashMap<String, String>();
         for (val path : files) {
             val fileNamePath = path.getFileName();
-            if (fileNamePath == null) {
-                continue;
+            if (fileNamePath != null && ExtensionFiles.isSupplementFile(fileNamePath.toString())) {
+                contentByName.put(fileNamePath.toString(), readExtensionFileContent(path));
             }
-            val name = fileNamePath.toString();
+        }
+        return supplementsOf(contentByName);
+    }
+
+    private static ConfigurationSupplements supplementsOf(Map<String, String> contentByName) {
+        val extensions       = new LinkedHashMap<String, Value>();
+        val extensionSecrets = new LinkedHashMap<String, Value>();
+        val rawFiles         = new LinkedHashMap<String, String>();
+        var secrets          = Value.EMPTY_OBJECT;
+        var hasPlaintext     = false;
+        var hasSealed        = false;
+
+        for (val file : contentByName.entrySet()) {
+            val name = file.getKey();
+            val raw  = file.getValue();
             if (ExtensionFiles.SECRETS_FILE.equals(name)) {
                 hasPlaintext = true;
-                val raw = readExtensionFileContent(path);
                 rawFiles.put(name, raw);
                 secrets = parseSecretsObject(name, raw);
             } else if (ExtensionFiles.SEALED_SECRETS_FILE.equals(name)) {
                 hasSealed = true;
-                val raw = readExtensionFileContent(path);
                 rawFiles.put(name, raw);
                 secrets = parseSecretsObject(name, raw);
                 requireSealedContent(name, secrets);
             } else if (ExtensionFiles.isSealedExtensionSecretsFile(name)) {
                 hasSealed = true;
-                val raw = readExtensionFileContent(path);
                 rawFiles.put(name, raw);
                 val sealedValue = Value.ofJson(raw);
                 requireSealedContent(name, sealedValue);
                 extensionSecrets.put(ExtensionFiles.sealedExtensionSecretsNameOf(name), sealedValue);
             } else if (ExtensionFiles.isExtensionSecretsFile(name)) {
                 hasPlaintext = true;
-                val raw = readExtensionFileContent(path);
                 rawFiles.put(name, raw);
-                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name), Value.ofJson(raw));
+                extensionSecrets.put(ExtensionFiles.extensionSecretsNameOf(name),
+                        ExtensionFiles.requireValidJson(name, Value.ofJson(raw)));
             } else if (ExtensionFiles.isExtensionFile(name)) {
-                val raw = readExtensionFileContent(path);
                 rawFiles.put(name, raw);
-                extensions.put(ExtensionFiles.extensionNameOf(name), Value.ofJson(raw));
+                extensions.put(ExtensionFiles.extensionNameOf(name),
+                        ExtensionFiles.requireValidJson(name, jsonAllowingComments(raw)));
             }
         }
 
@@ -307,19 +313,53 @@ public class PDPConfigurationLoader {
      */
     public static PDPConfiguration loadFromContent(String pdpJsonContent, Map<String, String> saplDocuments,
             String pdpId, String sourceName) {
-        val pdpJson   = parsePdpJson(pdpJsonContent);
-        val documents = new ArrayList<>(saplDocuments.values());
-        validateIntegrity(pdpJson.requiredExtensions(), Set.of(), Set.of());
+        return loadFromContent(pdpJsonContent, saplDocuments, Map.of(), pdpId, sourceName);
+    }
+
+    /**
+     * Loads a PDP configuration from raw content together with the files that
+     * supplement its pdp.json: the secrets of the PDP and the configuration and
+     * secrets of extensions.
+     * <p>
+     * The configuration ID is derived from the content in the format
+     * {@code res:<sourceName>@<hash16>}, covering the pdp.json content, every SAPL
+     * document and every supplement file.
+     * </p>
+     *
+     * @param pdpJsonContent
+     * the content of pdp.json (required, must contain algorithm)
+     * @param saplDocuments
+     * map of filename to SAPL document content
+     * @param supplementFiles
+     * map of filename to content of the secrets and extension files; files with
+     * other names are ignored
+     * @param pdpId
+     * the PDP identifier to use
+     * @param sourceName
+     * the source name for the derived ID (e.g., a resource directory name)
+     *
+     * @return the loaded configuration
+     *
+     * @throws PDPConfigurationException
+     * if loading fails
+     */
+    public static PDPConfiguration loadFromContent(String pdpJsonContent, Map<String, String> saplDocuments,
+            Map<String, String> supplementFiles, String pdpId, String sourceName) {
+        val pdpJson     = parsePdpJson(pdpJsonContent);
+        val documents   = new ArrayList<>(saplDocuments.values());
+        val supplements = supplementsOf(supplementFiles);
+        validateIntegrity(pdpJson.requiredExtensions(), supplements.extensions().keySet(),
+                supplements.extensionSecrets().keySet());
 
         val contents = new TreeMap<String, byte[]>();
         if (pdpJsonContent != null) {
             contents.put(PDP_JSON, pdpJsonContent.getBytes(StandardCharsets.UTF_8));
         }
         putUtf8(contents, saplDocuments);
+        putUtf8(contents, supplements.rawFiles());
         val configurationId = ConfigurationIds.derive("res:" + sourceName, contents);
 
-        return createConfiguration(pdpId, configurationId, pdpJson, documents,
-                supplementsWithSecrets(Value.EMPTY_OBJECT), UnknownProvenance.INSTANCE);
+        return createConfiguration(pdpId, configurationId, pdpJson, documents, supplements, UnknownProvenance.INSTANCE);
     }
 
     /**

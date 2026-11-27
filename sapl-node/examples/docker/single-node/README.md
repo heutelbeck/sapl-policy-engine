@@ -61,19 +61,19 @@ Policies are located in the `./policies/` directory:
 
 The server monitors this directory for changes. Modify the `.sapl` files to see hot-reload in action.
 
-### SSL/TLS
+### TLS
 
-This demo disables SSL for simplicity. For production:
+This demo serves plaintext, allowed explicitly with `IO_SAPL_NODE_ALLOWNOTLS=true`. The node logs a warning at every start. For production:
 
-1. Generate or obtain a proper certificate
-2. Create a PKCS12 keystore
-3. Mount it and configure via environment variables:
+1. Obtain a certificate and its private key as PEM files
+2. Mount them and name them via environment variables, then remove the opt-in:
    ```yaml
    environment:
-     - SERVER_SSL_KEYSTORE=/pdp/data/keystore.p12
-     - SERVER_SSL_KEYSTOREPASSWORD=yourPassword
-     - SERVER_SSL_KEYPASSWORD=yourPassword
+     - IO_SAPL_NODE_TLS_CERTIFICATECHAIN=/pdp/tls/server.pem
+     - IO_SAPL_NODE_TLS_PRIVATEKEY=/pdp/tls/server.key
    ```
+
+Both APIs serve the certificate, and a renewed certificate is served without a restart. See `examples/docker/with-tls` for a complete setup.
 
 ## Customization
 

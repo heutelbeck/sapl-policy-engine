@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
+import com.google.re2j.Pattern;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
@@ -44,7 +45,6 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Functions for making access control decisions based on X.509 certificate
@@ -197,7 +197,7 @@ public class X509FunctionLibrary {
             public key information. Use this when multiple certificate properties are needed
             in a single policy.
 
-            Example - Validate multiple certificate properties for mTLS:
+            Example: Validate multiple certificate properties for mTLS
             ```sapl
             policy "require valid partner certificate"
             permit action == "api.call";
@@ -219,7 +219,7 @@ public class X509FunctionLibrary {
             Returns the full DN string in RFC 2253 format. Use this for matching against
             specific organizations or organizational units in certificate-based access control.
 
-            Example - Restrict access to specific department:
+            Example: Restrict access to specific department
             ```sapl
             policy "allow hr department only"
             permit action == "read" && resource.type == "personnel-records"
@@ -239,7 +239,7 @@ public class X509FunctionLibrary {
             Returns the full issuer DN string in RFC 2253 format. Use this to verify
             certificates were issued by trusted CAs.
 
-            Example - Require certificates from internal CA:
+            Example: Require certificates from internal CA
             ```sapl
             policy "internal ca only"
             permit
@@ -259,7 +259,7 @@ public class X509FunctionLibrary {
             the hostname or entity name. This is simpler than parsing the full DN when only
             the CN is needed.
 
-            Example - Verify service identity in mTLS:
+            Example: Verify service identity in mTLS
             ```sapl
             policy "service-to-service auth"
             permit action == "invoke";
@@ -284,7 +284,7 @@ public class X509FunctionLibrary {
             Returns the serial number as a decimal string. Use this for certificate revocation
             checking or tracking specific certificates in audit logs.
 
-            Example - Block revoked certificates:
+            Example: Block revoked certificates
             ```sapl
             policy "check revocation list"
             deny
@@ -303,7 +303,7 @@ public class X509FunctionLibrary {
             Returns the date in ISO 8601 format. Use this to implement time-based access
             restrictions or maintenance windows.
 
-            Example - Enforce staged certificate rollout:
+            Example: Enforce staged certificate rollout
             ```sapl
             policy "new certificates only after cutover"
             permit
@@ -323,7 +323,7 @@ public class X509FunctionLibrary {
             Returns the date in ISO 8601 format. Use this to implement proactive certificate
             renewal warnings or temporary access grants.
 
-            Example - Warn about expiring certificates:
+            Example: Warn about expiring certificates
             ```sapl
             policy "certificate expiring soon"
             permit
@@ -346,7 +346,7 @@ public class X509FunctionLibrary {
             SHA-256, or SHA-512). Returns the fingerprint as a hexadecimal string. Use this for
             certificate pinning to ensure the exact certificate is being used.
 
-            Example - Certificate pinning for critical services:
+            Example: Certificate pinning for critical services
             ```sapl
             policy "pin database certificate"
             permit action == "query" && resource.type == "production-db"
@@ -366,7 +366,7 @@ public class X509FunctionLibrary {
             to the expected value. This implements certificate pinning to ensure the exact
             certificate is being used, preventing man-in-the-middle attacks.
 
-            Example - Pin production service certificates:
+            Example: Pin production service certificates
             ```sapl
             policy "verify pinned certificate"
             permit action == "connect" && resource.type == "payment-gateway"
@@ -396,7 +396,7 @@ public class X509FunctionLibrary {
             and URIs. Each entry is an object with type and value fields. Use this when the
             certificate subject doesn't match the accessed resource name.
 
-            Example - Check SAN for virtual hosts:
+            Example: Check SAN for virtual hosts
             ```sapl
             policy "allow san-based routing"
             permit action == "route";
@@ -432,7 +432,7 @@ public class X509FunctionLibrary {
             matching. This is simpler than extracting SANs and checking manually, and handles
             wildcard certificates correctly.
 
-            Example - Verify certificate is valid for accessed domain:
+            Example: Verify certificate is valid for accessed domain
             ```sapl
             policy "validate domain match"
             permit action == "connect";
@@ -464,7 +464,7 @@ public class X509FunctionLibrary {
             Checks Subject Alternative Names for the specified IP address. Use this when
             authorizing connections from IP-identified clients rather than DNS-named hosts.
 
-            Example - Authorize by client IP:
+            Example: Authorize by client IP
             ```sapl
             policy "allow specific ips"
             permit action == "connect";
@@ -552,10 +552,10 @@ public class X509FunctionLibrary {
             ```isValidAt(TEXT certPem, TEXT isoTimestamp)```: Checks if certificate is valid at a specific time.
 
             Returns true if the given timestamp falls within the certificate's validity period
-            (between notBefore and notAfter). Use this for time-based access or historical
-            audit validation.
+            (including notBefore and notAfter). The timestamp uses the SAPL instant format with seconds
+            and an explicit offset such as Z or +01:00.
 
-            Example - Check validity during maintenance window:
+            Example: Check validity during maintenance window
             ```sapl
             policy "maintenance window access"
             permit action == "admin" && resource.type == "production"
@@ -641,7 +641,7 @@ public class X509FunctionLibrary {
      */
     private static Instant parseTimestamp(String isoTimestamp) {
         try {
-            return Instant.parse(isoTimestamp);
+            return SaplInstant.parse(isoTimestamp);
         } catch (DateTimeParseException exception) {
             throw new CryptoException(ERROR_INVALID_ISO8601_FORMAT.formatted(isoTimestamp), exception);
         }

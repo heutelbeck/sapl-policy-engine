@@ -49,6 +49,7 @@ import java.time.Duration;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import static io.sapl.pip.geo.traccar.TraccarTestContext.context;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -88,9 +89,7 @@ class TraccarPolicyInformationPointIT {
     }
 
     private static ObjectValue secrets(String email, String password) {
-        return ObjectValue.builder().put("traccar",
-                ObjectValue.builder().put("userName", Value.of(email)).put("password", Value.of(password)).build())
-                .build();
+        return ObjectValue.builder().put("userName", Value.of(email)).put("password", Value.of(password)).build();
     }
 
     @BeforeAll
@@ -145,7 +144,7 @@ class TraccarPolicyInformationPointIT {
         @DisplayName("returns server info")
         void whenValidSettingsThenReturnsServerInfo(String description, String settingsTemplate) {
             val testConfig = (ObjectValue) json(settingsTemplate.formatted(host, port));
-            try (val stream = TRACCAR_PIP.server(testConfig, secrets)) {
+            try (val stream = TRACCAR_PIP.server(context(testConfig, secrets))) {
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
                         .awaitsNext(v -> assertThat(((ObjectValue) v).containsKey(TraccarSchemata.MAP_URL)).isTrue());
             }
@@ -154,7 +153,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns error for invalid config")
         void whenInvalidConfigThenReturnsError() {
-            try (val stream = TRACCAR_PIP.server(badConfig, secrets)) {
+            try (val stream = TRACCAR_PIP.server(context(badConfig, secrets))) {
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(15))
                         .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
             }
@@ -163,7 +162,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns error for missing baseUrl")
         void whenMissingBaseUrlThenReturnsError() {
-            try (val stream = TRACCAR_PIP.server(Value.EMPTY_OBJECT, secrets)) {
+            try (val stream = TRACCAR_PIP.server(context(Value.EMPTY_OBJECT, secrets))) {
                 StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class))
                         .awaitsCompletion();
             }
@@ -178,7 +177,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns array of devices")
         void whenValidSettingsThenReturnsDevices() {
-            try (val stream = TRACCAR_PIP.devices(config, secrets)) {
+            try (val stream = TRACCAR_PIP.devices(context(config, secrets))) {
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
                         .awaitsNext(v -> assertThat(v).isInstanceOf(ArrayValue.class));
             }
@@ -187,7 +186,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns error for invalid config")
         void whenInvalidConfigThenReturnsError() {
-            try (val stream = TRACCAR_PIP.devices(badConfig, secrets)) {
+            try (val stream = TRACCAR_PIP.devices(context(badConfig, secrets))) {
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(15))
                         .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
             }
@@ -196,7 +195,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns error for empty config")
         void whenEmptyConfigThenReturnsError() {
-            try (val stream = TRACCAR_PIP.devices(Value.EMPTY_OBJECT, secrets)) {
+            try (val stream = TRACCAR_PIP.devices(context(Value.EMPTY_OBJECT, secrets))) {
                 StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class))
                         .awaitsCompletion();
             }
@@ -210,7 +209,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns array of geofences")
         void whenValidSettingsThenReturnsGeofences() {
-            try (val stream = TRACCAR_PIP.geofences(config, secrets)) {
+            try (val stream = TRACCAR_PIP.geofences(context(config, secrets))) {
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
                         .awaitsNext(v -> assertThat(v).isInstanceOf(ArrayValue.class));
             }
@@ -219,7 +218,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns error for invalid config")
         void whenInvalidConfigThenReturnsError() {
-            try (val stream = TRACCAR_PIP.geofences(badConfig, secrets)) {
+            try (val stream = TRACCAR_PIP.geofences(context(badConfig, secrets))) {
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(15))
                         .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
             }
@@ -228,7 +227,7 @@ class TraccarPolicyInformationPointIT {
         @Test
         @DisplayName("returns error for empty config")
         void whenEmptyConfigThenReturnsError() {
-            try (val stream = TRACCAR_PIP.geofences(Value.EMPTY_OBJECT, secrets)) {
+            try (val stream = TRACCAR_PIP.geofences(context(Value.EMPTY_OBJECT, secrets))) {
                 StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class))
                         .awaitsCompletion();
             }
@@ -241,11 +240,11 @@ class TraccarPolicyInformationPointIT {
 
         static java.util.stream.Stream<Arguments> deviceEndpoints() {
             BiFunction<Value, ObjectValue, io.sapl.api.stream.Stream<Value>> device          = (id, cfg) -> TRACCAR_PIP
-                    .device((TextValue) id, cfg, secrets);
+                    .device((TextValue) id, context(cfg, secrets));
             BiFunction<Value, ObjectValue, io.sapl.api.stream.Stream<Value>> traccarPosition = (id, cfg) -> TRACCAR_PIP
-                    .traccarPosition((TextValue) id, cfg, secrets);
+                    .traccarPosition((TextValue) id, context(cfg, secrets));
             BiFunction<Value, ObjectValue, io.sapl.api.stream.Stream<Value>> position        = (id, cfg) -> TRACCAR_PIP
-                    .position((TextValue) id, cfg, secrets);
+                    .position((TextValue) id, context(cfg, secrets));
             return Stream.of(arguments("device", device, TraccarSchemata.NAME),
                     arguments("traccarPosition", traccarPosition, TraccarSchemata.LONGITUDE),
                     arguments("position", position, "coordinates"));
@@ -302,9 +301,9 @@ class TraccarPolicyInformationPointIT {
 
         static java.util.stream.Stream<Arguments> geofenceEndpoints() {
             BiFunction<Value, ObjectValue, io.sapl.api.stream.Stream<Value>> traccarGeofence  = (id, cfg) -> TRACCAR_PIP
-                    .traccarGeofence((TextValue) id, cfg, secrets);
+                    .traccarGeofence((TextValue) id, context(cfg, secrets));
             BiFunction<Value, ObjectValue, io.sapl.api.stream.Stream<Value>> geofenceGeometry = (id, cfg) -> TRACCAR_PIP
-                    .geofenceGeometry((TextValue) id, cfg, secrets);
+                    .geofenceGeometry((TextValue) id, context(cfg, secrets));
             return Stream.of(arguments("traccarGeofence", traccarGeofence, TraccarSchemata.AREA),
                     arguments("geofenceGeometry", geofenceGeometry, "coordinates"));
         }
@@ -362,11 +361,11 @@ class TraccarPolicyInformationPointIT {
         @DisplayName("position inside geofence returns true")
         void whenPositionInsideFenceThenContainsReturnsTrue() throws InterruptedException {
             Value position;
-            try (val s = TRACCAR_PIP.position(deviceId, config, secrets)) {
+            try (val s = TRACCAR_PIP.position(deviceId, context(config, secrets))) {
                 position = s.awaitNext();
             }
             Value fence;
-            try (val s = TRACCAR_PIP.geofenceGeometry(geofenceId1, config, secrets)) {
+            try (val s = TRACCAR_PIP.geofenceGeometry(geofenceId1, context(config, secrets))) {
                 fence = s.awaitNext();
             }
             assertThat(position).isNotNull();
@@ -379,11 +378,11 @@ class TraccarPolicyInformationPointIT {
         @DisplayName("position outside geofence returns false")
         void whenPositionOutsideFenceThenContainsReturnsFalse() throws InterruptedException {
             Value position;
-            try (val s = TRACCAR_PIP.position(deviceId, config, secrets)) {
+            try (val s = TRACCAR_PIP.position(deviceId, context(config, secrets))) {
                 position = s.awaitNext();
             }
             Value outsideFence;
-            try (val s = TRACCAR_PIP.geofenceGeometry(geofenceId2, config, secrets)) {
+            try (val s = TRACCAR_PIP.geofenceGeometry(geofenceId2, context(config, secrets))) {
                 outsideFence = s.awaitNext();
             }
             assertThat(position).isNotNull();
@@ -414,7 +413,7 @@ class TraccarPolicyInformationPointIT {
             val testSecrets  = secrets("email@address.org", "password");
             val someDeviceId = Value.of("someDeviceId");
 
-            try (val stream = testPip.traccarPosition(someDeviceId, testConfig, testSecrets)) {
+            try (val stream = testPip.traccarPosition(someDeviceId, context(testConfig, testSecrets))) {
                 StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
             }
         }

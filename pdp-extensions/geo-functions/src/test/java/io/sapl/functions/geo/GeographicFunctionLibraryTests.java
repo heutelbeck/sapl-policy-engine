@@ -35,13 +35,18 @@ import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -58,9 +63,13 @@ class GeographicFunctionLibraryTests {
 
     private static final int EXCESSIVE_WKT_NESTING_DEPTH = 130;
 
-    private static final GeoJsonWriter   GEOJSON_WRITER = new GeoJsonWriter();
-    private static final GeometryFactory GEO_FACTORY    = new GeometryFactory();
-    private static final GeometryFactory WGS84_FACTORY  = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final GeoJsonWriter GEOJSON_WRITER = new GeoJsonWriter();
+    static {
+        GEOJSON_WRITER.setEncodeCRS(false);
+    }
+
+    private static final GeometryFactory GEO_FACTORY   = new GeometryFactory();
+    private static final GeometryFactory WGS84_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 
     // @formatter:off
     private static final Point POINT_1_2_GEOMETRY         = GEO_FACTORY.createPoint(new Coordinate(1    , 2    ));
@@ -510,7 +519,7 @@ class GeographicFunctionLibraryTests {
 
     @SneakyThrows
     private static ObjectValue geometryToGeoJSON(Geometry geo) {
-        return (ObjectValue) json(GEOJSON_WRITER.write(geo));
+        return (ObjectValue) json(GEOJSON_WRITER.write(geo).replace("\"LinearRing\"", "\"LineString\""));
     }
 
     @TempDir
@@ -661,6 +670,55 @@ class GeographicFunctionLibraryTests {
         } finally {
             server.stop(0);
         }
+    }
+
+    @Test
+    void whenLoggersAreGarbageCollectedThenBlockedSchemaReferencesAreStillNotLogged() throws ClassNotFoundException {
+        val document = """
+                <?xml version="1.0"?>
+                <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://attacker.example/ns http://127.0.0.1:9/leak.xsd">
+                <Placemark><Point><coordinates>133.7,42.0,0</coordinates></Point></Placemark></kml>
+                """;
+        // Loading the library configures the log suppression before any document is
+        // parsed, so the collection below happens in between, as in a long-running PDP.
+        Class.forName(GeographicFunctionLibrary.class.getName(), true,
+                GeographicFunctionLibrary.class.getClassLoader());
+        collectGarbage();
+
+        val records     = new CopyOnWriteArrayList<LogRecord>();
+        val rootLogger  = Logger.getLogger("");
+        val recordStore = new Handler() {
+                            @Override
+                            public void publish(LogRecord logRecord) {
+                                records.add(logRecord);
+                            }
+
+                            @Override
+                            public void flush() {
+                                // Records are kept in memory only.
+                            }
+
+                            @Override
+                            public void close() {
+                                // Nothing to release.
+                            }
+                        };
+        rootLogger.addHandler(recordStore);
+        try {
+            kmlToGeoJSON(Value.of(document));
+        } finally {
+            rootLogger.removeHandler(recordStore);
+        }
+
+        assertThat(records).filteredOn(logRecord -> logRecord.getLoggerName().startsWith("org.geotools.xsd")).isEmpty();
+    }
+
+    private static void collectGarbage() {
+        val sentinel = new WeakReference<>(new Object());
+        for (int attempt = 0; attempt < 50 && sentinel.get() != null; attempt++) {
+            System.gc();
+        }
+        assertThat(sentinel.get()).isNull();
     }
 
     @Test

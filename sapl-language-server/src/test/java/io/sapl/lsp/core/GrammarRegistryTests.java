@@ -57,11 +57,11 @@ class GrammarRegistryTests {
                 arguments("Unix-style SAPLTEST URI", "file:///home/user/project/test.sapltest", "sapltest"),
                 arguments("deep nested path",
                         "file:///project/src/test/resources/integration/policySetLoading.sapltest", "sapltest"),
-                arguments("URI with query string - SAPL", "file:///policy.sapl?configurationId=default", "sapl"),
-                arguments("URI with query string - SAPLTEST", "file:///test.sapltest?configurationId=production",
+                arguments("URI with query string: SAPL", "file:///policy.sapl?configurationId=default", "sapl"),
+                arguments("URI with query string: SAPLTEST", "file:///test.sapltest?configurationId=production",
                         "sapltest"),
-                arguments("URI with fragment - SAPL", "file:///policy.sapl#line=10", "sapl"),
-                arguments("URI with fragment - SAPLTEST", "file:///test.sapltest#section", "sapltest"),
+                arguments("URI with fragment: SAPL", "file:///policy.sapl#line=10", "sapl"),
+                arguments("URI with fragment: SAPLTEST", "file:///test.sapltest#section", "sapltest"),
                 arguments("URI with query and fragment", "file:///policy.sapl?security=test#line=5", "sapl"));
     }
 

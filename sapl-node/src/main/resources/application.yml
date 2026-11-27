@@ -1,15 +1,21 @@
 #
 # SAPL Node Configuration
 #
-# This file configures the SAPL Node with safe, functional defaults.
-# The node starts on localhost:8080 without TLS and without authentication,
-# serving deny-by-default decisions. Drop .sapl files in the current
-# directory to start making authorization decisions.
+# This file configures the SAPL Node with safe defaults. The node binds to
+# localhost and serves deny-by-default decisions from the .sapl files in the
+# current directory. It requires TLS and an authentication mode, on every
+# address, loopback included, and refuses to start without them.
+#
+# Quick start on a development machine, plaintext and without authentication:
+#
+#   sapl server --no-tls --no-auth
+#
+# Each opt-in logs a warning at every start that names where it was set.
 #
 # Security progression:
-#   Level 0: Out of the box (localhost, no TLS, no auth, deny-by-default)
-#   Level 1: Add authentication (API key or basic auth)
-#   Level 2: Add TLS (bind to 0.0.0.0 or specific interface)
+#   Level 0: Development (--no-tls --no-auth, localhost, deny-by-default)
+#   Level 1: Add TLS (io.sapl.node.tls.certificate-chain and private-key)
+#   Level 2: Add authentication (API key, basic auth or OAuth2)
 #   Level 3: Production hardening (TLS + auth + metrics + bundle signing)
 #
 
@@ -48,44 +54,20 @@ server:
     threads:
       # Default 200 queues under high-RPS load on multi-core hosts.
       max: 512
-  ssl:
-    enabled: false
-    # Uncomment and configure to enable TLS:
-    # key-store-type: PKCS12
-    # key-store: file:/path/to/keystore.p12
-    # key-store-password: changeme
-    # key-password: changeme
-    # key-alias: sapl-node
-    #
-    # The cipher list and protocol settings below are inactive while
-    # ssl.enabled is false. They are kept here so that flipping
-    # ssl.enabled to true yields a known-good baseline.
-    # The cipher set originates from a Qualys SSL Labs audit of a
-    # running SAPL Node and is more than two years old at the time of
-    # writing. Re-audit before relying on it in a fresh deployment.
-    ciphers:
-      - TLS_AES_128_GCM_SHA256
-      - TLS_AES_256_GCM_SHA384
-      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-      - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
-      - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
-      - TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
-      - TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
-      - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
-      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
-      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
-      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-      - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
-      - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
-      - TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
-      - TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
-    enabled-protocols:
-      - TLSv1.3
-      - TLSv1.2
-    protocol: TLSv1.3
+  # TLS of the HTTP API. Configure io.sapl.node.tls below to serve one
+  # certificate on both APIs. To serve another certificate on HTTP only, name
+  # an SSL bundle of spring.ssl.bundle here. Naming a bundle switches HTTPS on.
+  # Setting server.ssl.enabled to false while a bundle is named refuses the
+  # start, so that plaintext is never served unnoticed.
+  #
+  # ssl:
+  #   bundle: sapl-http
+  #
+  # The JDK defaults choose the protocols and ciphers (TLS 1.3 and 1.2). To
+  # restrict them, set options on the bundle, for example:
+  #
+  # spring.ssl.bundle.pem.sapl-http.options:
+  #   enabled-protocols: TLSv1.3
 
 # --- Client Authentication ---
 #
@@ -93,14 +75,31 @@ server:
 # simultaneously. By default the node ships with all four modes disabled
 # (fail-closed) and refuses to start until at least one is configured.
 #
-# For local exploration, set `allow-no-auth: true` to accept unauthenticated
-# requests against the default PDP. Production deployments configure one or
-# more of `allow-basic-auth`, `allow-api-key-auth`, `allow-oauth2-auth` and
-# the corresponding credentials.
+# For local exploration, start with --no-auth or set `allow-no-auth: true` to
+# accept unauthenticated requests against the default PDP. Production
+# deployments configure one or more of `allow-basic-auth`,
+# `allow-api-key-auth`, `allow-oauth2-auth` and the corresponding credentials.
 
 io.sapl:
   node:
-    allow-no-auth: false
+    # --- TLS ---
+    #
+    # One certificate for both APIs, as PEM files: the certificate followed
+    # by the certificates that connect it to a root, and the private key. A
+    # renewed certificate is served without a restart, and a certificate is
+    # reported in the log from 14 days before it expires.
+    #
+    # tls:
+    #   certificate-chain: /etc/sapl/tls/server.pem
+    #   private-key: /etc/sapl/tls/server.key
+    #
+    # Plaintext, where TLS is terminated upstream by a proxy or a service
+    # mesh, or in development. Same as the option --no-tls.
+    # allow-no-tls: true
+
+    # Anonymous access, where an outer layer authenticates, or in
+    # development. Same as the option --no-auth.
+    # allow-no-auth: true
     allow-basic-auth: false
     allow-api-key-auth: false
     allow-oauth2-auth: false
@@ -315,16 +314,19 @@ scalar:
 # endpoint is unused, for example in container layouts that publish only the
 # HTTP/JSON port.
 #
-# Like server.address, the RSocket transport binds to 127.0.0.1 by default so
-# the cleartext protobuf endpoint is not reachable from other hosts out of the
-# box. To accept remote connections, set sapl.pdp.rsocket.address to 0.0.0.0 (or
-# a specific interface) and enable TLS via sapl.pdp.rsocket.ssl.bundle. The
-# docker profile sets the address to 0.0.0.0 so the container is reachable.
+# Like server.address, the RSocket transport binds to 127.0.0.1 by default.
+# It serves the certificate of io.sapl.node.tls, or the SSL bundle named in
+# sapl.pdp.rsocket.ssl.bundle, and refuses to start without TLS unless
+# plaintext is allowed. To accept remote connections, set
+# sapl.pdp.rsocket.address to 0.0.0.0 (or a specific interface). The docker
+# profile sets the address to 0.0.0.0 so the container is reachable.
 #
 # sapl.pdp.rsocket:
 #   enabled: false
 #   address: 127.0.0.1
 #   port: 7000
+#   ssl:
+#     bundle: sapl-rsocket
 
 # --- Rate Limiting ---
 

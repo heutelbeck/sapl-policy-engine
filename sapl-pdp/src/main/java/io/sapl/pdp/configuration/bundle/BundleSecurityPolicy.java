@@ -110,6 +110,7 @@ public final class BundleSecurityPolicy {
     private static final String      ERROR_NO_PUBLIC_KEY_FOR_VERIFICATION = "Bundle signature verification is required but no public key was provided.";
     private static final String      ERROR_PUBLIC_KEY_MUST_BE_ED25519     = "Public key must be Ed25519, got: %s.";
     private static final String      ERROR_PUBLIC_KEY_MUST_NOT_BE_NULL    = "Public key must not be null.";
+    private static final String      ERROR_PUBLIC_KEY_WEAK                = "Public key must not be a weak Ed25519 key of small order.";
     private static final String      ERROR_SIGNATURE_REQUIRES_PUBLIC_KEY  = "Signature verification requires a public key or a key catalogue. Use builder(publicKey), withKeyCatalogue(), or disable signature verification.";
 
     private final PublicKey                publicKey;
@@ -315,6 +316,13 @@ public final class BundleSecurityPolicy {
         if (!ED25519_ALGORITHM_NAMES.contains(publicKey.getAlgorithm())) {
             throw new IllegalArgumentException(ERROR_PUBLIC_KEY_MUST_BE_ED25519.formatted(publicKey.getAlgorithm()));
         }
+        requireStrongKey(publicKey);
+    }
+
+    private static void requireStrongKey(PublicKey publicKey) {
+        if (BundleSigner.isWeakEd25519Key(publicKey)) {
+            throw new IllegalArgumentException(ERROR_PUBLIC_KEY_WEAK);
+        }
     }
 
     /**
@@ -361,9 +369,13 @@ public final class BundleSecurityPolicy {
          * map of keyId to Ed25519 public key
          *
          * @return this builder
+         *
+         * @throws IllegalArgumentException
+         * if a key is a weak Ed25519 key of small order
          */
         public Builder withKeyCatalogue(Map<String, PublicKey> keyCatalogue) {
             this.keyCatalogue = keyCatalogue != null ? Map.copyOf(keyCatalogue) : Map.of();
+            this.keyCatalogue.values().forEach(BundleSecurityPolicy::requireStrongKey);
             return this;
         }
 

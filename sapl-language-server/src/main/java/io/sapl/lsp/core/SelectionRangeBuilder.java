@@ -21,10 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SelectionRange;
 
 import lombok.experimental.UtilityClass;
@@ -47,8 +45,15 @@ public class SelectionRangeBuilder {
      * is outside the tree
      */
     public static SelectionRange buildSelectionRange(ParseTree root, Position position) {
+        if (!(root instanceof ParserRuleContext rootContext) || rootContext.getStart() == null) {
+            return null;
+        }
+        val positions = ProtocolPositions.of(rootContext.getStart());
+        if (!positions.holds(position)) {
+            return null;
+        }
         val chain = new ArrayList<ParserRuleContext>();
-        collectEnclosingNodes(root, position, chain);
+        collectEnclosingNodes(root, positions, positions.offsetOf(position), chain);
         if (chain.isEmpty()) {
             return null;
         }
@@ -57,18 +62,16 @@ public class SelectionRangeBuilder {
         // returned head is the innermost range with its ancestors as parents.
         for (var i = 0; i < chain.size(); i++) {
             val ctx            = chain.get(i);
-            val range          = rangeOf(ctx);
+            val range          = positions.rangeOf(ctx);
             val selectionRange = new SelectionRange(range, current);
             current = selectionRange;
         }
         return current;
     }
 
-    private static void collectEnclosingNodes(ParseTree node, Position position, List<ParserRuleContext> chain) {
-        if (!(node instanceof ParserRuleContext ctx)) {
-            return;
-        }
-        if (!contains(ctx, position)) {
+    private static void collectEnclosingNodes(ParseTree node, ProtocolPositions positions, int offset,
+            List<ParserRuleContext> chain) {
+        if (!(node instanceof ParserRuleContext ctx) || !positions.encloses(ctx, offset)) {
             return;
         }
         chain.add(ctx);
@@ -76,51 +79,11 @@ public class SelectionRangeBuilder {
         // ancestor path.
         for (var i = 0; i < ctx.getChildCount(); i++) {
             val before = chain.size();
-            collectEnclosingNodes(ctx.getChild(i), position, chain);
+            collectEnclosingNodes(ctx.getChild(i), positions, offset, chain);
             if (chain.size() > before) {
                 return;
             }
         }
-    }
-
-    private static boolean contains(ParserRuleContext ctx, Position position) {
-        if (ctx.getStart() == null || ctx.getStop() == null) {
-            return false;
-        }
-        val startLine = ctx.getStart().getLine() - 1;
-        val startChar = ctx.getStart().getCharPositionInLine();
-        val end       = endPositionOf(ctx.getStop());
-        val stopLine  = end.getLine();
-        val stopChar  = end.getCharacter();
-
-        val line      = position.getLine();
-        val character = position.getCharacter();
-
-        if (line < startLine || line > stopLine) {
-            return false;
-        }
-        if (line == startLine && character < startChar) {
-            return false;
-        }
-        return line != stopLine || character <= stopChar;
-    }
-
-    private static Range rangeOf(ParserRuleContext ctx) {
-        val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
-        return new Range(start, endPositionOf(ctx.getStop()));
-    }
-
-    private static Position endPositionOf(Token stop) {
-        val text        = stop.getText();
-        val startLine   = stop.getLine() - 1;
-        val lastNewline = text.lastIndexOf('\n');
-        // Token columns refer to the token start, so a stop token spanning multiple
-        // physical lines ends on a later line at the column after its last newline.
-        if (lastNewline < 0) {
-            return new Position(startLine, stop.getCharPositionInLine() + text.length());
-        }
-        val newlineCount = (int) text.chars().filter(c -> c == '\n').count();
-        return new Position(startLine + newlineCount, text.length() - lastNewline - 1);
     }
 
 }

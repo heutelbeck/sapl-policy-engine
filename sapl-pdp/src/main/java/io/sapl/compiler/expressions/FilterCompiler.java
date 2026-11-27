@@ -30,6 +30,7 @@ import lombok.val;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Function;
 import java.util.Map;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
@@ -45,30 +46,39 @@ public class FilterCompiler {
     }
 
     public static CompiledExpression compileSimpleUnfolded(SimpleFilter sf, CompilationContext ctx) {
+        return compileSimpleUnfolded(sf, ctx, argument -> ExpressionCompiler.compile(argument, ctx));
+    }
+
+    static CompiledExpression compileSimpleUnfolded(SimpleFilter sf, CompilationContext ctx,
+            Function<Expression, CompiledExpression> compileArgument) {
         if (sf.each()) {
-            return compileSimpleForEach(sf, ctx);
+            return compileSimpleForEach(sf, ctx, compileArgument);
         } else {
-            return compileTrueSimple(sf, ctx);
+            return compileTrueSimple(sf, compileArgument);
         }
     }
 
-    private static CompiledExpression compileTrueSimple(SimpleFilter sf, CompilationContext ctx) {
+    private static CompiledExpression compileTrueSimple(SimpleFilter sf,
+            Function<Expression, CompiledExpression> compileArgument) {
         val arguments = new ArrayList<Expression>();
         arguments.add(sf.base());
         arguments.addAll(sf.arguments());
-        return FunctionCallCompiler.compile(sf.name().full(), arguments, sf.location(), ctx);
+        return FunctionCallCompiler.compile(sf.name().full(), arguments, sf.location(), compileArgument);
     }
 
-    private static CompiledExpression compileSimpleForEach(SimpleFilter sf, CompilationContext ctx) {
-        val base = ExpressionCompiler.compile(sf.base(), ctx);
-        if (base instanceof ErrorValue || base instanceof UndefinedValue) {
-            return base;
-        }
+    private static CompiledExpression compileSimpleForEach(SimpleFilter sf, CompilationContext ctx,
+            Function<Expression, CompiledExpression> compileArgument) {
         val arguments = new ArrayList<Expression>();
         arguments.add(new RelativeReference(RelativeType.VALUE, sf.base().location()));
         val location = sf.location();
         arguments.addAll(sf.arguments());
-        val filter = FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx);
+        val inputs = CompilationChildren.pair(() -> ExpressionCompiler.compile(sf.base(), ctx),
+                () -> FunctionCallCompiler.compile(sf.name().full(), arguments, location, compileArgument));
+        val base   = inputs.first();
+        val filter = inputs.second();
+        if (base instanceof ErrorValue || base instanceof UndefinedValue) {
+            return base;
+        }
 
         if (base instanceof Value vb && filter instanceof Value vf) {
             return evaluateEachValueValue(vb, vf);

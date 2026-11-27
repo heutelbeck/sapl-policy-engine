@@ -41,6 +41,8 @@ class SaplNodeApplicationTests {
         registry.add("io.sapl.pdp.embedded.config-path", pdpDir::toString);
         registry.add("io.sapl.pdp.embedded.policies-path", pdpDir::toString);
         registry.add("sapl.pdp.rsocket.port", () -> "0");
+        // The test serves RSocket in plaintext, which needs the explicit opt-in.
+        registry.add("io.sapl.node.allow-no-tls", () -> "true");
     }
 
     @Test
