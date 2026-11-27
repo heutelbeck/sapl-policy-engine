@@ -195,7 +195,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Bitwise AND result
 
-            Example - check if user has all required permissions:
+            Example: check if user has all required permissions
             ```sapl
             policy "example"
             permit
@@ -234,7 +234,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Bitwise OR result
 
-            Example - combine direct and inherited permissions:
+            Example: combine direct and inherited permissions
             ```sapl
             policy "example"
             permit
@@ -273,7 +273,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Bitwise XOR result
 
-            Example - find permission differences:
+            Example: find permission differences
             ```sapl
             policy "example"
             permit
@@ -309,7 +309,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Bitwise NOT result
 
-            Example - invert permissions:
+            Example: invert permissions
             ```sapl
             policy "example"
             permit
@@ -348,7 +348,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Boolean indicating whether bit is set
 
-            Example - check specific permission:
+            Example: check specific permission
             ```sapl
             policy "example"
             permit action == "delete";
@@ -394,7 +394,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Value with bit set
 
-            Example - grant specific permission:
+            Example: grant specific permission
             ```sapl
             policy "example"
             permit action == "grant_read";
@@ -441,7 +441,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Value with bit cleared
 
-            Example - revoke specific permission:
+            Example: revoke specific permission
             ```sapl
             policy "example"
             permit action == "revoke_write";
@@ -489,7 +489,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Value with bit toggled
 
-            Example - toggle debug mode:
+            Example: toggle debug mode
             ```sapl
             policy "example"
             permit action == "toggle_feature";
@@ -533,7 +533,7 @@ public class BitwiseFunctionLibrary {
 
             Returns: Number of one-bits
 
-            Example - enforce permission limit:
+            Example: enforce permission limit
             ```sapl
             policy "example"
             deny action == "grant_permission";

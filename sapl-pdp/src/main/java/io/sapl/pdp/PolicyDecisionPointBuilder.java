@@ -152,7 +152,7 @@ public class PolicyDecisionPointBuilder {
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
-    private Keyring secretsDecryptionKeyring;
+    private Keyring secretsDecryptionKeyring = Keyring.of();
     private boolean acceptUnencryptedSecrets;
 
     private static final String ERROR_DECRYPTION_KEY_MUST_BE_PRIVATE       = "Secrets decryption key must contain a private key component.";
@@ -367,10 +367,10 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets the maximum number of entries in the function result cache.
-     * SAPL functions are pure and side-effect-free, so results are cached
-     * across evaluations. Uses Window-TinyLFU eviction via Caffeine.
-     * Default is 10,000 entries.
+     * Sets the capacity of the standard broker's cache for each compiled PDP configuration.
+     * Successful pure function calls can be reused across requests. Each entry is charged
+     * at least 1 KiB against a budget of {@code size} KiB. Errors and oversized calls bypass
+     * the cache. The default is 10,000 entries.
      *
      * @param size maximum cache entries
      * @return this builder
@@ -428,9 +428,7 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds a decision interceptor that observes every
-     * {@link io.sapl.api.pdp.TracedDecision}
-     * produced by the PDP.
+     * Registers a {@link DecisionInterceptor} for single and grouped decisions.
      *
      * @param interceptor the decision interceptor to add
      * @return this builder
@@ -531,7 +529,7 @@ public class PolicyDecisionPointBuilder {
      * it). Bundles whose secrets were sealed to the matching public key via
      * {@code BundleBuilder.sealSecretsWith} are decrypted as they are ingested,
      * after the source has verified them. Sources are unaffected. When no key is
-     * configured, sealed secrets are left as {@code ENC[...]} tokens.
+     * configured, a configuration with sealed secrets is rejected.
      *
      * @param recipientPrivateKey
      * the X25519 recipient private key
@@ -578,11 +576,10 @@ public class PolicyDecisionPointBuilder {
     /**
      * Opts into accepting configurations whose secrets are not sealed.
      * <p>
-     * By default, once a {@link #withSecretsDecryptionKey decryption key} is
-     * configured, a configuration carrying secrets in cleartext is rejected as it is
-     * ingested. This opt-in relaxes that check for trusted or development
-     * environments and logs a warning. It has no effect when no decryption key is
-     * configured.
+     * By default, a configuration carrying secrets in cleartext is rejected as it is
+     * ingested, whether or not a {@link #withSecretsDecryptionKey decryption key} is
+     * configured. This opt-in relaxes that check for trusted or development
+     * environments and logs a warning.
      *
      * @return this builder
      */
@@ -902,11 +899,11 @@ public class PolicyDecisionPointBuilder {
         val pluginsSource           = resolvePluginsSource();
         val ownsPluginsSource       = externalPluginsSource == null;
         val voterSource             = new PdpVoterSource(pluginsSource, clock, extensionsProcessor);
-        // Wrap the configured source so secrets are unsealed at the source
-        // boundary. Downstream, the compiler included, only ever sees cleartext.
-        val effectiveSource = secretsDecryptionKeyring != null && configurationSource != null
-                ? new SecretsUnsealingSource(configurationSource, secretsDecryptionKeyring, acceptUnencryptedSecrets)
-                : configurationSource;
+        // Wrap the configured source so the sealing rule is enforced and secrets are
+        // unsealed at the source boundary, with or without a decryption key.
+        // Downstream, the compiler included, only ever sees cleartext.
+        val effectiveSource = configurationSource == null ? null
+                : new SecretsUnsealingSource(configurationSource, secretsDecryptionKeyring, acceptUnencryptedSecrets);
         val blockingPdp     = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
                 resolvedTimestampSource);
 
@@ -989,8 +986,7 @@ public class PolicyDecisionPointBuilder {
     }
 
     private PDPConfiguration unsealSecrets(PDPConfiguration configuration) {
-        return secretsDecryptionKeyring == null ? configuration
-                : SecretsUnsealing.process(secretsDecryptionKeyring, acceptUnencryptedSecrets, configuration);
+        return SecretsUnsealing.process(secretsDecryptionKeyring, acceptUnencryptedSecrets, configuration);
     }
 
     private PluginsSource resolvePluginsSource() {

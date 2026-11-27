@@ -25,13 +25,14 @@
 # The systemd service uses --spring.config.additional-location=file:/etc/sapl/application.yml
 # so this file overlays the JAR-embedded defaults.
 #
-# The node will not start until bundle security is configured.
-# See /var/lib/sapl/README for the quick start workflow.
+# The node will not start until TLS, an authentication mode and bundle
+# security are configured. It sets no opt-in for plaintext or anonymous
+# access. See /var/lib/sapl/README for the quick start workflow.
 #
 # Security progression:
 #   Level 0: Configure public key (or allow-unsigned to opt out)
-#   Level 1: Enable auth, generate credentials
-#   Level 2: Enable TLS, bind to 0.0.0.0
+#   Level 1: Configure TLS (or allow-no-tls behind a TLS-terminating proxy)
+#   Level 2: Enable auth, generate credentials
 #   Level 3: TLS + auth + signed bundles + metrics (production)
 #
 
@@ -50,52 +51,36 @@ spring:
 server:
   address: 127.0.0.1
   port: 8080
-  ssl:
-    enabled: false
-    # Uncomment and configure to enable TLS.
-    # The keystore file must be readable by the sapl service user:
-    #   sudo chown root:sapl /etc/sapl/keystore.p12
-    #   sudo chmod 640 /etc/sapl/keystore.p12
-    # key-store-type: PKCS12
-    # key-store: file:/etc/sapl/keystore.p12
-    # key-store-password: changeme
-    # key-password: changeme
-    # key-alias: sapl
-    ciphers:
-      - TLS_AES_128_GCM_SHA256
-      - TLS_AES_256_GCM_SHA384
-      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-      - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
-      - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
-      - TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
-      - TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
-      - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
-      - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
-      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
-      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-      - TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
-      - TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
-      - TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
-      - TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
-    enabled-protocols:
-      - TLSv1.3
-      - TLSv1.2
-    protocol: TLSv1.3
+  # Both APIs serve the certificate of io.sapl.node.tls below. To serve
+  # another certificate on HTTP only, name an SSL bundle of spring.ssl.bundle
+  # in server.ssl.bundle.
 
 # --- Client Authentication ---
 #
 # The node supports four authentication modes. Multiple can be enabled
-# simultaneously. With no authentication required (allow-no-auth: true),
-# the node is functional out of the box on localhost.
-#
-# WARNING: Enable authentication before exposing the node to a network.
+# simultaneously. The node refuses to start until one is enabled, or until
+# anonymous access is allowed explicitly with allow-no-auth: true, for example
+# where an authenticating proxy owns the trust boundary.
 
 io.sapl:
   node:
-    allow-no-auth: true
+    # --- TLS ---
+    #
+    # One certificate for both APIs, as PEM files readable by the sapl user:
+    #   sudo chown root:sapl /etc/sapl/tls/server.pem /etc/sapl/tls/server.key
+    #   sudo chmod 640 /etc/sapl/tls/server.key
+    # A renewed certificate is served without a restart. A certificate is
+    # reported in the log from 14 days before it expires.
+    #
+    # tls:
+    #   certificate-chain: /etc/sapl/tls/server.pem
+    #   private-key: /etc/sapl/tls/server.key
+    #
+    # Plaintext only where TLS is terminated upstream, by a proxy or a
+    # service mesh. The node logs a warning at every start.
+    # allow-no-tls: true
+
+    # allow-no-auth: true
     allow-basic-auth: false
     allow-api-key-auth: false
     allow-oauth2-auth: false

@@ -94,11 +94,11 @@ class MqttPolicyInformationPointIT {
     private static AttributeAccessContext ctx(String clientId) {
         val pipConfig = json("""
                 {
-                  "defaultBrokerConfigName": "production",
+                  "default": "production",
                   "emitAtRetry": "false",
-                  "brokerConfig": [
-                    { "name": "production", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
-                  ]
+                  "brokers": {
+                    "production": { "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                  }
                 }
                 """.formatted(brokerHost, brokerPort, clientId));
         val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
@@ -131,11 +131,11 @@ class MqttPolicyInformationPointIT {
     private static AttributeAccessContext ctxForPort(int brokerPort) {
         val pipConfig = json("""
                 {
-                  "defaultBrokerConfigName": "down",
+                  "default": "down",
                   "emitAtRetry": "false",
-                  "brokerConfig": [
-                    { "name": "down", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
-                  ]
+                  "brokers": {
+                    "down": { "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                  }
                 }
                 """.formatted(brokerHost, brokerPort, "sapl-down-" + CLIENT_SEQ.incrementAndGet()));
         val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
@@ -281,13 +281,13 @@ class MqttPolicyInformationPointIT {
         private static AttributeAccessContext ctxWithDefaultResponse(String type, long timeoutMs) {
             val pipConfig = json("""
                     {
-                      "defaultBrokerConfigName": "production",
+                      "default": "production",
                       "emitAtRetry": "false",
                       "defaultResponse": "%s",
                       "defaultResponseTimeout": %d,
-                      "brokerConfig": [
-                        { "name": "production", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
-                      ]
+                      "brokers": {
+                        "production": { "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                      }
                     }
                     """.formatted(type, timeoutMs, brokerHost, brokerPort,
                     "sapl-pip-default-" + CLIENT_SEQ.incrementAndGet()));
@@ -380,12 +380,12 @@ class MqttPolicyInformationPointIT {
             // rather than the timer-driven UNDEFINED.
             val pipConfig = json("""
                     {
-                      "defaultBrokerConfigName": "ghost",
+                      "default": "ghost",
                       "emitAtRetry": "false",
                       "defaultResponseTimeout": 30000,
-                      "brokerConfig": [
-                        { "name": "ghost", "brokerAddress": "127.0.0.1", "brokerPort": 1, "clientId": "ghost-client" }
-                      ]
+                      "brokers": {
+                        "ghost": { "brokerAddress": "127.0.0.1", "brokerPort": 1, "clientId": "ghost-client" }
+                      }
                     }
                     """);
             val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
@@ -428,13 +428,13 @@ class MqttPolicyInformationPointIT {
         private static AttributeAccessContext sharedBrokerCtxWithDefaultResponse() {
             val pipConfig = json("""
                     {
-                      "defaultBrokerConfigName": "production",
+                      "default": "production",
                       "emitAtRetry": "false",
                       "defaultResponse": "undefined",
                       "defaultResponseTimeout": 300,
-                      "brokerConfig": [
-                        { "name": "production", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
-                      ]
+                      "brokers": {
+                        "production": { "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                      }
                     }
                     """.formatted(brokerHost, brokerPort, "sapl-pip-share-" + CLIENT_SEQ.incrementAndGet()));
             val variables = ObjectValue.builder().put("mqtt", pipConfig).build();

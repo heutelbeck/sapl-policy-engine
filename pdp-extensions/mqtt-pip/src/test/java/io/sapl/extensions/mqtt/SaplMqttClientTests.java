@@ -36,6 +36,8 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
@@ -113,9 +115,27 @@ class SaplMqttClientTests {
                 { "name": "shared", "brokerAddress": "mqtt.example.com", "brokerPort": 8883 }
                 """));
 
-        assertThat(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice")))
-                .isEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice")))
-                .isNotEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("bob", "pw-bob")));
+        assertThat(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice"), null))
+                .isEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice"), null))
+                .isNotEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("bob", "pw-bob"), null));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "tlsTrustStore", "tlsTrustStorePassword" })
+    @DisplayName("removed trust store options fail before contacting a broker")
+    void whenFileTrustOptionPresentThenError(String option) {
+        val broker    = ObjectValue.builder().put(option, Value.of("unused")).build();
+        val config    = ObjectValue.builder().put("brokers", ObjectValue.builder().put("default", broker).build())
+                .build();
+        val variables = ObjectValue.builder().put("mqtt", config).build();
+        val context   = new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+        try (val client = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+                val stream = client.buildSaplMqttMessageStream(Value.of("readings"), context)) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2))
+                    .awaitsNext(value -> assertThat(value).isInstanceOfSatisfying(ErrorValue.class,
+                            error -> assertThat(error.message()).contains("file-based TLS trust")));
+            assertThat(client.cache()).isEmpty();
+        }
     }
 
     private static ObjectValue mqttSecrets(String username, String password) {
@@ -128,10 +148,10 @@ class SaplMqttClientTests {
     private static AttributeAccessContext ctx() {
         val pipConfig = json("""
                 {
-                  "defaultBrokerConfigName": "default",
-                  "brokerConfig": [
-                    { "name": "default", "brokerAddress": "localhost", "brokerPort": 1883 }
-                  ]
+                  "default": "default",
+                  "brokers": {
+                    "default": { "brokerAddress": "localhost", "brokerPort": 1883 }
+                  }
                 }
                 """);
         val variables = ObjectValue.builder().put("mqtt", pipConfig).build();
@@ -198,7 +218,7 @@ class SaplMqttClientTests {
         val ctx            = ctxWithMqttConfig("""
                 {
                   "maxTopicFilters": 1,
-                  "brokerConfig": { "brokerAddress": "localhost" }
+                  "brokers": { "default": { "brokerAddress": "localhost" } }
                 }
                 """);
         val topics         = Value.ofArray(Value.of("test/one"), Value.of("test/two"));
@@ -218,7 +238,7 @@ class SaplMqttClientTests {
         val ctx            = ctxWithMqttConfig("""
                 {
                   "maxTopicFilterBytes": 4,
-                  "brokerConfig": { "brokerAddress": "localhost" }
+                  "brokers": { "default": { "brokerAddress": "localhost" } }
                 }
                 """);
 
@@ -235,7 +255,7 @@ class SaplMqttClientTests {
     }
 
     private static ObjectValue secrets(ObjectValue mqttSecrets) {
-        return ObjectValue.builder().put("mqtt", mqttSecrets).build();
+        return ObjectValue.builder().put("mqtt", ObjectValue.builder().put("default", mqttSecrets).build()).build();
     }
 
     private static String passwordOf(Mqtt5SimpleAuth auth) {
@@ -291,9 +311,8 @@ class SaplMqttClientTests {
     @DisplayName("insecure transport detection")
     class InsecureTransportDetection {
 
-        private static final ObjectValue CREDENTIAL_SECRETS = ObjectValue.builder().put("mqtt",
-                ObjectValue.builder().put("username", Value.of("alice")).put("password", Value.of("secret")).build())
-                .build();
+        private static final ObjectValue CREDENTIAL_SECRETS = secrets(
+                ObjectValue.builder().put("username", Value.of("alice")).put("password", Value.of("secret")).build());
 
         @Test
         @DisplayName("credentials over a plaintext connection are flagged as insecure")
@@ -325,11 +344,10 @@ class SaplMqttClientTests {
             val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
             val ctx            = ctxWithMqttConfigAndSecrets("""
                     {
-                      "brokerConfig": {
-                        "name": "default",
+                      "brokers": { "default": {
                         "brokerAddress": "localhost",
                         "brokerPort": 1
-                      }
+                      } }
                     }
                     """, CREDENTIAL_SECRETS);
 

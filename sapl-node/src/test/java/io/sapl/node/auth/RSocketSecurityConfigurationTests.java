@@ -33,15 +33,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.lang.reflect.Method;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -53,9 +55,18 @@ class RSocketSecurityConfigurationTests {
     @Mock
     private UserLookupService userLookupService;
 
+    @Mock
+    private JwtDecoder jwtDecoder;
+
     private RSocketConnectionAuthenticator authenticatorFor(SaplNodeProperties properties) {
-        return new RSocketSecurityConfiguration(properties, userLookupService, null)
+        return new RSocketSecurityConfiguration(properties, userLookupService, jwtDecoder,
+                new AuthenticationCache(Duration.ofMinutes(5), Duration.ofSeconds(5), 100L))
                 .rsocketConnectionAuthenticator(true);
+    }
+
+    private static io.netty.buffer.ByteBuf basicMetadata(String username, String password) {
+        return AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, username.toCharArray(),
+                password.toCharArray());
     }
 
     private static ConnectionSetupPayload setupWith(io.netty.buffer.ByteBuf metadata) {
@@ -174,41 +185,76 @@ class RSocketSecurityConfigurationTests {
     }
 
     @Nested
+    @DisplayName("the authentication cache")
+    class AuthenticationCacheTests {
+
+        @Test
+        @DisplayName("a client that connects again with the same credentials costs one Argon2 verification")
+        void whenSameCredentialsConnectAgainThenVerifiedOnce() {
+            val properties = new SaplNodeProperties();
+            properties.setAllowBasicAuth(true);
+            val user = new UserEntry();
+            user.setPdpId("arkham");
+            when(userLookupService.verifyBasicCredentials("alice", "secret")).thenReturn(Optional.of(user));
+            val authenticator = authenticatorFor(properties);
+
+            for (var connection = 0; connection < 2; connection++) {
+                StepVerifier.create(authenticator.authenticate(setupWith(basicMetadata("alice", "secret"))))
+                        .expectNextMatches(result -> "arkham".equals(result.pdpId())).verifyComplete();
+            }
+            verify(userLookupService, times(1)).verifyBasicCredentials("alice", "secret");
+        }
+
+        @Test
+        @DisplayName("a refused credential is not verified again while its failure lasts")
+        void whenRefusedCredentialsConnectAgainThenVerifiedOnce() {
+            val properties = new SaplNodeProperties();
+            properties.setAllowBasicAuth(true);
+            when(userLookupService.verifyBasicCredentials("mallory", "guess")).thenReturn(Optional.empty());
+            val authenticator = authenticatorFor(properties);
+
+            for (var connection = 0; connection < 2; connection++) {
+                StepVerifier.create(authenticator.authenticate(setupWith(basicMetadata("mallory", "guess"))))
+                        .expectError(BadCredentialsException.class).verify();
+            }
+            verify(userLookupService, times(1)).verifyBasicCredentials("mallory", "guess");
+        }
+    }
+
+    @Nested
     @DisplayName("JWT expiry (exp claim)")
     class JwtExpiry {
 
         private static final Instant ISSUED_AT = Instant.parse("2026-02-13T00:00:00Z");
 
-        @SuppressWarnings("unchecked")
-        private Mono<RSocketConnectionAuthenticator.AuthenticationResult> extract(SaplNodeProperties properties,
-                Jwt jwt) throws Exception {
-            val          config = new RSocketSecurityConfiguration(properties, userLookupService, null);
-            final Method method = RSocketSecurityConfiguration.class.getDeclaredMethod("extractPdpIdFromJwt",
-                    Jwt.class);
-            method.setAccessible(true);
-            return (Mono<RSocketConnectionAuthenticator.AuthenticationResult>) method.invoke(config, jwt);
+        private Mono<RSocketConnectionAuthenticator.AuthenticationResult> authenticateWith(
+                SaplNodeProperties properties, Jwt jwt) {
+            properties.setAllowOauth2Auth(true);
+            when(jwtDecoder.decode("eyJ.token")).thenReturn(jwt);
+            val metadata = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT, "eyJ.token".toCharArray());
+            return authenticatorFor(properties).authenticate(setupWith(metadata));
         }
 
         private static Jwt jwtWithoutExpiry() {
-            return Jwt.withTokenValue("t").header("alg", "RS256").claim("sapl_pdp_id", "tenant").issuedAt(ISSUED_AT)
-                    .build();
+            return Jwt.withTokenValue("eyJ.token").header("alg", "RS256").claim("sapl_pdp_id", "tenant")
+                    .issuedAt(ISSUED_AT).build();
         }
 
         @Test
         @DisplayName("a JWT without an exp claim is rejected by default (would grant a non-expiring connection)")
-        void whenJwtWithoutExpiryAndNotAllowedThenRejected() throws Exception {
-            val result = extract(new SaplNodeProperties(), jwtWithoutExpiry());
+        void whenJwtWithoutExpiryAndNotAllowedThenRejected() {
+            val result = authenticateWith(new SaplNodeProperties(), jwtWithoutExpiry());
 
             StepVerifier.create(result).expectError(BadCredentialsException.class).verify();
         }
 
         @Test
         @DisplayName("a JWT without an exp claim is accepted when allow-jwt-without-expiry=true")
-        void whenJwtWithoutExpiryAndAllowedThenAccepted() throws Exception {
+        void whenJwtWithoutExpiryAndAllowedThenAccepted() {
             val properties = new SaplNodeProperties();
             properties.getOauth().setAllowJwtWithoutExpiry(true);
 
-            val result = extract(properties, jwtWithoutExpiry());
+            val result = authenticateWith(properties, jwtWithoutExpiry());
 
             StepVerifier.create(result).expectNextMatches(r -> "tenant".equals(r.pdpId())).verifyComplete();
         }

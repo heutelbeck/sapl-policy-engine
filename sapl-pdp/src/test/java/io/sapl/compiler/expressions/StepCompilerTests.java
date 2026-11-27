@@ -123,7 +123,7 @@ class StepCompilerTests {
 
         @ParameterizedTest(name = "{0} = {1}")
         @MethodSource
-        @DisplayName("on Value - valid indices")
+        @DisplayName("on Value: valid indices")
         void onValueValid(String expr, Value expected) {
             assertCompilesTo(expr, expected);
         }
@@ -383,7 +383,7 @@ class StepCompilerTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        @DisplayName("on Value - valid slices")
+        @DisplayName("on Value: valid slices")
         void onValueValid(String description, String expr, Value expected) {
             assertCompilesTo(expr, expected);
         }
@@ -433,7 +433,14 @@ class StepCompilerTests {
                     arguments("end beyond length [:10]", "[1, 2, 3][:10]",
                             array(Value.of(1), Value.of(2), Value.of(3))),
                     arguments("negative start beyond length [-10:]", "[1, 2, 3][-10:]",
-                            array(Value.of(1), Value.of(2), Value.of(3))));
+                            array(Value.of(1), Value.of(2), Value.of(3))),
+                    // Steps beyond the range of 32 bit integers do not wrap around
+                    arguments("largest step [5::2147483647]", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9][5::2147483647]",
+                            array(Value.of(5))),
+                    arguments("largest step from start [::2147483647]", "[0, 1, 2][::2147483647]",
+                            array(Value.of(0))),
+                    arguments("smallest step [5::-2147483648]", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9][5::-2147483648]",
+                            array(Value.of(5))));
         }
         // @formatter:on
 
@@ -524,7 +531,7 @@ class StepCompilerTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        @DisplayName("on Value - constant folds")
+        @DisplayName("on Value: constant folds")
         void onValue(String description, String expr, Value expected) {
             var result = compileExpression(expr);
             if (expected instanceof ArrayValue arr && result instanceof ArrayValue resArr) {

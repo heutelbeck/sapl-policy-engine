@@ -53,9 +53,11 @@ public final class RSocketClientResources implements AutoCloseable {
         LIFECYCLE_LOCK.lock();
         try {
             if (sharedLoops == null) {
-                // Transport compatibility checks consume an extra client loop selection.
-                sharedLoops = LoopResources.create("sapl-rsocket-client", 2 * LoopResources.DEFAULT_IO_WORKER_COUNT,
-                        true);
+                // Transport compatibility checks consume an extra client loop selection. Without
+                // colocation, a connection opened from a client event loop, as the pool opens its
+                // further connections, takes the next loop instead of the loop it was opened from.
+                sharedLoops = LoopResources.create("sapl-rsocket-client", -1, 2 * LoopResources.DEFAULT_IO_WORKER_COUNT,
+                        true, false);
             }
             users++;
             return new RSocketClientResources(sharedLoops);

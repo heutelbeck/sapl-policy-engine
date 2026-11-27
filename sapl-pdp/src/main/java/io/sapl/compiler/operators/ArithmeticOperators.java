@@ -57,7 +57,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(va.add(vb, MathContext.DECIMAL128));
+                return bounded(va.add(vb, MathContext.DECIMAL128), location);
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -74,7 +74,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(va.subtract(vb, MathContext.DECIMAL128));
+                return bounded(va.subtract(vb, MathContext.DECIMAL128), location);
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -91,7 +91,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(va.multiply(vb, MathContext.DECIMAL128));
+                return bounded(va.multiply(vb, MathContext.DECIMAL128), location);
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -116,7 +116,7 @@ public class ArithmeticOperators {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
             try {
-                return new NumberValue(va.divide(vb, MathContext.DECIMAL128));
+                return bounded(va.divide(vb, MathContext.DECIMAL128), location);
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
@@ -144,12 +144,23 @@ public class ArithmeticOperators {
                 if (result.signum() < 0 && vb.signum() > 0) {
                     result = result.add(vb, MathContext.DECIMAL128);
                 }
-                return new NumberValue(result);
+                return bounded(result, location);
             } catch (ArithmeticException ignored) {
                 return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
         }
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, a instanceof NumberValue ? b : a);
+    }
+
+    /**
+     * The result as a number if its precision and scale are within the bounds
+     * of operands, so that every result can be an operand again.
+     */
+    private static Value bounded(BigDecimal result, SourceLocation location) {
+        if (isPathological(result)) {
+            return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+        }
+        return new NumberValue(result);
     }
 
     /** True if precision or scale exceeds the supported bounds. */

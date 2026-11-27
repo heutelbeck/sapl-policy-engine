@@ -37,10 +37,6 @@
 	</properties>
 
 	<dependencies>
-		<dependency>
-			<groupId>org.semver4j</groupId>
-			<artifactId>semver4j</artifactId>
-		</dependency>
 		<!-- JSON Processing (Jackson 3) -->
 		<dependency>
 			<groupId>tools.jackson.core</groupId>

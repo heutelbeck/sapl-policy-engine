@@ -30,6 +30,26 @@ public interface FunctionBroker {
      */
     void load(Object libraryInstance);
 
+    /**
+     * Supplies the function broker for one compiled PDP configuration. A broker retaining
+     * request results can isolate them here. Stateless and host-supplied brokers may be shared.
+     *
+     * @return the broker used for this configuration's lifetime
+     */
+    default FunctionBroker forConfiguration() {
+        return this;
+    }
+
+    /**
+     * Identifies an immutable container retained by the compiled configuration. This lets a broker
+     * recognize a large constant argument by identity on subsequent requests.
+     *
+     * @param value a folded array or object
+     */
+    default void registerConstant(Value value) {
+        // Optional for brokers without argument caching.
+    }
+
     Value evaluateFunction(FunctionInvocation invocation);
 
     List<Class<?>> getRegisteredLibraries();

@@ -206,7 +206,7 @@ public class GraphQLFunctionLibrary {
 
             ## Multiple operations
 
-            A document may declare several named operations; the one executed is chosen at request time by the
+            A document may declare several named operations. The one executed is chosen at request time by the
             `operationName` parameter, which this analysis does not observe. The security metrics (`depth`, `fields`,
             `complexity`, `security.*`) therefore describe the worst case across every operation in the document: the
             maximum depth and pagination limit, the union of all field names, and the logical OR of the introspection

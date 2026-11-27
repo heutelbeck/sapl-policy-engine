@@ -13,7 +13,7 @@ For policy level configuration such as the combining algorithm, variables, and s
 
 ### Configuration File Location
 
-SAPL Node ships with a self-documenting `application.yml` built into the JAR. The defaults are functional out of the box: no TLS, no authentication required, policies loaded from the current directory.
+SAPL Node ships with a self-documenting `application.yml` built into the JAR. The defaults are secure: the node requires TLS and an authentication mode, on localhost too, and loads policies from the current directory. For local exploration, `sapl server --no-tls --no-auth` allows plaintext and anonymous access explicitly.
 
 To override defaults, place an `application.yml` in a `config/` directory next to the JAR. Spring Boot loads this file automatically on startup, and its values take precedence over the built-in defaults.
 
@@ -55,7 +55,10 @@ All properties live under the prefix `io.sapl.node`:
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `allow-no-auth` | `boolean` | `false` | Permits unauthenticated requests. Disabled by default (fail-closed). Set to `true` for local exploration when no upstream authentication is in place. |
+| `allow-no-tls` | `boolean` | `false` | Permits an API without TLS to serve plaintext instead of refusing the start, on every address. Set to `true` only where TLS is terminated upstream, by a proxy or a service mesh, or in development. Same as the option `--no-tls`. Every start logs a warning that names where it was set. |
+| `tls.certificate-chain` | `String` | | Path of the PEM file with the certificate that both APIs serve, followed by the certificates that connect it to a root. Requires `tls.private-key`. A renewed file is served without a restart. |
+| `tls.private-key` | `String` | | Path of the PEM file with the private key of the certificate. Requires `tls.certificate-chain`. |
+| `allow-no-auth` | `boolean` | `false` | Permits unauthenticated requests. Disabled by default (fail-closed). Set to `true` for local exploration when no upstream authentication is in place. Same as the option `--no-auth`. Every start logs a warning that names where it was set. |
 | `allow-basic-auth` | `boolean` | `false` | Enables HTTP Basic authentication. |
 | `allow-api-key-auth` | `boolean` | `false` | Enables API key authentication via Bearer tokens. |
 | `allow-oauth2-auth` | `boolean` | `false` | Enables OAuth2/JWT authentication. |
@@ -75,9 +78,9 @@ All properties live under the prefix `io.sapl.node`:
 | `keep-alive` | `long` | `15` | Seconds between SSE keep-alive frames on idle streaming connections. Prevents proxies and firewalls from dropping inactive connections and lets the server detect clients that drop without closing. Always on and cannot be disabled; values below `1` are raised to the default. Keep it below the smallest proxy idle timeout on the path. See [Reverse Proxy Configuration](../7_6_Security/#reverse-proxy-configuration). |
 | `max-multi-subscription-count` | `int` | `256` | Maximum number of entries accepted in one `MultiAuthorizationSubscription` on public HTTP and RSocket PDP endpoints. Requests above the limit are rejected before PDP fan-out. Raise only for clients that intentionally batch more subscriptions in one request. |
 | `http.sse.keep-alive-pool-size` | `int` | `0` (auto) | Size of the scheduled thread pool that emits SSE keep-alive frames. `0` (or any non-positive value) auto-sizes to `max(2, availableProcessors / 2)`. |
-| `http.auth-cache.positive-ttl` | `Duration` | `5m` | Time successful authentication results stay cached on the bypass-Spring `/api/pdp/*` HTTP path before re-verification. Higher values trade staleness for fewer Argon2 verifications per second. |
+| `http.auth-cache.positive-ttl` | `Duration` | `5m` | Time successful authentication results stay cached before re-verification. One cache serves the `/api/pdp/*` HTTP path and the RSocket connections, despite the `http` in the key. Higher values trade staleness for fewer Argon2 verifications per second. |
 | `http.auth-cache.negative-ttl` | `Duration` | `5s` | Time failed authentication results stay cached. Short by design so a transient lookup miss recovers quickly while still throttling brute-force probes. |
-| `http.auth-cache.max-size` | `long` | `10000` | Maximum number of cached authentication outcomes. Caps memory exposure when a client cycles through many distinct `Authorization` headers. Caffeine evicts least-recently-used entries when the cap is reached. |
+| `http.auth-cache.max-size` | `long` | `10000` | Maximum number of cached authentication outcomes of both transports together. Caps memory exposure when a client cycles through many distinct credentials. Caffeine evicts least-recently-used entries when the cap is reached. |
 
 See [Security](../7_6_Security/) for details on each authentication mode and credential generation.
 
@@ -91,7 +94,7 @@ All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is
 | `port` | `int` | `7000` | TCP port for RSocket connections. Ignored when `socket-path` is set. |
 | `socket-path` | `String` | | Unix domain socket path. When set, the server binds to this socket instead of TCP. Requires platform support (Linux epoll or macOS kqueue). |
 | `max-inbound-payload-size` | `int` | `16777215` | Maximum size in bytes of an inbound RSocket payload. The RSocket protocol fixes the per-frame ceiling at 16 MB; the configured value must be at least that, since any single frame must fit. Per-IP and per-account caps belong at an upstream load balancer or firewall. |
-| `ssl.bundle` | `String` | | Name of a Spring Boot SSL bundle (configured under `spring.ssl.bundle.*`) used to terminate TLS on the RSocket transport. When unset, the server speaks plain TCP. The same bundle definition can be shared with the HTTP server, so a single keystore covers both transports. |
+| `ssl.bundle` | `String` | | Name of a Spring Boot SSL bundle (configured under `spring.ssl.bundle.*`) that the RSocket transport serves instead of the certificate of `io.sapl.node.tls`. Without either, the server refuses to start unless plaintext is allowed (`io.sapl.node.allow-no-tls`). An updated bundle is served to new connections without a restart. |
 
 Connection lifetime is soft. JWT credentials are validated at every decision call. Expired tokens are then rejected, and the client is expected to reconnect with a refreshed credential. The server does not maintain a separate hard-disconnect timer.
 
@@ -117,33 +120,24 @@ sapl:
       socket-path: /var/run/sapl.sock
 ```
 
-TLS via a shared SSL bundle (same bundle as the HTTP server):
+TLS with the certificate that both APIs serve:
 
 ```yaml
-spring:
-  ssl:
-    bundle:
-      jks:
-        sapl-bundle:
-          key:
-            alias: sapl-node
-            password: changeit
-          keystore:
-            location: file:/etc/sapl/keystore.p12
-            password: changeit
-            type: PKCS12
+io.sapl.node.tls:
+  certificate-chain: /etc/sapl/tls/server.pem
+  private-key: /etc/sapl/tls/server.key
+```
 
-server:
-  ssl:
-    enabled: true
-    bundle: sapl-bundle
+TLS with a certificate of its own, as a PEM bundle:
 
-sapl:
-  pdp:
-    rsocket:
-      enabled: true
-      ssl:
-        bundle: sapl-bundle
+```yaml
+spring.ssl.bundle.pem.sapl-rsocket:
+  reload-on-update: true
+  keystore:
+    certificate: file:/etc/sapl/tls/rsocket.pem
+    private-key: file:/etc/sapl/tls/rsocket.key
+
+sapl.pdp.rsocket.ssl.bundle: sapl-rsocket
 ```
 
 CLI clients connect with `--rsocket --rsocket-tls` (and `--insecure` to skip certificate verification against self-signed dev certificates).
@@ -205,7 +199,7 @@ sapl --io.sapl.pdp.embedded.pdp-config-type=BUNDLES --io.sapl.pdp.embedded.polic
 In Docker, set the equivalent environment variable:
 
 ```shell
-docker run -e IO_SAPL_NODE_ALLOWNOAUTH=true ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
+docker run -e IO_SAPL_NODE_ALLOWNOTLS=true -e IO_SAPL_NODE_ALLOWNOAUTH=true ghcr.io/heutelbeck/sapl-node:4.2.0-SNAPSHOT
 ```
 
 ### Spring Profiles
@@ -220,7 +214,7 @@ Place a `application-docker.yml` in the config directory. Properties in the prof
 
 ### Default Configuration
 
-SAPL Node ships with a fail-closed default: out of the box no authentication mode is enabled and the server refuses to start. Configure at least one credential mode (or `allow-no-auth: true`) before launching. Place `.sapl` files in the working directory and start the server with the chosen auth setup. The PDP monitors the directory and reloads on changes.
+SAPL Node ships with a fail-closed default: out of the box neither TLS nor an authentication mode is configured and the server refuses to start, on localhost too. Configure TLS (or `allow-no-tls: true`) and at least one credential mode (or `allow-no-auth: true`) before launching. Place `.sapl` files in the working directory and start the server with the chosen auth setup. The PDP monitors the directory and reloads on changes.
 
 The `pdp.json` file is optional. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
 
@@ -234,6 +228,7 @@ io.sapl:
     policies-path: .
     metrics-enabled: true
   node:
+    allow-no-tls: false
     allow-no-auth: false
     allow-basic-auth: false
     allow-api-key-auth: false
@@ -242,21 +237,19 @@ io.sapl:
 server:
   address: 127.0.0.1
   port: 8080
-  ssl:
-    enabled: false
 ```
 
 The server binds to `127.0.0.1` (localhost only). This is safe for development. For container or network deployments, set `server.address: 0.0.0.0`.
 
-For local exploration without configuring credentials, override the auth default at startup:
+For local exploration without a certificate and credentials, allow plaintext and anonymous access at startup:
 
 ```shell
-sapl --io.sapl.node.allow-no-auth=true
+sapl server --no-tls --no-auth
 ```
 
 ### Package and Docker Defaults
 
-Linux packages (DEB/RPM) and the Docker image default to `BUNDLES` mode with signature verification enabled. This is the secure production default. The node will not start until bundle security is configured: either provide a public key for signature verification or explicitly set `bundle-security.allow-unsigned: true`.
+Linux packages (DEB/RPM) and the Docker image default to `BUNDLES` mode with signature verification enabled. This is the secure production default. The node will not start until bundle security is configured: either provide a public key for signature verification or explicitly set `bundle-security.allow-unsigned: true`. Neither sets an opt-in for plaintext or anonymous access, so TLS and an authentication mode are needed as well, see [Security](../7_6_Security/).
 
 To deploy your first bundle:
 
@@ -279,7 +272,7 @@ To opt out of signature verification during evaluation, set `bundle-security.all
 
 ### Production Configuration
 
-This configuration uses signed bundles with API key authentication, TLS, and metrics. For the full hardened version with cipher suites and interface binding, see [Security](../7_6_Security/).
+This configuration uses signed bundles with API key authentication, TLS, and metrics. For the full hardened version with interface binding, see [Security](../7_6_Security/).
 
 ```yaml
 io.sapl:
@@ -291,6 +284,9 @@ io.sapl:
       public-key-path: /opt/sapl/keys/signing.pub
 
   node:
+    tls:
+      certificate-chain: /opt/sapl/tls/server.pem
+      private-key: /opt/sapl/tls/server.key
     allow-api-key-auth: true
     users:
       - id: "service-a"
@@ -300,11 +296,6 @@ io.sapl:
 
 server:
   port: 8443
-  ssl:
-    enabled: true
-    key-store: file:/opt/sapl/tls/keystore.p12
-    key-store-password: "${KEYSTORE_PASSWORD}"
-    key-store-type: PKCS12
 ```
 
 Generate the API key hash with `sapl generate apikey --id service-a --pdp-id default`. The command prints the Argon2 encoded value for the configuration and the plaintext key for the client. See [Getting Started](../7_1_GettingStarted/) for the full CLI reference.

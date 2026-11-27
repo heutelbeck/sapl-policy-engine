@@ -51,6 +51,8 @@ import lombok.val;
 @DisplayName("SaplFlatBuffersCodec")
 class SaplFlatBuffersCodecTests {
 
+    private static final byte TEXT_KIND = 4;
+
     @Nested
     @DisplayName("Value serialization")
     class ValueSerializationTests {
@@ -187,6 +189,32 @@ class SaplFlatBuffersCodecTests {
                 assertThat(d.environment()).isEqualTo(Value.UNDEFINED);
                 assertThat(d.secrets()).isEqualTo(Value.EMPTY_OBJECT);
             });
+        }
+
+        @Test
+        @DisplayName("secrets are read from an object table as the schema declares")
+        void whenSecretsAreAnObjectTableThenTheyAreRead() {
+            val bytes = subscriptionWithObjectTableAsSecrets();
+
+            val deserialized = SaplFlatBuffersCodec.readAuthorizationSubscription(bytes);
+
+            assertThat(deserialized.secrets())
+                    .isEqualTo(ObjectValue.builder().put("apiKey", Value.of("secret123")).build());
+        }
+
+        private static byte[] subscriptionWithObjectTableAsSecrets() {
+            val builder = new FlatBufferBuilder();
+            val key     = builder.createString("apiKey");
+            val text    = FbTextValue.createFbTextValue(builder, builder.createString("secret123"));
+            FbValue.startFbValue(builder);
+            FbValue.addKindType(builder, TEXT_KIND);
+            FbValue.addKind(builder, text);
+            val value   = FbValue.endFbValue(builder);
+            val field   = FbObjectField.createFbObjectField(builder, key, value);
+            val fields  = FbObjectValue.createFieldsVector(builder, new int[] { field });
+            val secrets = FbObjectValue.createFbObjectValue(builder, fields);
+            builder.finish(FbAuthorizationSubscription.createFbAuthorizationSubscription(builder, 0, 0, 0, 0, secrets));
+            return builder.sizedByteArray();
         }
     }
 

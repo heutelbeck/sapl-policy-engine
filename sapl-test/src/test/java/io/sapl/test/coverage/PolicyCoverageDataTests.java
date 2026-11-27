@@ -245,7 +245,7 @@ class PolicyCoverageDataTests {
     }
 
     @Test
-    @DisplayName("coverage ratio is independent of code layout - same line vs separate lines")
+    @DisplayName("coverage ratio is independent of code layout, same line vs separate lines")
     void whenSameConditionsDifferentLayout_thenSameCoverageRatio() {
         // Layout 1: conditions on separate lines
         val coverageSeparateLines = new PolicyCoverageData("test", "", "policy");

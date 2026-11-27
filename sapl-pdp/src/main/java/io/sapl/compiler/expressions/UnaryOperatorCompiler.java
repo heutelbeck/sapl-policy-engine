@@ -75,7 +75,7 @@ public class UnaryOperatorCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(opType.hashCode(), operand.semanticHash());
+            return SemanticHashing.ordered(SemanticHashing.kindHash(opType), operand.semanticHash());
         }
 
         @Override

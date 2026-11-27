@@ -18,57 +18,73 @@
 package io.sapl.lsp.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import org.antlr.v4.runtime.CommonToken;
-import org.antlr.v4.runtime.ParserRuleContext;
+import java.util.stream.Stream;
+
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SelectionRange;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import io.sapl.grammar.antlr.SAPLParser.SaplContext;
+import io.sapl.lsp.sapl.ProtocolText;
+import io.sapl.lsp.sapl.SAPLParsedDocument;
+import io.sapl.lsp.sapltest.SAPLTestParsedDocument;
+import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
+import lombok.val;
 
 @DisplayName("Selection range builder")
 class SelectionRangeBuilderTests {
 
+    /**
+     * A test whose subject is a text over two lines. Counted from 0, the text
+     * starts on line 2 at character 13 and ends on line 3 after character 4.
+     */
+    private static final String TEST_WITH_A_TEXT_OVER_TWO_LINES = """
+            requirement "r" {
+                scenario "s"
+                    when "a
+            bcd" attempts "read" on "document"
+                    expect permit;
+            }
+            """;
+
+    private static final Range RANGE_OF_THE_TEXT_OVER_TWO_LINES = new Range(new Position(2, 13), new Position(3, 4));
+
     @Test
     @DisplayName("every parent in the chain strictly encloses its child")
     void whenSiblingsTouchAtCursorThenParentChainStaysStrictlyNesting() {
-        // A well-formed parse tree where a cursor position sits exactly on the
-        // boundary between two adjacent sibling nodes. An expand-selection chain
-        // must never present a node as the parent of another unless it actually
-        // encloses it, otherwise pressing "expand selection" would shrink or jump
-        // the editor selection sideways instead of widening it.
-        var root  = ruleContext(0, 0, 0, 10);
-        var left  = ruleContext(0, 0, 0, 5);
-        var right = ruleContext(0, 5, 0, 10);
-        root.addChild(left);
-        root.addChild(right);
+        // The cursor sits exactly on the boundary between two adjacent sibling nodes:
+        // the identifier subject ends where the step .mood starts. An expand-selection
+        // chain must never present a node as the parent of another unless it actually
+        // encloses it, otherwise pressing "expand selection" would shrink or jump the
+        // editor selection sideways instead of widening it.
+        val content  = "policy \"p\" permit subject.mood;";
+        val boundary = new Position(0, content.indexOf(".mood"));
 
-        var boundary = new Position(0, 5);
-        var chain    = SelectionRangeBuilder.buildSelectionRange(root, boundary);
+        val chain = SelectionRangeBuilder.buildSelectionRange(saplTreeOf(content), boundary);
 
-        assertThat(chain).isNotNull();
-        assertThat(isStrictlyNesting(chain)).as("each parent range must enclose its child range").isTrue();
+        assertThat(chain).isNotNull().satisfies(innermost -> assertThat(isStrictlyNesting(innermost))
+                .as("each parent range must enclose its child range").isTrue());
     }
 
     @Test
     @DisplayName("range end of a node closing with a multi-line token sits at the token's real end")
     void whenStopTokenSpansMultipleLinesThenRangeEndIsAtTokenEnd() {
-        // A node closing on a multi-line SAPL string literal: the stop token starts
-        // on line 0 column 8 and its text "a\nbcd" continues onto line 1. An operator
-        // expanding the selection expects the highlight to end where the literal
-        // actually ends (line 1, after "bcd"), not at a phantom column past the start.
-        var ctx = new ParserRuleContext();
-        ctx.start = token(0, 0, "");
-        ctx.stop  = token(0, 8, "a\nbcd");
+        // A node closing on a multi-line SAPLTest text: the text starts on line 2 and
+        // continues onto line 3. An operator expanding the selection expects the
+        // highlight to end where the text actually ends (line 3, after bcd"), not at a
+        // phantom column past its start.
+        val chain = SelectionRangeBuilder.buildSelectionRange(saplTestTreeOf(TEST_WITH_A_TEXT_OVER_TWO_LINES),
+                RANGE_OF_THE_TEXT_OVER_TWO_LINES.getStart());
 
-        var chain = SelectionRangeBuilder.buildSelectionRange(ctx, new Position(0, 0));
-
-        assertThat(chain).isNotNull();
-        assertThat(chain.getRange().getEnd()).satisfies(end -> {
-            assertThat(end.getLine()).isEqualTo(1);
-            assertThat(end.getCharacter()).isEqualTo(3);
-        });
+        assertThat(chain).isNotNull().extracting(SelectionRange::getRange).isEqualTo(RANGE_OF_THE_TEXT_OVER_TWO_LINES);
     }
 
     @Test
@@ -77,13 +93,49 @@ class SelectionRangeBuilderTests {
         // The cursor rests on the second physical line of a multi-line closing token.
         // Containment must follow the token onto that line, otherwise the node is
         // wrongly dropped from the expand-selection chain.
-        var ctx = new ParserRuleContext();
-        ctx.start = token(0, 0, "");
-        ctx.stop  = token(0, 8, "a\nbcd");
+        val chain = SelectionRangeBuilder.buildSelectionRange(saplTestTreeOf(TEST_WITH_A_TEXT_OVER_TWO_LINES),
+                new Position(3, 1));
 
-        var chain = SelectionRangeBuilder.buildSelectionRange(ctx, new Position(1, 1));
+        assertThat(chain).isNotNull().extracting(SelectionRange::getRange).isEqualTo(RANGE_OF_THE_TEXT_OVER_TWO_LINES);
+    }
 
-        assertThat(chain).isNotNull();
+    @Nested
+    @DisplayName("the innermost selection at a cursor in an identifier")
+    class InnermostSelectionTests {
+
+        static Stream<Arguments> documentsWithAnIdentifier() {
+            val afterTheFace = "policy \"p\" permit \"" + ProtocolText.GRINNING_FACE + "\" == subject.mood;";
+            val onLineTwo    = ProtocolText.documentOf("\r", "    subject.mood;");
+            return Stream.of(
+                    arguments("a character outside the basic plane before the identifier, on its line", afterTheFace,
+                            identifierOnLine(0, afterTheFace.indexOf("subject"))),
+                    arguments("lines that end with a carriage return", onLineTwo, identifierOnLine(2, 4)));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("documentsWithAnIdentifier")
+        @DisplayName("selects the identifier the person points at")
+        void whenCursorIsInAnIdentifierThenInnermostSelectionIsThatIdentifier(String description, String content,
+                Range identifier) {
+            val insideTheIdentifier = new Position(identifier.getStart().getLine(),
+                    identifier.getStart().getCharacter() + 1);
+
+            val chain = SelectionRangeBuilder.buildSelectionRange(saplTreeOf(content), insideTheIdentifier);
+
+            assertThat(chain).isNotNull().extracting(SelectionRange::getRange).isEqualTo(identifier);
+        }
+
+        private static Range identifierOnLine(int line, int character) {
+            return new Range(new Position(line, character), new Position(line, character + "subject".length()));
+        }
+    }
+
+    private static SaplContext saplTreeOf(String content) {
+        return new SAPLParsedDocument("test.sapl", content).getSaplParseTree();
+    }
+
+    private static SaplTestContext saplTestTreeOf(String content) {
+        return new SAPLTestParsedDocument("test.sapltest", content).getSaplTestParseTree();
     }
 
     private static boolean isStrictlyNesting(SelectionRange innermost) {
@@ -108,20 +160,6 @@ class SelectionRangeBuilderTests {
             return a.getLine() < b.getLine();
         }
         return a.getCharacter() < b.getCharacter();
-    }
-
-    private static ParserRuleContext ruleContext(int startLine, int startChar, int stopLine, int stopChar) {
-        var ctx = new ParserRuleContext();
-        ctx.start = token(startLine, startChar, "");
-        ctx.stop  = token(stopLine, stopChar, "");
-        return ctx;
-    }
-
-    private static CommonToken token(int line, int charPositionInLine, String text) {
-        var token = new CommonToken(0, text);
-        token.setLine(line + 1);
-        token.setCharPositionInLine(charPositionInLine);
-        return token;
     }
 
 }

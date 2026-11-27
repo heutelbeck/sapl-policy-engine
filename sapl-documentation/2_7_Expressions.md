@@ -45,7 +45,7 @@ For example, `object.subject` uses `subject` as a key step, and `{priority: 5}` 
 
 #### Variable Names
 
-Variable names (after the `var` keyword) accept plain identifiers, the subscription attribute keywords (`subject`, `action`, `resource`, `environment`), and the combining algorithm keywords listed above, all without escaping. Hard keywords (such as `permit`, `deny`, `var`, `in`, `true`) must use the backtick escape to be used as variable names (e.g., `` var `permit` = ... ``).
+Variable names (after the `var` keyword) accept plain identifiers and the combining algorithm keywords listed above, both without escaping. The subscription attribute keywords (`subject`, `action`, `resource`, `environment`) cannot be used as variable names. They are bound by the authorization subscription: a policy can read them, but it cannot define a variable with one of these names. Hard keywords (such as `permit`, `deny`, `var`, `in`, `true`) must use the backtick escape to be used as variable names (e.g., `` var `permit` = ... ``).
 
 #### Backtick Escape
 
@@ -53,7 +53,9 @@ A backtick-quoted identifier (e.g. `` `permit` ``) is treated as a plain identif
 
 ### Strings
 
-Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by double quotes `"`. Any quote character occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""`.
+Whenever strings are expected, the SAPL document must contain any sequence of characters enclosed by double quotes `"` or by single quotes `'`. A quote character of the enclosing kind occurring in the string must be escaped by a preceding `\`, e.g., `"the name is \"John Doe\""` or `'it\'s'`. The other kind needs no escape, e.g., `'the name is "John Doe"'`.
+
+A string ends on the line on which it starts. A line break inside a text is written as the escape `\n`. The escape `\uXXXX` denotes a character by its code. A character outside the basic multilingual plane is written as itself or as a surrogate pair of two such escapes, e.g., `"\uD83D\uDE00"`. One half of a surrogate pair on its own is not a character, and a string that holds one is rejected.
 
 ### Comments
 
@@ -83,7 +85,7 @@ SAPL is based on the **JavaScript Object Notation** or **JSON**, an [ECMA Standa
 
 - Primitive Types 
   - **Number**: A signed decimal number, e.g., `-1.9`. There is no distinction between integer and floating-point numbers. In case an integer is expected (e.g., for a numeric index), the decimal number is rounded to an integer number.
-  - **String**: A sequence of zero or more characters, written in double quotes, e.g., `"a string"`.
+  - **String**: A sequence of zero or more characters, written in double or single quotes, e.g., `"a string"` or `'a string'`.
   - **Boolean**: Either `true` or `false`.
   - **null**: Marks an empty value, `null`.
 - Structured Types 
@@ -109,6 +111,8 @@ A **basic expression** is either a
 Each of these basic expressions can contain one or more **selection steps** (e.g., `subject.name`, which is the identifier expression `subject` followed by the selection step `.name` selecting the value of the `name` attribute). Additionally, a basic expression can contain a **filter component** (`|- Filter`) which will be applied to the evaluation result. If the expression evaluates to an array, instead of applying a filter, each item can be transformed using a **subtemplate component** (`:: Subtemplate`).
 
 **Operator expressions** can be constructed using prefix or infix **operators** (e.g., `1 + subject.age` or `! subject.isBlocked`). SAPL supports infix and prefix operators. They may be applied in connection with any expression. An operator expression within parentheses (e.g., `(1 + subject.age)`) is a basic expression again and thus may contain selection steps, filter, or subtemplate statements.
+
+A selection index or condition, the right operand of `::`, and the target path and function arguments of an extended filter must compile to a constant or a pure expression. The compiler rejects a streaming operand in any of these positions, including in a branch that would be skipped during evaluation. The value being selected, transformed, or filtered may itself come from an attribute finder.
 
 ### Value Expressions
 
@@ -148,9 +152,9 @@ A basic function expression consists of a function name and any number of argume
 library.a_function(subject.name, (environment.day_of_week + 1))
 ```
 
-Each function is available under its fully qualified name. The fully qualified name starts with the library name, consisting of one or more identifiers separated by periods `.` (e.g., `sapl.functions.simple`). The library name is followed by a period `.` and an identifier for the function name (e.g., `sapl.functions.simple.append`). Which function libraries are available depends on the configuration of the PDP.
+Each function is available under its fully qualified name. The fully qualified name consists of two parts: the library name (e.g., `filter`), followed by a period `.` and the function name (e.g., `filter.blacken`). Which function libraries are available depends on the configuration of the PDP.
 
-[Imports](../2_9_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import sapl.functions.simple.append` makes `append` available). An aliased import provides an alternative name (e.g., `import sapl.functions.simple.append as add` makes it available as `add`).
+[Imports](../2_9_Imports/) at the beginning of a SAPL document can be used to make functions available under shorter names. A basic import makes a function available under its simple name (e.g., `import filter.blacken` makes `blacken` available). An aliased import provides an alternative name (e.g., `import filter.blacken as redact` makes it available as `redact`).
 
 If there are no arguments passed to the function, empty parentheses have to be denoted (e.g., `random_number()`).
 
@@ -226,7 +230,10 @@ Except for the unary operators, multiple operators with the same precedence (e.g
 
    `exp1 =~ exp2`
 
-   The expression evaluates to `true` if the result of evaluating `exp1` matches the pattern contained in the result of evaluating `exp2`. The pattern needs to be specified according to the [java.util.regex package](https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
+   The expression evaluates to `true` if the result of evaluating `exp1` matches the pattern contained in the result of evaluating `exp2`. The pattern must match the whole text: `"administrator" =~ "admin"` is `false`, `"administrator" =~ "admin.*"` is `true`. If `exp1` is not a string, the expression evaluates to `false`. If `exp2` is not a string or not a valid pattern, the expression evaluates to an error. A constant pattern that is not valid is reported when the policy is compiled.
+
+   Patterns are written in the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) and are matched in time linear in the length of the text, without backtracking. See [Regular Expressions](#regular-expressions) for the syntax, its limits and how to migrate patterns written for `java.util.regex`.
+
 4. `in` (element of)
 
    Assuming `exp1` is an expression and `exp2` is an expression evaluating to an array, the `in` operator can be used:
@@ -253,6 +260,25 @@ Except for the unary operators, multiple operators with the same precedence (e.g
    Comparison operators (`<`, `>`, `<=`, `>=`, `in`, `any in`, `all in`) have precedence **7**. The `has` operator (see below) has precedence **6.5**. Equality operators (`==`, `!=`, `=~`) have precedence **6**. This is important for combining them with logical operators (see below).
 
    All comparison and equality operators are **non-associative**, i.e., an expression may not contain multiple comparison operators (like `3 < var < 5`). However, they can be combined with logical operators which have a different precedence (thus, the faulty example could be replaced by `3 < var && var < 5`).
+
+### Regular Expressions
+
+SAPL uses the syntax of [RE2](https://github.com/google/re2/wiki/Syntax) for every regular expression: the `=~` operator, the functions of the `patterns` library, the `pattern` and `patternProperties` keywords of [JSON schemas](../2_10_Schemas/#patterns-in-schemas), the `=~` conditions of the content filter of the [Spring integration](../6_3_Spring/), and the `text with regex` matcher of the [test language](../5_5_Matchers/). RE2 matches in time linear in the length of the text and never backtracks, even if the pattern or the text comes from the authorization subscription. Up to SAPL 4.1.x, patterns followed `java.util.regex` instead. The changelog lists the differences.
+
+#### Whole Text or Any Part
+
+The `=~` operator, the `=~` conditions of the content filter and the `text with regex` matcher match the whole text: `"administrator" =~ "admin"` is `false`, `"administrator" =~ "admin.*"` is `true`. The `pattern` and `patternProperties` keywords of JSON schemas match if the pattern matches any part of the text, as the JSON Schema specification demands. The functions of the `patterns` library state in their documentation whether they match the whole text or search it.
+
+#### Syntax
+
+- Look-ahead, look-behind, backreferences, atomic groups and possessive quantifiers do not exist in RE2. A pattern that uses them is invalid.
+- The classes `\d`, `\w`, `\s`, the word boundary `\b` and the POSIX classes such as `[[:alpha:]]` hold ASCII characters only. Use Unicode classes such as `\p{L}`, `\p{Lu}`, `\p{Nd}` or `\p{Greek}` for other scripts. The Unicode tables of the Java engine (RE2/J) are older than those of the other SAPL engines, so a few newer characters may not belong to a property class there.
+- `(?i)` matches without regard to case by the simple case folding of Unicode.
+- `.` matches every character except the line feed, `^` and `$` match at the start and the end of the text only. The flags `(?s)` and `(?m)` change this.
+
+#### Limits
+
+A pattern may compile to at most 10000 instructions and nest its groups at most 250 levels deep. A single repetition count may be at most 1000, and nested repetitions multiply, so `(?:a{100}){101}` is too large. A large Unicode class counts for more than one instruction, as other implementations of SAPL build an automaton for it whose size grows with the class: `\p{L}` counts for 41 instructions, so `\p{L}{1,238}` is accepted and `\p{L}{1,239}` is too large. Smaller classes such as `\p{Lu}`, `\p{N}` or `\p{Greek}` count for fewer, and a class written in brackets counts for the Unicode classes it holds. An invalid pattern, or one beyond these limits, is reported with the reason RE2 gives: a constant pattern in a policy when the policy is compiled, a pattern computed at evaluation time as an error of the expression.
 
 ### Key Membership Operator
 
@@ -326,6 +352,12 @@ Neither PIP is ever contacted. The constant `false` short-circuits the AND acros
 
 Only the dominating value short-circuits: `false` for AND, `true` for OR. An operand that is not `true` or `false`, an error, `undefined`, or any other non-boolean value, does not short-circuit. AND and OR follow Kleene strong three-valued logic, in which errors and undefined are treated alike as a third value, *unknown*. A dominating `false` (AND) or `true` (OR) in any operand wins regardless of position or stratum, so `(1/0 > 0) || true` is `true`, not an error. The result is an error only when no operand carries the dominating value.
 
+#### Operand Order of Commutative Operators
+
+The operators `==`, `!=`, `*`, `&&`, `||`, `&`, `|` and `^` are commutative. Within the stratum of constants and within the stratum of pure expressions, the engine puts their operands into a canonical order that follows the structure of the operands, not the order in which they are written. `subject.role == action.role` and `action.role == subject.role` therefore denote the same expression, and the policy index evaluates such a condition once for all policies that use it in either order. Streaming expressions keep the order written, and the strata keep their order of evaluation: constants, then pure expressions, then streams. The operator `+` is not reordered, as it concatenates texts.
+
+Constants come first, ordered by their values. Pure expressions follow, ordered by the kind of expression and then by their parts, such as the element of the subscription an expression reads or the key it selects. When several operands are errors, one of them is the result. This engine selects the first error in its canonical order.
+
 For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 
 #### Lazy vs Eager: Subscription Strategy Within the Streaming Stratum
@@ -350,7 +382,7 @@ A policy using `&` produces the same authorization decisions as one using `&&` (
 
 The operator `+` concatenates two strings, e.g., `"Hello" + " World!"` evaluates to `"Hello World!"`.
 
-String concatenation is applied if the left operand is an expression evaluating to a string. If the right expression evaluates to a string as well, the two strings are concatenated. Otherwise, an error is thrown.
+String concatenation is applied if the left operand is an expression evaluating to a string. If the right expression evaluates to a string as well, the two strings are concatenated. Otherwise, the text form of the right value is appended, as error messages write values too. A whole number in the range of a signed 64 bit integer is written plainly, so `"n=" + 5.0` and `"n=" + 5` both evaluate to `"n=5"` and `1E+3` is written as `1000`. Any other number keeps its notation, such as `12.50`, `1E-7` or `1E+20`.
 
 #### Selection Steps
 
@@ -379,12 +411,12 @@ Structure of `object`
 
 | Expression                                                  | Returned Value                                                                                                                         | Explanation                                                                                                                                     |
 |-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `object.key`  <br>`object["key"]`                            | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
+| `object.key`  <br>`object["key"]`  <br>`object['key']`       | `"value1"`                                                                                                                             | **Key step** in dot notation and bracket notation                                                                                               |
 | `object.array1[0]`                                          | `{ "key" : "value2" }`                                                                                                                 | **Index step**                                                                                                                                  |
 | `object.array2[-1]`                                         | `5`                                                                                                                                    | **Index step** with negative value n returns the n-th last element                                                                              |
 | `object.*`  <br>`object[*]`                                 | ["value1",<br>      [<br>        { "key" : "value2" },<br>        { "key" : "value3" }<br>      ],<br>      [ 1, 2, 3, 4, 5 ]<br>    ] | **Wildcard step** applied to an object, it returns an array with the value of each attribute. Applied to an array, it returns the array itself |
 | `object.array2[0:-2:2]`                                     | `[ 1, 3 ]`                                                                                                                             | **Array slicing step** starting from first to second last element with a step size of two                                                       |
-| `object..key`  <br>`object..["key"]`                         | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
+| `object..key`  <br>`object..["key"]`  <br>`object..['key']`  | `[ "value1", "value2", "value3" ]`                                                                                                     | **Recursive descent step** looking for an attribute                                                                                             |
 | `object..[0]`                                               | `[ { "key" : "value2" }, 1 ]`                                                                                                          | **Recursive descent step** looking for an array index                                                                                           |
 | `object.array2[(3+1)]`                                      | `5`                                                                                                                                    | **Expression step** that evaluates to number (index); can also evaluate to an attribute name                                                   |
 | `object.array2[?(@>2)]`                                     | `[ 3, 4, 5 ]`                                                                                                                          | **Condition step** that evaluates to true/false, `@` references the current item, `#` its index/key. Can also be applied to an object           |
@@ -397,7 +429,7 @@ Structure of `object`
 
 The basic access syntax is quite similar to accessing an object’s attributes in JavaScript or Java:
 
-- **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource["another key"]`).
+- **Attributes of an object** can be accessed by their key (**key step**) using the *dot notation* (`resource.key`) or the *bracket notation* (`resource["key"]`, `resource['key']`). Both expressions return the value of the specified attribute. For using the dot notation, the specified key must be an [identifier](#identifiers). Otherwise, the bracket notation with a string between square brackets is necessary, e.g., if the key contains whitespace characters (`resource["another key"]`).
 - **Indices of an array** may be accessed by putting the index between square brackets (**index step**, `array[3]`). The index can be a negative number `-n`, which evaluates to the `n`\-th element from the end of the array, starting with -1 as the last element's index. `array[-2]` would return the second last element of the array `array`.
 
 **Handling missing data:**
@@ -417,7 +449,7 @@ SAPL supports querying for specific parts of a JSON structure. Except for an **e
 
 #### Expression Step `[(Expression)]`
 
-An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array. When an expression evaluates to a non-integer number (e.g., `3.7`), the value is truncated toward zero to produce an integer index (e.g., `3`).
+An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array. A number is used as an index only if it is a whole number within the range of a 32 bit integer, such as `3` or `3.0`. Any other number, such as `3.7`, makes the step an error: `[1, 2, 3][(3.7)]` yields the error "Array subscript '3.7' is not a valid integer index."
 
 
 > The expression step can be used to refer to custom variables (`object.array[(anIndex+2)]`) or apply custom functions (`object.array[(max_value(object.array))]`.
@@ -440,7 +472,7 @@ A wildcard step can be applied to an object or an array. When applied to an obje
 
 #### Recursive Descent Step `..key`, `..["key"]`, `..[1]`, `..*` or `..[*]`
 
-Looks for the specified key or array index in the current object or array and, recursively, in its children (i.e., the values of its attributes or its items). The recursive descent step can be applied to both an object and an array. It returns an array containing all attribute values or array items found. If the specified key is an asterisk (`..` **or** `[]`, wildcard), all attribute values and array items in the whole structure are returned.
+Looks for the specified key or array index in the current object or array and, recursively, in its children (i.e., the values of its attributes or its items). The recursive descent step can be applied to both an object and an array. It returns an array containing all attribute values or array items found. If the specified key is an asterisk (`..*` **or** `..[*]`, wildcard), all attribute values and array items in the whole structure are returned.
 
 As attributes of an object are not sorted, the order of items in the result array may vary.
 
@@ -461,7 +493,7 @@ As attributes of an object are not sorted, the order of items in the result arra
 >
 > The selection step `object..key` returns the following array: `["value1", "value2"]` (any attribute value with key `key`, the items may be in a different order).
 >
-> The wildcard selection step `object..` **or** `object..[]` returns `["value1", {"key":"value2"}, "value2"]` (recursively each attribute value and array item in the whole structure `object`, the sorting may be different).
+> The wildcard selection step `object..*` **or** `object..[*]` returns `["value1", {"key":"value2"}, "value2"]` (recursively each attribute value and array item in the whole structure `object`, the sorting may be different).
 
 
 #### Condition `[?(Condition)]`

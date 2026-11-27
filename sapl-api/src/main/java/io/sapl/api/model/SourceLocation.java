@@ -26,23 +26,32 @@ import java.io.Serializable;
  * Represents a location in SAPL metadata code with full context for error
  * highlighting. Used for error reporting, debugging, and coverage tracking
  * to indicate where in a policy document an expression occurs.
+ * <p>
+ * The offsets define the place: they index the document string in UTF-16 code
+ * units. Lines and columns are counted as {@link DocumentLines} counts them,
+ * for people: a line ends at a line feed, a carriage return, or both together,
+ * and a column counts code points. They are computed once when the location is
+ * created, because a location can travel without its document source.
  *
  * @param documentName
  * the name or identifier of the SAPL document (may be null)
  * @param documentSource
  * the full metadata text of the document (may be null)
  * @param start
- * the start character offset in the document (0-based)
+ * the offset of the first character in the document, in UTF-16 code units
+ * (0-based)
  * @param end
- * the end character offset in the document (exclusive)
+ * the offset after the last character in the document, in UTF-16 code units
+ * (exclusive)
  * @param line
- * the start line number (1-based)
+ * the line of the first character (1-based)
  * @param column
- * the start column number (1-based)
+ * the column of the first character in code points (1-based)
  * @param endLine
- * the end line number (1-based), same as line for single-line expressions
+ * the line of the end offset (1-based), same as line for single-line
+ * expressions
  * @param endColumn
- * the end column number (1-based, exclusive)
+ * the column of the end offset in code points (1-based, exclusive)
  */
 public record SourceLocation(
         String documentName,

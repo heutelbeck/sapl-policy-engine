@@ -31,7 +31,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.semver4j.Semver;
+
+import io.sapl.api.semver.Version;
+import io.sapl.api.semver.VersionRange;
 
 import lombok.val;
 
@@ -41,8 +43,8 @@ class SaplBuildInfoTests {
     @Test
     @DisplayName("The packaged engine satisfies its generated minimum version requirement")
     void whenMinimumRequirementIsRequestedThenPackagedEngineSatisfiesIt() {
-        assertThat(minimumVersionRequirement()).isEqualTo(minimumVersionRequirement(version()))
-                .satisfies(requirement -> assertThat(new Semver(version()).satisfies(requirement)).isTrue());
+        assertThat(minimumVersionRequirement()).isEqualTo(minimumVersionRequirement(version())).satisfies(
+                requirement -> assertThat(VersionRange.parse(requirement).contains(Version.parse(version()))).isTrue());
     }
 
     @ParameterizedTest(name = "Engine {0} requires {1}")
@@ -51,8 +53,9 @@ class SaplBuildInfoTests {
             "4.2.0-rc.1 | >=4.2.0-0", "4.2.0+build.7 | >=4.2.0", "4.2.0-SNAPSHOT+build.7 | >=4.2.0-0",
             "0.2.0 | >=0.2.0" })
     void whenBuildVersionIsKnownThenMinimumRequirementMatchesItsReleaseKind(String engineVersion, String expected) {
-        assertThat(minimumVersionRequirement(engineVersion)).isEqualTo(expected)
-                .satisfies(requirement -> assertThat(new Semver(engineVersion).satisfies(requirement)).isTrue());
+        assertThat(minimumVersionRequirement(engineVersion)).isEqualTo(expected).satisfies(
+                requirement -> assertThat(VersionRange.parse(requirement).contains(Version.parse(engineVersion)))
+                        .isTrue());
     }
 
     @NullAndEmptySource
@@ -68,7 +71,9 @@ class SaplBuildInfoTests {
     @ValueSource(strings = { "4.2.0", "4.2.0-SNAPSHOT" })
     @DisplayName("Generated minimum requirements retain the explicit opt in for later prerelease versions")
     void whenLaterPrereleaseIsComparedThenCurrentDefaultDoesNotAcceptIt(String engineVersion) {
-        assertThat(new Semver("4.3.0-SNAPSHOT").satisfies(minimumVersionRequirement(engineVersion))).isFalse();
+        assertThat(
+                VersionRange.parse(minimumVersionRequirement(engineVersion)).contains(Version.parse("4.3.0-SNAPSHOT")))
+                .isFalse();
     }
 
     @Test
@@ -82,6 +87,6 @@ class SaplBuildInfoTests {
 
         assertThat(properties).containsEntry("saplArtifactId", "sapl-pdp").containsEntry("saplGroupId", "io.sapl");
         assertThat(SaplBuildInfo.version()).isEqualTo(properties.getProperty("saplVersion")).doesNotContain("${")
-                .isNotEqualTo("unknown").satisfies(value -> assertThat(Semver.isValid(value)).isTrue());
+                .isNotEqualTo("unknown").satisfies(value -> assertThat(Version.tryParse(value)).isNotNull());
     }
 }

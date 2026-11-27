@@ -52,7 +52,7 @@ public class RealmIndexVerifier {
     private static final String ERROR_MALFORMED_INDEX      = "Realm index is not a valid JWS.";
     private static final String ERROR_MALFORMED_PAYLOAD    = "Realm index payload is not a valid index document.";
     private static final String ERROR_SIGNATURE_INVALID    = "Realm index signature verification failed.";
-    private static final String ERROR_STALE_SEQUENCE       = "Refusing realm index with sequence %d; not newer than the last accepted %d.";
+    private static final String ERROR_STALE_SEQUENCE       = "Refusing realm index with sequence %d. It is not newer than the last accepted %d.";
     private static final String ERROR_UNEXPECTED_ALGORITHM = "Refusing realm index: expected EdDSA but the token declares %s.";
     private static final String ERROR_UNEXPECTED_TYPE      = "Refusing realm index: expected type %s but the token declares %s.";
     private static final String ERROR_UNRESOLVED_KEY       = "Realm index signing key could not be resolved: %s";

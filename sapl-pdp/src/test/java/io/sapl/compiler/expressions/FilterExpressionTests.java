@@ -163,6 +163,14 @@ class FilterExpressionTests {
         // @formatter:on
 
         @Test
+        @DisplayName("a slice with the largest step selects its first element only and does not wrap around")
+        void whenSliceStepIsLargestIntegerThenOnlyFirstElementIsFiltered() {
+            assertEvaluatesTo("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] |- { @[5::2147483647] : filter.remove }",
+                    Value.ofArray(Value.of(0), Value.of(1), Value.of(2), Value.of(3), Value.of(4), Value.of(6),
+                            Value.of(7), Value.of(8), Value.of(9)));
+        }
+
+        @Test
         @DisplayName("a dynamic index that is not an exact int is out of bounds and leaves the array unchanged")
         void whenDynamicFilterIndexNotIntegerThenArrayUnchanged() {
             assertEvaluatesTo("[10, 20, 30] |- { @[(4294967296)] : filter.remove }",
@@ -278,7 +286,7 @@ class FilterExpressionTests {
     @DisplayName("Filter Error Cases")
     class FilterErrorCases {
 
-        @ParameterizedTest(name = "{0} - {1}")
+        @ParameterizedTest(name = "{0}: {1}")
         @MethodSource
         void whenErrorConditionThenProducesError(String description, String expression, String errorFragment) {
             val result = evaluate(expression);

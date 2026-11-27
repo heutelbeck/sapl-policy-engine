@@ -17,23 +17,25 @@
  */
 package io.sapl.compiler.expressions;
 
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.LinearRegex;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.HashMap;
 import java.util.List;
-import io.sapl.compiler.util.BoundedRegex;
-import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiler for REGEX binary operations with pre-compilation optimization.
+ * <p>
+ * The pattern must match the whole text. Patterns are compiled by
+ * {@link LinearRegex} and matched in linear time without backtracking.
  * <p>
  * When the regex pattern is a compile-time constant (literal string), the
  * pattern is pre-compiled for better runtime performance. When the pattern
@@ -45,37 +47,34 @@ public class RegexCompiler {
 
     private static final String          ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
     private static final String          ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
-    private static final String          ERROR_REGEX_TIMEOUT        = "Regular expression evaluation exceeded its time budget.";
     private static final BinaryOperation MATCHER                    = RegexCompiler::matchRegex;
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
-        val left  = ExpressionCompiler.compile(binaryOperation.left(), ctx);
-        val right = ExpressionCompiler.compile(binaryOperation.right(), ctx);
-        val loc   = binaryOperation.location();
+        val operands = CompilationChildren.pair(() -> ExpressionCompiler.compile(binaryOperation.left(), ctx),
+                () -> preparePattern(binaryOperation, ctx));
+        val left     = operands.first();
+        val right    = operands.second().operand();
+        val loc      = binaryOperation.location();
+
+        if (right instanceof TextValue(String value)) {
+            val compiled = operands.second().pattern();
+            if (left instanceof ErrorValue) {
+                return left;
+            }
+            if (left instanceof Value lv) {
+                return matchRegex(lv, compiled);
+            }
+            if (left instanceof StreamOperator ls) {
+                return new RegexPrecompiledStream(ls, compiled, loc);
+            }
+            return new RegexPrecompiledPure((PureOperator) left, value, compiled, loc);
+        }
 
         if (left instanceof ErrorValue) {
             return left;
         }
         if (right instanceof ErrorValue) {
             return right;
-        }
-
-        // Pre-compile regex when pattern is a literal string.
-        if (right instanceof TextValue(String value)) {
-            final Pattern compiled;
-            try {
-                compiled = Pattern.compile(value);
-            } catch (PatternSyntaxException e) {
-                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getMessage()), e,
-                        binaryOperation);
-            }
-            if (left instanceof Value lv) {
-                return matchRegex(lv, compiled, loc);
-            }
-            if (left instanceof StreamOperator ls) {
-                return new RegexPrecompiledStream(ls, compiled, loc);
-            }
-            return new RegexPrecompiledPure((PureOperator) left, value, compiled, loc);
         }
 
         // Runtime path: pattern is not a literal. Reject non-Pure/non-Stream.
@@ -88,15 +87,25 @@ public class RegexCompiler {
         return new RegexPure(left, right, loc);
     }
 
-    static Value matchRegex(Value input, Pattern pattern, SourceLocation loc) {
+    private record PreparedPattern(CompiledExpression operand, Pattern pattern) {}
+
+    private static PreparedPattern preparePattern(BinaryOperator operation, CompilationContext ctx) {
+        val operand = ExpressionCompiler.compile(operation.right(), ctx);
+        if (operand instanceof TextValue(String value)) {
+            try {
+                return new PreparedPattern(operand, LinearRegex.compile(value));
+            } catch (PatternSyntaxException e) {
+                throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getDescription()), e, operation);
+            }
+        }
+        return new PreparedPattern(operand, null);
+    }
+
+    static Value matchRegex(Value input, Pattern pattern) {
         if (!(input instanceof TextValue(String value))) {
             return Value.FALSE; // Non-text doesn't match
         }
-        try {
-            return BoundedRegex.matches(pattern, value) ? Value.TRUE : Value.FALSE;
-        } catch (RegexBudgetExceededException | StackOverflowError e) {
-            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
-        }
+        return pattern.matches(value) ? Value.TRUE : Value.FALSE;
     }
 
     static Value matchRegex(Value input, Value pattern, SourceLocation loc) {
@@ -108,15 +117,11 @@ public class RegexCompiler {
         }
         final Pattern compiled;
         try {
-            compiled = Pattern.compile(patternText);
+            compiled = LinearRegex.compile(patternText);
         } catch (PatternSyntaxException e) {
-            return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getMessage());
+            return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getDescription());
         }
-        try {
-            return BoundedRegex.matches(compiled, inputText) ? Value.TRUE : Value.FALSE;
-        } catch (RegexBudgetExceededException | StackOverflowError e) {
-            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
-        }
+        return compiled.matches(inputText) ? Value.TRUE : Value.FALSE;
     }
 
     /**
@@ -134,7 +139,7 @@ public class RegexCompiler {
             if (v instanceof ErrorValue) {
                 return v;
             }
-            return matchRegex(v, pattern, location);
+            return matchRegex(v, pattern);
         }
 
         @Override
@@ -165,7 +170,7 @@ public class RegexCompiler {
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(matchRegex(v, pattern, location), deps);
+            return new ExpressionResult(matchRegex(v, pattern), deps);
         }
     }
 

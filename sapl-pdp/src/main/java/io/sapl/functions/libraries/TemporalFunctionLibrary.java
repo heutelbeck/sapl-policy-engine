@@ -57,11 +57,11 @@ public class TemporalFunctionLibrary {
 
             DIN 1355 uses DD.MM.YYYY for dates (e.g., "28.10.2017").
 
-            RFC3339 is a strict profile of ISO 8601 requiring timezone information:
-            YYYY-MM-DDTHH:MM:SS[.fraction](Z|±HH:MM)
-
-            All functions accept ISO 8601 and RFC3339 timestamps. RFC3339 leap seconds (e.g., "23:59:60Z")
-            are normalized to "23:59:59Z" by Java's temporal system.
+            An instant uses a four-digit Gregorian year, a date, T, hours from 00 to 23, minutes and seconds.
+            An optional fraction has one to nine digits. The offset is Z or a signed HH:MM up to 18:00.
+            The letters T and Z accept either case. A leap second in the last UTC minute of the day
+            denotes second 59 with the same fraction, including when written at another offset.
+            Time functions that accept a date alone interpret it as midnight UTC. validRFC3339 requires a full timestamp.
 
             ## Timezone Handling
 
@@ -672,16 +672,7 @@ public class TemporalFunctionLibrary {
             return Value.FALSE;
         }
         try {
-            val text = textValue.value();
-            if (text.isBlank()) {
-                return Value.FALSE;
-            }
-
-            Instant.parse(text);
-            if (!text.contains("T") || (!text.endsWith("Z") && !text.matches(".*[+-]\\d{2}:\\d{2}$"))) {
-                return Value.FALSE;
-            }
-
+            SaplInstant.parse(textValue.value());
             return Value.TRUE;
         } catch (DateTimeParseException e) {
             return Value.FALSE;
@@ -1333,22 +1324,10 @@ public class TemporalFunctionLibrary {
         if (text.isBlank()) {
             throw new IllegalArgumentException(ERROR_TIME_PARAMETER_BLANK);
         }
-        return parseInstantOrDate(text);
-    }
-
-    private static Instant parseInstantOrDate(String text) {
         try {
-            return Instant.parse(text);
-        } catch (DateTimeParseException instantException) {
-            return parseAsDateFallback(text, instantException);
-        }
-    }
-
-    private static Instant parseAsDateFallback(String text, DateTimeParseException originalException) {
-        try {
-            return LocalDate.parse(text).atStartOfDay().toInstant(ZoneOffset.UTC);
-        } catch (DateTimeParseException dateException) {
-            throw new IllegalArgumentException(ERROR_UNABLE_TO_PARSE_TIME.formatted(text), originalException);
+            return SaplInstant.parseOrDate(text);
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException(ERROR_UNABLE_TO_PARSE_TIME.formatted(text), exception);
         }
     }
 

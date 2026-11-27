@@ -42,7 +42,7 @@ import lombok.val;
 class SseConnectionRegistryTests {
 
     @Test
-    @DisplayName("the shutdown drain does not block behind a stalled client's in-flight write; it skips the frame and still completes")
+    @DisplayName("the shutdown drain does not block behind a stalled client's in-flight write, it skips the frame and still completes")
     void whenConcurrentWriteHoldsMonitorThenShutdownDrainDoesNotBlockAndCompletes() throws Exception {
         val registry = new SseConnectionRegistry();
 

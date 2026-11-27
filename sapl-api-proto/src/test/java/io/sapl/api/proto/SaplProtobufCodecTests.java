@@ -18,14 +18,18 @@
 package io.sapl.api.proto;
 
 import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
+import static com.google.protobuf.WireFormat.getTagFieldNumber;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
@@ -54,6 +58,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("SaplProtobufCodec")
 class SaplProtobufCodecTests {
+
+    private static final int MAP_ENTRY_KEY_FIELD   = 1;
+    private static final int MAP_ENTRY_VALUE_FIELD = 2;
+    private static final int OBJECT_FIELDS_FIELD   = 1;
+    private static final int SECRETS_FIELD         = 5;
+    private static final int TEXT_VALUE_FIELD      = 4;
 
     @Nested
     @DisplayName("Value serialization")
@@ -96,6 +106,50 @@ class SaplProtobufCodecTests {
             val bytes = SaplProtobufCodec.writeValue(value);
 
             assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
+        }
+
+        // Each level of objects and arrays holds a few values beside the next level, as nested
+        // resources do. Encoding sized every subtree again at every level above it, so the work
+        // grew with the square of the depth.
+        @Test
+        @Timeout(10)
+        @DisplayName("a value nested to the depth limit with values on every level encodes in linear time")
+        void whenValueNestedToTheLimitWithValuesOnEveryLevelThenEncodingTimeGrowsLinearly() throws IOException {
+            val shallow = nestedObjects(50);
+            val deep    = nestedObjects(450);
+            for (int warmup = 0; warmup < 200; warmup++) {
+                SaplProtobufCodec.writeValue(shallow);
+                SaplProtobufCodec.writeValue(deep);
+            }
+            val shallowTime = medianEncodeNanos(shallow);
+            val deepTime    = medianEncodeNanos(deep);
+
+            // Nine times the depth: linear encoding costs about nine times as much, the former
+            // quadratic encoding about eighty times.
+            assertThat(deepTime).isLessThan(30 * shallowTime);
+            assertThat(SaplProtobufCodec.readValue(SaplProtobufCodec.writeValue(deep))).isEqualTo(deep);
+        }
+
+        // Objects nested to a depth, each with a text, a number and an array beside the next level.
+        private static Value nestedObjects(int depth) {
+            Value value = Value.of("leaf");
+            for (int level = 0; level < depth; level++) {
+                value = ObjectValue.builder().put("name", Value.of("level " + level)).put("index", Value.of(level))
+                        .put("tags", ArrayValue.builder().add(Value.of("a")).add(Value.of("b")).build())
+                        .put("next", value).build();
+            }
+            return value;
+        }
+
+        private static long medianEncodeNanos(Value value) throws IOException {
+            val times = new long[21];
+            for (int run = 0; run < times.length; run++) {
+                val start = System.nanoTime();
+                SaplProtobufCodec.writeValue(value);
+                times[run] = System.nanoTime() - start;
+            }
+            Arrays.sort(times);
+            return times[times.length / 2];
         }
 
         @ParameterizedTest(name = "{0}")
@@ -323,34 +377,106 @@ class SaplProtobufCodecTests {
             });
         }
 
+        static Stream<Arguments> subscriptionsWithDefaultParts() {
+            return Stream.of(
+                    arguments("environment undefined and no secrets",
+                            new AuthorizationSubscription(Value.of("alice"), Value.of("read"), Value.of("document"),
+                                    Value.UNDEFINED, Value.EMPTY_OBJECT),
+                            "0a072205616c69636512062204726561641a0a2208646f63756d656e74"),
+                    arguments("every part undefined and no secrets", new AuthorizationSubscription(Value.UNDEFINED,
+                            Value.UNDEFINED, Value.UNDEFINED, Value.UNDEFINED, Value.EMPTY_OBJECT), ""));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("subscriptionsWithDefaultParts")
+        @DisplayName("parts that hold their default are left out and read back as their default")
+        void whenPartsHoldTheirDefaultThenTheyAreLeftOut(String description, AuthorizationSubscription subscription,
+                String expectedHex) throws IOException {
+            val bytes = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
+
+            assertThat(HexFormat.of().formatHex(bytes)).isEqualTo(expectedHex);
+            assertThat(SaplProtobufCodec.readAuthorizationSubscription(bytes)).isEqualTo(subscription);
+        }
+
+        static Stream<Arguments> secretsThatAreNotAnObjectMessage() throws IOException {
+            val secrets = ObjectValue.builder().put("apiKey", Value.of("secret123")).build();
+            return Stream.of(arguments("a text value", textValue("not-an-object")),
+                    arguments("an object wrapped into a value", SaplProtobufCodec.writeValue(secrets)));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("secretsThatAreNotAnObjectMessage")
+        @DisplayName("a subscription whose secrets are not an object message is refused")
+        void whenSecretsPayloadIsNotAnObjectMessageThenDecodingFails(String description, byte[] secretsPayload)
+                throws IOException {
+            // Skipping the payload instead would evaluate the subscription as if the
+            // client had sent no secrets.
+            val bytes = lengthDelimited(SECRETS_FIELD, secretsPayload);
+
+            assertThatThrownBy(() -> SaplProtobufCodec.readAuthorizationSubscription(bytes))
+                    .isInstanceOf(IOException.class)
+                    .hasMessage("The secrets of an authorization subscription must be an object.");
+        }
+
         @Test
-        @DisplayName("secrets is always decoded as an object even when the wire carries a non-object value")
-        void whenSecretsPayloadIsNotAnObjectThenSecretsDecodeAsEmptyObject() throws IOException {
-            // A non-object value in field 5 must decode to an empty object, not leak
-            // through.
-            val bytes = subscriptionWithNonObjectSecrets("not-an-object");
+        @DisplayName("secrets are read from an object message as the schema declares")
+        void whenSecretsAreAnObjectMessageThenTheyAreRead() throws IOException {
+            val bytes = lengthDelimited(SECRETS_FIELD, objectMessageWithApiKey());
 
             val deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
 
-            assertThat(deserialized.secrets()).isEqualTo(Value.EMPTY_OBJECT);
+            assertThat(deserialized.secrets())
+                    .isEqualTo(ObjectValue.builder().put("apiKey", Value.of("secret123")).build());
         }
 
-        private static byte[] subscriptionWithNonObjectSecrets(String secretText) throws IOException {
-            // secrets as VALUE_TEXT (field 4) rather than an object.
-            val secretValueBuffer = new ByteArrayOutputStream();
-            val secretValueOut    = CodedOutputStream.newInstance(secretValueBuffer);
-            secretValueOut.writeString(4, secretText);
-            secretValueOut.flush();
-            val secretValueBytes = secretValueBuffer.toByteArray();
+        @Test
+        @DisplayName("secrets are written as an object message as the schema declares")
+        void whenSubscriptionIsWrittenThenSecretsAreAnObjectMessage() throws IOException {
+            val subscription = new AuthorizationSubscription(Value.UNDEFINED, Value.UNDEFINED, Value.UNDEFINED,
+                    Value.UNDEFINED, ObjectValue.builder().put("apiKey", Value.of("secret123")).build());
 
-            // SUBSCRIPTION_SECRETS (field 5).
-            val subscriptionBuffer = new ByteArrayOutputStream();
-            val subscriptionOut    = CodedOutputStream.newInstance(subscriptionBuffer);
-            subscriptionOut.writeTag(5, WIRETYPE_LENGTH_DELIMITED);
-            subscriptionOut.writeUInt32NoTag(secretValueBytes.length);
-            subscriptionOut.writeRawBytes(secretValueBytes);
-            subscriptionOut.flush();
-            return subscriptionBuffer.toByteArray();
+            val bytes = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
+
+            assertThat(payloadOfField(SECRETS_FIELD, bytes)).isEqualTo(objectMessageWithApiKey());
+        }
+
+        // The ObjectValue message with the one entry apiKey, a text value.
+        private static byte[] objectMessageWithApiKey() throws IOException {
+            val entryBuffer = new ByteArrayOutputStream();
+            val entryOut    = CodedOutputStream.newInstance(entryBuffer);
+            entryOut.writeString(MAP_ENTRY_KEY_FIELD, "apiKey");
+            entryOut.writeByteArray(MAP_ENTRY_VALUE_FIELD, textValue("secret123"));
+            entryOut.flush();
+            return lengthDelimited(OBJECT_FIELDS_FIELD, entryBuffer.toByteArray());
+        }
+
+        // The Value message that holds a text.
+        private static byte[] textValue(String text) throws IOException {
+            val buffer = new ByteArrayOutputStream();
+            val out    = CodedOutputStream.newInstance(buffer);
+            out.writeString(TEXT_VALUE_FIELD, text);
+            out.flush();
+            return buffer.toByteArray();
+        }
+
+        private static byte[] lengthDelimited(int fieldNumber, byte[] payload) throws IOException {
+            val buffer = new ByteArrayOutputStream();
+            val out    = CodedOutputStream.newInstance(buffer);
+            out.writeByteArray(fieldNumber, payload);
+            out.flush();
+            return buffer.toByteArray();
+        }
+
+        private static byte[] payloadOfField(int fieldNumber, byte[] message) throws IOException {
+            val input = CodedInputStream.newInstance(message);
+            while (!input.isAtEnd()) {
+                val tag = input.readTag();
+                if (getTagFieldNumber(tag) == fieldNumber) {
+                    return input.readByteArray();
+                }
+                input.skipField(tag);
+            }
+            return new byte[0];
         }
     }
 
@@ -369,6 +495,35 @@ class SaplProtobufCodecTests {
             val deserialized = SaplProtobufCodec.readAuthorizationDecision(bytes);
 
             assertThat(deserialized.decision()).isEqualTo(decision);
+        }
+
+        static Stream<Arguments> decisionsWithDefaultParts() {
+            return Stream.of(
+                    arguments("a permit",
+                            new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                                    Value.UNDEFINED),
+                            "0801"),
+                    arguments("a deny",
+                            new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                                    Value.UNDEFINED),
+                            "0802"),
+                    arguments("indeterminate, the zero value",
+                            new AuthorizationDecision(Decision.INDETERMINATE, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                                    Value.UNDEFINED),
+                            ""),
+                    arguments("a permit whose resource is null", new AuthorizationDecision(Decision.PERMIT,
+                            Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.NULL), "080122020a00"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("decisionsWithDefaultParts")
+        @DisplayName("parts that hold their default are left out and read back as their default")
+        void whenPartsHoldTheirDefaultThenTheyAreLeftOut(String description, AuthorizationDecision decision,
+                String expectedHex) throws IOException {
+            val bytes = SaplProtobufCodec.writeAuthorizationDecision(decision);
+
+            assertThat(HexFormat.of().formatHex(bytes)).isEqualTo(expectedHex);
+            assertThat(SaplProtobufCodec.readAuthorizationDecision(bytes)).isEqualTo(decision);
         }
 
         static Stream<Arguments> decisionTestCases() {

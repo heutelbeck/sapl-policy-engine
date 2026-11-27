@@ -19,10 +19,15 @@ package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import lombok.val;
 
 @DisplayName("SAPL folding range provider")
 class SAPLFoldingRangeProviderTests {
@@ -103,6 +108,24 @@ class SAPLFoldingRangeProviderTests {
             });
         }
 
+    }
+
+    @Nested
+    @DisplayName("the lines of a folding range")
+    class LinesOfAFoldingRangeTests {
+
+        @ParameterizedTest(name = "lines that end with {0}")
+        @MethodSource("io.sapl.lsp.sapl.ProtocolText#lineEnds")
+        @DisplayName("are the first and the last line of the policy in the editor, whatever ends the lines")
+        void whenPolicySpansThreeLinesThenItFoldsFromItsFirstToItsLastLine(String lineBreak, String lineEnd) {
+            val content  = ProtocolText.documentOf(lineEnd, "    action == \"read\";");
+            val document = new SAPLParsedDocument("test.sapl", content);
+
+            val ranges = provider.provideFoldingRanges(document);
+
+            assertThat(ranges).singleElement().extracting(FoldingRange::getStartLine, FoldingRange::getEndLine)
+                    .containsExactly(0, 2);
+        }
     }
 
 }

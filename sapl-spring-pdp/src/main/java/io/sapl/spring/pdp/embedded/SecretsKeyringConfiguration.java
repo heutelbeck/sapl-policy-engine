@@ -32,10 +32,6 @@ record SecretsKeyringConfiguration(Keyring keyring, boolean acceptUnencrypted) {
         Objects.requireNonNull(keyring, "keyring");
     }
 
-    boolean hasKeys() {
-        return !keyring.privateKeysByKeyId().isEmpty();
-    }
-
     Set<String> keyIds() {
         return keyring.privateKeysByKeyId().keySet();
     }

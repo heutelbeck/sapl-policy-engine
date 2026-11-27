@@ -22,11 +22,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import com.google.re2j.PatternSyntaxException;
+
+import io.sapl.compiler.util.LinearRegex;
 import io.sapl.test.grammar.antlr.SAPLTestParser.CountedAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.MultipleAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
@@ -43,14 +44,10 @@ import io.sapl.test.grammar.antlr.SAPLTestParserBaseListener;
 public class SAPLTestValidator {
 
     public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Repetition amount needs to be a natural number larger than 0.";
-    public static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The given regex has an invalid format.";
+    public static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The regular expression '%s' is invalid: %s.";
     public static final String MSG_INVALID_STRING_WITH_LENGTH              = "String length needs to be a natural number larger than 0.";
     public static final String MSG_DUPLICATE_REQUIREMENT_NAME              = "Requirement name must be unique.";
     public static final String MSG_DUPLICATE_SCENARIO_NAME                 = "Scenario name must be unique within a requirement.";
-
-    // Pattern.compile of a very long literal is super-linear and runs on the
-    // per-keystroke LSP validation thread, so reject over-long regexes first.
-    private static final int MAX_REGEX_LENGTH = 1000;
 
     /**
      * Validates a SAPLTest document parse tree.
@@ -153,14 +150,11 @@ public class SAPLTestValidator {
 
     private void validateRegex(StringMatchesRegexContext context, Consumer<ValidationError> errorConsumer) {
         var regex = unquote(context.regex.getText());
-        if (regex.length() > MAX_REGEX_LENGTH) {
-            errorConsumer.accept(ValidationError.fromToken(MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX, context.regex));
-            return;
-        }
         try {
-            Pattern.compile(regex);
+            LinearRegex.compile(regex);
         } catch (PatternSyntaxException e) {
-            errorConsumer.accept(ValidationError.fromToken(MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX, context.regex));
+            errorConsumer.accept(ValidationError.fromToken(
+                    MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX.formatted(regex, e.getDescription()), context.regex));
         }
     }
 

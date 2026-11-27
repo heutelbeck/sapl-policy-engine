@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
@@ -228,7 +229,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("does not short-circuit on priority - collects constraints")
+        @DisplayName("does not short-circuit on priority, collects constraints")
         void whenPriorityThenContinuesToCollectConstraints() {
             val obligation1 = Value.of("obligation-1");
             val obligation2 = Value.of("obligation-2");
@@ -279,6 +280,23 @@ class PriorityBasedVoteCombinerTests {
     @DisplayName("combineVotes extended indeterminate logic")
     class CombineVotesExtendedIndeterminateTests {
 
+        @ParameterizedTest(name = "priority {0}")
+        @EnumSource(value = Decision.class, names = { "PERMIT", "DENY", "SUSPEND" })
+        @DisplayName("an abstaining policy preserves the other policy's error and possible effects in either order")
+        void whenAPolicyAbstainsThenTheErrorAndItsPossibleEffectsSurvive(Decision priority) {
+            val error      = indeterminateVote("alarm", Outcome.DENY);
+            val abstention = Vote.abstain(testMetadata("exception", Outcome.PERMIT));
+
+            for (val votes : List.of(List.of(error, abstention), List.of(abstention, error))) {
+                val accumulator = PriorityBasedVoteCombiner.accumulatorVoteFrom(votes.getFirst(), TEST_METADATA);
+                val result      = PriorityBasedVoteCombiner.combineVotes(accumulator, votes.getLast(), priority,
+                        TEST_METADATA);
+
+                assertThat(result).isEqualTo(
+                        new Vote(error.authorizationDecision(), error.errors(), votes, TEST_METADATA, error.outcome()));
+            }
+        }
+
         @ParameterizedTest(name = "{0}")
         @MethodSource("extendedIndeterminateCases")
         @DisplayName("extended indeterminate handling")
@@ -304,7 +322,7 @@ class PriorityBasedVoteCombinerTests {
                             Outcome.PERMIT_OR_DENY),
 
                     // Non-critical error loses to priority
-                    arguments("DENY + INDET(DENY) non-critical for permit-overrides - DENY wins", denyVote("a"),
+                    arguments("DENY + INDET(DENY) non-critical for permit-overrides, DENY wins", denyVote("a"),
                             indeterminateVote("b", Outcome.DENY), Decision.PERMIT, Decision.DENY, Outcome.DENY),
 
                     // Priority wins over non-critical accumulated error
@@ -341,7 +359,7 @@ class PriorityBasedVoteCombinerTests {
                             Outcome.DENY),
 
                     // Deny-overrides scenarios (DENY is priority, PERMIT is non-critical)
-                    arguments("PERMIT + INDET(PERMIT): non-critical error for deny-overrides - PERMIT wins",
+                    arguments("PERMIT + INDET(PERMIT): non-critical error for deny-overrides, PERMIT wins",
                             permitVote("a"), indeterminateVote("b", Outcome.PERMIT), Decision.DENY, Decision.PERMIT,
                             Outcome.PERMIT),
                     arguments("PERMIT + INDET(DENY): critical error for deny-overrides blocks", permitVote("a"),
@@ -785,7 +803,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("priority suspend: SUSPEND vs DENY - SUSPEND wins as priority")
+        @DisplayName("priority suspend: SUSPEND vs DENY, SUSPEND wins as priority")
         void whenPrioritySuspendAndSuspendVsDenyThenSuspendWins() {
             val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
             val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.SUSPEND,
@@ -856,7 +874,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("priority deny: priority via accumulator beats SUSPEND non-priority - winner-only")
+        @DisplayName("priority deny: priority via accumulator beats SUSPEND non-priority, winner-only")
         void whenPriorityDenyArrivesViaAccVsSuspendThenAccDenyWins() {
             val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
             val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.DENY, TEST_METADATA);
@@ -865,7 +883,7 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("priority suspend: priority via accumulator beats DENY non-priority - winner-only")
+        @DisplayName("priority suspend: priority via accumulator beats DENY non-priority, winner-only")
         void whenPrioritySuspendArrivesViaAccVsDenyThenAccSuspendWins() {
             val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
             val result = PriorityBasedVoteCombiner.combineVotes(acc, denyVote("p2"), Decision.SUSPEND, TEST_METADATA);

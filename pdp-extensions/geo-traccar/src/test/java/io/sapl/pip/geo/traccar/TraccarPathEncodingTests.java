@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static io.sapl.pip.geo.traccar.TraccarTestContext.context;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,8 +54,7 @@ class TraccarPathEncodingTests {
     private BlockingWebClient mockWebClient;
 
     private static ObjectValue secretsWithToken(String token) {
-        return ObjectValue.builder().put("traccar", ObjectValue.builder().put("token", Value.of(token)).build())
-                .build();
+        return ObjectValue.builder().put("token", Value.of(token)).build();
     }
 
     @Test
@@ -65,7 +65,7 @@ class TraccarPathEncodingTests {
         val secrets     = secretsWithToken("my-api-token");
         val maliciousId = Value.of("1/../../api/server?admin=1");
 
-        try (val stream = pip.device(maliciousId, BASE_CONFIG, secrets)) {
+        try (val stream = pip.device(maliciousId, context(BASE_CONFIG, secrets))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
         }
 
@@ -84,7 +84,7 @@ class TraccarPathEncodingTests {
         val secrets     = secretsWithToken("my-api-token");
         val maliciousId = Value.of("1#fragment");
 
-        try (val stream = pip.traccarGeofence(maliciousId, BASE_CONFIG, secrets)) {
+        try (val stream = pip.traccarGeofence(maliciousId, context(BASE_CONFIG, secrets))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
         }
 

@@ -211,15 +211,16 @@ io.sapl:
     pdp-config-type: BUNDLES
     policies-path: bundles
   node:
+    allow-no-tls: true
     allow-no-auth: true
     default-pdp-id: "default"
 
 server:
   address: localhost
   port: 8080
-  ssl:
-    enabled: false
 ```
+
+This configuration serves plaintext without authentication on your machine. Both are explicit opt-ins, and the node logs a warning for each at every start. Without them the node refuses to start, on localhost too. See [TLS](#tls) and [Authentication](#authentication) before you expose the node.
 
 Place your `.saplbundle` file in the `bundles/` directory. The filename without extension becomes the PDP ID (e.g., `default.saplbundle` serves PDP ID `default`).
 
@@ -365,7 +366,7 @@ SAPL Node supports four authentication modes. Enable one or more in `application
 
 ```yaml
 io.sapl.node:
-  allow-no-auth: false       # allow unauthenticated requests
+  allow-no-auth: false       # allow unauthenticated requests (or sapl server --no-auth)
   allow-basic-auth: true     # HTTP Basic authentication
   allow-api-key-auth: false  # Bearer token API keys
   allow-oauth2-auth: false   # OAuth2/JWT tokens
@@ -403,17 +404,29 @@ spring.security.oauth2:
 
 ### TLS
 
-Use standard Spring Boot SSL properties:
+The node requires TLS on both APIs, on every address, localhost included. One certificate from PEM files serves HTTP and RSocket:
 
 ```yaml
-server:
-  port: 8443
-  ssl:
-    enabled: true
-    key-store: file:/path/to/keystore.p12
-    key-store-password: "changeit"
-    key-store-type: PKCS12
+io.sapl.node.tls:
+  certificate-chain: /etc/sapl/tls/server.pem   # the certificate, then its chain
+  private-key: /etc/sapl/tls/server.key
 ```
+
+A renewed certificate is served to new connections without a restart. The node logs a warning from 14 days before a certificate expires, and again every day until it is renewed.
+
+To serve another certificate on one API, name a Spring Boot SSL bundle in `server.ssl.bundle` (HTTP) or `sapl.pdp.rsocket.ssl.bundle` (RSocket). It overrides the shared certificate for that API. Naming a bundle is enough to serve HTTPS. Do not set `server.ssl.enabled: false` beside it: the node refuses to start, so that it never serves plaintext unnoticed.
+
+```yaml
+spring.ssl.bundle.pem.sapl-http:
+  reload-on-update: true
+  keystore:
+    certificate: file:/etc/sapl/tls/http.pem
+    private-key: file:/etc/sapl/tls/http.key
+
+server.ssl.bundle: sapl-http
+```
+
+Where TLS is terminated upstream, by a proxy or a service mesh, allow plaintext explicitly with `sapl server --no-tls` or `io.sapl.node.allow-no-tls: true`. The node logs a warning at every start that names where the opt-in was set.
 
 ### Bundle Security
 

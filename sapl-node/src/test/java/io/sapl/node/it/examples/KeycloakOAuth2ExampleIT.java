@@ -212,7 +212,7 @@ class KeycloakOAuth2ExampleIT extends BaseIntegrationTest {
                 .withEnv("IO_SAPL_NODE_SCALAR_OAUTHCLIENTID", SCALAR_CLIENT_ID)
                 .withEnv("IO_SAPL_NODE_REJECTONMISSINGPDPID", "false").withEnv("IO_SAPL_NODE_DEFAULTPDPID", "default")
                 .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI", "http://keycloak:8080/realms/sapl-demo")
-                .withEnv("SERVER_SSL_ENABLED", "false");
+                .withEnv("IO_SAPL_NODE_OAUTH_ALLOWINSECUREISSUER", "true").withEnv("SERVER_SSL_ENABLED", "false");
     }
 
     private String acquireToken(KeycloakContainer keycloak, String username, String password) {

@@ -20,10 +20,13 @@ package io.sapl.api.proto;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.function.IntSupplier;
 
 import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
 import static com.google.protobuf.WireFormat.getTagFieldNumber;
+import static com.google.protobuf.WireFormat.getTagWireType;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -45,6 +48,9 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
+
+import org.jspecify.annotations.Nullable;
+
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -91,6 +97,7 @@ public class SaplProtobufCodec {
     private static final String ERROR_INVALID_NUMBER                    = "Malformed or out-of-bounds number value in protobuf payload.";
     private static final String ERROR_MAX_MULTI_SUBSCRIPTION_COUNT      = "Maximum multi-subscription count must be positive.";
     private static final String ERROR_MULTI_SUBSCRIPTION_COUNT_EXCEEDED = "Multi-subscription exceeds the maximum of %d entries.";
+    private static final String ERROR_SECRETS_NOT_AN_OBJECT             = "The secrets of an authorization subscription must be an object.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -134,10 +141,11 @@ public class SaplProtobufCodec {
      * @throws IOException if serialization fails
      */
     public static byte[] writeValue(Value value) throws IOException {
-        val size   = computeValueSize(value);
+        val sizes  = new Sizes();
+        val size   = computeValueSize(sizes, value);
         val buffer = new byte[size];
         val output = CodedOutputStream.newInstance(buffer);
-        writeValueFields(value, output);
+        writeValueFields(sizes, value, output);
         output.checkNoSpaceLeft();
         return buffer;
     }
@@ -264,7 +272,28 @@ public class SaplProtobufCodec {
         return Value.error(message);
     }
 
-    private static void writeValueFields(Value value, CodedOutputStream output) throws IOException {
+    // The content sizes of the arrays and objects of one message, each computed once. Protobuf
+    // writes the length of every nested message before its content, so without them every level
+    // would size its whole subtree again, and encoding would grow with the square of the depth.
+    // The map is created with the first array or object, so a message without any costs nothing.
+    private static final class Sizes {
+        private @Nullable IdentityHashMap<Value, Integer> contentSizes;
+
+        int contentSize(Value container, IntSupplier compute) {
+            if (contentSizes == null) {
+                contentSizes = new IdentityHashMap<>();
+            }
+            val known = contentSizes.get(container);
+            if (known != null) {
+                return known;
+            }
+            val size = compute.getAsInt();
+            contentSizes.put(container, size);
+            return size;
+        }
+    }
+
+    private static void writeValueFields(Sizes sizes, Value value, CodedOutputStream output) throws IOException {
         switch (value) {
         case NullValue ignored         -> {
             output.writeTag(VALUE_NULL, WIRETYPE_LENGTH_DELIMITED);
@@ -273,35 +302,33 @@ public class SaplProtobufCodec {
         case BooleanValue(boolean b)   -> output.writeBool(VALUE_BOOL, b);
         case NumberValue(BigDecimal n) -> output.writeString(VALUE_NUMBER, n.toPlainString());
         case TextValue(String s)       -> output.writeString(VALUE_TEXT, s);
-        case ArrayValue arr            -> writeArrayValue(arr, output);
-        case ObjectValue obj           -> writeObjectValue(obj, output);
+        case ArrayValue arr            -> writeArrayValue(sizes, arr, output);
+        case ObjectValue obj           -> writeObjectValue(sizes, obj, output);
         case UndefinedValue ignored    -> output.writeBool(VALUE_UNDEFINED, true);
         case ErrorValue err            -> writeErrorValue(err, output);
         }
     }
 
-    private static void writeArrayValue(ArrayValue array, CodedOutputStream output) throws IOException {
-        writeArrayValueField(VALUE_ARRAY, array, output);
+    private static void writeArrayValue(Sizes sizes, ArrayValue array, CodedOutputStream output) throws IOException {
+        writeArrayValueField(sizes, VALUE_ARRAY, array, output);
     }
 
-    private static void writeObjectValue(ObjectValue obj, CodedOutputStream output) throws IOException {
-        output.writeTag(VALUE_OBJECT, WIRETYPE_LENGTH_DELIMITED);
-        output.writeUInt32NoTag(computeObjectValueContentSize(obj));
-        for (val entry : obj.entrySet()) {
-            writeMapEntry(entry.getKey(), entry.getValue(), output);
-        }
+    private static void writeObjectValue(Sizes sizes, ObjectValue obj, CodedOutputStream output) throws IOException {
+        writeObjectValueField(sizes, VALUE_OBJECT, obj, output);
     }
 
-    private static void writeMapEntry(String key, Value value, CodedOutputStream output) throws IOException {
+    private static void writeMapEntry(Sizes sizes, String key, Value value, CodedOutputStream output)
+            throws IOException {
         output.writeTag(OBJECT_FIELDS, WIRETYPE_LENGTH_DELIMITED);
+        val valueSize = computeValueSize(sizes, value);
         val entrySize = CodedOutputStream.computeStringSizeNoTag(key) + 1 // key field tag
-                + CodedOutputStream.computeUInt32SizeNoTag(computeValueSize(value)) + 1 // value field tag + length
-                + computeValueSize(value);
+                + CodedOutputStream.computeUInt32SizeNoTag(valueSize) + 1 // value field tag + length
+                + valueSize;
         output.writeUInt32NoTag(entrySize);
         output.writeString(MAP_ENTRY_KEY, key);
         output.writeTag(MAP_ENTRY_VALUE, WIRETYPE_LENGTH_DELIMITED);
-        output.writeUInt32NoTag(computeValueSize(value));
-        writeValueFields(value, output);
+        output.writeUInt32NoTag(valueSize);
+        writeValueFields(sizes, value, output);
     }
 
     private static void writeErrorValue(ErrorValue error, CodedOutputStream output) throws IOException {
@@ -311,7 +338,7 @@ public class SaplProtobufCodec {
         output.writeString(ERROR_MESSAGE, error.message());
     }
 
-    private static int computeValueSize(Value value) {
+    private static int computeValueSize(Sizes sizes, Value value) {
         return switch (value) {
         case NullValue ignored         -> 1 + 1; // tag + 0 length
         case BooleanValue ignored      -> 1 + 1; // tag + bool
@@ -320,11 +347,11 @@ public class SaplProtobufCodec {
         case ArrayValue arr            -> {
             // Compute the content size once. Sizing twice per level is exponential in the
             // value's depth.
-            val content = computeArrayValueContentSize(arr);
+            val content = computeArrayValueContentSize(sizes, arr);
             yield 1 + CodedOutputStream.computeUInt32SizeNoTag(content) + content;
         }
         case ObjectValue obj           -> {
-            val content = computeObjectValueContentSize(obj);
+            val content = computeObjectValueContentSize(sizes, obj);
             yield 1 + CodedOutputStream.computeUInt32SizeNoTag(content) + content;
         }
         case UndefinedValue ignored    -> 1 + 1; // tag + bool
@@ -335,19 +362,27 @@ public class SaplProtobufCodec {
         };
     }
 
-    private static int computeArrayValueContentSize(ArrayValue array) {
+    private static int computeArrayValueContentSize(Sizes sizes, ArrayValue array) {
+        return sizes.contentSize(array, () -> sumOfElementSizes(sizes, array));
+    }
+
+    private static int sumOfElementSizes(Sizes sizes, ArrayValue array) {
         var size = 0;
         for (val element : array) {
-            val elementSize = computeValueSize(element);
+            val elementSize = computeValueSize(sizes, element);
             size += 1 + CodedOutputStream.computeUInt32SizeNoTag(elementSize) + elementSize;
         }
         return size;
     }
 
-    private static int computeObjectValueContentSize(ObjectValue obj) {
+    private static int computeObjectValueContentSize(Sizes sizes, ObjectValue obj) {
+        return sizes.contentSize(obj, () -> sumOfEntrySizes(sizes, obj));
+    }
+
+    private static int sumOfEntrySizes(Sizes sizes, ObjectValue obj) {
         var size = 0;
         for (val entry : obj.entrySet()) {
-            val valueSize = computeValueSize(entry.getValue());
+            val valueSize = computeValueSize(sizes, entry.getValue());
             val entrySize = CodedOutputStream.computeStringSizeNoTag(entry.getKey()) + 1
                     + CodedOutputStream.computeUInt32SizeNoTag(valueSize) + 1 + valueSize;
             size += 1 + CodedOutputStream.computeUInt32SizeNoTag(entrySize) + entrySize;
@@ -363,10 +398,11 @@ public class SaplProtobufCodec {
      * @throws IOException if serialization fails
      */
     public static byte[] writeAuthorizationSubscription(AuthorizationSubscription subscription) throws IOException {
-        val size   = computeAuthorizationSubscriptionSize(subscription);
+        val sizes  = new Sizes();
+        val size   = computeAuthorizationSubscriptionSize(sizes, subscription);
         val buffer = new byte[size];
         val output = CodedOutputStream.newInstance(buffer);
-        writeAuthorizationSubscriptionFields(subscription, output);
+        writeAuthorizationSubscriptionFields(sizes, subscription, output);
         output.checkNoSpaceLeft();
         return buffer;
     }
@@ -397,45 +433,87 @@ public class SaplProtobufCodec {
             case SUBSCRIPTION_ACTION      -> action = readEmbeddedValue(input, 0);
             case SUBSCRIPTION_RESOURCE    -> resource = readEmbeddedValue(input, 0);
             case SUBSCRIPTION_ENVIRONMENT -> environment = readEmbeddedValue(input, 0);
-            case SUBSCRIPTION_SECRETS     -> secrets = toObjectValue(readEmbeddedValue(input, 0));
+            case SUBSCRIPTION_SECRETS     -> secrets = readSecrets(input);
             default                       -> input.skipField(tag);
             }
         }
         return new AuthorizationSubscription(subject, action, resource, environment, secrets);
     }
 
-    private static ObjectValue toObjectValue(Value value) {
-        if (value instanceof ObjectValue ov) {
-            return ov;
+    // Secrets are an object message and are read strictly. A payload carrying
+    // anything but object fields is refused. Skipping it would evaluate the
+    // subscription as if the client had sent no secrets.
+    private static ObjectValue readSecrets(CodedInputStream input) throws IOException {
+        val limit   = input.pushLimit(input.readRawVarint32());
+        val builder = ObjectValue.builder();
+        while (!input.isAtEnd()) {
+            val tag = input.readTag();
+            if (getTagFieldNumber(tag) != OBJECT_FIELDS || getTagWireType(tag) != WIRETYPE_LENGTH_DELIMITED) {
+                throw new IOException(ERROR_SECRETS_NOT_AN_OBJECT);
+            }
+            readMapEntry(input, builder, 0);
         }
-        return Value.EMPTY_OBJECT;
+        input.popLimit(limit);
+        return builder.build();
     }
 
-    private static void writeAuthorizationSubscriptionFields(AuthorizationSubscription sub, CodedOutputStream output)
+    // Parts that hold their default (undefined, or no secrets) are left out. The reader takes a
+    // missing part as its default, and the Rust engine writes the same bytes.
+    private static void writeAuthorizationSubscriptionFields(Sizes sizes, AuthorizationSubscription sub,
+            CodedOutputStream output) throws IOException {
+        writeDefinedValueField(sizes, SUBSCRIPTION_SUBJECT, sub.subject(), output);
+        writeDefinedValueField(sizes, SUBSCRIPTION_ACTION, sub.action(), output);
+        writeDefinedValueField(sizes, SUBSCRIPTION_RESOURCE, sub.resource(), output);
+        writeDefinedValueField(sizes, SUBSCRIPTION_ENVIRONMENT, sub.environment(), output);
+        if (!sub.secrets().isEmpty()) {
+            writeObjectValueField(sizes, SUBSCRIPTION_SECRETS, sub.secrets(), output);
+        }
+    }
+
+    private static void writeDefinedValueField(Sizes sizes, int fieldNumber, Value value, CodedOutputStream output)
             throws IOException {
-        writeValueField(SUBSCRIPTION_SUBJECT, sub.subject(), output);
-        writeValueField(SUBSCRIPTION_ACTION, sub.action(), output);
-        writeValueField(SUBSCRIPTION_RESOURCE, sub.resource(), output);
-        writeValueField(SUBSCRIPTION_ENVIRONMENT, sub.environment(), output);
-        writeValueField(SUBSCRIPTION_SECRETS, sub.secrets(), output);
+        if (!(value instanceof UndefinedValue)) {
+            writeValueField(sizes, fieldNumber, value, output);
+        }
     }
 
-    private static void writeValueField(int fieldNumber, Value value, CodedOutputStream output) throws IOException {
+    private static void writeObjectValueField(Sizes sizes, int fieldNumber, ObjectValue object,
+            CodedOutputStream output) throws IOException {
         output.writeTag(fieldNumber, WIRETYPE_LENGTH_DELIMITED);
-        output.writeUInt32NoTag(computeValueSize(value));
-        writeValueFields(value, output);
+        output.writeUInt32NoTag(computeObjectValueContentSize(sizes, object));
+        for (val entry : object.entrySet()) {
+            writeMapEntry(sizes, entry.getKey(), entry.getValue(), output);
+        }
     }
 
-    private static int computeAuthorizationSubscriptionSize(AuthorizationSubscription sub) {
-        return computeValueFieldSize(SUBSCRIPTION_SUBJECT, sub.subject())
-                + computeValueFieldSize(SUBSCRIPTION_ACTION, sub.action())
-                + computeValueFieldSize(SUBSCRIPTION_RESOURCE, sub.resource())
-                + computeValueFieldSize(SUBSCRIPTION_ENVIRONMENT, sub.environment())
-                + computeValueFieldSize(SUBSCRIPTION_SECRETS, sub.secrets());
+    private static void writeValueField(Sizes sizes, int fieldNumber, Value value, CodedOutputStream output)
+            throws IOException {
+        output.writeTag(fieldNumber, WIRETYPE_LENGTH_DELIMITED);
+        output.writeUInt32NoTag(computeValueSize(sizes, value));
+        writeValueFields(sizes, value, output);
     }
 
-    private static int computeValueFieldSize(int fieldNumber, Value value) {
-        val contentSize = computeValueSize(value);
+    private static int computeAuthorizationSubscriptionSize(Sizes sizes, AuthorizationSubscription sub) {
+        return computeDefinedValueFieldSize(sizes, SUBSCRIPTION_SUBJECT, sub.subject())
+                + computeDefinedValueFieldSize(sizes, SUBSCRIPTION_ACTION, sub.action())
+                + computeDefinedValueFieldSize(sizes, SUBSCRIPTION_RESOURCE, sub.resource())
+                + computeDefinedValueFieldSize(sizes, SUBSCRIPTION_ENVIRONMENT, sub.environment())
+                + (sub.secrets().isEmpty() ? 0
+                        : computeObjectValueFieldSize(sizes, SUBSCRIPTION_SECRETS, sub.secrets()));
+    }
+
+    private static int computeDefinedValueFieldSize(Sizes sizes, int fieldNumber, Value value) {
+        return value instanceof UndefinedValue ? 0 : computeValueFieldSize(sizes, fieldNumber, value);
+    }
+
+    private static int computeObjectValueFieldSize(Sizes sizes, int fieldNumber, ObjectValue object) {
+        val contentSize = computeObjectValueContentSize(sizes, object);
+        return CodedOutputStream.computeTagSize(fieldNumber) + CodedOutputStream.computeUInt32SizeNoTag(contentSize)
+                + contentSize;
+    }
+
+    private static int computeValueFieldSize(Sizes sizes, int fieldNumber, Value value) {
+        val contentSize = computeValueSize(sizes, value);
         return CodedOutputStream.computeTagSize(fieldNumber) + CodedOutputStream.computeUInt32SizeNoTag(contentSize)
                 + contentSize;
     }
@@ -448,10 +526,11 @@ public class SaplProtobufCodec {
      * @throws IOException if serialization fails
      */
     public static byte[] writeAuthorizationDecision(AuthorizationDecision decision) throws IOException {
-        val size   = computeAuthorizationDecisionSize(decision);
+        val sizes  = new Sizes();
+        val size   = computeAuthorizationDecisionSize(sizes, decision);
         val buffer = new byte[size];
         val output = CodedOutputStream.newInstance(buffer);
-        writeAuthorizationDecisionFields(decision, output);
+        writeAuthorizationDecisionFields(sizes, decision, output);
         output.checkNoSpaceLeft();
         return buffer;
     }
@@ -497,22 +576,32 @@ public class SaplProtobufCodec {
         };
     }
 
-    private static void writeAuthorizationDecisionFields(AuthorizationDecision dec, CodedOutputStream output)
-            throws IOException {
-        output.writeEnum(DECISION_DECISION, toProtoDecision(dec.decision()));
-        writeArrayValueField(DECISION_OBLIGATIONS, dec.obligations(), output);
-        writeArrayValueField(DECISION_ADVICE, dec.advice(), output);
-        writeValueField(DECISION_RESOURCE, dec.resource(), output);
+    // Parts that hold their default (INDETERMINATE, which is the zero value, empty obligations and
+    // advice, an undefined resource) are left out. The reader takes a missing part as its default,
+    // and the Rust engine writes the same bytes.
+    private static void writeAuthorizationDecisionFields(Sizes sizes, AuthorizationDecision dec,
+            CodedOutputStream output) throws IOException {
+        val decision = toProtoDecision(dec.decision());
+        if (decision != DECISION_ENUM_INDETERMINATE) {
+            output.writeEnum(DECISION_DECISION, decision);
+        }
+        if (!dec.obligations().isEmpty()) {
+            writeArrayValueField(sizes, DECISION_OBLIGATIONS, dec.obligations(), output);
+        }
+        if (!dec.advice().isEmpty()) {
+            writeArrayValueField(sizes, DECISION_ADVICE, dec.advice(), output);
+        }
+        writeDefinedValueField(sizes, DECISION_RESOURCE, dec.resource(), output);
     }
 
-    private static void writeArrayValueField(int fieldNumber, ArrayValue array, CodedOutputStream output)
+    private static void writeArrayValueField(Sizes sizes, int fieldNumber, ArrayValue array, CodedOutputStream output)
             throws IOException {
         output.writeTag(fieldNumber, WIRETYPE_LENGTH_DELIMITED);
-        output.writeUInt32NoTag(computeArrayValueContentSize(array));
+        output.writeUInt32NoTag(computeArrayValueContentSize(sizes, array));
         for (val element : array) {
             output.writeTag(ARRAY_ELEMENTS, WIRETYPE_LENGTH_DELIMITED);
-            output.writeUInt32NoTag(computeValueSize(element));
-            writeValueFields(element, output);
+            output.writeUInt32NoTag(computeValueSize(sizes, element));
+            writeValueFields(sizes, element, output);
         }
     }
 
@@ -526,15 +615,21 @@ public class SaplProtobufCodec {
         };
     }
 
-    private static int computeAuthorizationDecisionSize(AuthorizationDecision dec) {
-        return CodedOutputStream.computeEnumSize(DECISION_DECISION, toProtoDecision(dec.decision()))
-                + computeArrayValueFieldSize(DECISION_OBLIGATIONS, dec.obligations())
-                + computeArrayValueFieldSize(DECISION_ADVICE, dec.advice())
-                + computeValueFieldSize(DECISION_RESOURCE, dec.resource());
+    private static int computeAuthorizationDecisionSize(Sizes sizes, AuthorizationDecision dec) {
+        val decision = toProtoDecision(dec.decision());
+        return (decision == DECISION_ENUM_INDETERMINATE ? 0
+                : CodedOutputStream.computeEnumSize(DECISION_DECISION, decision))
+                + computeNonEmptyArrayValueFieldSize(sizes, DECISION_OBLIGATIONS, dec.obligations())
+                + computeNonEmptyArrayValueFieldSize(sizes, DECISION_ADVICE, dec.advice())
+                + computeDefinedValueFieldSize(sizes, DECISION_RESOURCE, dec.resource());
     }
 
-    private static int computeArrayValueFieldSize(int fieldNumber, ArrayValue array) {
-        val contentSize = computeArrayValueContentSize(array);
+    private static int computeNonEmptyArrayValueFieldSize(Sizes sizes, int fieldNumber, ArrayValue array) {
+        return array.isEmpty() ? 0 : computeArrayValueFieldSize(sizes, fieldNumber, array);
+    }
+
+    private static int computeArrayValueFieldSize(Sizes sizes, int fieldNumber, ArrayValue array) {
+        val contentSize = computeArrayValueContentSize(sizes, array);
         return CodedOutputStream.computeTagSize(fieldNumber) + CodedOutputStream.computeUInt32SizeNoTag(contentSize)
                 + contentSize;
     }
@@ -547,11 +642,12 @@ public class SaplProtobufCodec {
      * @throws IOException if serialization fails
      */
     public static byte[] writeMultiAuthorizationSubscription(MultiAuthorizationSubscription multi) throws IOException {
-        val size   = computeMultiAuthorizationSubscriptionSize(multi);
+        val sizes  = new Sizes();
+        val size   = computeMultiAuthorizationSubscriptionSize(sizes, multi);
         val buffer = new byte[size];
         val output = CodedOutputStream.newInstance(buffer);
         for (val idSub : multi) {
-            writeIdentifiableSubscription(idSub, output);
+            writeIdentifiableSubscription(sizes, idSub, output);
         }
         output.checkNoSpaceLeft();
         return buffer;
@@ -636,30 +732,30 @@ public class SaplProtobufCodec {
         return result;
     }
 
-    private static void writeIdentifiableSubscription(IdentifiableAuthorizationSubscription idSub,
+    private static void writeIdentifiableSubscription(Sizes sizes, IdentifiableAuthorizationSubscription idSub,
             CodedOutputStream output) throws IOException {
         output.writeTag(MULTI_SUB_SUBSCRIPTIONS, WIRETYPE_LENGTH_DELIMITED);
         val contentSize = CodedOutputStream.computeStringSize(ID_SUB_ID, idSub.subscriptionId())
-                + computeEmbeddedSubscriptionSize(idSub.subscription());
+                + computeEmbeddedSubscriptionSize(sizes, idSub.subscription());
         output.writeUInt32NoTag(contentSize);
         output.writeString(ID_SUB_ID, idSub.subscriptionId());
         output.writeTag(ID_SUB_SUBSCRIPTION, WIRETYPE_LENGTH_DELIMITED);
-        val subSize = computeAuthorizationSubscriptionSize(idSub.subscription());
+        val subSize = computeAuthorizationSubscriptionSize(sizes, idSub.subscription());
         output.writeUInt32NoTag(subSize);
-        writeAuthorizationSubscriptionFields(idSub.subscription(), output);
+        writeAuthorizationSubscriptionFields(sizes, idSub.subscription(), output);
     }
 
-    private static int computeEmbeddedSubscriptionSize(AuthorizationSubscription sub) {
-        val subSize = computeAuthorizationSubscriptionSize(sub);
+    private static int computeEmbeddedSubscriptionSize(Sizes sizes, AuthorizationSubscription sub) {
+        val subSize = computeAuthorizationSubscriptionSize(sizes, sub);
         return CodedOutputStream.computeTagSize(ID_SUB_SUBSCRIPTION) + CodedOutputStream.computeUInt32SizeNoTag(subSize)
                 + subSize;
     }
 
-    private static int computeMultiAuthorizationSubscriptionSize(MultiAuthorizationSubscription multi) {
+    private static int computeMultiAuthorizationSubscriptionSize(Sizes sizes, MultiAuthorizationSubscription multi) {
         var size = 0;
         for (val idSub : multi) {
             val contentSize = CodedOutputStream.computeStringSize(ID_SUB_ID, idSub.subscriptionId())
-                    + computeEmbeddedSubscriptionSize(idSub.subscription());
+                    + computeEmbeddedSubscriptionSize(sizes, idSub.subscription());
             size += CodedOutputStream.computeTagSize(MULTI_SUB_SUBSCRIPTIONS)
                     + CodedOutputStream.computeUInt32SizeNoTag(contentSize) + contentSize;
         }
@@ -674,11 +770,12 @@ public class SaplProtobufCodec {
      * @throws IOException if serialization fails
      */
     public static byte[] writeMultiAuthorizationDecision(MultiAuthorizationDecision multi) throws IOException {
-        val size   = computeMultiAuthorizationDecisionSize(multi);
+        val sizes  = new Sizes();
+        val size   = computeMultiAuthorizationDecisionSize(sizes, multi);
         val buffer = new byte[size];
         val output = CodedOutputStream.newInstance(buffer);
         for (val idDec : multi) {
-            writeDecisionMapEntry(idDec.subscriptionId(), idDec.decision(), output);
+            writeDecisionMapEntry(sizes, idDec.subscriptionId(), idDec.decision(), output);
         }
         output.checkNoSpaceLeft();
         return buffer;
@@ -740,23 +837,23 @@ public class SaplProtobufCodec {
         return result;
     }
 
-    private static void writeDecisionMapEntry(String id, AuthorizationDecision dec, CodedOutputStream output)
-            throws IOException {
+    private static void writeDecisionMapEntry(Sizes sizes, String id, AuthorizationDecision dec,
+            CodedOutputStream output) throws IOException {
         output.writeTag(MULTI_DEC_DECISIONS, WIRETYPE_LENGTH_DELIMITED);
-        val decSize     = computeAuthorizationDecisionSize(dec);
+        val decSize     = computeAuthorizationDecisionSize(sizes, dec);
         val contentSize = CodedOutputStream.computeStringSizeNoTag(id) + 1
                 + CodedOutputStream.computeUInt32SizeNoTag(decSize) + 1 + decSize;
         output.writeUInt32NoTag(contentSize);
         output.writeString(MAP_ENTRY_KEY, id);
         output.writeTag(MAP_ENTRY_VALUE, WIRETYPE_LENGTH_DELIMITED);
         output.writeUInt32NoTag(decSize);
-        writeAuthorizationDecisionFields(dec, output);
+        writeAuthorizationDecisionFields(sizes, dec, output);
     }
 
-    private static int computeMultiAuthorizationDecisionSize(MultiAuthorizationDecision multi) {
+    private static int computeMultiAuthorizationDecisionSize(Sizes sizes, MultiAuthorizationDecision multi) {
         var size = 0;
         for (val idDec : multi) {
-            val decSize     = computeAuthorizationDecisionSize(idDec.decision());
+            val decSize     = computeAuthorizationDecisionSize(sizes, idDec.decision());
             val contentSize = CodedOutputStream.computeStringSizeNoTag(idDec.subscriptionId()) + 1
                     + CodedOutputStream.computeUInt32SizeNoTag(decSize) + 1 + decSize;
             size += CodedOutputStream.computeTagSize(MULTI_DEC_DECISIONS)
@@ -774,14 +871,15 @@ public class SaplProtobufCodec {
      */
     public static byte[] writeIdentifiableAuthorizationDecision(IdentifiableAuthorizationDecision idDec)
             throws IOException {
-        val size   = computeIdentifiableAuthorizationDecisionSize(idDec);
+        val sizes  = new Sizes();
+        val size   = computeIdentifiableAuthorizationDecisionSize(sizes, idDec);
         val buffer = new byte[size];
         val output = CodedOutputStream.newInstance(buffer);
         output.writeString(ID_DEC_ID, idDec.subscriptionId());
         output.writeTag(ID_DEC_DECISION, WIRETYPE_LENGTH_DELIMITED);
-        val decSize = computeAuthorizationDecisionSize(idDec.decision());
+        val decSize = computeAuthorizationDecisionSize(sizes, idDec.decision());
         output.writeUInt32NoTag(decSize);
-        writeAuthorizationDecisionFields(idDec.decision(), output);
+        writeAuthorizationDecisionFields(sizes, idDec.decision(), output);
         output.checkNoSpaceLeft();
         return buffer;
     }
@@ -798,8 +896,9 @@ public class SaplProtobufCodec {
         return readIdAndDecisionFields(CodedInputStream.newInstance(bytes));
     }
 
-    private static int computeIdentifiableAuthorizationDecisionSize(IdentifiableAuthorizationDecision idDec) {
-        val decSize = computeAuthorizationDecisionSize(idDec.decision());
+    private static int computeIdentifiableAuthorizationDecisionSize(Sizes sizes,
+            IdentifiableAuthorizationDecision idDec) {
+        val decSize = computeAuthorizationDecisionSize(sizes, idDec.decision());
         return CodedOutputStream.computeStringSize(ID_DEC_ID, idDec.subscriptionId())
                 + CodedOutputStream.computeTagSize(ID_DEC_DECISION) + CodedOutputStream.computeUInt32SizeNoTag(decSize)
                 + decSize;
