@@ -11,3 +11,4 @@ This release adds bundle carried extensions, sealed secrets, signed realm indexe
 - The HTTP policy information point now binds credentials to destinations. A credential is a named `secrets.http.<key>` entry carrying its headers and an `allowedBaseUrls` allowlist; policies can no longer supply credential headers, and a secret is sent only to a URL matching its allowlist by scheme, host, port, and path prefix. Fail closed, no unnamed default credential.
 - The `units` functions recognize unit suffixes independently of the JVM default locale.
 - `time.timeBetween` resolves the unit name independently of the JVM default locale.
+- `x509.hasDnsName` compares DNS names independently of the JVM default locale.
